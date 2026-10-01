@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startConnectTestServer } from "./connect-server.ts";
 import { startStableFrontProxy } from "../../../../test/helpers/stable-front-proxy.ts";
@@ -109,6 +109,7 @@ test("Disconnect from Server leaves the served upgrade gate", async () => {
     await page.getByRole("button", { name: "Connect", exact: true }).click();
     await expect(page.locator(".desktop-upgrade-gate")).toBeVisible();
     await expect(page.locator(".update-popover, .update-bell")).toHaveCount(0);
+    expect(JSON.parse(readFileSync(record, "utf8"))).toEqual({ serverURL: server.serverURL, token: "" });
   } finally {
     await app.close();
     await server.dispose();
