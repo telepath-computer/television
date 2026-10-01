@@ -254,6 +254,10 @@ describe("shipped package licensing", () => {
       [path.join(repoRoot, noticeName), sourceExpected],
       [path.join(packedCLI, "dist", noticeName), cliExpected],
       [path.join(desktopUpload, "dist", noticeName), desktopExpected],
+      [
+        path.join(desktopUpload, "dist/clouds", noticeName),
+        readFileSync(path.join(repoRoot, bundledThemesSource, "clouds", noticeName), "utf8"),
+      ],
       [sourceNotices.web, webExpected],
       [sourceNotices.markdown, markdownExpected],
       [sourceNotices.calendar, calendarExpected],
