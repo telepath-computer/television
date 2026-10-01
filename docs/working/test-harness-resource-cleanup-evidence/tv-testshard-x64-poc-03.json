@@ -1,0 +1,420 @@
+{
+  "capturedAt": "2026-10-01T22:44:20.524241+00:00",
+  "tmp": {
+    "availableBytes": 3700719616,
+    "totalBytes": 6676103168,
+    "categories": [
+      {
+        "prefix": ".X*",
+        "count": 1,
+        "examples": [
+          {
+            "name": ".X11-unix",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": ".org.chromium.Chromium.*",
+        "count": 9,
+        "examples": [
+          {
+            "name": ".org.chromium.Chromium.BOuDBO",
+            "kind": "file"
+          },
+          {
+            "name": ".org.chromium.Chromium.W2lXu2",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "multipart-uploads",
+        "count": 1,
+        "examples": [
+          {
+            "name": "multipart-uploads",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "node-compile-cache*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "node-compile-cache",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "playwright-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "playwright-transform-cache-0",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "rose-*",
+        "count": 2,
+        "examples": [
+          {
+            "name": "rose-chromium-11632.netlog.json",
+            "kind": "file"
+          },
+          {
+            "name": "rose-chromium-11632.log",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "television-source-cli-e2e-*",
+        "count": 17,
+        "examples": [
+          {
+            "name": "television-source-cli-e2e-6bIaZE",
+            "kind": "dir"
+          },
+          {
+            "name": "television-source-cli-e2e-P8NxgI",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "television-web-bundle-*",
+        "count": 27,
+        "examples": [
+          {
+            "name": "television-web-bundle-0TE0fq",
+            "kind": "dir"
+          },
+          {
+            "name": "television-web-bundle-1xECmr",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-attest-cli-*",
+        "count": 39,
+        "examples": [
+          {
+            "name": "tv-attest-cli-38qL1c",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-attest-cli-6NzZvS",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-attest-clone-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-attest-clone-73s4Yq",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-attest-clone-g2egxA",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-attest-prune-*",
+        "count": 33,
+        "examples": [
+          {
+            "name": "tv-attest-prune-1Kbfdh",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-attest-prune-36WSdp",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-attest-rundir-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-attest-rundir-IudtUg",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-attest-rundir-Su49lM",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-attest-writer-*",
+        "count": 18,
+        "examples": [
+          {
+            "name": "tv-attest-writer-51Dp9C",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-attest-writer-7XgAsh",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-git-askpass.sh",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-git-askpass.sh",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-owner-cleanup-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-owner-cleanup-2026-09-29T18-41-53-559Z-1385612-shard-3.json",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-posthog-preflight-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-posthog-preflight-6zpiaH",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-posthog-preflight-missing-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-posthog-preflight-missing-4tzN0y",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-blaxel-wrapper-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-blaxel-wrapper-soo5KV",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-combine-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-combine-XnpJi1",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-corrupt-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-corrupt-3nq4hS",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-leak-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-leak-VXhPIP",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-normalize-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-normalize-Ky71z0",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-remote-native-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-remote-native-H1RqSp",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-reports-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-reports-Y1Nd1C",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-stale-owner-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-stale-owner-9WjHLo",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-timing-shards-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-provider-timing-shards-Zv3xyW",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-test-registry-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-test-registry-ESqI4b",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-test-registry-la3yV1",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-testshard-*",
+        "count": 192,
+        "examples": [
+          {
+            "name": "tv-testshard-2026-10-01T22-21-05-004Z-2883021-s1.sh",
+            "kind": "file"
+          },
+          {
+            "name": "tv-testshard-2026-10-01T22-04-01-804Z-2873890-s3.sh",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-toolchain-npm-*",
+        "count": 2,
+        "examples": [
+          {
+            "name": "tv-toolchain-npm-5sTMQk",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-toolchain-npm-Fmnb69",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-toolchain-policy-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-toolchain-policy-egmSc5",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-toolchain-policy-mismatch-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-toolchain-policy-mismatch-T9vBXh",
+            "kind": "dir"
+          }
+        ]
+      }
+    ]
+  },
+  "meminfo": {
+    "MemTotal": "8149540 kB",
+    "MemAvailable": "4670476 kB",
+    "SwapTotal": "0 kB",
+    "SwapFree": "0 kB",
+    "Shmem": "2906032 kB"
+  },
+  "lock": null,
+  "processes": [
+    {
+      "pid": 1,
+      "command": "init",
+      "ownerTokens": []
+    },
+    {
+      "pid": 424,
+      "command": "ukp-fs",
+      "ownerTokens": []
+    },
+    {
+      "pid": 427,
+      "command": "entrypoint.sh",
+      "ownerTokens": []
+    },
+    {
+      "pid": 428,
+      "command": "sandbox-api",
+      "ownerTokens": []
+    },
+    {
+      "pid": 429,
+      "command": "MainThread",
+      "ownerTokens": []
+    },
+    {
+      "pid": 11818,
+      "command": "sh",
+      "ownerTokens": []
+    },
+    {
+      "pid": 11819,
+      "command": "python3",
+      "ownerTokens": []
+    },
+    {
+      "pid": 11820,
+      "command": "sleep",
+      "ownerTokens": []
+    }
+  ],
+  "tmpReferences": [],
+  "sandbox": "tv-testshard-x64-poc-03",
+  "method": "Read-only os.scandir(/tmp), statvfs, selected /proc/meminfo values, process comm and TV_TEST_SURFACE_OWNER only, cwd/fd paths under /tmp, and the shard owner.json if present. Random six-character directory suffixes grouped for readability. No file contents or environment secrets collected."
+}
