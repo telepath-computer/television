@@ -1,6 +1,6 @@
 # Desktop connect links: proof derivation
 
-Round-two status: independent review passed at `b7f3e899`; the supervisor confirmed proof convergence. The wording clarifications through `358e6802` resolve the explainer follow-up below and leave the proof design unchanged. The implementation plan now builds on these proofs and carries the review's reduced-motion and stale CLI citation observations into implementation.
+Round-two status: independent review passed at `b7f3e899`; the supervisor confirmed proof convergence. The wording clarifications through `358e6802` resolve the explainer follow-up below and leave the proof design unchanged. The implementation plan now builds on these proofs and carries the review's reduced-motion and stale CLI citation observations into implementation. Slice 1 has supplied the CLI evidence and removed the stale citation; the task record identifies its passing runs. The other slices' pending assertions remain outstanding.
 
 Plan review identified licensing coverage outside that submission: the desktop's additional assets and shared presentation change the contents its licensing proofs and tests describe. The plan assigns those revisions and their independent review to slice 3, following the approved product clarification at `cd9afc46`. The converged proofs remain unchanged in this plan revision.
 

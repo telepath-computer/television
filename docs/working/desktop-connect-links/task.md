@@ -38,7 +38,37 @@ Working record for `thopter/desktop-connect-links`. Not authority. The approved 
 
 Validation at b0164479: all 62 plan links resolve; `npm test -- local --file test/repo/spec-links.test.ts` passes; `git diff --check` passes. Proofs remain byte-identical to b7f3e899, and specs match cd9afc46. No application tests or full verification were run for the plan revision.
 - Plan review round 2 (Claude Fable, on b0164479): PASS, no blockers; plan converged. The follow-up merge of ca22ebbe (68169e1d) changed only wording the reviewer had already read. Carry to the slice 3 review: check the licensing proof edits against the specs (cd9afc46, ca22ebbe) as well as the tests.
+<<<<<<< HEAD
 - Josh approved the remaining wording-level spec deltas: drag strip (06d9d79c, edbec2cc), the Clouds clause for local dialogs (d4c63e53), and the licensing architecture surface list (ca22ebbe). All spec deltas on the branch are now approved.
 - Josh designated hzbox (this host) for the daemon-acceptance suite. Full verification runs on Blaxel.
 - Blaxel readiness check: CLI logged in (workspace telepath); BLAXEL_TV_GH_TOKEN can read the archive repo but gets 404 on telepath-computer/television, so workers would fail checkout. Asked Josh to extend the token's repository access before the final gate.
 - Josh extended the Blaxel token's repository access; verified it reads telepath-computer/television and its branches. Blaxel is ready for the final gate.
+=======
+
+
+## Slice 1 implementation — ready for independent review
+
+The worker fast-forwarded to the supervisor's merge `940a744a` before implementation. Josh designated **hzbox** for daemon acceptance and chose **Blaxel** for the later full verification gate. The developer telemetry marker was present before any Television launch.
+
+`tv links` now resolves the usual home and client port, reads health, validates the home's token through display retrieval, and tries the same read without authentication. Only the running server's responses decide token inclusion. All validation completes before output. Links and both startup paths use one formatter: OSC-8 only for `isTTY === true`, otherwise plain URLs. No server API or service lifecycle changed.
+
+The CLI proof markers now cite implemented evidence. The unreachable walk uses a TCP forwarder to hold its client endpoint continuously; the proof describes that infrastructure explicitly. It forwards real HTTP while the server is live and closes on the real backend failure, supplying no substitute response. Inherited foreground evidence retains its grade. Native terminal detection and hyperlink activation remain unobserved as planned.
+
+Red/green evidence: the new command contracts and three built-process walks failed because `links` was absent; formatter, foreground and installed-service checks failed on OSC-8 captured by a pipe. The type fixture detected the missing `isTTY` declaration. After implementation, narrowed reruns passed. The CLI suite then identified its old command list and two additional unconditional-OSC-8 expectations; those were reconciled and passed narrowly before rerunning the suite. Foreground assertions read stdout separately from combined diagnostics so stderr ordering cannot affect the plain-output check.
+
+Completed checks, against `940a744a` plus this slice's working-tree changes (run reports record `dirty: true`):
+
+| Check | Result | Run directory under `.test-runs/` |
+| --- | --- | --- |
+| `npm test -- local --surface unit:cli` | 146 passed | `2026-10-01T18-03-04-997Z-p2639938-rea1a0e8edf4e6591` |
+| `npm test -- local --file test/node/cli-acceptance.test.ts` | 22 passed | `2026-10-01T18-03-28-000Z-p2640241-r2282c9d538b40250` |
+| `npm test -- local --file test/node/cli-integration.test.ts` | 18 passed | `2026-10-01T18-04-16-699Z-p2641823-r7973c506662700fe` |
+| Foreground cases after separating stdout capture (`--grep 'tv serve records lifecycle|tv serve with auth does not print' --retries 0`) | 2 passed | `2026-10-01T18-05-14-785Z-p2642605-r3c6f81c7e8dc6ef4` |
+| `TV_DAEMON_TEST_HOST=1 npm test -- local --suite daemon-acceptance` | Passed | `2026-10-01T18-02-53-662Z-p2639327-r8d3360bb048e6f6f` |
+| `npm test -- local --file test/repo/spec-links.test.ts` | Passed | `2026-10-01T18-04-45-713Z-p2642431-ra99e9c77d560a571` |
+
+These runs reported no recovered flakes or process leaks. Type checking, ESLint on changed TypeScript files, and `git diff --check` passed. The daemon suite verified install, live refresh, boot, stop and persist-uninstall, leaving no installed/running service. The freshly packed global `tv` 1.4.13 remains at `/home/user/.nvm/versions/node/v24.21.0/bin/tv`; its developer version stamp names the build's HEAD, `940a744a`, while the build includes this slice's uncommitted source changes.
+
+Reviewed the administrator guide's existing connect-link, installation, upgrade, Docker, SSH, Mac/browser and recovery instructions against the implementation; no further text change was needed. Publication remains deferred as recorded above. No full verification ran: the four review-observed UI/canonical failures still belong to slice 2, and local setup/desktop work to slice 3. No CLI failure remains outstanding. The supervisor coordinates independent slice review; nothing was pushed.
+>>>>>>> 03d3f122
+- Slice 1 (CLI connect links, 03d3f122): implementation review round 1 (Claude Fable) PASS, no findings to change; merged into the PR branch.

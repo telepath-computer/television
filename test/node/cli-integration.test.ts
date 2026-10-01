@@ -576,7 +576,8 @@ describe("CLI node integration artifact workflow", () => {
     processes.push(owned);
     const child = owned.child as ChildProcessByStdio<null, Readable, Readable>;
     let output = "";
-    child.stdout?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
+    let stdout = "";
+    child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); output += chunk.toString(); });
     child.stderr?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
 
     const serverURL = await Promise.race([
@@ -602,7 +603,8 @@ describe("CLI node integration artifact workflow", () => {
     await waitForOutput(() => output, "Television server running.");
     expect(output).toContain("Television server running.");
     expect(output).toContain(`http://127.0.0.1:${port}`);
-    expect(output).toContain(`\u001B]8;;http://127.0.0.1:${port}\u001B\\`);
+    expect(stdout).toContain(`Open Television:\n  http://127.0.0.1:${port}\n`);
+    expect(stdout).not.toContain("\u001B");
     expect(() => JSON.parse(output)).toThrow();
     expect(output).toContain("WARNING: running without an auth token");
     expect(output).toContain("Tokenless mode is insecure for typical setups");
@@ -641,7 +643,8 @@ describe("CLI node integration artifact workflow", () => {
     processes.push(owned);
     const child = owned.child as ChildProcessByStdio<null, Readable, Readable>;
     let output = "";
-    child.stdout?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
+    let stdout = "";
+    child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); output += chunk.toString(); });
     child.stderr?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
 
     const serverURL = await Promise.race([
@@ -667,7 +670,9 @@ describe("CLI node integration artifact workflow", () => {
     await waitForOutput(() => output, "Television server running.");
     expect(output).toContain("Television server running.");
     expect(output).toContain(`http://127.0.0.1:${port}/?token=`);
-    expect(output).toContain(`\u001B]8;;http://127.0.0.1:${port}/?token=`);
+    const token = readFileSync(path.join(storagePath, "state", "token"), "utf8").trim();
+    expect(stdout).toContain(`Open Television:\n  http://127.0.0.1:${port}/?token=${token}\n`);
+    expect(stdout).not.toContain("\u001B");
     expect(() => JSON.parse(output)).toThrow();
     expect(output).not.toContain("WARNING: running without an auth token");
 

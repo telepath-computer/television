@@ -2,7 +2,7 @@
 
 The result is a single connect-link workflow: the CLI supplies links, the desktop app accepts one link and remembers the connection, and connection dialogs explain recovery without asking for a separate token.
 
-This plan builds on the specs at `ca22ebbe` and the proofs independently approved in round two at `b7f3e899`. The spec deltas include the [connection states explainer](../../../specs/arch/explainer-connection-states.md), the local/served dialog theme clarification, and Josh's approved desktop theme-attribution rule. The [proposal](./proposal.md) records intent, [task record](./task.md) records the method and deferred obligations, and [proof derivation](./proof-derivation.md) records the coverage decisions. The plan is in independent re-review; implementation follows plan convergence. The supervisor coordinates independent review.
+This plan builds on the specs at `ca22ebbe` and the proofs independently approved in round two at `b7f3e899`. The spec deltas include the [connection states explainer](../../../specs/arch/explainer-connection-states.md), the local/served dialog theme clarification, and Josh's approved desktop theme-attribution rule. The [proposal](./proposal.md) records intent, [task record](./task.md) records the method and deferred obligations, and [proof derivation](./proof-derivation.md) records the coverage decisions. The plan converged in independent review round two and was merged with the proofs into `940a744a`. Slice 1 is implemented and ready for independent review; its evidence is in the task record. The supervisor coordinates independent review.
 
 ## Approach and slice boundaries
 
