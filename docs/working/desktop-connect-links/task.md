@@ -38,13 +38,10 @@ Working record for `thopter/desktop-connect-links`. Not authority. The approved 
 
 Validation at b0164479: all 62 plan links resolve; `npm test -- local --file test/repo/spec-links.test.ts` passes; `git diff --check` passes. Proofs remain byte-identical to b7f3e899, and specs match cd9afc46. No application tests or full verification were run for the plan revision.
 - Plan review round 2 (Claude Fable, on b0164479): PASS, no blockers; plan converged. The follow-up merge of ca22ebbe (68169e1d) changed only wording the reviewer had already read. Carry to the slice 3 review: check the licensing proof edits against the specs (cd9afc46, ca22ebbe) as well as the tests.
-<<<<<<< HEAD
 - Josh approved the remaining wording-level spec deltas: drag strip (06d9d79c, edbec2cc), the Clouds clause for local dialogs (d4c63e53), and the licensing architecture surface list (ca22ebbe). All spec deltas on the branch are now approved.
 - Josh designated hzbox (this host) for the daemon-acceptance suite. Full verification runs on Blaxel.
 - Blaxel readiness check: CLI logged in (workspace telepath); BLAXEL_TV_GH_TOKEN can read the archive repo but gets 404 on telepath-computer/television, so workers would fail checkout. Asked Josh to extend the token's repository access before the final gate.
 - Josh extended the Blaxel token's repository access; verified it reads telepath-computer/television and its branches. Blaxel is ready for the final gate.
-=======
-
 
 ## Slice 1 implementation — ready for independent review
 
@@ -70,5 +67,4 @@ Completed checks, against `940a744a` plus this slice's working-tree changes (run
 These runs reported no recovered flakes or process leaks. Type checking, ESLint on changed TypeScript files, and `git diff --check` passed. The daemon suite verified install, live refresh, boot, stop and persist-uninstall, leaving no installed/running service. The freshly packed global `tv` 1.4.13 remains at `/home/user/.nvm/versions/node/v24.21.0/bin/tv`; its developer version stamp names the build's HEAD, `940a744a`, while the build includes this slice's uncommitted source changes.
 
 Reviewed the administrator guide's existing connect-link, installation, upgrade, Docker, SSH, Mac/browser and recovery instructions against the implementation; no further text change was needed. Publication remains deferred as recorded above. No full verification ran: the four review-observed UI/canonical failures still belong to slice 2, and local setup/desktop work to slice 3. No CLI failure remains outstanding. The supervisor coordinates independent slice review; nothing was pushed.
->>>>>>> 03d3f122
 - Slice 1 (CLI connect links, 03d3f122): implementation review round 1 (Claude Fable) PASS, no findings to change; merged into the PR branch.
