@@ -11,7 +11,7 @@ const root = path.resolve(import.meta.dirname, "../../../..");
 
 async function assertLocalResources(page: Page): Promise<void> {
   const resources = await page.evaluate(async () => {
-    await document.fonts.load("400 18px Hind");
+    const fonts = await document.fonts.load("400 18px Hind");
     await document.fonts.ready;
     const wallpapers = await Promise.all(["wallpaper.webp", "wallpaper-dark.webp"].map(name => new Promise<boolean>(resolve => {
       const image = new Image();
@@ -22,6 +22,7 @@ async function assertLocalResources(page: Page): Promise<void> {
     return {
       marker: document.documentElement.getAttribute("data-television-document"),
       sheets: [...document.styleSheets].map(sheet => ({ href: sheet.href, rules: sheet.cssRules.length })),
+      loadedFonts: fonts.map(font => ({ family: font.family, status: font.status })),
       fontReady: document.fonts.check("400 18px Hind"),
       family: getComputedStyle(document.body).fontFamily,
       controlLine: getComputedStyle(document.documentElement).getPropertyValue("--line-control-lg"),
@@ -39,7 +40,7 @@ async function assertLocalResources(page: Page): Promise<void> {
   expect(resources.family).toContain("Hind");
   expect(resources.controlLine.trim()).not.toBe("");
   expect(resources.wallpapers).toEqual([true, true]);
-  expect(resources.resources.some(url => /Hind.*\.woff2$/.test(url))).toBe(true);
+  expect(resources.loadedFonts).toEqual([{ family: "Hind", status: "loaded" }]);
   expect(resources.resources.filter(url => /^https?:/.test(url))).toEqual([]);
 }
 
@@ -51,6 +52,7 @@ test("the built local page loads foundation, Clouds, fonts and icons for setup a
   try {
     await waitForConnectScreen(launch.page);
     await assertLocalResources(launch.page);
+    await test.info().attach("local-page", { body: await launch.page.screenshot(), contentType: "image/png" });
     expect(await launch.page.locator("tv-icon").first().evaluate(icon => Boolean(icon.shadowRoot?.querySelector("svg")))).toBe(true);
     for (const name of ["theme.css", "wallpaper.webp", "wallpaper-dark.webp"]) {
       expect(readFileSync(path.join(desktopDist, "clouds", name))).toEqual(readFileSync(path.join(root, "packages/server/assets/themes/clouds", name)));
@@ -62,6 +64,7 @@ test("the built local page loads foundation, Clouds, fonts and icons for setup a
     launch = await launchDesktopConnectScreen({ userDataDir });
     await expect(launch.page.getByRole("heading", { name: "Can’t connect with server" })).toBeVisible();
     await assertLocalResources(launch.page);
+    await test.info().attach("local-page", { body: await launch.page.screenshot(), contentType: "image/png" });
   } finally {
     await launch.app.close().catch(() => {});
     rmSync(userDataDir, { recursive: true, force: true });
