@@ -38,3 +38,5 @@ Working record for `thopter/desktop-connect-links`. Not authority. The approved 
 
 Validation at b0164479: all 62 plan links resolve; `npm test -- local --file test/repo/spec-links.test.ts` passes; `git diff --check` passes. Proofs remain byte-identical to b7f3e899, and specs match cd9afc46. No application tests or full verification were run for the plan revision.
 - Plan review round 2 (Claude Fable, on b0164479): PASS, no blockers; plan converged. The follow-up merge of ca22ebbe (68169e1d) changed only wording the reviewer had already read. Carry to the slice 3 review: check the licensing proof edits against the specs (cd9afc46, ca22ebbe) as well as the tests.
+- Josh approved the remaining wording-level spec deltas: drag strip (06d9d79c, edbec2cc), the Clouds clause for local dialogs (d4c63e53), and the licensing architecture surface list (ca22ebbe). All spec deltas on the branch are now approved.
+- Josh designated hzbox (this host) for the daemon-acceptance suite. Full verification runs on Blaxel.
