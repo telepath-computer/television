@@ -113,12 +113,6 @@ export class ServerConnectionOwner extends EventTarget<
     await this.#connectWithToken(this.connection.token);
   }
 
-  /** Persist a user-supplied token and retry the same connection. */
-  async authenticate(token: string): Promise<void> {
-    this.#localStore.set(setAuthToken(this.#localStore.get(), this.connection.url, token));
-    await this.#connectWithToken(token);
-  }
-
   dispose(): void {
     if (this.#disposed) return;
     this.#disposed = true;

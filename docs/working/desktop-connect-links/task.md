@@ -68,3 +68,75 @@ These runs reported no recovered flakes or process leaks. Type checking, ESLint 
 
 Reviewed the administrator guide's existing connect-link, installation, upgrade, Docker, SSH, Mac/browser and recovery instructions against the implementation; no further text change was needed. Publication remains deferred as recorded above. No full verification ran: the four review-observed UI/canonical failures still belong to slice 2, and local setup/desktop work to slice 3. No CLI failure remains outstanding. The supervisor coordinates independent slice review; nothing was pushed.
 - Slice 1 (CLI connect links, 03d3f122): implementation review round 1 (Claude Fable) PASS, no findings to change; merged into the PR branch.
+
+
+## Slice 2 implementation — ready for independent review
+
+Implemented on top of slice 1's `03d3f122` while its review remains with the supervisor. Connection state now counts completed unreachable retries once, escalates on the third failure, retains the existing shell and live artifact documents through recovery, and keeps a displayed upgrade gate above later authorization failures. Rejected browser credentials are cleared; recovery uses the current link. The shared modal renders browser, served-desktop and local guidance without an application-service dependency; local unauthorized/error rows expose the Disconnect callback for slice 3.
+
+Large controls and their token reach web foundation and live canonical v2. The Copy helper composes small, standard and large controls. Canonical v1 remains untouched. Built author guidance, the app-shell reference and the external-page placeholder match the approved material. The four failures recorded by plan review are resolved.
+
+**Approved spec correction.** Native Electron testing found that a drag strip beside the dialog cannot receive input while the dialog is modal. Josh approved placing it inside the dialog. This slice changes `system-modal.frame`, `dialog.frame` and `desktop-upgrade-gate.frame` to carry that strip inside the modal boundary and outside the scrolling content. Production uses the same composition. The native served-gate test moves the window and then activates its Restart control. The dialog proof delegates the optional content to that seam; the gate proof already names it. Review of the changed authored frames and app composition preceded the theme-reference fingerprint updates.
+
+Red/green work began with the completed-attempt contract, app state/content contracts and Copy size cases, followed by the foundation crossings, live canonical vocabulary/guidance and native served-gate drag case. The intended failures exposed the absent count, priority/escalation, token-form contents, size composition, stale style copies/guidance and inert sibling strip. Each implementation was checked narrowly before widening to its file or owning unit suite. Real browser walks cover token rejection at boot and after a session, three failed reconnects with document continuity, and a reconnect that becomes gated. Obsolete token-form recovery walks were reconciled while preserving link ingestion, token transport/storage and artifact reload evidence.
+
+Completed checks used `npm test -- local` with `--retries 0`, against `03d3f122` plus the slice's working-tree changes (`dirty: true` in reports):
+
+| Selection | Result | Run directory under `.test-runs/` |
+| --- | --- | --- |
+| `--surface unit:browser-app` | 568 passed, 1 existing skipped ACP bridge-drop test | `2026-10-01T18-37-12-980Z-p2664081-r3aaf2a21862811c5` |
+| `--surface unit:canonical` | 18 passed | `2026-10-01T18-38-48-886Z-p2664955-r904ab3bfd89a702f` |
+| `--file test/repo/skills-build.test.ts` | 9 passed | `2026-10-01T18-38-51-256Z-p2665097-r92025e850b4e23e5` |
+| `--file packages/web/test/e2e/system-modal.test.ts` | 2 passed | `2026-10-01T18-30-07-038Z-p2660034-r014f73d9e6de5fd3` |
+| `--file packages/web/test/e2e/auth.01.test.ts` | 3 passed | `2026-10-01T18-38-53-693Z-p2665349-rb8f558a5b12025ab` |
+| `--file packages/web/test/e2e/auth.02.test.ts` | 2 passed | `2026-10-01T18-39-06-977Z-p2665912-rb42c20ad970ffdc1` |
+| `--file packages/web/test/e2e/reload-after-reconnect.02.test.ts` | 3 passed | `2026-10-01T18-39-17-405Z-p2666329-r01ee6861869b7d05` |
+| `--file packages/web/test/e2e/gate-boot-barrier.spec.ts` | 3 passed | `2026-10-01T18-39-48-093Z-p2666851-r88e8c0c4a02eba40` |
+| `--file packages/web/test/e2e/dialog.test.ts` | 4 passed | `2026-10-01T18-40-03-345Z-p2667331-r3fada3e04358daaf` |
+| `--file packages/web/test/e2e/desktop-upgrade-gate.spec.ts` | 4 passed | `2026-10-01T18-40-13-661Z-p2667845-r5e10234715363371` |
+| `--file packages/desktop/test/e2e/window-drag-regions.test.ts` | 2 passed | `2026-10-01T18-40-23-435Z-p2668316-r21a29088b69b1eb0` |
+| `--file test/repo/theming-reference.test.ts` | Passed after the approved frame correction | `2026-10-01T18-44-50-309Z-p2669730-re1d73cf7f7cf831c` |
+| `--file test/repo/spec-links.test.ts` | Passed | `2026-10-01T18-45-26-576Z-p2669892-r664a6d3d79705721` |
+
+The selected runs reported no recovered flakes, process leaks or infrastructure failures. Type checking, ESLint on changed TypeScript files and `git diff --check` passed. The later lint-only threshold naming change passed its focused state-selection test (`2026-10-01T18-38-30-170Z-p2664809-r67aae2ff63fe8d60`). No full verification ran; the integrated gate remains assigned to Blaxel.
+
+Slice 3 still owns the packaged local page, native local dragging, complete foundation/Clouds delivery, asset attribution, preload/main-process lifecycle and the executed staging runbook. The foundation and modal-drag proofs retain their partial markers. Served-desktop guidance names Disconnect from Server before slice 3 changes that menu, as planned. No observed served-app failure is deferred. Nothing was pushed.
+
+
+## Slice 2 round-one review refinements
+
+Independent review by Claude Fable at `a3a37a00` passed with no blockers and seven refinements. The supervisor requested the bounded follow-up review after these edits.
+
+| Item | Assessment and action |
+| --- | --- |
+| 1 — gate parameter prose | Corrected the gate spec's parameter description to include `top_layer_content`. The supervisor confirmed this completes the frame change Josh approved. |
+| 2 — generated proof index | Regenerated the indexes with `npm run specs:index`; the dialog and system-modal proof counts are current. |
+| 3 — partial drag marker | Restored the standard “test to be written” wording for the local route; the served route retains its implemented citation. |
+| 4 — local bundle dependencies | Carried to slice 3 in the plan. Its renderer does not need the gate, but the shared modal imports it and its markdown pipeline. Decide against the real bundle whether to retain those packages and notices or separate that composition. No bundle change in this refinement. |
+| 5 — token-form leftovers | Removed the unused rejected-token detail, projection, fixture methods and form-specific recorder/assertions. The connection still reports authorization rejection and resets it for a fresh connection; its existing contract now checks that fact directly. Gate/outage records assert the current unauthorized presentation's absence. |
+| 6 — independent strip expectations | Each contract row now states whether it expects a shell, then checks the shell and strip independently against that expectation. |
+| 7 — gate proxy declaration | Named the continuously bound front proxy and its real HTTP/WebSocket forwarding in the gate seam's proof. |
+
+The reviewer independently reported 302 passing browser acceptance tests (2 skipped), 73 passing desktop tests, and passing browser-app/canonical units and targeted repository checks on the clean `a3a37a00` tree. Those are review evidence, not a full verification run or results of the refinements above.
+
+
+Refinement validation ran against `a3a37a00` plus these working-tree changes (`dirty: true`), with `npm test -- local` and `--retries 0`. The strip, authorization-reset/bootstrap and snapshot-projection contracts passed narrowly before widening to the browser-app unit suite.
+
+| Selection | Result | Run directory under `.test-runs/` |
+| --- | --- | --- |
+| `--surface unit:browser-app` | 568 passed, the same 1 skipped ACP test | `2026-10-01T19-11-03-808Z-p2703230-r5c59e83c16cad1fb` |
+| `--file packages/web/test/e2e/auth.01.test.ts` | 3 passed | `2026-10-01T19-11-50-665Z-p2703760-r4d623d87fb8c1b1c` |
+| `auth.02.test.ts`, electron token-query case | 1 passed | `2026-10-01T19-12-03-724Z-p2704270-r02c488326827b42f` |
+| `gate-boot-barrier.spec.ts`, first-message gate case | 1 passed | `2026-10-01T19-12-13-680Z-p2704763-r4b2f8b9c50178ec0` |
+| `reload-after-reconnect.02.test.ts`, outage escalation case | 1 passed | `2026-10-01T19-12-26-622Z-p2705186-raa2ae0d0a217b8b8` |
+| Desktop `upgrade-gate.spec.ts`, `ac-gate-persists` | 1 passed | `2026-10-01T19-12-52-386Z-p2705614-rc454cb8ff800b49d` |
+| `--file test/repo/spec-links.test.ts` | Passed | `2026-10-01T19-13-05-675Z-p2706212-r0b6874813a47b187` |
+
+All selected runs reported no recovered flakes, process leaks or infrastructure failures. Type checking, ESLint on the changed TypeScript and `git diff --check` passed. No full verification ran. These refinements are ready for the requested follow-up review; slice 3's obligations remain unchanged apart from the recorded import decision. Nothing was pushed.
+
+
+## Consolidated implementation branch
+
+Slice 2 follow-up review passed at `03e5f432`; slices 1 and 2 have converged. The reviewer reported intermittent browser demo-mode teardown and switcher-drag failures under shared-host load; watch both in Blaxel validation. The supervisor assigned slice 3 and transferred sole implementation ownership of `thopter/desktop-connect-links` to this worker. That branch now combines the PR task record and slice 1 review with both implementation slices and the slice 2 refinements; `thopter/desktop-connect-links-plan` stays at its checkpoint.
+
+Josh changed test placement: narrow file-level iteration may run locally; whole surfaces, repeated runs and the full verification gate run on Blaxel against a pushed revision. Push the implementation branch before those runs.

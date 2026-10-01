@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { TelevisionClient } from "@telepath-computer/television-shared";
 import { Server } from "@telepath-computer/television-server";
 import {
   configureTestMotion,
@@ -353,7 +354,7 @@ test.describe("reload after reconnect (real server)", () => {
     }
   });
 
-  test("a disconnected modal preserves the live shell and artifact document through automatic reconnect", async ({
+  test("outage escalation preserves the live shell and artifact document through automatic reconnect", async ({
     page,
     baseURL,
   }) => {
@@ -378,18 +379,20 @@ test.describe("reload after reconnect (real server)", () => {
         </script>`,
       "html",
     );
-    const sourceArtifact = store.createArtifact({
-      channelID: sourceChannel.id,
-      title: "Continuity source",
-      kind: "path",
-      path: sourcePath,
-    });
     store.patchDisplay({ focusedChannelId: visibleChannel.id });
-    const server = new Server({ store, port: 0 });
+    let server = new Server({ store, port: 0 });
     let proxy: Awaited<ReturnType<typeof startDevelopmentProxy>> | undefined;
 
     try {
       await server.start();
+      const client = new TelevisionClient(server.getBaseURL(), { token: server.getAuthToken() });
+      const { artifact: sourceArtifact } = await client.artifacts.create({
+        channelID: sourceChannel.id,
+        title: "Continuity source",
+        kind: "path",
+        path: sourcePath,
+      });
+
       proxy = await startDevelopmentProxy({
         productServerURL: server.getBaseURL(),
         viteBaseURL: baseURL,
@@ -399,7 +402,7 @@ test.describe("reload after reconnect (real server)", () => {
       // reconnect while correctly avoiding the intentional path-document
       // refresh; APP-3's subject is identity of the already-loaded document.
       const sharedURL = `${proxy.url}/artifact/${sourceArtifact.id}/${encodeURIComponent(path.basename(sourcePath))}`;
-      const visibleArtifact = store.createArtifact({
+      const { artifact: visibleArtifact } = await client.artifacts.create({
         channelID: visibleChannel.id,
         title: "Continuity document",
         kind: "url",
@@ -426,8 +429,7 @@ test.describe("reload after reconnect (real server)", () => {
       const presentation = await observeApplicationPresentations(page);
 
       expect(eventStream(server).getConnectedClientCount()).toBeGreaterThan(0);
-      terminateEventSockets(server);
-      await expectEventClientsGone(server, 5_000);
+      await server.dispose();
       await expect(
         page.locator("#app[data-app-state='disconnected'] .system-modal-host .system-modal h2"),
       ).toHaveText("Disconnected");
@@ -438,6 +440,13 @@ test.describe("reload after reconnect (real server)", () => {
       expectContinuity(interrupted);
       expect(interrupted.animationFrames).toBeGreaterThan(before.animationFrames);
 
+      await expect(page.locator("#app")).toHaveAttribute("data-app-state", "error", { timeout: 20_000 });
+      await expect(page.locator(".system-modal")).toContainText("Reconnecting in");
+      await presentation.settle();
+      expectContinuity(await readContinuityObservation(page));
+      server = new Server({ store: createServingStore(storagePath), port: 0 });
+      await server.start();
+      proxy.setProductServerURL(server.getBaseURL());
       await expectEventClientsConnected(server, 15_000);
       await expect(page.locator("#app")).toHaveAttribute(
         "data-app-state",
@@ -455,8 +464,17 @@ test.describe("reload after reconnect (real server)", () => {
         record.appState !== null
       );
       const disconnectedRecords = records.filter((record) =>
-        record.appState === "disconnected"
+        record.appState === "disconnected" || record.appState === "error"
       );
+      for (const count of [0, 1, 2, 3]) {
+        const attempts = disconnectedRecords.filter((record) => record.failedReconnectAttempts === count);
+        expect(attempts.length, `observed ${count} completed failures`).toBeGreaterThan(0);
+        for (const record of attempts) expect(record.appState).toBe(count < 3 ? "disconnected" : "error");
+      }
+      for (const state of ["disconnected", "error"]) {
+        expect(disconnectedRecords.some((record) => record.appState === state && /Reconnecting in \d+s…/.test(record.reconnectLine))).toBe(true);
+        expect(disconnectedRecords.some((record) => record.appState === state && record.reconnectLine.includes("Reconnecting now…"))).toBe(true);
+      }
       expect(disconnectedRecords.length).toBeGreaterThan(0);
       for (const record of disconnectedRecords) {
         expect(record).toMatchObject({
@@ -464,11 +482,11 @@ test.describe("reload after reconnect (real server)", () => {
           sidebarCount: 1,
           mainCount: 1,
           modalHostCount: 1,
-          authFormCount: 0,
+          unauthorizedCount: 0,
           gateCount: 0,
           connectingCount: 0,
-          disconnectedCount: 1,
-          errorCount: 0,
+          disconnectedCount: record.appState === "disconnected" ? 1 : 0,
+          errorCount: record.appState === "error" ? 1 : 0,
         });
       }
       expect(

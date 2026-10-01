@@ -138,7 +138,6 @@
       class FixtureOwner extends EventTarget {
         connection = new FixtureConnection();
         connectError = null;
-        authenticate() { return Promise.resolve(); }
 
         connect() {
           this.connection.status = "connected";

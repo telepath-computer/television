@@ -34,6 +34,15 @@
   resize: vertical;
 }
 
+/* The large size matches a large button beside the field
+   ([[ui/foundation/button/button.css]]): the same text step, line and
+   vertical padding step, so the two are the same height. */
+:where(:is(input:not([type]), input[type=""], input[type="text"], input[type="email"], input[type="url"], input[type="tel"], input[type="password"], input[type="number"], textarea)[data-size="lg"]) {
+  font-size: var(--text-lg);
+  line-height: var(--line-control-lg);
+  padding: var(--space-8) var(--space-12);
+}
+
 /* Shared error-message styling; validation and announcement belong to the surface. */
 :where(.tv-error) {
   margin: 0;

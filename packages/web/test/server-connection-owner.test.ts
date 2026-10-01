@@ -137,7 +137,7 @@ describe("ServerConnectionOwner", () => {
     expect(owner.storedAuthToken).toBe("stored-token");
   });
 
-  it("starts and authenticates the same connection while retaining only non-auth connect errors", async () => {
+  it("starts the connection while retaining only non-auth connect errors", async () => {
     const localStore = createLocalStore();
     const { owner, server } = createOwner({ localStore });
 
@@ -146,11 +146,10 @@ describe("ServerConnectionOwner", () => {
     expect(owner.connectError).toBe("offline");
 
     server.nextConnectError = new AuthError();
-    await owner.authenticate("new-token");
+    await owner.connect();
     expect(owner.connection).toBe(server);
-    expect(server.connectCalls).toEqual([null, "new-token"]);
+    expect(server.connectCalls).toEqual([null, null]);
     expect(owner.connectError).toBeNull();
-    expect(localStore.get().authTokens).toEqual({ [SERVER_URL]: "new-token" });
   });
 
   it("clears a token only after the connection rejects authentication", () => {

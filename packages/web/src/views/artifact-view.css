@@ -70,6 +70,14 @@
   border: 0;
 }
 
+/* Held content in place of a document takes the same room, and draws on
+   the frame's own ground. */
+.artifact-frame-clip > .artifact-frame-content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
 /* The title bar: a quiet band below the document, naming the artifact; its
    contents grow as they are designed. The band is a step off the frame's surface
    rather than the surface itself — the faintest step there is, enough that the
