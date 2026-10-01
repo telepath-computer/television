@@ -14,7 +14,7 @@ The change has six parts:
 2. The desktop app reconnects a saved connection by itself, and offers **Disconnect from Server** to forget it.
 3. The browser and desktop connection dialogs stop asking for a token, and say what to do instead.
 4. A browser's placeholder for an external web page says the desktop app is currently Mac-only.
-5. A new command, `tv links`, prints the running server's connect links.
+5. A new command, `tv links`, prints the running server's connect links. The CLI prints links as terminal hyperlinks only in an interactive terminal.
 6. The administrator guide gives users connect links only. A Mac user who starts from the app's connect screen already has the app; another Mac user is recommended it; users on other computers are not told about it.
 
 ## Connect links
@@ -97,11 +97,17 @@ Buttons and text fields gain a large size, 40px tall with 16px text, used by the
 
 `tv links` prints the connect links of the running Television server, one per line, for every address it is listening on.
 
-- Each line is a plain connect link, with no other text and no terminal hyperlink formatting, because users copy these links rather than click them.
+- Each line is one connect link, with no other text. Links follow the CLI's hyperlink rule below.
 - The addresses are the ones the running server is actually listening on, the same addresses `tv serve` reports at startup.
 - When the server requires a token, each link carries it. When the server runs without a token, each link is the bare address.
 - When the server is not running, the command says so on stderr, prints no links, and exits with status 1.
 - It follows the same home and `--port` rules as the other commands that contact the server.
+
+## Links in CLI output
+
+Any link the CLI prints is a terminal hyperlink (OSC 8), with the URL as its visible text, only when the command's output goes to an interactive terminal. When output goes anywhere else, such as a pipe, a file, or an agent's shell tool, the link is printed as plain text. Some tools that capture command output strip escape sequences in a way that removes the link entirely, so an agent running `tv` must always receive the bare URL.
+
+This applies to every link the CLI prints: `tv links`, and the connect links `tv serve` and `tv serve --persist` print at startup ("Open Television:" followed by one link per address).
 
 ## Administrator guide
 
@@ -128,5 +134,4 @@ The guide recommends the desktop app only to Mac users who do not already have i
 ## Out of scope
 
 - How any of this is built, tested or released.
-- Changes to `tv serve` startup output, which keeps printing its links as terminal hyperlinks.
 - Publishing the updated guide to `television.run/install.md`, which happens after merge; it has to be live no later than the desktop release that ships the setup screen.
