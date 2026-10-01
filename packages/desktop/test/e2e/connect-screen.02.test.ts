@@ -108,7 +108,7 @@ test("Disconnect from Server leaves the served upgrade gate", async () => {
     await page.getByRole("textbox", { name: "Link from your agent" }).fill(server.serverURL);
     await page.getByRole("button", { name: "Connect", exact: true }).click();
     await expect(page.locator(".desktop-upgrade-gate")).toBeVisible();
-    await expect(page.locator(".update-toast, .app-update-indicator")).toHaveCount(0);
+    await expect(page.locator(".update-popover, .update-bell")).toHaveCount(0);
   } finally {
     await app.close();
     await server.dispose();

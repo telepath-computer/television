@@ -45,3 +45,27 @@ At submission, plan reconciliation was deferred until proof convergence. Its pro
 Implemented citations replace the served-app, modal-contents/non-dismissal, Copy and canonical pending markers. The outage proof describes the continuously bound development proxy and real backend failure used by the browser walk. The drag proof declares the existing simulated update/restart hooks used to provide an actionable gate button; native hit testing and window movement remain real. The packaged local route remains pending.
 
 Native Electron hit testing found that the authored strip, as a sibling of the native dialog, was inert. The supervisor relayed Josh's approval to put it inside the dialog. The system-modal frame now passes it through the dialog and gate frames, outside the scrolling content. The dialog proof delegates that optional content's native handoff to the existing system-modal drag assertion; the gate proof already makes that coverage relationship explicit. No additional drag permutation or dialog test is ordered. The slice review includes this approved spec delta and its proof reconciliation.
+
+## Slice 3 proof reconciliation
+
+The local lifecycle, setup, assets, appearance and drag assertions now cite their
+implementation. The licensing proofs describe the renderer packages and asset
+records delivered by the real desktop bundle and upload directory. Inherited
+storage and identity-check evidence keeps its grade.
+
+Saved-startup observation uses a request barrier in the existing forwarding
+proxy, releasing real checks after Connecting is visible. This substitutes
+transport timing, not the response or client retry timers. The stopped-server
+walk declares the proxy's 502 response and real backend restart. The renderer
+contract declares controlled animation frames and no active animations for the
+reduced-motion completion path; normal-motion painting remains with native
+Electron acceptance. The appearance seam sets its server preference before
+connecting, then observes real delivery, retention on disconnect and local
+adaptation to the declared native input substitute.
+
+The served app now composes the upgrade gate directly, keeping its markdown
+pipeline out of the packaged local renderer. Composition assertions and the
+browser presentation recorder count that direct gate alongside the shared
+standard-modal host. This changes an implementation boundary, not the modal's
+specification or its proof obligations. These proof refinements receive review
+with slice 3.
