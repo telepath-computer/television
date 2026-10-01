@@ -24,13 +24,20 @@ export function vitestProjectsArgs({ configPath, configPaths }) {
   return ["vitest", "run", "--config", configPath];
 }
 
-export function writeVitestRunnerConfig({ configPath, baseConfigPath, runnerPath }) {
+export function writeVitestRunnerConfig({ configPath, baseConfigPath, runnerPath, files = null }) {
+  // Vitest positional filters are substrings, even for absolute filenames.
+  // Replace (do not merge) include when admission has resolved actual files.
+  const test = { runner: path.resolve(runnerPath), ...(files ? { include: files.map((file) => path.resolve(file).replace(/[?*[\]{}()!+@]/g, "\\$&")), includeSource: [] } : {}) };
   fs.writeFileSync(configPath, [
-    'import { defineConfig, mergeConfig } from "vitest/config";',
+    'import { defineConfig } from "vitest/config";',
     `import base from ${JSON.stringify(path.resolve(baseConfigPath))};`,
-    `export default mergeConfig(base, defineConfig({ test: { runner: ${JSON.stringify(path.resolve(runnerPath))} } }));`,
+    `export default defineConfig(async (env) => { const config = await (typeof base === "function" ? base(env) : base); return { ...config, test: { ...config.test, ...${JSON.stringify(test)} } }; });`,
     "",
   ].join("\n"));
+}
+
+export function exactPlaywrightFiles(files) {
+  return files.map((file) => `^${path.resolve(file).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
 }
 
 export function splitVitestWorkspaceResult({ nativeResultPath, tasks }) {

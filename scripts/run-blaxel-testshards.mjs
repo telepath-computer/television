@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { targetCommand } from "./test/target-command.mjs";
 import { listBlaxelPoolSandboxes } from "./test/blaxel-pool.mjs";
 import { RECOMMENDED_TEST_SHARD_COUNT } from "./testshard-constants.mjs";
 import { combineAttemptReports, failedTasksFromShards, formatShardLogs, runInfrastructureAttempts, summarizeInfrastructureAttempts, writeProviderReports } from "./test/provider-outputs.mjs";
@@ -679,6 +680,7 @@ function targetOptions() {
     config: options["target-config"] ?? null,
     cwd: options["target-cwd"] ?? ".",
     file: options["target-file"] ?? null,
+    files: parseTargetStringArray(options["target-files-json"], "--target-files-json"),
     grep: options["target-grep"] ?? null,
     retries: options["target-retries"] ?? "5",
     command: parseTargetCommand(options["target-command-json"]),
@@ -687,53 +689,6 @@ function targetOptions() {
   };
 }
 
-function targetCommand() {
-  const target = targetOptions();
-  if (!target) return "";
-  if (target.command) {
-    if (target.runner !== "playwright") fail("--target-command-json currently supports Playwright surfaces only");
-    const args = [
-      "cd", shellQuote(target.cwd), "&&",
-      'PLAYWRIGHT_JSON_OUTPUT_NAME="$TV_TARGET_NATIVE_RESULT"',
-      ...target.command.map(shellQuote),
-    ];
-    if (target.file) args.push(shellQuote(target.file));
-    if (target.grep) args.push("-g", shellQuote(target.grep));
-    if (target.retries) args.push(`--retries=${target.retries}`);
-    args.push("--reporter=json");
-    return args.join(" ");
-  }
-  if (target.runner) {
-    const args = ["cd", shellQuote(target.cwd), "&&"];
-    if (target.runner === "vitest") {
-      args.push("npx", "vitest", "run", "--config", shellQuote(target.config), "--reporter=json", '--outputFile "$TV_TARGET_NATIVE_RESULT"');
-      if (target.file) args.push(shellQuote(target.file));
-      if (target.grep) args.push("-t", shellQuote(target.grep));
-      if (target.retries) args.push(`--retry=${target.retries}`);
-    } else if (target.runner === "playwright") {
-      args.push('PLAYWRIGHT_JSON_OUTPUT_NAME="$TV_TARGET_NATIVE_RESULT"', "npx", "playwright", "test", "--config", shellQuote(target.config), "--reporter=json");
-      if (target.file) args.push(shellQuote(target.file));
-      if (target.grep) args.push("-g", shellQuote(target.grep));
-      if (target.retries) args.push(`--retries=${target.retries}`);
-    } else {
-      fail("--target-runner must be vitest or playwright");
-    }
-    return args.join(" ");
-  }
-  const args = [
-    "npm",
-    "--workspace",
-    target.workspace,
-    "run",
-    "test:e2e",
-    "--if-present",
-    "--",
-  ];
-  if (target.file) args.push(target.file);
-  if (target.grep) args.push("-g", target.grep);
-  args.push(`--retries=${target.retries}`, "--reporter=list");
-  return args.map(shellQuote).join(" ");
-}
 
 function parseTargetCommand(raw) {
   return parseTargetStringArray(raw, "--target-command-json");
@@ -961,7 +916,7 @@ elif [ ${shellQuote(suite)} = target ]; then
   export TV_TARGET_RUN_ID=${shellQuote(`${runId}:${shardIndex}`)}
   export TV_TARGET_NAME=${shellQuote(`${targetOptions()?.workspace ?? "target"} ${targetOptions()?.file ?? ""} ${targetOptions()?.grep ?? ""}`)}
   export TV_TARGET_RUNNER=${shellQuote(targetOptions()?.runner ?? "target")}
-  export TV_TARGET_COMMAND=${shellQuote(targetCommand())}
+  export TV_TARGET_COMMAND=${shellQuote(targetCommand(targetOptions()))}
   export TV_TARGET_LIFECYCLE_RESULT="/workspace/television/.testshards/results/target-lifecycle-${shardIndex}.json"
   export TV_TARGET_NATIVE_RESULT="/workspace/television/.testshards/results/native-shard-${shardIndex}.json"
   run_step test-run node scripts/test/supervised-command.mjs --run-id "$TV_TARGET_RUN_ID" --surface "$TV_TARGET_SURFACE_ID" --result "$TV_TARGET_LIFECYCLE_RESULT" ${targetOptions()?.preCommand ? `--pre-command-json ${shellQuote(JSON.stringify(targetOptions().preCommand))}` : ""} ${targetOptions()?.services?.length ? `--services-json ${shellQuote(JSON.stringify(targetOptions().services))}` : ""} -- bash -c "$TV_TARGET_COMMAND"
@@ -996,6 +951,8 @@ const task = {
   completedAt,
   durationMs: Date.now() - Date.parse(startedAt),
   nativeResultPath: fs.existsSync(process.env.TV_TARGET_NATIVE_RESULT) ? process.env.TV_TARGET_NATIVE_RESULT : null,
+  attemptResultPath: fs.existsSync(process.env.TV_TARGET_NATIVE_RESULT + ".attempts.ndjson") ? process.env.TV_TARGET_NATIVE_RESULT + ".attempts.ndjson" : null,
+  generatedInputPaths: fs.existsSync(process.env.TV_TARGET_NATIVE_RESULT + ".runner.mjs") ? [process.env.TV_TARGET_NATIVE_RESULT + ".runner.mjs"] : [],
   lifecycleResultPath: process.env.TV_TARGET_LIFECYCLE_RESULT,
   processLeaks,
   failureKind: lifecycle.failureKind || null,

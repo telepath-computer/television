@@ -142,7 +142,7 @@ export function pruneTestpassRefs(options?: {
   fetch?: boolean;
 }): TestpassPruneResult;
 export function collectRunSurfaces(runDir: string, options?: { fs?: { readFileSync(path: string, encoding: string): string } }): Array<{ id: string; status: string }>;
-export function canonicalRetryFacts(options?: { retriesOption?: string; env?: Record<string, string | undefined> }): boolean;
+export function canonicalRetryFacts(options?: { options?: Record<string, unknown>; env?: Record<string, string | undefined> }): boolean;
 export function maybePublishAttestation(options: {
   facts: Parameters<typeof evaluateEligibility>[0];
   commit: string;

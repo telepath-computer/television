@@ -454,11 +454,32 @@ describe("verify handoff facts", async () => {
     ]);
   });
 
+  // proofs/arch/test-runner/attestation.md#^attest-retry-options
+  test("parsed retry departures become noncanonical eligibility facts", () => {
+    for (const options of [
+      { "against-test-guidance-turn-flakes-into-failures-on-broad-runs": "1" },
+      { "against-test-guidance-turn-flakes-into-failures-on-broad-runs": "1", retries: "0" },
+      { retries: "0" },
+      { retries: "3" },
+    ]) {
+      const facts = {
+        treeAtStart: TREE, treeAtEnd: TREE, testedTree: TREE,
+        cleanAtStart: true, cleanAtEnd: true, ignoreUncommitted: false, qualifyingRun: true,
+        surfaces: [{ id: "unit:root", status: "passed" }], expectedSurfaceIds: ["unit:root"],
+        shardSubset: false, targetedSelection: false, attestedSkipRun: false,
+        policyAtStart: enabledPolicy(5), policyAtEnd: enabledPolicy(5),
+        canonicalRetries: canonicalRetryFacts({ options, env: {} }),
+      };
+      expect(facts.canonicalRetries, JSON.stringify(options)).toBe(false);
+      expect(evaluateEligibility(facts)).toEqual({ eligible: false, failures: ["canonical-retries"] });
+    }
+  });
+
   test("canonical retries require the runner default AND the default flaky budget", () => {
-    expect(canonicalRetryFacts({ retriesOption: undefined, env: {} })).toBe(true);
-    expect(canonicalRetryFacts({ retriesOption: "2", env: { FLAKY_TEST_RETRIES: "5" } })).toBe(true);
-    expect(canonicalRetryFacts({ retriesOption: "3", env: {} })).toBe(false);
-    expect(canonicalRetryFacts({ retriesOption: "2", env: { FLAKY_TEST_RETRIES: "9" } })).toBe(false);
+    expect(canonicalRetryFacts({ options: {}, env: {} })).toBe(true);
+    expect(canonicalRetryFacts({ options: { retries: "2" }, env: { FLAKY_TEST_RETRIES: "5" } })).toBe(true);
+    expect(canonicalRetryFacts({ options: { retries: "3" }, env: {} })).toBe(false);
+    expect(canonicalRetryFacts({ options: { retries: "2" }, env: { FLAKY_TEST_RETRIES: "9" } })).toBe(false);
   });
 });
 

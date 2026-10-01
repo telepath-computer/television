@@ -290,9 +290,9 @@ function taskFromSurface(surface) {
 }
 
 function testRetryArgs(surface) {
-  if (testRetries <= 0 || surface.kind === "unit") return [];
-  if (surface.runner === "playwright") return [`--retries=${testRetries}`];
-  if (surface.runner === "vitest") return [`--retry=${testRetries}`];
+  const retries = surface.kind === "unit" ? 0 : testRetries;
+  if (surface.runner === "playwright") return [`--retries=${retries}`];
+  if (surface.runner === "vitest") return [`--retry=${retries}`];
   return [];
 }
 

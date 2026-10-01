@@ -27,11 +27,11 @@ export function enumerateTestInventory({ repoRoot = process.cwd(), surfaces, sel
   return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null } = {}) {
+export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null, includeUntracked = false } = {}) {
   if (!commit) {
     // The index retains unstaged deletions; current-worktree consumers must not
     // try to inspect paths that are tracked there but absent from this tree.
-    return splitNull(git(["ls-files", "--cached", "-z"], { cwd: repoRoot }))
+    return [...new Set(splitNull(git(["ls-files", "--cached", ...(includeUntracked ? ["--others", "--exclude-standard"] : []), "-z"], { cwd: repoRoot })))]
       .filter((file) => worktreePathExists(path.join(repoRoot, file)));
   }
   const index = path.join(os.tmpdir(), `tv-test-index-${process.pid}-${crypto.randomBytes(8).toString("hex")}`);

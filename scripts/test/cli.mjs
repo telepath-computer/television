@@ -9,11 +9,11 @@ import { requiredPreflights, runPreflights, runRemotePreflight } from "./preflig
 import { normalizeSurfaceResult, safeSurfaceName } from "./reporting.mjs";
 import { atomicWriteFile, createRunContext, finalizeRun, readRunDirectoryIdentity } from "./run-context.mjs";
 import { BASELINE_TIMING_PROVIDER, updateTimingBaseline } from "./timing-baseline.mjs";
-import { enumerateTestInventory } from "./file-inventory.mjs";
+import { enumerateTestInventory, loadRegistrySnapshotAtCommit } from "./file-inventory.mjs";
 import { recommendShardCount } from "./shard-plan.mjs";
 import { normalizeBlaxelSurfaces, normalizeProviderTimingShards, resolveProviderRunGit } from "./provider-normalization.mjs";
 import { providerCommandExitCode } from "./provider-outputs.mjs";
-import { groupByExecutionGroup, splitVitestWorkspaceResult, writeVitestRunnerConfig, vitestProjectsArgs } from "./execution-groups.mjs";
+import { exactPlaywrightFiles, groupByExecutionGroup, splitVitestWorkspaceResult, writeVitestRunnerConfig, vitestProjectsArgs } from "./execution-groups.mjs";
 import { applyCursorAgentEnvWorkaround } from "./cursor-agent-env.mjs";
 import { createSurfaceSupervisor } from "./surface-supervisor.mjs";
 import { startSurfaceServices } from "./surface-services.mjs";
@@ -22,6 +22,8 @@ import { attestationModeFromEnv, canonicalRetryFacts, collectRunSurfaces, maybeP
 import { isQualifyingRun } from "./publication-eligibility.mjs";
 import { appendPhaseMetricFile, appendRunSummaryPhase, phaseFromEpoch, recordPhaseMetricBestEffort } from "./phase-metrics.mjs";
 import { DEFAULT_BLAXEL_POOL_SIZE, RECOMMENDED_TEST_SHARD_COUNT } from "../testshard-constants.mjs";
+
+import { BROAD_LOCAL, BROAD_ZERO, enforceLocalFileGuidance, resolveFileSelection, resolveRetryPolicy } from "./test-guidance.mjs";
 
 applyCursorAgentEnvWorkaround(process.env);
 
@@ -33,6 +35,10 @@ const options = command === "pool" ? parseArgs(args.slice(3))
 const config = command === "testpass" ? null : loadTestConfig();
 
 try {
+  if (options["allow-extreme-inefficiency"]) fail(`--allow-extreme-inefficiency has been renamed to --${BROAD_LOCAL}.`);
+  for (const key of Object.keys(options)) {
+    if (key.startsWith("against-test-guidance") && ![BROAD_LOCAL, BROAD_ZERO].includes(key)) fail(`Unknown option --${key}. Run npm test -- help.`);
+  }
   if (Object.prototype.hasOwnProperty.call(options, "publish")) fail("--publish is not a supported option. A qualifying Blaxel verify publishes its attestation automatically; use --no-publish to opt out.");
   if (command === "help" || options.help) help();
   else if (command === "list") await list();
@@ -73,6 +79,7 @@ async function verify() {
     requireSelftestSeam("TV_TEST_RUNNER_DRY_RUN");
     fail("TV_TEST_RUNNER_DRY_RUN cannot be used with verify; verify requires a finalized test run.");
   }
+  resolveRetryPolicy(options);
   const provider = resolveVerifyProvider();
   const runDirOutput = path.join(os.tmpdir(), `tv-verify-run-dir-${process.pid}`);
   const phases = verifyPhases(provider, runDirOutput);
@@ -190,7 +197,7 @@ function finishVerifyAttestation(start, runDir, provider) {
       expectedSurfaceIds: selectSurfaces(config, { suite: "all" }).map((surface) => surface.id),
       shardSubset: Boolean(options["shard-indices"]),
       targetedSelection: Boolean(options.file || options.grep || options.surface || options.package || options.runner || options.tag || (options.suite && options.suite !== "all")),
-      canonicalRetries: canonicalRetryFacts({ retriesOption: options.retries, env: process.env }),
+      canonicalRetries: canonicalRetryFacts({ options, env: process.env }),
       attestedSkipRun: false,
       policyAtStart: start.policyAtStart,
       policyAtEnd: readAttestationPolicy(),
@@ -228,12 +235,12 @@ function resolveVerifyProvider() {
     return "blaxel";
   }
 
-  fail(`The default broad verification strategy should be blaxel, which requires a clean working tree and all code pushed to origin. Blaxel preflight failed at ${failed.name}${failed.message ? `: ${failed.message}` : ""} ${preflightRemediation(failed)}\nEscape hatch: npm run verify -- local --allow-extreme-inefficiency`);
+  fail(`The default broad verification strategy should be blaxel, which requires a clean working tree and all code pushed to origin. Blaxel preflight failed at ${failed.name}${failed.message ? `: ${failed.message}` : ""} ${preflightRemediation(failed)}\nEscape hatch: npm run verify -- local --${BROAD_LOCAL}`);
 }
 
 function enforceLocalVerifyGuardrail() {
-  if (!fs.existsSync(path.join(os.homedir(), ".tvdev-use-blaxel")) || options["allow-extreme-inefficiency"]) return;
-  fail("~/.tvdev-use-blaxel is present. Use Blaxel for full verification: npm run verify -- blaxel. With explicit human permission under testing policy, allow local verification using npm run verify -- local --allow-extreme-inefficiency.");
+  if (!fs.existsSync(path.join(os.homedir(), ".tvdev-use-blaxel")) || options[BROAD_LOCAL]) return;
+  fail("~/.tvdev-use-blaxel is present. Use Blaxel for full verification: npm run verify -- blaxel. Commit and push to origin first; do not replace broader validation with serial file loops. With explicit human permission under testing policy, allow local verification using npm run verify -- local --against-test-guidance-broad-local-run.");
 }
 
 function positionalProvider() {
@@ -259,7 +266,7 @@ function verifyPhases(provider, runDirOutput = null) {
       { name: "lint", command: npmCommand(), args: ["run", "--silent", "lint"] },
       { name: "type-check", command: npmCommand(), args: ["run", "--silent", "type-check"] },
       { name: "package-manifests", command: npmCommand(), args: ["run", "--silent", "lint:package-manifests"] },
-      { name: "tests", command: process.execPath, args: ["scripts/test/cli.mjs", "local", "--suite", "all", "--force", "--retries", options.retries ?? "2", ...(runDirOutput ? ["--run-dir-output", runDirOutput] : [])] },
+      { name: "tests", command: process.execPath, args: ["scripts/test/cli.mjs", "local", "--suite", "all", "--force", ...(options[BROAD_LOCAL] ? [`--${BROAD_LOCAL}`] : []), ...verifyRetryArgs(), ...(runDirOutput ? ["--run-dir-output", runDirOutput] : [])] },
       vibeModePhase(),
     ];
   }
@@ -279,8 +286,12 @@ function vibeModePhase() {
   return { name: "vibe-mode", command: process.execPath, args: ["scripts/test/vibe-mode-check.mjs"] };
 }
 
+function verifyRetryArgs() {
+  return ["--retries", String(resolveRetryPolicy(options)), ...(options[BROAD_ZERO] ? [`--${BROAD_ZERO}`] : [])];
+}
+
 function remoteVerifyArgs() {
-  const out = ["--commit", options.commit ?? "HEAD", "--retries", options.retries ?? "2"];
+  const out = ["--commit", options.commit ?? "HEAD", ...verifyRetryArgs()];
   for (const key of ["ref", "shards", "shard-indices", "timeout-profile", "retry-infra", "arch", "pool", "allow-shard-count-override"]) {
     if (options[key]) out.push(`--${key}`, options[key]);
   }
@@ -388,11 +399,15 @@ function allowsUncommitted(selectionOptions) {
 }
 
 async function runWithSelection(provider, selectionOptions) {
-  assertRegistryValid();
-  const surfaces = selectedSurfaces({ options: selectionOptions, requireSelection: true });
+  if (provider === "local") assertRegistryValid();
+  const selectionConfig = provider === "blaxel" ? await loadRegistrySnapshotAtCommit({ commit: selectionOptions.commit ?? "HEAD" }) : config;
+  const resolved = resolveFileSelection({ config: selectionConfig, options: selectionOptions, commit: provider === "blaxel" ? selectionOptions.commit ?? "HEAD" : null });
+  const { surfaces } = resolved;
+  selectionOptions = { ...selectionOptions, resolvedFiles: resolved.files };
   enforceExecutionPlacement(provider, surfaces);
   if (process.env.TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT) requireSelftestSeam("TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT");
-  const testRetries = resolveTestRetries(selectionOptions, surfaces);
+  if (provider === "local") enforceLocalFileGuidance(selectionOptions, resolved);
+  const testRetries = resolveTestRetries(selectionOptions, surfaces, resolved);
   if (process.env.TV_TEST_RUNNER_DRY_RUN === "1") {
     requireSelftestSeam("TV_TEST_RUNNER_DRY_RUN");
     const selection = selectionSummary(selectionOptions, surfaces);
@@ -486,7 +501,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
   if (selectionOptions["retry-infra"]) args.push("--retry-infra", selectionOptions["retry-infra"]);
   else args.push("--retry-infra", "2");
   if (allowsUncommitted(selectionOptions)) args.push("--allow-dirty");
-  if (testRetries > 0) args.push("--test-retries", String(testRetries));
+  args.push("--test-retries", String(testRetries));
 
   if (selectionOptions.file || selectionOptions.grep || selectionOptions.surface) {
     if (surfaces.length !== 1) fail("Blaxel targeted runs require a selection that resolves to exactly one surface.");
@@ -504,6 +519,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
     if (surface.command) args.push("--target-command-json", JSON.stringify(surface.command));
     if (surface.preCommand) args.push("--target-pre-command-json", JSON.stringify(surface.preCommand));
     if (surface.services.length > 0) args.push("--target-services-json", JSON.stringify(surface.services));
+    if (selectionOptions.resolvedFiles) args.push("--target-files-json", JSON.stringify(selectionOptions.resolvedFiles.map((file) => file.path)));
     if (selectionOptions.file) args.push("--target-file", surface.command ? selectionOptions.file : relativeToCwd(surface, selectionOptions.file));
     if (selectionOptions.grep) args.push("--target-grep", selectionOptions.grep);
   } else if (selectionOptions.package || selectionOptions.runner || selectionOptions.tag) {
@@ -678,7 +694,7 @@ async function runLocalSurface(surface, selectionOptions, runDir, testRetries = 
   const runnerConfigPath = surface.runner === "vitest" ? path.resolve(runDir, "native", `${name}.runner.config.mjs`) : null;
   if (runnerConfigPath) {
     fs.rmSync(attemptResultAbsPath, { force: true });
-    writeVitestRunnerConfig({ configPath: runnerConfigPath, baseConfigPath: surface.config, runnerPath: "scripts/test/vitest-attempt-reporter.mjs" });
+    writeVitestRunnerConfig({ configPath: runnerConfigPath, baseConfigPath: surface.config, runnerPath: "scripts/test/vitest-attempt-reporter.mjs", files: selectionOptions.resolvedFiles?.filter((file) => file.surfaceId === surface.id).map((file) => file.path) });
   }
   const command = buildSurfaceCommand(surface, selectionOptions, nativeResultAbsPath, testRetries, runnerConfigPath);
   const started = Date.now();
@@ -780,24 +796,27 @@ function skippedSurfaceResult({ surface, command, durationMs, logPath, reason, p
 
 function buildSurfaceCommand(surface, selectionOptions, nativeResultPath, testRetries = 0, runnerConfigPath = null) {
   const file = selectionOptions.file;
+  const files = selectionOptions.resolvedFiles?.filter((file) => file.surfaceId === surface.id).map((file) => file.path);
   const grep = selectionOptions.grep;
   if (file && !surface.supports.includes("file")) fail(`Surface ${surface.id} does not support --file.`);
   if (grep && !surface.supports.includes("grep")) fail(`Surface ${surface.id} does not support --grep.`);
-  if (surface.command) return [...surface.command, ...selectorArgs(surface, file, grep), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
-  if (surface.runner === "vitest") return ["npx", "vitest", "run", "--config", relativeToCwd(surface, runnerConfigPath ?? surface.config), ...selectorArgs(surface, file, grep), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
-  if (surface.runner === "playwright") return ["npx", "playwright", "test", "--config", relativeToCwd(surface, surface.config), ...selectorArgs(surface, file, grep), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
+  if (surface.command) return [...surface.command, ...selectorArgs(surface, file, grep, files), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
+  if (surface.runner === "vitest") return ["npx", "vitest", "run", "--config", relativeToCwd(surface, runnerConfigPath ?? surface.config), ...selectorArgs(surface, file, grep, files), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
+  if (surface.runner === "playwright") return ["npx", "playwright", "test", "--config", relativeToCwd(surface, surface.config), ...selectorArgs(surface, file, grep, files), ...testRetryArgs(surface, testRetries), ...reporterArgs(surface, nativeResultPath)];
   fail(`Unsupported runner ${surface.runner} for ${surface.id}`);
 }
 
-function selectorArgs(surface, file, grep) {
+function selectorArgs(surface, file, grep, files) {
   const out = [];
-  if (file) out.push(surface.command ? file : relativeToCwd(surface, file));
+  if (files) {
+    if (surface.runner === "playwright") out.push(...exactPlaywrightFiles(files));
+  } else if (file) out.push(surface.command ? file : relativeToCwd(surface, file));
   if (grep) out.push(surface.runner === "vitest" ? "-t" : "-g", grep);
   return out;
 }
 
 function testRetryArgs(surface, retries) {
-  if (!shouldRetrySurface(surface) || retries <= 0) return [];
+  if (surface.kind === "unit") retries = 0;
   if (surface.runner === "playwright") return [`--retries=${retries}`];
   if (surface.runner === "vitest") return [`--retry=${retries}`];
   return [];
@@ -826,16 +845,11 @@ function reporterEnv(surface, nativeResultPath, attemptResultPath = null, baseEn
   return env;
 }
 
-function resolveTestRetries(selectionOptions, surfaces) {
-  const explicit = selectionOptions.retries;
+function resolveTestRetries(selectionOptions, surfaces, resolved) {
+  const value = resolveRetryPolicy(selectionOptions, resolved);
   const retriable = hasRetriableSurface(surfaces);
-  if (explicit !== undefined) {
-    const value = Number.parseInt(explicit, 10);
-    if (!Number.isInteger(value) || value < 0) fail("--retries must be a non-negative integer.");
-    if (!retriable && value > 0) console.error("NOTICE: --retries is ignored for unit-only selections; runner-level retries apply only to non-unit Vitest and Playwright surfaces.");
-    return retriable ? value : 0;
-  }
-  return retriable ? 2 : 0;
+  if (!retriable && selectionOptions.retries !== undefined && value > 0) console.error("NOTICE: --retries is ignored for unit-only selections; runner-level retries apply only to non-unit Vitest and Playwright surfaces.");
+  return retriable ? value : 0;
 }
 
 function hasRetriableSurface(surfaces) {
@@ -933,7 +947,7 @@ function runProcess(command, args, { logPath, env = process.env, append = false,
 }
 
 function selectionSummary(selectionOptions, surfaces) {
-  return { suite: selectionOptions.suite ?? (selectionOptions.all ? "all" : null), surfaces: surfaces.map((surface) => surface.id), files: selectionOptions.file ? [selectionOptions.file] : [], grep: selectionOptions.grep ?? null };
+  return { suite: selectionOptions.suite ?? (selectionOptions.all ? "all" : null), surfaces: surfaces.map((surface) => surface.id), files: selectionOptions.resolvedFiles?.map((file) => file.path) ?? (selectionOptions.file ? [selectionOptions.file] : []), grep: selectionOptions.grep ?? null };
 }
 
 function readJson(file) {
@@ -1001,7 +1015,9 @@ function parseArgs(argv, { allowPositionals = false } = {}) {
       positional.push(arg);
       continue;
     }
-    const key = arg.slice(2);
+    const equals = arg.indexOf("=");
+    const key = arg.slice(2, equals < 0 ? undefined : equals);
+    if (equals >= 0) { out[key] = arg.slice(equals + 1); continue; }
     const next = argv[i + 1];
     if (next && !next.startsWith("--")) { out[key] = next; i += 1; }
     else out[key] = "1";
@@ -1044,7 +1060,10 @@ Remote options:
 Guardrails:
   - Without ~/.tvdev-use-blaxel, verify defaults to local without contacting Blaxel.
     With the marker, verify defaults to Blaxel and refuses automatic local fallback.
-    Explicit local verify then requires --allow-extreme-inefficiency.
+    Local runs select one --file, optionally with --grep; broader work goes to Blaxel
+    after committing and pushing to origin. Do not use serial file loops for broader validation.
+    With explicit human permission under testing policy, --${BROAD_LOCAL} permits
+    broader local tests or local verify. It does not replace --force.
   - Provider shortcuts (npm test -- local|blaxel) refuse broad --suite all
     runs. Use 'npm run verify' instead, or pass --force when a raw broad
     provider run is intentional.
@@ -1052,15 +1071,20 @@ Guardrails:
 Retries:
   Non-unit Vitest and Playwright surfaces retry twice by default, including
   targeted runs; unit surfaces do not receive runner-level retries.
-  Use --retries <n> to override the non-unit surface retry count.
+  Use the default budget for validation. Plain --retries 0 is allowed with
+  --file selecting exactly one actual test file, optionally with --grep.
+  Broader zero requires --${BROAD_ZERO};
+  this also selects zero without --retries. It conflicts with positive counts.
+  Positive --retries <n> overrides the non-unit retry count. This retry override
+  does not authorize broader local work; its use is the caller's judgment.
 
 Examples:
   npm test -- local --file packages/web/test/copy-button.test.ts --grep "renders the 'idle default' state"
-  npm test -- local --surface e2e:desktop
+  npm test -- blaxel --surface e2e:desktop
   npm run verify
   npm run verify -- blaxel
-  npm test -- local --suite telemetry-posthog-roundtrip
-  TV_DAEMON_TEST_HOST=1 npm test -- local --suite daemon-acceptance
+  npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts
+  TV_DAEMON_TEST_HOST=1 npm test -- local --file test/node/daemon-acceptance.test.ts
   npm test -- blaxel --suite e2e
   npm test -- blaxel --shard-indices 5 --force
 
