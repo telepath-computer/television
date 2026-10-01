@@ -28,6 +28,7 @@ import type {
 // literal rather than deriving them from the source types: equality below is
 // intended to fail compilation when either side drifts.
 type SpecWritable = {
+  isTTY?: boolean;
   write(chunk: string | Uint8Array): unknown;
 };
 

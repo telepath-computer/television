@@ -12,13 +12,13 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
 - `spec-workflow.md` (248 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (46 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
-- `terms.md` (172 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- `terms.md` (176 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (109 lines) — *What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
   - `channels.md` (65 lines) — *What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
-  - `cli.md` (561 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
-  - `desktop-app.md` (54 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
+  - `cli.md` (574 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+  - `desktop-app.md` (60 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
   - `keyboard-navigation.md` (51 lines) — *How the keyboard moves through the app: the navigation chord that steps between tab pages and between channels, where it always works, and the one place it can't.*
   - `licensing.md` (109 lines) — *Television's licensing promises: the project is MIT and every published package and the desktop application say so, every shipped artifact carries the licenses and attributions of the third-party code and assets it redistributes, and the standard test suites block unacceptably-licensed dependencies from shipping.*
   - `tab-pages.md` (60 lines) — *What tab pages promise the user: one tab per page of the focused channel, labeled by its artifact, stepped through by tab or keyboard, with selection private to each browser.*
@@ -32,6 +32,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `canonical.md` (73 lines) — *The canonical bundle: the stylesheet and components script Television serves an artifact document at `/canonical/v<n>/*`, the live and frozen inputs that produce it, and the compatibility contract over each version.*
   - `developer-skills.md` (23 lines) — *Developer skill distribution: the editable source collection and its installation into agent skill directories under the developer’s home.*
   - `explainer-appearance.md` (97 lines) — *Explainer: how Television combines a theme with the server-wide appearance preference across the application, artifacts, theme script frames, and Electron-native surfaces.*
+  - `explainer-connection-states.md` (60 lines) — *Explainer: what a person sees while Television can't use its server — the desktop setup screen, the connection dialogs in the browser and the desktop app, and the rules that choose between them.*
   - `explainer-desktop-app.md` (77 lines) — *Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
   - `licensing.md` (280 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
   - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
@@ -47,11 +48,11 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (167 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
   - **cli/**
     - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
-    - `index.md` (460 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+    - `index.md` (465 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
     - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
-    - `connect-flow.md` (34 lines) — *The desktop main-process connection flow: local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge.*
+    - `connect-flow.md` (50 lines) — *The desktop main-process connection flow: the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge.*
     - `distribution.md` (100 lines) — *The ToDesktop build of the desktop app: the private workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link.*
     - `e2e-harness.md` (101 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
     - `index.md` (59 lines) — *The desktop architecture root: server connection, appearance, the ToDesktop build, the app's updates, the Electron runtime for development and tests, the test harness, and main-process identity.*
@@ -113,9 +114,9 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - **ui/**
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
-    - `index.md` (115 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - `index.md` (117 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
     - **artifact-frame/**
-      - `index.md` (64 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
+      - `index.md` (66 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**
       - `index.md` (45 lines) — *UI spec: the copy button — a control that copies a value and briefly confirms, without resizing.*
     - **desktop-upgrade-gate/**
@@ -131,7 +132,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
-      - `index.md` (41 lines) — *UI spec: the system modal — the app's interrupting surface: one dialog, its contents by state.*
+      - `index.md` (30 lines) — *UI spec: the system modal — the dialog that interrupts Television while it cannot use a server, its contents by state.*
     - **tab-strip/**
       - `index.md` (60 lines) — *UI spec: the tab strip — the row of open artifacts, and the tab that stands for each.*
     - **top-bar/**
@@ -141,13 +142,13 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **foundation/**
     - `index.md` (127 lines) — *UI spec: the foundation — the design tokens, base element styling, and materials every surface builds on.*
     - **button/**
-      - `index.md` (56 lines) — *UI spec: the button — what a button looks like across its states, and the attributes that vary it.*
+      - `index.md` (57 lines) — *UI spec: the button — what a button looks like across its states, and the attributes that vary it.*
     - **checkbox-list/**
       - `index.md` (18 lines) — *UI spec: the checklist — the static done/not-done idiom an authored artifact writes as markup.*
     - **icons/**
       - `index.md` (61 lines) — *UI spec: the icon — what one looks like, the set of them, and how one is sized.*
     - **input/**
-      - `index.md` (39 lines) — *UI spec: text inputs and textareas — shared text-entry styling in the application and artifacts.*
+      - `index.md` (43 lines) — *UI spec: text inputs and textareas — shared text-entry styling in the application and artifacts.*
     - **menu/**
       - `index.md` (25 lines) — *UI spec: the menu — a popover whose contents are actions, and the vocabulary its interior is built from.*
     - **popover/**
@@ -158,6 +159,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
   - **onboarding-artifacts/**
     - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
+  - **setup/**
+    - `index.md` (25 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **skillbench/**
     - `index.md` (26 lines) — *UI spec: skillbench — the eval review page's interaction, markup, and styling.*
   - **skills/**

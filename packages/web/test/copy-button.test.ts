@@ -33,7 +33,7 @@ const fixtures: CopyButtonFixture[] = [
 ];
 
 describe("copyButtonTemplate (^cb-ac-markup-smoke)", () => {
-  it.each(fixtures)("renders the $name state", (fixture) => {
+  it.each(fixtures.flatMap((fixture) => [undefined, "sm", "default", "lg"].map((size) => ({ ...fixture, size: size as CopyButtonTemplateOptions["size"] }))))("renders the $name state at size=$size", (fixture) => {
     const host = document.createElement("main");
     document.body.append(host);
 
@@ -42,7 +42,7 @@ describe("copyButtonTemplate (^cb-ac-markup-smoke)", () => {
     expect(host.children).toHaveLength(2);
     const button = host.querySelector<HTMLButtonElement>("button.copy-button");
     expect(button).toBe(host.firstElementChild);
-    expect(button?.getAttribute("size")).toBe("sm");
+    expect(button?.getAttribute("size")).toBe(fixture.size === "default" ? null : fixture.size ?? "sm");
     expect(button?.getAttribute("aria-label")).toBe(fixture.label);
     expect(button?.getAttribute("prompt")).toBe(fixture.prompt);
     expect(button?.getAttribute("intent")).toBe(fixture.expectedIntent);

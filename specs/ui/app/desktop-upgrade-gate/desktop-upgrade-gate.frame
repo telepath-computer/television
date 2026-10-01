@@ -8,6 +8,8 @@ params:
     enum: [absent, ready, restarting]
     default: absent
     description: the restart button shown with the downloaded-update message; absent, none renders
+  top_layer_content:
+    description: optional window controls passed to the dialog outside its scrolling panel
 imports:
   - content: ./content.yml
 style: |
@@ -63,4 +65,4 @@ style: |
   }
 ---
 {% capture instructions %}<div class="upgrade-gate-body" data-testid="upgrade-gate-body">{{ body }}</div>{% if restart == 'ready' %}<div class="upgrade-gate-actions"><button intent="primary" class="upgrade-gate-restart">{{ content.restart_to_update }}</button></div>{% elsif restart == 'restarting' %}<div class="upgrade-gate-actions"><button intent="primary" class="upgrade-gate-restart" disabled>{{ content.restarting }}</button></div>{% endif %}{% endcapture %}
-<div class="desktop-upgrade-gate">{% render '../dialog/dialog', content: instructions %}</div>
+<div class="desktop-upgrade-gate">{% render '../dialog/dialog', content: instructions, top_layer_content: top_layer_content %}</div>

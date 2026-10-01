@@ -1855,12 +1855,10 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
 // proofs/arch/themes/delivery.md#^theme-delivery-t-settings-reopen
 test("executable theme reset reloads connected Chromium documents under confirmed state", async ({
   page,
-  baseURL,
   browserName,
 }) => {
   test.skip(browserName !== "chromium", "Chromium owns executable-theme reset acceptance");
   test.slow();
-  if (!baseURL) throw new Error("Expected Playwright baseURL");
 
   const product = await launchProductServer();
   const secondPage = await page.context().newPage();
@@ -1976,11 +1974,8 @@ test("executable theme reset reloads connected Chromium documents under confirme
       name: "Other theme",
     });
 
-    const appURL = await product.appURL(baseURL);
     await Promise.all(applicationPages.map(async (applicationPage) => {
-      await applicationPage.goto(
-        `${appURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appURL)}`,
-      );
+      await applicationPage.goto(product.serverURL);
       await waitForApplicationShell(applicationPage);
     }));
     await openSettings(page);

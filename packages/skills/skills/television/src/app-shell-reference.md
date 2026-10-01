@@ -19,6 +19,8 @@ An artifact frame belongs to the application document. The document inside its i
 
 `#app` owns the application layout and suppresses ordinary text selection in its contents; readable regions can explicitly restore selection. `.app-sidebar` holds the channel list. The sidebar defaults to 260 pixels wide, resizes between 160 and 350 pixels, and remembers the chosen width per browser; it can also collapse entirely, the navbar then opening with an expand control and — while a channel is open — a channel-switcher popover, with the collapsed state remembered per browser. `.app-main` holds the wallpaper, navbar and stage. `.app-main > .top-bar` supplies the horizontal control inset; stage padding is separate. Preserve the shell width constraints so overflowing tabs and pages scroll inside their regions without widening the document. `#app:focus` suppresses a ring on the container itself. The wallpaper region establishes a backdrop boundary so overlay blur samples the wallpaper rather than adjacent content, while fixed popovers retain viewport positioning.
 
+While Television cannot use its server, one connection dialog is shown. Disconnected and unreachable states keep an established shell and its artifact documents mounted; first connection, authorization and upgrade-gate states have no shell behind them. Three failed unreachable reconnects change Disconnected to Can’t connect with server; the displayed upgrade gate stays until reload.
+
 During collapse or expansion, `#app[data-sidebar-motion]` contains both resting layouts and one travelling control:
 
 ```html
@@ -142,7 +144,7 @@ An empty channel adds `.stage-empty`, containing an artifact `tv-icon` and a par
 </div>
 ```
 
-`.artifact-frame` owns the border, curve, surface and broad shadow. Its `::before` paints the sharp rim and its `::after` paints a pointer-transparent masked inner highlight over document and titlebar. Background pages suppress the broad shadow while retaining the exterior rim. `.artifact-frame-clip > :is(iframe, webview)` fills the document area through the one-pixel padding track. `.artifact-frame-clip` clips the document and titlebar while the outer frame lets both shadows extend outward. `.artifact-title-bar` paints the lower band, `.artifact-title-bar .artifact-title` takes the remaining width and truncates, and `.artifact-bar-divider` separates navigation from the menu trigger. The two direction buttons use `disabled` to show unavailable history. In browser demo mode, the frame of an external web page wraps its artifact `tv-icon` in `button.artifact-return` (`icon`, ghost, `sm`) and shows no direction controls. The document repeats the top clipping radius where required for composited iframe/webview rendering.
+`.artifact-frame` owns the border, curve, surface and broad shadow. Its `::before` paints the sharp rim and its `::after` paints a pointer-transparent masked inner highlight over document and titlebar. Background pages suppress the broad shadow while retaining the exterior rim. `.artifact-frame-clip > :is(iframe, webview)` fills the document area through the one-pixel padding track. `.artifact-frame-clip` clips the document and titlebar while the outer frame lets both shadows extend outward. `.artifact-title-bar` paints the lower band, `.artifact-title-bar .artifact-title` takes the remaining width and truncates, and `.artifact-bar-divider` separates navigation from the menu trigger. The two direction buttons use `disabled` to show unavailable history. In browser demo mode, the frame of an external web page wraps its artifact `tv-icon` in `button.artifact-return` (`icon`, ghost, `sm`) and shows no direction controls. The document repeats the top clipping radius where required for composited iframe/webview rendering. A frame can also hold static `.artifact-frame-content` in place of a document and omit its menu when it has no artifact to act on. That content fills the clipping region above the title bar.
 
 The artifact menu uses the same shared menu elements and placement as channel menus. Deletion uses the shared dialog outline below.
 
@@ -193,7 +195,7 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
-The reusable copy control is `button.copy-button[size="sm"][prompt]`, optionally carrying `intent`, containing `.copy-button-idle` and `.copy-button-done`. Both contain an icon and label. `.copy-button[copied] .copy-button-idle` hides the idle content without changing its occupied space; `.copy-button[copied] .copy-button-done` overlays the confirmation. `.copy-button-status` is a separate visually hidden live announcement. Preserve that status region and stable button size when restyling confirmation.
+The reusable copy control is `button.copy-button[prompt]`, optionally carrying `intent` and `size`, containing `.copy-button-idle` and `.copy-button-done`. Both contain an icon and label. The default Copy size is `sm`; callers can omit the rendered size attribute for a standard button or request `size="lg"`. `.copy-button[copied] .copy-button-idle` hides the idle content without changing its occupied space; `.copy-button[copied] .copy-button-done` overlays the confirmation. `.copy-button-status` is a separate visually hidden live announcement. Preserve that status region and stable button size when restyling confirmation.
 
 ### Dialogs, connection states and upgrade gate
 
@@ -212,19 +214,19 @@ The reusable copy control is `button.copy-button[size="sm"][prompt]`, optionally
 
 The scrolling `.dialog-content` wrapper may contain ordinary content instead of an alert. Ambient selectors `:where(.dialog-overlay)`, `:where(dialog)`, and `:where(dialog:focus-visible)` define dimming, centering, panel chrome and container focus treatment. `:where(.dialog-alert)`, `:where(.dialog-alert h2)`, `:where(.dialog-alert p)`, and `:where(.dialog-actions)` define the shared confirmation interior. Keep the modal input boundary and focus behavior intact.
 
-Connection and authorization states reuse the dialog with `.system-modal`: an icon, heading and optional supporting paragraph. `.system-modal h2` and `.system-modal p:not(.tv-error)` set their hierarchy. Connecting and disconnected states use a spinning `tv-icon`; an error adds `.system-modal .server-url`. Authorization uses `form.system-modal.auth-form`. The field uses shared native-input styling; `.auth-form .auth-token` and `.auth-form .auth-submit` stretch the field and submit control. Rejection adds `aria-invalid="true"` and associates the shared error paragraph through `aria-describedby`; the alert communicates the failure. The rejected state is:
+Connection dialogs use `.system-modal`, with a heading and supporting text where applicable. `.system-modal h2` and `.system-modal p:not(.tv-error)` set their hierarchy. Connecting has a spinning icon and title; Disconnected adds the reconnect countdown or in-flight line. Can’t connect with server has no icon, adds `.server-url` and recovery guidance, and keeps the reconnect line. Access token required uses the lock icon and guidance for obtaining a current link. The browser directs the person to its address bar; the desktop's served interface directs them to Disconnect from Server in the app menu.
+
+Only the local desktop page adds `button.system-modal-disconnect[intent="danger"]` to unauthorized and error dialogs:
 
 ```html
-<form class="system-modal auth-form">
+<div class="system-modal">
   <tv-icon name="locked" size="xl"></tv-icon>
   <h2>…</h2><p>…</p>
-  <input class="auth-token" type="password" name="token" placeholder="…" aria-label="…" autofocus required aria-invalid="true" aria-describedby="auth-token-error">
-  <p id="auth-token-error" class="tv-error" role="alert">…</p>
-  <button class="auth-submit" intent="primary">…</button>
-</form>
+  <button class="system-modal-disconnect" intent="danger">…</button>
+</div>
 ```
 
-The ordinary authorization state omits the invalid attribute, error association and error paragraph.
+Connection dialogs leave only when their owner's state changes. Served dialogs wear the server's theme; local dialogs wear Clouds. In the desktop app a `.window-drag-strip[electron-draggable]` spans the top 36 pixels while no shell is rendered, including on the local page. It sits inside `dialog`, outside `.dialog-content`, so native modality leaves it interactive. A retained shell supplies its own drag areas, including with its sidebar collapsed.
 
 Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .dialog-content > .upgrade-gate-body`. The gate fills the halted page; the body scrolls within the panel. `.upgrade-gate-body h1`, `.upgrade-gate-body p`, `.upgrade-gate-body pre`, and `.upgrade-gate-body :last-child` restore local reading rhythm and command formatting. When the app has downloaded an update, `.upgrade-gate-actions` follows the body inside `.dialog-content` and places `button.upgrade-gate-restart[intent="primary"]` trailing below the message; the button carries `[disabled]` while the app restarts.
 
@@ -239,17 +241,17 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 </main>
 ```
 
-`.artifact-error` paints the document ground; `.artifact-error-body` limits the reading column. `.artifact-error h1`, `.artifact-error p`, and `.artifact-error-block` arrange its text. A missing artifact can include a path chip. An unsupported URL can include a link or `.plain-address`, followed by a link to the admin guide. `.artifact-error a`, `.artifact-error .plain-address`, and `.artifact-error code` wrap long content; the path chip is selected whole for copying. Optional host-supplied content may carry `[hidden]`.
+`.artifact-error` paints the document ground; `.artifact-error-body` limits the reading column. `.artifact-error h1`, `.artifact-error p`, and `.artifact-error-block` arrange its text. A missing artifact can include a path chip. An unsupported URL can include a link or `.plain-address`, followed by a link to the admin guide for installing the Mac desktop app. `.artifact-error a`, `.artifact-error .plain-address`, and `.artifact-error code` wrap long content; the path chip is selected whole for copying. Optional host-supplied content may carry `[hidden]`.
 
 <!-- Authority freshness: review this authored reference whenever a listed source changes. -->
 <!-- app-reference-source: specs/ui/app/app.frame sha256: d3f547b23c22507ffc38b4741c5b9fa5c66ddc83e845f999fc09a6259986aa0b -->
-<!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: 75a2ab8cb1bf8b73ae405d32d80ce197072cb066c70896cb2b849a7b24fa38d5 -->
+<!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: 4e1527531a1b3af78e971d9a59234c161dbc4636be2f44b8967781cb35acf668 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-menu.frame sha256: e01464499f195ec8d44d9d0f899069e78661944131f23aca74459e1dca283111 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/delete-confirm/delete-confirm.frame sha256: 42dea00eb14ddc11756cf012d53c1ae63c8a6f0409110ff3b30b8c0833532fb6 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/error-page/error-page.frame sha256: 2dd87a846ebe9a9365444930cf05a4c46ce894573ce3ac58078586d34611f0c6 -->
-<!-- app-reference-source: specs/ui/app/copy-button/copy-button.frame sha256: 644c058cf81d06cd5ecd66c5cbea97b05aeab36fca3b3f5e47faec5d60542b19 -->
-<!-- app-reference-source: specs/ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame sha256: d6bb0f762cf7e3b75f0c7001dae3f58c08497ba8597e8c91d1fbf8d1a44a7db4 -->
-<!-- app-reference-source: specs/ui/app/dialog/dialog.frame sha256: b53d2bdb50265a517b0f97a9d6f70102164443e4373fe3087ea2b15b0926558e -->
+<!-- app-reference-source: specs/ui/app/copy-button/copy-button.frame sha256: b941401c8a97bd2a97dad71beff5d794619b9be987039d4ec80e9d79d3eb5c6d -->
+<!-- app-reference-source: specs/ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame sha256: 15138e0ed0273ec54267efa55aae65b7b35a8812952a94902e05b85c3beb6725 -->
+<!-- app-reference-source: specs/ui/app/dialog/dialog.frame sha256: 31a723b9cafde4bbc2783cb01cc22e9dcfc88e71d36120dc24edf1de5ddcab17 -->
 <!-- app-reference-source: specs/ui/app/settings/settings.frame sha256: 35f923930af589729410a2b45a66ba7edddd6fd78f7de31f265cd5164abfc769 -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-list.frame sha256: 498bd76036a32641537b1a1c37ed3e135a2f0fdaf23fb66de12ef174eabc4fab -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-menu.frame sha256: 3696718c2d20c39e0408554439010b70ea9d649bdc77aab6fbab4a65453ecc4d -->
@@ -260,10 +262,10 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/skill-selector/skill-selector.frame sha256: 7474d8a456c13f2064b90c43d04a37ffae9ef9e542ffa39a16fcbf27f6158a7f -->
 <!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: c037b88962a2dd2a554ba44e3bc91f1ec3c1ef7d773e3ffecce33c5a35115081 -->
 <!-- app-reference-source: specs/ui/app/styles.css sha256: b3129a9c9fe4ad498324983304ef7ec448f3a510a9eb337d1ee24f5c003c0f84 -->
-<!-- app-reference-source: specs/ui/app/system-modal/system-modal.frame sha256: 0a4a53bb18d218c1f0620e8b154748b9fbbeaa6be234d53864ced162b7f6b270 -->
+<!-- app-reference-source: specs/ui/app/system-modal/system-modal.frame sha256: 5b2d6762819fd376cbfff840be88c4fb87e4713c5a7b98f478ab93246b1762c0 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
 <!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: c2ee2416dc5411716fbab93f0adda0c5861e6e7be58b5f07d14d6c77a4c0320e -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
-<!-- app-reference-source: specs/ui/app/index.md sha256: 268fb7d14a1ce41972c824c7537bd858c1be39db41eb46ea2c04cdb3abd256b8 -->
+<!-- app-reference-source: specs/ui/app/index.md sha256: a82a5169d070e9b3a6ecc4da5a7d616f3c0a9ad841512bd6322e36ebf652f401 -->

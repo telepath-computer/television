@@ -108,7 +108,7 @@ npx tsx tv-gate-server.local.mts
 TV_TEST_MODE=true TV_TEST_DESKTOP_APP_VERSION=1.0.0 npm run start:electron
 ```
 
-In the connect window, enter `http://127.0.0.1:4402` (no token — the demo server runs authless) and hit Connect: the window loads the interface from the server and halts at the gate screen with the channel's desktop instructions; no toast, no bell ([desktop-upgrade-gate.md#^gate-precedence](./desktop-upgrade-gate.md#^gate-precedence)). If the app auto-connects to a previously saved server, use the app menu's "Connect to server…".
+If a connection is already saved, choose **Disconnect from Server** in the Television application menu to forget it and return to [setup](../desktop/connect-flow.md#^desktop-disconnect-server). In setup's link field, paste `http://127.0.0.1:4402` (the demo server needs no token) and press **Connect**. Setup shows Connected, then the window loads the server's interface and halts at the gate with the channel's desktop instructions; no toast, no bell ([setup interaction](../../ui/setup/index.md#interaction), [gate precedence](./desktop-upgrade-gate.md#^gate-precedence)).
 
 For the upgrade-and-relaunch exit, quit and relaunch claiming a current shell — normal boot, no gate, and the previously superseded toast presents:
 

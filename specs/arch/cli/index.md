@@ -68,6 +68,8 @@ import type { TelevisionClient } from "@telepath-computer/television-shared";
 
 export type Writable = {
   write(chunk: string | Uint8Array): unknown;
+  /** True when the stream is an interactive terminal; decides link formatting. */
+  isTTY?: boolean;
 };
 
 export type CLIServer = Pick<
@@ -255,8 +257,11 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 | `set-theme` | First attempt `client.display.get()` to capture the selection in effect when the command began; a failure marks the previous selection unavailable and does not abort. For any case-insensitive spelling of `none`, call `client.display.patch({ activeThemeName: null })` without refreshing. Otherwise preserve the theme ID argument exactly, call `client.themes.refresh()`, report an error when the refreshed registry contains one for that exact theme ID, then call `client.display.patch({ activeThemeName: themeID })`. After a successful patch, print the applicable success form below. |
 | `focus-artifact` | `client.display.focus({ artifactID })`. |
 | `status` | `client.health()`, then `client.telemetry.status()`, inside a health check that catches all errors. Health fields are assigned before the telemetry call, so a telemetry failure preserves `healthy: true`, `version`, `bindAddresses`, and `port` while omitting `telemetry`. `home` comes from the invocation's resolved home, and the config read and client-port rule run before the health check, so their failures are command errors rather than `healthy: false`. |
+| `links` | `client.health()`, then an authenticated request through the client to learn whether the running server accepts the home's token, and an unauthenticated one to learn whether it requires a token at all. Each address in the health response's `bindAddresses` with its `port` becomes `buildConnectURL(buildServerURL(address, port), token)`, where `token` is the `readAuthToken(home)` value when the server requires a token and `null` otherwise. A failed health request, or a `401` for the home's token, is a command error. The config file's `auth` setting does not decide token inclusion, because the server reads it only at startup. |
 | `telemetry enable` | `client.telemetry.enable()`. |
 | `telemetry disable` | `client.telemetry.disable()`. |
+
+Every link the CLI prints — `tv serve` and `tv serve --persist` startup URLs and `tv links` output — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 
 The health response may supply an exact release version. `tv status` copies that value unchanged, including the `0.0.0` development sentinel, and omits `version` when the health response does not supply the field. Other health fields pass through unchanged.
 

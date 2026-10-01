@@ -13,6 +13,8 @@ Explain the system change, not merely the changed files or "implements feature X
 
 Organize around the final behavior, architecture, validation, and important decisions. Neither the latest incremental edits nor the sequence of branch work describes the full result the reviewer must assess.
 
+Draft and ready PRs serve the same reader: someone assessing the change without the working conversation. Keep routine coordination in task records or conversation: approvals, review assignments, workflow transitions and pending process steps do not belong in the description. Leave out session details and agent names; when identifying an agent matters, say "an agent".
+
 ## Write for the visible diff
 
 Apply [cold-reader](../cold-reader/SKILL.md) and [plain-English](../plain-english-full/SKILL.md), including the cold-reader self-audit search before publishing.
@@ -21,7 +23,7 @@ Comparisons with the base are useful when both sides appear in the review: "remo
 
 Explain rationale positively: "Library X provides Y." Include it when a reviewer would plausibly wonder about the choice. Rationale that depends on discussing an alternative absent from the final diff belongs in design records or the relevant incremental commit, not the PR body.
 
-State what was actually validated and any material limits. Never imply an unperformed check passed.
+State what was actually validated and any material limits, explaining what the evidence establishes about the changed behavior. Include detail when it helps the reader assess confidence or investigate a relevant uncertainty, and retain any check record a spec explicitly requires. Never imply an unperformed check passed.
 
 ## Publish exact text
 

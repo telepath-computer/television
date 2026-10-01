@@ -6,7 +6,7 @@ The workspace, `@telepath-computer/television-desktop`, is private, so npm never
 
 ## Development
 
-From the repository root, `npm run start:electron` builds the bundle and opens it in Electron; its connect window asks for a server URL and, when the server uses authentication, its token. `npm run build:desktop` builds the bundle into `packages/desktop/dist/` without starting it. The desktop tests run through the [canonical test runner](../../specs/arch/test-runner/test-runner.md).
+From the repository root, `npm run start:electron` builds the bundle and opens it in Electron. With a saved connection it reconnects automatically; otherwise its setup screen asks for one connect link. `npm run build:desktop` builds the bundle into `packages/desktop/dist/` without starting it. The desktop tests run through the [canonical test runner](../../specs/arch/test-runner/test-runner.md).
 
 ## ToDesktop builds
 

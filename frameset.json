@@ -1,7 +1,7 @@
 {
   "root": ".",
   "imports": {
-    "specs/ui/{app,foundation}/**/*.frame": [
+    "specs/ui/{app,foundation,setup}/**/*.frame": [
       "specs/ui/foundation/index.css",
       "specs/ui/foundation/tokens/app.css",
       "frames/lib/foundation.ts"
@@ -34,6 +34,11 @@
           "type": "frame",
           "path": "frames/app/app.frame",
           "title": "App"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/setup.frame",
+          "title": "Setup screen"
         },
         {
           "type": "folder",
@@ -155,14 +160,78 @@
           "title": "Copy button"
         },
         {
-          "type": "frame",
-          "path": "frames/app/system-modal.frame",
-          "title": "System modal"
-        },
-        {
-          "type": "frame",
-          "path": "frames/app/upgrade-gate.frame",
-          "title": "Upgrade gate"
+          "type": "folder",
+          "title": "System modals",
+          "children": [
+            {
+              "type": "frame",
+              "path": "frames/app/system-modals/connecting.frame",
+              "title": "Connecting"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/system-modals/disconnected.frame",
+              "title": "Disconnected"
+            },
+            {
+              "type": "folder",
+              "title": "Browser",
+              "children": [
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/browser/access-token.frame",
+                  "title": "Access token required"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/browser/cant-connect.frame",
+                  "title": "Can\u2019t connect with server"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "title": "Desktop",
+              "children": [
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/desktop/access-token.frame",
+                  "title": "Access token required"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/desktop/cant-connect.frame",
+                  "title": "Can\u2019t connect with server"
+                }
+              ]
+            },
+            {
+              "type": "folder",
+              "title": "Desktop local page",
+              "children": [
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/connecting.frame",
+                  "title": "Connecting"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/access-token.frame",
+                  "title": "Access token required"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/cant-connect.frame",
+                  "title": "Can\u2019t connect with server"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/upgrade-gate.frame",
+              "title": "Upgrade gate"
+            }
+          ]
         },
         {
           "type": "frame",

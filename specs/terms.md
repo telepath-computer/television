@@ -85,6 +85,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *Television home* (also *home*) — the directory holding one Television installation: its optional config file and all the state and content the server keeps. Selected by `--home`, otherwise the default home; distinct from the operating-system home directory. Owned by [product/cli.md](product/cli.md#^cli-home).
 - *default home* — the Television home a command uses when it is given no `--home`: the directory named in `~/.tv-home` when that file exists, otherwise `~/.television`. Owned by [product/cli.md](product/cli.md#^cli-home-selection); `~/.tv-home` by [product/cli.md](product/cli.md#^cli-home-pointer).
 - *config file* — a home's optional `config.json`, holding the settings the server and local commands share: port, additional listeners, authentication, and the installed-by agent. Owned by [product/cli.md](product/cli.md#^cli-config-file); its reader and writer by [arch/cli/index.md](arch/cli/index.md).
+- *connect link* — the URL a person opens to use Television, in a browser or the desktop app: the server's origin for one listening address, with `/?token=<token>` when the server requires the bearer token. Owned by [product/cli.md](product/cli.md#^cli-connect-link).
 - *directive error* — a usage error the CLI itself detects while parsing arguments or validating whether a command and its options can be dispatched. Owned by `product/cli.md`.
 - *focus directive* — a creation-command flag that asks for the new channel or artifact to be shown immediately. CLI spelling and signal emission are owned by [product/cli.md](product/cli.md); the resulting focus behavior by the product owner below.
 - *channel focus* — the persisted active channel. Owned by [product/channels.md](product/channels.md) and its shared-state contracts.
@@ -95,6 +96,9 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## Desktop
 
 - *desktop application* — defined and owned by [product/desktop-app.md](product/desktop-app.md).
+- *setup screen* — the desktop app's connect screen when it has no saved server connection. Owned by [ui/setup/index.md](ui/setup/index.md).
+- *local page* — the desktop app's packaged `connect.html`, which shows the setup screen and the connection dialogs while a saved connection is starting. Owned by [arch/desktop/connect-flow.md](arch/desktop/connect-flow.md#^desktop-local-page).
+- *Disconnect from Server* — the desktop app's command that forgets the saved connection and returns to the setup screen. Owned by [arch/desktop/connect-flow.md](arch/desktop/connect-flow.md#^desktop-disconnect-server).
 - *Electron runtime* — defined and owned by [arch/desktop/runtime.md](arch/desktop/runtime.md).
 - *valid Electron runtime* — defined and owned by [arch/desktop/runtime.md](arch/desktop/runtime.md).
 - *upload directory* — defined and owned by [arch/desktop/distribution.md](arch/desktop/distribution.md).

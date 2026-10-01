@@ -98,7 +98,7 @@ describe("licensing configuration", () => {
       "packages/web/src/foundation/fonts/Hind-Variable.woff2",
       "specs/ui/foundation/fonts/Hind-Variable.woff2",
     ]);
-    expect(hind.surfaces).toEqual(["web", "view:markdown", "source"]);
+    expect(hind.surfaces).toEqual(["web", "view:markdown", "source", "desktop"]);
     expect(hind.components).toHaveLength(1);
     expect(hind.components[0]).toMatchObject({ license: "OFL-1.1" });
     expect(hind.components[0].noticeText).toContain("Copyright (c) 2014, Indian Type Foundry");
@@ -113,7 +113,7 @@ describe("licensing configuration", () => {
       "packages/web/src/elements/select.svg",
       "specs/ui/foundation/icons/select.svg",
     ]);
-    expect(phosphor.surfaces).toEqual(["web", "view:markdown", "source"]);
+    expect(phosphor.surfaces).toEqual(["web", "view:markdown", "source", "desktop"]);
     expect(phosphor.components[0]).toMatchObject({
       package: "@phosphor-icons/core",
       version: "2.1.1",
@@ -190,7 +190,7 @@ describe("licensing configuration", () => {
     ]);
     for (const id of ["tokyo-night-theme", "clouds-theme"]) {
       const asset = assets.find((entry) => entry.id === id)!;
-      expect(asset.surfaces).toEqual(["cli", "source"]);
+      expect(asset.surfaces).toEqual(id === "clouds-theme" ? ["cli", "source", "desktop"] : ["cli", "source"]);
       expect(asset.noticesFolder).toBe(`packages/server/assets/themes/${id.replace("-theme", "")}`);
       for (const component of asset.components.filter((entry) => entry.license === "LicenseRef-Unsplash")) {
         expect(component.noticeText).toContain("Images cannot be sold without significant modification.");
@@ -234,7 +234,7 @@ describe("licensing configuration", () => {
       "packages/canonical/styles/canonical/v2/foundation/colors.css",
       "packages/canonical/frozen/v1/styles.css",
     ]);
-    expect(foundation.surfaces).toEqual(["web", "view:markdown", "source"]);
+    expect(foundation.surfaces).toEqual(["web", "view:markdown", "source", "desktop"]);
     expect(foundation.components).toEqual([tailwind]);
     const demo = assets.find((asset) => asset.id === "tailwind-token-demo")!;
     expect(demo.paths).toEqual(["staging/frames/token-system/styles.css"]);

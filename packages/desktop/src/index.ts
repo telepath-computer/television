@@ -12,11 +12,14 @@ import todesktop from "@todesktop/runtime";
 import path from "node:path";
 import { buildRemoteURL, ConnectURLError, parseDesktopConnectURL, resolveDesktopAppVersion } from "./connect-url.ts";
 import { preflightConnection } from "./connect-preflight.ts";
-import { loadConnection, saveConnection, type Connection } from "./connection-store.ts";
+import { loadConnection, saveConnection, deleteConnection, type Connection } from "./connection-store.ts";
 import type { ConnectResult } from "./connect-error.ts";
 import {
-  GET_CONNECT_SCREEN_INTENT_CHANNEL,
-  type ConnectScreenIntent,
+  GET_CONNECT_STATE_CHANNEL,
+  CONNECT_STATE_CHANNEL,
+  COMPLETE_CONNECT_CHANNEL,
+  DISCONNECT_CHANNEL,
+  type ConnectScreenState,
 } from "./connect-screen.ts";
 import {
   handleNativeNavigationKey,
@@ -58,11 +61,12 @@ todesktop.autoUpdater?.on("update-downloaded", ({ updateInfo }) => {
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 1000;
 const TRAFFIC_LIGHT_POSITION = { x: 15, y: 15 };
-const GET_CONNECTION_CHANNEL = "television:get-connection";
 const CONNECT_CHANNEL = "television:connect";
 const TEST_EXTERNAL_OPEN_CHANNEL = "television:test:external-open";
 const TEST_FIXTURE_FLAG = "--test-fixture";
 const ERR_ABORTED = -3;
+const INITIAL_RETRY_MS = 1_000;
+const MAX_RETRY_MS = 30_000;
 
 if (process.env.TV_ELECTRON_CHROMIUM_LOGS !== "1") {
   app.commandLine?.appendSwitch("log-level", "3");
@@ -122,7 +126,14 @@ function restartToInstallUpdate(): void {
 
 export class App {
   private window: BrowserWindow | null = null;
-  private connectScreenIntent: ConnectScreenIntent = "manual";
+  private connection: Connection | null = null;
+  private connectState: ConnectScreenState = { kind: "setup" };
+  private attempt = 0;
+  private checkAbort: AbortController | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryDelay = INITIAL_RETRY_MS;
+  private pendingNavigation: { attempt: number; connection: Connection; version: string } | null = null;
+  private localPage = false;
 
   async start(): Promise<void> {
     await app.whenReady();
@@ -134,6 +145,7 @@ export class App {
       app.dock?.setIcon(path.join(__dirname, "..", "assets", "icon.png"));
     }
     nativeTheme.themeSource = "system";
+    this.connection = loadConnection();
     this.installMenu();
     this.installWindowOpenHandler();
     ipcMain.on(SET_APPEARANCE_MODE_CHANNEL, (_event, mode: unknown) => {
@@ -141,9 +153,10 @@ export class App {
     });
     ipcMain.handle(GET_DESKTOP_UPDATE_CHANNEL, async () => downloadedUpdateVersion);
     ipcMain.on(RESTART_TO_INSTALL_UPDATE_CHANNEL, () => restartToInstallUpdate());
-    ipcMain.handle(GET_CONNECTION_CHANNEL, async () => loadConnection());
-    ipcMain.handle(GET_CONNECT_SCREEN_INTENT_CHANNEL, async () => this.connectScreenIntent);
-    ipcMain.handle(CONNECT_CHANNEL, async (_event, connection: Connection) => this.tryConnect(connection));
+    ipcMain.handle(GET_CONNECT_STATE_CHANNEL, async () => this.connectState);
+    ipcMain.handle(CONNECT_CHANNEL, async (_event, link: string) => this.tryConnect(link));
+    ipcMain.handle(COMPLETE_CONNECT_CHANNEL, async (_event, attempt: number) => this.completeConnect(attempt));
+    ipcMain.handle(DISCONNECT_CHANNEL, async () => this.disconnect());
     await this.createWindow();
 
     app.on("window-all-closed", () => {
@@ -179,11 +192,12 @@ export class App {
     this.window.webContents.on("did-fail-load", (_event, code, _description, validatedURL, isMainFrame) => {
       if (!isMainFrame) return;
       if (code === ERR_ABORTED) return;
-      if (validatedURL.startsWith("file:")) return;
-      void this.loadConnectScreen("manual");
+      if (validatedURL.startsWith("file:") || this.localPage) return;
+      void this.loadConnectScreen();
     });
     this.window.once("ready-to-show", () => this.window?.show());
     this.window.on("closed", () => {
+      this.cancelConnectionWork();
       this.window = null;
     });
 
@@ -193,49 +207,113 @@ export class App {
       return;
     }
 
-    await this.loadConnectScreen("bootstrap");
+    await this.loadConnectScreen();
   }
 
-  /** @param intent bootstrap = app open / retry saved connection; manual = user chose connect screen */
-  async loadConnectScreen(intent: ConnectScreenIntent = "manual"): Promise<void> {
+  private setConnectState(state: ConnectScreenState): void {
+    this.connectState = state;
+    this.window?.webContents.send(CONNECT_STATE_CHANNEL, state);
+  }
+
+  private cancelConnectionWork(): number {
+    this.attempt += 1;
+    this.checkAbort?.abort();
+    this.checkAbort = null;
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+    this.pendingNavigation = null;
+    return this.attempt;
+  }
+
+  async loadConnectScreen(): Promise<void> {
     if (!this.window) return;
-    this.connectScreenIntent = intent;
+    const attempt = this.cancelConnectionWork();
+    this.localPage = true;
+    this.retryDelay = INITIAL_RETRY_MS;
+    this.setConnectState(this.connection
+      ? { kind: "connecting", serverURL: this.connection.serverURL }
+      : { kind: "setup" });
     await this.window.loadFile(path.join(__dirname, "connect.html"));
+    if (attempt === this.attempt && this.connection) void this.checkSavedConnection(attempt);
   }
 
-  private async tryConnect(raw: Connection): Promise<ConnectResult> {
+  private async disconnect(): Promise<void> {
+    this.cancelConnectionWork();
+    this.window?.webContents.stop();
+    deleteConnection();
+    this.connection = null;
+    this.installMenu();
+    await this.loadConnectScreen();
+  }
+
+  private async check(connection: Connection) {
+    const version = resolveDesktopAppVersion(app.getVersion(), process.env);
+    this.checkAbort = new AbortController();
+    const result = await preflightConnection({
+      ...connection, desktopAppVersion: version, signal: this.checkAbort.signal,
+    });
+    return { result, version };
+  }
+
+  private async checkSavedConnection(attempt: number): Promise<void> {
+    const connection = this.connection;
+    if (!connection || attempt !== this.attempt) return;
+    if (this.connectState.kind === "error") {
+      this.setConnectState({ kind: "error", serverURL: connection.serverURL, nextRetryAt: null });
+    }
+    const { result, version } = await this.check(connection);
+    if (attempt !== this.attempt) return;
+    if (result.ok) {
+      await this.loadRemote(connection, version);
+    } else if (result.code === "auth-required" || result.code === "auth-rejected") {
+      this.setConnectState({ kind: "unauthorized", serverURL: connection.serverURL });
+    } else {
+      const delay = this.retryDelay;
+      this.retryDelay = Math.min(delay * 2, MAX_RETRY_MS);
+      this.setConnectState({ kind: "error", serverURL: connection.serverURL, nextRetryAt: Date.now() + delay });
+      this.retryTimer = setTimeout(() => {
+        this.retryTimer = null;
+        void this.checkSavedConnection(attempt);
+      }, delay);
+    }
+  }
+
+  private async tryConnect(link: string): Promise<ConnectResult> {
+    const attempt = this.cancelConnectionWork();
     let connection: Connection;
     try {
-      const parsed = parseDesktopConnectURL(raw.serverURL);
-      connection = { serverURL: parsed.serverURL, token: parsed.token ?? raw.token ?? "" };
+      const parsed = parseDesktopConnectURL(link);
+      connection = { serverURL: parsed.serverURL, token: parsed.token ?? "" };
     } catch (error) {
       const message = error instanceof ConnectURLError ? error.message : new ConnectURLError().message;
       return { ok: false, message };
     }
-
     try {
-      const desktopAppVersion = resolveDesktopAppVersion(app.getVersion(), process.env);
-      const preflight = await preflightConnection({
-        serverURL: connection.serverURL,
-        token: connection.token,
-        desktopAppVersion,
-      });
-      if (!preflight.ok) {
-        return { ok: false, message: preflight.message };
-      }
-
+      const { result, version } = await this.check(connection);
+      if (attempt !== this.attempt) return { ok: false, message: "Connection cancelled" };
+      if (!result.ok) return { ok: false, message: result.message };
       saveConnection(connection);
-      await this.loadRemote(connection, desktopAppVersion);
-      return { ok: true };
+      this.connection = connection;
+      this.installMenu();
+      this.pendingNavigation = { attempt, connection, version };
+      return { ok: true, attempt };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to connect";
-      return { ok: false, message };
+      return { ok: false, message: error instanceof Error ? error.message : "Failed to connect" };
     }
+  }
+
+  private async completeConnect(attempt: number): Promise<void> {
+    const pending = this.pendingNavigation;
+    if (!pending || pending.attempt !== attempt || attempt !== this.attempt) return;
+    this.pendingNavigation = null;
+    await this.loadRemote(pending.connection, pending.version);
   }
 
   private async loadRemote(connection: Connection, desktopAppVersion: string): Promise<void> {
     if (!this.window) return;
-    await this.window.loadURL(buildRemoteURL(connection.serverURL, connection.token, desktopAppVersion));
+    this.localPage = false;
+    // did-fail-load owns recovery. Electron also rejects loadURL's promise.
+    await this.window.loadURL(buildRemoteURL(connection.serverURL, connection.token, desktopAppVersion)).catch(() => {});
   }
 
   private installWindowOpenHandler(): void {
@@ -276,9 +354,10 @@ export class App {
   private installMenu(): void {
     const isMac = process.platform === "darwin";
     const connectItem: MenuItemConstructorOptions = {
-      label: "Connect to server…",
+      label: "Disconnect from Server",
+      enabled: this.connection !== null,
       accelerator: "CmdOrCtrl+,",
-      click: () => void this.loadConnectScreen("manual"),
+      click: () => void this.disconnect(),
     };
     const template: MenuItemConstructorOptions[] = [
       ...(isMac

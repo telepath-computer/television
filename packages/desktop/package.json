@@ -22,7 +22,9 @@
   "devDependencies": {
     "@telepath-computer/television-artifact": "*",
     "@telepath-computer/television-shared": "*",
+    "@telepath-computer/utils": "*",
     "@todesktop/cli": "1.28.2",
-    "electron": "43.7.6"
+    "electron": "43.7.6",
+    "lit-html": "3.3.2"
   }
 }

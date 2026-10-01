@@ -1,0 +1,6 @@
+---
+title: Access token required
+params:
+  appearance: { enum: [light, dark], default: light }
+---
+{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'unauthorized' %}

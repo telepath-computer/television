@@ -12,8 +12,11 @@ export interface ApplicationPresentationRecord {
   readonly sidebarCount: number;
   readonly mainCount: number;
   readonly modalHostCount: number;
-  readonly authFormCount: number;
   readonly gateCount: number;
+  readonly unauthorizedCount: number;
+  readonly failedReconnectAttempts: number | null;
+  readonly nextRetryAt: number | null;
+  readonly reconnectLine: string;
   readonly connectingCount: number;
   readonly disconnectedCount: number;
   readonly errorCount: number;
@@ -58,7 +61,7 @@ function installRecorderInDocument(): void {
   const owner = window as unknown as {
     __tvApp3PresentationRecorder?: BrowserPresentationRecorder;
     __tvRecordApplicationPresentation?: (record: ApplicationPresentationRecord) => Promise<void>;
-    __telepath?: { renderCompleteCallbacks?: Set<(state: string) => void> };
+    __telepath?: { renderCompleteCallbacks?: Set<(state: string) => void>; connectionOwner?: { connection: { failedReconnectAttempts: number; nextRetryAt: number | null } } };
   };
   if (owner.__tvApp3PresentationRecorder) return;
   const publish = owner.__tvRecordApplicationPresentation;
@@ -76,9 +79,12 @@ function installRecorderInDocument(): void {
       shellRegionCount: root?.querySelectorAll(":scope > .app-sidebar, :scope > .app-main").length ?? 0,
       sidebarCount: root?.querySelectorAll(":scope > .app-sidebar").length ?? 0,
       mainCount: root?.querySelectorAll(":scope > .app-main").length ?? 0,
-      modalHostCount: root?.querySelectorAll(":scope > .system-modal-host").length ?? 0,
-      authFormCount: root?.querySelectorAll(".system-modal-host .auth-form").length ?? 0,
-      gateCount: root?.querySelectorAll(".system-modal-host .desktop-upgrade-gate").length ?? 0,
+      modalHostCount: root?.querySelectorAll(":scope > .system-modal-host, :scope > .desktop-upgrade-gate").length ?? 0,
+      unauthorizedCount: [...root?.querySelectorAll(".system-modal h2") ?? []].filter((heading) => heading.textContent === "Access token required").length,
+      failedReconnectAttempts: owner.__telepath?.connectionOwner?.connection.failedReconnectAttempts ?? null,
+      nextRetryAt: owner.__telepath?.connectionOwner?.connection.nextRetryAt ?? null,
+      reconnectLine: root?.querySelector(".system-modal")?.textContent ?? "",
+      gateCount: root?.querySelectorAll(":scope > .desktop-upgrade-gate").length ?? 0,
       connectingCount: root?.querySelectorAll(".system-modal-host .system-modal h2").length
         ? [...root.querySelectorAll(".system-modal-host .system-modal h2")]
           .filter((heading) => heading.textContent?.trim() === "Connecting").length
@@ -141,7 +147,7 @@ async function stopApplicationPresentationRecorder(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const owner = window as unknown as {
       __tvApp3PresentationRecorder?: BrowserPresentationRecorder;
-      __telepath?: { renderCompleteCallbacks?: Set<(state: string) => void> };
+      __telepath?: { renderCompleteCallbacks?: Set<(state: string) => void>; connectionOwner?: { connection: { failedReconnectAttempts: number; nextRetryAt: number | null } } };
     };
     const recorder = owner.__tvApp3PresentationRecorder;
     if (!recorder) return;

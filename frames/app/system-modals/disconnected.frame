@@ -1,0 +1,11 @@
+---
+title: Disconnected
+params:
+  appearance: { enum: [light, dark], default: light }
+  seconds: { type: number, minimum: 0, multipleOf: 1, default: 5, description: "seconds until the next reconnection attempt; 0 shows Reconnecting now" }
+---
+{% if seconds > 0 %}
+{% render '../../../specs/ui/app/system-modal/system-modal', state: 'disconnected', seconds: seconds %}
+{% else %}
+{% render '../../../specs/ui/app/system-modal/system-modal', state: 'disconnected' %}
+{% endif %}

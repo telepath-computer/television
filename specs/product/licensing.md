@@ -41,7 +41,7 @@ The promise: **every shipped surface that redistributes third-party material car
 
 - a text file in the theme that contains the material, such as the stylesheet holding a color scheme, opens with a comment naming the upstream project and its address, its copyright line when upstream supplies one, and its license, because a theme's files are copied and served on their own;
 - the theme's folder carries a notices file with the complete license terms of every such material in it, because Television copies that folder into the user's data directory, where the user owns it;
-- Television's notices for the public repository and the published CLI package list the upstream project with everything else they declare.
+- Television's notices for the public repository, the published CLI package, and the desktop app when it ships the theme list the upstream project with everything else they declare.
 
 The theme's README links each upstream license at a fixed revision whose terms are the ones declared. For a photo licensed through a website without versioned terms, it records the photo URL, photographer, license URL, and date the retained terms were retrieved. Attribution never invents an upstream copyright holder or year.
 

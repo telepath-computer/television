@@ -8,7 +8,7 @@ vi.mock("electron", () => ({ app: mockApp }));
 
 const fsState = vi.hoisted(() => {
   const files = new Map<string, string>();
-  return { files };
+  return { files, operations: [] as string[] };
 });
 
 vi.mock("node:fs", async (importOriginal) => {
@@ -22,9 +22,12 @@ vi.mock("node:fs", async (importOriginal) => {
       return content;
     },
     writeFileSync: (path: string, content: string) => {
+      fsState.operations.push(`write:${path}`);
       fsState.files.set(path, content);
     },
+    rmSync: (path: string) => { fsState.operations.push(`remove:${path}`); fsState.files.delete(path); },
     renameSync: (oldPath: string, newPath: string) => {
+      fsState.operations.push(`rename:${oldPath}:${newPath}`);
       const content = fsState.files.get(oldPath);
       if (content === undefined) throw new Error(`ENOENT: ${oldPath}`);
       fsState.files.set(newPath, content);
@@ -36,6 +39,7 @@ vi.mock("node:fs", async (importOriginal) => {
 describe("connection-store", () => {
   beforeEach(() => {
     fsState.files.clear();
+    fsState.operations.length = 0;
     vi.resetModules();
   });
 
@@ -60,28 +64,39 @@ describe("connection-store", () => {
     expect(loadConnection()).toEqual({ serverURL: "http://localhost:32848", token: "" });
   });
 
-  it("writes connection.json atomically via a temp file", async () => {
-    const { saveConnection } = await import("../src/connection-store.ts");
+  // proofs/arch/desktop/connect-flow.md#^desktop-t-store-writes
+  it("writes connection.json atomically via a temp file and deletes the record", async () => {
+    const { saveConnection, deleteConnection } = await import("../src/connection-store.ts");
     saveConnection({ serverURL: "http://localhost:32848", token: "abc" });
+    expect(fsState.operations).toEqual([
+      "write:/tmp/television-connection-test/connection.json.tmp",
+      "rename:/tmp/television-connection-test/connection.json.tmp:/tmp/television-connection-test/connection.json",
+    ]);
     expect(fsState.files.has("/tmp/television-connection-test/connection.json.tmp")).toBe(false);
     expect(JSON.parse(fsState.files.get("/tmp/television-connection-test/connection.json")!)).toEqual({
       serverURL: "http://localhost:32848",
       token: "abc",
     });
+    deleteConnection();
+    expect(fsState.operations.at(-1)).toBe("remove:/tmp/television-connection-test/connection.json");
+    expect(fsState.files.has("/tmp/television-connection-test/connection.json")).toBe(false);
   });
 
   it("survives a simulated restart via loadConnection", async () => {
     const first = await import("../src/connection-store.ts");
     first.saveConnection({ serverURL: "http://localhost:99", token: "persist-me" });
 
+    fsState.operations.length = 0;
     vi.resetModules();
     const second = await import("../src/connection-store.ts");
     expect(second.loadConnection()).toEqual({ serverURL: "http://localhost:99", token: "persist-me" });
   });
 
-  it("loadConnection returns null for corrupt JSON", async () => {
-    fsState.files.set("/tmp/television-connection-test/connection.json", "{not json");
+  it("loadConnection returns null for malformed records", async () => {
     const { loadConnection } = await import("../src/connection-store.ts");
-    expect(loadConnection()).toBeNull();
+    for (const record of ["{not json", "null", "{}", JSON.stringify({ serverURL: 42 }), JSON.stringify({ serverURL: "ftp://example.test", token: "" })]) {
+      fsState.files.set("/tmp/television-connection-test/connection.json", record);
+      expect(loadConnection()).toBeNull();
+    }
   });
 });

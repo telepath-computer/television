@@ -1,6 +1,6 @@
 /**
- * End-to-end connect flow through main-process IPC + persistence + connect page API.
- * Exercises the scenarios a human would hit without launching Electron UI.
+ * Main-process contracts with recording Electron/filesystem peers and controlled
+ * fetch/timers. Real IPC, disk and navigation are crossed by desktop acceptance.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -12,7 +12,7 @@ const mockState = vi.hoisted(() => {
     loadURL = vi.fn(async (_url: string) => {});
     loadFile = vi.fn(async () => {});
     show = vi.fn();
-    webContents = { on: vi.fn(), send: vi.fn() };
+    webContents = { on: vi.fn(), send: vi.fn(), stop: vi.fn() };
     once = vi.fn();
     on = vi.fn();
     constructor() {
@@ -72,6 +72,7 @@ vi.mock("node:fs", async (importOriginal) => {
     writeFileSync: (path: string, content: string) => {
       fsState.files.set(path, content);
     },
+    rmSync: (path: string) => fsState.files.delete(path),
     renameSync: (oldPath: string, newPath: string) => {
       const content = fsState.files.get(oldPath);
       if (content === undefined) throw new Error(`ENOENT: ${oldPath}`);
@@ -87,6 +88,7 @@ describe("connect flow", () => {
   const storePath = "/tmp/television-connect-flow/connection.json";
 
   beforeEach(() => {
+    vi.useFakeTimers();
     mockState.MockBrowserWindow.instances.length = 0;
     mockState.ipcHandlers.clear();
     mockState.Menu.buildFromTemplate.mockClear();
@@ -98,6 +100,7 @@ describe("connect flow", () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -107,110 +110,142 @@ describe("connect flow", () => {
     return main;
   }
 
-  it("does not persist submitted fields when the connect check fails", async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 }));
-    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://127.0.0.1:8", token: "old-token" }));
-    await startApp();
+  function invoke(channel: string, ...args: unknown[]): Promise<any> {
+    return Promise.resolve(mockState.ipcHandlers.get(`television:${channel}`)!({}, ...args));
+  }
 
-    const connect = mockState.ipcHandlers.get("television:connect")!;
-    await expect(connect({}, { serverURL: "http://127.0.0.1:9", token: "my-token" })).resolves.toEqual({
-      ok: false,
-      message: "Token rejected",
-    });
-
-    expect(JSON.parse(fsState.files.get(storePath)!)).toEqual({
-      serverURL: "http://127.0.0.1:8",
-      token: "old-token",
-    });
-
-    const getConnection = mockState.ipcHandlers.get("television:get-connection")!;
-    await expect(getConnection({})).resolves.toEqual({
-      serverURL: "http://127.0.0.1:8",
-      token: "old-token",
-    });
-  });
-
-  it("loads saved connections that do not have a token", async () => {
-    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://127.0.0.1:32848" }));
-    await startApp();
-
-    const getConnection = mockState.ipcHandlers.get("television:get-connection")!;
-    await expect(getConnection({})).resolves.toEqual({
-      serverURL: "http://127.0.0.1:32848",
-      token: "",
-    });
-  });
-
-  it("simulates app restart: saved token preloads via get-connection then bootstrap can reconnect", async () => {
-    fsState.files.set(
-      storePath,
-      JSON.stringify({ serverURL: "http://127.0.0.1:32848", token: "restart-token" }),
-    );
-
-    await startApp();
-
-    const intent = mockState.ipcHandlers.get("television:get-connect-screen-intent")!;
-    const getConnection = mockState.ipcHandlers.get("television:get-connection")!;
-    expect(await intent({})).toBe("bootstrap");
-    await expect(getConnection({})).resolves.toEqual({
-      serverURL: "http://127.0.0.1:32848",
-      token: "restart-token",
-    });
-
-    const connect = mockState.ipcHandlers.get("television:connect")!;
-    await expect(connect({}, { serverURL: "http://127.0.0.1:32848", token: "restart-token" })).resolves.toEqual({
-      ok: true,
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:32848/desktop/connect-check?desktopAppVersion=0.1.170",
-      expect.objectContaining({
-        method: "GET",
-        headers: { Authorization: "Bearer restart-token" },
-      }),
-    );
-    const win = mockState.MockBrowserWindow.instances[0];
-    expect(win.loadURL).toHaveBeenCalledTimes(1);
-    const loaded = new URL(win.loadURL.mock.calls[0]![0]!);
-    expect(loaded.searchParams.get("token")).toBe("restart-token");
-    expect(loaded.searchParams.get("mode")).toBe("electron");
-  });
-
-  it("menu reopen uses manual intent so page layer must not auto-submit saved connection", async () => {
-    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://127.0.0.1:1", token: "tok" }));
-    await startApp();
-
+  function disconnectItem() {
     const template = mockState.Menu.buildFromTemplate.mock.calls.at(-1)![0] as Array<{
-      submenu?: Array<{ label?: string; click?: () => void }>;
+      submenu?: Array<{ label?: string; enabled?: boolean; accelerator?: string; click?: () => void }>;
     }>;
-    const connectItem = template.flatMap((item) => item.submenu ?? []).find((s) => s.label === "Connect to server…");
-    connectItem!.click!();
+    return template.flatMap(item => item.submenu ?? []).find(item => item.label === "Disconnect from Server")!;
+  }
 
-    const intent = mockState.ipcHandlers.get("television:get-connect-screen-intent")!;
-    expect(await intent({})).toBe("manual");
-    await expect(mockState.ipcHandlers.get("television:get-connection")!({})).resolves.toEqual({
-      serverURL: "http://127.0.0.1:1",
-      token: "tok",
-    });
+  // proofs/arch/desktop/connect-flow.md#^desktop-t-connect-entry
+  it("starts without a record in setup and saves a checked link before the Connected handoff", async () => {
+    await startApp();
+    expect(await invoke("get-connect-state")).toEqual({ kind: "setup" });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(disconnectItem()).toMatchObject({ enabled: false, accelerator: "CmdOrCtrl+," });
+    const result = await invoke("connect", "https://example.test/path?token=a%2Bb&extra=1");
+    expect(result).toMatchObject({ ok: true, attempt: expect.any(Number) });
+    expect(JSON.parse(fsState.files.get(storePath)!)).toEqual({ serverURL: "https://example.test", token: "a+b" });
+    expect(disconnectItem().enabled).toBe(true);
+    const win = mockState.MockBrowserWindow.instances[0];
+    expect(win.loadURL).not.toHaveBeenCalled();
+    await invoke("complete-connect", result.attempt);
+    expect(new URL(win.loadURL.mock.calls[0]![0]!).searchParams.get("token")).toBe("a+b");
   });
 
-  it("remote load failure returns to connect screen in manual mode", async () => {
+  it("keeps rejected setup links inline and a tokenless retry carries no previous token", async () => {
     await startApp();
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 401 }));
+    expect(await invoke("connect", "http://example.test/?token=wrong")).toMatchObject({ ok: false, message: expect.stringMatching(/link/) });
+    expect(await invoke("get-connect-state")).toEqual({ kind: "setup" });
+    expect(fsState.files.has(storePath)).toBe(false);
+    await invoke("connect", "http://example.test/anything");
+    expect(fetchMock.mock.calls.at(-1)![1]!.headers).toEqual({});
+    expect(JSON.parse(fsState.files.get(storePath)!)).toEqual({ serverURL: "http://example.test", token: "" });
+  });
+
+  it("starts saved records with Connecting then retries failures with backoff and stops on 401", async () => {
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "saved" }));
+    let resolveCheck!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { resolveCheck = resolve; }));
+    await startApp();
+    expect(await invoke("get-connect-state")).toEqual({ kind: "connecting", serverURL: "http://example.test" });
+    expect(disconnectItem().enabled).toBe(true);
+    resolveCheck(new Response("unavailable", { status: 503 }));
+    await vi.advanceTimersByTimeAsync(0);
+    const first = await invoke("get-connect-state");
+    const firstDelay = first.nextRetryAt - Date.now();
+    expect(first).toMatchObject({ kind: "error", nextRetryAt: expect.any(Number) });
+    let retryCheck!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { retryCheck = resolve; }));
+    await vi.advanceTimersByTimeAsync(first.nextRetryAt - Date.now());
+    expect(await invoke("get-connect-state")).toMatchObject({ kind: "error", nextRetryAt: null });
+    retryCheck(new Response("", { status: 503 }));
+    await vi.advanceTimersByTimeAsync(0);
+    const second = await invoke("get-connect-state");
+    expect(second.nextRetryAt - Date.now()).toBeGreaterThan(firstDelay);
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 401 }));
+    await vi.advanceTimersByTimeAsync(second.nextRetryAt - Date.now());
+    expect(await invoke("get-connect-state")).toMatchObject({ kind: "unauthorized" });
+    const calls = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+  });
+
+  it("reconnects saved records automatically and treats malformed records as setup", async () => {
+    fsState.files.set(storePath, "not json");
+    await startApp();
+    expect(await invoke("get-connect-state")).toEqual({ kind: "setup" });
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "" }));
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 503 }));
+    await startApp();
+    await vi.advanceTimersByTimeAsync(0);
+    const retry = await invoke("get-connect-state");
+    expect(retry.kind).toBe("error");
+    await vi.advanceTimersByTimeAsync(retry.nextRetryAt - Date.now());
+    expect(mockState.MockBrowserWindow.instances.at(-1)!.loadURL).toHaveBeenCalledWith("http://example.test/?mode=electron&desktopAppVersion=0.1.170");
+  });
+
+  // proofs/arch/desktop/connect-flow.md#^desktop-t-disconnect
+  it("disconnect cancels pending checks, retries and a successful setup handoff", async () => {
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "secret" }));
+    let resolveCheck!: (value: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { resolveCheck = resolve; }));
+    await startApp();
+    expect(disconnectItem().enabled).toBe(true);
+    disconnectItem().click!();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
+    resolveCheck(new Response(JSON.stringify(connectCheckBody)));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fsState.files.has(storePath)).toBe(false);
     const win = mockState.MockBrowserWindow.instances[0];
-    const failLoad = win.webContents.on.mock.calls.find(([event]) => event === "did-fail-load")?.[1] as (
-      event: unknown,
-      code: number,
-      desc: string,
-      url: string,
-      isMainFrame: boolean,
-    ) => void;
+    expect(win.loadURL).not.toHaveBeenCalled();
+    const success = await invoke("connect", "http://example.test");
+    disconnectItem().click!();
+    await vi.advanceTimersByTimeAsync(0);
+    await invoke("complete-connect", success.attempt);
+    expect(win.loadURL).not.toHaveBeenCalled();
+    expect(fsState.files.has(storePath)).toBe(false);
+    expect(disconnectItem().enabled).toBe(false);
+    expect(await invoke("get-connect-state")).toEqual({ kind: "setup" });
 
-    expect(failLoad).toBeDefined();
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "" }));
+    fetchMock.mockRejectedValue(new Error("unreachable"));
+    await startApp();
+    await vi.advanceTimersByTimeAsync(0);
+    await invoke("disconnect");
+    const calls = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
+  });
+
+  // proofs/arch/desktop/connect-flow.md#^desktop-t-connect-load-recovery
+  it("only a genuine top-level remote load failure re-enters saved startup", async () => {
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "" }));
+    await startApp();
+    await vi.advanceTimersByTimeAsync(0);
+    const win = mockState.MockBrowserWindow.instances[0];
+    const fail = win.webContents.on.mock.calls.find(([event]) => event === "did-fail-load")![1] as Function;
     win.loadFile.mockClear();
-    failLoad({}, -1, "ERR_FAILED", "http://127.0.0.1:9/?mode=electron", true);
-
-    expect(win.loadFile).toHaveBeenCalledWith(expect.stringMatching(/connect\.html$/));
-    const intent = mockState.ipcHandlers.get("television:get-connect-screen-intent")!;
-    expect(await intent({})).toBe("manual");
+    fail({}, -3, "aborted", "http://example.test", true);
+    fail({}, -2, "failed", "http://example.test", false);
+    fail({}, -2, "failed", "file:///connect.html", true);
+    expect(win.loadFile).not.toHaveBeenCalled();
+    fetchMock.mockRejectedValue(new Error("offline"));
+    fail({}, -2, "failed", "http://example.test", true);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(win.loadFile).toHaveBeenCalledTimes(1);
+    expect(await invoke("get-connect-state")).toMatchObject({ kind: "error", serverURL: "http://example.test" });
+    expect(fsState.files.has(storePath)).toBe(true);
+    const close = win.on.mock.calls.find(([event]) => event === "closed")![1] as Function;
+    close();
+    const calls = fetchMock.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(fetchMock).toHaveBeenCalledTimes(calls);
   });
 });

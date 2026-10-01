@@ -1,0 +1,8 @@
+---
+title: Connecting
+description: "The desktop app's local page, starting a saved connection. It wears Clouds whatever theme the server uses."
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [clouds], default: clouds }
+---
+{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'connecting', context: 'local', drag_strip: true %}

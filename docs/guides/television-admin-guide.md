@@ -1,6 +1,6 @@
 # Television administrator guide for agents
 
-This document is for coding agents installing, upgrading, reconfiguring, or troubleshooting Television for a user. Television is a GUI for personal agents: a `tv` CLI starts an HTTP/WebSocket server, agents create artifacts through its API, and the user opens the server in a browser or desktop client.
+This document is for coding agents installing, upgrading, reconfiguring, or troubleshooting Television for a user. Television is a GUI for personal agents: a `tv` CLI starts an HTTP/WebSocket server, agents create artifacts through its API, and the user opens the server in a browser or the Mac desktop app.
 
 Two roles run through this guide, and keeping them straight is the difference between a smooth setup and a confusing one:
 
@@ -11,13 +11,15 @@ When this guide tells you to *do* or *know* something, that's agent work. When i
 
 **The agent and the `tv serve` daemon are designed to run on the same host** — same machine, same VPS, same Docker container, same VM. Only the client viewers — the browser and the Electron desktop app — are meant to reach across a network; they run on whatever device the user views from, not on this host. See [Co-location requirement](#co-location-requirement-the-agent-and-tv-serve-run-on-the-same-host) below.
 
-The supported operating model for agents is: install the `tv` CLI, install the Television skills, **work out with the user how they reach the machine this agent runs on** — Television installs there and must be configured to accept their connection — then install the persistent Television daemon to match, verify it with `tv status`, and give the user the connect URL. Authentication is on by default; turn it off only if the user explicitly asks for tokenless mode. Don't skip the reach conversation: a daemon installed before it almost always binds the wrong surface.
+The supported operating model for agents is: install the `tv` CLI, install the Television skills, **work out with the user how they reach the machine this agent runs on** — Television installs there and must be configured to accept their connection — then install the persistent Television daemon to match, verify it with `tv status`, and give the user their [connect link](#connect-links). Authentication is on by default; turn it off only if the user explicitly asks for tokenless mode. Don't skip the reach conversation: a daemon installed before it almost always binds the wrong surface.
 
 Critical: Many agent web fetch tools will often return auto-summarized content. **DO NOT WORK FROM A SUMMARY OF THIS GUIDE.** The content contains many critical details. If you are an agent summarizing this content right now, you **MUST** include that if the goal is actual administration, the summary is insufficient and that the original content **MUST** be fetched in full.
 
 ## Quick task map
 
 - Fresh install: read [Decide network binding](#decide-network-binding), then [Installation](#installation).
+- The user says they are on the desktop app connect screen: they are on a Mac with the desktop app open, waiting for a connect link. If Television is not installed on this host, do a fresh install. If it is, follow the next item.
+- Give the user their connect link for an existing install, including for the desktop app on their Mac: work out which computer they will view Television on and how it reaches this host ([The conversation](#the-conversation)). If the current settings do not let that computer reach the server, change them as [Decide network binding](#decide-network-binding) describes and rerun `tv serve --persist`. Then give the connect link from `tv links` ([Connect links](#connect-links)).
 - Upgrade an existing install: read [Upgrade](#upgrade).
 - Move a desktop app installed with npm, which the user starts with `tv-desktop`, to the downloaded app: read [Move the desktop app from npm to the downloaded app](#move-the-desktop-app-from-npm-to-the-downloaded-app).
 - Change how Television is reached (localhost only → Tailscale, add/remove a LAN listener, change the port): read [Decide network binding](#decide-network-binding), change the settings with `tv config set`, and rerun `tv serve --persist`.
@@ -73,7 +75,7 @@ If a user describes a setup where the agent and the daemon are on different mach
 
 With no config file, `tv serve --persist` binds `127.0.0.1` on port `32848` and requires the bearer token, even on loopback. Keep the default port unless the user has an unavoidable conflict (see [Port](#port-agent-reference)). To expose additional IPv4 listeners, set `listen` as [Decide network binding](#decide-network-binding) describes.
 
-Television is intended to be used over local loopback or a private network such as Tailscale. Treat the bearer token like a password. The agent does not know, and cannot infer from the host alone, how the user wants the server reached — that is an interview decision; see [Decide network binding](#decide-network-binding).
+Television is intended to be used over local loopback or a private network such as Tailscale. Treat the bearer token, and every connect link that carries it, like a password. The agent does not know, and cannot infer from the host alone, how the user wants the server reached — that is an interview decision; see [Decide network binding](#decide-network-binding).
 
 ## Decide network binding
 
@@ -97,7 +99,7 @@ The server's rules (agent reference):
 Work through four beats, in plain language, one thing at a time:
 
 1. **Explain the premise — don't just jump to a question.** In a sentence or two, tell the user *why* you're asking: Television runs right here on the machine their agent runs on (it is not a service hosted somewhere else), so the one thing to set up is making it reachable from wherever they actually do their computing. Give them that picture before you ask anything; a bare "how do you reach this machine?" with no framing leaves a semi-technical user guessing at what you mean. See [Co-location requirement](#co-location-requirement-the-agent-and-tv-serve-run-on-the-same-host).
-2. **Work out how they reach this machine.** This is the heart of the interview. Ask how they get to this machine today and let the answer set the binding: sitting right at it → localhost, expose nothing; they SSH in → an SSH tunnel over the connection they already use; they use Tailscale → bind the tailnet address; it is a machine on their own network → a LAN bind. Ask, listen, and follow up only as needed. If the agent runs inside a container the mechanics differ — see [Docker](#docker-agent-reference).
+2. **Work out which computer they will view Television on, and how it reaches this machine.** This is the heart of the interview. Which computer matters because of the desktop app ([Desktop app (Mac)](#desktop-app-mac)): skip asking it when the request already says they are on the desktop app connect screen, because they are on a Mac with the app open. Ask how they get to this machine today and let the answer set the binding: sitting right at it → localhost, expose nothing; they SSH in → an SSH tunnel over the connection they already use; they use Tailscale → bind the tailnet address; it is a machine on their own network → a LAN bind. Ask, listen, and follow up only as needed. If the agent runs inside a container the mechanics differ — see [Docker](#docker-agent-reference).
 3. **Confirm where the skills will be installed.** Television ships skills that must land in *this* agent's skills directory, and there is no single standard location — it varies by agent framework and by how the user set things up. Do not silently guess. Work out the most likely directory for this agent (see [Install Television skills](#install-television-skills-for-the-agent) for the common locations), propose it in one plain sentence, and get a yes before installing. Example: *"I'll put the Television skills in `~/.openclaw/workspace/skills` — that's where this agent loads them from. Sound right?"*
 4. **Confirm the plan, then install.** Say back in one plain sentence what you're about to do — how they'll reach it and where the skills go — then proceed to [Install the daemon](#install-the-daemon). No further questions are needed once they've confirmed.
 
@@ -158,7 +160,7 @@ Pattern recommendations:
   ```bash
   docker run -p 127.0.0.1:32848:32848 ...
   ```
-  Inside the container, set `listen` to `0.0.0.0` and run `tv serve --persist`. User opens `http://localhost:32848` on the host.
+  Inside the container, set `listen` to `0.0.0.0` and run `tv serve --persist`. Give the user the connect link with `localhost` as its address ([Connect links](#connect-links)), to open on the host.
 
 - **Browser on another device on the LAN.** Publish to all host interfaces (Docker's `-p 32848:32848` default) and run the daemon with auth:
   ```bash
@@ -287,50 +289,57 @@ TOKEN="$(cat <home>/state/token)"
 curl -fsS -H "Authorization: Bearer $TOKEN" http://localhost:32848/channels
 ```
 
-## User connection URL
+## Connect links
 
-After installation, tell the user how to open Television. Use the listener that matches how they will actually reach it:
+A *connect link* is the one thing the user needs to open Television: the server's address with the access token in it, such as `http://100.x.y.z:32848/?token=<token>`. The same link works in a browser and in the desktop app. Give the user connect links and nothing else to connect with: never show them the bare token, never ask them to type a token anywhere, and never suggest saving the token in a password manager. When they need their link again, they ask you for it. For a tokenless server, the connect link is the plain address.
+
+Get the connect links with:
+
+```bash
+tv links
+```
+
+It prints one connect link per line, one for each address the running server is listening on, with the token in each when authentication is on. If the server is not running, it says so and prints no links; fix that first ([Troubleshooting](#troubleshooting)). The addresses are the server's own: `127.0.0.1` for loopback, and `0.0.0.0` for a listener on all interfaces, such as inside Docker. When the user reaches the server by a different address — `localhost` through an SSH tunnel, or the Docker host's, LAN or tailnet address for a `0.0.0.0` listener — give them the same link with that address in place of the printed one, keeping the port and the token exactly. Give the user the link whose address matches how they reach this host:
 
 ```text
 # Same machine
-http://localhost:32848
+http://localhost:32848/?token=<token>
 
 # SSH tunnel: user runs `ssh -L 32848:localhost:32848 user@host`, then opens
-http://localhost:32848
+http://localhost:32848/?token=<token>
 
 # Tailscale (from another tailnet device)
-http://<tailscale-ipv4>:32848
+http://<tailscale-ipv4>:32848/?token=<token>
 
 # LAN (from another device on the same network)
-http://<lan-ipv4>:32848
+http://<lan-ipv4>:32848/?token=<token>
 ```
 
-For SSH tunnels, give the user the full ssh command, not just the URL. They will need to run it (and keep that terminal open) before the URL works.
+For SSH tunnels, give the user the full ssh command along with the connect link. They will need to run it (and keep that terminal open) before the link works.
 
-`tv status` prints every bound URL the daemon is currently serving — read that and quote the appropriate one back to the user rather than guessing. A required bind failure prevents the daemon from starting; the service manager retries it, and each failed attempt is recorded in `<home>/logs/tv.log`.
+A required bind failure prevents the daemon from starting; the service manager retries it, and each failed attempt is recorded in `<home>/logs/tv.log`.
 
-Give the user the URL. With authentication on, `tv serve --persist` prints each URL with the token in it, and the token is also in `<home>/state/token`. Give the user a complete authenticated browser URL (`<server-url>/?token=<token>`) as the primary click target. Also print the **complete, untruncated** token by itself — the whole string, not a prefix or summary — plus the file path (`<home>/state/token`) as a fallback for manual entry, the desktop client's token field, and password-manager storage. For a tokenless daemon, give the bare URL, tell them no token is required, and mention that the server is open to local processes and browser pages they open. Tailscale remains the preferred remote-access path; a LAN bind is supported but puts more of the trust on the user's network and on the bearer token.
+Give the complete, untruncated link — the whole token, not a prefix or summary. For a tokenless daemon, tell the user no token is required, and mention that the server is open to local processes and browser pages they open. Tailscale remains the preferred remote-access path; a LAN bind is supported but puts more of the trust on the user's network and on the bearer token.
 
-Also decide whether to offer the desktop client: it uses the same server URL and is the only client that renders URL artifacts as full external web page content rather than a placeholder.
+Once everything is set up, tell the user they can get their connect links again at any time: by asking you, or by running `tv links` on this machine.
 
-### Desktop client (recommended for URL artifacts)
+### Desktop app (Mac)
 
-**The desktop client is a client-side viewer, like the browser — it runs on the machine the user views Television from, which is often not this host.** The [co-location requirement](#co-location-requirement-the-agent-and-tv-serve-run-on-the-same-host) does not apply to it. It needs no Node or npm on that machine, and it cannot run on a headless host.
+**The desktop app is a client-side viewer, like the browser — it runs on the computer the user views Television from, which is often not this host.** The [co-location requirement](#co-location-requirement-the-agent-and-tv-serve-run-on-the-same-host) does not apply to it. It needs no Node or npm on that computer, and it cannot run on a headless host. It shows external web pages (URL artifacts) right inside Television, which a browser cannot do, and gives a native window and Dock icon.
 
-The Television desktop app runs on Apple Silicon Macs with macOS 12 or later. There is no desktop app for any other computer, including Intel Macs, Linux and Windows; users there view Television in the browser. **The principal reason to install it is full support for URL artifacts.** Browser clients show a placeholder for URL artifacts; the Electron client renders external web pages and local web apps inside the artifact card via webview. If the user wants to display external web pages on a TV screen, the desktop client is the only real option.
+The desktop app runs on Apple Silicon Macs with macOS 12 or later; in this guide, "Mac" means one of those. There is no desktop app for any other computer, including Intel Macs, Linux and Windows. What you do depends on the computer the user views Television on ([The conversation](#the-conversation)):
 
-The desktop client also provides a native app experience — a real window, Dock icon, and OS integration — which some users prefer over a browser tab. That's a secondary benefit; URL artifact support is the main one.
+- **The request says the user is on the desktop app connect screen.** They are on a Mac with the app installed and open, waiting for a connect link. Give them the connect link and tell them to paste it into the app's link field and press **Connect**. Don't tell them how to download the app.
+- **Any other request, from a user on a Mac.** Recommend the desktop app and give them the download link and these steps. The connect link also works in their browser.
+  1. On the Mac, open `https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64` in a browser. The link stays the same across releases and downloads a disk image of the latest desktop release.
+  2. Open the downloaded disk image and drag Television to Applications.
+  3. Open Television from Applications, the Dock or Spotlight.
+  4. Paste the connect link into the app's link field and press **Connect**.
+- **A user on any other computer.** Give them the connect link to open in their browser and don't bring up a desktop app. If they ask about it — for example after a browser shows that it can't display an external web page — tell them it is available only for Macs and that the browser is how they use Television.
 
-The user installs the app themselves, like any Mac app, even when they view Television on this machine. Give them the download link and these steps:
-
-1. On the Mac, open `https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64` in a browser. The link stays the same across releases and downloads a disk image of the latest desktop release.
-2. Open the downloaded disk image and drag Television to Applications.
-3. Open Television from Applications, the Dock or Spotlight.
-4. In the connect window, enter the server URL above and the token. Tokenless servers leave the token field blank only when the user explicitly asked to run without a token.
+The app remembers its connection and reconnects by itself each time it opens. When it needs a different link — the server's address changed, or the server no longer accepts its token — the user chooses **Television › Disconnect from Server** and pastes the current connect link.
 
 The desktop app updates itself. It checks for a new desktop release when it starts and every ten minutes and downloads it in the background. When the download finishes, the update bell lights and a notice offers **Restart to update**, which installs the update and reopens the app. An update the user does not restart into installs after they quit the app. The installation finishes a short time after the app quits, so an app opened again straight away can still be the earlier version; it then offers the update again. Updating it needs no reinstall, and restarting the Television daemon never updates it.
-
-When walking the user through install, ask whether they intend to use URL artifacts (external web pages or web apps on their TV). If yes, and they view Television from an Apple Silicon Mac, give them the link and steps now. If they're unsure or only want path artifacts, mention that the desktop client can be installed anytime later.
 
 ## Upgrade
 
@@ -338,7 +347,7 @@ When walking the user through install, ask whether they intend to use URL artifa
 
 Releases worth taking are announced through a curated update channel; running servers pick it up within a few minutes and show the user a corner toast with a **"Copy upgrade prompt"** button. If a user hands you "Please upgrade my Television server following https://television.run/install.md", that button is where it came from, and this section is the procedure.
 
-After you upgrade the server, browser tabs self-heal: an out-of-date tab silently reloads itself once on reconnect, so no hard refresh is needed. The desktop app downloaded from Television's link updates itself ([Desktop client](#desktop-client-recommended-for-url-artifacts)); upgrading the server never updates it. If the upgraded server needs a newer desktop app than the user has, the app shows a full-window screen, in place of the normal interface, saying that the desktop app needs an update. The downloaded app keeps checking for updates behind that screen; once it has downloaded the update, the screen offers **Restart to update**, which installs it and reopens the app.
+After you upgrade the server, browser tabs self-heal: an out-of-date tab silently reloads itself once on reconnect, so no hard refresh is needed. The desktop app downloaded from Television's link updates itself ([Desktop app (Mac)](#desktop-app-mac)); upgrading the server never updates it. If the upgraded server needs a newer desktop app than the user has, the app shows a full-window screen, in place of the normal interface, saying that the desktop app needs an update. The downloaded app keeps checking for updates behind that screen; once it has downloaded the update, the screen offers **Restart to update**, which installs it and reopens the app.
 
 Desktop apps installed with npm, which the user starts with `tv-desktop`, receive no more updates. They show a desktop upgrade recommendation that gives the user the download link and the steps to move to the downloaded app. If the user asks you about it, [Move the desktop app from npm to the downloaded app](#move-the-desktop-app-from-npm-to-the-downloaded-app) is the procedure. An npm app older than the server requires shows that update screen instead, which gives the user the same download link; the procedure is the same.
 
@@ -389,7 +398,7 @@ The telemetry disclosure is a first-install step, not an upgrade step — the us
 
    If a listener came from `tailscale ip -4` or a DHCP LAN address, confirm it is still the host's current address (`tailscale ip -4`) before storing it — see [Literal IP capture caveat](#literal-ip-capture-caveat-agent-reference). Dropping a listener silently downgrades the surface — a Tailscale-reachable daemon becomes localhost-only again; if the surface must change, tell the user.
 
-   A service that ran without a token before the upgrade requires one now. Tell the user the auth mode has changed and what to expect: it's very easy — they open a URL with the token already in it (`<server-url>/?token=<token>`) in the browser, or paste the token into the desktop app. Give them that URL plus the bare token to save in a password manager. If the user then asks to restore tokenless access, run `tv config set auth false` and `tv serve --persist`. If the user wants to change how they reach the server, take them back through [Decide network binding](#decide-network-binding) and set the new values before this reinstall.
+   A service that ran without a token before the upgrade requires one now. Tell the user the auth mode has changed and what to expect: it's very easy — give them their connect link ([Connect links](#connect-links)). In a browser, they open it. In the desktop app, they choose **Television › Disconnect from Server** and paste it. If the user then asks to restore tokenless access, run `tv config set auth false` and `tv serve --persist`. If the user wants to change how they reach the server, take them back through [Decide network binding](#decide-network-binding) and set the new values before this reinstall.
 
 5. Verify that the daemon is running the installed release:
 
@@ -411,12 +420,12 @@ An npm package upgrade does not require deleting the Television home; keeping it
 
 Desktop apps up to Television 1.3 were installed with the npm package `@telepath-computer/television-desktop` and started with `tv-desktop`. That package receives no more updates. The downloaded app replaces it and opens with the server connection the npm app saved, so the user does not reconnect. Use this procedure when the user asks you about the desktop recommendation, when their app shows a screen saying that it needs an update and they start it with `tv-desktop`, or when you find the npm package during an upgrade.
 
-The downloaded app runs only on the Macs that [Desktop client](#desktop-client-recommended-for-url-artifacts) names; on any other computer the user views Television in the browser.
+The downloaded app runs only on the Macs that [Desktop app (Mac)](#desktop-app-mac) names; on any other computer the user views Television in the browser.
 
 The user makes the move themselves, like installing any Mac app. Give them these steps, which are the ones the desktop recommendation shows:
 
-1. Download the new app and drag it to Applications, as steps 1 and 2 in [Desktop client](#desktop-client-recommended-for-url-artifacts) describe.
-2. Quit the npm app, then open Television from Applications. While the npm app is running, macOS may bring it forward in place of the new app. The new app opens with the saved server connection. If it shows the connect window instead, enter the server URL and token as for a first install ([User connection URL](#user-connection-url)).
+1. Download the new app and drag it to Applications, as steps 1 and 2 in [Desktop app (Mac)](#desktop-app-mac) describe.
+2. Quit the npm app, then open Television from Applications. While the npm app is running, macOS may bring it forward in place of the new app. The new app opens with the saved server connection. If it shows its connect screen instead, give the user their connect link to paste into it ([Connect links](#connect-links)).
 3. From then on, open Television from Applications, the Dock or Spotlight, not with `tv-desktop`. It updates itself. macOS may ask again for camera, microphone or screen-recording permission, because the downloaded app is signed differently from the npm app.
 
 Once the user has the new app open, remove the npm package if `npm ls -g @telepath-computer/television-desktop` lists it on this machine: `npm uninstall -g @telepath-computer/television-desktop`. Saved connections and settings stay. If the package is on another machine, it does no harm there; the user just stops using `tv-desktop`.
@@ -465,16 +474,16 @@ Common issues:
 - **Daemon is not installed or not running.** Reinstall with `tv serve --persist`; it uses the settings that `tv config show` prints.
 - **Port already in use.** Stop the conflicting service or stop/reinstall Television after the conflict is resolved. Prefer resolving the conflict on the other side rather than moving Television off `32848`; if it must move, see [Port](#port-agent-reference).
 - **`tv` commands reach a different installation than the service.** Each command resolves its home separately. Compare `home` in `tv status` with the `--home` in the service definition (platform locations below). If they differ, write the service's home into `~/.tv-home`, or reinstall the service from the intended home.
-- **Token mismatch.** Read the current token from `<home>/state/token`, make sure the user has copied it exactly, and test it against the local server:
+- **Token rejected.** Television shows **Access token required**, in the browser or in the desktop app. Test the current token against the local server:
 
   ```bash
   TOKEN="$(cat <home>/state/token)"
   curl -fsS -H "Authorization: Bearer $TOKEN" http://localhost:32848/channels
   ```
 
-  If the curl command succeeds, the token is valid and the user's browser/client likely has a copied, stale, or malformed token. Give the user the current token again.
+  If the curl command succeeds, the token is valid and the user's browser or desktop app has a stale or mangled link. Give the user their current connect link from `tv links`. In a browser, they paste the whole link into the address bar. In the desktop app, they choose **Disconnect from Server** (the button on that screen, or the Television menu) and paste it.
 - **Skills installed to the wrong directory.** Reinstall skills into the agent framework's active skills directory.
-- **User cannot open the GUI remotely.** Establish how they are reaching the host. For an SSH tunnel, confirm the `ssh -L <port>:localhost:<port> user@host` command is running and the user is opening `http://localhost:<port>` on the laptop side; the daemon side should be a normal localhost-only install, with no `listen` addresses. For Tailscale, confirm `tailscale ip -4` returns an address and that `tv status` lists it in `bindAddresses`; give the user `http://<tailscale-ip>:32848` and the token. For a LAN bind, confirm the LAN address appears in `bindAddresses` and that the user's firewall lets the port through.
+- **User cannot open the GUI remotely.** Establish how they are reaching the host. For an SSH tunnel, confirm the `ssh -L <port>:localhost:<port> user@host` command is running and the user is opening the `localhost` connect link on the laptop side; the daemon side should be a normal localhost-only install, with no `listen` addresses. For Tailscale, confirm `tailscale ip -4` returns an address and that `tv status` lists it in `bindAddresses`; give the user the Tailscale connect link from `tv links`. For a LAN bind, confirm the LAN address appears in `bindAddresses` and that the user's firewall lets the port through.
 
 Platform locations and commands:
 
@@ -487,32 +496,24 @@ Platform locations and commands:
 
 Give the user:
 
-1. The URL to open in their browser.
-2. Whether a token is required.
-   - With authentication on (the default): read the token from `<home>/state/token`, append it to the chosen browser URL as `?token=<token>`, and give that complete authenticated URL as the primary link to click. Also print the **complete, untruncated** token by itself and name the file path in case they need manual entry, the desktop client's token field, password-manager storage, or retrieval later.
-   - If tokenless: give the bare URL, tell the user no token is required, token fields stay blank, and the server is open to local processes and browser pages they open.
-3. The desktop client situation. URL artifacts (external web pages and web apps on a TV screen) only render in the Electron desktop client; browser clients show a placeholder.
-   - If the user already has the desktop app: tell them to open Television from Applications when they want to display external web pages, and that it updates itself.
-   - If they don't: explain that the browser URL still works for file-backed artifacts, but URL artifacts won't render fully there. If they want external-web-page support and view Television from an Apple Silicon Mac, give them the download link and install steps ([Desktop client](#desktop-client-recommended-for-url-artifacts)), or note that they can install it later anytime.
+1. Their connect link, from `tv links`, for the computer they view Television on ([Connect links](#connect-links)). For an SSH tunnel, the `ssh -L` command too. For a tokenless install, say no token is required and that the server is open to local processes and browser pages they open.
+2. How to open it, by computer ([Desktop app (Mac)](#desktop-app-mac)):
+   - On the desktop app connect screen: paste the link into the app's link field and press **Connect**.
+   - On another Mac: the desktop app recommendation, its download link and install steps, and that the link also opens in their browser.
+   - On any other computer: open the link in their browser. Don't bring up a desktop app.
+3. That they can get their connect links again at any time, by asking you or by running `tv links` on this machine.
 4. What changed: installed, upgraded, reconfigured, or troubleshot.
 5. How to stop or reinstall the daemon if needed.
 
 Examples:
 
-Tailscale install:
+Tailscale install, requested from the desktop app connect screen:
 
 ```text
 Television is installed and running.
-Open it — this link has your token built in, just click:
+Paste this connect link into the desktop app and press Connect:
   http://100.x.y.z:32848/?token=k7m2-9xPq4nV8R3jL1cBwA6sYfHzD0eUtG5oI-token-example-untruncated-string
-Your token (only if you enter it by hand — e.g. the desktop client's token field — or to save it; file: ~/.television/state/token):
-  k7m2-9xPq4nV8R3jL1cBwA6sYfHzD0eUtG5oI-token-example-untruncated-string
-
-Desktop app (recommended if you want external web pages on your TV):
-  Not yet installed. On your Mac, download it from
-    https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64
-  open the downloaded file and drag Television to Applications.
-  Then open Television, point it at http://100.x.y.z:32848 and paste the token. It updates itself.
+The same link opens Television in a browser too. If you ever need it again, ask me, or run `tv links` on this machine.
 
 I installed the persistent Television daemon and updated the Television skills. Telemetry is on by default; it's anonymous and content-free, used only to understand early usage and improve Television. If you'd rather opt out, just tell me and I'll turn it off.
 If the machine's Tailscale IP changes, ask me to update Television, or run:
@@ -520,38 +521,46 @@ If the machine's Tailscale IP changes, ask me to update Television, or run:
   tv serve --persist
 ```
 
-SSH-tunnel install (VPS):
+Tailscale install for a Mac user who started by asking the agent:
+
+```text
+Television is installed and running.
+Your connect link:
+  http://100.x.y.z:32848/?token=k7m2-9xPq4nV8R3jL1cBwA6sYfHzD0eUtG5oI-token-example-untruncated-string
+Open it in your browser, or use the Television desktop app for Mac, which also shows external web pages right inside Television. To install it, download
+  https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64
+open the downloaded file and drag Television to Applications. Open Television, paste the connect link and press Connect. It updates itself.
+If you ever need your connect link again, ask me, or run `tv links` on this machine.
+
+I installed the persistent Television daemon and updated the Television skills. Telemetry is on by default; it's anonymous and content-free, used only to understand early usage and improve Television. If you'd rather opt out, just tell me and I'll turn it off.
+```
+
+SSH-tunnel install (VPS), for a user on Linux or Windows:
 
 ```text
 Television is installed and running on the VPS, localhost-only.
 To open it, run on your laptop:
   ssh -L 32848:localhost:32848 user@vps-host
-Then open it — this link has your token built in, just click after the SSH tunnel is up:
+Then open your connect link in your browser:
   http://localhost:32848/?token=k7m2-9xPq4nV8R3jL1cBwA6sYfHzD0eUtG5oI-token-example-untruncated-string
-Your token (only if you enter it by hand — e.g. the desktop client's token field — or to save it; file: ~/.television/state/token):
-  k7m2-9xPq4nV8R3jL1cBwA6sYfHzD0eUtG5oI-token-example-untruncated-string
-
-Desktop app: optional. If you want URL artifacts (external web pages on your TV) and your laptop is an Apple Silicon Mac, download it there from
-  https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64
-open the downloaded file and drag Television to Applications.
-The desktop app connects to the same URL (http://localhost:32848 via the SSH tunnel) and uses the same token.
+If you ever need your connect link again, ask me, or run `tv links` on the VPS.
 
 I installed the persistent Television daemon and updated the Television skills. Telemetry is on by default; it's anonymous and content-free, used only to understand early usage and improve Television. If you'd rather opt out, just tell me and I'll turn it off.
-Keep the ssh -L session open while you use the GUI.
+Keep the ssh -L session open while you use Television.
 ```
 
 ## Agent checklist
 
 1. Determine the task: install, upgrade, troubleshoot, or uninstall.
-2. Have [the conversation](#the-conversation) about how the user reaches this host (sitting at it / SSH / Tailscale / their own LAN) — in plain language, before installing anything, never a jargon checklist. Translate the answer into the `listen` setting yourself. See [Decide network binding](#decide-network-binding).
+2. Have [the conversation](#the-conversation) about which computer the user views Television on and how it reaches this host (sitting at it / SSH / Tailscale / their own LAN) — in plain language, before installing anything, never a jargon checklist. A request that says the user is on the desktop app connect screen already tells you the computer: a Mac with the app open. Translate the answer into the `listen` setting yourself. See [Decide network binding](#decide-network-binding).
 3. On first install (not upgrades), give the telemetry disclosure from [Telemetry disclosure and agent runtime harness name](#telemetry-disclosure-and-agent-runtime-harness-name). If the user says they want to opt out, note it now and apply it yourself once the server is running (step 7) — `tv telemetry disable` needs a live server, so it can't run before the daemon is up.
 4. Check `node --version`, then install or upgrade `@telepath-computer/television` if needed. Node `>=22.12.0` is required; if the runtime is older, stop — Node upgrades are the user's decision (see [Install the CLI](#install-the-cli)).
 5. Install bundled Television skills into the directory you proposed and the user confirmed during [the conversation](#the-conversation) — don't silently guess the location.
-6. Set `installedByAgent` and any needed `listen` addresses with `tv config set`, then install or reinstall with `tv serve --persist`. **When installing Television for the first time on macOS, tell the user before running that command to expect the generic background/login-item notification described in [Install the daemon](#install-the-daemon).** This warning does not apply to upgrades. An SSH-tunnel setup is still a localhost-only install on the server side. Authentication is on by default, including after upgrading a service that ran without a token; give the user the complete token URL and bare token in step 8. Use tokenless mode only if the user explicitly asks to run without a token.
+6. Set `installedByAgent` and any needed `listen` addresses with `tv config set`, then install or reinstall with `tv serve --persist`. **When installing Television for the first time on macOS, tell the user before running that command to expect the generic background/login-item notification described in [Install the daemon](#install-the-daemon).** This warning does not apply to upgrades. An SSH-tunnel setup is still a localhost-only install on the server side. Authentication is on by default, including after upgrading a service that ran without a token; give the user their connect link in step 8. Use tokenless mode only if the user explicitly asks to run without a token.
 7. Verify `tv status`. If the user asked to opt out of telemetry, now that the server is running run `tv telemetry disable` and re-check `tv status` — this is the point where the command works, since it needs a live server.
-8. Give the user the full authenticated browser URL (and, for SSH tunnels, the `ssh -L` command) and any relevant operational notes. With authentication on, also print the **complete, untruncated** token and token file path as the manual-entry fallback. For tokenless installs, give the bare URL, say no token is required, and say the server is deliberately open on that host.
-9. Cover the desktop client in the final response. URL artifacts only render fully in the Electron desktop client; browsers show a placeholder. The desktop client runs on the machine the user views Television from, which is often not this host.
-   - If the user wants URL artifact support, views Television from an Apple Silicon Mac and doesn't have the desktop app yet, give them the download link and install steps from [Desktop client](#desktop-client-recommended-for-url-artifacts).
-   - If they already have it, remind them to open it from Applications and that it's the right client for URL artifacts.
+8. Give the user their connect link from `tv links` ([Connect links](#connect-links)) (and, for SSH tunnels, the `ssh -L` command) and any relevant operational notes. Never give a bare token. For tokenless installs, say no token is required and that the server is deliberately open on that host. Tell the user they can get their connect links again at any time by asking you or running `tv links`.
+9. Cover the desktop app by the user's computer ([Desktop app (Mac)](#desktop-app-mac)):
+   - On the desktop app connect screen: tell them to paste the connect link into the app and press **Connect**; don't explain how to download it.
+   - On another Mac: recommend the desktop app with its download link and install steps.
    - If the user starts the desktop app with `tv-desktop`, follow [Move the desktop app from npm to the downloaded app](#move-the-desktop-app-from-npm-to-the-downloaded-app).
-   - If the user has no URL artifact intent and declined, note that they can install it later anytime.
+   - On any other computer: don't bring up a desktop app.

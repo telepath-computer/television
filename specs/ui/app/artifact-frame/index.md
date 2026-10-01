@@ -4,6 +4,8 @@
 
 The surface that holds a single artifact's document, and the affordances to interact with that artifact and see information about it, such as its title. Every artifact Television shows is shown in an artifact frame.
 
+Another surface may wear the frame's look around content of its own, as the [setup screen](../../setup/index.md) does: the frame's `body` parameter holds that content in place of a document, and `menu` turns the title bar's menu off. Such a surface is not an artifact frame. It has no document, no artifact, and none of the frame's behavior or machinery.
+
 **Status:** implemented stage-one frame UI authority.
 
 ## Markup and styling

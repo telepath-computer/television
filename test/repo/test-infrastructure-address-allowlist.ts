@@ -6,6 +6,21 @@ export interface InertNumericLoopbackURL {
 
 export const INERT_NUMERIC_LOOPBACK_URLS: readonly InertNumericLoopbackURL[] = [
   {
+    file: "packages/desktop/test/e2e/connect-screen.02.test.ts",
+    url: "http://127.0.0.1:9",
+    reason: "Deliberately unreachable update-channel input; no test listener binds this port.",
+  },
+  {
+    file: "packages/desktop/test/e2e/local-page.test.ts",
+    url: "http://127.0.0.1:9",
+    reason: "Saved unreachable-server fixture for packaged asset loading; no test listener binds this port.",
+  },
+  {
+    file: "packages/desktop/test/e2e/window-drag-regions.test.ts",
+    url: "http://127.0.0.1:9",
+    reason: "Saved unreachable-server fixture for native dialog dragging; no test listener binds this port.",
+  },
+  {
     file: "packages/desktop/test/e2e/upgrade-gate.spec.ts",
     url: "http://127.0.0.1:9",
     reason: "Deliberately unreachable update-channel input; no test listener binds this port.",

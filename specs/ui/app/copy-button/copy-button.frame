@@ -6,6 +6,7 @@ params:
   prompt: { type: string, default: "Make me a table", description: the value copied to the clipboard }
   intent: { type: string, description: 'the button intent (for example, "primary" or "danger")' }
   copied: { type: boolean, default: false, description: whether the confirmed state is shown }
+  size: { enum: [sm, default, lg], default: sm, description: "the button's size; default renders no size attribute" }
 imports:
   - content: ./content.yml
 style: |
@@ -55,7 +56,7 @@ style: |
     white-space: nowrap;
   }
 ---
-<button class="copy-button" size="sm" aria-label="{{ label }}"{% if intent %} intent="{{ intent }}"{% endif %}{% if copied %} copied{% endif %} prompt="{{ prompt }}">
+<button class="copy-button"{% unless size == "default" %} size="{{ size }}"{% endunless %} aria-label="{{ label }}"{% if intent %} intent="{{ intent }}"{% endif %}{% if copied %} copied{% endif %} prompt="{{ prompt }}">
   <span class="copy-button-idle">{% render '../../foundation/icons/icon', name: 'copy' %}{{ label }}</span>
   <span class="copy-button-done">{% render '../../foundation/icons/icon', name: 'check' %}{{ content.copied }}</span>
 </button>

@@ -82,10 +82,10 @@ function snapshot(
     focusedChannel: channels.find(({ id }) => id === focusedChannelId) ?? null,
     connection: {
       authorizationRequired: false,
-      authorizationRejected: false,
       gateHalted: false,
       status: "connected",
       hasEverConnected: true,
+      failedReconnectAttempts: 0,
       firstConnectError: null,
       nextRetryAt: null,
       upgradeInstructions: null,
