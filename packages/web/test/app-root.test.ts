@@ -1,5 +1,6 @@
-import { DesktopUpgradeGateView } from "../src/views/desktop-upgrade-gate.ts";
 // @vitest-environment jsdom
+
+import { DesktopUpgradeGateView } from "../src/views/desktop-upgrade-gate.ts";
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DesktopUpdateState } from "../src/services/desktop-update.ts";

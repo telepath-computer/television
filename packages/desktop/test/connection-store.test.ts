@@ -92,9 +92,11 @@ describe("connection-store", () => {
     expect(second.loadConnection()).toEqual({ serverURL: "http://localhost:99", token: "persist-me" });
   });
 
-  it("loadConnection returns null for corrupt JSON", async () => {
-    fsState.files.set("/tmp/television-connection-test/connection.json", "{not json");
+  it("loadConnection returns null for malformed records", async () => {
     const { loadConnection } = await import("../src/connection-store.ts");
-    expect(loadConnection()).toBeNull();
+    for (const record of ["{not json", "null", "{}", JSON.stringify({ serverURL: 42 }), JSON.stringify({ serverURL: "ftp://example.test", token: "" })]) {
+      fsState.files.set("/tmp/television-connection-test/connection.json", record);
+      expect(loadConnection()).toBeNull();
+    }
   });
 });

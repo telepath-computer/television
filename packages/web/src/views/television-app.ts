@@ -149,10 +149,12 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
         style=${this.#appStyle()}
       >
         ${hasShell ? this.#shell(application, snapshot, options) : null}
-        ${state.kind === "needs-upgrade" ? DesktopUpgradeGateView(state.instructions, options.desktopUpdate, windowDragStripTemplate(options.electronMode && !hasShell)) : isInterruptingState(state) ? SystemModalView(state, {
-          context: options.electronMode ? "desktop" : "browser",
-          dragStrip: options.electronMode && !hasShell,
-        }) : null}
+        ${state.kind === "needs-upgrade"
+          ? DesktopUpgradeGateView(state.instructions, options.desktopUpdate, windowDragStripTemplate(options.electronMode && !hasShell))
+          : isInterruptingState(state) ? SystemModalView(state, {
+            context: options.electronMode ? "desktop" : "browser",
+            dragStrip: options.electronMode && !hasShell,
+          }) : null}
       </div>
       <div id="foreground-overlay" inert aria-hidden="true"></div>
     `;
