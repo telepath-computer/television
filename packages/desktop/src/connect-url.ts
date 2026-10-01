@@ -16,7 +16,9 @@ export function parseDesktopConnectURL(input: string): ParsedDesktopConnectURL {
   const trimmed = input.trim();
   if (!trimmed) throw new ConnectURLError();
 
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed) && !/^https?:\/\//i.test(trimmed)) {
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed)
+    && !/^https?:\/\//i.test(trimmed)
+    && !/^[^:/?#]+:\d+(?:[/?#]|$)/.test(trimmed)) {
     throw new ConnectURLError();
   }
 

@@ -31,7 +31,7 @@ it("reads one link as an HTTP origin and its decoded token", () => {
     ["example.test", "http://example.test", null],
     ["localhost:32848/?ignored=yes", "http://localhost:32848", null],
   ]) expect(parseDesktopConnectURL(link!)).toEqual({ serverURL, token });
-  for (const link of ["", "not a url!!!", "ftp://example.test", "file:///tmp/example"]) {
+  for (const link of ["", "not a url!!!", "ftp://example.test", "file:///tmp/example", "mailto:person@example.test"]) {
     expect(() => parseDesktopConnectURL(link)).toThrow(/valid http or https/i);
   }
 });
