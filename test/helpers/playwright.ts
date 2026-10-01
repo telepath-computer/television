@@ -7,10 +7,11 @@ export { expect };
 
 /** Playwright test registration with per-test cleanup for product servers, including interrupted launches. */
 export const test = base.extend<{ productServerCleanup: void; resourceProbe: void }>({
-  launchOptions: [async ({ launchOptions }, use) => {
+  launchOptions: [async ({ launchOptions, browserName }, use) => {
+    if (browserName !== "chromium") { await use(launchOptions); return; }
     const prefix = `/tmp/rose-chromium-${process.pid}`;
     console.log(`ROSE_BROWSER_LOG ${prefix}`);
-    await use({ ...launchOptions, args: [...(launchOptions.args ?? []), `--log-net-log=${prefix}.netlog.json`, "--enable-logging", `--log-file=${prefix}.log`] });
+    await use({ ...launchOptions, env: { ...process.env, ...launchOptions.env, CHROME_LOG_FILE: `${prefix}.log` }, args: [...(launchOptions.args ?? []), `--log-net-log=${prefix}.netlog.json`, "--enable-logging", `--log-file=${prefix}.log`] });
     if (fs.existsSync(`${prefix}.log`)) console.log(`ROSE_BROWSER_STDERR ${fs.readFileSync(`${prefix}.log`, "utf8").slice(-20000)}`);
   }, { scope: "worker" }],
   resourceProbe: [async ({ context, browserName }, use, testInfo) => {
