@@ -1,7 +1,0 @@
----
-title: Access token required
-description: "The server's page inside the desktop app, which has no address bar."
-params:
-  appearance: { enum: [light, dark], default: light }
----
-{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'unauthorized', desktop: true %}
