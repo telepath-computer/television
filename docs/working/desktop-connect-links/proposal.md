@@ -109,6 +109,7 @@ Access token required wording:
 6. **No connection dialog closes on Escape or a click on the backdrop.** Each closes only when the connection state changes.
 7. **Disconnecting in the desktop app.** The Disconnect from Server menu item works in every state, including the upgrade gate. On the desktop app's local page, Access token required and Can't connect with server also carry a red **Disconnect from Server** button, because that page can disconnect directly. The server's interface has no way to disconnect the app, so its dialogs and the upgrade gate carry no such button, and its desktop wording points to the menu.
 8. **If the server's interface fails to load** after the desktop app has connected, the app returns to its local page and connects again exactly as it does at startup.
+9. **Moving the window.** The desktop window has no title bar; its usual drag handle is the channel sidebar's title bar. Wherever a connection dialog or the upgrade gate shows and that handle cannot be reached — on the local page, and in the server's interface before the interface has been rendered — a 36px strip across the top of the window drags it. The setup screen instead drags by its whole background ([The setup screen](#the-setup-screen)).
 
 ### The setup screen is the exception
 
@@ -170,7 +171,7 @@ These are not user-visible behavior, but the specs need to state them.
 
 - **The connect screen gets a UI spec.** Today the desktop connect screen's presentation is left to the code. The setup screen becomes a specified UI surface, with Rupert's design as its markup and styling.
 - **The setup card looks like an artifact frame but is not one.** It reuses the artifact frame's look (its chrome and title bar), not its machinery: no artifact view, no iframe or webview, no artifact bridge.
-- **The desktop app's local page uses the web app's real styles.** The setup screen and the reconnect dialogs are drawn with the same production stylesheets, font and icons as the web app, and the bundled Clouds theme and its wallpaper, packaged into the desktop app, with no separate copies kept in the desktop app's source.
+- **The desktop app's local page looks like the web app.** The setup screen and the local page's connection dialogs match the web app's design and use the Clouds theme and its wallpaper, packaged into the desktop app. How the local page achieves that is deliberately left to the implementer, who chooses whatever is simpler and easier to maintain: for example, using the web app's stylesheets with its own markup, importing the web app's dialog code, or splitting that code so the local page imports only what it needs. The specs leave this open as well.
 - **Testing sections.** A spec's `## Testing` section holds only the testing guidance a proof could not derive from the spec's own promises. Where a touched spec's Testing section only restates derivable promises, it is deleted. Where it holds guidance a proof could not derive, that guidance is kept and brought in line with this change.
 
 ## Out of scope
