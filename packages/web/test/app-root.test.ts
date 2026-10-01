@@ -115,7 +115,6 @@ function applicationSnapshot(
     ...snapshotOverrides,
     connection: {
       authorizationRequired: false,
-      authorizationRejected: false,
       gateHalted: false,
       status: "connected",
       hasEverConnected: true,
@@ -224,7 +223,6 @@ describe("application-state selection (^ap-ac-one-state)", () => {
         snapshot: applicationSnapshot({
           connection: {
             authorizationRequired: true,
-            authorizationRejected: true,
             gateHalted: true,
             status: "disconnected",
             hasEverConnected: true,
@@ -741,6 +739,14 @@ describe("system modal (^sm-ac-markup-smoke)", () => {
 // Composition contract: posed prior-session and platform facts; native drag
 // hit testing is covered by the Electron seam.
 it("requests a desktop drag strip only over a bare background", async () => {
+  const rows: Array<{ connection: Partial<ApplicationSnapshot["connection"]>; hasShell: boolean }> = [
+    { connection: { status: "disconnected", hasEverConnected: true }, hasShell: true },
+    { connection: { status: "disconnected", hasEverConnected: true, failedReconnectAttempts: 3 }, hasShell: true },
+    { connection: { status: "disconnected", hasEverConnected: false }, hasShell: false },
+    { connection: { status: "disconnected", hasEverConnected: false, firstConnectError: "offline" }, hasShell: false },
+    { connection: { authorizationRequired: true }, hasShell: false },
+    { connection: { gateHalted: true }, hasShell: false },
+  ];
   for (const electronMode of [false, true]) {
     for (const collapsed of [false, true]) {
       const host = createApplicationHost();
@@ -750,17 +756,10 @@ it("requests a desktop drag strip only over a bare background", async () => {
         sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
         sidebarCollapsedPreference: collapsedPreference(collapsed),
       }), host);
-      for (const connection of [
-        { status: "disconnected", hasEverConnected: true },
-        { status: "disconnected", hasEverConnected: true, failedReconnectAttempts: 3 },
-        { status: "disconnected", hasEverConnected: false },
-        { status: "disconnected", hasEverConnected: false, firstConnectError: "offline" },
-        { authorizationRequired: true },
-        { gateHalted: true },
-      ] as Partial<ApplicationSnapshot["connection"]>[]) {
+      for (const { connection, hasShell } of rows) {
         application.setSnapshot(applicationSnapshot({ connection }));
         await flush();
-        const hasShell = host.querySelector(".app-main") !== null;
+        expect(host.querySelectorAll(".app-main")).toHaveLength(hasShell ? 1 : 0);
         expect(host.querySelectorAll(".window-drag-strip")).toHaveLength(electronMode && !hasShell ? 1 : 0);
         expect(host.querySelectorAll("dialog")).toHaveLength(1);
         if (connection.authorizationRequired) {

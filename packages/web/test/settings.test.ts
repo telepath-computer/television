@@ -72,7 +72,6 @@ describe("settings markup", () => {
         get connection() {
           return {
             authorizationRequired: false,
-            authorizationRejected: false,
             gateHalted: false,
             status: connectionStatus,
             hasEverConnected: true,
@@ -226,7 +225,6 @@ describe("settings markup", () => {
       snapshot: {
         connection: {
           authorizationRequired: false,
-          authorizationRejected: false,
           gateHalted: false,
           status: "connected" as const,
           hasEverConnected: true,

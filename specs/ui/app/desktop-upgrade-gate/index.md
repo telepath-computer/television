@@ -8,7 +8,7 @@ The production implementation is `packages/web/src/views/desktop-upgrade-gate.ts
 
 The supporting artifacts, each authoritative:
 
-- [ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame](./desktop-upgrade-gate.frame) — the surface's rendered markup, whole; its parameters are `body`, the selected message's markdown output, and `restart`, the restart button's state.
+- [ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame](./desktop-upgrade-gate.frame) — the surface's rendered markup, whole; its parameters are `body`, the selected message's markdown output; `restart`, the restart button's state; and `top_layer_content`, the system modal's optional window drag strip, passed through to the shared dialog.
 - [ui/app/desktop-upgrade-gate/content.yml](./content.yml) — the surface's copy: the downloaded-update message and the built-in fallback instructions (markdown), and the restart button's labels ([arch/updates/desktop-upgrade-gate.md#^gate-instructions](../../../arch/updates/desktop-upgrade-gate.md#^gate-instructions) owns the selection, and [the product](../../../product/update-notifications.md#^gate-instructions-fallback) what each message tells the user). The template imports only the button labels — the selected message arrives as the `body` argument; a stated exception to [spec-ui.md](../../../spec-ui.md)'s imported-content shape.
 
 ## Interaction

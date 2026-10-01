@@ -108,7 +108,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **desktop-upgrade-gate/**
       - `index.md` (22 lines) — *How the promises in Desktop upgrade gate (UI) are proven.*
     - **dialog/**
-      - `index.md` (23 lines) — *How the promises in Dialog (UI) are proven.*
+      - `index.md` (24 lines) — *How the promises in Dialog (UI) are proven.*
     - **settings/**
       - `index.md` (27 lines) — *How the promises in Settings (UI) are proven.*
     - **sidebar/**
@@ -118,7 +118,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **stage/**
       - `index.md` (39 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
-      - `index.md` (25 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
+      - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
       - `index.md` (37 lines) — *How the promises in Tab strip (UI) are proven.*
     - **top-bar/**

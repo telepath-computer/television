@@ -531,8 +531,8 @@ describe("ServerConnection lifecycle", () => {
   });
 
   // Contract: injected socket and HTTP-client sources replace transport. The
-  // real 401/4401 browser-server crossings remain in e2e/auth.01.test.ts.
-  it("distinguishes an initial authorization requirement from token rejection and clears rejection on success", async () => {
+  // real rejection and recovery remain in e2e/auth.01.test.ts.
+  it("clears authorization rejection when starting a new connection", async () => {
     const sockets: FakeSocket[] = [];
     const c = new ServerConnection({
       url: "http://example.test",
@@ -551,20 +551,19 @@ describe("ServerConnection lifecycle", () => {
     sockets[0]!.emit("close", { code: 4401 });
     await expect(initial).rejects.toMatchObject({ name: "AuthError" });
     expect(c.hasAuthRejected).toBe(true);
-    expect(c.hasAuthTokenRejected).toBe(false);
 
     const rejected = c.connect("bad-token");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     sockets[1]!.emit("close", { code: 4401 });
     await expect(rejected).rejects.toMatchObject({ name: "AuthError" });
-    expect(c.hasAuthTokenRejected).toBe(true);
+    expect(c.hasAuthRejected).toBe(true);
 
     const accepted = c.connect("good-token");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     sockets[2]!.emit("open");
     await accepted;
     expect(c.status).toBe("connected");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     c.dispose();
   });
 
@@ -604,7 +603,7 @@ describe("ServerConnection lifecycle", () => {
     socket.emit("open");
     await expect(connecting).rejects.toMatchObject({ name: "AuthError" });
     expect(c.status).toBe("unauthorized");
-    expect(c.hasAuthTokenRejected).toBe(true);
+    expect(c.hasAuthRejected).toBe(true);
     c.dispose();
   });
 

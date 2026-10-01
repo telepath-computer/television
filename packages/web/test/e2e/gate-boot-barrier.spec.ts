@@ -147,7 +147,7 @@ test.describe("boot barrier (^t-gate-boot-barrier)", () => {
         sidebarCount: 0,
         mainCount: 0,
         modalHostCount: 1,
-        authFormCount: 0,
+        unauthorizedCount: 0,
         gateCount: 1,
         connectingCount: 0,
         disconnectedCount: 0,

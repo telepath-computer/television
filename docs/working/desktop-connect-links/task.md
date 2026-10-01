@@ -97,3 +97,35 @@ Completed checks used `npm test -- local` with `--retries 0`, against `03d3f122`
 The selected runs reported no recovered flakes, process leaks or infrastructure failures. Type checking, ESLint on changed TypeScript files and `git diff --check` passed. The later lint-only threshold naming change passed its focused state-selection test (`2026-10-01T18-38-30-170Z-p2664809-r67aae2ff63fe8d60`). No full verification ran; the integrated gate remains assigned to Blaxel.
 
 Slice 3 still owns the packaged local page, native local dragging, complete foundation/Clouds delivery, asset attribution, preload/main-process lifecycle and the executed staging runbook. The foundation and modal-drag proofs retain their partial markers. Served-desktop guidance names Disconnect from Server before slice 3 changes that menu, as planned. No observed served-app failure is deferred. Nothing was pushed.
+
+
+## Slice 2 round-one review refinements
+
+Independent review by Claude Fable at `a3a37a00` passed with no blockers and seven refinements. The supervisor requested the bounded follow-up review after these edits.
+
+| Item | Assessment and action |
+| --- | --- |
+| 1 — gate parameter prose | Corrected the gate spec's parameter description to include `top_layer_content`. The supervisor confirmed this completes the frame change Josh approved. |
+| 2 — generated proof index | Regenerated the indexes with `npm run specs:index`; the dialog and system-modal proof counts are current. |
+| 3 — partial drag marker | Restored the standard “test to be written” wording for the local route; the served route retains its implemented citation. |
+| 4 — local bundle dependencies | Carried to slice 3 in the plan. Its renderer does not need the gate, but the shared modal imports it and its markdown pipeline. Decide against the real bundle whether to retain those packages and notices or separate that composition. No bundle change in this refinement. |
+| 5 — token-form leftovers | Removed the unused rejected-token detail, projection, fixture methods and form-specific recorder/assertions. The connection still reports authorization rejection and resets it for a fresh connection; its existing contract now checks that fact directly. Gate/outage records assert the current unauthorized presentation's absence. |
+| 6 — independent strip expectations | Each contract row now states whether it expects a shell, then checks the shell and strip independently against that expectation. |
+| 7 — gate proxy declaration | Named the continuously bound front proxy and its real HTTP/WebSocket forwarding in the gate seam's proof. |
+
+The reviewer independently reported 302 passing browser acceptance tests (2 skipped), 73 passing desktop tests, and passing browser-app/canonical units and targeted repository checks on the clean `a3a37a00` tree. Those are review evidence, not a full verification run or results of the refinements above.
+
+
+Refinement validation ran against `a3a37a00` plus these working-tree changes (`dirty: true`), with `npm test -- local` and `--retries 0`. The strip, authorization-reset/bootstrap and snapshot-projection contracts passed narrowly before widening to the browser-app unit suite.
+
+| Selection | Result | Run directory under `.test-runs/` |
+| --- | --- | --- |
+| `--surface unit:browser-app` | 568 passed, the same 1 skipped ACP test | `2026-10-01T19-11-03-808Z-p2703230-r5c59e83c16cad1fb` |
+| `--file packages/web/test/e2e/auth.01.test.ts` | 3 passed | `2026-10-01T19-11-50-665Z-p2703760-r4d623d87fb8c1b1c` |
+| `auth.02.test.ts`, electron token-query case | 1 passed | `2026-10-01T19-12-03-724Z-p2704270-r02c488326827b42f` |
+| `gate-boot-barrier.spec.ts`, first-message gate case | 1 passed | `2026-10-01T19-12-13-680Z-p2704763-r4b2f8b9c50178ec0` |
+| `reload-after-reconnect.02.test.ts`, outage escalation case | 1 passed | `2026-10-01T19-12-26-622Z-p2705186-raa2ae0d0a217b8b8` |
+| Desktop `upgrade-gate.spec.ts`, `ac-gate-persists` | 1 passed | `2026-10-01T19-12-52-386Z-p2705614-rc454cb8ff800b49d` |
+| `--file test/repo/spec-links.test.ts` | Passed | `2026-10-01T19-13-05-675Z-p2706212-r0b6874813a47b187` |
+
+All selected runs reported no recovered flakes, process leaks or infrastructure failures. Type checking, ESLint on the changed TypeScript and `git diff --check` passed. No full verification ran. These refinements are ready for the requested follow-up review; slice 3's obligations remain unchanged apart from the recorded import decision. Nothing was pushed.

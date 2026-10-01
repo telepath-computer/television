@@ -482,7 +482,7 @@ test.describe("reload after reconnect (real server)", () => {
           sidebarCount: 1,
           mainCount: 1,
           modalHostCount: 1,
-          authFormCount: 0,
+          unauthorizedCount: 0,
           gateCount: 0,
           connectingCount: 0,
           disconnectedCount: record.appState === "disconnected" ? 1 : 0,

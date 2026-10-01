@@ -33,7 +33,6 @@ test.describe("web auth modal integration", () => {
         `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&mode=electron&token=${encodeURIComponent(token)}`,
       );
 
-      await expect(page.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(page);
       await expect(page).toHaveURL(`${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&mode=electron`);
     } finally {

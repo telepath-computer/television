@@ -87,19 +87,16 @@ test.describe("product browser token flow", () => {
       const appURL = await product.appURL(baseURL!);
       await page.goto(productAppIndexURL(appURL, product.token));
 
-      await expect(page.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(page);
       await expect(page).toHaveURL(productAppCleanURL(appURL));
 
       await page.reload();
-      await expect(page.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(page);
       await expect(page).toHaveURL(productAppCleanURL(appURL));
 
       await page.close();
       const reopened = await context.newPage();
       await reopened.goto(productAppCleanURL(appURL));
-      await expect(reopened.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(reopened);
       await expect(reopened).toHaveURL(productAppCleanURL(appURL));
     } finally {
@@ -129,7 +126,7 @@ test("rejected tokens at boot and after a session clear credentials and recover 
 
     const expectRejected = async (): Promise<void> => {
       await expect(page.getByRole("heading", { name: "Access token required" })).toBeVisible();
-      await expect(page.locator(".app-sidebar, .app-main, .desktop-upgrade-gate, .auth-form")).toHaveCount(0);
+      await expect(page.locator(".app-sidebar, .app-main, .desktop-upgrade-gate")).toHaveCount(0);
       await expect(page.locator("dialog")).toHaveCount(1);
       await expect(page.locator(".system-modal")).toContainText("paste the whole link into the address bar");
       expect(await page.evaluate((origin) => {

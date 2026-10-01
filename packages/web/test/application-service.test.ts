@@ -153,7 +153,6 @@ class FakeConnection extends EventTarget {
   bootState: "pending" | "halted" | "booted" = "pending";
   hasEverConnected = false;
   hasAuthRejected = false;
-  hasAuthTokenRejected = false;
   nextRetryAt: number | null = null;
   failedReconnectAttempts = 0;
   updateState: UpdateState | null = null;
@@ -294,7 +293,6 @@ describe("ApplicationService snapshot", () => {
 
     expect(service.snapshot.connection).toEqual({
       authorizationRequired: false,
-      authorizationRejected: false,
       gateHalted: false,
       status: "disconnected",
       hasEverConnected: false,
@@ -313,11 +311,9 @@ describe("ApplicationService snapshot", () => {
     owner.emitChange();
     expect(service.snapshot.connection).toMatchObject({
       authorizationRequired: true,
-      authorizationRejected: false,
       status: "unauthorized",
     });
 
-    owner.connection.hasAuthTokenRejected = true;
     owner.connection.bootState = "halted";
     owner.connection.nextRetryAt = 12_345;
     owner.connection.updateState = {
@@ -327,7 +323,6 @@ describe("ApplicationService snapshot", () => {
     owner.emitChange();
     expect(service.snapshot.connection).toMatchObject({
       authorizationRequired: true,
-      authorizationRejected: true,
       gateHalted: true,
       status: "unauthorized",
       hasEverConnected: false,

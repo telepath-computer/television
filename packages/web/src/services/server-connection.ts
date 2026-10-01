@@ -203,8 +203,6 @@ export class ServerConnection extends EventTarget<
   /** Browser demo mode as the server reported it when this page connected. */
   browserDemoMode = false;
   hasAuthRejected = false;
-  /** True when the current auth rejection rejected a non-null token. */
-  hasAuthTokenRejected = false;
   /** Boot-barrier phase of the current attempt; see `BootState`. */
   bootState: BootState = "pending";
   /**
@@ -342,7 +340,6 @@ export class ServerConnection extends EventTarget<
   async connect(token: string | null): Promise<void> {
     this._token = token;
     this.hasAuthRejected = false;
-    this.hasAuthTokenRejected = false;
     this.acpClient.setToken(token);
     this.cancelRetryTimer();
     this.retryDelay = INITIAL_RETRY_DELAY_MS;
@@ -688,7 +685,6 @@ export class ServerConnection extends EventTarget<
 
   private handleAuthRejected(): void {
     this.hasAuthRejected = true;
-    this.hasAuthTokenRejected = this._token !== null;
     this.autoReconnect = false;
     this.cancelRetryTimer();
     this.setStatus("unauthorized");

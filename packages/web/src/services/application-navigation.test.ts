@@ -15,7 +15,6 @@ import { handleApplicationNavigationKey } from "./application-navigation.ts";
 
 const EMPTY_CONNECTION: ApplicationSnapshot["connection"] = {
   authorizationRequired: false,
-  authorizationRejected: false,
   gateHalted: false,
   status: "connected",
   hasEverConnected: true,

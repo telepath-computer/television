@@ -53,7 +53,6 @@ export interface ApplicationDisplaySnapshot {
 
 export interface ApplicationConnectionSnapshot {
   readonly authorizationRequired: boolean;
-  readonly authorizationRejected: boolean;
   readonly gateHalted: boolean;
   readonly status: ServerStatus;
   readonly hasEverConnected: boolean;
@@ -695,7 +694,6 @@ export class ApplicationService extends EventTarget<
       focusedChannel,
       connection: Object.freeze({
         authorizationRequired: connection.hasAuthRejected,
-        authorizationRejected: connection.hasAuthTokenRejected,
         gateHalted: connection.bootState === "halted" || this.#retainedGateHalted(),
         status: connection.status,
         hasEverConnected: connection.hasEverConnected,
