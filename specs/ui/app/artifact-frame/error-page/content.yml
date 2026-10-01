@@ -6,6 +6,6 @@ missing_path_label: "Registered path:"
 missing_recovery: Recreate the file at this path, update the artifact path, or remove the artifact.
 url_title: This is an external web page
 url_address_label: "This is the URL you're trying to visit:"
-url_explanation: Television can't display external web pages directly inside a web browser. You can view external web pages right inside Television with the desktop app.
-url_install_intro: "To install the Television desktop app, ask your agent to follow the Television admin guide:"
+url_explanation: Television can't display external web pages directly inside a web browser. The Television desktop app can show them right inside Television; it is currently available only for Macs.
+url_install_intro: "To install the desktop app on a Mac, ask your agent to follow the Television admin guide:"
 url_install_guide: https://television.run/install.md
