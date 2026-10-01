@@ -4,6 +4,8 @@ params:
   src:
     type: string
     description: the artifact document this frame shows
+  body:
+    description: "markup the frame holds in place of a document, for a surface that is not an artifact; absent, the frame holds the src document"
   title:
     type: string
     default: "Roadmap"
@@ -24,6 +26,10 @@ params:
     type: boolean
     default: false
     description: "an external page artifact in a browser under browser demo mode: the artifact icon is a button that returns the frame to the artifact's own URL, and Back and Forward never render"
+  menu:
+    type: boolean
+    default: true
+    description: "the title bar offers the frame's menu; off for a frame with no artifact to act on"
 imports:
   - content: ./content.yml
 style: |
@@ -99,6 +105,14 @@ style: |
     border: 0;
   }
 
+  /* Held content in place of a document takes the same room, and draws on
+     the frame's own ground. */
+  .artifact-frame-clip > .artifact-frame-content {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
   /* The title bar: a quiet band below the document, naming the artifact; its
      contents grow as they are designed. The band is a step off the frame's surface
      rather than the surface itself — the faintest step there is, enough that the
@@ -148,7 +162,7 @@ style: |
 ---
 <div class="artifact-frame">
   <div class="artifact-frame-clip">
-    <iframe src="{{ src }}" title="{{ title }}"></iframe>
+    {% if body %}<div class="artifact-frame-content">{{ body }}</div>{% else %}<iframe src="{{ src }}" title="{{ title }}"></iframe>{% endif %}
     <footer class="artifact-title-bar">
       {% if can_return %}
       <button class="artifact-return" icon variant="ghost" size="sm" aria-label="{{ content.return_aria_label }}">{% render '../../foundation/icons/icon', name: 'artifact' %}</button>
@@ -161,8 +175,10 @@ style: |
       <button class="artifact-forward" icon variant="ghost" size="sm"{% unless can_forward %} disabled{% endunless %} aria-label="{{ content.forward_aria_label }}">{% render '../../foundation/icons/icon', name: 'forward' %}</button>
       <span class="artifact-bar-divider" aria-hidden="true"></span>
       {% endif %}
+      {% if menu %}
       <button class="artifact-menu-trigger" icon variant="ghost" size="sm" aria-label="{{ title }} menu">{% render '../../foundation/icons/icon', name: 'expand' %}</button>
       {% render './artifact-menu', full_screen: full_screen %}
+      {% endif %}
     </footer>
   </div>
 </div>

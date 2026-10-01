@@ -16,7 +16,7 @@ The UI specs are authoritative for styling content and for what each document ca
 
 ## Distribution
 
-The application loads the complete shared foundation; artifact documents load the canonical version they link ([canonical.md](../canonical.md)). The icon sheet is carried by `tv-icon` inside its own shadow root; [elements.md#tv-icon](./elements.md#tv-icon) owns that route and its public guarantee.
+The application loads the complete shared foundation; artifact documents load the canonical version they link ([canonical.md](../canonical.md)). The desktop app's local page bundles the same production copies as the application ([arch/desktop/connect-flow.md](../desktop/connect-flow.md#^desktop-local-page-styling)). The icon sheet is carried by `tv-icon` inside its own shadow root; [elements.md#tv-icon](./elements.md#tv-icon) owns that route and its public guarantee.
 
 The foundation sheets assigned to the app document and the ambient element sheets cross into `packages/web/src/foundation/` as byte-identical committed copies. The complete production foundation at `packages/web/src/foundation/index.css` loads them globally in the order [ui/foundation/index.css](../../ui/foundation/index.css) imports their sources. Production imports only these copies and never imports spec files.
 

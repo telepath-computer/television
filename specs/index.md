@@ -51,7 +51,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
-    - `connect-flow.md` (34 lines) — *The desktop main-process connection flow: local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge.*
+    - `connect-flow.md` (38 lines) — *The desktop main-process connection flow: local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge.*
     - `distribution.md` (100 lines) — *The ToDesktop build of the desktop app: the private workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link.*
     - `e2e-harness.md` (101 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
     - `index.md` (59 lines) — *The desktop architecture root: server connection, appearance, the ToDesktop build, the app's updates, the Electron runtime for development and tests, the test harness, and main-process identity.*
@@ -113,7 +113,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - **ui/**
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
-    - `index.md` (115 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - `index.md` (118 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
     - **artifact-frame/**
       - `index.md` (64 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**
@@ -131,7 +131,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
-      - `index.md` (41 lines) — *UI spec: the system modal — the app's interrupting surface: one dialog, its contents by state.*
+      - `index.md` (22 lines) — *UI spec: the system modal — the app's interrupting surface: one dialog, its contents by state.*
     - **tab-strip/**
       - `index.md` (60 lines) — *UI spec: the tab strip — the row of open artifacts, and the tab that stands for each.*
     - **top-bar/**
@@ -141,13 +141,13 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **foundation/**
     - `index.md` (127 lines) — *UI spec: the foundation — the design tokens, base element styling, and materials every surface builds on.*
     - **button/**
-      - `index.md` (56 lines) — *UI spec: the button — what a button looks like across its states, and the attributes that vary it.*
+      - `index.md` (57 lines) — *UI spec: the button — what a button looks like across its states, and the attributes that vary it.*
     - **checkbox-list/**
       - `index.md` (18 lines) — *UI spec: the checklist — the static done/not-done idiom an authored artifact writes as markup.*
     - **icons/**
       - `index.md` (61 lines) — *UI spec: the icon — what one looks like, the set of them, and how one is sized.*
     - **input/**
-      - `index.md` (39 lines) — *UI spec: text inputs and textareas — shared text-entry styling in the application and artifacts.*
+      - `index.md` (43 lines) — *UI spec: text inputs and textareas — shared text-entry styling in the application and artifacts.*
     - **menu/**
       - `index.md` (25 lines) — *UI spec: the menu — a popover whose contents are actions, and the vocabulary its interior is built from.*
     - **popover/**
@@ -158,6 +158,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
   - **onboarding-artifacts/**
     - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
+  - **setup/**
+    - `index.md` (29 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person's agent helps them get connected.*
   - **skillbench/**
     - `index.md` (26 lines) — *UI spec: skillbench — the eval review page's interaction, markup, and styling.*
   - **skills/**

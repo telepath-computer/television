@@ -31,4 +31,4 @@ Under [Tests are the validation mechanism](../../../arch/testing-policy.md#Tests
 ## Decisions
 
 - No chrome: no fixed heading or fixed text beyond the restart button's labels — whoever authors the message authors the rest of the screen.
-- The gate stands over no chrome, on the app's bare ground under the dialog's backdrop — the same look as every hidden state ([ui/app/system-modal/index.md](../system-modal/index.md), Appearance). Nothing renders behind a halted app.
+- The gate appears over the app's background, with nothing rendered behind it ([ui/app/index.md](../index.md#Connection states)).

@@ -2,7 +2,7 @@
 
 # Artifact frame (UI)
 
-The surface that holds a single artifact's document, and the affordances to interact with that artifact and see information about it, such as its title. Every artifact Television shows is shown in an artifact frame.
+The surface that holds a single artifact's document, and the affordances to interact with that artifact and see information about it, such as its title. Every artifact Television shows is shown in an artifact frame. A surface that is not an artifact may use the frame too, holding its own content in place of a document, as the [setup screen](../../setup/index.md) does.
 
 **Status:** implemented stage-one frame UI authority.
 

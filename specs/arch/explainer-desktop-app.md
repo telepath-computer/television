@@ -29,7 +29,7 @@ The two parts can come from different Television releases. The served interface 
 
 ## Connecting to a server
 
-The app starts on a local connect page packaged with it. [Desktop connection flow](./desktop/connect-flow.md) owns that page, the saved connection in the app's data directory, how an entered address is normalized, the page URL the app loads, and the return to the connect page when the server's page fails to load.
+The app starts on a local page packaged with it. With no saved connection, that page shows the [setup screen](../ui/setup/index.md), where the person gives their agent a prompt and pastes back the link it returns. With a saved connection, it reconnects instead, showing the system modal's connection dialogs, and Television › Disconnect from Server returns it to the setup screen. [Desktop connection flow](./desktop/connect-flow.md) owns that page, the saved connection in the app's data directory, how an entered link is read, the page URL the app loads, and the return to the local page when the server's page fails to load.
 
 Before loading the server's page, the app checks that the address belongs to a reachable Television server that accepts its token. That *desktop connect check* is owned by the [upgrade gate spec](./updates/desktop-upgrade-gate.md#^pre-gate-handshake), because shells from older releases must still get through it to reach the gate.
 
@@ -74,4 +74,4 @@ The gate and the recommendation compare the shell's version with thresholds set 
 
 ## What stays with code
 
-Some desktop behavior is deliberately left to code: the connect page's copy, timing and presentation ([connection flow](./desktop/connect-flow.md#what-this-owns)), how an artifact is routed to an iframe or a webview ([frame core](./artifact-frame/index.md#^frame-core-carve-out)), and the served interface's connection lifecycle ([channel state](./channel-state/index.md#^cs-connection-carve-out)). The [migration map](../spec-migration.md) records these boundaries.
+Some desktop behavior is deliberately left to code: how a failed connection is classified, and the message the setup screen shows for it ([desktop connect check](./updates/desktop-upgrade-gate.md#^pre-gate-handshake)), how an artifact is routed to an iframe or a webview ([frame core](./artifact-frame/index.md#^frame-core-carve-out)), and the served interface's connection lifecycle ([channel state](./channel-state/index.md#^cs-connection-carve-out)). The [migration map](../spec-migration.md) records these boundaries.

@@ -28,7 +28,11 @@ The foundation automatically applies the invalid border when `aria-invalid="true
 
 [styles.css](./styles.css) defines the shared treatment. Text fields remain readable in both appearances, show keyboard focus and validation errors, and distinguish disabled from read-only controls. Read-only contents remain selectable. Textareas support multiple lines and vertical resizing; native number affordances remain intact.
 
-Channel rename and authentication use these ordinary inputs. A containing surface supplies layout rather than a separate field design.
+Channel rename and the desktop setup screen's link field use these ordinary inputs. A containing surface supplies layout rather than a separate field design.
+
+## Size
+
+A text field takes `data-size="lg"` to match a [large button](../button/index.md#API) beside it. The attribute is `data-size` because `size` is already a native input attribute, the field's width in characters.
 
 ## Delivery
 

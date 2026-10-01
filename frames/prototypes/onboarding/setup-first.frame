@@ -1,0 +1,218 @@
+---
+title: Desktop setup, first draft
+description: "Draft first screen of the desktop app before it has a server: a replica of the artifact frame's chrome (icon and title, no menu or navigation) over the Clouds wallpaper, blurred. The frame rules are copied from specs/ui/app/artifact-frame/artifact-frame.frame, minus the fill-height and document-iframe rules this replica has no use for."
+data:
+  prompt: "Set up Television for me by following https://television.run/install.md"
+style: |
+  /* The window: the default (Clouds) wallpaper, blurred, with the setup frame
+     centred on it. */
+  .desktop-setup {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: var(--space-32);
+    overflow: hidden;
+  }
+
+  /* Oversized past the window so the blur doesn't fade at the edges. */
+  .setup-wallpaper {
+    position: absolute;
+    inset: calc(-1 * var(--space-48));
+    z-index: -1;
+    background: var(--app-wallpaper);
+    filter: blur(24px);
+  }
+
+  .setup-frame {
+    width: min(560px, 100%);
+  }
+
+  /* Replica of the artifact frame's chrome: the rules are copied from
+     specs/ui/app/artifact-frame/artifact-frame.frame under replica- class
+     names, since the second draft renders real artifact frames in the same
+     document. */
+  .replica-frame {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    box-sizing: border-box;
+    min-width: 0;
+    min-height: 0;
+    background: var(--frame-background);
+    background-clip: border-box;
+    box-shadow: var(--artifact-frame-shadow);
+    border: var(--frame-border);
+    border-radius: var(--frame-radius);
+  }
+
+  .replica-frame-clip {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    padding: 1px;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
+  .replica-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--panel-edge-shadow);
+    pointer-events: none;
+  }
+
+  .replica-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    z-index: calc(var(--layer-ground) + 2);
+    background: var(--panel-edge-highlight);
+    font-size: var(--frame-radius);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+
+  .replica-title-bar {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--frame-titlebar-padding);
+    background: var(--frame-titlebar-background);
+    color: var(--frame-titlebar-text-color);
+    border-top: var(--frame-titlebar-border);
+    margin: 0 -1px -1px;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    background-clip: border-box;
+  }
+
+  .replica-title-bar .replica-title {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The setup document inside the frame. */
+  .setup-document {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+    padding: var(--space-32);
+  }
+
+  .setup-document h1,
+  .setup-document h2,
+  .setup-document p,
+  .setup-steps {
+    margin: 0;
+  }
+
+  .setup-intro {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .setup-document h1 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .setup-intro p {
+    color: var(--color-text-muted);
+  }
+
+  .setup-steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-24);
+    padding: 0;
+    list-style: none;
+  }
+
+  .setup-step {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .setup-document h2 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .setup-prompt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
+    background: var(--color-surface-muted);
+    border-radius: var(--control-radius);
+  }
+
+  .setup-prompt p {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .setup-connect {
+    display: flex;
+    gap: var(--space-8);
+  }
+
+  .setup-connect input {
+    flex: 1;
+    min-width: 0;
+  }
+---
+<div class="desktop-setup" data-staging-theme="clouds">
+  <div class="setup-wallpaper" aria-hidden="true"></div>
+  <div class="replica-frame setup-frame">
+    <div class="replica-frame-clip">
+      <div class="setup-document">
+        <div class="setup-intro">
+          <h1>Welcome to Television</h1>
+          <p>Television runs alongside your AI agent. Ask your agent to set it up, then paste the link it gives you.</p>
+        </div>
+        <ol class="setup-steps">
+          <li class="setup-step">
+            <h2>1. Give your agent this prompt</h2>
+            <div class="setup-prompt">
+              <p>{{ prompt }}</p>
+              {% render '../../../specs/ui/app/copy-button/copy-button', label: 'Copy prompt', prompt: prompt %}
+            </div>
+          </li>
+          <li class="setup-step">
+            <h2>2. Paste the link from your agent</h2>
+            <form class="setup-connect">
+              <input type="text" placeholder="http://…" aria-label="Link from your agent" required>
+              <button intent="primary">Connect</button>
+            </form>
+          </li>
+        </ol>
+      </div>
+      <footer class="replica-title-bar">
+        {% render '../../../specs/ui/foundation/icons/icon', name: 'artifact' %}
+        <span class="replica-title">Set up Television</span>
+      </footer>
+    </div>
+  </div>
+</div>
