@@ -1,4 +1,4 @@
-export type ConnectResult = { ok: true } | { ok: false; message: string };
+export type ConnectResult = { ok: true; attempt: number } | { ok: false; message: string };
 
 /** Strip Electron IPC wrapper text from invoke() rejections. */
 export function connectErrorMessage(error: unknown): string {

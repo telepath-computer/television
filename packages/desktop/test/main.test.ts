@@ -538,59 +538,6 @@ describe("Electron main process", () => {
     expect(win.loadURL).not.toHaveBeenCalled();
   });
 
-  it("loads the connect screen on startup even when a connection is saved", async () => {
-    fsState.files.set(
-      "/tmp/television-test-userdata/connection.json",
-      JSON.stringify({ serverURL: "https://tv.example.com", token: "secret-token" }),
-    );
-
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const win = mockState.MockBrowserWindow.instances[0];
-    expect(win.loadFile).toHaveBeenCalledWith(expect.stringMatching(/connect\.html$/));
-    expect(win.loadURL).not.toHaveBeenCalled();
-
-    const intentHandler = mockState.ipcHandlers.get("television:get-connect-screen-intent");
-    expect(await intentHandler!({})).toBe("bootstrap");
-  });
-
-  it("opens the connect screen in manual mode from the menu without bootstrap auto-connect", async () => {
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const template = mockState.Menu.buildFromTemplate.mock.calls[0][0] as Array<{
-      submenu?: Array<{ label?: string; click?: () => void }>;
-    }>;
-    const connectItem = template.flatMap((item) => item.submenu ?? []).find((sub) => sub.label === "Connect to server…");
-    expect(connectItem?.click).toBeDefined();
-
-    const win = mockState.MockBrowserWindow.instances[0];
-    win.loadFile.mockClear();
-    connectItem!.click!();
-
-    expect(win.loadFile).toHaveBeenCalledWith(expect.stringMatching(/connect\.html$/));
-    const intentHandler = mockState.ipcHandlers.get("television:get-connect-screen-intent");
-    expect(await intentHandler!({})).toBe("manual");
-  });
-
-  it("get-connection IPC returns saved connection", async () => {
-    fsState.files.set(
-      "/tmp/television-test-userdata/connection.json",
-      JSON.stringify({ serverURL: "http://localhost:32848", token: "abc" }),
-    );
-
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const handler = mockState.ipcHandlers.get("television:get-connection");
-    expect(handler).toBeDefined();
-    await expect(handler!({})).resolves.toEqual({
-      serverURL: "http://localhost:32848",
-      token: "abc",
-    });
-  });
-
   // Spec: ^updates-t-preflight-desktop-contract
   it("connect IPC accepts additive connect-check JSON, saves normalized fields, and loads the versioned remote URL", async () => {
     const main = await loadAppModule();
@@ -604,8 +551,9 @@ describe("Electron main process", () => {
     const handler = mockState.ipcHandlers.get("television:connect");
     expect(handler).toBeDefined();
 
-    const result = await handler!({}, { serverURL: "localhost:32848", token: "abc123" });
-    expect(result).toEqual({ ok: true });
+    const result = await handler!({}, "localhost:32848/?token=abc123");
+    expect(result).toMatchObject({ ok: true, attempt: expect.any(Number) });
+    await mockState.ipcHandlers.get("television:complete-connect")!({}, (result as { attempt: number }).attempt);
 
     const saved = JSON.parse(fsState.files.get("/tmp/television-test-userdata/connection.json")!);
     expect(saved.serverURL).toBe("http://localhost:32848");
@@ -633,7 +581,7 @@ describe("Electron main process", () => {
     await new main.App().start();
 
     const handler = mockState.ipcHandlers.get("television:connect");
-    await expect(handler!({}, { serverURL: "not a url!!!", token: "typed-token" })).resolves.toEqual({
+    await expect(handler!({}, "not a url!!!")).resolves.toEqual({
       ok: false,
       message: "Enter a valid http or https URL",
     });
@@ -652,27 +600,13 @@ describe("Electron main process", () => {
     win.loadURL.mockClear();
 
     const handler = mockState.ipcHandlers.get("television:connect");
-    await expect(handler!({}, { serverURL: "http://127.0.0.1:9", token: "" })).resolves.toEqual({
+    await expect(handler!({}, "http://127.0.0.1:9")).resolves.toEqual({
       ok: false,
-      message: "This server requires a token",
+      message: "This link is missing an access token. Ask your agent for the current link.",
     });
 
     expect(fsState.files.get("/tmp/television-test-userdata/connection.json")).toBeUndefined();
     expect(win.loadURL).not.toHaveBeenCalled();
-  });
-
-  it("connect IPC returns ok:false when loadURL rejects", async () => {
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const win = mockState.MockBrowserWindow.instances[0];
-    win.loadURL.mockRejectedValueOnce(new Error("Navigation failed"));
-
-    const handler = mockState.ipcHandlers.get("television:connect");
-    await expect(handler!({}, { serverURL: "https://tv.example.com", token: "" })).resolves.toEqual({
-      ok: false,
-      message: "Navigation failed",
-    });
   });
 
   it("connect IPC loads remote URL without ?token= when token is empty", async () => {
@@ -683,7 +617,8 @@ describe("Electron main process", () => {
     win.loadURL.mockClear();
 
     const handler = mockState.ipcHandlers.get("television:connect");
-    await handler!({}, { serverURL: "https://tv.example.com", token: "" });
+    const result = await handler!({}, "https://tv.example.com") as { attempt: number };
+    await mockState.ipcHandlers.get("television:complete-connect")!({}, result.attempt);
 
     const loaded = new URL(win.loadURL.mock.calls[0][0]);
     expect(loaded.searchParams.get("mode")).toBe("electron");
@@ -722,7 +657,7 @@ describe("Electron main process", () => {
     );
   });
 
-  it("registers a Connect to server… menu item", async () => {
+  it("registers a Disconnect from Server menu item", async () => {
     const main = await loadAppModule();
     await new main.App().start();
 
@@ -731,7 +666,7 @@ describe("Electron main process", () => {
       submenu?: Array<{ label?: string }>;
     }>;
     const labels = template.flatMap((item) => item.submenu?.map((sub) => sub.label) ?? []);
-    expect(labels).toContain("Connect to server…");
+    expect(labels).toContain("Disconnect from Server");
   });
 
   it("routes webContents window-open URLs to shell.openExternal", async () => {
@@ -798,47 +733,4 @@ describe("Electron main process", () => {
     expect(mockState.shell.openExternal).not.toHaveBeenCalled();
   });
 
-  it("returns to the connect screen in manual mode when remote loadURL fails", async () => {
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const win = mockState.MockBrowserWindow.instances[0];
-    const failLoad = win.webContents.on.mock.calls.find(([event]) => event === "did-fail-load")?.[1] as (
-      event: unknown,
-      code: number,
-      desc: string,
-      url: string,
-      isMainFrame: boolean,
-    ) => void;
-    expect(failLoad).toBeDefined();
-
-    win.loadFile.mockClear();
-    failLoad({}, -1, "ERR_FAILED", "http://127.0.0.1:9/?mode=electron", true);
-
-    expect(win.loadFile).toHaveBeenCalledWith(expect.stringMatching(/connect\.html$/));
-    const intentHandler = mockState.ipcHandlers.get("television:get-connect-screen-intent");
-    expect(await intentHandler!({})).toBe("manual");
-  });
-
-  it("does not return to the connect screen for subframe load failures or aborted navigations", async () => {
-    const main = await loadAppModule();
-    await new main.App().start();
-
-    const win = mockState.MockBrowserWindow.instances[0];
-    const failLoad = win.webContents.on.mock.calls.find(([event]) => event === "did-fail-load")?.[1] as (
-      event: unknown,
-      code: number,
-      desc: string,
-      url: string,
-      isMainFrame: boolean,
-    ) => void;
-    expect(failLoad).toBeDefined();
-
-    win.loadFile.mockClear();
-    failLoad({}, -1, "ERR_FAILED", "http://127.0.0.1:9/frame", false);
-    failLoad({}, -3, "ERR_ABORTED", "http://127.0.0.1:9/?mode=electron", true);
-    failLoad({}, -1, "ERR_FAILED", "file:///tmp/connect.html", true);
-
-    expect(win.loadFile).not.toHaveBeenCalled();
-  });
 });

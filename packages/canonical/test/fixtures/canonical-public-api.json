@@ -315,6 +315,7 @@
       "--layer-panel",
       "--line-control",
       "--line-control-sm",
+      "--line-control-lg",
       "--neutral",
       "--neutral-100",
       "--neutral-200",
@@ -773,6 +774,20 @@
         "warning",
         "web"
       ]
+    }
+  },
+  "nativeControls": {
+    "canonical-v2": {
+      "button": {
+        "size": [
+          "lg"
+        ]
+      },
+      "input": {
+        "data-size": [
+          "lg"
+        ]
+      }
     }
   }
 }

@@ -15,22 +15,16 @@
       import { SystemModalView } from "/packages/web/src/views/system-modal.ts";
 
       const host = document.querySelector("#fixture");
-      const authenticationCalls = [];
-      const application = {
-        async authenticate(token) {
-          authenticationCalls.push(token);
-        },
-      };
-
-      window.__authenticationCalls = authenticationCalls;
+      window.__disconnectCalls = 0;
+      const options = { context: "local", onDisconnect() { window.__disconnectCalls += 1; } };
       window.__poseSystemModal = async (state) => {
-        render(SystemModalView(state, application), host);
+        render(state === null ? null : SystemModalView(state, options), host);
         await Promise.resolve();
         await new Promise((resolve) => requestAnimationFrame(resolve));
       };
 
       await customElements.whenDefined("tv-icon");
-      await window.__poseSystemModal({ kind: "unauthorized", invalid: false });
+      await window.__poseSystemModal({ kind: "unauthorized" });
       window.__fixtureReady = true;
     </script>
   </body>

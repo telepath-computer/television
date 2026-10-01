@@ -17,7 +17,8 @@
     "surfaces": [
       "web",
       "view:markdown",
-      "source"
+      "source",
+      "desktop"
     ]
   },
   {
@@ -39,7 +40,8 @@
     "surfaces": [
       "web",
       "view:markdown",
-      "source"
+      "source",
+      "desktop"
     ]
   },
   {
@@ -116,7 +118,8 @@
     ],
     "surfaces": [
       "cli",
-      "source"
+      "source",
+      "desktop"
     ],
     "noticesFolder": "packages/server/assets/themes/clouds"
   },
@@ -138,7 +141,8 @@
     "surfaces": [
       "web",
       "view:markdown",
-      "source"
+      "source",
+      "desktop"
     ]
   },
   {

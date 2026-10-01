@@ -51,6 +51,7 @@ The visible command surface is:
 | `tv skills` | Manage the bundled skill collection. |
 | `tv stop` | Uninstall/stop the persisted Television service. |
 | `tv status` | Print the selected home, server health, version, telemetry state, and service status as JSON. |
+| `tv links` | Print the running server's connect links, one per line. |
 | `tv telemetry` | Enable or disable telemetry for the running server. |
 
 The canonical help flag is `--help`, with `-h` as its alias. The canonical version flag is `--version`, with `-V` and `-v` as its aliases.
@@ -110,9 +111,9 @@ Output formatting is currently inconsistent and depends on the command. Successf
 | `tv telemetry enable` and `tv telemetry disable` | `{ "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }` |
 | `tv stop` and `tv serve --persist-uninstall` | `{ "status": "stopped" }` |
 
-Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
+Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text, and `tv links` prints one connect link per line. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
-Startup URLs are printed as terminal hyperlinks using OSC-8 escape sequences, with the visible URL as the link text. A terminal that does not render OSC-8 hyperlinks still shows the URL text. When auth is required, the terminal-hyperlinked URL includes `?token=<token>`.
+When a command's stdout is an interactive terminal, each link it prints is a terminal hyperlink using OSC-8 escape sequences, with the visible URL as the link text; a terminal that does not render OSC-8 hyperlinks still shows the URL text. When stdout is anything else, such as a pipe, a file, or an agent's shell tool, each link is the plain URL with no escape sequences, because some tools that capture output strip escape sequences in a way that removes the URL with them. This applies to the startup URLs of `tv serve` and `tv serve --persist` and to `tv links`. ^cli-link-output
 
 ## Television home and configuration
 
@@ -243,7 +244,7 @@ Neither command contacts a server.
 
 ### Connecting to the server
 
-Commands that contact a server — the artifact, channel, focus, and theme-selection commands, `tv telemetry enable` and `tv telemetry disable`, and `tv status` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
+Commands that contact a server — the artifact, channel, focus, and theme-selection commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
 
 These commands read the bearer token from `<home>/state/token`, trimming surrounding whitespace. A missing or empty token file means the command sends no bearer token. If a token-protected server returns `401`, the CLI prints:
 
@@ -259,6 +260,18 @@ Both refusals are directive errors. For example:
 tv list-channels requires --port because <config-path> sets port 0. Pass the port from the Television server's startup URL.
 tv list-channels --port 43123 does not accept --port because <config-path> sets port 32848. Omit --port to use the configured port.
 ```
+
+### Connect links
+
+A *connect link* is the URL a person opens to use Television, in a browser or in the desktop app. It is the server's origin for one listening address, followed by `/?token=<token>` when the server requires the bearer token; a tokenless server's connect link is the plain origin. A server listening on several addresses has one connect link per address. The startup URLs that `tv serve` and `tv serve --persist` print are connect links. ^cli-connect-link
+
+`tv links` prints the running server's connect links, one per line, with no other output:
+
+```bash
+tv [--home <path>] links [--port <number>]
+```
+
+The links cover every address the server reports it is listening on, with the port it bound. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
 
 ## Server lifecycle commands
 

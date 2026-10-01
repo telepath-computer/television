@@ -8,7 +8,7 @@ Proves [specs/arch/desktop/index.md](../../../specs/arch/desktop/index.md).
 
 The [product proof](../../product/desktop-app.md) owns platform evidence and the real-host checks. Each module proof carries its own contract:
 
-- [connect-flow.md](./connect-flow.md) and [appearance.md](./appearance.md) cover the connection flow and native appearance;
+- [connect-flow.md](./connect-flow.md) and [appearance.md](./appearance.md) cover setup, saved reconnection, Disconnect from Server, the local-only connection bridge, and native appearance; the product connection walks cross them together;
 - [distribution.md](./distribution.md) covers the desktop workspace, the ToDesktop configuration, the upload directory and the update runtime's start, and leaves everything ToDesktop does to the product's real-host checks;
 - [runtime.md](./runtime.md) covers Electron's exact version and declarations, runtime validity, and a real installation;
 - [e2e-harness.md](./e2e-harness.md) crosses the installed Electron executable into Playwright and the real desktop app, including the harness smoke seam.

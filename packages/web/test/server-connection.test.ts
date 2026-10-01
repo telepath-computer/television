@@ -94,6 +94,76 @@ describe("ServerConnection lifecycle", () => {
     vi.useFakeTimers();
   });
 
+  // Contract (^ap-ac-retry-count): socket/client peers and the scheduler are
+  // substitutes; real failure, timing and recovery are crossed by the app walks.
+  it("counts completed unreachable reconnects once and resets on success", async () => {
+    const sockets: FakeSocket[] = [];
+    let halt = false;
+    const emitStatus = () => sockets.at(-1)!.emit("message", { data: JSON.stringify({
+      type: "server-status", version: "1.0.0", requiredDesktopVersion: null, update: null,
+    }) });
+    const c = new ServerConnection({
+      url: "http://example.test",
+      name: "test",
+      decideBoot: () => halt ? "halt" : "boot",
+      createSocket: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket;
+      },
+      createClient: () => createClient(),
+      visibilityEventTarget: null,
+      networkEventTarget: null,
+    });
+    try {
+      const connected = c.connect(null);
+      sockets[0]!.emit("open");
+      emitStatus();
+      await connected;
+      sockets[0]!.emit("error");
+      sockets[0]!.emit("close");
+      expect(c.failedReconnectAttempts).toBe(0);
+      for (let count = 1; count <= 3; count += 1) {
+        await vi.advanceTimersToNextTimerAsync();
+        expect(sockets).toHaveLength(count + 1);
+        expect(c.attempting).toBe(true);
+        expect(c.failedReconnectAttempts).toBe(count - 1);
+        sockets.at(-1)!.emit("error");
+        sockets.at(-1)!.emit("close");
+        await vi.advanceTimersByTimeAsync(0);
+        expect(c.failedReconnectAttempts).toBe(count);
+        expect(c.attempting).toBe(false);
+        expect(c.nextRetryAt).not.toBeNull();
+      }
+      halt = true;
+      await vi.advanceTimersToNextTimerAsync();
+      sockets.at(-1)!.emit("open");
+      emitStatus();
+      expect(c.bootState).toBe("halted");
+      expect(c.failedReconnectAttempts).toBe(3);
+      expect(c.nextRetryAt).toBeNull();
+      halt = false;
+      const recovered = c.connect(null);
+      sockets.at(-1)!.emit("open");
+      emitStatus();
+      await recovered;
+      expect(c.status).toBe("connected");
+      expect(c.failedReconnectAttempts).toBe(0);
+      sockets.at(-1)!.emit("close");
+      expect(c.failedReconnectAttempts).toBe(0);
+      await vi.advanceTimersToNextTimerAsync();
+      sockets.at(-1)!.emit("close", { code: 4401 });
+      await vi.advanceTimersByTimeAsync(0);
+      expect(c.status).toBe("unauthorized");
+      expect(c.failedReconnectAttempts).toBe(0);
+      expect(c.nextRetryAt).toBeNull();
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      c.dispose();
+      vi.useRealTimers();
+    }
+  });
+
   it("connects, bootstraps channels/display, emits status changes, and records hasEverConnected", async () => {
     const sockets: FakeSocket[] = [];
     const changes: string[] = [];
@@ -461,8 +531,8 @@ describe("ServerConnection lifecycle", () => {
   });
 
   // Contract: injected socket and HTTP-client sources replace transport. The
-  // real 401/4401 browser-server crossings remain in e2e/auth.01.test.ts.
-  it("distinguishes an initial authorization requirement from token rejection and clears rejection on success", async () => {
+  // real rejection and recovery remain in e2e/auth.01.test.ts.
+  it("clears authorization rejection when starting a new connection", async () => {
     const sockets: FakeSocket[] = [];
     const c = new ServerConnection({
       url: "http://example.test",
@@ -481,20 +551,19 @@ describe("ServerConnection lifecycle", () => {
     sockets[0]!.emit("close", { code: 4401 });
     await expect(initial).rejects.toMatchObject({ name: "AuthError" });
     expect(c.hasAuthRejected).toBe(true);
-    expect(c.hasAuthTokenRejected).toBe(false);
 
     const rejected = c.connect("bad-token");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     sockets[1]!.emit("close", { code: 4401 });
     await expect(rejected).rejects.toMatchObject({ name: "AuthError" });
-    expect(c.hasAuthTokenRejected).toBe(true);
+    expect(c.hasAuthRejected).toBe(true);
 
     const accepted = c.connect("good-token");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     sockets[2]!.emit("open");
     await accepted;
     expect(c.status).toBe("connected");
-    expect(c.hasAuthTokenRejected).toBe(false);
+    expect(c.hasAuthRejected).toBe(false);
     c.dispose();
   });
 
@@ -534,7 +603,7 @@ describe("ServerConnection lifecycle", () => {
     socket.emit("open");
     await expect(connecting).rejects.toMatchObject({ name: "AuthError" });
     expect(c.status).toBe("unauthorized");
-    expect(c.hasAuthTokenRejected).toBe(true);
+    expect(c.hasAuthRejected).toBe(true);
     c.dispose();
   });
 

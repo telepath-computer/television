@@ -6,7 +6,7 @@ Proves [specs/ui/app/desktop-upgrade-gate/index.md](../../../../specs/ui/app/des
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Contracts cover gate content and native dialog mechanics, with state and update-bridge substitutes that forfeit real startup and IPC to the named architecture/product walks. The gate can show while connected and authenticated: it means Television cannot use the server until the desktop requirement is met. Under [Decisions](../../../../specs/ui/app/desktop-upgrade-gate/index.md#decisions), its bare-ground composition is covered by [the app proof](../index.md#^ap-ac-gate-uncovered), and its desktop drag strip by [the system-modal Electron seam](../system-modal/index.md#^sm-ac-drag-strip). No additional gate-version or drag matrix is ordered here.
 
 ## Assertions
 

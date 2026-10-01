@@ -15,6 +15,7 @@ export interface PreflightOptions {
   desktopAppVersion: string;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 function unreachable(serverURL: string): PreflightResult {
@@ -47,7 +48,9 @@ export async function preflightConnection(options: PreflightOptions): Promise<Pr
     response = await fetchImpl(probeURL.toString(), {
       method: "GET",
       headers,
-      signal: AbortSignal.timeout(options.timeoutMs ?? DEFAULT_PREFLIGHT_TIMEOUT_MS),
+      signal: options.signal
+        ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs ?? DEFAULT_PREFLIGHT_TIMEOUT_MS)])
+        : AbortSignal.timeout(options.timeoutMs ?? DEFAULT_PREFLIGHT_TIMEOUT_MS),
     });
   } catch {
     return unreachable(options.serverURL);
@@ -55,9 +58,9 @@ export async function preflightConnection(options: PreflightOptions): Promise<Pr
 
   if (response.status === HTTP_UNAUTHORIZED) {
     if (!options.token) {
-      return { ok: false, code: "auth-required", message: "This server requires a token" };
+      return { ok: false, code: "auth-required", message: "This link is missing an access token. Ask your agent for the current link." };
     }
-    return { ok: false, code: "auth-rejected", message: "Token rejected" };
+    return { ok: false, code: "auth-rejected", message: "This link’s access token was rejected. Ask your agent for the current link." };
   }
 
   if (response.status !== HTTP_OK) {

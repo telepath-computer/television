@@ -167,7 +167,7 @@ describe("application foundation production crossing (^ui-t-foundation-copy)", (
     );
 
     const forbiddenImports = TRACKED_PATHS
-      .filter((file) => file.startsWith("packages/web/src/"))
+      .filter((file) => (file.startsWith("packages/web/src/") || file.startsWith("packages/desktop/src/")))
       .filter((file) => /\.(?:css|html|ts)$/.test(file))
       .flatMap((file) =>
         readFileSync(path.join(REPO_ROOT, file), "utf8")
@@ -230,6 +230,7 @@ describe("application foundation production crossing (^ui-t-foundation-copy)", (
         file.startsWith("specs/ui/foundation/") ||
         file.startsWith("specs/ui/app/") ||
         file.startsWith("specs/ui/themes/") ||
+        file.startsWith("specs/ui/setup/") ||
         file.startsWith("specs/ui/markdown-editor/")
       )
       .filter((file) => file.endsWith(".css") || file.endsWith(".frame"))

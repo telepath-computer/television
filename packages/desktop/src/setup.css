@@ -1,0 +1,235 @@
+/* The screen: the wallpaper, blurred, filling the window, with the frame
+   centred on it. */
+.setup-screen {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  padding: var(--space-32);
+  overflow: hidden;
+  /* The desktop app's window has no title bar, so the window is dragged
+     by this background; the card itself is not a drag area. */
+  -webkit-app-region: drag;
+}
+
+/* Oversized past the window so the blur doesn't fade at the edges. */
+.setup-wallpaper {
+  position: absolute;
+  inset: calc(-1 * var(--space-48));
+  z-index: -1;
+  background: var(--app-wallpaper);
+  filter: blur(24px);
+}
+
+.setup-window {
+  width: min(640px, 100%);
+  -webkit-app-region: no-drag;
+}
+
+/* The steps and the Connected confirmation share one cell, so the frame
+   keeps its size when the steps fade out. */
+.setup-body {
+  display: grid;
+}
+
+.setup-body > * {
+  grid-area: 1 / 1;
+  transition: opacity 250ms ease;
+}
+
+.setup-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.setup-screen[data-state="connected"] .setup-document {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.setup-screen[data-state="connected"] .setup-done {
+  opacity: 1;
+}
+
+.setup-done-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 2px solid var(--color-success);
+  color: var(--color-success);
+}
+
+.setup-done p {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The document: reading text one step above the prose size. */
+.setup-document {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+  padding: var(--space-48);
+  font-size: var(--text-lg);
+}
+
+.setup-document h1,
+.setup-document h2,
+.setup-document p,
+.setup-steps {
+  margin: 0;
+}
+
+.setup-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.setup-document h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+/* The Television logo, sized to the heading it sits in. */
+.setup-logo {
+  width: 1em;
+  height: 1em;
+  margin: 0 0.05em;
+  vertical-align: -0.14em;
+}
+
+/* The steps: numbered markers joined by a line down the left. */
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-32);
+  padding: 0;
+  list-style: none;
+}
+
+.setup-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  column-gap: var(--space-16);
+}
+
+.setup-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 13px;
+  top: 36px;
+  bottom: calc(-1 * var(--space-32) + var(--space-8));
+  width: 2px;
+  border-radius: 1px;
+  background: var(--color-border);
+}
+
+/* Both markers are always at full strength: the numbers show the usual
+   order, and nothing tracks a current step. */
+.setup-marker {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.setup-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding-top: 3px;
+}
+
+.setup-document h2 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The prompt card, tilted slightly; one press selects the whole prompt. */
+.setup-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-muted);
+  box-shadow: var(--shadow-md);
+  transform: rotate(-1deg);
+}
+
+.setup-prompt p {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  user-select: all;
+}
+
+.setup-prompt-actions {
+  flex: none;
+}
+
+.setup-link {
+  display: flex;
+  gap: var(--space-8);
+}
+
+.setup-link input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Connect's idle and connecting faces share one grid cell, so the button
+   keeps the wider face's width. */
+.setup-submit {
+  display: inline-grid;
+}
+
+.setup-submit > span {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  visibility: hidden;
+}
+
+.setup-screen:is([data-state="ready"], [data-state="error"]) .setup-submit-idle,
+.setup-screen:is([data-state="connecting"], [data-state="connected"]) .setup-submit-busy {
+  visibility: visible;
+}
+
+.setup-hint code {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-body > * {
+    transition: none;
+  }
+}

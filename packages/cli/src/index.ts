@@ -45,6 +45,8 @@ import { TelevisionClient, ValidationError, buildConnectURL, type TelemetryStatu
 
 export type Writable = {
   write(chunk: string | Uint8Array): unknown;
+  /** True when the stream is an interactive terminal; decides link formatting. */
+  isTTY?: boolean;
 };
 
 export type CLIServer = Pick<Server, "start" | "dispose" | "getBaseURL" | "getAuthToken"> & {
@@ -152,16 +154,16 @@ function writeLine(output: Writable, line: string): void {
   output.write(`${line}\n`);
 }
 
-function terminalHyperlink(url: string, text = url): string {
-  return `\u001B]8;;${url}\u001B\\${text}\u001B]8;;\u001B\\`;
+function formatConnectURL(output: Writable, serverURL: string, token?: string | null): string {
+  const url = buildConnectURL(serverURL, token);
+  return output.isTTY === true ? `\u001B]8;;${url}\u001B\\${url}\u001B]8;;\u001B\\` : url;
 }
 
 function writeConnectURLs(output: Writable, urls: string[], options: { token?: string | null; installed?: boolean } = {}): void {
   writeLine(output, options.installed ? "Television service installed." : "Television server running.");
   writeLine(output, "Open Television:");
   for (const url of urls) {
-    const connectURL = buildConnectURL(url, options.token ?? null);
-    writeLine(output, `  ${terminalHyperlink(connectURL)}`);
+    writeLine(output, `  ${formatConnectURL(output, url, options.token)}`);
   }
 }
 
@@ -1529,6 +1531,31 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .description("Stop the Television system service")
     .action(async () => {
       await uninstallPersistedService(resolveHome());
+    });
+
+  program
+    .command("links")
+    .description("Print connect links for the running Television server")
+    .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
+    .action(async (opts: { port?: number }) => {
+      const serverURL = resolveServerURL(opts.port);
+      const token = readAuthToken(resolveHome());
+      const client = env.createClient(serverURL, token);
+      const health = await client.health();
+      await client.display.get();
+
+      // Authentication is a startup setting: the file may have changed since
+      // this server started. Only an unauthenticated 401 requires the token.
+      let requiresToken = false;
+      try {
+        await env.createClient(serverURL, undefined).display.get();
+      } catch (error) {
+        if (typeof error !== "object" || error === null || !("status" in error) || error.status !== HTTP_UNAUTHORIZED_STATUS) throw error;
+        requiresToken = true;
+      }
+      for (const address of health.bindAddresses) {
+        writeLine(env.stdout, formatConnectURL(env.stdout, buildServerURL(address, health.port), requiresToken ? token : null));
+      }
     });
 
   program

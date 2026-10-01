@@ -1,0 +1,30 @@
+---
+title: Setup screen
+params:
+  appearance: { enum: [light, dark], default: light }
+  state: { enum: [ready, connecting, connected, error], default: ready, description: "ready, connecting, connected, or error" }
+script: |
+  import { setupPrototype, showConnected } from "../lib/setup.ts";
+
+  // Staging's stand-in for how long a server takes to answer Connect.
+  const SIMULATED_CONNECT_MS = 1500;
+
+  let cleanup: (() => void) | undefined;
+  let connectTimer: ReturnType<typeof setTimeout> | undefined;
+  const wire = () => {
+    cleanup?.();
+    clearTimeout(connectTimer);
+    const screen = document.querySelector<HTMLElement>(".setup-screen");
+    if (!screen) return;
+    cleanup = setupPrototype(screen, {
+      onConnect: () => {
+        connectTimer = setTimeout(() => showConnected(screen), SIMULATED_CONNECT_MS);
+      },
+    });
+  };
+  wire();
+  window.addEventListener("frameset:rendered", wire);
+---
+<div data-staging-theme="clouds">
+  {% render '../../specs/ui/setup/setup', state: state %}
+</div>

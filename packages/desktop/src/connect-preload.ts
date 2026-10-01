@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ConnectResult } from "./connect-error.ts";
 import {
-  GET_CONNECT_SCREEN_INTENT_CHANNEL,
-  type ConnectScreenIntent,
+  GET_CONNECT_STATE_CHANNEL, CONNECT_STATE_CHANNEL, COMPLETE_CONNECT_CHANNEL, DISCONNECT_CHANNEL,
+  type ConnectScreenState,
 } from "./connect-screen.ts";
 import {
   isNativeNavigationKey,
@@ -50,11 +50,14 @@ contextBridge.exposeInMainWorld("__televisionNativeBridge", {
 
 if (window.location.protocol === "file:") {
   contextBridge.exposeInMainWorld("television", {
-    getConnectScreenIntent: (): Promise<ConnectScreenIntent> =>
-      ipcRenderer.invoke(GET_CONNECT_SCREEN_INTENT_CHANNEL),
-    getConnection: (): Promise<{ serverURL: string; token: string } | null> =>
-      ipcRenderer.invoke("television:get-connection"),
-    connect: (serverURL: string, token: string): Promise<ConnectResult> =>
-      ipcRenderer.invoke("television:connect", { serverURL, token }),
+    getState: (): Promise<ConnectScreenState> => ipcRenderer.invoke(GET_CONNECT_STATE_CHANNEL),
+    onState(callback: (state: ConnectScreenState) => void): () => void {
+      const listener = (_event: Electron.IpcRendererEvent, state: ConnectScreenState) => callback(state);
+      ipcRenderer.on(CONNECT_STATE_CHANNEL, listener);
+      return () => ipcRenderer.removeListener(CONNECT_STATE_CHANNEL, listener);
+    },
+    connect: (link: string): Promise<ConnectResult> => ipcRenderer.invoke("television:connect", link),
+    completeConnect: (attempt: number): Promise<void> => ipcRenderer.invoke(COMPLETE_CONNECT_CHANNEL, attempt),
+    disconnect: (): Promise<void> => ipcRenderer.invoke(DISCONNECT_CHANNEL),
   });
 }

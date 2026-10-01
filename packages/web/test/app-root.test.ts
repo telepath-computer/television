@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { DesktopUpgradeGateView } from "../src/views/desktop-upgrade-gate.ts";
+
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { DesktopUpdateState } from "../src/services/desktop-update.ts";
 import { StandInDesktopUpdateBridge } from "./helpers/desktop-update-bridge.ts";
@@ -19,7 +21,6 @@ import {
 import { ChannelSidebarWidthPreference } from "../src/services/channel-sidebar-width.ts";
 import {
   SystemModalView,
-  type SystemModalApplication,
   type SystemModalState,
 } from "../src/views/system-modal.ts";
 import { TelevisionAppView } from "../src/views/television-app.ts";
@@ -116,10 +117,10 @@ function applicationSnapshot(
     ...snapshotOverrides,
     connection: {
       authorizationRequired: false,
-      authorizationRejected: false,
       gateHalted: false,
       status: "connected",
       hasEverConnected: true,
+      failedReconnectAttempts: 0,
       firstConnectError: null,
       nextRetryAt: null,
       upgradeInstructions: null,
@@ -128,9 +129,8 @@ function applicationSnapshot(
   };
 }
 
-class FakeApplication extends EventTarget implements SystemModalApplication {
+class FakeApplication extends EventTarget {
   snapshot: ApplicationSnapshot;
-  authenticate = vi.fn(async (_token: string) => undefined);
   handleNavigationKey = vi.fn((_key: string) => undefined);
   getArtifactViewURL = vi.fn(() => "/artifact-view");
   getArtifactContentURL = vi.fn(() => null);
@@ -208,7 +208,6 @@ describe("application-state selection (^ap-ac-one-state)", () => {
       name: string;
       snapshot: ApplicationSnapshot;
       state: string;
-      rejectionAlert?: boolean;
     }> = [
       { name: "connected populated channel", snapshot: applicationSnapshot(), state: "connected" },
       {
@@ -222,19 +221,17 @@ describe("application-state selection (^ap-ac-one-state)", () => {
         state: "empty-channel",
       },
       {
-        name: "authorization outranks gate, prior session, and error",
+        name: "retained gate outranks authorization, prior session, and error",
         snapshot: applicationSnapshot({
           connection: {
             authorizationRequired: true,
-            authorizationRejected: true,
             gateHalted: true,
             status: "disconnected",
             hasEverConnected: true,
             firstConnectError: "offline",
           },
         }),
-        state: "unauthorized",
-        rejectionAlert: true,
+        state: "needs-upgrade",
       },
       {
         name: "gate outranks a connection interstitial",
@@ -259,6 +256,23 @@ describe("application-state selection (^ap-ac-one-state)", () => {
         }),
         state: "disconnected",
       },
+      ...[1, 2, 3].map((failedReconnectAttempts) => ({
+        name: `after ${failedReconnectAttempts} failed reconnects`,
+        snapshot: applicationSnapshot({ connection: {
+          status: "disconnected", failedReconnectAttempts,
+        } }),
+        state: failedReconnectAttempts < 3 ? "disconnected" : "error",
+      })),
+      ...[false, true].flatMap((hasEverConnected) => ["unauthorized", "needs-upgrade"].map((state) => ({
+        name: `${state} answers immediately with prior session=${hasEverConnected}`,
+        snapshot: applicationSnapshot({ connection: {
+          status: "disconnected", hasEverConnected, failedReconnectAttempts: 3,
+          firstConnectError: "offline",
+          authorizationRequired: state === "unauthorized",
+          gateHalted: state === "needs-upgrade",
+        } }),
+        state,
+      }))),
       {
         name: "a failed first connection shows its error",
         snapshot: applicationSnapshot({
@@ -290,12 +304,10 @@ describe("application-state selection (^ap-ac-one-state)", () => {
       expect(await rendered, row.name).toBe(row.state);
       await flush();
       expect(app.querySelector("#app")?.getAttribute("data-app-state"), row.name).toBe(row.state);
-      expect(app.querySelectorAll(":scope > #app > .system-modal-host"), row.name).toHaveLength(
+      expect(app.querySelectorAll(":scope > #app > .system-modal-host, :scope > #app > .desktop-upgrade-gate"), row.name).toHaveLength(
         ["connected", "no-channel", "empty-channel"].includes(row.state) ? 0 : 1,
       );
-      if (row.rejectionAlert !== undefined) {
-        expect(app.querySelector('[role="alert"]') !== null, row.name).toBe(row.rejectionAlert);
-      }
+
     }
   });
 });
@@ -330,7 +342,7 @@ describe("root shell composition and readiness (^ap-ac-markup-smoke)", () => {
       expect([...app.children]).toEqual([applicationRoot, foreground]);
       expect(app.querySelectorAll(":scope > #app > .app-sidebar")).toHaveLength(shell ? 1 : 0);
       expect(app.querySelectorAll(":scope > #app > .app-main")).toHaveLength(shell ? 1 : 0);
-      expect(app.querySelectorAll(":scope > #app > .system-modal-host")).toHaveLength(modal ? 1 : 0);
+      expect(app.querySelectorAll(":scope > #app > .system-modal-host, :scope > #app > .desktop-upgrade-gate")).toHaveLength(modal ? 1 : 0);
       if (shell) {
         const main = app.querySelector(".app-main")!;
         expect(main.children).toHaveLength(2);
@@ -372,6 +384,14 @@ describe("root shell composition and readiness (^ap-ac-markup-smoke)", () => {
           connection: { status: "disconnected", hasEverConnected: true },
         }),
         state: "disconnected",
+        shell: true,
+        modal: true,
+      },
+      {
+        snapshot: applicationSnapshot({ connection: {
+          status: "disconnected", hasEverConnected: true, failedReconnectAttempts: 3,
+        } }),
+        state: "error",
         shell: true,
         modal: true,
       },
@@ -641,173 +661,113 @@ describe("application navigation listener lifecycle", () => {
 });
 
 describe("system modal (^sm-ac-markup-smoke)", () => {
-  it("renders each selected interrupting surface and no other", async () => {
-    const application = new FakeApplication(applicationSnapshot());
-    const host = document.createElement("main");
-    document.body.append(host);
-    const draw = (state: SystemModalState, desktopUpdate?: DesktopUpdateState) =>
-      render(SystemModalView(state, application, desktopUpdate), host);
+  it("renders connection contents by state and place, with only local disconnect actions", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(10_000);
+    const host = createApplicationHost();
+    const disconnect = vi.fn();
     const downloadedBridge = new StandInDesktopUpdateBridge();
     downloadedBridge.report("1.5.0");
-
-    const rows: Array<{
-      name: string;
-      state: SystemModalState;
-      desktopUpdate?: DesktopUpdateState;
-      assert: () => void;
-    }> = [
-      {
-        name: "connecting",
-        state: { kind: "connecting" },
-        assert: () => {
-          expect(host.querySelector('tv-icon[name="spinner"][spinning]')).not.toBeNull();
-          expect(host.querySelector("h2")?.textContent).toBe("Connecting");
-          expect(host.querySelector(".system-modal > p")).toBeNull();
-        },
-      },
-      {
-        name: "disconnected countdown",
-        state: { kind: "disconnected", nextRetryAt: Date.now() + 5_000 },
-        assert: () => {
-          expect(host.querySelector('tv-icon[name="spinner"][spinning]')).not.toBeNull();
-          expect(host.querySelector("h2")?.textContent).toBe("Disconnected");
-          expect(host.querySelector(".system-modal > p")?.textContent).toMatch(/^Reattempting in \d+s…$/);
-        },
-      },
-      {
-        name: "disconnected attempt in flight",
-        state: { kind: "disconnected", nextRetryAt: null },
-        assert: () => {
-          expect(host.querySelector(".system-modal > p")?.textContent).toBe("Reattempting now…");
-        },
-      },
-      {
-        name: "authorization",
-        state: { kind: "unauthorized" },
-        assert: () => {
-          expect(host.querySelector('tv-icon[name="locked"]')).not.toBeNull();
-          expect(host.querySelector("h2")?.textContent).toBe("Enter access token");
-          expect(host.textContent).toContain("This server requires an access token to connect.");
-          const input = host.querySelector<HTMLInputElement>('input[name="token"]');
-          expect(input?.type).toBe("password");
-          expect(input?.required).toBe(true);
-          expect(input?.getAttribute("aria-label")).toBe("Access token");
-          expect(input?.hasAttribute("aria-invalid")).toBe(false);
-          expect(input?.hasAttribute("aria-describedby")).toBe(false);
-          expect(host.querySelector("button")?.textContent?.trim()).toBe("Connect");
-          expect(host.querySelector('[role="alert"]')).toBeNull();
-        },
-      },
-      {
-        name: "rejected authorization",
-        state: { kind: "unauthorized", invalid: true },
-        assert: () => {
-          const input = host.querySelector<HTMLInputElement>('input[name="token"]');
-          expect(input?.value).toBe("");
-          expect(input?.getAttribute("aria-invalid")).toBe("true");
-          expect(input?.getAttribute("aria-describedby")).toBe("auth-token-error");
-          expect(host.querySelector("#auth-token-error")?.classList.contains("tv-error")).toBe(true);
-          expect(host.querySelector('[role="alert"]')?.textContent).toContain(
-            "The previous token was rejected. Try again.",
-          );
-        },
-      },
-      {
-        name: "first-connect error",
-        state: { kind: "error", serverURL: SERVER_URL, message: "Connection refused" },
-        assert: () => {
-          expect(host.querySelector("h2")?.textContent).toBe("Can’t connect with server");
-          expect(host.querySelector(".server-url")?.textContent).toBe(SERVER_URL);
-          expect(host.textContent).toContain("Connection refused");
-        },
-      },
-      {
-        name: "desktop upgrade",
-        state: {
-          kind: "needs-upgrade",
-          instructions: { upgradeMarkdown: "# Channel upgrade\n\nRun the channel command." },
-        },
-        assert: () => {
-          expect(host.querySelector(".desktop-upgrade-gate")).not.toBeNull();
-          expect(host.querySelector(".system-modal")).toBeNull();
-          expect(host.querySelector(".desktop-upgrade-gate")?.textContent).toContain("Channel upgrade");
-          expect(host.querySelector(".upgrade-gate-restart")).toBeNull();
-        },
-      },
-      {
-        name: "desktop upgrade with a downloaded update",
-        state: {
-          kind: "needs-upgrade",
-          instructions: { upgradeMarkdown: "# Channel upgrade\n\nRun the channel command." },
-        },
-        desktopUpdate: new DesktopUpdateState({ electron: true, bridge: downloadedBridge }),
-        assert: () => {
-          expect(host.querySelector(".system-modal")).toBeNull();
-          expect(host.querySelector(".desktop-upgrade-gate")?.textContent).toContain("The new version has already downloaded");
-          expect(host.querySelector(".desktop-upgrade-gate")?.textContent).not.toContain("Channel upgrade");
-          expect(host.querySelector(".upgrade-gate-restart")?.textContent?.trim()).toBe("Restart to update");
-        },
-      },
+    const desktopUpdate = new DesktopUpdateState({ electron: true, bridge: downloadedBridge });
+    const states: SystemModalState[] = [
+      { kind: "connecting" },
+      { kind: "disconnected", nextRetryAt: 15_000 },
+      { kind: "disconnected", nextRetryAt: null },
+      { kind: "unauthorized" },
+      { kind: "error", serverURL: SERVER_URL, nextRetryAt: 15_000 },
+      { kind: "error", serverURL: SERVER_URL, nextRetryAt: null },
     ];
-
-    for (const row of rows) {
-      draw(row.state, row.desktopUpdate);
-      await flush();
-      expect(host.querySelectorAll(":scope > .system-modal-host"), row.name).toHaveLength(1);
-      expect(host.querySelectorAll("dialog"), row.name).toHaveLength(1);
-      row.assert();
+    try {
+      for (const context of ["browser", "desktop", "local"] as const) {
+        for (const state of states) {
+          render(SystemModalView(state, { context, onDisconnect: disconnect }), host);
+          await flush();
+          expect(host.querySelectorAll("dialog")).toHaveLength(1);
+          expect(host.querySelector(".desktop-upgrade-gate")).toBeNull();
+          expect(host.querySelector("form, input")).toBeNull();
+          expect(host.querySelector("h2")?.textContent).toBe({
+            connecting: "Connecting", disconnected: "Disconnected",
+            unauthorized: "Access token required", error: "Can’t connect with server",
+          }[state.kind]);
+          const spinner = host.querySelector('tv-icon[name="spinner"][spinning]');
+          expect(spinner !== null).toBe(state.kind === "connecting" || state.kind === "disconnected");
+          if (state.kind === "connecting") expect(host.querySelector("p")).toBeNull();
+          if (state.kind === "unauthorized") {
+            expect(host.querySelector('tv-icon[name="locked"]')).not.toBeNull();
+            expect(host.textContent).toContain({
+              browser: "paste the whole link into the address bar",
+              desktop: "Choose Television › Disconnect from Server",
+              local: "Disconnect from Server, then paste the current link",
+            }[context]);
+          }
+          if (state.kind === "error") {
+            expect(host.querySelector("tv-icon")).toBeNull();
+            expect(host.querySelector(".server-url")?.textContent).toBe(SERVER_URL);
+            expect(host.textContent).toContain("Check your internet connection and that the server is running.");
+          }
+          if (state.kind === "error" || state.kind === "disconnected") {
+            expect(host.textContent).toContain(state.nextRetryAt === null ? "Reconnecting now…" : "Reconnecting in 5s…");
+          }
+          const button = host.querySelector<HTMLButtonElement>("button");
+          const offersDisconnect = context === "local" && (state.kind === "unauthorized" || state.kind === "error");
+          expect(button !== null).toBe(offersDisconnect);
+          disconnect.mockClear();
+          if (offersDisconnect) {
+            expect(button?.getAttribute("intent")).toBe("danger");
+            expect(button?.textContent?.trim()).toBe("Disconnect from Server");
+            button!.click();
+            expect(disconnect).toHaveBeenCalledOnce();
+          }
+        }
+      }
+      render(SystemModalView({ kind: "disconnected", nextRetryAt: 15_000 }, { context: "browser" }), host);
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(host.textContent).toContain("Reconnecting in 4s…");
+      for (const update of [undefined, desktopUpdate]) {
+        render(DesktopUpgradeGateView({ upgradeMarkdown: "# Channel upgrade" }, update), host);
+        await flush();
+        expect(host.querySelectorAll("dialog")).toHaveLength(1);
+        expect(host.querySelector(".system-modal")).toBeNull();
+        expect(host.textContent).toContain(update ? "The new version has already downloaded" : "Channel upgrade");
+        expect(host.querySelector(".upgrade-gate-restart") !== null).toBe(Boolean(update));
+      }
+    } finally {
+      render(null, host);
+      vi.useRealTimers();
     }
   });
 });
 
-describe("system-modal token submission (^sm-ac-auth-submit)", () => {
-  it("refuses blank values, authenticates entered tokens, and clears a rejected token", async () => {
-    const application = new FakeApplication(applicationSnapshot());
-    const host = document.createElement("main");
-    document.body.append(host);
-    const draw = (state: SystemModalState) => render(SystemModalView(state, application), host);
-
-    draw({ kind: "unauthorized" });
-    await flush();
-    const input = host.querySelector<HTMLInputElement>('input[name="token"]')!;
-    input.value = "   ";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    expect(application.authenticate).not.toHaveBeenCalled();
-
-    input.value = "  first-token  ";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    expect(application.authenticate).toHaveBeenCalledTimes(1);
-    expect(application.authenticate).toHaveBeenLastCalledWith("first-token");
-    expect(host.querySelector('[role="alert"]')).toBeNull();
-
-    // Submission and an in-flight reconnect do not imply rejection.
-    draw({ kind: "connecting" });
-    draw({ kind: "unauthorized" });
-    await flush();
-    expect(host.querySelector<HTMLInputElement>('input[name="token"]')?.value).toBe("  first-token  ");
-    expect(host.querySelector('[role="alert"]')).toBeNull();
-
-    // The application state explicitly reports rejection before the view
-    // clears the rejected token and offers a replacement.
-    draw({ kind: "unauthorized", invalid: true });
-    await flush();
-    const replacement = host.querySelector<HTMLInputElement>('input[name="token"]')!;
-    expect(replacement.value).toBe("");
-    expect(host.querySelector('[role="alert"]')).not.toBeNull();
-
-    replacement.value = "replacement-token";
-    replacement.dispatchEvent(new Event("input", { bubbles: true }));
-    replacement.form!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    expect(application.authenticate).toHaveBeenCalledTimes(2);
-    expect(application.authenticate).toHaveBeenLastCalledWith("replacement-token");
-
-    draw({ kind: "unauthorized" });
-    await flush();
-    const fresh = host.querySelector<HTMLInputElement>('input[name="token"]')!;
-    expect(fresh.hasAttribute("aria-invalid")).toBe(false);
-    expect(fresh.hasAttribute("aria-describedby")).toBe(false);
-    expect(host.querySelector("#auth-token-error")).toBeNull();
-  });
+// Composition contract: posed prior-session and platform facts; native drag
+// hit testing is covered by the Electron seam.
+it("requests a desktop drag strip only over a bare background", async () => {
+  const rows: Array<{ connection: Partial<ApplicationSnapshot["connection"]>; hasShell: boolean }> = [
+    { connection: { status: "disconnected", hasEverConnected: true }, hasShell: true },
+    { connection: { status: "disconnected", hasEverConnected: true, failedReconnectAttempts: 3 }, hasShell: true },
+    { connection: { status: "disconnected", hasEverConnected: false }, hasShell: false },
+    { connection: { status: "disconnected", hasEverConnected: false, firstConnectError: "offline" }, hasShell: false },
+    { connection: { authorizationRequired: true }, hasShell: false },
+    { connection: { gateHalted: true }, hasShell: false },
+  ];
+  for (const electronMode of [false, true]) {
+    for (const collapsed of [false, true]) {
+      const host = createApplicationHost();
+      const application = new FakeApplication(applicationSnapshot());
+      render(TelevisionAppView(application as never, {
+        runtimeServerURL: SERVER_URL, primaryServerURL: SERVER_URL, electronMode,
+        sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
+        sidebarCollapsedPreference: collapsedPreference(collapsed),
+      }), host);
+      for (const { connection, hasShell } of rows) {
+        application.setSnapshot(applicationSnapshot({ connection }));
+        await flush();
+        expect(host.querySelectorAll(".app-main")).toHaveLength(hasShell ? 1 : 0);
+        expect(host.querySelectorAll(".window-drag-strip")).toHaveLength(electronMode && !hasShell ? 1 : 0);
+        expect(host.querySelectorAll("dialog")).toHaveLength(1);
+        if (connection.authorizationRequired) {
+          expect(host.textContent).toContain(electronMode ? "Choose Television › Disconnect from Server" : "paste the whole link into the address bar");
+        }
+      }
+    }
+  }
 });

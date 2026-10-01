@@ -24,7 +24,7 @@ export const DESKTOP_UPGRADE_GATE_COPY = {
  * downloaded-update message and the restart button, its only control
  * (^gate-restart); otherwise the channel's instructions or the fallback.
  */
-export class DesktopUpgradeGate extends View<[DesktopUpgradeInstructions | null, DesktopUpdateState?]> {
+export class DesktopUpgradeGate extends View<[DesktopUpgradeInstructions | null, DesktopUpdateState?, unknown?]> {
   #presentation: DialogPresentation | null = null;
   #rootRef: Ref<HTMLElement> = createRef();
   #desktopUpdate: DesktopUpdateState | null = null;
@@ -49,7 +49,7 @@ export class DesktopUpgradeGate extends View<[DesktopUpgradeInstructions | null,
     this.#desktopUpdate = null;
   }
 
-  template(instructions: DesktopUpgradeInstructions | null, desktopUpdate?: DesktopUpdateState): TemplateResult {
+  template(instructions: DesktopUpgradeInstructions | null, desktopUpdate?: DesktopUpdateState, topLayerContent?: unknown): TemplateResult {
     this.#follow(desktopUpdate ?? null);
     const version = this.#desktopUpdate?.version ?? null;
     const restarting = this.#desktopUpdate?.restarting ?? false;
@@ -68,6 +68,7 @@ export class DesktopUpgradeGate extends View<[DesktopUpgradeInstructions | null,
               >${restarting
                 ? DESKTOP_UPGRADE_GATE_COPY.restarting
                 : DESKTOP_UPGRADE_GATE_COPY.restart_to_update}</button></div>`}`,
+          topLayerContent,
         )}
       </div>
     `;

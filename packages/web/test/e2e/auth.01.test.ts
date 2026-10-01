@@ -11,7 +11,6 @@ import {
 } from "./helpers.ts";
 import {
   observeApplicationPresentations,
-  type ApplicationPresentationRecord,
 } from "./application-presentation.helpers.ts";
 
 function createDataDir(): string {
@@ -88,19 +87,16 @@ test.describe("product browser token flow", () => {
       const appURL = await product.appURL(baseURL!);
       await page.goto(productAppIndexURL(appURL, product.token));
 
-      await expect(page.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(page);
       await expect(page).toHaveURL(productAppCleanURL(appURL));
 
       await page.reload();
-      await expect(page.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(page);
       await expect(page).toHaveURL(productAppCleanURL(appURL));
 
       await page.close();
       const reopened = await context.newPage();
       await reopened.goto(productAppCleanURL(appURL));
-      await expect(reopened.locator(".auth-form")).toHaveCount(0);
       await waitForApplicationShell(reopened);
       await expect(reopened).toHaveURL(productAppCleanURL(appURL));
     } finally {
@@ -109,186 +105,63 @@ test.describe("product browser token flow", () => {
   });
 })
 
-const SHELL_STATES = new Set(["connected", "no-channel", "empty-channel"]);
+// Acceptance (^ap-ac-signin-first): real token rejection and current-link
+// recovery. Stored tokens and the restarted server's token file are fixtures;
+// no authentication response or request header is replaced.
+test("rejected tokens at boot and after a session clear credentials and recover with a current link", async ({ page, baseURL }) => {
+  if (!baseURL) throw new Error("Expected Playwright baseURL");
+  const product = await launchProductServer({ auth: true });
+  try {
+    const appURL = await product.appURL(baseURL);
+    await page.addInitScript((origin) => {
+      if (location.origin !== origin || localStorage.getItem("seeded-auth-fixture")) return;
+      localStorage.setItem("store-television-browser", JSON.stringify({ authTokens: { [origin]: "wrong-token" } }));
+      localStorage.setItem("seeded-auth-fixture", "true");
+    }, appURL);
+    const presentation = await observeApplicationPresentations(page);
+    const socketURLs: string[] = [];
+    page.on("websocket", (socket) => socketURLs.push(socket.url()));
+    await page.goto(productAppCleanURL(appURL));
+    await configureTestMotion(page);
 
-function applicationRecords(
-  records: readonly ApplicationPresentationRecord[],
-): readonly ApplicationPresentationRecord[] {
-  return records.filter((record) => record.appState !== null);
-}
-
-function expectSoleUnauthorizedSettlement(
-  records: readonly ApplicationPresentationRecord[],
-  allowedBeforeUnauthorized: ReadonlySet<string>,
-): void {
-  const presentations = applicationRecords(records);
-  const firstUnauthorized = presentations.findIndex((record) =>
-    record.appState === "unauthorized"
-  );
-  expect(firstUnauthorized).toBeGreaterThanOrEqual(0);
-
-  for (const record of presentations.slice(0, firstUnauthorized)) {
-    expect(allowedBeforeUnauthorized.has(record.appState!)).toBe(true);
-  }
-  for (const record of presentations.slice(firstUnauthorized)) {
-    expect(record).toMatchObject({
-      appState: "unauthorized",
-      shellRegionCount: 0,
-      sidebarCount: 0,
-      mainCount: 0,
-      modalHostCount: 1,
-      authFormCount: 1,
-      gateCount: 0,
-      connectingCount: 0,
-      disconnectedCount: 0,
-      errorCount: 0,
-    });
-  }
-}
-
-function expectSuccessfulAuthenticationHandoff(
-  records: readonly ApplicationPresentationRecord[],
-): void {
-  const presentations = applicationRecords(records);
-  expect(presentations[0]).toMatchObject({
-    appState: "unauthorized",
-    shellRegionCount: 0,
-    modalHostCount: 1,
-    authFormCount: 1,
-  });
-  expect(SHELL_STATES.has(presentations.at(-1)?.appState ?? "")).toBe(true);
-
-  for (const record of presentations) {
-    expect(
-      record.appState === "unauthorized" ||
-      record.appState === "connecting" ||
-      SHELL_STATES.has(record.appState!),
-    ).toBe(true);
-    if (record.appState === "unauthorized") {
-      expect(record).toMatchObject({
-        shellRegionCount: 0,
-        modalHostCount: 1,
-        authFormCount: 1,
-        gateCount: 0,
-        connectingCount: 0,
-        disconnectedCount: 0,
-        errorCount: 0,
-      });
-    }
-    if (SHELL_STATES.has(record.appState!)) {
-      expect(record).toMatchObject({
-        shellRegionCount: 2,
-        sidebarCount: 1,
-        mainCount: 1,
-        modalHostCount: 0,
-        authFormCount: 0,
-        gateCount: 0,
-      });
-    }
-  }
-}
-
-test.describe("product browser token flow", () => {
-  test("auth modal stores the token without writing it to the URL", async ({ page, baseURL }) => {
-    const product = await launchProductServer({ auth: true });
-    try {
-      const appURL = await product.appURL(baseURL!);
-      await page.goto(productAppCleanURL(appURL));
-
-      const tokenInput = page.getByLabel("Access token");
-      await expect(tokenInput).toBeVisible();
-      await configureTestMotion(page);
-      const presentation = await observeApplicationPresentations(page);
-      await tokenInput.fill(product.token);
-      await page.locator(".auth-form button", { hasText: "Connect" }).click();
-
-      await expect(page.locator(".auth-form")).toHaveCount(0);
-      await waitForApplicationShell(page);
+    const expectRejected = async (): Promise<void> => {
+      await expect(page.getByRole("heading", { name: "Access token required" })).toBeVisible();
+      await expect(page.locator(".app-sidebar, .app-main, .desktop-upgrade-gate")).toHaveCount(0);
+      await expect(page.locator("dialog")).toHaveCount(1);
+      await expect(page.locator(".system-modal")).toContainText("paste the whole link into the address bar");
+      expect(await page.evaluate((origin) => {
+        const state = JSON.parse(localStorage.getItem("store-television-browser") ?? "{}");
+        return state.authTokens?.[origin] ?? null;
+      }, appURL)).toBeNull();
+      // Observe the real owner; the scheduler contract proves the indefinite
+      // no-retry promise without an arbitrary quiet-period sleep here.
+      expect(await page.evaluate(() => {
+        const { connection } = (window as unknown as { __telepath: { connectionOwner: { connection: { status: string; nextRetryAt: number | null; attempting: boolean } } } }).__telepath.connectionOwner;
+        return { status: connection.status, nextRetryAt: connection.nextRetryAt, attempting: connection.attempting };
+      })).toEqual({ status: "unauthorized", nextRetryAt: null, attempting: false });
       await presentation.settle();
-      await presentation.stop();
-      expectSuccessfulAuthenticationHandoff(presentation.records());
-      await expect(page).toHaveURL(productAppCleanURL(appURL));
-      const stored = await page.evaluate((origin) => {
-        const raw = window.localStorage.getItem("store-television-browser");
-        return raw ? JSON.parse(raw).authTokens?.[origin] : null;
-      }, appURL);
-      expect(stored).toBe(product.token);
-    } finally {
-      await product.dispose();
-    }
-  });
-
-  test("stored-token HTTP 401 clears localStorage and returns to the auth modal", async ({ page, baseURL }) => {
-    const product = await launchProductServer({ auth: true });
-    try {
-      const appURL = await product.appURL(baseURL!);
-      await page.goto(productAppIndexURL(appURL, product.token));
-      await waitForApplicationShell(page);
-      await configureTestMotion(page);
-      const presentation = await observeApplicationPresentations(page);
-
-      await page.route(`${appURL}/channels`, async (route) => {
-        const request = route.request();
-        if (request.method() !== "POST") {
-          await route.continue();
-          return;
-        }
-        await route.continue({
-          headers: {
-            ...request.headers(),
-            authorization: "Bearer wrong-token",
-          },
-        });
+      const records = presentation.records().filter((record) => record.appState === "unauthorized");
+      expect(records.length).toBeGreaterThan(0);
+      for (const record of records) expect(record).toMatchObject({
+        shellRegionCount: 0, modalHostCount: 1, unauthorizedCount: 1,
+        gateCount: 0, connectingCount: 0, disconnectedCount: 0, errorCount: 0,
       });
-      await page.evaluate(async () => {
-        const application = (window as unknown as {
-          __telepath: { applicationService: { createChannel(name: string): Promise<unknown> } };
-        }).__telepath.applicationService;
-        await application.createChannel("Rejected write").catch(() => undefined);
-      });
-
-      await expect(page.getByLabel("Access token")).toBeVisible();
-      await presentation.settle();
-      await presentation.stop();
-      expectSoleUnauthorizedSettlement(presentation.records(), SHELL_STATES);
-      const stored = await page.evaluate((origin) => {
-        const raw = window.localStorage.getItem("store-television-browser");
-        return raw ? JSON.parse(raw).authTokens?.[origin] ?? null : null;
-      }, appURL);
-      expect(stored).toBeNull();
-    } finally {
-      await product.dispose();
-    }
-  });
-
-  test("stored-token WebSocket 4401 clears localStorage and returns to the auth modal", async ({ page, baseURL }) => {
-    const product = await launchProductServer({ auth: true });
-    try {
-      const appURL = await product.appURL(baseURL!);
-      const presentation = await observeApplicationPresentations(page);
-      await page.addInitScript(({ origin, token }) => {
-        if (window.location.origin !== origin) return;
-        const key = "store-television-browser";
-        const state = JSON.parse(window.localStorage.getItem(key) ?? "{}");
-        state.authTokens = { ...(state.authTokens ?? {}), [origin]: token };
-        window.localStorage.setItem(key, JSON.stringify(state));
-      }, { origin: appURL, token: "wrong-token" });
-
-      await page.goto(productAppCleanURL(appURL));
-      await expect(page.getByLabel("Access token")).toBeVisible();
-      await presentation.settle();
-      await presentation.stop();
-      expectSoleUnauthorizedSettlement(
-        presentation.records(),
-        new Set(["connecting"]),
-      );
-      const stored = await page.evaluate((origin) => {
-        const raw = window.localStorage.getItem("store-television-browser");
-        return raw ? JSON.parse(raw).authTokens?.[origin] ?? null : null;
-      }, appURL);
-      expect(stored).toBeNull();
-    } finally {
-      await product.dispose();
-    }
-  });
+    };
+    await expectRejected();
+    expect(socketURLs.some((url) => new URL(url).searchParams.get("token") === "wrong-token")).toBe(true);
+    await page.goto(productAppIndexURL(appURL, product.token));
+    await waitForApplicationShell(page);
+    const replacementToken = "a".repeat(64);
+    writeFileSync(path.join(product.home, "state", "token"), replacementToken);
+    await product.restart();
+    await expectRejected();
+    expect(socketURLs.filter((url) => new URL(url).searchParams.get("token") === product.token).length).toBeGreaterThanOrEqual(2);
+    await page.goto(productAppIndexURL(appURL, replacementToken));
+    await waitForApplicationShell(page);
+    await expect(page.locator("dialog")).toHaveCount(0);
+    await expect(page).toHaveURL(productAppCleanURL(appURL));
+    await presentation.stop();
+  } finally {
+    await product.dispose();
+  }
 });

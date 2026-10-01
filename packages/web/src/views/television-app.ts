@@ -24,7 +24,8 @@ import { ChannelSidebarView } from "./channel-sidebar.ts";
 import { SidebarCollapseTransition } from "./sidebar-collapse-transition.ts";
 import { sidebarPose, type SidebarGeometry } from "./sidebar-transition-pose.ts";
 import { StageView } from "./stage.ts";
-import { SystemModalView } from "./system-modal.ts";
+import { SystemModalView, windowDragStripTemplate } from "./system-modal.ts";
+import { DesktopUpgradeGateView } from "./desktop-upgrade-gate.ts";
 import type { TabReorderSnapshot } from "./tab-reorder.ts";
 import { TopBarView } from "./top-bar.ts";
 import "./television-app.css";
@@ -132,6 +133,7 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
       options.runtimeServerURL,
     );
     const snapshot = application.snapshot;
+    const hasShell = hasApplicationShell(state, snapshot.connection.hasEverConnected);
     if (options.onRenderComplete) {
       queueMicrotask(() => {
         if (this.isConnected) options.onRenderComplete?.(state.kind);
@@ -146,8 +148,13 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
         ?data-sidebar-motion=${this.#sidebarTransitioning}
         style=${this.#appStyle()}
       >
-        ${hasApplicationShell(state) ? this.#shell(application, snapshot, options) : null}
-        ${isInterruptingState(state) ? SystemModalView(state, application, options.desktopUpdate) : null}
+        ${hasShell ? this.#shell(application, snapshot, options) : null}
+        ${state.kind === "needs-upgrade"
+          ? DesktopUpgradeGateView(state.instructions, options.desktopUpdate, windowDragStripTemplate(options.electronMode && !hasShell))
+          : isInterruptingState(state) ? SystemModalView(state, {
+            context: options.electronMode ? "desktop" : "browser",
+            dragStrip: options.electronMode && !hasShell,
+          }) : null}
       </div>
       <div id="foreground-overlay" inert aria-hidden="true"></div>
     `;
@@ -546,11 +553,12 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
 
 export const TelevisionAppView = view(TelevisionApp);
 
-function hasApplicationShell(state: ApplicationState): boolean {
+function hasApplicationShell(state: ApplicationState, hasEverConnected: boolean): boolean {
   return state.kind === "connected" ||
     state.kind === "no-channel" ||
     state.kind === "empty-channel" ||
-    state.kind === "disconnected";
+    state.kind === "disconnected" ||
+    (state.kind === "error" && hasEverConnected);
 }
 
 function isInterruptingState(

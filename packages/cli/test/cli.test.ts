@@ -152,6 +152,134 @@ function fakeEnvironment(overrides: Partial<CLIEnvironment> = {}): Partial<CLIEn
   };
 }
 
+describe("CLI connect links", () => {
+  // Contract peers for ^cli-links-contract and ^cli-osc8-visible. Real HTTP,
+  // process output and daemon installation are covered by the product walks.
+  function peers() {
+    const authenticated = fakeEnvironment().createClient!("http://localhost:43123");
+    const unauthenticated = fakeEnvironment().createClient!("http://localhost:43123");
+    const health = vi.spyOn(authenticated, "health").mockResolvedValue({ status: "ok", bindAddresses: ["127.0.0.1"], port: 43123 });
+    const authenticatedGet = vi.spyOn(authenticated.display, "get");
+    const unauthenticatedGet = vi.spyOn(unauthenticated.display, "get");
+    const createClient = vi.fn<CLIEnvironment["createClient"]>()
+      .mockReturnValueOnce(authenticated)
+      .mockReturnValueOnce(unauthenticated);
+    return { createClient, health, authenticatedGet, unauthenticatedGet };
+  }
+
+  const unauthorized = () => new RequestError("Unauthorized", { serverURL: "http://localhost:43123", status: 401 });
+
+  // [[arch/cli/index.md#^cli-links-contract]]
+  it("exposes links in help and refuses --server before contacting a server", async () => {
+    expect(listVisibleCLICommandNames()).toContain("links");
+    const stdout = new BufferOutput();
+    expect(await runCLI(["--help"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
+    expect(stdout.toString()).toMatch(/\n\s+links\b/);
+    const help = new BufferOutput();
+    expect(await runCLI(["links", "--help"], fakeEnvironment({ stdout: help, stderr: new BufferOutput() }))).toBe(0);
+    expect(help.toString()).toContain("--port <number>");
+    expect(help.toString()).not.toContain("--server");
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout: new BufferOutput(), stderr });
+    expect(await runCLI(["links", "--server", "https://example.com"], env)).toBe(1);
+    expect(stderr.toString()).toContain("does not support --server");
+    expect(env.createClient).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { configAuth: false, requiresToken: true, homeToken: "  live-token\n", addresses: ["127.0.0.1", "100.64.0.7"] },
+    { configAuth: true, requiresToken: false, homeToken: "leftover-token\n", addresses: ["0.0.0.0"] },
+    { configAuth: false, requiresToken: false, homeToken: "leftover-token\n", addresses: ["127.0.0.1"] },
+    { configAuth: true, requiresToken: false, homeToken: undefined, addresses: ["127.0.0.1"] },
+  ])("uses live auth=$requiresToken and health addresses despite config auth=$configAuth", async ({ configAuth, requiresToken, homeToken, addresses }) => {
+    const home = temporaryHome({ port: 43200, auth: configAuth });
+    if (homeToken !== undefined) writeToken(home, homeToken);
+    const { createClient, health, authenticatedGet, unauthenticatedGet } = peers();
+    health.mockResolvedValue({ status: "ok", bindAddresses: addresses, port: 43123 });
+    if (requiresToken) unauthenticatedGet.mockRejectedValue(unauthorized());
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    expect(await runCLI(["--home", home, "links"], fakeEnvironment({ stdout, stderr, createClient }))).toBe(0);
+    expect(createClient.mock.calls).toEqual([["http://localhost:43200", homeToken?.trim()], ["http://localhost:43200", undefined]]);
+    expect(health.mock.invocationCallOrder[0]).toBeLessThan(authenticatedGet.mock.invocationCallOrder[0]!);
+    expect(authenticatedGet.mock.invocationCallOrder[0]).toBeLessThan(unauthenticatedGet.mock.invocationCallOrder[0]!);
+    expect(stdout.toString()).toBe(addresses.map((address) => `http://${address}:43123${requiresToken ? "/?token=live-token" : ""}\n`).join(""));
+    expect(stderr.toString()).toBe("");
+  });
+
+  it("uses the selected default home and the required port override", async () => {
+    const operatingSystemHome = temporaryDirectory("television-links-os-home-");
+    const home = temporaryHome({ port: 0 });
+    writeFileSync(path.join(operatingSystemHome, ".tv-home"), `${home}\n`);
+    writeToken(home, "trimmed-token\n");
+    const { createClient } = peers();
+    expect(await runCLI(["links", "--port", "43123"], fakeEnvironment({
+      stdout: new BufferOutput(), stderr: new BufferOutput(), createClient, resolveHomeDir: () => operatingSystemHome,
+    }))).toBe(0);
+    expect(createClient.mock.calls).toEqual([["http://localhost:43123", "trimmed-token"], ["http://localhost:43123", undefined]]);
+
+    writeConfig(home, { port: 43123 });
+    const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+    expect(await runCLI(["--home", home, "links", "--port", "43123"], env)).toBe(1);
+    expect(env.createClient).not.toHaveBeenCalled();
+  });
+
+  it.each(["health", "authenticated", "unauthenticated"] as const)("prints no links when the %s request cannot reach the server", async (stage) => {
+    const { createClient, health, authenticatedGet, unauthenticatedGet } = peers();
+    const request = { health, authenticated: authenticatedGet, unauthenticated: unauthenticatedGet }[stage];
+    request.mockRejectedValue(new RequestError("fetch failed", { serverURL: "http://localhost:43123" }));
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    expect(await runCLI(["--home", temporaryHome({ port: 43123 }), "links"], fakeEnvironment({ stdout, stderr, createClient }))).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toBe("Could not reach Television server at http://localhost:43123: fetch failed\n");
+    if (stage === "health") expect(authenticatedGet).not.toHaveBeenCalled();
+    if (stage !== "unauthenticated") expect(unauthenticatedGet).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, "wrong-token"])("refuses a rejected home token %s before printing any links", async (token) => {
+    const home = temporaryHome({ port: 43123 });
+    if (token !== undefined) writeToken(home, token);
+    const { createClient, authenticatedGet, unauthenticatedGet } = peers();
+    authenticatedGet.mockRejectedValue(unauthorized());
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    expect(await runCLI(["--home", home, "links"], fakeEnvironment({ stdout, stderr, createClient }))).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain(`Television server at http://localhost:43123 rejected the request as unauthorized. Check the token in ${path.join(home, "state", "token")}.`);
+    expect(stderr.toString()).toContain(SKILL_POINTER);
+    expect(unauthenticatedGet).not.toHaveBeenCalled();
+  });
+
+  // [[arch/cli/index.md#^cli-osc8-visible]]
+  it.each(["foreground", "persisted", "links"].flatMap((caller) =>
+    [true, false, undefined].flatMap((isTTY) => [true, false].map((auth) => ({ caller, isTTY, auth }))),
+  ))("formats $caller output with isTTY=$isTTY and auth=$auth", async ({ caller, isTTY, auth }) => {
+    const home = temporaryHome({ port: 43123, auth });
+    const token = "a+b/c?&=";
+    writeToken(home, token);
+    const stdout = Object.assign(new BufferOutput(), isTTY === undefined ? {} : { isTTY });
+    const stderr = new BufferOutput();
+    const { createClient, unauthenticatedGet } = peers();
+    if (auth) unauthenticatedGet.mockRejectedValue(unauthorized());
+    const env = fakeEnvironment({ stdout, stderr, createClient });
+    const url = `http://127.0.0.1:43123${auth ? "/?token=a%2Bb%2Fc%3F%26%3D" : ""}`;
+    let exitCode: number;
+    if (caller === "foreground") {
+      const server = env.createServer!({} as any);
+      server.getAuthToken = () => token;
+      server.getBaseURLs = () => ["http://127.0.0.1:43123"];
+      ({ exitCode } = await runForegroundServe(["--home", home, "serve"], { stdout, stderr, createServer: () => server }));
+    } else {
+      exitCode = await runCLI(["--home", home, ...(caller === "persisted" ? ["serve", "--persist"] : ["links"])], env);
+    }
+    expect(exitCode).toBe(0);
+    const formatted = isTTY === true ? `\u001B]8;;${url}\u001B\\${url}\u001B]8;;\u001B\\` : url;
+    const heading = caller === "persisted" ? "Television service installed." : "Television server running.";
+    expect(stdout.toString()).toBe(caller === "links" ? `${formatted}\n` : `${heading}\nOpen Television:\n  ${formatted}\n`);
+  });
+});
+
 describe("CLI Slice 1 artifact command surface", () => {
   it("lists new pointer commands and omits removed lifecycle commands", () => {
     const names = listVisibleCLICommandNames();
@@ -273,6 +401,7 @@ describe("CLI Slice 1 artifact command surface", () => {
       "skills",
       "telemetry",
       "stop",
+      "links",
       "status",
     ]);
   });
@@ -1624,9 +1753,7 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(output).toContain("Television service installed.");
     expect(output).toContain("http://127.0.0.1:43123/?token=");
     expect(output).toContain("http://100.64.0.7:43123/?token=");
-    expect(output).toContain("\u001B]8;;http://127.0.0.1:43123/?token=");
-    expect(output).toContain("\u001B]8;;http://100.64.0.7:43123/?token=");
-    expect(output).toContain("\u001B]8;;\u001B\\");
+    expect(output).not.toContain("\u001B");
     expect(stderr.toString()).toBe("");
   });
 
@@ -1719,7 +1846,7 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(() => JSON.parse(output)).toThrow();
     expect(output).toContain("Television service installed.");
     expect(output).toContain("http://0.0.0.0:43123/?token=");
-    expect(output).toContain("\u001B]8;;http://0.0.0.0:43123/?token=");
+    expect(output).not.toContain("\u001B");
     const installRecord = readLogRecords(home).find((record) => record.msg === "persisted service installed");
     expect(installRecord?.execStart).toEqual([process.execPath, process.argv[1] ?? "tv", "--home", home, "serve"]);
     expect(installRecord?.env).toEqual({
@@ -2145,59 +2272,6 @@ describe("CLI Slice 1 artifact command surface", () => {
     }
   });
 
-  // Spec: [[arch/cli/index.md#^cli-osc8-visible|OSC-8 visible URL]].
-  it("prints a foreground startup URL as an OSC-8 link whose visible text is the URL", async () => {
-    const stdout = new BufferOutput();
-    const signalHandlers = new Map<NodeJS.Signals, () => void>();
-    const url = "http://127.0.0.1:43124";
-    const createServer = vi.fn(() => ({
-      start: vi.fn(async function (this: any) { return this; }),
-      dispose: vi.fn(async () => {}),
-      getBaseURL: vi.fn(() => url),
-      getBaseURLs: vi.fn(() => [url]),
-      getAuthToken: vi.fn(() => "token-123"),
-    }) as any);
-
-    const runPromise = runCLI(["--home", temporaryHome({ auth: false }), "serve"], fakeEnvironment({
-      stdout,
-      stderr: new BufferOutput(),
-      createServer,
-      onSignal: vi.fn((signal, handler) => { signalHandlers.set(signal, handler); }),
-    }));
-    await vi.waitFor(() => { expect(createServer).toHaveBeenCalled(); });
-    signalHandlers.get("SIGTERM")?.();
-    await expect(runPromise).resolves.toBe(0);
-
-    expect(stdout.toString()).toContain(`\u001B]8;;${url}\u001B\\${url}\u001B]8;;\u001B\\`);
-  });
-
-  // Spec: [[arch/cli/index.md#^cli-osc8-token|token-bearing OSC-8 URL]].
-  it("includes the auth token in the OSC-8 startup link URL and visible text", async () => {
-    const stdout = new BufferOutput();
-    const signalHandlers = new Map<NodeJS.Signals, () => void>();
-    const serverURL = "http://127.0.0.1:43124";
-    const connectURL = `${serverURL}/?token=token-123`;
-    const createServer = vi.fn(() => ({
-      start: vi.fn(async function (this: any) { return this; }),
-      dispose: vi.fn(async () => {}),
-      getBaseURL: vi.fn(() => serverURL),
-      getBaseURLs: vi.fn(() => [serverURL]),
-      getAuthToken: vi.fn(() => "token-123"),
-    }) as any);
-
-    const runPromise = runCLI(["serve"], fakeEnvironment({
-      stdout,
-      stderr: new BufferOutput(),
-      createServer,
-      onSignal: vi.fn((signal, handler) => { signalHandlers.set(signal, handler); }),
-    }));
-    await vi.waitFor(() => { expect(createServer).toHaveBeenCalled(); });
-    signalHandlers.get("SIGTERM")?.();
-    await expect(runPromise).resolves.toBe(0);
-
-    expect(stdout.toString()).toContain(`\u001B]8;;${connectURL}\u001B\\${connectURL}\u001B]8;;\u001B\\`);
-  });
-
   // Spec: [[arch/cli/index.md#^cli-serve-config-options|serve settings come from the config file]].
   it("serve passes the home and its config settings to createServer", async () => {
     const previousLaunchMode = process.env.TELEVISION_LAUNCH_MODE;
@@ -2338,6 +2412,7 @@ const SERVER_COMMANDS: string[][] = [
   ["telemetry", "enable"],
   ["telemetry", "disable"],
   ["status"],
+  ["links"],
 ];
 
 function fakeDaemon() {

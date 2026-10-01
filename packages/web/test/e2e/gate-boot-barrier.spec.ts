@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
+import { startStableFrontProxy } from "../../../../test/helpers/stable-front-proxy.ts";
 import { buildVersionedWebBundle } from "../../../../test/helpers/versioned-web-bundle.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import {
@@ -146,7 +147,7 @@ test.describe("boot barrier (^t-gate-boot-barrier)", () => {
         sidebarCount: 0,
         mainCount: 0,
         modalHostCount: 1,
-        authFormCount: 0,
+        unauthorizedCount: 0,
         gateCount: 1,
         connectingCount: 0,
         disconnectedCount: 0,
@@ -187,3 +188,35 @@ test.describe("browser clients (^ac-gate-desktop-only)", () => {
     expect(await gate(page).count()).toBe(0);
   });
 })
+
+// ^ap-ac-gate-uncovered: real reconnect status into the production view.
+// Version inputs pose Electron eligibility; the stable front holds the origin
+// while each real backend binds port 0. No state/transport mechanism is mocked.
+test("a reconnect requirement replaces the outage with the lone retained gate", async ({ page }) => {
+  const dist = await buildVersionedWebBundle(SERVER_VERSION);
+  const initial = await startServer({ staticDir: dist });
+  const front = await startStableFrontProxy(initial.getBaseURL());
+  try {
+    await page.goto(`${front.url}/?mode=electron&desktopAppVersion=1.3.1`);
+    await waitForApplicationShell(page);
+    await configureTestMotion(page);
+    const presentation = await observeApplicationPresentations(page);
+    await initial.dispose();
+    await expect(page.locator("#app")).toHaveAttribute("data-app-state", "disconnected");
+    const replacement = await startServer({ staticDir: dist, requiredDesktopVersion: "2.0.0" });
+    front.setTarget(replacement.getBaseURL());
+    await expect(gate(page)).toBeVisible({ timeout: 15_000 });
+    await presentation.settle();
+    await presentation.stop();
+    const records = presentation.records().filter((record) => record.appState !== null);
+    const firstGate = records.findIndex((record) => record.gateCount > 0);
+    expect(firstGate).toBeGreaterThan(0);
+    expect(records.slice(0, firstGate).some((record) => record.appState === "disconnected")).toBe(true);
+    for (const record of records.slice(firstGate)) expect(record).toMatchObject({
+      appState: "needs-upgrade", shellRegionCount: 0, modalHostCount: 1,
+      gateCount: 1, unauthorizedCount: 0, connectingCount: 0, disconnectedCount: 0, errorCount: 0,
+    });
+  } finally {
+    await front.dispose();
+  }
+});

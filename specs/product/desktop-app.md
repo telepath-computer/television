@@ -6,7 +6,7 @@ Television's desktop application opens the Television interface in a native wind
 
 ## What this owns
 
-This spec owns the user-visible installation, platform support, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built, signed and hosted, the Electron runtime used for development and tests, and the main-process identity rules are architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
+This spec owns the user-visible installation, platform support, connection to a server, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built, signed and hosted, the Electron runtime used for development and tests, and the main-process identity rules are architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
 
 The *desktop application* is the Television app that ToDesktop builds and that users install from Television's download link.
 
@@ -19,6 +19,12 @@ The download link stays the same across releases and serves the most recent desk
 The desktop application supports Apple Silicon Macs running macOS 12 or later. On every other computer, including Intel Macs, Linux and Windows, Television is used through the web client in a browser. ^desktop-product-support
 
 The desktop app is a Mac app, so wording about the desktop app or updating it names the Mac where it names a platform. ^desktop-mac-wording
+
+## Connecting to a server
+
+The desktop application connects to one Television server with a [connect link](./cli.md#^cli-connect-link). At first launch, and whenever no connection is saved, it shows the [setup screen](../ui/setup/index.md), which offers a prompt the person gives their agent and a field for the link the agent returns. Once connected, it remembers the connection and reconnects by itself each time it opens.
+
+The Television menu's **Disconnect from Server** forgets the saved connection and returns to the setup screen. It is available whenever a connection is saved, including while the app shows that it must be upgraded, so a person can always leave a server. What the app shows while it cannot use its server is owned by the [app shell's connection states](../ui/app/index.md#^ap-connection-states) and the [desktop connection flow](../arch/desktop/connect-flow.md#^desktop-connect-entry).
 
 ## The npm package
 
