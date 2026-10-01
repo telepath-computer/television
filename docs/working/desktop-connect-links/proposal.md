@@ -2,7 +2,7 @@
 
 Working document. Not authority. It states the intended behavior and presentation of the change; the specs it leads to are the authority once written. Implementation is out of scope here.
 
-Reference material: Rupert's pull request #387 in `telepath-computer/television-prerelease-archive` (branch `feat/new-onboarding`, head `1fedba8`). Its UI spec files for the setup screen and the system modal supply the detailed design when the specs are written; this proposal names where it departs from them.
+Reference material: Rupert's pull request #387 in `telepath-computer/television-prerelease-archive` (branch `feat/new-onboarding`, head `1fedba8`). Its design material — the markup, styling and copy files for the setup screen, the system modal, and the controls they use — supplies the detailed design when the specs are written; this proposal names where it departs from that design. Everything else in that pull request's specs is not imported: the specs are written fresh from this proposal.
 
 ## Summary
 
@@ -32,7 +32,8 @@ The app shows the setup screen when it has no saved connection: at first launch,
 
 What the user sees:
 
-- The Clouds theme's wallpaper, blurred, filling the window, with a centred card drawn as a Television artifact frame. The title bar shows the Television icon and **Connect to Television**, with no menu or navigation.
+- The Clouds theme's wallpaper, blurred, filling the window, with a centred card styled like a Television artifact frame. The title bar shows the Television icon and **Connect to Television**, with no menu or navigation.
+- The screen always wears the Clouds theme, whatever theme the server uses, in light or dark to match the Mac's appearance setting. The same holds for the reconnect dialogs below: everything the desktop app shows before it loads a server's interface.
 - A heading, **Let's connect your [Television logo] Television**, with the logo inline at text height, and under it: "Television runs alongside your AI agent. Ask your agent to help you get connected, then paste the link it gives you."
 - Two numbered steps, joined by a line down the left:
   1. **Give your agent this prompt**, with the prompt in monospace on a slightly tilted card and a **Copy** button beside it.
@@ -52,7 +53,7 @@ Behavior:
 - **Connect**, or Return in the field, starts connecting when the field is not empty. The field accepts a connect link, a bare address, or a host and port; an address with no token connects to a server that runs without one.
 - While connecting, the field and button are disabled and the button shows a spinner and **Connecting…**.
 - On success, the steps fade out and a green circled check with **Connected** appears in their place, at the card's size, and the app then loads the server's interface. The connection is saved only after it succeeds.
-- On failure, the screen stays as it was, the field keeps the link and can be edited, and the field is marked invalid with the failure message in place of the hint. Failure messages follow today's connect check (for example "Couldn't reach … is the server running?"), with the two token messages reworded to talk about the connect link.
+- On failure, the screen stays as it was, the field keeps the link and can be edited, and the field is marked invalid with the failure message in place of the hint. Failure messages follow today's connect check (for example "Couldn't reach … is the server running?"), with the two token messages ("This server requires a token", "Token rejected") reworded to talk about the link. The new wording is left to whoever implements it.
 - Dragging the blurred background moves the window. The card does not move the window.
 
 Presentation details carried from Rupert's design: 16px reading text, a 640px card, 40px-tall field and Connect button (a new large control size, below), and a Copy button at the standard button size.
@@ -68,6 +69,7 @@ Presentation details carried from Rupert's design: 16px reading text, a 640px ca
 - The Television application menu's connection item is **Disconnect from Server**, with the keyboard shortcut ⌘,.
 - It is always listed, greyed out when no connection is saved, and available as soon as one is.
 - Choosing it, from the menu or from the Can't connect dialog, forgets the saved connection without asking for confirmation and shows the setup screen.
+- It keeps working while the app shows the upgrade gate, so a person can leave a server that requires a newer app than they have.
 
 ## Connection dialogs in the browser and the desktop app
 
@@ -77,7 +79,7 @@ These dialogs keep their present layout: centred, 400px wide, an icon above the 
 - **Access token required** replaces the token form. It shows a lock icon, the title, and one line of text, with no field or button:
   - in a browser: "This server requires a valid access token to connect. Ask your agent for the current link, and paste the whole link into the address bar."
   - in the desktop app: "This server requires a valid access token to connect. Choose Television › Disconnect from Server, then try again."
-- **Can't connect with server** shows the server's address, "Check your internet connection and that the server is running.", and the countdown line. It appears when the first connection fails, and also after three reconnect attempts in a row fail following a drop. In the second case the interface and any open artifacts stay rendered behind it and resume without reloading when the connection comes back. Only the desktop app's own reconnect screen offers Disconnect from Server; the server's interface never does.
+- **Can't connect with server** shows the server's address, "Check your internet connection and that the server is running.", and the countdown line. It appears when the first connection fails, and also after three reconnect attempts in a row fail to reach the server following a drop. An attempt that reaches the server and is refused does not count toward the three: a rejected token shows Access token required, and a desktop app the server requires to be upgraded shows the upgrade gate, straight away. In the second case the interface and any open artifacts stay rendered behind it and resume without reloading when the connection comes back. Only the desktop app's own reconnect screen offers Disconnect from Server; the server's interface never does.
 - None of these dialogs closes on Escape or a click on the backdrop. Each closes only when the connection state changes.
 - Desktop apps installed before this change keep their "Connect to server…" menu item; on those apps, the desktop text above names a command the app lacks. This is accepted so current apps get the exact instruction.
 
@@ -130,6 +132,15 @@ The guide recommends the desktop app only to Mac users who do not already have i
 - **Any other request.** The agent finds out which computer the user will view Television on, as part of the existing conversation about how they reach the server. If it is a Mac, the agent gives the connect link and recommends the desktop app, with where to download it and how to install it; the connect link works in the app and in a browser. This covers a Mac user who went to their agent before installing the app.
 - **Other platforms.** The agent gives a connect link to open in a browser and does not bring up a desktop app, including in its notes about external web pages (URL artifacts). If the user asks about the desktop app, for example after seeing the browser's placeholder for an external web page, the agent says it is available only for Macs and that the browser is how they use Television.
 - Upgrades keep their present guidance about how the desktop app updates itself, for users who have it.
+
+## How this is specified and built
+
+These are not user-visible behavior, but the specs need to state them.
+
+- **The connect screen gets a UI spec.** Today the desktop connect screen's presentation is left to the code. The setup screen becomes a specified UI surface, with Rupert's design as its markup and styling.
+- **The setup card looks like an artifact frame but is not one.** It reuses the artifact frame's look (its chrome and title bar), not its machinery: no artifact view, no iframe or webview, no artifact bridge.
+- **The desktop app's local page uses the web app's real styles.** The setup screen and the reconnect dialogs are drawn with the same production stylesheets, font and icons as the web app, and the bundled Clouds theme and its wallpaper, packaged into the desktop app, with no separate copies kept in the desktop app's source.
+- **Testing sections.** A spec's `## Testing` section holds only the testing guidance a proof could not derive from the spec's own promises. Where a touched spec's Testing section only restates derivable promises, it is deleted. Where it holds guidance a proof could not derive, that guidance is kept and brought in line with this change.
 
 ## Out of scope
 
