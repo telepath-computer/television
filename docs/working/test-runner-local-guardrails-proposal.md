@@ -46,9 +46,23 @@ Existing placement restrictions remain authoritative. In particular, the live Po
 
 A caller needing both local exceptions must request both. The existing testing-policy requirement for explicit human permission before an agent uses the inefficiency bypass remains in force. During this contribution, the narrower task instruction applies: locally execute only the one test file just edited; send broader validation to Blaxel on a pushed revision.
 
+## Guidance agents reach from AGENTS.md
+
+The contribution includes written guidance as well as enforcement. The repository's [AGENTS.md](../../AGENTS.md) is the entry point every agent receives, so its Testing section will state the practical rules directly and link to their authoritative owners. The intended summary is:
+
+> Use local tests for fast, narrow feedback on the behavior you are changing. Several agents may share this host; concurrent test runs can overwhelm it and cause processes to be OOM-killed. Every local test run and local verify takes a host-wide mutex across checkouts. If another run holds it, wait for that run to finish or use Blaxel when available. The explicit `--allow-major-host-contention-and-oom-killed-processes` bypass accepts that host risk and is independent of `--allow-extreme-inefficiency`.
+>
+> On team hosts with `~/.tvdev-use-blaxel`, select one local test file with `--file`, optionally narrowed with `--grep`; use Blaxel for anything broader. Commit the intended changes and push the revision to `origin` before a Blaxel run, because remote workers cannot test uncommitted local edits. Even a single-worker Blaxel run takes the test load off the shared host. Local-only suites follow the runner's placement rules and explicit override guidance.
+>
+> Without the marker, broader local tests and local verify remain available and require no Blaxel access. The mutex still applies. Follow the testing policy for iteration and bypass permissions, and the runner spec for commands and guardrail behavior.
+
+The [testing policy's iteration guidance](../../specs/arch/testing-policy.md#Test iteration discipline) will explain how to widen validation without widening local work on a marked host: start with the file under change, optionally use grep, then commit and push for broader Blaxel checks. It will state the shared-host safety priority and link to the runner's mutex and independent bypasses. Its provider guidance will preserve ordinary local development for unmarked public-contributor and fork hosts. The [remote preflight spec](../../specs/arch/test-runner/preflight.md#Contributor branches and remote revisions) remains the owner of the committed, pushed revision requirement.
+
+The runner spec owns exact command behavior, file eligibility, lock lifetime, refusal messages, and bypass semantics. CLI help will expose the same practical choices at invocation time. This uses the existing instruction path from AGENTS.md to policy and command authority; it needs no additional developer skill or separate guide to discover these rules.
+
 ## Scope and derivation
 
-The authoritative changes belong primarily in the runner spec, with testing-policy wording reconciled so its iteration guidance reflects the marked-host restriction. Proofs will cover real canonical CLI decisions, mutex contention across independent processes and checkouts, lock lifetime through child cleanup, the verify handoff, and actual single-file execution. Selector and override permutations should use the cheapest honest coverage. Test isolation must prevent the runner's own subprocess tests from interfering with unrelated host runs.
+The contribution includes the AGENTS.md guidance above, authoritative runner changes, and testing-policy changes. Proofs will cover real canonical CLI decisions, mutex contention across independent processes and checkouts, lock lifetime through child cleanup, the verify handoff, and actual single-file execution. Selector and override permutations should use the cheapest honest coverage. Test isolation must prevent the runner's own subprocess tests from interfering with unrelated host runs.
 
 Implementation should reuse the existing CLI, registry, marker, and process lifecycle. This contribution does not require a queue, configurable concurrency levels, a background lock service, or changes to public-contributor provider selection. Help and affected invocation guidance will show the one-file local path and the committed-revision remote path.
 
