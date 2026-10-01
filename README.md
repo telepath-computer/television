@@ -3,14 +3,13 @@
 <img src="television-wordmark.png" width=500
      alt="[The Television logo, showing a CRT-style television set tuned to a test pattern]">
 
+[![Built by](https://img.shields.io/badge/Built_by-Telepath-blue.svg)](https://telepath.computer)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/telepath-computer/television/blob/main/LICENSE)
 [![Discord](https://dcbadge.limes.pink/api/server/8MfpZ48jD8?style=flat)](https://discord.gg/8MfpZ48jD8)
 
-**Television is the missing GUI for your personal agent.** It gives you a visual space for creating and working with artifacts in collaboration with your agent. It's a bit like ChatGPT Space, but it works with any agent and any model. And it's open source.
+**Television is the missing GUI for your personal agent.** It gives you a visual space for creating and working with artifacts in collaboration with your agent. It works with any agent and any model.
 
 To use Television, you talk to your agent like you normally do, using whatever interface you prefer to use. But instead of just producing textual chat responses, your agent can now create visual artifacts, put them on your Television, and modify them over time. Artifacts are persistent, malleable, and can even be interactive. They can display documents, data, visualizations, live web pages, even your vibe-coded apps and interfaces.
-
-(TODO: SCREENSHOT OR GIF)
 
 ## Prerequisites
 
@@ -18,21 +17,23 @@ To use Television, you must have an agent harness installed. Television works wi
 
 ## Installation
 
-Simply paste the following prompt into your agent:
+Simply *[download and install our macOS app](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64)*. When you launch the app it will walk you through connecting it to your agent.
+
+If you aren't on a Mac, you can use our experimental browser-based interface from any platform, but you'll still need an agent that's running on Linux. Just paste the following prompt into your agent:
 
 ```text
 Use "curl -fsSl https://television.run/install.md" to fetch the television admin guide directly without summarization and then help me get Television installed.
 ```
 
-Your agent will ask you a series of questions and then will set everything up. When it's done, it will give you a link to install our macOS client app. (You'll also get a URL you can use to access your TV from any platform using your browser.)
+Your agent will ask you a series of questions and then will set everything up. When it's done, it will give you an URL you can use to access your TV from any platform using your browser.
 
 ## How it works
 
 Television consists of three parts: a server, a skills bundle, and a client app.
 
-- The server is lightweight and is installed on the same machine where your agent runs. It enables your agent to communicate with the client app.
+- The server is lightweight and is installed on the same machine where your agent runs. It enables your agent to communicate with the TV client app.
 - The skills bundle is automatically installed during setup. It teaches your agent how TV works, how to create artifacts on your TV, and how to modify the artifacts and the TV environment.  With these skills installed, your agent will often know when to respond to your requests by creating a TV artifact; in other cases, you can simply ask it to "put that on my TV."
-- The client app is built entirely with web technology. You use it like a "sidecar" to whatever chat interface you're already using to talk to your agent. We offer an installable Electron app for macOS users, but you can also access your Television on any platform via your browser. (The Electron app has a few advantages, chief among them the ability have artifacts that load external web pages.)
+- The client app is a "sidecar" that you use alongside whatever chat interface you're already using to talk to your agent. We offer an installable Electron app for macOS users, but you can also access your Television on any platform via your browser. (The Electron app has a few advantages, chief among them the ability have artifacts that load external web pages.)
 
 ## Building from source
 
@@ -59,8 +60,8 @@ Join us on [Discord](https://discord.gg/8MfpZ48jD8) for questions, feedback, and
 
 ## Contributing
 
-Television is open source, but we are not accepting outside contributions just yet. Bug reports and feedback are welcome here on GitHub.
+This project is open source, but uses a spec-driven development process that we haven't opened to outside contributors yet. For now, bug reports and feedback are welcome here on GitHub. If you're interested in contributing, please join our Discord; we'd love to chat.
 
 ## License
 
-[MIT](LICENSE) © 2026 Unternet PBC
+[MIT](LICENSE) © 2026 Telepath (Unternet PBC)

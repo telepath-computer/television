@@ -258,14 +258,14 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/sidebar/channel-placeholder.frame sha256: 2b18f7e0ca020db7c6d697752a12633f418a7964bb819885f56cd56a6ef19001 -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel.frame sha256: 267e70719e2c8f2693c566c2d1118908391152ed9f573905215c384062f00dfd -->
 <!-- app-reference-source: specs/ui/app/sidebar/delete-confirm.frame sha256: 940dfd33179c4a59e1190efd4bb48b12a04fb2e8f246db9f5edb619e2ed6f75a -->
-<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 01da6bf3db232ae281a06ae174b88e4917128c7b31351fbe07b6fbb0bcedd834 -->
+<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 7e92cd473576d4a47f576342a09542ad8021dc8b60c978b1d8196a62b0aa1b87 -->
 <!-- app-reference-source: specs/ui/app/skill-selector/skill-selector.frame sha256: 7474d8a456c13f2064b90c43d04a37ffae9ef9e542ffa39a16fcbf27f6158a7f -->
 <!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: c037b88962a2dd2a554ba44e3bc91f1ec3c1ef7d773e3ffecce33c5a35115081 -->
-<!-- app-reference-source: specs/ui/app/styles.css sha256: 02bc128eba3b42c6589744ed195454dab585152e55e5422cff4eabae9992c732 -->
+<!-- app-reference-source: specs/ui/app/styles.css sha256: b3129a9c9fe4ad498324983304ef7ec448f3a510a9eb337d1ee24f5c003c0f84 -->
 <!-- app-reference-source: specs/ui/app/system-modal/system-modal.frame sha256: 5b2d6762819fd376cbfff840be88c4fb87e4713c5a7b98f478ab93246b1762c0 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 1284affd9b992d321f3e1dad8809c63e2b99d4d9a15ab978d3db7a9d79b4c9df -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: c2ee2416dc5411716fbab93f0adda0c5861e6e7be58b5f07d14d6c77a4c0320e -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: a82a5169d070e9b3a6ecc4da5a7d616f3c0a9ad841512bd6322e36ebf652f401 -->

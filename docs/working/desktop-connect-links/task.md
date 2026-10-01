@@ -303,3 +303,58 @@ suggested two-package list omitted `@phosphor-icons/core`. The real esbuild
 inventory also records that package's SVG text imports. The exact expectation
 now names all three packages; attribution remains unchanged. Failure report:
 `.test-runs/2026-10-01T21-59-38-998Z-p2871771-r9f1ff2bf1f47a847/summary.json`.
+
+## Integrated review and reconciliation with main
+
+Slice 3 follow-up review passed at `0bf35479`; all three slices have converged.
+Full Blaxel verification at that revision passed all 23 surfaces with default
+retries, no recovered flakes and no process leaks. Report:
+`.test-runs/2026-10-01T22-04-01-547Z-p2873840-rca003e1cc6bf4f96/summary.json`.
+That run validates the feature tree before the main merge below.
+
+Integrated review round one found one blocker: the branch did not contain
+current main. The supervisor authorized reconciling main at `b5477211`,
+pushing, and repeating full verification on Blaxel. The merge base is
+`ab6ce3c8`. Both histories and main's complete diff were read under the
+logical-merging skill before resolving the conflict.
+
+The reconciliation applies both histories' policies across their domains:
+
+- Connect links, saved reconnection and token-free dialog guidance remain
+  consistent across the CLI, setup, served application, guide and theme-author
+  reference. Main adds no callers or files in those domains. Its README's
+  Mac-first download flow agrees with setup's agent prompt and the guide's
+  already-installed-app path. The README stays as main authored it.
+- The packaged local page retains shared foundation and modal presentation,
+  Clouds and its notices. Its direct foundation import picks up main's toolbar
+  token; the shipped theme and setup add no use of the retired token. The
+  gate's composition stays in the served app, and the desktop's renderer
+  dependencies survive both manifest and lockfile merges.
+- Main's toolbar spacing, tab-gap default and removal of the navbar/stage gap
+  agree across authoritative styles, production copies and the Frameset
+  token board. A search across specs, packages, frames, proofs and tests found
+  no remaining use of the retired token. The theme-author reference's layout
+  prose still matches the navbar and sidebar; token definitions are inserted
+  by its builder from the production foundation.
+- Main's 1.4.15 version is retained across workspace manifests and lockfile.
+  No new release number is selected by this contribution.
+
+The sole textual conflict was the theme-author reference's adjacent source
+fingerprints. It now retains main's app-style fingerprint and this branch's
+system-modal fingerprint, alongside each side's other reviewed fingerprints
+and the connection-state, Copy, static-frame and native-dialog prose. No
+production logic or test expectation changes are needed for reconciliation.
+
+Refinement 1 removes the CLI proof's completed one-time daemon-run obligation;
+the permanent designated-host restriction and its evidence remain. Refinements
+2 and 3 are carried into the draft PR description: validation and pending Mac
+evidence, spec-review status, the specified repeated-load limitation, the
+theme-reset test correction and deferred resource investigation, and release
+coupling. The public guide must be published after merge, no later than the
+desktop release that supplies the walkthrough already described by the README.
+
+Targeted Blaxel checks of reference freshness and foundation delivery precede
+the full gate on the pushed merge. The PR and review handoff will record that
+run's result without changing its tested tree. Signed-Mac checks are being
+arranged by the supervisor with Josh. Pre-merge docs prep waits for integrated
+convergence, as directed.

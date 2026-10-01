@@ -1,6 +1,6 @@
 {
   "name": "television-monorepo",
-  "version": "1.4.13",
+  "version": "1.4.15",
   "license": "MIT",
   "type": "module",
   "private": true,

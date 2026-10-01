@@ -78,6 +78,9 @@
   --navbar-border-color: transparent;
   --navbar-border-width: 1px;
   --navbar-border: var(--navbar-border-width) solid var(--navbar-border-color);
+  /* Space between the navbar's controls, and on each side of the line
+     between the sidebar titlebar's buttons; tabs follow it by default. */
+  --toolbar-gap: var(--space-3);
 
   /* The ground behind the stage: one background value, composed from an
      optional image URL over the light or dark neutral ground. The image token
@@ -106,7 +109,7 @@
   /* The tab pill's own dials ([[ui/app/tab-strip/tab.frame]] and the strip
      consume them). */
   --tab-radius: var(--control-radius);
-  --tab-gap: var(--space-3); /* between tabs in the strip */
+  --tab-gap: var(--toolbar-gap); /* between tabs in the strip */
   --tab-border: var(--wallpaper-overlay-border);
   /* Transparent at rest; pointer states use the shared control tints. */
   --tab-background: var(--wallpaper-overlay-background);
@@ -127,10 +130,6 @@
   /* Dragged items lift above the smaller action pill. */
   --drag-item-shadow: var(--shadow-md);
   --drag-action-shadow: var(--shadow-sm);
-
-
-  /* The shared top band supplies equal air above and below the tabs. */
-  --navbar-gap: 0px;
 
   /* The artifact frame's radius ([[ui/app/artifact-frame/artifact-frame.frame]]);
      artifact documents also apply it by reference

@@ -62,6 +62,6 @@ style: |
 <div class="token"><div class="shadow-sw" style="box-shadow: var(--drag-item-shadow)"></div><span class="name">--drag-item-shadow</span><span class="value">the carried item's lift</span></div>
 <div class="token"><div class="shadow-sw" style="box-shadow: var(--drag-action-shadow)"></div><span class="name">--drag-action-shadow</span><span class="value">the action pill's contact shadow</span></div>
 <h2>Bar and frame</h2>
-<div class="bar-row"><small>navbar-gap</small><div class="bar" style="width: var(--navbar-gap)"></div></div>
+<div class="bar-row"><small>toolbar-gap</small><div class="bar" style="width: var(--toolbar-gap)"></div></div>
 <div class="bar-row"><small>frame-radius</small><div class="corner" style="border-radius: var(--frame-radius)"></div></div>
 </main>

@@ -74,7 +74,7 @@
   width: 1px;
   height: 16px;
   background: var(--color-border);
-  margin: 0 var(--space-4);
+  margin: 0 var(--toolbar-gap);
 }
 
 /* The channel list ([[ui/app/sidebar/index.md]], Markup and styling). */
