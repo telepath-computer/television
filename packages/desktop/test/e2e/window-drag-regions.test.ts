@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { TelevisionClient } from "@telepath-computer/television-shared";
 import { startConnectTestServer } from "./connect-server.ts";
-import { expectConnectedPage, launchDesktop } from "./helpers.ts";
+import { expectConnectedPage, launchDesktop, SIMULATE_UPDATE_AVAILABLE } from "./helpers.ts";
 import { configureTestMotion } from "../../../web/test/e2e/helpers.ts";
 
 interface WindowBounds {
@@ -74,7 +74,7 @@ async function movedWindowBounds(app: ElectronApplication): Promise<WindowBounds
 }
 
 async function emptyGround(page: Page, selector: string): Promise<Point> {
-  return page.locator(selector).evaluate((element) => {
+  return page.locator(selector).evaluate((element, selector) => {
     const bounds = element.getBoundingClientRect();
     const y = bounds.top + bounds.height / 2;
     const appRegion = getComputedStyle(element).getPropertyValue("-webkit-app-region");
@@ -85,7 +85,7 @@ async function emptyGround(page: Page, selector: string): Promise<Point> {
       }
     }
     throw new Error(`No empty ground found in ${selector}`);
-  });
+  }, selector);
 }
 
 async function dragNativeWindow(
@@ -180,5 +180,46 @@ test("dragging the empty sidebar titlebar and top-bar ground moves the native wi
       rmSync(launched.userDataDir, { recursive: true, force: true });
     }
     await server.dispose();
+  }
+});
+
+// ^sm-ac-drag-strip, served route: real Electron top-layer hit testing and
+// movement. The X11 driver substitutes the window manager; version and update
+// hooks select the gate and its actionable restart control.
+test("the served gate keeps a native drag strip and usable dialog controls", async () => {
+  test.skip(process.platform !== "linux", "Native drag driver requires Linux/X11");
+  const savedEnv = new Map(["TV_TEST_REQUIRED_DESKTOP_VERSION", "TV_TEST_VERSION", "TV_UPDATE_CHANNEL_URL"].map((key) => [key, process.env[key]]));
+  process.env.TV_TEST_VERSION = "1.0.0";
+  process.env.TV_UPDATE_CHANNEL_URL = "http://127.0.0.1:9/update-channel.json";
+  process.env.TV_TEST_REQUIRED_DESKTOP_VERSION = "2.0.0";
+  const server = await startConnectTestServer();
+  let launched: Awaited<ReturnType<typeof launchDesktop>> | undefined;
+  try {
+    launched = await launchDesktop({
+      connectTo: { serverURL: server.serverURL, token: server.token },
+      env: { TV_TEST_DESKTOP_APP_VERSION: "1.0.0" },
+      args: [SIMULATE_UPDATE_AVAILABLE],
+    });
+    const { app, page } = launched;
+    await expect(page.locator(".desktop-upgrade-gate")).toBeVisible();
+    await configureTestMotion(page);
+    expect(await page.locator("dialog").evaluate((dialog) => dialog.matches(":modal"))).toBe(true);
+    const strip = await emptyGround(page, ".window-drag-strip");
+    expect(strip.appRegion).toBe("drag");
+    expectWindowMoved(await dragNativeWindow(app, strip));
+    await expect(page.locator("dialog")).toBeVisible();
+    const beforeClick = await windowBounds(app);
+    await page.getByRole("button", { name: "Restart to update", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Restarting…", exact: true })).toBeDisabled();
+    expect(await windowBounds(app)).toEqual(beforeClick);
+    await expect(page.locator("dialog")).toBeVisible();
+  } finally {
+    await launched?.app.close().catch(() => undefined);
+    if (launched?.userDataDir) rmSync(launched.userDataDir, { recursive: true, force: true });
+    await server.dispose();
+    for (const [key, value] of savedEnv) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
   }
 });

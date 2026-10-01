@@ -31,6 +31,7 @@ const CANONICAL_V2_SPEC_ROOT = path.join(
 interface CompatibilityFixture {
   resources: Record<string, string[]>;
   tokens: Record<string, string[]>;
+  nativeControls: Record<string, Record<string, Record<string, string[]>>>;
   elements: Record<
     string,
     Record<
@@ -275,6 +276,15 @@ describe("skills build", () => {
     for (const token of publicTokens) {
       expect(htmlGuidance, token).toContain(`\`${token}\``);
       expect(televisionSkill, token).toContain(`\`${token}\``);
+    }
+    for (const [tag, attributes] of Object.entries(compatibility.nativeControls["canonical-v2"])) {
+      for (const [attribute, values] of Object.entries(attributes)) {
+        for (const value of values) {
+          for (const guidance of [htmlGuidance, televisionSkill]) {
+            expect(guidance).toContain(`<${tag} ${attribute}="${value}"`);
+          }
+        }
+      }
     }
     const retiredTokens = (compatibility.tokens["canonical-v1"] ?? [])
       .filter((token) => !publicTokens.includes(token));

@@ -198,6 +198,8 @@ export class ServerConnection extends EventTarget<
    * `status` alone.
    */
   hasEverConnected = false;
+  /** Completed unreachable reconnects since the last successful connection. */
+  failedReconnectAttempts = 0;
   /** Browser demo mode as the server reported it when this page connected. */
   browserDemoMode = false;
   hasAuthRejected = false;
@@ -476,12 +478,15 @@ export class ServerConnection extends EventTarget<
 
     return await new Promise<void>((resolve, reject) => {
       let settled = false;
+      let initialized = false;
 
       const finishConnected = () => {
         if (settled || this.connectAttempt !== attempt) return;
         settled = true;
+        initialized = true;
         this.retryDelay = INITIAL_RETRY_DELAY_MS;
         this.hasEverConnected = true;
+        this.failedReconnectAttempts = 0;
         this.setStatus("connected");
         this.telemetryActivityAgent?.start();
         resolve();
@@ -644,6 +649,7 @@ export class ServerConnection extends EventTarget<
 
         // Post-success close. The attempt promise has already resolved, so
         // we can't reject through it — handle the disposition inline.
+        if (!initialized) return;
         if (closeCode === AUTH_FAILED_CLOSE_CODE) {
           this.handleAuthRejected();
           return;
@@ -656,6 +662,7 @@ export class ServerConnection extends EventTarget<
           return;
         }
         if (settled) {
+          if (!initialized) return;
           // Post-success error without a follow-up close — drive the
           // same transport-failure path so we schedule a retry instead
           // of relying on `finishError`, which is a no-op once settled.
@@ -702,6 +709,7 @@ export class ServerConnection extends EventTarget<
       // leave status as "disconnected" (the caller will react).
       return;
     }
+    if (this.hasEverConnected) this.failedReconnectAttempts += 1;
     this.scheduleRetry();
   }
 

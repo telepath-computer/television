@@ -155,6 +155,7 @@ class FakeConnection extends EventTarget {
   hasAuthRejected = false;
   hasAuthTokenRejected = false;
   nextRetryAt: number | null = null;
+  failedReconnectAttempts = 0;
   updateState: UpdateState | null = null;
 
   constructor(client: TelevisionClient) {
@@ -174,7 +175,6 @@ class FakeConnection extends EventTarget {
 class FakeOwner extends EventTarget {
   readonly connection: FakeConnection;
   connectError: string | null = null;
-  authenticate = vi.fn(async () => undefined);
 
   constructor(client: TelevisionClient) {
     super();
@@ -298,6 +298,7 @@ describe("ApplicationService snapshot", () => {
       gateHalted: false,
       status: "disconnected",
       hasEverConnected: false,
+      failedReconnectAttempts: 0,
       firstConnectError: null,
       nextRetryAt: null,
       upgradeInstructions: null,
@@ -341,7 +342,9 @@ describe("ApplicationService snapshot", () => {
     }).toThrow();
 
     owner.connection.hasEverConnected = true;
+    owner.connection.failedReconnectAttempts = 3;
     owner.emitChange();
+    expect(service.snapshot.connection.failedReconnectAttempts).toBe(3);
     expect(service.snapshot.connection.firstConnectError).toBeNull();
     expect(service.snapshot.display).not.toHaveProperty("status");
   });
@@ -1956,7 +1959,6 @@ describe("ApplicationService operations and disposal", () => {
     owner.connect();
     await settle();
 
-    await service.authenticate("token");
     await service.createChannel("New");
     await service.focusChannel(value.id);
     await service.setPinnedChannelIds([value.id]);
@@ -1966,7 +1968,6 @@ describe("ApplicationService operations and disposal", () => {
     expect(await service.readMarkdown("artifact-a")).toBe("content:artifact-a");
     await service.writeMarkdown("artifact-a", "changed");
 
-    expect(owner.authenticate).toHaveBeenCalledWith("token");
     expect(client.channels.create).toHaveBeenCalledWith({ name: "New" });
     expect(client.display.patch).toHaveBeenCalledWith({ focusedChannelId: value.id });
     expect(client.display.patch).toHaveBeenCalledWith({ pinnedChannelIds: [value.id] });

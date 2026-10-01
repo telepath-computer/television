@@ -1,6 +1,6 @@
 # Desktop connect links: proof derivation
 
-Round-two status: independent review passed at `b7f3e899`; the supervisor confirmed proof convergence. The wording clarifications through `358e6802` resolve the explainer follow-up below and leave the proof design unchanged. The implementation plan now builds on these proofs and carries the review's reduced-motion and stale CLI citation observations into implementation. Slice 1 has supplied the CLI evidence and removed the stale citation; the task record identifies its passing runs. The other slices' pending assertions remain outstanding.
+Round-two status: independent review passed at `b7f3e899`; the supervisor confirmed proof convergence. The wording clarifications through `358e6802` resolve the explainer follow-up below and leave the proof design unchanged. The implementation plan now builds on these proofs and carries the review's reduced-motion and stale CLI citation observations into implementation. Slice 1 has supplied the CLI evidence and removed the stale citation; the task record identifies its passing runs. Slice 2 has supplied the served-app, modal, Copy, canonical and served-gate drag evidence. The local-page drag crossing and complete foundation/desktop delivery remain pending for slice 3, along with its connection and licensing work.
 
 Plan review identified licensing coverage outside that submission: the desktop's additional assets and shared presentation change the contents its licensing proofs and tests describe. The plan assigns those revisions and their independent review to slice 3, following the approved product clarification at `cd9afc46`. The converged proofs remain unchanged in this plan revision.
 
@@ -39,3 +39,9 @@ All three blockers were warranted. Each refinement was assessed against the owni
 | R8: derivation note | Corrected the ambiguity history, pending evidence grades, and canonical test result here. |
 
 At submission, plan reconciliation was deferred until proof convergence. Its provisional drag condition, bridge-hardening detail, proof allocations and approval status were identified for revision. The imported connection-states explainer's “Moving the window” paragraph then used the shorter sidebar-based condition, while the owning system-modal spec stated the narrower rule explicitly. This was reported as a nonblocking derived-wording follow-up for the supervisor, not a proof decision; the wording is now reconciled through `358e6802`.
+
+## Slice 2 proof reconciliation
+
+Implemented citations replace the served-app, modal-contents/non-dismissal, Copy and canonical pending markers. The outage proof describes the continuously bound development proxy and real backend failure used by the browser walk. The drag proof declares the existing simulated update/restart hooks used to provide an actionable gate button; native hit testing and window movement remain real. The packaged local route remains pending.
+
+Native Electron hit testing found that the authored strip, as a sibling of the native dialog, was inert. The supervisor relayed Josh's approval to put it inside the dialog. The system-modal frame now passes it through the dialog and gate frames, outside the scrolling content. The dialog proof delegates that optional content's native handoff to the existing system-modal drag assertion; the gate proof already makes that coverage relationship explicit. No additional drag permutation or dialog test is ordered. The slice review includes this approved spec delta and its proof reconciliation.

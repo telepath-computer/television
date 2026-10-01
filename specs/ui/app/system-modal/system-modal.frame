@@ -69,25 +69,25 @@ style: |
     height: 36px;
   }
 ---
-{% if drag_strip %}<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>{% endif %}
+{% capture drag_region %}{% if drag_strip %}<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>{% endif %}{% endcapture %}
 {% capture disconnect_button %}<button intent="danger" class="system-modal-disconnect">{{ content.disconnect }}</button>{% endcapture %}
 {% if seconds %}{% assign seconds_placeholder = "{{ seconds }}" %}{% assign reconnect_line = content.reconnecting | replace: seconds_placeholder, seconds %}{% else %}{% assign reconnect_line = content.reconnecting_now %}{% endif %}
 {% if state == "connecting" %}
 {% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.connecting_title }}</h2></div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "disconnected" %}
 {% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.disconnected_title }}</h2><p>{{ reconnect_line }}</p></div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "unauthorized" %}
 {% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{% if context == "local" %}{{ content.unauthorized_copy_local }}{% elsif context == "desktop" %}{{ content.unauthorized_copy_desktop }}{% else %}{{ content.unauthorized_copy_browser }}{% endif %}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "error" %}
 {% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ content.error_copy }} {{ reconnect_line }}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "needs-upgrade" %}
-{% render '../desktop-upgrade-gate/desktop-upgrade-gate', body: upgrade_instructions, restart: upgrade_restart %}
+{% render '../desktop-upgrade-gate/desktop-upgrade-gate', body: upgrade_instructions, restart: upgrade_restart, top_layer_content: drag_region %}
 {% endif %}

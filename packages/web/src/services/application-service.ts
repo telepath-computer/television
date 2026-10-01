@@ -57,6 +57,7 @@ export interface ApplicationConnectionSnapshot {
   readonly gateHalted: boolean;
   readonly status: ServerStatus;
   readonly hasEverConnected: boolean;
+  readonly failedReconnectAttempts: number;
   readonly firstConnectError: string | null;
   readonly nextRetryAt: number | null;
   readonly upgradeInstructions: DesktopUpgradeInstructions | null;
@@ -144,11 +145,6 @@ export class ApplicationService extends EventTarget<
   handleNavigationKey(key: NavigationKey): void {
     this.#assertNotDisposed();
     this.#navigationKeyHandler?.(key);
-  }
-
-  authenticate(token: string): Promise<void> {
-    this.#assertNotDisposed();
-    return this.#connectionOwner.authenticate(token);
   }
 
   async createChannel(name: string): Promise<Channel> {
@@ -703,6 +699,7 @@ export class ApplicationService extends EventTarget<
         gateHalted: connection.bootState === "halted" || this.#retainedGateHalted(),
         status: connection.status,
         hasEverConnected: connection.hasEverConnected,
+        failedReconnectAttempts: connection.failedReconnectAttempts,
         firstConnectError: connection.hasEverConnected
           ? null
           : this.#connectionOwner.connectError,

@@ -86,6 +86,7 @@ function snapshot(
       gateHalted: false,
       status: "connected",
       hasEverConnected: true,
+      failedReconnectAttempts: 0,
       firstConnectError: null,
       nextRetryAt: null,
       upgradeInstructions: null,

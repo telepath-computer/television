@@ -64,3 +64,36 @@ Completed checks, against `940a744a` plus this slice's working-tree changes (run
 These runs reported no recovered flakes or process leaks. Type checking, ESLint on changed TypeScript files, and `git diff --check` passed. The daemon suite verified install, live refresh, boot, stop and persist-uninstall, leaving no installed/running service. The freshly packed global `tv` 1.4.13 remains at `/home/user/.nvm/versions/node/v24.21.0/bin/tv`; its developer version stamp names the build's HEAD, `940a744a`, while the build includes this slice's uncommitted source changes.
 
 Reviewed the administrator guide's existing connect-link, installation, upgrade, Docker, SSH, Mac/browser and recovery instructions against the implementation; no further text change was needed. Publication remains deferred as recorded above. No full verification ran: the four review-observed UI/canonical failures still belong to slice 2, and local setup/desktop work to slice 3. No CLI failure remains outstanding. The supervisor coordinates independent slice review; nothing was pushed.
+
+
+## Slice 2 implementation — ready for independent review
+
+Implemented on top of slice 1's `03d3f122` while its review remains with the supervisor. Connection state now counts completed unreachable retries once, escalates on the third failure, retains the existing shell and live artifact documents through recovery, and keeps a displayed upgrade gate above later authorization failures. Rejected browser credentials are cleared; recovery uses the current link. The shared modal renders browser, served-desktop and local guidance without an application-service dependency; local unauthorized/error rows expose the Disconnect callback for slice 3.
+
+Large controls and their token reach web foundation and live canonical v2. The Copy helper composes small, standard and large controls. Canonical v1 remains untouched. Built author guidance, the app-shell reference and the external-page placeholder match the approved material. The four failures recorded by plan review are resolved.
+
+**Approved spec correction.** Native Electron testing found that a drag strip beside the dialog cannot receive input while the dialog is modal. Josh approved placing it inside the dialog. This slice changes `system-modal.frame`, `dialog.frame` and `desktop-upgrade-gate.frame` to carry that strip inside the modal boundary and outside the scrolling content. Production uses the same composition. The native served-gate test moves the window and then activates its Restart control. The dialog proof delegates the optional content to that seam; the gate proof already names it. Review of the changed authored frames and app composition preceded the theme-reference fingerprint updates.
+
+Red/green work began with the completed-attempt contract, app state/content contracts and Copy size cases, followed by the foundation crossings, live canonical vocabulary/guidance and native served-gate drag case. The intended failures exposed the absent count, priority/escalation, token-form contents, size composition, stale style copies/guidance and inert sibling strip. Each implementation was checked narrowly before widening to its file or owning unit suite. Real browser walks cover token rejection at boot and after a session, three failed reconnects with document continuity, and a reconnect that becomes gated. Obsolete token-form recovery walks were reconciled while preserving link ingestion, token transport/storage and artifact reload evidence.
+
+Completed checks used `npm test -- local` with `--retries 0`, against `03d3f122` plus the slice's working-tree changes (`dirty: true` in reports):
+
+| Selection | Result | Run directory under `.test-runs/` |
+| --- | --- | --- |
+| `--surface unit:browser-app` | 568 passed, 1 existing skipped ACP bridge-drop test | `2026-10-01T18-37-12-980Z-p2664081-r3aaf2a21862811c5` |
+| `--surface unit:canonical` | 18 passed | `2026-10-01T18-38-48-886Z-p2664955-r904ab3bfd89a702f` |
+| `--file test/repo/skills-build.test.ts` | 9 passed | `2026-10-01T18-38-51-256Z-p2665097-r92025e850b4e23e5` |
+| `--file packages/web/test/e2e/system-modal.test.ts` | 2 passed | `2026-10-01T18-30-07-038Z-p2660034-r014f73d9e6de5fd3` |
+| `--file packages/web/test/e2e/auth.01.test.ts` | 3 passed | `2026-10-01T18-38-53-693Z-p2665349-rb8f558a5b12025ab` |
+| `--file packages/web/test/e2e/auth.02.test.ts` | 2 passed | `2026-10-01T18-39-06-977Z-p2665912-rb42c20ad970ffdc1` |
+| `--file packages/web/test/e2e/reload-after-reconnect.02.test.ts` | 3 passed | `2026-10-01T18-39-17-405Z-p2666329-r01ee6861869b7d05` |
+| `--file packages/web/test/e2e/gate-boot-barrier.spec.ts` | 3 passed | `2026-10-01T18-39-48-093Z-p2666851-r88e8c0c4a02eba40` |
+| `--file packages/web/test/e2e/dialog.test.ts` | 4 passed | `2026-10-01T18-40-03-345Z-p2667331-r3fada3e04358daaf` |
+| `--file packages/web/test/e2e/desktop-upgrade-gate.spec.ts` | 4 passed | `2026-10-01T18-40-13-661Z-p2667845-r5e10234715363371` |
+| `--file packages/desktop/test/e2e/window-drag-regions.test.ts` | 2 passed | `2026-10-01T18-40-23-435Z-p2668316-r21a29088b69b1eb0` |
+| `--file test/repo/theming-reference.test.ts` | Passed after the approved frame correction | `2026-10-01T18-44-50-309Z-p2669730-re1d73cf7f7cf831c` |
+| `--file test/repo/spec-links.test.ts` | Passed | `2026-10-01T18-45-26-576Z-p2669892-r664a6d3d79705721` |
+
+The selected runs reported no recovered flakes, process leaks or infrastructure failures. Type checking, ESLint on changed TypeScript files and `git diff --check` passed. The later lint-only threshold naming change passed its focused state-selection test (`2026-10-01T18-38-30-170Z-p2664809-r67aae2ff63fe8d60`). No full verification ran; the integrated gate remains assigned to Blaxel.
+
+Slice 3 still owns the packaged local page, native local dragging, complete foundation/Clouds delivery, asset attribution, preload/main-process lifecycle and the executed staging runbook. The foundation and modal-drag proofs retain their partial markers. Served-desktop guidance names Disconnect from Server before slice 3 changes that menu, as planned. No observed served-app failure is deferred. Nothing was pushed.

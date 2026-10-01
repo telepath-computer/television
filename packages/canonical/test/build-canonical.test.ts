@@ -42,6 +42,7 @@ interface CompatibilityFixture {
   tokens: Record<PublicOwner, string[]>;
   elements: Record<PublicOwner, Record<string, ElementSurface>>;
   iconNames: Record<PublicOwner, Record<string, string[]>>;
+  nativeControls: Partial<Record<PublicOwner, Record<string, Record<string, string[]>>>>;
 }
 
 interface VersionAuthority {
@@ -56,7 +57,7 @@ interface VersionAuthority {
 const FROZEN_ROOT = path.join(PACKAGE_ROOT, "frozen");
 const FROZEN_V1_ROOT = path.join(FROZEN_ROOT, "v1");
 const LIVE_UI_ROOT = path.join(REPO_ROOT, "specs", "ui");
-const TOKEN_COUNTS: Record<Version, number> = { v1: 174, v2: 288 };
+const TOKEN_COUNTS: Record<Version, number> = { v1: 174, v2: 289 };
 
 function leaf(production: string, authority: string): { production: string; authority: string } {
   return { production, authority };
@@ -582,6 +583,16 @@ describe("buildCanonicalVersions", () => {
       const recordedTokens = fixture.tokens[owner];
       expect(recordedTokens).toHaveLength(TOKEN_COUNTS[version]);
       expectRecordedNamesIncluded(recordedTokens, currentTokens);
+
+      for (const [tag, attributes] of Object.entries(fixture.nativeControls[owner] ?? {})) {
+        for (const [attribute, values] of Object.entries(attributes)) {
+          for (const value of values) {
+            const selectors: string[] = [];
+            postcss.parse(builtStyles).walkRules((rule) => { selectors.push(rule.selector); });
+            expect(selectors.some((selector) => selector.includes(tag) && selector.includes(`[${attribute}="${value}"]`)), `${tag}[${attribute}="${value}"]`).toBe(true);
+          }
+        }
+      }
 
       const builtComponents = await readFile(builds[version].componentsPath, "utf8");
       const currentTags = new Set(
