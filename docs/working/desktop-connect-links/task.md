@@ -260,7 +260,7 @@ edits and the theme-reset acceptance correction.
 | 2 — gate routing proof and types | Removed the modal assertion's claim that it routes the upgrade gate and its gate fixture wording. The coverage model already delegates routing to the app's real reconnect walk. Removed two redundant state-type exclusions; runtime behavior is unchanged. |
 | 3 — desktop README | Described one-link setup and automatic saved reconnection. |
 | 4 — proof wording | Named the desktop Clouds folder in the notices-file set, declared the gate walk's server-version hook and unreachable update-channel source, and quoted the four connection-entry test titles. |
-| 5 — desktop bundle inventory | Restored an exact package assertion for `@rupertsworld/event-target` and `lit-html`. It catches accidental growth through shared web imports while retaining the existing complete-attribution assertions. |
+| 5 — desktop bundle inventory | Restored an exact package assertion for `@phosphor-icons/core`, `@rupertsworld/event-target` and `lit-html`. It catches accidental growth through shared web imports while retaining the existing complete-attribution assertions. |
 
 **Full-gate failure and diagnosis.** `npm run verify -- blaxel` at `68b8ab11`
 passed lint, type checking and package manifests, then failed the theme-reset
@@ -297,3 +297,9 @@ retries, using the single-case selector on the edited file. Report:
 This run used `68b8ab11` plus the working-tree refinements. Broader checks and
 the full gate follow on the pushed revision. Regenerating the spec/proof indexes
 produced no changes, and `git diff --check` passed.
+
+The first narrowed inventory run at `802889e3` failed because the reviewer's
+suggested two-package list omitted `@phosphor-icons/core`. The real esbuild
+inventory also records that package's SVG text imports. The exact expectation
+now names all three packages; attribution remains unchanged. Failure report:
+`.test-runs/2026-10-01T21-59-38-998Z-p2871771-r9f1ff2bf1f47a847/summary.json`.
