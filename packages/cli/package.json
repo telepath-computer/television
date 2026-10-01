@@ -2,6 +2,11 @@
   "name": "@telepath-computer/television",
   "version": "1.4.12",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/telepath-computer/television.git",
+    "directory": "packages/cli"
+  },
   "engines": {
     "node": ">=22.12.0"
   },
