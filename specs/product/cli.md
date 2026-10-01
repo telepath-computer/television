@@ -271,7 +271,7 @@ A *connect link* is the URL a person opens to use Television, in a browser or in
 tv [--home <path>] links [--port <number>]
 ```
 
-The links cover every address the server reports it is listening on, with the port it bound. They carry the token from `<home>/state/token` when the selected home's config sets `auth` to `true`, and are plain origins when it sets `auth` to `false`. Links follow the [link output rule](#^cli-link-output). When the server cannot be reached, the command prints the connection failure above to stderr, prints no links, and exits `1`. ^cli-links
+The links cover every address the server reports it is listening on, with the port it bound. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
 
 ## Server lifecycle commands
 

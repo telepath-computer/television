@@ -68,6 +68,17 @@ export const setupPrototype = (screen: HTMLElement, options: SetupWiringOptions 
     event.preventDefault();
     if (screen.dataset.state !== "ready" && screen.dataset.state !== "error") return;
     if (!field?.value.trim()) return;
+    // Connecting renders without the error treatment: the hint returns and
+    // the field is no longer invalid.
+    field.removeAttribute("aria-invalid");
+    field.removeAttribute("aria-describedby");
+    const error = screen.querySelector<HTMLElement>("#setup-link-error");
+    if (error) {
+      const hint = document.createElement("p");
+      hint.className = "setup-hint";
+      hint.innerHTML = 'The link looks like <code>http://…:32848/?token=…</code>';
+      error.replaceWith(hint);
+    }
     screen.dataset.state = "connecting";
     field.disabled = true;
     if (submit) submit.disabled = true;

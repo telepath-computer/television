@@ -160,7 +160,7 @@ Pattern recommendations:
   ```bash
   docker run -p 127.0.0.1:32848:32848 ...
   ```
-  Inside the container, set `listen` to `0.0.0.0` and run `tv serve --persist`. User opens `http://localhost:32848` on the host.
+  Inside the container, set `listen` to `0.0.0.0` and run `tv serve --persist`. Give the user the connect link with `localhost` as its address ([Connect links](#connect-links)), to open on the host.
 
 - **Browser on another device on the LAN.** Publish to all host interfaces (Docker's `-p 32848:32848` default) and run the daemon with auth:
   ```bash
@@ -299,7 +299,7 @@ Get the connect links with:
 tv links
 ```
 
-It prints one connect link per line, one for each address the running server is listening on, with the token in each when authentication is on. If the server is not running, it says so and prints no links; fix that first ([Troubleshooting](#troubleshooting)). Give the user the link whose address matches how they reach this host:
+It prints one connect link per line, one for each address the running server is listening on, with the token in each when authentication is on. If the server is not running, it says so and prints no links; fix that first ([Troubleshooting](#troubleshooting)). The addresses are the server's own: `127.0.0.1` for loopback, and `0.0.0.0` for a listener on all interfaces, such as inside Docker. When the user reaches the server by a different address — `localhost` through an SSH tunnel, or the Docker host's, LAN or tailnet address for a `0.0.0.0` listener — give them the same link with that address in place of the printed one, keeping the port and the token exactly. Give the user the link whose address matches how they reach this host:
 
 ```text
 # Same machine
@@ -483,7 +483,7 @@ Common issues:
 
   If the curl command succeeds, the token is valid and the user's browser or desktop app has a stale or mangled link. Give the user their current connect link from `tv links`. In a browser, they paste the whole link into the address bar. In the desktop app, they choose **Disconnect from Server** (the button on that screen, or the Television menu) and paste it.
 - **Skills installed to the wrong directory.** Reinstall skills into the agent framework's active skills directory.
-- **User cannot open the GUI remotely.** Establish how they are reaching the host. For an SSH tunnel, confirm the `ssh -L <port>:localhost:<port> user@host` command is running and the user is opening `http://localhost:<port>` on the laptop side; the daemon side should be a normal localhost-only install, with no `listen` addresses. For Tailscale, confirm `tailscale ip -4` returns an address and that `tv status` lists it in `bindAddresses`; give the user the Tailscale connect link from `tv links`. For a LAN bind, confirm the LAN address appears in `bindAddresses` and that the user's firewall lets the port through.
+- **User cannot open the GUI remotely.** Establish how they are reaching the host. For an SSH tunnel, confirm the `ssh -L <port>:localhost:<port> user@host` command is running and the user is opening the `localhost` connect link on the laptop side; the daemon side should be a normal localhost-only install, with no `listen` addresses. For Tailscale, confirm `tailscale ip -4` returns an address and that `tv status` lists it in `bindAddresses`; give the user the Tailscale connect link from `tv links`. For a LAN bind, confirm the LAN address appears in `bindAddresses` and that the user's firewall lets the port through.
 
 Platform locations and commands:
 
