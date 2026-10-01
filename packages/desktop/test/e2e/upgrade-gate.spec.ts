@@ -238,8 +238,8 @@ async function expectExclusiveGate(page: Page): Promise<void> {
   const root = page.locator("#app");
   await expect(root).toHaveAttribute("data-app-state", "needs-upgrade");
   await expect(root.locator(":scope > .app-sidebar, :scope > .app-main")).toHaveCount(0);
-  await expect(root.locator(":scope > .system-modal-host")).toHaveCount(1);
-  await expect(root.locator(":scope > .system-modal-host .desktop-upgrade-gate")).toHaveCount(1);
+  await expect(root.locator(":scope > .system-modal-host")).toHaveCount(0);
+  await expect(root.locator(":scope > .desktop-upgrade-gate")).toHaveCount(1);
   await expect(root.locator(".artifact-view")).toHaveCount(0);
   await settleApplicationPresentation(page);
 }

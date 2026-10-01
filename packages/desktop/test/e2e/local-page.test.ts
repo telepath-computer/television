@@ -94,6 +94,7 @@ test("the local page retains native appearance while always wearing Clouds", asy
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     expect(await page.locator('link[href="clouds/theme.css"]').count()).toBe(1);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--app-wallpaper-image"))).toContain("wallpaper-dark.webp");
+    await test.info().attach("local-dark-setup", { body: await page.screenshot(), contentType: "image/png" });
     await app.evaluate(({ nativeTheme }) => { nativeTheme.themeSource = "light"; });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--app-wallpaper-image"))).toContain("wallpaper.webp");
