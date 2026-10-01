@@ -32,7 +32,9 @@ async function mount(state: ConnectScreenState = { kind: "setup" }) {
     onState: callback => { listener = callback; return () => {}; },
     connect: vi.fn(), completeConnect: vi.fn(async () => {}), disconnect: vi.fn(async () => {}),
   };
-  dispose = init(api, document.body);
+  const host = document.createElement("div");
+  document.body.append(host);
+  dispose = init(api, host);
   await Promise.resolve();
   return { api, publish: (next: ConnectScreenState) => listener(next) };
 }
