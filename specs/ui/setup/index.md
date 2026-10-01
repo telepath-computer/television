@@ -12,18 +12,16 @@ Everything the desktop app shows before it loads a server's page wears the Cloud
 
 ## States
 
-The screen has five possible states:
+The screen has four possible states:
 
-- **copy** — the starting state: the person has a prompt to give their agent.
-- **paste** — the person has moved on to pasting the link their agent gave them.
+- **ready** — the starting state: the prompt to give an agent, and an empty link field.
 - **connecting** — the person has submitted a link, and the app is waiting for the server.
 - **connected** — the connection succeeded.
 - **error** — the connection failed. The screen shows the failure message the [desktop connection flow](../../arch/desktop/connect-flow.md) supplies.
 
 ## Interaction
 
-- Copy copies the prompt and confirms as the [copy button](../app/copy-button/index.md#Interaction) does.
-- The steps only move forward. Pressing Copy, releasing a press anywhere in step 2, or moving keyboard focus into step 2 makes step 2 current and checks step 1. Once step 2 is current it stays current, and Copy still copies.
-- A faded step is still usable, so someone who already has a link can paste it without copying the prompt first.
+- The two numbered steps show the usual order: give an agent the prompt, then paste the link it returns. Both are always shown at full strength and both are always usable; nothing tracks or enforces the order, so someone who already has a link pastes it straight away.
+- Copy copies the prompt and confirms as the [copy button](../app/copy-button/index.md#Interaction) does. It changes nothing else on the screen.
 - Pressing Connect, or Return in the field, starts connecting when the field is not empty.
 - Dragging the background around the card moves the window. The card's contents stay interactive and do not move the window.

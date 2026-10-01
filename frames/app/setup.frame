@@ -2,7 +2,7 @@
 title: Setup screen
 params:
   appearance: { enum: [light, dark], default: light }
-  step: { enum: [copy, paste, connecting, connected, error], default: copy, description: "copy, paste, connecting, connected, or error" }
+  state: { enum: [ready, connecting, connected, error], default: ready, description: "ready, connecting, connected, or error" }
 script: |
   import { setupPrototype, showConnected } from "../lib/setup.ts";
 
@@ -26,5 +26,5 @@ script: |
   window.addEventListener("frameset:rendered", wire);
 ---
 <div data-staging-theme="clouds">
-  {% render '../../specs/ui/setup/setup', step: step %}
+  {% render '../../specs/ui/setup/setup', state: state %}
 </div>

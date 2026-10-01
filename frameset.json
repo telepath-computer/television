@@ -327,11 +327,6 @@
         },
         {
           "type": "frame",
-          "path": "frames/prototypes/onboarding/desktop-setup.frame",
-          "title": "Desktop setup"
-        },
-        {
-          "type": "frame",
           "path": "frames/prototypes/collapse-transition.frame",
           "title": "Collapse transition"
         }
