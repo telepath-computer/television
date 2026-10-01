@@ -24,7 +24,8 @@ import { ChannelSidebarView } from "./channel-sidebar.ts";
 import { SidebarCollapseTransition } from "./sidebar-collapse-transition.ts";
 import { sidebarPose, type SidebarGeometry } from "./sidebar-transition-pose.ts";
 import { StageView } from "./stage.ts";
-import { SystemModalView } from "./system-modal.ts";
+import { SystemModalView, windowDragStripTemplate } from "./system-modal.ts";
+import { DesktopUpgradeGateView } from "./desktop-upgrade-gate.ts";
 import type { TabReorderSnapshot } from "./tab-reorder.ts";
 import { TopBarView } from "./top-bar.ts";
 import "./television-app.css";
@@ -148,10 +149,9 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
         style=${this.#appStyle()}
       >
         ${hasShell ? this.#shell(application, snapshot, options) : null}
-        ${isInterruptingState(state) ? SystemModalView(state, {
+        ${state.kind === "needs-upgrade" ? DesktopUpgradeGateView(state.instructions, options.desktopUpdate, windowDragStripTemplate(options.electronMode && !hasShell)) : isInterruptingState(state) ? SystemModalView(state, {
           context: options.electronMode ? "desktop" : "browser",
           dragStrip: options.electronMode && !hasShell,
-          desktopUpdate: options.desktopUpdate,
         }) : null}
       </div>
       <div id="foreground-overlay" inert aria-hidden="true"></div>

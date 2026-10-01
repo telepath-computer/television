@@ -12,8 +12,9 @@
 
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { copyFileSync, rmSync } from "node:fs";
+import { copyFileSync, cpSync, readFileSync, rmSync } from "node:fs";
 import { build } from "esbuild";
+import { createRequire } from "node:module";
 import { generateNoticesFromInventory } from "../../scripts/licenses/generate-notices.mjs";
 import {
   mergeSurfaceInventories,
@@ -58,6 +59,16 @@ const buildResults = await Promise.all([
     target: "es2022",
     format: "iife",
     outfile: path.join(distDir, "connect-page.cjs"),
+    loader: { ".woff2": "file" },
+    assetNames: "assets/[name]-[hash]",
+    // The shared UI modules use Vite's raw SVG and inline CSS imports.
+    plugins: [{ name: "inline-ui-assets", setup(builder) {
+      builder.onResolve({ filter: /\?(raw|inline)$/ }, args => ({
+        path: createRequire(path.join(args.resolveDir, "entry.cjs")).resolve(args.path.replace(/\?(raw|inline)$/, "")),
+        namespace: "inline-ui-assets",
+      }));
+      builder.onLoad({ filter: /.*/, namespace: "inline-ui-assets" }, args => ({ contents: readFileSync(args.path, "utf8"), loader: "text" }));
+    } }],
     metafile: true,
   }),
   build({
@@ -77,6 +88,8 @@ copyFileSync(
   path.join(packageDir, "src", "connect.html"),
   path.join(distDir, "connect.html"),
 );
+
+cpSync(path.join(repoRoot, "packages/server/assets/themes/clouds"), path.join(distDir, "clouds"), { recursive: true });
 
 const bundleInventories = buildResults.map((result, index) => {
   if (result.metafile === undefined) throw new Error(`Desktop esbuild call ${index + 1} produced no metafile`);

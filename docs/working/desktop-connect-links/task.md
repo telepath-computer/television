@@ -140,3 +140,12 @@ All selected runs reported no recovered flakes, process leaks or infrastructure 
 Slice 2 follow-up review passed at `03e5f432`; slices 1 and 2 have converged. The reviewer reported intermittent browser demo-mode teardown and switcher-drag failures under shared-host load; watch both in Blaxel validation. The supervisor assigned slice 3 and transferred sole implementation ownership of `thopter/desktop-connect-links` to this worker. That branch now combines the PR task record and slice 1 review with both implementation slices and the slice 2 refinements; `thopter/desktop-connect-links-plan` stays at its checkpoint.
 
 Josh changed test placement: narrow file-level iteration may run locally; whole surfaces, repeated runs and the full verification gate run on Blaxel against a pushed revision. Push the implementation branch before those runs.
+
+
+## Slice 3 implementation in progress
+
+Consolidated and pushed the PR branch at `4797af3c`; the worker now uses only `thopter/desktop-connect-links`. Josh further restricted local tests to one targeted case at a time. All batches, surfaces, repetitions and verification use pushed Blaxel revisions.
+
+Initial red/green work covers main-owned saved state and setup success before navigation, the four setup renderer states, and desktop attribution for Tailwind. Their individual local contracts passed after intended failures; renderer iteration also caught a missing CSS import and malformed attribute spacing. Main now owns cancellation and retries, and the renderer waits for the authored Connected fade (or animation frames without a transition under reduced motion) before handing navigation back to main. The attempt identity invalidates that handoff on disconnect.
+
+Slice 2 review item 4 is resolved by composing the upgrade gate in the served app. The common modal has no gate or markdown imports; the local renderer reuses the common modal, Copy, icons, foundation and frame CSS. Licensing proofs now describe the actual bundled renderer packages and desktop assets; they still need their slice review and passing build/upload evidence. This is an intermediate checkpoint: lifecycle batches, packaging, real Electron walks, proof citations, style-delivery checks and runbook execution remain in progress.

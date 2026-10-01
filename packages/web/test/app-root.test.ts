@@ -1,3 +1,4 @@
+import { DesktopUpgradeGateView } from "../src/views/desktop-upgrade-gate.ts";
 // @vitest-environment jsdom
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -722,7 +723,7 @@ describe("system modal (^sm-ac-markup-smoke)", () => {
       await vi.advanceTimersByTimeAsync(1_000);
       expect(host.textContent).toContain("Reconnecting in 4s…");
       for (const update of [undefined, desktopUpdate]) {
-        render(SystemModalView({ kind: "needs-upgrade", instructions: { upgradeMarkdown: "# Channel upgrade" } }, { context: "desktop", desktopUpdate: update }), host);
+        render(DesktopUpgradeGateView({ upgradeMarkdown: "# Channel upgrade" }, update), host);
         await flush();
         expect(host.querySelectorAll("dialog")).toHaveLength(1);
         expect(host.querySelector(".system-modal")).toBeNull();

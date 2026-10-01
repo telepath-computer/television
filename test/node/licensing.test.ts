@@ -72,10 +72,13 @@ describe("product licensing outputs", () => {
 
   test("esbuild desktop persists its bundled inventory and writes the matching notices file", () => {
     const inventory = readSurfaceInventory(inventoryRoot, "desktop");
-    expect(packageNames(inventory)).toEqual(["@rupertsworld/event-target"]);
+    expect(packageNames(inventory)).toContain("lit-html");
     expect(existsSync(path.join(desktopDist, noticeName))).toBe(true);
     const notice = readFileSync(path.join(desktopDist, noticeName), "utf8");
-    expect(packageNamesFromNotice(notice)).toEqual(["@rupertsworld/event-target"]);
+    expect(packageNamesFromNotice(notice)).toEqual(expect.arrayContaining(packageNames(inventory)));
+    expect(notice).toContain("Hind variable font");
+    expect(notice).toContain("@phosphor-icons/core");
+    expect(notice).toContain("Tailwind CSS color palette");
     expectNoIgnoredPackageNames(notice);
   });
 
@@ -219,6 +222,13 @@ describe("shipped package licensing", () => {
     if (expectedNotices !== null) {
       expect(readFileSync(uploadedNotices, "utf8")).toBe(expectedNotices);
       expect(readFileSync(uploadedNotices)).toEqual(readFileSync(path.join(desktopDist, noticeName)));
+      for (const asset of loadAssetManifest().filter(asset => ["hind-font", "phosphor-icons", "tailwind-foundation", "clouds-theme"].includes(asset.id))) {
+        expect(asset.surfaces).toContain("desktop");
+        for (const component of asset.components) {
+          expect(expectedNotices).toContain(component.name ?? component.package!);
+          expect(expectedNotices).toContain(component.noticeText.trim());
+        }
+      }
     }
   });
 

@@ -6,8 +6,6 @@ import {
 import { View, view } from "@telepath-computer/utils/lit-view";
 import { html, render as renderTemplate } from "lit-html";
 import type { InterruptingApplicationState } from "./application-state.ts";
-import { DesktopUpgradeGateView } from "./desktop-upgrade-gate.ts";
-import type { DesktopUpdateState } from "../services/desktop-update.ts";
 import "../elements/icon.ts";
 import "./system-modal.css";
 import "./system-modal.host.css";
@@ -15,13 +13,12 @@ import "./system-modal.host.css";
 const COUNTDOWN_TICK_MS = 250;
 const ONE_SECOND_MS = 1000;
 
-export type SystemModalState = InterruptingApplicationState;
+export type SystemModalState = Exclude<InterruptingApplicationState, { kind: "needs-upgrade" }>;
 
 export interface SystemModalOptions {
   context: "browser" | "desktop" | "local";
   dragStrip?: boolean;
   onDisconnect?: () => void;
-  desktopUpdate?: DesktopUpdateState;
 }
 
 /** Connection owners supply state; this shared presentation owns its countdown. */
@@ -45,18 +42,8 @@ export class SystemModal extends View<[SystemModalState, SystemModalOptions]> {
   ): unknown {
     this.#syncTicker(state);
 
-    if (state.kind === "needs-upgrade") {
-      this.#presentation?.withdraw();
-      this.#presentation = null;
-      renderTemplate(
-        DesktopUpgradeGateView(state.instructions, options.desktopUpdate, this.#dragStrip(options)),
-        this.#host,
-      );
-      return this.#host;
-    }
-
     renderTemplate(
-      dialogTemplate(this.#standardInterior(state, options), this.#dragStrip(options)),
+      dialogTemplate(this.#standardInterior(state, options), windowDragStripTemplate(options.dragStrip)),
       this.#host,
     );
     this.#schedulePresentation();
@@ -108,14 +95,6 @@ export class SystemModal extends View<[SystemModalState, SystemModalOptions]> {
     }
   }
 
-  #dragStrip(options: SystemModalOptions): unknown {
-    // Native modality makes siblings inert. Keep the viewport-fixed strip in
-    // the dialog's top layer, outside its scrolling content.
-    return options.dragStrip
-      ? html`<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>`
-      : null;
-  }
-
   #disconnectButton(options: SystemModalOptions): unknown {
     return options.context === "local"
       ? html`<button intent="danger" class="system-modal-disconnect" @click=${options.onDisconnect}>Disconnect from Server</button>`
@@ -163,4 +142,9 @@ function formatReconnect(nextRetryAt: number | null): string {
   const remainingMs = nextRetryAt - Date.now();
   if (remainingMs <= 0) return "Reconnecting now…";
   return `Reconnecting in ${Math.ceil(remainingMs / ONE_SECOND_MS)}s…`;
+}
+
+/** Inside the native dialog so modality leaves the drag region interactive. */
+export function windowDragStripTemplate(enabled = false): unknown {
+  return enabled ? html`<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>` : null;
 }

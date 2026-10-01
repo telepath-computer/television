@@ -100,7 +100,7 @@ describe("preflightConnection desktop connect check", () => {
     await expect(check(fetchImpl)).resolves.toEqual({
       ok: false,
       code: "auth-required",
-      message: "This server requires a token",
+      message: "This link is missing an access token. Ask your agent for the current link.",
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -110,7 +110,7 @@ describe("preflightConnection desktop connect check", () => {
     await expect(check(fetchImpl, "bad")).resolves.toEqual({
       ok: false,
       code: "auth-rejected",
-      message: "Token rejected",
+      message: "This link’s access token was rejected. Ask your agent for the current link.",
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
