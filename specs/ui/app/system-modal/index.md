@@ -23,7 +23,7 @@ The dialog shows in three places, which the frame's `context` parameter names: t
 
 - No state is dismissed by Escape or a backdrop press. The dialog changes or leaves only when the connection state changes.
 - **Disconnect from Server** is a destructive button. Pressing it hands the disconnect to the desktop app ([arch/desktop/connect-flow.md](../../../arch/desktop/connect-flow.md#^desktop-disconnect-server)).
-- The desktop window has no title bar. In the desktop app, wherever the dialog shows and the window's usual drag handle, the [channel sidebar](../sidebar/index.md#^sb-titlebar)'s titlebar, is not rendered, a 36px strip across the top of the window moves the window: on the local page, and in the server's interface before its shell has rendered.
+- The desktop window has no title bar. In the desktop app, where the dialog shows with no shell behind it to drag the window by, a 36px strip across the top of the window moves the window: on the local page, and in the server's interface before its shell has rendered. Over a rendered shell, the shell's own drag areas remain the handle, as they are with the channel sidebar collapsed.
 
 ## Appearance
 
