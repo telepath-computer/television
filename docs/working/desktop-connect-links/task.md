@@ -142,10 +142,85 @@ Slice 2 follow-up review passed at `03e5f432`; slices 1 and 2 have converged. Th
 Josh changed test placement: narrow file-level iteration may run locally; whole surfaces, repeated runs and the full verification gate run on Blaxel against a pushed revision. Push the implementation branch before those runs.
 
 
-## Slice 3 implementation in progress
+## Slice 3 implementation — validation in progress
 
-Consolidated and pushed the PR branch at `4797af3c`; the worker now uses only `thopter/desktop-connect-links`. Josh further restricted local tests to one targeted case at a time. All batches, surfaces, repetitions and verification use pushed Blaxel revisions.
+Consolidated and pushed the PR branch at `4797af3c`; the worker now uses only
+`thopter/desktop-connect-links`. Local iteration used one targeted case at a
+time. File batches, whole surfaces and discovery ran on pushed Blaxel revisions,
+with `--retries 0`.
 
-Initial red/green work covers main-owned saved state and setup success before navigation, the four setup renderer states, and desktop attribution for Tailwind. Their individual local contracts passed after intended failures; renderer iteration also caught a missing CSS import and malformed attribute spacing. Main now owns cancellation and retries, and the renderer waits for the authored Connected fade (or animation frames without a transition under reduced motion) before handing navigation back to main. The attempt identity invalidates that handoff on disconnect.
+The packaged page implements setup's four states, one-link submission, prompt
+selection and Copy. Main owns saved startup, checks, backoff, stopped retries on
+401, persistence, menu enablement, failed-navigation recovery and cancellation.
+A successful setup result identifies the active attempt; the renderer paints
+Connected and waits for its authored fade before returning that identity to
+main for navigation. With reduced motion it completes after animation frames
+without requiring a transition event. Disconnect invalidates both outstanding
+checks and that pending handoff.
 
-Slice 2 review item 4 is resolved by composing the upgrade gate in the served app. The common modal has no gate or markdown imports; the local renderer reuses the common modal, Copy, icons, foundation and frame CSS. Licensing proofs now describe the actual bundled renderer packages and desktop assets; they still need their slice review and passing build/upload evidence. This is an intermediate checkpoint: lifecycle batches, packaging, real Electron walks, proof citations, style-delivery checks and runbook execution remain in progress.
+Slice 2 review item 4 is resolved by composing the upgrade gate in the served
+app. The common modal has no gate or markdown imports. The local renderer reuses
+it together with production Copy, icons, foundation and frame CSS. The desktop
+build ships Clouds and both wallpapers, the Hind font, and notices for the
+actual bundled packages and assets. The licensing proofs and their real-build
+and upload-directory evidence now cover this delivery.
+
+The product walks cross real Electron, preload/IPC, disk, HTTP and the served
+page. Saved-startup observations use the declared request barrier in the
+forwarding proxy; its unreachable-backend response is explicitly a 502. Native
+input tests move the window from setup and the local dialog strip, while the
+card and dialog controls remain usable. Appearance retains a real server's
+native input during the run; persistence across launches remains out of scope.
+Proof citations, the setup foundation crossing and the previously partial drag
+assertion are complete. The proof refinements receive review with this slice.
+
+Red/green iteration started with the connection-owner, setup renderer and asset
+attribution contracts. Later discovery exposed the old menu label and gate-host
+expectations, and the address allowlist needed declarations for the new inert
+port-9 inputs. Each failure was narrowed before widening again. Native asset
+iteration corrected a test assumption about `file:` resource timing by reading
+the actual loaded font faces. Native drag iteration corrected the point finder
+to accept the decorative wallpaper while excluding the card. A new parser case
+failed on `mailto:person@example.test`; the fix rejects that scheme while
+retaining bare host-and-port input. Visual review of setup and local-dialog
+screenshots found an undefined background token; the page now uses the defined
+foundation surface color.
+
+**Executed runbook delta.** Before editing the staging runbook, the gate walk
+at `acc51524` launched the built app with a saved authless test server and the
+old-shell/required-version hooks, used the installed Disconnect menu item,
+pasted the server's tokenless link into setup, and reached the gate again.
+This executes the replacement interaction for step 4 using the canonical
+harness's isolated profile and dynamic port. It does not claim to revalidate
+the unchanged channel-publication or runtime-update portions of the recipe.
+The later walk also checks empty-token persistence and absence of the update
+popover and bell. `specs/arch/updates/runbook-ux-staging.md` now names setup and
+Disconnect from Server; this spec delta needs its independent and human review.
+The theme-author app-shell reference was rechecked against the finished shared
+modal markup and needs no further change.
+
+Completed validation checkpoints (directories under `.test-runs/`):
+
+| Selection | Revision | Result | Run directory |
+| --- | --- | --- | --- |
+| `e2e:desktop` | `901f0fb4` | 72 passed | `2026-10-01T21-12-06-883Z-p2849781-r3a96d59d95974c39` |
+| `unit:desktop` | `0704a210` | 129 passed | `2026-10-01T20-56-13-490Z-p2844038-r049cf758f310033e` |
+| `unit:browser-app` | `2e691900` | 568 passed, 1 existing skipped ACP test | `2026-10-01T21-05-38-510Z-p2847368-r7186adf3400e038e` |
+| `unit:root` | `901f0fb4` | 420 passed, 1 existing skip | `2026-10-01T21-10-55-778Z-p2849411-r2e200c1f46aa0435` |
+| `connect-screen.01.test.ts` | `e18ace7f` | 2 passed, including real Connected motion and restart | `2026-10-01T20-48-40-376Z-p2838867-r40800dfd9cca2d82` |
+| `connect-screen.02.test.ts` | `acc51524` | 3 passed, including saved startup observation and staging interaction | `2026-10-01T20-50-36-834Z-p2839827-r9163a8b288b88d60` |
+| Gate disconnect with tokenless persistence | `14a14568` | Passed | `2026-10-01T21-06-55-394Z-p2847830-r972771228b52ebd1` |
+| Browser `gate-boot-barrier.spec.ts` | `d34a5031` | 3 passed | `2026-10-01T20-56-58-449Z-p2844290-re70fd7563c41aabc` |
+| Desktop `upgrade-gate.spec.ts` | `2e691900` | 7 passed after narrowing the gate-host failures | `2026-10-01T21-03-06-006Z-p2846328-r5625c850a3887bfe` |
+| Packaged asset case after the background correction | `2e691900` | Passed; screenshot attachments inspected | `2026-10-01T21-04-21-643Z-p2847041-rb9b6da261d49573e` |
+| Desktop build and upload licensing cases | `4cc7fe99` | 2 passed | `2026-10-01T20-52-15-299Z-p2840512-rddeaf0df699234f0` |
+
+These checkpoints reported no recovered test flakes or process leaks. Blaxel
+skipped three incompletely provisioned pool candidates across two runs and
+continued on healthy workers. Changed-file ESLint and `git diff --check` pass;
+regenerated spec/proof indexes are unchanged. The earlier desktop source type
+check passed. The integrated full gate, reconciliation with the target's current
+commits, signed-Mac checks and eventual administrator-guide publication remain
+the plan's later obligations.
+
+Browser acceptance and licensing-file discovery remain in progress. The supervisor coordinates independent review.
