@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #9.** This proposal established the connect-link workflow delivered by the contribution. It preserves the combined product intent and the reasons for departing from prerelease PR #387, which the final diff and individual specs do not explain together. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Proposal: connect links, the desktop setup screen, and `tv links`
 
 Working document. Not authority. It states the intended behavior and presentation of the change; the specs it leads to are the authority once written. Implementation is out of scope here.

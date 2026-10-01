@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #9.** This plan guided the three converged implementation slices; signed-Mac checks and release handoffs remain outstanding at archiving. It preserves the allocation of proofs across slices and the expected intermediate baselines as one account of how the work was divided, which the final implementation and PR description do not reconstruct. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Desktop connect links: implementation plan
 
 The result is a single connect-link workflow: the CLI supplies links, the desktop app accepts one link and remembers the connection, and connection dialogs explain recovery without asking for a separate token.
