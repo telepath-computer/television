@@ -10,7 +10,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-policy.md` (211 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (73 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
-- `spec-workflow.md` (248 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
+- `spec-workflow.md` (252 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (46 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
 - `terms.md` (172 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
@@ -37,7 +37,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
   - `skillbench.md` (55 lines) — *Arch spec: the skillbench package — the skill-eval tool: the CLI that runs eval configs and the read-only page for reviewing what agents produced.*
-  - `testing-policy.md` (236 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - `testing-policy.md` (246 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (352 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
     - `index.md` (49 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
@@ -86,7 +86,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `reporting.md` (411 lines) — *The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
     - `sharded-execution.md` (341 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
     - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
-    - `test-runner.md` (255 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
+    - `test-runner.md` (303 lines) — *The canonical `npm test` and `npm run verify` command surface: selection, providers, retries, and local guardrails for shared-host health and fast feedback.*
   - **themes/**
     - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
     - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*

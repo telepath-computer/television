@@ -51,7 +51,7 @@ const POSTHOG_TEST_PROJECT_ID = 484904
 `telemetry-posthog-roundtrip:integration` is the central-runner surface for live PostHog validation. It belongs to the `telemetry-posthog-roundtrip` suite, is excluded from `all`, and is run with:
 
 ```bash
-npm test -- local --suite telemetry-posthog-roundtrip
+npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts
 ```
 
 The surface declares the `posthog-test-key` preflight ([../test-runner/preflight.md](../test-runner/preflight.md)), which requires the PostHog test project read key before Vitest starts. The key is the secret `phx_` value and must be supplied as `TV_POSTHOG_TEST_READ_KEY` in the environment or in the repository-root `.env` file. `.env` is gitignored, auto-loaded by the test, and must never be committed. There is no in-test silent skip for this surface: selecting the suite without the read key is a preflight failure.
