@@ -10,12 +10,16 @@ import { createUserDataDir, expectConnectedPage, launchDesktopConnectScreen, dis
 // 502 when forwarding fails; it never supplies a Television identity or status.
 test("saved startup retries an unavailable server and recovers without setup", async () => {
   const server = await startConnectTestServer();
-  const front = await startStableFrontProxy(server.serverURL);
+  const { promise: checkBarrier, resolve: releaseCheck } = Promise.withResolvers<void>();
+  const front = await startStableFrontProxy(server.serverURL, () => checkBarrier);
   const userDataDir = createUserDataDir();
   writeFileSync(path.join(userDataDir, "connection.json"), JSON.stringify({ serverURL: front.url, token: server.token }));
   await server.stop();
   const { app, page } = await launchDesktopConnectScreen({ userDataDir });
   try {
+    await expect(page.getByRole("heading", { name: "Connecting", exact: true })).toBeVisible();
+    await expect(page.locator(".setup-screen")).toHaveCount(0);
+    releaseCheck();
     await expect(page.getByRole("heading", { name: "Can’t connect with server" })).toBeVisible();
     await expect(page.locator(".server-url")).toHaveText(front.url);
     await expect(page.locator(".setup-screen")).toHaveCount(0);
@@ -34,6 +38,7 @@ test("saved startup retries an unavailable server and recovers without setup", a
     await expectConnectedPage(page);
     expect(new URL(page.url()).origin).toBe(front.url);
   } finally {
+    releaseCheck();
     await app.close();
     await front.dispose();
     await server.dispose();
@@ -47,11 +52,16 @@ test("a rejected saved token stops checks and the local Disconnect button forget
   const server = await startConnectTestServer();
   const requests: number[] = [];
   server.server.httpServer.on("request", req => { if (req.url?.startsWith("/desktop/connect-check")) requests.push(Date.now()); });
+  const { promise: checkBarrier, resolve: releaseCheck } = Promise.withResolvers<void>();
+  const front = await startStableFrontProxy(server.serverURL, () => checkBarrier);
   const userDataDir = createUserDataDir();
   const record = path.join(userDataDir, "connection.json");
-  writeFileSync(record, JSON.stringify({ serverURL: server.serverURL, token: "wrong" }));
+  writeFileSync(record, JSON.stringify({ serverURL: front.url, token: "wrong" }));
   const { app, page } = await launchDesktopConnectScreen({ userDataDir });
   try {
+    await expect(page.getByRole("heading", { name: "Connecting", exact: true })).toBeVisible();
+    await expect(page.locator(".setup-screen")).toHaveCount(0);
+    releaseCheck();
     await expect(page.getByRole("heading", { name: "Access token required" })).toBeVisible();
     await expect(page.locator(".setup-screen")).toHaveCount(0);
     await expect.poll(() => Date.now() - requests[0]!, { timeout: 5000 }).toBeGreaterThan(1500);
@@ -62,7 +72,9 @@ test("a rejected saved token stops checks and the local Disconnect button forget
     expect(await disconnectEnabled(app)).toBe(false);
     await expect(page.getByRole("textbox", { name: "Link from your agent" })).toBeEditable();
   } finally {
+    releaseCheck();
     await app.close();
+    await front.dispose();
     await server.dispose();
     rmSync(userDataDir, { recursive: true, force: true });
   }
@@ -76,7 +88,7 @@ test("Disconnect from Server leaves the served upgrade gate", async () => {
   process.env.TV_TEST_VERSION = "1.0.0";
   process.env.TV_TEST_REQUIRED_DESKTOP_VERSION = "2.0.0";
   process.env.TV_UPDATE_CHANNEL_URL = "http://127.0.0.1:9/update-channel.json";
-  const server = await startConnectTestServer();
+  const server = await startConnectTestServer({ auth: false });
   const userDataDir = createUserDataDir();
   const record = path.join(userDataDir, "connection.json");
   writeFileSync(record, JSON.stringify({ serverURL: server.serverURL, token: server.token }));
@@ -89,6 +101,12 @@ test("Disconnect from Server leaves the served upgrade gate", async () => {
     await waitForConnectScreen(page);
     expect(existsSync(record)).toBe(false);
     expect(await disconnectEnabled(app)).toBe(false);
+    // Execute the staging runbook's replacement setup steps against the real
+    // authless server, with dynamic ports and an isolated profile.
+    await page.getByRole("textbox", { name: "Link from your agent" }).fill(server.serverURL);
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await expect(page.locator(".desktop-upgrade-gate")).toBeVisible();
+    await expect(page.locator(".update-toast, .app-update-indicator")).toHaveCount(0);
   } finally {
     await app.close();
     await server.dispose();

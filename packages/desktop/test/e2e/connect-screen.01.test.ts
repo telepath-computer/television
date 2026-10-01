@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
+import { startStableFrontProxy } from "../../../../test/helpers/stable-front-proxy.ts";
 import { startConnectTestServer } from "./connect-server.ts";
 import { configureTestMotion } from "../../../web/test/e2e/helpers.ts";
 import {
@@ -12,6 +13,12 @@ import {
 // ordinary shell-version hook is the only substituted production input.
 test("a link connects, renders Connected, survives restart and is forgotten by the menu", async () => {
   const server = await startConnectTestServer();
+  let releaseCheck: (() => void) | undefined;
+  let checkBarrier: Promise<void> | undefined;
+  const front = await startStableFrontProxy(server.serverURL, async request => {
+    if (request.url?.startsWith("/desktop/connect-check")) await checkBarrier;
+  });
+  const serverURL = front.url;
   const userDataDir = createUserDataDir();
   let launch = await launchDesktopConnectScreen({ userDataDir });
   try {
@@ -27,7 +34,7 @@ test("a link connects, renders Connected, survives restart and is forgotten by t
 
     const events: string[] = [];
     page.on("console", message => { if (message.text().startsWith("setup-observe:")) events.push(message.text().slice(14)); });
-    page.on("framenavigated", frame => { if (frame === page.mainFrame() && frame.url().startsWith(server.serverURL)) events.push("remote"); });
+    page.on("framenavigated", frame => { if (frame === page.mainFrame() && frame.url().startsWith(serverURL)) events.push("remote"); });
     await page.evaluate(() => {
       const screen = document.querySelector(".setup-screen")!;
       new MutationObserver(() => console.log(`setup-observe:${screen.getAttribute("data-state")}`))
@@ -37,7 +44,7 @@ test("a link connects, renders Connected, survives restart and is forgotten by t
         if (getComputedStyle(done).opacity === "1") console.log("setup-observe:connected-painted");
       });
     });
-    const link = `${server.serverURL}/some/path?token=${encodeURIComponent(server.token)}&ignored=yes`;
+    const link = `${serverURL}/some/path?token=${encodeURIComponent(server.token)}&ignored=yes`;
     const input = page.getByRole("textbox", { name: "Link from your agent" });
     await input.fill(link);
     await input.press("Enter");
@@ -45,20 +52,24 @@ test("a link connects, renders Connected, survives restart and is forgotten by t
     expect(events).toEqual(expect.arrayContaining(["connecting", "connected", "connected-painted", "remote"]));
     expect(events.indexOf("connected-painted")).toBeLessThan(events.indexOf("remote"));
     const url = new URL(await getBrowserWindowURL(app));
-    expect(url.origin).toBe(server.serverURL);
+    expect(url.origin).toBe(serverURL);
     expect(url.searchParams.get("mode")).toBe("electron");
     expect(url.searchParams.get("desktopAppVersion")).toBe("9.9.9");
     expect(url.searchParams.has("token")).toBe(false);
     expect(await page.evaluate(() => typeof window.television)).toBe("undefined");
     const record = path.join(userDataDir, "connection.json");
-    expect(JSON.parse(readFileSync(record, "utf8"))).toEqual({ serverURL: server.serverURL, token: server.token });
+    expect(JSON.parse(readFileSync(record, "utf8"))).toEqual({ serverURL, token: server.token });
     expect(await disconnectEnabled(app)).toBe(true);
     await page.reload();
     await expectConnectedPage(page);
     await app.close();
 
+    checkBarrier = new Promise<void>(resolve => { releaseCheck = resolve; });
     launch = await launchDesktopConnectScreen({ userDataDir });
     ({ app, page } = launch);
+    await expect(page.getByRole("heading", { name: "Connecting", exact: true })).toBeVisible();
+    await expect(page.locator(".setup-screen")).toHaveCount(0);
+    releaseCheck!();
     await expectConnectedPage(page);
     await expect(page.locator(".setup-screen")).toHaveCount(0);
     await disconnectFromServerMenu(app);
@@ -71,6 +82,8 @@ test("a link connects, renders Connected, survives restart and is forgotten by t
     await expect(launch.page.getByRole("textbox", { name: "Link from your agent" })).toHaveValue("");
   } finally {
     await launch.app.close().catch(() => {});
+    releaseCheck?.();
+    await front.dispose();
     await server.dispose();
     rmSync(userDataDir, { recursive: true, force: true });
   }
