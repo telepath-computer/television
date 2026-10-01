@@ -401,6 +401,7 @@ function allowsUncommitted(selectionOptions) {
 async function runWithSelection(provider, selectionOptions) {
   if (provider === "local") assertRegistryValid();
   const selectionConfig = provider === "blaxel" ? await loadRegistrySnapshotAtCommit({ commit: selectionOptions.commit ?? "HEAD" }) : config;
+  if (provider === "blaxel") selectionOptions = { ...selectionOptions, commit: selectionConfig.commit };
   const resolved = resolveFileSelection({ config: selectionConfig, options: selectionOptions, commit: provider === "blaxel" ? selectionOptions.commit ?? "HEAD" : null });
   const { surfaces } = resolved;
   selectionOptions = { ...selectionOptions, resolvedFiles: resolved.files };

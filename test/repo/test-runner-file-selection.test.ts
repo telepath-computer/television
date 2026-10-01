@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { targetCommand } from "../../scripts/test/target-command.mjs";
+import { enumerateTrackedPaths, loadRegistrySnapshotAtCommit } from "../../scripts/test/file-inventory.mjs";
 import { createShardPlan } from "../../scripts/test/shard-plan.mjs";
 import { serializeTimingBaseline } from "../../scripts/test/timing-baseline.mjs";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -31,6 +32,20 @@ describe("actual file resolution", () => {
       expect(remote.status, remote.stderr).toBe(0);
       expect(remote.stdout).toContain("surfaces=fixture:vitest");
       expect(invoke("blaxel", ["--surface", "fixture:vitest"]).stderr).toContain("not part of the selected surfaces");
+    } finally { f.cleanup(); }
+  });
+
+  test("pins the inventory commit when a selected branch name moves", async () => {
+    const f = guidanceCheckout();
+    try {
+      f.git("branch", "selected");
+      const commit = f.git("rev-parse", "selected");
+      const snapshot = await loadRegistrySnapshotAtCommit({ repoRoot: f.root, commit: "selected" });
+      f.write(`${f.testsRoot}/later.test.ts`, "");
+      f.git("add", "."); f.git("commit", "-qm", "Later revision");
+      f.git("branch", "-f", "selected", "HEAD");
+      expect(snapshot.commit).toBe(commit);
+      expect(enumerateTrackedPaths({ repoRoot: f.root, commit: snapshot.commit })).not.toContain(`${f.testsRoot}/later.test.ts`);
     } finally { f.cleanup(); }
   });
 

@@ -46,6 +46,7 @@ export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null,
 }
 
 export async function loadRegistrySnapshotAtCommit({ repoRoot = process.cwd(), commit = "HEAD" } = {}) {
+  commit = git(["rev-parse", "--verify", "--end-of-options", `${commit}^{commit}`], { cwd: repoRoot }).trim();
   const source = git(["show", `${commit}:test.config.mjs`], { cwd: repoRoot });
   const digest = crypto.createHash("sha256").update(source).digest("hex");
   const url = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${digest}`;
@@ -53,7 +54,7 @@ export async function loadRegistrySnapshotAtCommit({ repoRoot = process.cwd(), c
   try { raw = (await import(url)).default; } catch (error) { throw new Error(`could not load test registry from ${commit}: ${error.message}`); }
   const groups = raw.executionGroups ?? [];
   const surfaces = groups.flatMap((group) => (group.surfaces ?? []).map((surface) => normalizeSurface({ ...surface, executionGroup: { id: group.id, name: group.name, order: group.order } }, repoRoot)));
-  return { ...raw, surfaces, registryDigest: digest };
+  return { ...raw, surfaces, registryDigest: digest, commit };
 }
 
 function normalizeSurface(surface, repoRoot) {
