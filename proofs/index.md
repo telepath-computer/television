@@ -36,11 +36,11 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (53 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
-    - `index.md` (255 lines) — *How the promises in CLI architecture are proven.*
+    - `index.md` (253 lines) — *How the promises in CLI architecture are proven.*
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
-    - `connect-flow.md` (34 lines) — *Desktop connection coverage across link parsing, saved state, the packaged local page, native IPC, and server navigation.*
+    - `connect-flow.md` (32 lines) — *Desktop connection coverage across link parsing, saved state, the packaged local page, native IPC, and server navigation.*
     - `distribution.md` (34 lines) — *How the ToDesktop build's promises are proven: repository checks of the desktop workspace, its ToDesktop configuration, a generated upload directory, the build script's exit status and the real ToDesktop CLI's dry run, and the product's real-host checks for everything ToDesktop does.*
     - `e2e-harness.md` (21 lines) — *How the promises in Electron e2e harness are proven.*
     - `index.md` (28 lines) — *How the desktop architecture root's promises are proven: main-process identity contracts and a real-Electron data-location seam, composed with the module proofs and the product's real-host checks.*
@@ -100,7 +100,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **ui/**
   - `index.md` (13 lines) — *How the promises in UI policy are proven.*
   - **app/**
-    - `index.md` (68 lines) — *How the promises in App (UI) are proven.*
+    - `index.md` (67 lines) — *How the promises in App (UI) are proven.*
     - **artifact-frame/**
       - `index.md` (32 lines) — *How the promises in Artifact frame (UI) are proven.*
     - **copy-button/**
@@ -146,7 +146,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **onboarding-artifacts/**
     - `index.md` (99 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
-    - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, and window dragging.*
+    - `index.md` (25 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, and window dragging.*
   - **skillbench/**
     - `index.md` (13 lines) — *How the promises in Skillbench (UI) are proven.*
   - **skills/**
