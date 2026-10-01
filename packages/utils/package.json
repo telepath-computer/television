@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/utils",
-  "version": "1.4.15",
+  "version": "1.4.16",
   "license": "MIT",
   "type": "module",
   "private": true,
