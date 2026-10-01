@@ -68,6 +68,8 @@ import type { TelevisionClient } from "@telepath-computer/television-shared";
 
 export type Writable = {
   write(chunk: string | Uint8Array): unknown;
+  /** True when the stream is an interactive terminal; decides link formatting. */
+  isTTY?: boolean;
 };
 
 export type CLIServer = Pick<
