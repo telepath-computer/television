@@ -8,6 +8,8 @@ Several agents can run tests on one development host. Independent local runs com
 
 Faster iteration is the second priority. Blaxel's planned execution distributes files across workers; it cannot split the work inside one file. Adding fan-out to targeted surface runs is a secondary speed improvement. Its absence is never a reason to run broad work locally.
 
+The canonical runner is the supported front door for testing with good wall-clock time and host health. Clear defaults, actionable refusals, and written guidance steer callers toward that path. These guardrails are not a security boundary: callers can invoke test tools directly or exhaust host resources with other commands. Size the implementation for ordinary supported invocations and accidental misuse; deliberate circumvention does not justify tamper resistance, access control, or host-wide resource policing. The mutex, file restriction, and self-test hooks should remain proportionate to that purpose.
+
 Josh's decisions are:
 
 1. Every canonical local test run, including local verify, takes one mutex for the same operating-system user across the host, outside every checkout, and holds it until its test processes exit. A second run is refused immediately with exit `2`, identifying the holder and explaining the available next steps. A separate, conspicuously named flag allows the caller to bypass this protection at the caller's judgment.
