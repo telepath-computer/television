@@ -37,7 +37,9 @@ What the user sees:
   1. **Give your agent this prompt**, with the prompt in monospace on a slightly tilted card and a **Copy** button beside it.
   2. **Paste the connect link from your agent**, with a link field ("Paste link here") and a **Connect** button. Under the field, a hint shows the shape of a connect link.
 
-Both steps are always shown equally, at full strength, with plain numbered markers. Neither step is highlighted as current, neither is faded, and no step turns into a check mark. The numbering tells the user the usual order; nothing enforces it. The user can paste into the field and connect without pressing Copy, so someone who already has a connect link goes straight to step 2. This is the main departure from Rupert's design, which tracked the current step, faded step 2 until the user reached it, and checked off step 1.
+Both steps are always shown equally, at full strength, with plain numbered markers. Neither step is highlighted as current, neither is faded, and no step turns into a check mark. The numbering tells the user the usual order; nothing enforces it or tracks it. The user can paste into the field and connect without pressing Copy, so someone who already has a connect link goes straight to step 2.
+
+This is the main departure from Rupert's design. His screen tracked the current step: it faded step 2 until the user pressed Copy or moved into step 2, then highlighted step 2 and checked off step 1. The faded field still worked, but it looked unusable, implying that copying the prompt was the only way forward. Showing both steps at full strength makes clear that the field is ready, and it removes the step tracking and the tests it would need.
 
 The prompt tells the agent that it comes from the Mac desktop app's setup screen, so the agent knows the user is on a Mac with the app installed and waiting for a connect link. Draft wording:
 
