@@ -97,6 +97,16 @@
   gap: var(--space-10);
 }
 
+/* A quiet note under the introduction. Its links keep the note's colour. */
+.setup-note {
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.setup-note a {
+  color: inherit;
+}
+
 .setup-document h1 {
   font-size: var(--text-3xl);
   font-weight: var(--font-weight-semibold);

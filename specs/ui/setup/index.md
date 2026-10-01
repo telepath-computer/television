@@ -21,5 +21,6 @@ The card wears the [artifact frame](../app/artifact-frame/index.md)'s look, hold
 
 - The two numbered steps show the usual order: give an agent the prompt, then paste the link it returns. Both are always shown at full strength and both are always usable. Nothing tracks or enforces the order, so a person who already has a link pastes it straight away.
 - Copy copies the prompt and confirms as the [copy button](../app/copy-button/index.md#Interaction) does. It changes nothing else on the screen. One press on the prompt text selects all of it.
+- Each agent named in the note under the introduction links to that agent's website. A link opens in the default browser through the desktop app's [external-link handling](../../arch/desktop/index.md#External links), and the setup screen stays as it was.
 - Connect, or Return in the field, submits the field when it is not empty.
 - Dragging the background around the card moves the window. The card's contents stay interactive and do not move the window.

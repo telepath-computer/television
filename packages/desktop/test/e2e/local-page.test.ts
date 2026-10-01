@@ -71,6 +71,27 @@ test("the built local page loads foundation, Clouds, fonts and icons for setup a
   }
 });
 
+// ^setup-t-agent-links: the packaged page, Chromium's new-window request and the
+// main-process window-open handler are real. The external-open hook records the
+// URL in place of shell.openExternal.
+test("an agent link on setup opens in the browser and leaves setup in place", async () => {
+  const userDataDir = createUserDataDir();
+  const launch = await launchDesktopConnectScreen({ userDataDir });
+  try {
+    await waitForConnectScreen(launch.page);
+    await launch.page.getByRole("link", { name: "Claude Code" }).click();
+    await expect.poll(() => launch.app.evaluate(() => {
+      return (globalThis as typeof globalThis & { __televisionExternalOpenLog?: string[] }).__televisionExternalOpenLog ?? [];
+    })).toEqual(["https://claude.com/product/claude-code"]);
+    expect(launch.app.windows()).toHaveLength(1);
+    expect(launch.page.url()).toMatch(/^file:.*\/connect\.html$/);
+    await expect(launch.page.getByRole("heading", { name: "Give your agent this prompt" })).toBeVisible();
+  } finally {
+    await launch.app.close().catch(() => {});
+    rmSync(userDataDir, { recursive: true, force: true });
+  }
+});
+
 // ^desktop-appearance-t-local: display API and native bridge are real. The final
 // nativeTheme assignment substitutes the preference input, not its rendering.
 test("the local page retains native appearance while always wearing Clouds", async () => {
