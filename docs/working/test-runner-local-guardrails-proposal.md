@@ -58,11 +58,27 @@ The contribution includes written guidance as well as enforcement. The repositor
 
 The [testing policy's iteration guidance](../../specs/arch/testing-policy.md#Test iteration discipline) will explain how to widen validation without widening local work on a marked host: start with the file under change, optionally use grep, then commit and push for broader Blaxel checks. It will state the shared-host safety priority and link to the runner's mutex and independent bypasses. Its provider guidance will preserve ordinary local development for unmarked public-contributor and fork hosts. The [remote preflight spec](../../specs/arch/test-runner/preflight.md#Contributor branches and remote revisions) remains the owner of the committed, pushed revision requirement.
 
-The runner spec owns exact command behavior, file eligibility, lock lifetime, refusal messages, and bypass semantics. CLI help will expose the same practical choices at invocation time. This uses the existing instruction path from AGENTS.md to policy and command authority; it needs no additional developer skill or separate guide to discover these rules.
+The runner spec owns exact command behavior, file eligibility, lock lifetime, refusal messages, and bypass semantics. CLI help will expose the same practical choices at invocation time. This uses the existing instruction path from AGENTS.md to policy and command authority. The existing contribution and review skills will reinforce the development-branch practice below.
+
+## Regular development-branch commits and pushes
+
+Josh's standard way of working is for contributors and agents to work on their own development branch and commit and push regularly, in safe, coherent commits. A commit should capture a meaningful unit of the assigned work and be safe to publish; it need not make unfinished work ready to merge. Development branches may carry incomplete work or failing tests while the contribution follows its review and validation stages. Shared-branch merge requirements remain in force.
+
+Pushing makes the current work available to Blaxel. Withholding pushes prevents remote workers from testing that revision and pressures agents into broad local runs, which can drive a shared host into swap and make it unusable for every agent. The normal response is to prepare and push a coherent development-branch checkpoint, then run the broader checks on Blaxel. Withheld or blocked pushes never themselves justify broad local execution.
+
+A supervisor or coordinator must not casually instruct a worker not to commit or push on its development branch. Routine review coordination is not a reason to suspend this practice. A concrete safety or conflicting-edit issue can justify a temporary hold; required validation must still respect the local-run restrictions during that hold.
+
+The [workflow](../../specs/spec-workflow.md#Pull requests and human revisions) will own this regular development-branch practice and its coordination guidance. The contribution will carry it into the instructions each role reads:
+
+- **AGENTS.md:** the shared-branch section will directly tell contributors and agents to work on a development branch, commit and push safe, coherent changes regularly, and preserve workers' ability to do so during coordination. Its testing section will connect pushed checkpoints to Blaxel and shared-host protection.
+- **[tvdev-contribute](../../developer-skills/tvdev-contribute/SKILL.md):** contribution and delegation guidance will make regular development-branch commits and pushes part of ordinary progress, including before broader Blaxel validation. It will explain the shared-host consequence of withholding pushes and the restriction on casual coordinator instructions to do so.
+- **[tvdev-review](../../developer-skills/tvdev-review/SKILL.md):** reviewer guidance will recognize development-branch checkpoints as ordinary work in progress, assess them against the assigned review stage, and avoid demanding that the owner withhold commits or pushes until review or full validation completes. Reviewers retain their assigned read-only role; the contribution owner makes and pushes changes.
+
+These instructions describe normal practice without a fixed commit interval or a separate approval step for each push. They distinguish publishing a development checkpoint from merging into a shared branch, so review gates do not prevent the remote validation needed to satisfy them.
 
 ## Scope and derivation
 
-The contribution includes the AGENTS.md guidance above, authoritative runner changes, and testing-policy changes. Proofs will cover real canonical CLI decisions, mutex contention across independent processes and checkouts, lock lifetime through child cleanup, the verify handoff, and actual single-file execution. Selector and override permutations should use the cheapest honest coverage. Test isolation must prevent the runner's own subprocess tests from interfering with unrelated host runs.
+The contribution includes the AGENTS.md guidance above, authoritative runner, testing-policy, and workflow changes, and the corresponding contribution and review skill updates. Proofs will cover real canonical CLI decisions, mutex contention across independent processes and checkouts, lock lifetime through child cleanup, the verify handoff, and actual single-file execution. Selector and override permutations should use the cheapest honest coverage. Test isolation must prevent the runner's own subprocess tests from interfering with unrelated host runs.
 
 Implementation should reuse the existing CLI, registry, marker, and process lifecycle. This contribution does not require a queue, configurable concurrency levels, a background lock service, or changes to public-contributor provider selection. Help and affected invocation guidance will show the one-file local path and the committed-revision remote path.
 
