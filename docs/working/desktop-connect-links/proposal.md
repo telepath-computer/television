@@ -17,6 +17,43 @@ The change has six parts:
 5. A new command, `tv links`, prints the running server's connect links. The CLI prints links as terminal hyperlinks only in an interactive terminal.
 6. The administrator guide gives users connect links only. A Mac user who starts from the app's connect screen already has the app; another Mac user is recommended it; users on other computers are not told about it.
 
+## Differences from Rupert's PR #387
+
+For orientation: how this proposal differs from what PR #387 specified or planned. Everything not listed here (the setup screen's visual design, the system modal's look, the large controls, Clouds on the local page, Disconnect from Server and its ⌘, shortcut, the three-failure escalation, dialogs that cannot be dismissed, and accepting that 1.4.x apps see a menu name they lack) is carried over as PR #387 had it.
+
+**How the specs are produced**
+
+- The specs are written fresh from this proposal. Only PR #387's visual design (markup, styling and the workshop frames) is imported; none of its product, architecture or UI prose, or its testing directives.
+- Testing sections keep only guidance a proof could not derive from the spec itself.
+
+**Setup screen**
+
+- No step tracking. Both steps are always at full strength, with filled numbered markers; nothing is faded, highlighted as current, or checked off. PR #387 faded step 2 until the person pressed Copy or moved into it, then checked off step 1. The screen's states are ready, connecting, connected and error.
+- The prompt is "Read the Television admin guide at https://television.run/install.md and help me get Television installed. I'm on the desktop app connect screen." The last sentence is how the agent knows the person is on a Mac with the app open.
+- The card is styled like an artifact frame but is not one: no artifact view, no iframe or webview, no artifact bridge.
+- The two token failure messages are reworded to talk about the link, with the wording left to the implementer.
+
+**Connection states**
+
+- One consolidated rule set ([Connection states](#connection-states)). A definite answer from the server (a token is required or rejected, or an upgrade is required) shows its own state at once, anywhere in the life cycle.
+- A desktop app starting with a saved connection whose token is rejected shows **Access token required**, not Can't connect with server as in PR #387. It stops retrying, and on the local page it carries a Disconnect from Server button with its own wording.
+- Only attempts that cannot reach the server count toward the three failed reconnects.
+- Disconnect from Server is promised to keep working on the upgrade gate screen. PR #387 deleted the earlier promise that the menu stays usable there.
+- A 36px window drag strip appears wherever a connection dialog or the upgrade gate shows without the sidebar's drag handle. PR #387 left this open.
+- How the local page matches the web app's design is left to the implementer. PR #387 planned to import the web app's dialog code into the local page.
+
+**Admin guide**
+
+- The guide gives users **connect links** only, named that way throughout. No bare token, no token field, no password-manager advice; users ask their agent for the link again. PR #387 planned to keep the bare token as a fallback.
+- Mac-first flows: a request from the desktop app's connect screen gets a connect link to paste, with no download instructions; another Mac user is recommended the app; users on other computers are never told about it, and are told it is Mac-only only if they ask.
+- The guide teaches `tv links` and reminds users they can always get their links again.
+
+**CLI and browser**
+
+- New command `tv links`, printing the running server's connect links, one per line. PR #387 had no CLI change.
+- Links the CLI prints are terminal hyperlinks only when output goes to an interactive terminal, so agents always receive plain URLs. This also changes `tv serve` startup output.
+- The browser's placeholder for external web pages says the desktop app is currently available only for Macs.
+
 ## Connect links
 
 - A connect link is the server's address followed by `/?token=<token>` when the server requires a token, and the bare address when it does not.
