@@ -1,6 +1,6 @@
-import "@telepath-computer/utils/disposable-polyfill";
 import "../../web/src/foundation/index.css";
 import "../../web/src/foundation/app.css";
+import "../../web/src/global.css";
 import { render } from "lit-html";
 import { SystemModalView } from "../../web/src/views/system-modal.ts";
 import { connectErrorMessage, type ConnectResult } from "./connect-error.ts";

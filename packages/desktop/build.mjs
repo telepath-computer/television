@@ -65,9 +65,10 @@ const buildResults = await Promise.all([
     plugins: [{ name: "inline-ui-assets", setup(builder) {
       builder.onResolve({ filter: /\?(raw|inline)$/ }, args => ({
         path: createRequire(path.join(args.resolveDir, "entry.cjs")).resolve(args.path.replace(/\?(raw|inline)$/, "")),
-        namespace: "inline-ui-assets",
+        suffix: args.path.slice(args.path.lastIndexOf("?")),
       }));
-      builder.onLoad({ filter: /.*/, namespace: "inline-ui-assets" }, args => ({ contents: readFileSync(args.path, "utf8"), loader: "text" }));
+      builder.onLoad({ filter: /\.(svg|css)$/ }, args => /\?(raw|inline)$/.test(args.suffix)
+        ? { contents: readFileSync(args.path, "utf8"), loader: "text" } : undefined);
     } }],
     metafile: true,
   }),
