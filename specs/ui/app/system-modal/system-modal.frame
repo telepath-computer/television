@@ -8,14 +8,14 @@ params:
   server_url:
     type: string
     description: the server the connect was to, shown while error
-  desktop:
+  context:
+    enum: [browser, desktop, local]
+    default: browser
+    description: "where the dialog shows: the server's interface in a browser; the server's interface in the desktop app; or the desktop app's local page, which alone offers Disconnect from Server as a button"
+  drag_strip:
     type: boolean
     default: false
-    description: "the page is in the desktop app, which has no address bar; chooses the unauthorized copy"
-  disconnect:
-    type: boolean
-    default: false
-    description: "offer Disconnect from Server while error; the desktop app's own page sets it"
+    description: "the desktop window's 36px drag strip across the top; the desktop app shows it where the interface's own drag handle cannot be reached"
   seconds:
     type: number
     description: "seconds until the next reconnection attempt, shown while disconnected or error; absent, an attempt is in flight"
@@ -57,10 +57,20 @@ style: |
     font-size: var(--text-sm);
   }
 
-  .system-modal .error-disconnect {
+  .system-modal .system-modal-disconnect {
     margin-top: var(--space-8);
   }
+
+  /* The desktop window has no title bar: where nothing behind the dialog
+     offers a drag handle, this strip across the top moves the window. */
+  .window-drag-strip {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 36px;
+  }
 ---
+{% if drag_strip %}<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>{% endif %}
+{% capture disconnect_button %}<button intent="danger" class="system-modal-disconnect">{{ content.disconnect }}</button>{% endcapture %}
 {% if seconds %}{% assign seconds_placeholder = "{{ seconds }}" %}{% assign reconnect_line = content.reconnecting | replace: seconds_placeholder, seconds %}{% else %}{% assign reconnect_line = content.reconnecting_now %}{% endif %}
 {% if state == "connecting" %}
 {% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.connecting_title }}</h2></div>{% endcapture %}
@@ -71,11 +81,11 @@ style: |
 {% render '../dialog/dialog', content: body %}
 {% endif %}
 {% if state == "unauthorized" %}
-{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{% if desktop %}{{ content.unauthorized_copy_desktop }}{% else %}{{ content.unauthorized_copy }}{% endif %}</p></div>{% endcapture %}
+{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{% if context == "local" %}{{ content.unauthorized_copy_local }}{% elsif context == "desktop" %}{{ content.unauthorized_copy_desktop }}{% else %}{{ content.unauthorized_copy_browser }}{% endif %}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
 {% render '../dialog/dialog', content: body %}
 {% endif %}
 {% if state == "error" %}
-{% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ content.error_copy }} {{ reconnect_line }}</p>{% if disconnect %}<button intent="danger" class="error-disconnect">{{ content.error_disconnect }}</button>{% endif %}</div>{% endcapture %}
+{% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ content.error_copy }} {{ reconnect_line }}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
 {% render '../dialog/dialog', content: body %}
 {% endif %}
 {% if state == "needs-upgrade" %}

@@ -206,6 +206,27 @@
               ]
             },
             {
+              "type": "folder",
+              "title": "Desktop local page",
+              "children": [
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/connecting.frame",
+                  "title": "Connecting"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/access-token.frame",
+                  "title": "Access token required"
+                },
+                {
+                  "type": "frame",
+                  "path": "frames/app/system-modals/local/cant-connect.frame",
+                  "title": "Can\u2019t connect with server"
+                }
+              ]
+            },
+            {
               "type": "frame",
               "path": "frames/app/upgrade-gate.frame",
               "title": "Upgrade gate"
