@@ -238,11 +238,10 @@ async function installAndProveBoot(
   const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
   expect(token).not.toBe("");
   const connectURL = `${serverURL}/?token=${token}`;
-  const terminalURL = `\u001B]8;;${connectURL}\u001B\\${connectURL}\u001B]8;;\u001B\\`;
   expect(install).toEqual({
     exitCode: 0,
     signal: null,
-    stdout: `Television service installed.\nOpen Television:\n  ${terminalURL}\n`,
+    stdout: `Television service installed.\nOpen Television:\n  ${connectURL}\n`,
     stderr: "",
   });
 

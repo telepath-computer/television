@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { execFileSync } from "node:child_process";
-import { createServer as createNetServer } from "node:net";
+import { connect, createServer as createNetServer, type Socket } from "node:net";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -209,6 +209,93 @@ describe("CLI product spine acceptance", () => {
   afterEach(async () => {
     await disposeAllOwnedProcesses();
     for (const dir of dirs.splice(0).reverse()) rmSync(dir, { recursive: true, force: true });
+  });
+
+  // [[product/cli.md#^cli-ac-links]]: built processes, real config/token files
+  // and HTTP. The config changes while the running server keeps its settings.
+  it("links follows running authentication across config edits and an authless restart", async () => {
+    const home = makeTempDir("television-cli-links-", dirs);
+    const running = await startBuiltCLI(home);
+    const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
+    const health = await (await fetch(new URL("/health", running.startupURL))).json() as { bindAddresses: string[]; port: number };
+    const expected = health.bindAddresses.map((address) => `http://${address}:${health.port}/?token=${token}\n`).join("");
+    const links = () => runBuiltCLI(["--home", home, "links", "--port", String(running.port)]);
+    expect(await links()).toEqual({ exitCode: 0, signal: null, stdout: expected, stderr: "" });
+
+    const config = await runBuiltCLI(["--home", home, "config", "set", "auth", "false"]);
+    expect(config.exitCode, config.stderr).toBe(0);
+    const afterEdit = await links();
+    expect(afterEdit).toEqual({ exitCode: 0, signal: null, stdout: expected, stderr: "" });
+    for (const link of afterEdit.stdout.trim().split("\n")) {
+      const url = new URL(link);
+      const response = await fetch(new URL("/display", url), { headers: { authorization: `Bearer ${url.searchParams.get("token")}` } });
+      expect(response.status).toBe(200);
+    }
+    await running.process.dispose();
+
+    const authless = await startBuiltServer(["--home", home, "serve"], cliEnvironment());
+    expect(readFileSync(path.join(home, "state", "token"), "utf8").trim()).toBe(token);
+    const restored = await runBuiltCLI(["--home", home, "config", "set", "auth", "true"]);
+    expect(restored.exitCode, restored.stderr).toBe(0);
+    const authlessHealth = await (await fetch(new URL("/health", authless.startupURL))).json() as { bindAddresses: string[]; port: number };
+    expect(await runBuiltCLI(["--home", home, "links", "--port", String(authless.port)])).toEqual({
+      exitCode: 0, signal: null, stderr: "",
+      stdout: authlessHealth.bindAddresses.map((address) => `http://${address}:${authlessHealth.port}\n`).join(""),
+    });
+  });
+
+  // [[product/cli.md#^cli-ac-links-unauthorized]]
+  it("links rejects a wrong home token without printing links", async () => {
+    const home = makeTempDir("television-cli-links-server-", dirs);
+    const running = await startBuiltCLI(home);
+    const clientHome = makeTempDir("television-cli-links-client-", dirs);
+    writeHomeConfig(clientHome, { port: 0 });
+    mkdirSync(path.join(clientHome, "state"));
+    writeFileSync(path.join(clientHome, "state", "token"), "wrong-token\n");
+    const result = await runBuiltCLI(["--home", clientHome, "links", "--port", String(running.port)]);
+    expect(result.exitCode).toBe(1);
+    expect(result.signal).toBeNull();
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain(`Television server at http://localhost:${running.port} rejected the request as unauthorized. Check the token in ${path.join(clientHome, "state", "token")}.`);
+    expect(result.stderr).toContain("Television ships bundled skills.");
+  });
+
+  // [[product/cli.md#^cli-ac-links-unreachable]]: a TCP forwarder keeps the
+  // client endpoint reserved. It relays real traffic and closes on connection
+  // failure; it supplies no HTTP response or substitute Television behavior.
+  it("links reports an unreachable server without printing links", async () => {
+    const home = makeTempDir("television-cli-links-unreachable-", dirs);
+    const running = await startBuiltCLI(home);
+    const sockets = new Set<Socket>();
+    const front = createNetServer((socket) => {
+      const upstream = connect(running.port, "127.0.0.1");
+      const close = () => { socket.destroy(); upstream.destroy(); };
+      for (const peer of [socket, upstream]) {
+        sockets.add(peer);
+        peer.on("error", close);
+        peer.on("close", () => { sockets.delete(peer); close(); });
+      }
+      socket.pipe(upstream).pipe(socket);
+    });
+    try {
+      await new Promise<void>((resolve, reject) => {
+        front.once("error", reject);
+        front.listen(0, "127.0.0.1", resolve);
+      });
+      const address = front.address();
+      if (!address || typeof address === "string") throw new Error("TCP forwarder did not bind");
+      const serverURL = `http://localhost:${address.port}`;
+      expect((await fetch(`${serverURL}/health`)).ok).toBe(true);
+      await running.process.dispose();
+      const result = await runBuiltCLI(["--home", home, "links", "--port", String(address.port)]);
+      expect(result.exitCode).toBe(1);
+      expect(result.signal).toBeNull();
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain(`Could not reach Television server at ${serverURL}:`);
+    } finally {
+      for (const socket of sockets) socket.destroy();
+      await new Promise<void>((resolve, reject) => front.close((error) => error ? reject(error) : resolve()));
+    }
   });
 
   // Spec: [[product/cli.md#^cli-ac-help-version|help and version acceptance]].
