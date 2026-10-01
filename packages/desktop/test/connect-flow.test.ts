@@ -181,21 +181,27 @@ describe("connect flow", () => {
     await startApp();
     expect(await invoke("get-connect-state")).toEqual({ kind: "setup" });
     fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "" }));
+    fetchMock.mockResolvedValueOnce(new Response("", { status: 503 }));
     await startApp();
     await vi.advanceTimersByTimeAsync(0);
+    const retry = await invoke("get-connect-state");
+    expect(retry.kind).toBe("error");
+    await vi.advanceTimersByTimeAsync(retry.nextRetryAt - Date.now());
     expect(mockState.MockBrowserWindow.instances.at(-1)!.loadURL).toHaveBeenCalledWith("http://example.test/?mode=electron&desktopAppVersion=0.1.170");
   });
 
   // proofs/arch/desktop/connect-flow.md#^desktop-t-disconnect
   it("disconnect cancels pending checks, retries and a successful setup handoff", async () => {
-    await startApp();
+    fsState.files.set(storePath, JSON.stringify({ serverURL: "http://example.test", token: "secret" }));
     let resolveCheck!: (value: Response) => void;
     fetchMock.mockImplementationOnce(() => new Promise(resolve => { resolveCheck = resolve; }));
-    const pending = invoke("connect", "http://example.test/?token=secret");
-    await invoke("disconnect");
+    await startApp();
+    expect(disconnectItem().enabled).toBe(true);
+    disconnectItem().click!();
+    await vi.advanceTimersByTimeAsync(0);
     expect(fetchMock.mock.calls[0]![1]!.signal!.aborted).toBe(true);
     resolveCheck(new Response(JSON.stringify(connectCheckBody)));
-    await pending;
+    await vi.advanceTimersByTimeAsync(0);
     expect(fsState.files.has(storePath)).toBe(false);
     const win = mockState.MockBrowserWindow.instances[0];
     expect(win.loadURL).not.toHaveBeenCalled();

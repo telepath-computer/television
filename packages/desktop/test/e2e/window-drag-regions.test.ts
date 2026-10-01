@@ -73,19 +73,20 @@ async function movedWindowBounds(app: ElectronApplication): Promise<WindowBounds
   });
 }
 
-async function emptyGround(page: Page, selector: string): Promise<Point> {
-  return page.locator(selector).evaluate((element, selector) => {
+async function emptyGround(page: Page, selector: string, backgroundChild?: string): Promise<Point> {
+  return page.locator(selector).evaluate((element, { selector, backgroundChild }) => {
     const bounds = element.getBoundingClientRect();
     const y = bounds.top + bounds.height / 2;
     const appRegion = getComputedStyle(element).getPropertyValue("-webkit-app-region");
     const middle = bounds.left + bounds.width / 2;
     for (let offset = 0; offset < bounds.width / 2 - 2; offset += 2) {
       for (const x of offset === 0 ? [middle] : [middle - offset, middle + offset]) {
-        if (document.elementFromPoint(x, y) === element) return { x, y, appRegion };
+        const hit = document.elementFromPoint(x, y);
+        if (hit === element || (backgroundChild && hit?.matches(backgroundChild) && element.contains(hit))) return { x, y, appRegion };
       }
     }
     throw new Error(`No empty ground found in ${selector}`);
-  }, selector);
+  }, { selector, backgroundChild });
 }
 
 async function dragNativeWindow(
@@ -234,7 +235,7 @@ test("packaged setup and saved-error dialogs move the window while controls stay
     await waitForConnectScreen(launched.page);
     await configureTestMotion(launched.page);
     await test.step("setup ground moves and the card edits without moving", async () => {
-      expectWindowMoved(await dragNativeWindow(launched.app, await emptyGround(launched.page, ".setup-screen")));
+      expectWindowMoved(await dragNativeWindow(launched.app, await emptyGround(launched.page, ".setup-screen", ".setup-wallpaper")));
       const before = await windowBounds(launched.app);
       const input = launched.page.getByRole("textbox", { name: "Link from your agent" });
       await input.click();

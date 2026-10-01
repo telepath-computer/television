@@ -10,7 +10,8 @@ import { createUserDataDir, expectConnectedPage, launchDesktopConnectScreen, dis
 // 502 when forwarding fails; it never supplies a Television identity or status.
 test("saved startup retries an unavailable server and recovers without setup", async () => {
   const server = await startConnectTestServer();
-  const { promise: checkBarrier, resolve: releaseCheck } = Promise.withResolvers<void>();
+  let releaseCheck!: () => void;
+  const checkBarrier = new Promise<void>(resolve => { releaseCheck = resolve; });
   const front = await startStableFrontProxy(server.serverURL, () => checkBarrier);
   const userDataDir = createUserDataDir();
   writeFileSync(path.join(userDataDir, "connection.json"), JSON.stringify({ serverURL: front.url, token: server.token }));
@@ -52,7 +53,8 @@ test("a rejected saved token stops checks and the local Disconnect button forget
   const server = await startConnectTestServer();
   const requests: number[] = [];
   server.server.httpServer.on("request", req => { if (req.url?.startsWith("/desktop/connect-check")) requests.push(Date.now()); });
-  const { promise: checkBarrier, resolve: releaseCheck } = Promise.withResolvers<void>();
+  let releaseCheck!: () => void;
+  const checkBarrier = new Promise<void>(resolve => { releaseCheck = resolve; });
   const front = await startStableFrontProxy(server.serverURL, () => checkBarrier);
   const userDataDir = createUserDataDir();
   const record = path.join(userDataDir, "connection.json");
