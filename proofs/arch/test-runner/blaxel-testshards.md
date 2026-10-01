@@ -6,7 +6,7 @@ Proves [specs/arch/test-runner/blaxel-testshards.md](../../../specs/arch/test-ru
 
 ## Coverage model
 
-The host marker’s provider-selection behavior is covered by [the runner proof](test-runner.md#^t-blaxel-host-marker). The corporate credential location is setup information checked by human review, not a new token-source mechanism. The existing token-source assertions remain unchanged; no test reads the vault or asserts its item name.
+The host marker’s provider-selection behavior and one-file local limit are covered by [the runner marker proof](test-runner.md#^t-blaxel-host-marker) and [local admission proof](test-runner.md#^t-runner-file-admission). The setup sentence directs callers to those rules rather than defining a second marker mechanism. The runner’s [live remote handoff](test-runner.md#^t-runner-remote-handoff) adds native-entrypoint and retry-policy evidence on the real planned and targeted paths; this proof retains ownership of Blaxel transport, leasing, and setup. The corporate credential location is setup information checked by human review, not a new token-source mechanism. The existing token-source assertions remain unchanged; no test reads the vault or asserts its item name.
 
 Coverage declarations are carried inside the migrated assertion blocks below.
 

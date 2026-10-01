@@ -67,7 +67,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sessions.md` (31 lines) — *How the promises in Telemetry sessions are proven.*
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **test-runner/**
-    - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
+    - `attestation.md` (67 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (47 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
@@ -75,7 +75,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
-    - `test-runner.md` (74 lines) — *How the promises in Test Runner are proven.*
+    - `test-runner.md` (136 lines) — *Canonical CLI guardrails, local ownership, native entrypoints, and retry policy proven through real process boundaries and declared downstream substitutions.*
   - **themes/**
     - `authoring.md` (35 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*

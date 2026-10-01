@@ -6,7 +6,7 @@ Proves [specs/arch/test-runner/test-registry.md](../../../specs/arch/test-runner
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Coverage declarations are carried inside the migrated assertion blocks below. Explicit suite or owned-file selection uses the standing ownership and exclusion cases. The registry identifies candidate surfaces; it does not establish that a native file filter will execute exactly one file. The runner owns that [file-boundary proof](test-runner.md#^t-runner-file-boundary), [marked-host admission](test-runner.md#^t-runner-file-admission), and [local-only refusal guidance](test-runner.md#^t-runner-local-redirection). The registry’s invocation guidance adds no separate execution requirement.
 
 ## Assertions
 
