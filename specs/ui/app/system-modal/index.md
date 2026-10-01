@@ -9,7 +9,7 @@ The system modal is the dialog a person sees while Television can't use its serv
 - [ui/app/system-modal/system-modal.frame](./system-modal.frame) — the dialog in each state and place, and the desktop window's drag strip.
 - [ui/app/system-modal/content.yml](./content.yml) — the copy.
 
-The dialog shows in three places, which the frame's `context` parameter names: the server's interface in a browser (`browser`), the server's interface in the desktop app (`desktop`), and the desktop app's local page (`local`, [arch/desktop/connect-flow.md](../../../arch/desktop/connect-flow.md#^desktop-local-page)).
+The dialog shows in three places, which the frame's `context` parameter names: the server's interface in a browser (`browser`), the server's interface in the desktop app (`desktop`), and the desktop app's local page (`local`, which always wears the Clouds theme, [arch/desktop/connect-flow.md](../../../arch/desktop/connect-flow.md#^desktop-local-page)). In the server's interface the dialog wears the server's theme.
 
 ## States
 
