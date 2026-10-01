@@ -48,6 +48,7 @@ export function resources(detailed = false) {
     processes,
     memory: read("/proc/meminfo").split("\n").filter((line) => /^(MemAvailable|MemFree|MemTotal|Shmem|SwapFree):/.test(line)),
     fileNr: read("/proc/sys/fs/file-nr"),
+    oomKills: read("/proc/vmstat").split("\n").find((line) => line.startsWith("oom_kill ")),
     filesystems: Object.fromEntries(["/tmp", "/dev/shm"].map((directory) => {
       const stat = fs.statfsSync(directory);
       return [directory, { total: stat.bsize * stat.blocks, available: stat.bsize * stat.bavail }];
