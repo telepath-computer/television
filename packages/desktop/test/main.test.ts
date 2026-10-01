@@ -657,7 +657,7 @@ describe("Electron main process", () => {
     );
   });
 
-  it("registers a Connect to server… menu item", async () => {
+  it("registers a Disconnect from Server menu item", async () => {
     const main = await loadAppModule();
     await new main.App().start();
 
@@ -666,7 +666,7 @@ describe("Electron main process", () => {
       submenu?: Array<{ label?: string }>;
     }>;
     const labels = template.flatMap((item) => item.submenu?.map((sub) => sub.label) ?? []);
-    expect(labels).toContain("Connect to server…");
+    expect(labels).toContain("Disconnect from Server");
   });
 
   it("routes webContents window-open URLs to shell.openExternal", async () => {
