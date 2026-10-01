@@ -1,6 +1,6 @@
 # Local test-runner guardrails
 
-Proposal for independent review. Josh has chosen the three behavior changes below and will review their authoritative spec deltas on the pull request. Two details await his decision, listed under "Open decisions". This document records intent; the [runner spec](../../specs/arch/test-runner/test-runner.md) will own the command behavior.
+Proposal for independent review. Josh has chosen the three behavior changes below and will review their authoritative spec deltas on the pull request. This document records intent; the [runner spec](../../specs/arch/test-runner/test-runner.md) will own the command behavior.
 
 ## Purpose and decisions
 
@@ -10,26 +10,21 @@ Faster iteration is the second priority. Blaxel's planned execution distributes 
 
 Josh's decisions are:
 
-1. Every canonical local test run, including local verify, takes one host-wide mutex outside every checkout and holds it until its test processes exit. A second run is refused immediately with exit `2`, identifying the holder and explaining the available next steps. A separate, conspicuously named flag allows the caller to bypass this protection.
+1. Every canonical local test run, including local verify, takes one mutex for the same operating-system user across the host, outside every checkout, and holds it until its test processes exit. A second run is refused immediately with exit `2`, identifying the holder and explaining the available next steps. A separate, conspicuously named flag allows the caller to bypass this protection at the caller's judgment.
 2. On a host where the invoking user's `~/.tvdev-use-blaxel` exists, ordinary local iteration selects one test file, optionally narrowed with `--grep`. Broader selections are refused with exit `2` and redirection toward Blaxel: an equivalent command where supported, an explanation where the selection is unsupported, and instructions to commit and push first. `--allow-extreme-inefficiency` overrides this restriction, as it does for local verify.
 3. Without that marker, local selection and verification retain their behavior apart from the mutex. Public contributors and forks need no Blaxel credentials or access.
 
 ## Local concurrency
 
-The lock coordinates canonical local runs across worktrees and separate clones on the same host. Its scope across operating-system users awaits Josh's decision. The production lock location is outside checkouts and is not selected by ordinary home-directory or temporary-directory overrides. Acquisition is atomic and nonblocking. An active holder is identified by enough information to find its run: process identity, command, and checkout.
+The lock coordinates canonical local runs by the same operating-system user across worktrees and separate clones on the same host. The production lock location is outside checkouts and is not selected by ordinary home-directory or temporary-directory overrides. Acquisition is atomic and nonblocking. An active holder is identified by enough information to find its run: process identity, command, and checkout.
 
 A local verify acquires the lock before executing its phases and retains it through completion and cleanup. Its test-phase child participates in that same ownership; it must neither contend with its parent nor grant an exemption to unrelated or arbitrarily nested runs. Verify passes the applicable override options to that child. Direct local execution takes the same lock before starting preflight or test work. Informational commands such as `list`, `help`, and `verify --plan` do not acquire it. The existing self-test dry run checks selection guardrails but acquires no lock because it starts no test work. Blaxel dispatch does not acquire the submitting host's local-run lock.
 
 The runner's own reporting, toolchain, and lifecycle tests launch real nested canonical runs. They and the mutex tests will supply private lock locations through a hook accepted only with `TV_TEST_RUNNER_SELFTEST=1`; supplying that hook without the gate is a usage error. This is the explicit test-only exception to the production location rule. Each independent test scenario uses its own location, while processes intentionally testing contention share one. The real acquisition and release logic still runs, including under local verify, GitHub CI, and Blaxel workers. This isolates fixture runs from the outer run's lock and from parallel tests without making ancestry a general ownership exemption. The existing self-test warning identifies the substitution, and proofs declare its coverage limits. This hook does not relax destructive-fixture placement or process-cleanup rules.
 
-Release follows test-process exit and the runner's existing lifecycle cleanup, including failure and handled interruption. If verify's parent exits while its test-phase supervisor remains alive, that child still keeps the run protected; parent death alone cannot make the lock available. An abruptly killed owner cannot run cleanup; recovery must establish that its test processes have exited or complete the existing stale-owner cleanup before admitting another run. Finding stale test processes retains the existing outcome: cleanup followed by a failed invocation, with a later clean invocation able to proceed. Elapsed time alone is not evidence that a holder is safe to replace. Reuse the existing process identity and cleanup facilities where they apply; cross-user recovery awaits the scope decision below.
+Release follows test-process exit and the runner's existing lifecycle cleanup, including failure and handled interruption. If verify's parent exits while its test-phase supervisor remains alive, that child still keeps the run protected; parent death alone cannot make the lock available. An abruptly killed owner cannot run cleanup; recovery must establish that its test processes have exited or complete the existing stale-owner cleanup before admitting another run. Finding stale test processes retains the existing outcome: cleanup followed by a failed invocation, with a later clean invocation able to proceed. Elapsed time alone is not evidence that a holder is safe to replace. Reuse the existing process identity and cleanup facilities.
 
-The proposed bypass spelling is `--allow-major-host-contention-and-oom-killed-processes`. A caller passing it still takes and holds the mutex when it is free; when occupied, the flag permits concurrent local execution without displacing the holder. The refusal tells callers to wait for the named run to finish or use Blaxel when available, and documents the bypass's consequence under the permission rule Josh settles below. Unmarked hosts receive a usable local next step without needing Blaxel.
-
-## Open decisions
-
-- **Review blocker 2 — operating-system user scope:** does "host-wide" coordinate all runs by the same operating-system account, or also runs by other accounts? If it covers other accounts, recovery needs a stated outcome when the caller cannot inspect, clean up, or replace another user's abandoned ownership. Cross-user coordination is not assumed in this proposal while Josh decides.
-- **Review blocker 3 — contention-bypass permission:** may an agent use the contention bypass on its own judgment, or must it have explicit human permission? The flag's existence does not settle permission. The testing policy, refusal message, and agent guidance will carry Josh's decision consistently; the existing inefficiency-bypass permission rule remains in force.
+The proposed bypass spelling is `--allow-major-host-contention-and-oom-killed-processes`. A caller passing it still takes and holds the mutex when it is free; when occupied, the flag permits concurrent local execution without displacing the holder. Its name states why concurrent local execution is avoided by default. The refusal tells callers to wait for the named run to finish, use Blaxel when available, or deliberately use this bypass with its stated consequence. Unmarked hosts receive a usable local next step without needing Blaxel.
 
 ## One local file on marked hosts
 
@@ -51,13 +46,13 @@ Existing placement restrictions remain authoritative. In particular, the live Po
 | `--allow-major-host-contention-and-oom-killed-processes` | Local execution despite another local run. The marked-host file restriction still applies. |
 | `--force` | A raw full-suite provider shortcut under the existing broad-run guardrail. It bypasses neither local protection. |
 
-A caller needing both local exceptions must request both. The existing testing-policy requirement for explicit human permission before an agent uses the inefficiency bypass remains in force. During this contribution, the narrower task instruction applies: locally execute only the one test file just edited; send broader validation to Blaxel on a pushed revision.
+A caller needing both local exceptions must request both. Using the contention bypass is the caller's judgment, including for agents; it requires no human permission. The existing testing-policy requirement for explicit human permission before an agent uses the inefficiency bypass remains in force. During this contribution, the narrower task instruction applies: locally execute only the one test file just edited; send broader validation to Blaxel on a pushed revision.
 
 ## Guidance agents reach from AGENTS.md
 
 The contribution includes written guidance as well as enforcement. The repository's [AGENTS.md](../../AGENTS.md) is the entry point every agent receives, so its Testing section will state the practical rules directly and link to their authoritative owners. The intended summary is:
 
-> Use local tests for fast, narrow feedback on the behavior you are changing. Concurrent runs can drive a shared host into swap or cause OOM kills. Every local test run and local verify takes a mutex across checkouts; wait for its holder or use Blaxel when available. The runner documents the independent contention and inefficiency bypasses; the testing policy governs agent permission to use them.
+> Use local tests for fast, narrow feedback on the behavior you are changing. Concurrent runs can drive a shared host into swap or cause OOM kills. Every local test run and local verify takes a mutex for the same operating-system user across checkouts; wait for its holder or use Blaxel when available. The runner documents the independent bypasses: the contention bypass is the caller's judgment, while agent use of the inefficiency bypass follows the testing policy's permission rule.
 >
 > On hosts with `~/.tvdev-use-blaxel`, select one local file with optional grep; commit and push before using Blaxel for anything broader. Follow the runner's guidance for local-only suites. Unmarked hosts need no Blaxel access.
 
