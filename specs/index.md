@@ -86,7 +86,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `reporting.md` (411 lines) — *The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
     - `sharded-execution.md` (341 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
     - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
-    - `test-runner.md` (303 lines) — *The canonical `npm test` and `npm run verify` command surface: selection, providers, retries, and local guardrails for shared-host health and fast feedback.*
+    - `test-runner.md` (305 lines) — *The canonical `npm test` and `npm run verify` command surface: selection, providers, retries, and local guardrails for shared-host health and fast feedback.*
   - **themes/**
     - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
     - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*
