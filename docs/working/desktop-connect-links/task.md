@@ -142,7 +142,7 @@ Slice 2 follow-up review passed at `03e5f432`; slices 1 and 2 have converged. Th
 Josh changed test placement: narrow file-level iteration may run locally; whole surfaces, repeated runs and the full verification gate run on Blaxel against a pushed revision. Push the implementation branch before those runs.
 
 
-## Slice 3 implementation — validation in progress
+## Slice 3 implementation — ready for independent review
 
 Consolidated and pushed the PR branch at `4797af3c`; the worker now uses only
 `thopter/desktop-connect-links`. Local iteration used one targeted case at a
@@ -199,6 +199,7 @@ the shared modal after gate composition moved into the app. Removed that case:
 the production app's existing real reconnect walk proves that the gate replaces
 the outage dialog without stacking, and the modal's native non-dismissal
 contract remains. The modal proof now names that app-owned routing evidence.
+The remaining modal file passed before the full browser surface passed.
 
 **Executed runbook delta.** Before editing the staging runbook, the gate walk
 at `acc51524` launched the built app with a saved authless test server and the
@@ -230,6 +231,8 @@ Completed validation checkpoints (directories under `.test-runs/`):
 | Desktop build and upload licensing cases | `4cc7fe99` | 2 passed | `2026-10-01T20-52-15-299Z-p2840512-rddeaf0df699234f0` |
 | Licensing notices-file case | `178e8726` | Passed with default retries | `2026-10-01T21-20-44-240Z-p2852333-r0907f816dab96462` |
 | `test/node/licensing.test.ts` | `178e8726` | 16 passed with default retries | `2026-10-01T21-21-11-560Z-p2852472-r984df65d90b518c5` |
+| Browser `system-modal.test.ts` | `04f04e13` | Native non-dismissal passed with default retries | `2026-10-01T21-27-01-067Z-p2854630-raf89b4028543f37a` |
+| `e2e:browser-app` | `04f04e13` | 285 passed, 1 existing Firefox appearance skip; default retries | `2026-10-01T21-28-01-658Z-p2854870-r179fdfce56f258cd` |
 
 These checkpoints reported no recovered test flakes or process leaks. Blaxel
 skipped three incompletely provisioned pool candidates across two runs and
@@ -239,4 +242,7 @@ check passed. The integrated full gate, reconciliation with the target's current
 commits, signed-Mac checks and eventual administrator-guide publication remain
 the plan's later obligations.
 
-Browser acceptance discovery remains in progress. The supervisor coordinates independent review.
+Slice 3 is ready for independent review. No observed test failure remains open.
+Review includes the licensing proof extensions, the declared proof refinements,
+and the executed staging runbook delta. No full verification is claimed; the
+supervisor coordinates this slice's review and the later integrated phase.
