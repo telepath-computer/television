@@ -54,20 +54,4 @@ test.describe("application system modal", () => {
     }
   });
 
-  test("switches between the routed upgrade gate and the standard dialog without stacking", async ({ page }) => {
-    await pose(page, {
-      kind: "needs-upgrade",
-      instructions: { upgradeMarkdown: "# Upgrade this desktop\n\nUse the channel instructions." },
-    });
-
-    await expect(page.locator(".desktop-upgrade-gate")).toContainText("Upgrade this desktop");
-    await expect(page.locator(".system-modal")).toHaveCount(0);
-    await expectNativeModal(page);
-
-    await pose(page, { kind: "connecting" });
-
-    await expect(page.locator(".desktop-upgrade-gate")).toHaveCount(0);
-    await expect(page.locator(".system-modal h2")).toHaveText("Connecting");
-    await expectNativeModal(page);
-  });
 });

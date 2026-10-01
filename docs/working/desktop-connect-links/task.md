@@ -146,8 +146,11 @@ Josh changed test placement: narrow file-level iteration may run locally; whole 
 
 Consolidated and pushed the PR branch at `4797af3c`; the worker now uses only
 `thopter/desktop-connect-links`. Local iteration used one targeted case at a
-time. File batches, whole surfaces and discovery ran on pushed Blaxel revisions,
-with `--retries 0`.
+time. File batches, whole surfaces and discovery ran on pushed Blaxel revisions.
+The initial checkpoints used `--retries 0`. Josh subsequently directed validation
+to use the runner's default retries; licensing and browser discovery below use
+that default. Zero retries is reserved for deliberate determinism checks of
+new tests.
 
 The packaged page implements setup's four states, one-link submission, prompt
 selection and Copy. Main owns saved startup, checks, backoff, stopped retries on
@@ -186,6 +189,17 @@ retaining bare host-and-port input. Visual review of setup and local-dialog
 screenshots found an undefined background token; the page now uses the defined
 foundation surface color.
 
+Full licensing discovery then found the expected notices-file list omitted the
+Clouds folder now copied into the desktop upload. The expectation now includes
+that file and checks its bytes against the source notice. The failing case
+passed narrowly before all 16 licensing cases passed on Blaxel.
+
+Browser discovery found one obsolete fixture test passing `needs-upgrade` to
+the shared modal after gate composition moved into the app. Removed that case:
+the production app's existing real reconnect walk proves that the gate replaces
+the outage dialog without stacking, and the modal's native non-dismissal
+contract remains. The modal proof now names that app-owned routing evidence.
+
 **Executed runbook delta.** Before editing the staging runbook, the gate walk
 at `acc51524` launched the built app with a saved authless test server and the
 old-shell/required-version hooks, used the installed Disconnect menu item,
@@ -214,6 +228,8 @@ Completed validation checkpoints (directories under `.test-runs/`):
 | Desktop `upgrade-gate.spec.ts` | `2e691900` | 7 passed after narrowing the gate-host failures | `2026-10-01T21-03-06-006Z-p2846328-r5625c850a3887bfe` |
 | Packaged asset case after the background correction | `2e691900` | Passed; screenshot attachments inspected | `2026-10-01T21-04-21-643Z-p2847041-rb9b6da261d49573e` |
 | Desktop build and upload licensing cases | `4cc7fe99` | 2 passed | `2026-10-01T20-52-15-299Z-p2840512-rddeaf0df699234f0` |
+| Licensing notices-file case | `178e8726` | Passed with default retries | `2026-10-01T21-20-44-240Z-p2852333-r0907f816dab96462` |
+| `test/node/licensing.test.ts` | `178e8726` | 16 passed with default retries | `2026-10-01T21-21-11-560Z-p2852472-r984df65d90b518c5` |
 
 These checkpoints reported no recovered test flakes or process leaks. Blaxel
 skipped three incompletely provisioned pool candidates across two runs and
@@ -223,4 +239,4 @@ check passed. The integrated full gate, reconciliation with the target's current
 commits, signed-Mac checks and eventual administrator-guide publication remain
 the plan's later obligations.
 
-Browser acceptance and licensing-file discovery remain in progress. The supervisor coordinates independent review.
+Browser acceptance discovery remains in progress. The supervisor coordinates independent review.
