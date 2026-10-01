@@ -16,5 +16,7 @@ Working record for `thopter/desktop-connect-links`. Not authority. The approved 
 ## Review record
 
 - Spec review round 1 (Codex gpt-6-astra, xhigh, read-only): FAIL, four blockers, all accepted and fixed in 3e166bbd and 9e318989: `tv links` token inclusion follows the running server, not the config file; the upgrade gate keeps priority once shown (consistent with the gate spec and the proposal's "as today"); admin-guide Docker and SSH paths gave bare addresses, and `0.0.0.0`/`127.0.0.1` listeners need address substitution; setup token errors must speak about the link. Two refinements also applied (explicit unreachable message for `tv links`; workshop retry clears the error treatment). Proposal and shared doc updated.
-- Spec review round 2 (same setup): PASS, no blockers. Applied its one refinement: `Writable` declares `isTTY?: boolean`. No further review under the bounded refinement rule. Human spec approval pending; proof derivation next.
+- Spec review round 2 (same setup): PASS, no blockers. Applied its one refinement: `Writable` declares `isTTY?: boolean`. No further review under the bounded refinement rule. Proof derivation next.
 - Planning started in parallel at Josh's request: planner on `thopter/desktop-connect-links-plan` (Codex gpt-6-astra), plan reviewer Claude Fable standing by.
+- Connection states explainer added (bf850e0f) with its own focused review: PASS; refinement and source references applied (06becc24).
+- Josh approved the spec deltas at 06becc24 (spec gate complete). Any later spec change returns to him as its own delta.
