@@ -22,7 +22,7 @@ The connection outcomes below run in the real Electron app against a running Tel
 
 ## Test hooks
 
-The connection walks use the [desktop user-data and version hooks](../arch/desktop/connect-flow.md#test-hooks). A compatible shell-version override forfeits version provenance to the [unhooked seam](../arch/updates/desktop-upgrade-gate.md#^t-shell-version-param). The gated walk additionally uses the [required-version hook](../arch/updates/desktop-upgrade-gate.md#^hook-required-version). These overrides substitute advertised versions, not the gate decision, IPC or server mechanisms. No direct-remote-page shortcut is used.
+The connection walks use the [desktop user-data and version hooks](../arch/desktop/connect-flow.md#test-hooks). A compatible shell-version override forfeits version provenance to the [unhooked seam](../arch/updates/desktop-upgrade-gate.md#^t-shell-version-param). The gated walk additionally uses the [server-version](../arch/updates/version-advertisement.md#^hook-server-version) and [required-version](../arch/updates/desktop-upgrade-gate.md#^hook-required-version) hooks. These overrides substitute advertised versions, not the gate decision, IPC or server mechanisms. It points `TV_UPDATE_CHANNEL_URL` at a deliberately unreachable address, forfeiting public-channel delivery while exercising the gate without channel instructions or a server-update notice. No direct-remote-page shortcut is used.
 
 ## Connection assertions
 

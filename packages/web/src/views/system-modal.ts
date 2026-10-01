@@ -51,7 +51,7 @@ export class SystemModal extends View<[SystemModalState, SystemModalOptions]> {
   }
 
   #standardInterior(
-    state: Exclude<SystemModalState, { kind: "needs-upgrade" }>,
+    state: SystemModalState,
     options: SystemModalOptions,
   ): unknown {
     switch (state.kind) {

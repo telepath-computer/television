@@ -72,7 +72,7 @@ describe("product licensing outputs", () => {
 
   test("esbuild desktop persists its bundled inventory and writes the matching notices file", () => {
     const inventory = readSurfaceInventory(inventoryRoot, "desktop");
-    expect(packageNames(inventory)).toContain("lit-html");
+    expect(packageNames(inventory)).toEqual(["@rupertsworld/event-target", "lit-html"]);
     expect(existsSync(path.join(desktopDist, noticeName))).toBe(true);
     const notice = readFileSync(path.join(desktopDist, noticeName), "utf8");
     expect(packageNamesFromNotice(notice)).toEqual(expect.arrayContaining(packageNames(inventory)));

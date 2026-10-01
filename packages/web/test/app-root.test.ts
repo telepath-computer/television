@@ -669,7 +669,7 @@ describe("system modal (^sm-ac-markup-smoke)", () => {
     const downloadedBridge = new StandInDesktopUpdateBridge();
     downloadedBridge.report("1.5.0");
     const desktopUpdate = new DesktopUpdateState({ electron: true, bridge: downloadedBridge });
-    const states: Exclude<SystemModalState, { kind: "needs-upgrade" }>[] = [
+    const states: SystemModalState[] = [
       { kind: "connecting" },
       { kind: "disconnected", nextRetryAt: 15_000 },
       { kind: "disconnected", nextRetryAt: null },

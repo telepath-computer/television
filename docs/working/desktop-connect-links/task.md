@@ -246,3 +246,54 @@ Slice 3 is ready for independent review. No observed test failure remains open.
 Review includes the licensing proof extensions, the declared proof refinements,
 and the executed staging runbook delta. No full verification is claimed; the
 supervisor coordinates this slice's review and the later integrated phase.
+
+
+## Slice 3 round-one review refinements
+
+Independent review by Claude Fable at `68b8ab11` passed with no blockers and
+five refinements. The supervisor requested one follow-up review after these
+edits and the theme-reset acceptance correction.
+
+| Item | Assessment and action |
+| --- | --- |
+| 1 — repeated remote load failures | Retained the approved startup-equivalent recovery. If identity checks always pass but Chromium loads always fail, recovery can cycle without backoff. The reviewer confirms this follows the spec; changing that behavior needs an owner decision. No new retry policy or test is introduced here. |
+| 2 — gate routing proof and types | Removed the modal assertion's claim that it routes the upgrade gate and its gate fixture wording. The coverage model already delegates routing to the app's real reconnect walk. Removed two redundant state-type exclusions; runtime behavior is unchanged. |
+| 3 — desktop README | Described one-link setup and automatic saved reconnection. |
+| 4 — proof wording | Named the desktop Clouds folder in the notices-file set, declared the gate walk's server-version hook and unreachable update-channel source, and quoted the four connection-entry test titles. |
+| 5 — desktop bundle inventory | Restored an exact package assertion for `@rupertsworld/event-target` and `lit-html`. It catches accidental growth through shared web imports while retaining the existing complete-attribution assertions. |
+
+**Full-gate failure and diagnosis.** `npm run verify -- blaxel` at `68b8ab11`
+passed lint, type checking and package manifests, then failed the theme-reset
+acceptance case on all three attempts. The report is
+`.test-runs/2026-10-01T21-41-23-867Z-p2861143-ra3e7bfaa4a5003cd/summary.json`.
+Twenty-two of 23 test surfaces passed; there were no process leaks or
+infrastructure failures. The demo-mode bridge-message case recovered on its
+second attempt. Four incompletely provisioned pool candidates were skipped
+before workers were acquired.
+
+The failed shard's trace shows Chromium refusing SVG-module requests with
+`net::ERR_INSUFFICIENT_RESOURCES` after both application pages reload. The test
+loads the unbundled Vite page, although its proof calls for the built
+application. The reset implementation, icon imports, test, readiness helper
+and development proxy are unchanged from the contribution base. Isolated
+runs passed locally and on Blaxel at `68b8ab11`, and on Blaxel at base
+`ab6ce3c8`. The complete theme file passed at the base; at `68b8ab11` it passed
+with the reset case recovering on attempt 2. These comparisons identify the
+loading failure but do not establish why that shard exhausted resources or
+exclude the contribution affecting timing.
+
+The supervisor authorized changing only this case's entry to the product
+server's built application. Both pages, all reset assertions, production
+code, timeouts and retry settings stay as they were. Josh deferred investigation
+of the underlying shard resource exhaustion until after this PR; this test
+correction does not close that investigation.
+
+The independent slice review accepts the staging-runbook delta; its human
+review and the signed-Mac checks remain outstanding.
+
+The corrected theme-reset case passed locally on its first attempt with default
+retries, using the single-case selector on the edited file. Report:
+`.test-runs/2026-10-01T21-58-16-474Z-p2870833-r5f858d0b2d3a1e6a/summary.json`.
+This run used `68b8ab11` plus the working-tree refinements. Broader checks and
+the full gate follow on the pushed revision. Regenerating the spec/proof indexes
+produced no changes, and `git diff --check` passed.
