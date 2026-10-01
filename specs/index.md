@@ -32,6 +32,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `canonical.md` (73 lines) — *The canonical bundle: the stylesheet and components script Television serves an artifact document at `/canonical/v<n>/*`, the live and frozen inputs that produce it, and the compatibility contract over each version.*
   - `developer-skills.md` (23 lines) — *Developer skill distribution: the editable source collection and its installation into agent skill directories under the developer’s home.*
   - `explainer-appearance.md` (97 lines) — *Explainer: how Television combines a theme with the server-wide appearance preference across the application, artifacts, theme script frames, and Electron-native surfaces.*
+  - `explainer-connection-states.md` (60 lines) — *Explainer: what a person sees while Television can't use its server — the desktop setup screen, the connection dialogs in the browser and the desktop app, and the rules that choose between them.*
   - `explainer-desktop-app.md` (77 lines) — *Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
   - `licensing.md` (280 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
   - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
@@ -47,7 +48,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (167 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
   - **cli/**
     - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
-    - `index.md` (463 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+    - `index.md` (465 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
     - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
