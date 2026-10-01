@@ -41,3 +41,4 @@ Validation at b0164479: all 62 plan links resolve; `npm test -- local --file tes
 - Josh approved the remaining wording-level spec deltas: drag strip (06d9d79c, edbec2cc), the Clouds clause for local dialogs (d4c63e53), and the licensing architecture surface list (ca22ebbe). All spec deltas on the branch are now approved.
 - Josh designated hzbox (this host) for the daemon-acceptance suite. Full verification runs on Blaxel.
 - Blaxel readiness check: CLI logged in (workspace telepath); BLAXEL_TV_GH_TOKEN can read the archive repo but gets 404 on telepath-computer/television, so workers would fail checkout. Asked Josh to extend the token's repository access before the final gate.
+- Josh extended the Blaxel token's repository access; verified it reads telepath-computer/television and its branches. Blaxel is ready for the final gate.
