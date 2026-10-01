@@ -12,6 +12,8 @@ The independent public-name fixture proves released v1's additive vocabulary and
 
 The icon-extraction contract cases exercise mixed top-level selector lists and nested rules through the production extractor. They verify that only matching placeholder selectors survive, their declarations remain unchanged, and nested rules are not lifted. The existing fresh-build icon seam then compares the authoritative placeholder declarations with real canonical output.
 
+The live-v2 foundation crossing includes the large button/input rules and `--line-control-lg`; [the public-name contract](#^cn-t-v1-additive) and [skill-guidance seam](#^cn-t-skill-guidance) cover their public vocabulary with `--line-control-lg`, button `size="lg"` and input `data-size="lg"` included in the live fixture and guidance. Those additions remain to be written; existing assertions and their test boundaries apply. This adds no size/colour assertions and does not alter frozen v1's committed vocabulary or bytes.
+
 ## Assertions
 
 ### Test assertions
