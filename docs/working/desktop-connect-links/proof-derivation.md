@@ -1,6 +1,8 @@
 # Desktop connect links: proof derivation
 
-Prepared for independent re-review against spec revision `06d9d79c`, merged into the planning branch as `1b26430b`. The implementation plan at `fbca5eed` remains unchanged until proof convergence. Round-one review found a drag-strip ambiguity that the first derivation had missed; the upstream spec resolved it with `06d9d79c`, and the app proof follows that resolution. No unresolved spec decision blocks this revision.
+Round-two status: independent review passed at `b7f3e899`; the supervisor confirmed proof convergence. The wording clarifications through `358e6802` resolve the explainer follow-up below and leave the proof design unchanged. The implementation plan now builds on these proofs and carries the review's reduced-motion and stale CLI citation observations into implementation.
+
+The round-two submission was prepared against spec revision `06d9d79c`, merged into the planning branch as `1b26430b`. The implementation plan at `fbca5eed` was held unchanged during proof review. Round-one review found a drag-strip ambiguity that the first derivation had missed; the upstream spec resolved it with `06d9d79c`, and the app proof follows that resolution. No unresolved spec decision blocked the submission.
 
 The proof changes cover every product, architecture and UI owner touched since `ab6ce3c8`, including owners of changed frame, content and stylesheet material. The new [setup proof](../../../proofs/ui/setup/index.md) composes with [desktop product acceptance](../../../proofs/product/desktop-app.md) and [connection architecture](../../../proofs/arch/desktop/connect-flow.md). The [foundation distribution](../../../proofs/arch/ui/foundation.md) and [canonical](../../../proofs/arch/canonical.md) proofs also account for their changed consumers. Explainers, the generated spec index, migration map and glossary receive no proofs under proof policy.
 
@@ -10,11 +12,11 @@ Pending behavior is marked “test to be written”; the round-one corrections i
 
 During implementation, reconcile the tests that still exercise the separate token field, manual-prefill mode, unconditional OSC-8 output and authorization-over-gate priority. The retired `sm-ac-auth-submit` assertion orders no replacement token form. Its existing test is obsolete; shared token ingestion/transport remains covered by the app's real-link/authentication paths. Existing narrower tests cited beside pending obligations are starting evidence, not claims that the new behavior already passes.
 
-Validation:
+Validation of the proof submission:
 
 - Regenerated spec/proof indexes after the upstream merge and proof revisions.
 - After the supervisor installed dependencies, `npm test -- local --file test/repo/spec-links.test.ts` passed. It also passes on this revised proof tree; this checks reference integrity, not the pending behavior.
-- No application tests or full verification were run. Independent proof re-review and implementation remain ahead.
+- No application tests or full verification were run for proof derivation.
 
 ## Round-one review assessment
 
@@ -34,4 +36,4 @@ All three blockers were warranted. Each refinement was assessed against the owni
 | R7: claimed Mac coverage | Corrected the menu and appearance forfeits. The listed Mac checks do not establish native menu/accelerator activation or live device-preference changes; these are stated as unobserved. Direct `themeSource` assignment replaces the appearance input source, not the operating-system preference. |
 | R8: derivation note | Corrected the ambiguity history, pending evidence grades, and canonical test result here. |
 
-Plan reconciliation remains deferred. Its provisional drag condition, bridge-hardening detail, proof allocations and approval status must follow the converged result when that revision is assigned. The imported connection-states explainer's “Moving the window” paragraph still uses the shorter sidebar-based condition; the owning system-modal spec now states the narrower rule explicitly. This is a nonblocking derived-wording follow-up for the supervisor, not a proof decision.
+At submission, plan reconciliation was deferred until proof convergence. Its provisional drag condition, bridge-hardening detail, proof allocations and approval status were identified for revision. The imported connection-states explainer's “Moving the window” paragraph then used the shorter sidebar-based condition, while the owning system-modal spec stated the narrower rule explicitly. This was reported as a nonblocking derived-wording follow-up for the supervisor, not a proof decision; the wording is now reconciled through `358e6802`.
