@@ -13,6 +13,8 @@ Explain the system change, not merely the changed files or "implements feature X
 
 Organize around the final behavior, architecture, validation, and important decisions. Neither the latest incremental edits nor the sequence of branch work describes the full result the reviewer must assess.
 
+A PR describes the changes, so omit routine approvals, review rounds, workflow status and similar process records unless unusually relevant to the changes; merging into `main` or an integration branch already implies human review and approval. Keep records a spec explicitly requires, such as desktop product-check results.
+
 ## Write for the visible diff
 
 Apply [cold-reader](../cold-reader/SKILL.md) and [plain-English](../plain-english-full/SKILL.md), including the cold-reader self-audit search before publishing.
