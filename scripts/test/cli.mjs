@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { loadTestConfig, owningSurfaces, selectSurfaces, validateRegistry } from "./config.mjs";
+import { loadTestConfig, validateRegistry } from "./config.mjs";
 import { requiredPreflights, runPreflights, runRemotePreflight } from "./preflight.mjs";
 import { normalizeSurfaceResult, safeSurfaceName } from "./reporting.mjs";
 import { atomicWriteFile, createRunContext, finalizeRun, readRunDirectoryIdentity } from "./run-context.mjs";
@@ -55,7 +55,7 @@ try {
 
 async function list() {
   assertRegistryValid();
-  const surfaces = selectSurfaces(config, options);
+  const { surfaces } = resolveFileSelection({ config, options });
   for (const surface of surfaces) {
     console.log(`${surface.id}\t${surface.kind}\t${surface.runner}\t${surface.package ?? "-"}\t${surface.config}\t${surface.tags.join(",")}`);
   }
@@ -63,12 +63,14 @@ async function list() {
 
 async function preflight() {
   const provider = requireProvider();
-  assertRegistryValid();
-  const surfaces = selectedSurfaces({ requireSelection: false });
+  if (provider === "local") assertRegistryValid();
+  const selectionConfig = provider === "blaxel" ? await loadRegistrySnapshotAtCommit({ commit: options.commit ?? "HEAD" }) : config;
+  const selectionOptions = provider === "blaxel" ? { ...options, commit: selectionConfig.commit } : options;
+  const { surfaces } = resolveFileSelection({ config: selectionConfig, options: selectionOptions, commit: provider === "blaxel" ? selectionConfig.commit : null });
   enforceExecutionPlacement(provider, surfaces);
   const results = provider === "local"
     ? runProviderPreflights(provider, surfaces)
-    : runRemotePreflightAndPrint(provider, options).results;
+    : runRemotePreflightAndPrint(provider, selectionOptions).results;
   if (results.some((result) => result.status !== "passed")) process.exit(1);
 }
 
@@ -861,20 +863,6 @@ function shouldRetrySurface(surface) {
   return surface.kind !== "unit" && ["playwright", "vitest"].includes(surface.runner);
 }
 
-function selectedSurfaces({ options: localOptions = options, requireSelection }) {
-  if (requireSelection && !localOptions.all && !localOptions.suite && !localOptions.surface && !localOptions.package && !localOptions.file && !localOptions.runner && !localOptions.tag) {
-    fail("Select tests explicitly with --suite, --all, --surface, --package, --file, --runner, or --tag.");
-  }
-  if (localOptions.file) {
-    const owners = owningSurfaces(config.surfaces, localOptions.file);
-    if (owners.length === 0) fail(`No test surface owns ${localOptions.file}.`);
-    if (owners.length > 1 && !localOptions.surface) fail(`${localOptions.file} is owned by multiple surfaces:\n${owners.map((surface) => `- ${surface.id}`).join("\n")}\nPass --surface <id> to disambiguate.`);
-  }
-  const surfaces = selectSurfaces(config, localOptions);
-  if (surfaces.length === 0) fail("Selection matched no test surfaces.");
-  return surfaces;
-}
-
 function assertRegistryValid() {
   const errors = validateRegistry(config);
   if (errors.length) fail(`Test registry validation failed:\n${errors.map((e) => `- ${e}`).join("\n")}`);
@@ -1018,8 +1006,9 @@ function parseArgs(argv, { allowPositionals = false } = {}) {
     }
     const equals = arg.indexOf("=");
     const key = arg.slice(2, equals < 0 ? undefined : equals);
-    if (equals >= 0) { out[key] = arg.slice(equals + 1); continue; }
     const next = argv[i + 1];
+    if ([BROAD_LOCAL, BROAD_ZERO].includes(key) && (equals >= 0 || next && !next.startsWith("--"))) fail(`--${key} does not take a value. Pass the flag by itself to deliberately enable it, or omit it.`);
+    if (equals >= 0) { out[key] = arg.slice(equals + 1); continue; }
     if (next && !next.startsWith("--")) { out[key] = next; i += 1; }
     else out[key] = "1";
   }

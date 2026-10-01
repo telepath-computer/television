@@ -52,6 +52,7 @@ export interface SelectionOptions {
 
 export const CANONICAL_TEST_INCLUDE_ROOTS: readonly string[];
 export function loadTestConfig(options?: { root?: string }): TestConfig;
+export function normalizeTestConfig(config: TestConfig, options: { root: string; packageDirs: Map<string, string> }): TestConfig;
 export function validateRegistry(config: TestConfig, options?: { root?: string }): string[];
 export function selectSurfaces(config: TestConfig, options: SelectionOptions): TestSurface[];
 export function owningSurfaces(surfaces: TestSurface[], file: string): TestSurface[];

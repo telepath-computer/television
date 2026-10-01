@@ -56,3 +56,18 @@ A subsequent inspection found that a symbolic commit target could move during re
 
 
 Final slice-code validation passed at `d55c6b2cfa97d26f6356b093ef3e49da67fd7827`: `npm test -- blaxel --surface unit:root`, run `2026-10-01T23-26-52-238Z-p2926876-r5cfe3edcd9dc3c15`. The delegated command pinned that full commit ID despite the caller using default `HEAD`. All 477 active cases across 43 files passed, one standing case remained skipped, and no outer flakes recovered. No implementation or test changes follow this run; the handoff commit only records this result. Full verify and production GitHub CI remain final-contribution gates after slices 2 and 3.
+
+### Slice 1 review corrections
+
+Independent review found that targeted `e2e:artifact` execution used its config directory as its working directory. The committed registry loader now shares normalization with the local loader and derives package locations from manifests at the selected commit. The regression test compares all current surfaces and checks a real Git fixture whose package directory moves after the selected revision.
+
+| Check | Red evidence | Green evidence |
+| --- | --- | --- |
+| Registry normalization and committed package locations, `test-runner-file-selection.test.ts` | `2026-10-01T23-44-10-763Z-p2937309-r4a2a80f50301b01f`: surface mismatch and missing top-level snapshot surface | `2026-10-01T23-45-42-017Z-p2937778-r1f1230f924910d9a`: complete file-resolution group passed |
+| Override values, concrete local-only commands, and informational file selection, `test-runner-guardrails.test.ts` | `2026-10-01T23-46-31-216Z-p2938388-r349ea84aa8fd78b7`: five expected assertion failures | Focused checks passed in `2026-10-01T23-47-45-012Z-p2938869-r2d483d277cbae812`; complete file passed in `2026-10-01T23-48-53-245Z-p2940068-rbe3042d228132e2d` |
+
+Review refinements 2–5 are addressed: override flags reject attached or following values, PostHog and daemon refusals print their concrete one-file commands, `list` and standalone preflight share execution's file resolver, and nested native fixtures have 60-second process timeouts. The no-match diagnostic now identifies the tracked/non-ignored working-tree boundary. ESLint and TypeScript checking passed for the three changed TypeScript files, using the repository's compiler options; full-repository lint and type-check remain part of the final gate.
+
+The retry flag spelling in attestation remains local to that policy module: importing `test-guidance.mjs` solely for a constant would make the attestation module load the registry and file-selection dependencies. Remote target execution retains the existing version coupling noted by review: the tested commit must contain its worker entrypoint, as on the planned path. No compatibility transport is added in this slice.
+
+The pushed correction receives a live targeted artifact-file check and a default-budget Blaxel `unit:root` run before the next review handoff; their results are recorded below.

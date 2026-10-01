@@ -22,7 +22,7 @@ export function resolveFileSelection({ config, options, repoRoot = process.cwd()
   const paths = enumerateTrackedPaths({ repoRoot, commit, includeUntracked: !commit }).filter((file) => TEST_FILE_PATTERN.test(file));
   const exact = paths.includes(filter);
   const matches = paths.filter((file) => exact ? file === filter : file.includes(filter));
-  if (!matches.length) throw new Error(`No test files match --file ${options.file}.`);
+  if (!matches.length) throw new Error(`No test files match --file ${options.file}.${commit ? "" : " Local selection includes tracked and non-ignored working-tree test files."}`);
   const files = [];
   for (const file of matches) {
     const owners = owningSurfaces(config.surfaces, file);
@@ -53,7 +53,11 @@ export function enforceLocalFileGuidance(options, { surfaces, oneFile }) {
   let route;
   if (localOnly.length) {
     const requirements = localOnly.map((surface) => surface.agent ? "agent tests require local agent setup" : surface.id.startsWith("telemetry") ? "PostHog tests require the local PostHog test read key" : "daemon tests require a dedicated local host with TV_DAEMON_TEST_HOST=1");
-    route = `${[...new Set(requirements)].join("; ")}. Use npm test -- local --file <one-test-file> with those prerequisites; this selection has no equivalent supported Blaxel command.`;
+    const commands = localOnly.map((surface) => {
+      const file = surface.roots.length === 1 && TEST_FILE_PATTERN.test(surface.roots[0]) ? shellQuote(surface.roots[0]) : "<one-test-file>";
+      return `${surface.id.startsWith("daemon-acceptance:") ? "TV_DAEMON_TEST_HOST=1 " : ""}npm test -- local --file ${file}`;
+    });
+    route = `${[...new Set(requirements)].join("; ")}. Use ${commands.join(" or ")} with those prerequisites; this selection has no equivalent supported Blaxel command.`;
   } else if ((options.file || options.grep || options.surface) && surfaces.length !== 1 || options.suite && !["all", "unit", "e2e"].includes(options.suite) && !options.file && !options.surface && !options.package && !options.runner && !options.tag) {
     route = "This selection has no equivalent supported Blaxel command. npm test -- blaxel supports a single targeted surface or planned all/unit/e2e, package, runner, and tag selections. Commit and push to origin before a supported Blaxel run.";
   } else {

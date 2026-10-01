@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { targetCommand } from "../../scripts/test/target-command.mjs";
+import { loadTestConfig } from "../../scripts/test/config.mjs";
 import { enumerateTrackedPaths, loadRegistrySnapshotAtCommit } from "../../scripts/test/file-inventory.mjs";
 import { createShardPlan } from "../../scripts/test/shard-plan.mjs";
 import { serializeTimingBaseline } from "../../scripts/test/timing-baseline.mjs";
@@ -13,6 +14,28 @@ const zero = "--against-test-guidance-turn-flakes-into-failures-on-broad-runs";
 
 // proofs/arch/test-runner/test-runner.md#^t-runner-file-boundary
 describe("actual file resolution", () => {
+  // proofs/arch/test-runner/test-registry.md#^registry-committed-normalization
+  test("normalizes committed and local registry surfaces identically", async () => {
+    const snapshot = await loadRegistrySnapshotAtCommit();
+    expect(snapshot.surfaces).toEqual(loadTestConfig().surfaces);
+    expect(snapshot.surfaces.find((surface) => surface.id === "e2e:artifact")?.cwd).toBe("packages/artifact");
+  });
+
+  // proofs/arch/test-runner/test-registry.md#^registry-committed-normalization
+  test("derives package directories from the selected commit's manifests", async () => {
+    const f = guidanceCheckout();
+    try {
+      f.write("packages/fixture/package.json", JSON.stringify({ name: "@fixture/tests" }));
+      f.write("test.config.mjs", `export default ${JSON.stringify({ suites: f.registry.suites, surfaces: [{ ...f.surface, cwd: undefined, package: "@fixture/tests" }] })};`);
+      f.git("add", "."); f.git("commit", "-qm", "Package-owned fixture");
+      const commit = f.git("rev-parse", "HEAD");
+      f.git("mv", "packages/fixture", "packages/moved");
+      f.git("commit", "-qm", "Moved package");
+      expect((await loadRegistrySnapshotAtCommit({ repoRoot: f.root, commit })).surfaces[0].cwd).toBe("packages/fixture");
+      expect((await loadRegistrySnapshotAtCommit({ repoRoot: f.root })).surfaces[0].cwd).toBe("packages/moved");
+    } finally { f.cleanup(); }
+  });
+
   test("uses untracked local files and the selected committed registry remotely", () => {
     const f = guidanceCheckout();
     try {
@@ -117,7 +140,7 @@ describe.each(["vitest", "playwright"] as const)("%s native selection and retrie
       const file = `${f.testsRoot}/one.test.ts`;
       const command = targetCommand({ runner, cwd: ".", config: f.surface.config, file, files: [file], grep: "selected|sibling", retries: "0", command: null });
       const output = path.join(f.root, "target.json");
-      const result = spawnSync("bash", ["-c", command], { cwd: f.root, env: { ...f.env, TV_TARGET_NATIVE_RESULT: output }, encoding: "utf8", timeout: 15_000 });
+      const result = spawnSync("bash", ["-c", command], { cwd: f.root, env: { ...f.env, TV_TARGET_NATIVE_RESULT: output }, encoding: "utf8", timeout: 60_000 });
       expect(result.status, result.stdout + result.stderr).toBe(0);
       const native = readFileSync(output, "utf8");
       expect(native).toContain("selected attempt");
@@ -143,7 +166,7 @@ describe.each(["vitest", "playwright"] as const)("%s native selection and retrie
       const env: NodeJS.ProcessEnv = { ...f.env, TV_TEST_TIMING_PROVIDER: "local-linux-x64-4cpu", TV_GUIDANCE_FAIL_COUNT: "1" };
       delete env.GITHUB_ACTIONS;
       delete env.TEST_SHARD_CONFIG_MODULE;
-      const result = spawnSync(process.execPath, ["scripts/run-test-shard.mjs", ...(mode === "planned" ? ["--plan", "plan.json"] : ["--total", "1", "--surfaces", f.surface.id]), "--shard", "1", "--results-dir", ".test-runs/worker", "--test-retries", String(budget)], { cwd: f.root, env, encoding: "utf8", timeout: 15_000 });
+      const result = spawnSync(process.execPath, ["scripts/run-test-shard.mjs", ...(mode === "planned" ? ["--plan", "plan.json"] : ["--total", "1", "--surfaces", f.surface.id]), "--shard", "1", "--results-dir", ".test-runs/worker", "--test-retries", String(budget)], { cwd: f.root, env, encoding: "utf8", timeout: 60_000 });
       expect(result.status, result.stdout + result.stderr).toBe(budget === 0 ? 1 : 0);
       const task = JSON.parse(readFileSync(path.join(f.root, ".test-runs/worker/shard-1.json"), "utf8")).tasks[0];
       if (mode === "planned") expect(task.retryBudget).toBe(budget);

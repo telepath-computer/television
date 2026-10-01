@@ -926,6 +926,34 @@ describe("local file and retry admission", () => {
     expect(dry(["local", broadLocal, "--force"], true).status).toBe(0);
   });
 
+  test.each([broadLocal, broadZero])("rejects values attached to deliberate guidance flag %s", (flag) => {
+    for (const suffix of ["=false", "=0", "=1", "=", " false"]) {
+      const result = dry(["local", "--surface", "unit:root", ...`${flag}${suffix}`.split(" ")], flag === broadLocal);
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(`${flag} does not take a value`);
+    }
+  });
+
+  test.each([
+    ["telemetry-posthog-roundtrip", "packages/server/test/telemetry-posthog.integration.test.ts"],
+    ["daemon-acceptance", "test/node/daemon-acceptance.test.ts"],
+  ])("prints an executable one-file route for %s", (suite, selectedFile) => {
+    const result = dry(["local", "--suite", suite], true);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`npm test -- local --file ${selectedFile}`);
+    expect(dry(["local", "--file", selectedFile], true).status).toBe(0);
+  });
+
+  test("list and standalone preflight use the execution file resolver", () => {
+    const listed = runCli(["list", "--file", "runner-guardrails"], { HOME: markedHome });
+    expect(listed.status, listed.stderr).toBe(0);
+    expect(listed.stdout).toMatch(/^unit:root\t/);
+    const checked = runCli(["preflight", "--provider", "local", "--file", "runner-guardrails"], selftestEnv({ HOME: markedHome, TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT: "fixture:file-resolution-reached-preflight" }));
+    expect(checked.status, checked.stderr).toBe(1);
+    expect(checked.stdout + checked.stderr).toContain("file-resolution-reached-preflight");
+    expect(runCli(["list", "--file", "no-such-runner-file"]).status).toBe(2);
+  });
+
   test("rejects the renamed option and misspelled guidance suffix", () => {
     const renamed = dry(["local", "--file", file, "--allow-extreme-inefficiency"]);
     expect(renamed.status).toBe(2);

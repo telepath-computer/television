@@ -39,6 +39,6 @@ export function guidanceCheckout(runner: "vitest" | "playwright" = "vitest") {
   delete env.TV_TEST_RUNNER_DRY_RUN;
   delete env.TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT;
   delete env.TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT;
-  const run = (args: string[], extraEnv: Record<string, string> = {}) => spawnSync(process.execPath, ["scripts/test/cli.mjs", ...args], { cwd: root, env: { ...env, ...extraEnv }, encoding: "utf8", timeout: 15_000 });
+  const run = (args: string[], extraEnv: Record<string, string> = {}) => spawnSync(process.execPath, ["scripts/test/cli.mjs", ...args], { cwd: root, env: { ...env, ...extraEnv }, encoding: "utf8", timeout: 60_000 });
   return { root, home, testsRoot, surface, registry, write, writeRegistry, git, run, env, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
