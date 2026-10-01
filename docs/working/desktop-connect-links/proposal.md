@@ -33,7 +33,7 @@ The app shows the setup screen when it has no saved connection: at first launch,
 What the user sees:
 
 - The Clouds theme's wallpaper, blurred, filling the window, with a centred card styled like a Television artifact frame. The title bar shows the Television icon and **Connect to Television**, with no menu or navigation.
-- The screen always wears the Clouds theme, whatever theme the server uses, in light or dark to match the Mac's appearance setting, as does everything else on the desktop app's local page ([Connection states](#connection-states)).
+- The screen always wears the Clouds theme, whatever theme the server uses, as does everything else on the desktop app's local page ([Connection states](#connection-states)). It is light or dark as the desktop window currently is: the Mac's setting at first launch, and afterwards the appearance the last connected server set, which the app keeps after disconnecting.
 - A heading, **Let's connect your [Television logo] Television**, with the logo inline at text height, and under it: "Television runs alongside your AI agent. Ask your agent to help you get connected, then paste the link it gives you."
 - Two numbered steps, joined by a line down the left:
   1. **Give your agent this prompt**, with the prompt in monospace on a slightly tilted card and a **Copy** button beside it.
@@ -79,7 +79,7 @@ This section is the single statement of what a person sees while Television is n
 Connection dialogs appear in two places:
 
 - **The server's interface**: the web app the server delivers, in a browser or loaded into the desktop app's window.
-- **The desktop app's local page**: the page packaged inside the desktop app, which shows the setup screen and, while a saved connection is starting, the connection dialogs. It always wears the Clouds theme, in light or dark to match the Mac's appearance setting, whatever theme the server uses.
+- **The desktop app's local page**: the page packaged inside the desktop app, which shows the setup screen and, while a saved connection is starting, the connection dialogs. It always wears the Clouds theme, whatever theme the server uses, light or dark as the desktop window currently is ([The setup screen](#the-setup-screen)).
 
 ### The states
 
