@@ -61,13 +61,19 @@ These checks and messages belong to the runner's command and execution contracts
 
 A caller needing both local exceptions must request both. Using the contention bypass is the caller's judgment, including for agents; it requires no human permission. The existing testing-policy requirement for explicit human permission before an agent uses the inefficiency bypass remains in force. During this contribution, the narrower task instruction applies: locally execute only the one test file just edited; send broader validation to Blaxel on a pushed revision.
 
+## Validation retries
+
+Josh's guidance is to keep the default retry budget for validation, including focused checks and broader remote runs. Agents should not habitually append `--retries 0`: disabling the budget turns a transient failure that could recover into a failed run. Reserve that option for deliberately checking a newly written test's determinism, then return to the default budget for validation. Recovered flakes remain visible in reports; new tests that prove flaky still need investigation and repair under the testing policy.
+
+AGENTS.md will state this distinction briefly, and the testing policy will own the contributor guidance. The runner's help and retry spec will explain the same intended use. When an explicit `--retries 0` disables the runner-level budget for a selection, a short notice will point to the default for validation and the deliberate determinism-check use for zero. The option remains accepted without a new permission or intent flag. Unit surfaces already have no runner-level retries, so they need no such notice. The separate per-test flaky annotation budget and infrastructure retry behavior retain their semantics; zero runner-level retries does not by itself disable those layers.
+
 ## Guidance agents reach from AGENTS.md
 
 The contribution includes written guidance as well as enforcement. The repository's [AGENTS.md](../../AGENTS.md) is the entry point every agent receives, so its Testing section will state the practical rules directly and link to their authoritative owners. The intended summary is:
 
 > Use the canonical runner for fast, narrow local feedback on the behavior you are changing; direct Vitest and Playwright commands skip its protections. Concurrent runs can drive a shared host into swap or cause OOM kills. Every local test run and local verify takes a mutex for the same operating-system user across checkouts; wait for its holder or use Blaxel when available. The runner documents the independent bypasses: the contention bypass is the caller's judgment, while agent use of the inefficiency bypass follows the testing policy's permission rule.
 >
-> On hosts with `~/.tvdev-use-blaxel`, select one local file with optional grep; commit and push before using Blaxel for anything broader. Do not split a known broad selection into a local file loop to evade the restriction. Follow the runner's guidance for local-only suites. Unmarked hosts need no Blaxel access.
+> On hosts with `~/.tvdev-use-blaxel`, select one local file with optional grep; commit and push before using Blaxel for anything broader. Do not split a known broad selection into a local file loop to evade the restriction. Follow the runner's guidance for local-only suites. Unmarked hosts need no Blaxel access. Keep the default retry budget for validation; reserve `--retries 0` for deliberately checking a newly written test's determinism.
 
 The [testing policy's iteration guidance](../../specs/arch/testing-policy.md#Test iteration discipline) will explain how to widen validation without widening local work on a marked host: start with the file under change, optionally use grep, then commit and push for broader Blaxel checks. It will address the choices above, state the shared-host safety priority, and link to the runner's mutex and independent bypasses. Its provider guidance will preserve ordinary local development for unmarked public-contributor and fork hosts. The [remote preflight spec](../../specs/arch/test-runner/preflight.md#Contributor branches and remote revisions) remains the owner of the committed, pushed revision requirement.
 
