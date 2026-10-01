@@ -304,7 +304,7 @@ describe("application-state selection (^ap-ac-one-state)", () => {
       expect(await rendered, row.name).toBe(row.state);
       await flush();
       expect(app.querySelector("#app")?.getAttribute("data-app-state"), row.name).toBe(row.state);
-      expect(app.querySelectorAll(":scope > #app > .system-modal-host"), row.name).toHaveLength(
+      expect(app.querySelectorAll(":scope > #app > .system-modal-host, :scope > #app > .desktop-upgrade-gate"), row.name).toHaveLength(
         ["connected", "no-channel", "empty-channel"].includes(row.state) ? 0 : 1,
       );
 
@@ -342,7 +342,7 @@ describe("root shell composition and readiness (^ap-ac-markup-smoke)", () => {
       expect([...app.children]).toEqual([applicationRoot, foreground]);
       expect(app.querySelectorAll(":scope > #app > .app-sidebar")).toHaveLength(shell ? 1 : 0);
       expect(app.querySelectorAll(":scope > #app > .app-main")).toHaveLength(shell ? 1 : 0);
-      expect(app.querySelectorAll(":scope > #app > .system-modal-host")).toHaveLength(modal ? 1 : 0);
+      expect(app.querySelectorAll(":scope > #app > .system-modal-host, :scope > #app > .desktop-upgrade-gate")).toHaveLength(modal ? 1 : 0);
       if (shell) {
         const main = app.querySelector(".app-main")!;
         expect(main.children).toHaveLength(2);
