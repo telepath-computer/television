@@ -12,7 +12,7 @@ The change has six parts:
 
 1. The Mac desktop app opens on a setup screen with one field for a connect link, in place of the two-field form for an address and a token.
 2. The desktop app reconnects a saved connection by itself, and offers **Disconnect from Server** to forget it.
-3. The browser and desktop connection dialogs stop asking for a token, and say what to do instead.
+3. The connection dialogs follow one consistent set of rules ([Connection states](#connection-states)): a definite answer from the server shows its own state at once, an outage escalates from Disconnected to Can't connect with server, and no dialog asks for a token.
 4. A browser's placeholder for an external web page says the desktop app is currently Mac-only.
 5. A new command, `tv links`, prints the running server's connect links. The CLI prints links as terminal hyperlinks only in an interactive terminal.
 6. The administrator guide gives users connect links only. A Mac user who starts from the app's connect screen already has the app; another Mac user is recommended it; users on other computers are not told about it.
@@ -33,7 +33,7 @@ The app shows the setup screen when it has no saved connection: at first launch,
 What the user sees:
 
 - The Clouds theme's wallpaper, blurred, filling the window, with a centred card styled like a Television artifact frame. The title bar shows the Television icon and **Connect to Television**, with no menu or navigation.
-- The screen always wears the Clouds theme, whatever theme the server uses, in light or dark to match the Mac's appearance setting. The same holds for the reconnect dialogs below: everything the desktop app shows before it loads a server's interface.
+- The screen always wears the Clouds theme, whatever theme the server uses, in light or dark to match the Mac's appearance setting, as does everything else on the desktop app's local page ([Connection states](#connection-states)).
 - A heading, **Let's connect your [Television logo] Television**, with the logo inline at text height, and under it: "Television runs alongside your AI agent. Ask your agent to help you get connected, then paste the link it gives you."
 - Two numbered steps, joined by a line down the left:
   1. **Give your agent this prompt**, with the prompt in monospace on a slightly tilted card and a **Copy** button beside it.
@@ -58,30 +58,61 @@ Behavior:
 
 Presentation details carried from Rupert's design: 16px reading text, a 640px card, 40px-tall field and Connect button (a new large control size, below), and a Copy button at the standard button size.
 
-### Reconnecting a saved connection
+### Starting with a saved connection
 
-- With a saved connection, the app never shows the setup screen. It shows a **Connecting** dialog over the Clouds background and connects automatically.
-- If that fails for any reason, including a token the server no longer accepts, the dialog becomes **Can't connect with server**: the server's address, "Check your internet connection and that the server is running.", a countdown to the next attempt, and a red **Disconnect from Server** button. The app keeps retrying with backoff and loads the interface as soon as an attempt succeeds.
-- If the server's interface itself fails to load after the app has connected, the app returns to this Can't connect dialog and keeps retrying.
+With a saved connection, the app never shows the setup screen. It shows the **Connecting** dialog on its local page and connects automatically. What follows is set out in [Connection states](#connection-states).
 
 ### Disconnect from Server
 
 - The Television application menu's connection item is **Disconnect from Server**, with the keyboard shortcut ⌘,.
 - It is always listed, greyed out when no connection is saved, and available as soon as one is.
-- Choosing it, from the menu or from the Can't connect dialog, forgets the saved connection without asking for confirmation and shows the setup screen.
-- It keeps working while the app shows the upgrade gate, so a person can leave a server that requires a newer app than they have.
+- It works in every state, including while the app shows the upgrade gate, so a person can always leave a server they cannot use.
+- Choosing it, from the menu or from a Disconnect from Server button ([Connection states](#connection-states)), forgets the saved connection without asking for confirmation and shows the setup screen.
+- Desktop apps installed before this change keep their "Connect to server…" menu item. On those apps, the desktop wording below names a command the app lacks. This is accepted so current apps get the exact instruction.
 
-## Connection dialogs in the browser and the desktop app
+## Connection states
 
-These dialogs keep their present layout: centred, 400px wide, an icon above the title.
+This section is the single statement of what a person sees while Television is not connected to a server, in a browser and in the desktop app.
 
-- **Connecting** and **Disconnected** behave as today. The countdown line reads "Reconnecting in Ns…" and, while an attempt is in flight, "Reconnecting now…".
-- **Access token required** replaces the token form. It shows a lock icon, the title, and one line of text, with no field or button:
-  - in a browser: "This server requires a valid access token to connect. Ask your agent for the current link, and paste the whole link into the address bar."
-  - in the desktop app: "This server requires a valid access token to connect. Choose Television › Disconnect from Server, then try again."
-- **Can't connect with server** shows the server's address, "Check your internet connection and that the server is running.", and the countdown line. It appears when the first connection fails, and also after three reconnect attempts in a row fail to reach the server following a drop. An attempt that reaches the server and is refused does not count toward the three: a rejected token shows Access token required, and a desktop app the server requires to be upgraded shows the upgrade gate, straight away. In the second case the interface and any open artifacts stay rendered behind it and resume without reloading when the connection comes back. Only the desktop app's own reconnect screen offers Disconnect from Server; the server's interface never does.
-- None of these dialogs closes on Escape or a click on the backdrop. Each closes only when the connection state changes.
-- Desktop apps installed before this change keep their "Connect to server…" menu item; on those apps, the desktop text above names a command the app lacks. This is accepted so current apps get the exact instruction.
+### Where they appear
+
+Connection dialogs appear in two places:
+
+- **The server's interface**: the web app the server delivers, in a browser or loaded into the desktop app's window.
+- **The desktop app's local page**: the page packaged inside the desktop app, which shows the setup screen and, while a saved connection is starting, the connection dialogs. It always wears the Clouds theme, in light or dark to match the Mac's appearance setting, whatever theme the server uses.
+
+### The states
+
+| State                         | When                                                                     | What it shows                                                                                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Connecting**                | Before the first connection has been made.                               | A spinning icon and **Connecting**.                                                                                                                                       |
+| **Disconnected**              | A working connection has dropped.                                        | A spinning icon, **Disconnected**, and the countdown line: "Reconnecting in Ns…", or "Reconnecting now…" while an attempt is under way.                                   |
+| **Can't connect with server** | The server cannot be reached ([rules](#the-rules) 2 and 3).              | **Can't connect with server**, with no icon; the server's address in monospace; "Check your internet connection and that the server is running."; and the countdown line. |
+| **Access token required**     | The server has asked for a token or rejected the one it got.             | A lock icon, **Access token required**, and one line of text, with no field (wording below).                                                                              |
+| **Upgrade gate**              | The server requires a newer desktop app than this one. Desktop app only. | The existing upgrade gate screen, unchanged.                                                                                                                              |
+
+The dialogs keep their present layout: centred, 400px wide, an icon above the title where the state has one.
+
+Access token required wording:
+
+- In a browser: "This server requires a valid access token to connect. Ask your agent for the current link, and paste the whole link into the address bar."
+- In the server's interface in the desktop app: "This server requires a valid access token to connect. Choose Television › Disconnect from Server, then try again."
+- On the desktop app's local page, which has a Disconnect from Server button (rule 7): wording that points to the button and to pasting the current link. Draft: "This server requires a valid access token to connect. Disconnect from Server, then paste the current link from your agent."
+
+### The rules
+
+1. **A definite answer from the server shows its own state at once.** When the server asks for a token or rejects the one it got, the app shows Access token required. When the server requires a newer desktop app, the app shows the upgrade gate. This holds wherever the app is in its life cycle: the first connection, a desktop app starting with a saved connection, or a reconnect after a drop, including while Disconnected or Can't connect with server is showing. Disconnected and Can't connect with server never stand in for a definite answer.
+2. **When the server cannot be reached on the first connection,** the app shows Can't connect with server. A desktop app starting with a saved connection shows it on its local page.
+3. **When a working connection drops,** the app shows Disconnected. After three reconnect attempts in a row fail to reach the server, Disconnected turns into Can't connect with server. Only attempts that cannot reach the server count; a definite answer follows rule 1.
+4. **Disconnected and Can't connect with server keep retrying,** with backoff, and close by themselves when an attempt succeeds. **Access token required does not retry**: a rejected token does not fix itself, so it waits for the person to act. The upgrade gate behaves as it does today.
+5. **What is behind the dialog.** After a drop, the interface and any open artifacts stay rendered behind Disconnected and Can't connect with server, and resume without reloading when the connection comes back. Before the first connection, nothing is rendered behind the dialog.
+6. **No connection dialog closes on Escape or a click on the backdrop.** Each closes only when the connection state changes.
+7. **Disconnecting in the desktop app.** The Disconnect from Server menu item works in every state, including the upgrade gate. On the desktop app's local page, Access token required and Can't connect with server also carry a red **Disconnect from Server** button, because that page can disconnect directly. The server's interface has no way to disconnect the app, so its dialogs and the upgrade gate carry no such button, and its desktop wording points to the menu.
+8. **If the server's interface fails to load** after the desktop app has connected, the app returns to its local page and connects again exactly as it does at startup.
+
+### The setup screen is the exception
+
+The setup screen shows no connection dialogs. A failed attempt from the setup screen, including a missing or rejected token, appears as the screen's own error state under the link field. A server that requires a newer desktop app is not a failure there: the connection succeeds and is saved, the server's interface loads, and it shows the upgrade gate (rule 1).
 
 ## External web pages in a browser
 
