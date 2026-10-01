@@ -11,7 +11,6 @@ import path from "node:path";
 import { parse } from "yaml";
 import { TelevisionClient } from "@telepath-computer/television-shared";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
-import { resources } from "../../../../test/helpers/chromium-resources.ts";
 import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 import { waitForApplicationShell } from "./helpers.ts";
@@ -1924,11 +1923,6 @@ test("executable theme reset reloads connected Chromium documents under confirme
       expect(new URL(applicationPage.url()).searchParams.has("reopenSettings"))
         .toBe(false);
     }
-    // Investigation-only: determine whether completed document loads retain
-    // response buffers until garbage collection. This is not a proposed fix.
-    console.log(`ROSE_GC_BEFORE ${JSON.stringify(resources(true))}`);
-    await Promise.all(applicationPages.map((applicationPage) => applicationPage.requestGC()));
-    console.log(`ROSE_GC_AFTER ${JSON.stringify(resources(true))}`);
   };
 
   const expectExecutableActive = async (): Promise<void> => {
