@@ -70,4 +70,11 @@ Review refinements 2–5 are addressed: override flags reject attached or follow
 
 The retry flag spelling in attestation remains local to that policy module: importing `test-guidance.mjs` solely for a constant would make the attestation module load the registry and file-selection dependencies. Remote target execution retains the existing version coupling noted by review: the tested commit must contain its worker entrypoint, as on the planned path. No compatibility transport is added in this slice.
 
-The pushed correction receives a live targeted artifact-file check and a default-budget Blaxel `unit:root` run before the next review handoff; their results are recorded below.
+Both remote checks passed on pushed revision `57dc3213fe64ee98a7df652860e90e09573e10d4`, with default retries:
+
+| Command | Retained run | Result |
+| --- | --- | --- |
+| `npm test -- blaxel --file packages/artifact/test/e2e/scroll-bridge.spec.ts` | `2026-10-01T23-51-08-949Z-p2942191-r65b56b7ed6758922` | One file, one passing test, no recovered flakes. Delegated `--target-cwd packages/artifact --target-config test/e2e/playwright.config.ts`; both artifact services started and the native test ran. |
+| `npm test -- blaxel --surface unit:root` | `2026-10-01T23-52-02-305Z-p2942439-rcffb77259ea10c1d` | 43 files, 484 passing cases, one standing skip, no failures or recovered outer flakes. |
+
+The artifact dispatch skipped sandbox 137 because its provisioned nvm entrypoint was absent, then completed on sandbox 138; the repository tests completed on sandbox 139. No pool repair was performed. These checks retain their native reports and worker logs under the run directories above. The subsequent handoff commit changes only this validation record.
