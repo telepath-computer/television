@@ -83,7 +83,7 @@ Once the work is complete, perform pre-merge docs prep as the docs spec defines 
 
 Prepare the PR using [pr-writing](../pr-writing/SKILL.md).
 
-Keep the description focused on the changes: routine approvals, review rounds, workflow status and similar process records belong only when unusually relevant to those changes, since merging into `main` or an integration branch already implies human review and approval. Include records explicitly required by a spec, such as the desktop product-check record.
+Keep the description focused on the changes and apply [cold-reader](../cold-reader/SKILL.md) to exclude session details, including agent names. A merge into `main` or an integration branch already implies human review and approval, so omit routine approvals, review rounds and workflow status unless unusually relevant to the changes, while keeping spec-required records such as desktop product checks with the operator identified as a person or "an agent".
 
 When presenting the PR, remind the human what their review must establish and make the relevant changes easy to find. Help them perform the minimum PR review defined by spec policy (`specs/spec-policy.md`, “Human PR review”): confirm that every spec delta is fully acceptable and scan the code and test footprint for unexpected scope or complexity. Specs are the product's core authority and slop-free zone; the human must understand and stand behind their changes under the spec ownership rules.
 
