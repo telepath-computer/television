@@ -109,7 +109,7 @@ With a saved connection, the app never shows the setup screen. It shows the **Co
 
 ## Connection states
 
-This section is the single statement of what a person sees while Television is not connected to a server, in a browser and in the desktop app.
+This section is the single statement of what a person sees while Television can't use its server, in a browser and in the desktop app: while it connects, after the connection drops, when the server can't be reached, when it wants an access token, and when it requires a newer desktop app.
 
 ### Where they appear
 

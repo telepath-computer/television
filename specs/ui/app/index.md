@@ -72,7 +72,7 @@ Collapse and expansion preserve channel selection, tab order, page selection, an
 
 ## Connection states
 
-While the server's interface is not connected, the [system modal](./system-modal/index.md) shows one state at a time, chosen by these rules: ^ap-connection-states
+While the server's interface can't use its server, the [system modal](./system-modal/index.md) shows one state at a time, chosen by these rules: ^ap-connection-states
 
 - **A definite answer from the server shows its own state at once.** When the server asks for an access token or rejects the one it was given, the state is Access token required. When the desktop app is gated ([arch/updates/desktop-upgrade-gate.md](../../arch/updates/desktop-upgrade-gate.md#^boot-barrier)), the state is the upgrade gate. This holds on the first connection and on every reconnect, including while Disconnected or Can't connect with server is showing; neither of those ever stands in for a definite answer. Once the upgrade gate shows, it stays until the page reloads: nothing replaces or covers it, including a later rejected token ([^gate-screen](../../arch/updates/desktop-upgrade-gate.md#^gate-screen)).
 - **Access token required waits.** A rejected token does not fix itself, so the app makes no further attempts, and a browser forgets the token it had stored. In a browser, the person recovers by opening a current connect link; in the desktop app, by Disconnect from Server.
