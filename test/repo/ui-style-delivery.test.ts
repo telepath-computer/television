@@ -6,6 +6,8 @@ import { expectedDocumentStyleRoutes } from "./lib/ui-style-crossings.ts";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const WEB_ENTRY = path.join(REPO_ROOT, "packages/web/src/main.ts");
 const WEB_VITE_CONFIG = path.join(REPO_ROOT, "packages/web/vite.config.ts");
+const DESKTOP_ENTRY = path.join(REPO_ROOT, "packages/desktop/src/connect-page.ts");
+const DESKTOP_DOCUMENT = path.join(REPO_ROOT, "packages/desktop/src/connect.html");
 const MARKDOWN_ENTRY = path.join(REPO_ROOT, "packages/view-markdown/src/main.ts");
 const MARKDOWN_DOCUMENT = path.join(REPO_ROOT, "packages/view-markdown/src/index.html");
 
@@ -297,6 +299,7 @@ function deliveryRoutes(graph: ImportGraph): string[] {
   const routes = new Set<string>(htmlDeliveryRoutes([
     ...productionHtmlEntries(),
     MARKDOWN_DOCUMENT,
+    DESKTOP_DOCUMENT,
   ]));
 
   for (const module of graph.modules.values()) {
@@ -411,7 +414,7 @@ describe("production document style delivery (^ui-t-style-delivery)", () => {
     const appEntry = readFileSync(path.join(REPO_ROOT, "packages/web/src/index.html"), "utf8");
     expect(appEntry).toContain('<html lang="en" data-television-document="app">');
 
-    const graph = importGraph([WEB_ENTRY, MARKDOWN_ENTRY]);
+    const graph = importGraph([WEB_ENTRY, MARKDOWN_ENTRY, DESKTOP_ENTRY]);
     expect.soft(
       graph.missingEntries,
       `missing production style-delivery graph entries:\n${graph.missingEntries.map((entry) => `- ${entry}`).join("\n")}`,

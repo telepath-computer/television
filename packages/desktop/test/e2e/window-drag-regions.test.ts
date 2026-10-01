@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { TelevisionClient } from "@telepath-computer/television-shared";
 import { startConnectTestServer } from "./connect-server.ts";
-import { expectConnectedPage, launchDesktop, SIMULATE_UPDATE_AVAILABLE } from "./helpers.ts";
+import { createUserDataDir, expectConnectedPage, launchDesktop, launchDesktopConnectScreen, waitForConnectScreen, SIMULATE_UPDATE_AVAILABLE } from "./helpers.ts";
 import { configureTestMotion } from "../../../web/test/e2e/helpers.ts";
 
 interface WindowBounds {
@@ -221,5 +221,44 @@ test("the served gate keeps a native drag strip and usable dialog controls", asy
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
+  }
+});
+
+// ^setup-t-drag and ^sm-ac-drag-strip local route: native Electron hit testing
+// and bounds, with the existing X11 window-manager substitute.
+test("packaged setup and saved-error dialogs move the window while controls stay usable", async () => {
+  test.skip(process.platform !== "linux", "Native drag driver requires Linux/X11");
+  const userDataDir = createUserDataDir();
+  let launched = await launchDesktopConnectScreen({ userDataDir });
+  try {
+    await waitForConnectScreen(launched.page);
+    await configureTestMotion(launched.page);
+    await test.step("setup ground moves and the card edits without moving", async () => {
+      expectWindowMoved(await dragNativeWindow(launched.app, await emptyGround(launched.page, ".setup-screen")));
+      const before = await windowBounds(launched.app);
+      const input = launched.page.getByRole("textbox", { name: "Link from your agent" });
+      await input.click();
+      await input.pressSequentially("not a link");
+      await expect(input).toHaveValue("not a link");
+      expect(await windowBounds(launched.app)).toEqual(before);
+    });
+    await launched.app.close();
+    writeFileSync(path.join(userDataDir, "connection.json"), JSON.stringify({ serverURL: "http://127.0.0.1:9", token: "" }));
+    launched = await launchDesktopConnectScreen({ userDataDir });
+    await expect(launched.page.getByRole("heading", { name: "Can’t connect with server" })).toBeVisible();
+    await configureTestMotion(launched.page);
+    await test.step("the modal strip moves and Disconnect remains usable", async () => {
+      expect(await launched.page.locator("dialog").evaluate(dialog => dialog.matches(":modal"))).toBe(true);
+      const strip = await emptyGround(launched.page, ".window-drag-strip");
+      expectWindowMoved(await dragNativeWindow(launched.app, strip));
+      await expect(launched.page.locator("dialog")).toBeVisible();
+      const before = await windowBounds(launched.app);
+      await launched.page.getByRole("button", { name: "Disconnect from Server", exact: true }).click();
+      await waitForConnectScreen(launched.page);
+      expect(await windowBounds(launched.app)).toEqual(before);
+    });
+  } finally {
+    await launched.app.close().catch(() => {});
+    rmSync(userDataDir, { recursive: true, force: true });
   }
 });
