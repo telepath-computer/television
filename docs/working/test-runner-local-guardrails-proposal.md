@@ -4,7 +4,9 @@ Proposal for independent review. Josh has chosen the three behavior changes belo
 
 ## Purpose and decisions
 
-Several agents can run tests on one development host. Independent local runs compete for CPU and memory and can cause the operating system to kill processes. On team hosts with access to the internal Blaxel pool, running many test files locally also makes iteration unnecessarily serial. Blaxel's planned execution distributes files across workers; it cannot split the work inside one file.
+Several agents can run tests on one development host. Independent local runs compete for CPU and memory and can cause the operating system to kill processes. Josh's first priority is keeping test runs from overwhelming that shared host. Every Blaxel test run moves its test workload off the host, including a surface run on a single remote worker.
+
+Faster iteration is the second priority. Blaxel's planned execution distributes files across workers; it cannot split the work inside one file. Adding fan-out to targeted surface runs is a secondary speed improvement. Its absence is never a reason to run broad work locally.
 
 Josh's decisions are:
 
@@ -50,6 +52,6 @@ The authoritative changes belong primarily in the runner spec, with testing-poli
 
 Implementation should reuse the existing CLI, registry, marker, and process lifecycle. This contribution does not require a queue, configurable concurrency levels, a background lock service, or changes to public-contributor provider selection. Help and affected invocation guidance will show the one-file local path and the committed-revision remote path.
 
-One scheduling boundary needs explicit review: the current Blaxel CLI dispatches `--surface`, `--file`, and `--grep` through a single-worker target path. Suite, package, runner, and tag selections use planned file distribution. This proposal adds the two local protections and accurate redirection while preserving those remote execution paths. Parallelizing every multi-file targeted Blaxel request would also require changing targeted remote selection and planning; that is additional scope, not a benefit the local guardrail can claim by itself.
+The current Blaxel CLI dispatches `--surface`, `--file`, and `--grep` through a single-worker target path. Suite, package, runner, and tag selections use planned file distribution. This proposal preserves those remote execution paths: redirecting a broad local selection to even one remote worker meets the primary goal of taking that test load off the shared host. Fan-out for targeted surface runs remains a separate speed improvement and is neither a prerequisite for these guardrails nor grounds for a broad local exception.
 
 After proposal review, spec deltas and proofs receive their own independent review before implementation. The change appears to fit one implementation slice; a separate plan is useful only if proof derivation reveals a reason to split it. Completion requires broad validation on the pushed revision, integrated implementation review, documentation cleanup, and a pull request describing the final change for Josh's spec review under the repository workflow.
