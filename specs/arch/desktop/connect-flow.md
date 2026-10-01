@@ -8,7 +8,7 @@
 
 This module owns the Electron main process's connection lifecycle around the server-served application: the local page, how a person enters a connection or the app reuses a saved one, how the shell reads and stores it, what the local page shows while it connects, Disconnect from Server, the page URL the shell loads, and which navigation failures return to the local page. The cross-release identity request that precedes page loading is owned by [the desktop upgrade architecture](../updates/desktop-upgrade-gate.md#^pre-gate-handshake); the served application's live HTTP and websocket session remains code-governed under [channel-state architecture](../channel-state/index.md#^cs-connection-carve-out).
 
-The [setup screen](../../ui/setup/index.md) owns the connect screen's interaction, markup and styling, and the [system modal](../../ui/app/system-modal/index.md) the dialogs the local page shows. How a failed connect check is classified, and the wording of the message the setup screen shows for it, remain code-governed ([^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake)).
+The [setup screen](../../ui/setup/index.md) owns the connect screen's interaction, markup and styling, and the [system modal](../../ui/app/system-modal/index.md) the dialogs the local page shows. How a failed connect check is classified, and the wording of the message the setup screen shows for it, remain code-governed ([^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake)). The [connection states explainer](../explainer-connection-states.md) places this flow alongside the connection states in the server's interface.
 
 ## The local page
 

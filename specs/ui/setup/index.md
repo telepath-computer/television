@@ -2,7 +2,7 @@
 
 # Setup screen (UI)
 
-The setup screen is what the desktop app shows when it has no saved Television server: at first launch, and after Disconnect from Server. It gives the person a prompt for their agent and a field for the link the agent returns. When and why the app shows it, and what a submitted link does, are the [desktop connection flow](../../arch/desktop/connect-flow.md#^desktop-connect-entry)'s.
+The setup screen is what the desktop app shows when it has no saved Television server: at first launch, and after Disconnect from Server. It gives the person a prompt for their agent and a field for the link the agent returns. When and why the app shows it, and what a submitted link does, are the [desktop connection flow](../../arch/desktop/connect-flow.md#^desktop-connect-entry)'s; the [connection states explainer](../../arch/explainer-connection-states.md) follows the whole path.
 
 ## Markup and styling
 

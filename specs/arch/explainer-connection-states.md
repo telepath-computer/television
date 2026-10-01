@@ -49,7 +49,7 @@ If the server's interface fails to load in the desktop app, the window returns t
 
 ## Leaving a server
 
-Disconnect from Server forgets the saved connection and returns to the setup screen. The Television menu always lists it, enabled while a connection is saved, and it works in every state, including the upgrade gate ([Disconnect from Server](./desktop/connect-flow.md#^desktop-disconnect-server)). The local page's dialogs also offer it as a button; the server's interface can't disconnect the app, so its wording points to the menu.
+Disconnect from Server forgets the saved connection and returns to the setup screen. The Television menu always lists it, enabled while a connection is saved, and it works in every state, including the upgrade gate ([Disconnect from Server](./desktop/connect-flow.md#^desktop-disconnect-server)). On the local page, Access token required and Can't connect with server also offer it as a button; the server's interface can't disconnect the app, so its wording points to the menu.
 
 ## Moving the window
 

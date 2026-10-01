@@ -2,7 +2,7 @@
 
 # System modal (UI)
 
-The system modal is the dialog a person sees while Television can't use its server: while it connects, after the connection drops, when the server can't be reached, when it wants an access token, and when it requires a newer desktop app. It is one surface showing different contents by state, composed on the [dialog](../dialog/index.md). Which state shows, and when, is the [app shell](../index.md#Connection states)'s for the server's interface and the [desktop connection flow](../../../arch/desktop/connect-flow.md#^desktop-connect-entry)'s for the desktop app's local page.
+The system modal is the dialog a person sees while Television can't use its server: while it connects, after the connection drops, when the server can't be reached, when it wants an access token, and when it requires a newer desktop app. It is one surface showing different contents by state, composed on the [dialog](../dialog/index.md). Which state shows, and when, is the [app shell](../index.md#Connection states)'s for the server's interface and the [desktop connection flow](../../../arch/desktop/connect-flow.md#^desktop-connect-entry)'s for the desktop app's local page. The [connection states explainer](../../../arch/explainer-connection-states.md) follows all of it from first launch to recovery.
 
 ## Markup and styling
 
