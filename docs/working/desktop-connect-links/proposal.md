@@ -90,7 +90,7 @@ Behavior:
 - **Connect**, or Return in the field, starts connecting when the field is not empty. The field accepts a connect link, a bare address, or a host and port; an address with no token connects to a server that runs without one.
 - While connecting, the field and button are disabled and the button shows a spinner and **Connecting…**.
 - On success, the steps fade out and a green circled check with **Connected** appears in their place, at the card's size, and the app then loads the server's interface. The connection is saved only after it succeeds.
-- On failure, the screen stays as it was, the field keeps the link and can be edited, and the field is marked invalid with the failure message in place of the hint. Failure messages follow today's connect check (for example "Couldn't reach … is the server running?"), with the two token messages ("This server requires a token", "Token rejected") reworded to talk about the link. The new wording is left to whoever implements it.
+- On failure, the screen stays as it was, the field keeps the link and can be edited, and the field is marked invalid with the failure message in place of the hint. Failure messages follow today's connect check (for example "Couldn't reach … is the server running?"), with the two token messages ("This server requires a token", "Token rejected") reworded to talk about the link, for example that the person needs the current link from their agent. The exact wording is left to whoever implements it.
 - Dragging the blurred background moves the window. The card does not move the window.
 
 Presentation details carried from Rupert's design: 16px reading text, a 640px card, 40px-tall field and Connect button (a new large control size, below), and a Copy button at the standard button size.
@@ -138,7 +138,7 @@ Access token required wording:
 
 ### The rules
 
-1. **A definite answer from the server shows its own state at once.** When the server asks for a token or rejects the one it got, the app shows Access token required. When the server requires a newer desktop app, the app shows the upgrade gate. This holds wherever the app is in its life cycle: the first connection, a desktop app starting with a saved connection, or a reconnect after a drop, including while Disconnected or Can't connect with server is showing. Disconnected and Can't connect with server never stand in for a definite answer.
+1. **A definite answer from the server shows its own state at once.** When the server asks for a token or rejects the one it got, the app shows Access token required. When the server requires a newer desktop app, the app shows the upgrade gate. This holds wherever the app is in its life cycle: the first connection, a desktop app starting with a saved connection, or a reconnect after a drop, including while Disconnected or Can't connect with server is showing. Disconnected and Can't connect with server never stand in for a definite answer. Once the upgrade gate shows, it stays until the app reloads; nothing replaces or covers it, not even a later rejected token, as today.
 2. **When the server cannot be reached on the first connection,** the app shows Can't connect with server. A desktop app starting with a saved connection shows it on its local page.
 3. **When a working connection drops,** the app shows Disconnected. After three reconnect attempts in a row fail to reach the server, Disconnected turns into Can't connect with server. Only attempts that cannot reach the server count; a definite answer follows rule 1.
 4. **Disconnected and Can't connect with server keep retrying,** with backoff, and close by themselves when an attempt succeeds. **Access token required does not retry**: a rejected token does not fix itself, so it waits for the person to act. The upgrade gate behaves as it does today.
@@ -170,7 +170,7 @@ Buttons and text fields gain a large size, 40px tall with 16px text, used by the
 
 - Each line is one connect link, with no other text. Links follow the CLI's hyperlink rule below.
 - The addresses are the ones the running server is actually listening on, the same addresses `tv serve` reports at startup.
-- When the server requires a token, each link carries it. When the server runs without a token, each link is the bare address.
+- When the running server requires a token, each link carries it; when it runs without one, each link is the bare address. This follows the running server, not the config file, which the server only reads when it starts. If the server rejects the home's token, the command fails instead of printing links that would not work.
 - When the server is not running, the command says so on stderr, prints no links, and exits with status 1.
 - It follows the same home and `--port` rules as the other commands that contact the server.
 
