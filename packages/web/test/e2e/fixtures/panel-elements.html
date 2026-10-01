@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Portable panel elements</title>
+<link rel="stylesheet" href="/packages/web/src/foundation/index.css">
+<style>
+  :root { --popover-distance: 4px; --layer-panel: 100; --line-control: 18px; --panel-radius: 8px; }
+  body { margin: 0; padding: 40px; min-height: 900px; }
+  #owner { width: 180px; height: 32px; }
+  tv-popover { padding: 12px; }
+  #panel { width: 250px; }
+  #other-trigger, #manual-trigger, #menu-trigger, #select-trigger { margin-top: 80px; }
+  #outside { position: fixed; right: 20px; bottom: 20px; }
+</style></head><body>
+<input id="field" aria-label="Field">
+<div id="owner"><button id="trigger">Panel</button><tv-popover id="panel" trigger="trigger"><button id="inside">Inside</button>
+  <button id="nested-trigger"></button><tv-select id="nested" trigger="nested-trigger"><tv-option value="a">Alpha</tv-option><tv-option value="b">Beta</tv-option></tv-select>
+</tv-popover></div>
+<button id="other-trigger">Other</button><tv-popover id="other" trigger="other-trigger">Other panel</tv-popover>
+<button id="manual-trigger">Manual</button><tv-popover id="manual" trigger="manual-trigger" manual>Manual panel</tv-popover>
+<button id="menu-trigger">Actions</button><tv-menu id="menu" trigger="menu-trigger"><tv-menu-item id="first">First</tv-menu-item><hr><tv-menu-item id="last" intent="danger">Delete</tv-menu-item></tv-menu>
+<label id="select-label">Choice</label><button id="select-trigger" aria-labelledby="select-label"></button><tv-select id="select" trigger="select-trigger"><tv-option value="a">Alpha</tv-option><tv-option value="b" selected>Beta</tv-option><tv-option value="c">Considerably longer</tv-option></tv-select>
+<button id="after">After select</button><button id="outside">Outside</button>
+<script type="module">
+  import '/packages/web/src/elements/popover.ts';
+  import '/packages/web/src/elements/menu.ts';
+  import '/packages/web/src/elements/select.ts';
+  // The app's Mac-style convention is enabled only in tests of keys while
+  // focus remains outside the pointer-opened control.
+  window.keepPointerFocus = false;
+  document.addEventListener('pointerdown', e => { if (window.keepPointerFocus && e.target.closest('button')) e.preventDefault(); });
+  window.panelChanges = 0;
+  document.querySelector('#select').addEventListener('change', () => window.panelChanges++);
+  window.panelActions = 0;
+  document.querySelector('#last').addEventListener('click', () => window.panelActions++);
+  window.__fixtureReady = true;
+</script></body></html>

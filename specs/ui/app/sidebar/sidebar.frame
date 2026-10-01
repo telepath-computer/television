@@ -1,0 +1,106 @@
+---
+title: Sidebar
+params:
+  channels:
+    description: "the channels, each with an id and a name; `pinned: true` marks the pinned ones, listed in arranged order, and the rest follow newest first by creation"
+    default:
+      - { id: "television", name: "Television", pinned: true }
+      - { id: "agenda", name: "Agenda", pinned: true }
+      - { id: "weekend-recipes", name: "Weekend recipes" }
+      - { id: "return-to-australia", name: "Return to Australia" }
+      - { id: "daily-plan-flow", name: "Daily plan flow" }
+  selected: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: television, description: the one open channel — selection is singular }
+  renaming: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: none, description: the one row whose name is being edited in place }
+style: |
+  .sidebar {
+    /* The frame fills its stage — the viewport it is given, whole or an
+       embed's box. */
+    min-height: 100vh;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    /* The sidebar carries its own ground rather than borrowing the window's, so
+       it reads the same wherever it is placed — and so the states inside it are
+       chosen against a known surface instead of whatever happens to be behind. */
+    position: relative;
+    background: var(--sidebar-background);
+    background-clip: border-box;
+    color: var(--sidebar-text-color);
+    border-right: var(--sidebar-border);
+    padding-right: 1px;
+    box-shadow: var(--sidebar-shadow);
+  }
+
+  .sidebar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: 1px;
+    background: var(--panel-edge-highlight);
+    font-size: 0;
+    background-size: 100% calc(100% + 2px);
+    background-position: bottom;
+    pointer-events: none;
+  }
+
+
+  /* The grab handle and the traffic lights' space ([[ui/app/sidebar/index.md#^sb-titlebar]]). */
+  .sidebar-titlebar {
+    flex: none;
+    height: var(--app-bar-height);
+    /* Balance the bottom border to share the navbar control centre. */
+    padding-top: 1px;
+    padding-left: var(--traffic-light-x-reserve);
+    padding-right: var(--app-bar-padding-inline);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    -webkit-app-region: drag;
+    /* Scrolled content slides under this edge: while anything is past it, the
+       titlebar closes with a 1px sidebar border, and at rest
+       the edge is bare. Transparent, not absent, so nothing moves when it
+       appears. The body carries `continues-start` while scrolled. */
+    border-bottom: 1px solid transparent;
+  }
+
+  .sidebar:has(.sidebar-body[continues-start]) .sidebar-titlebar {
+    border-bottom-color: var(--sidebar-border-color);
+  }
+
+  /* The list scrolls — one region, pinned and unpinned together; the titlebar
+     above stays put. The list itself is [[./channel-list.frame]]'s. */
+  .sidebar-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-titlebar > button {
+    -webkit-app-region: no-drag;
+  }
+
+  /* Toolbar separator between grouped bar controls. */
+  .toolbar-separator {
+    flex: none;
+    width: 1px;
+    height: 16px;
+    background: var(--color-border);
+    margin: 0 var(--space-4);
+  }
+
+---
+<nav class="sidebar">
+  <header class="sidebar-titlebar">
+    <button class="channel-create" variant="ghost" icon aria-label="New channel" title="New channel">{% render '../../foundation/icons/icon', name: 'add' %}</button>
+    <span class="toolbar-separator" role="separator" aria-orientation="vertical"></span>
+    <button class="sidebar-collapse" variant="ghost" icon aria-label="Collapse sidebar" title="Collapse sidebar">{% render '../../foundation/icons/icon', name: 'sidebar', size: 'sm' %}</button>
+  </header>
+
+  <div class="sidebar-body">
+    {% render './channel-list', channels: channels, selected: selected, renaming: renaming %}
+  </div>
+
+</nav>

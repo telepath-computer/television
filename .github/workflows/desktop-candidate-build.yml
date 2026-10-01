@@ -1,0 +1,122 @@
+name: Build desktop candidate
+
+# Builds one exact commit of the desktop app in ToDesktop, signed and
+# unreleased, so that its code can be tested before it reaches main
+# (specs/product/desktop-app.md, Testing). A maintainer starts it
+# by hand with the commit's full SHA, which a branch of this repository must
+# contain. It runs only `todesktop build`: releasing a build still takes a
+# maintainer's security-key confirmation in the ToDesktop dashboard, and
+# nothing here publishes to npm. GitHub offers a workflow started by hand only
+# when its file is on the default branch, so this file stays on main.
+# Requires repo secrets TODESKTOP_EMAIL and TODESKTOP_ACCESS_TOKEN.
+# Toolchain values: specs/arch/node-versions.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: Full 40-character lowercase SHA of the commit to build
+        required: true
+        type: string
+      version:
+        description: Optional x.y.z version for this build only (never committed)
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ github.repository == 'telepath-computer/television' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the inputs
+        env:
+          COMMIT: ${{ inputs.commit }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! [[ "$COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::commit must be a full 40-character lowercase SHA"
+            exit 1
+          fi
+          if [ -n "$VERSION" ] && ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must be empty or x.y.z"
+            exit 1
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.commit }}
+          persist-credentials: false
+
+      # Confirms that the checked-out commit is the one requested and that a
+      # branch of this repository contains it. A commit that exists only in a
+      # pull request from a fork can also be fetched by its SHA; this stops one
+      # from running with the ToDesktop credentials. Branch heads are fetched
+      # into their own namespace so that no ref the checkout created counts.
+      # The checkout keeps no credentials. To support a private repository,
+      # this one fetch gets the workflow token as an HTTP header through git's
+      # environment settings: nothing is written to git config, and no later
+      # step has the token.
+      - name: Confirm the candidate commit
+        env:
+          COMMIT: ${{ inputs.commit }}
+          FETCH_TOKEN: ${{ github.token }}
+        run: |
+          HEAD_SHA="$(git rev-parse HEAD)"
+          if [ "$HEAD_SHA" != "$COMMIT" ]; then
+            echo "::error::checked out $HEAD_SHA, not $COMMIT"
+            exit 1
+          fi
+          BASIC="$(printf 'x-access-token:%s' "$FETCH_TOKEN" | base64 -w0)"
+          GIT_CONFIG_COUNT=1 \
+            GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $BASIC" \
+            git fetch --quiet --no-tags --filter=blob:none origin '+refs/heads/*:refs/candidate-check/heads/*'
+          unset BASIC FETCH_TOKEN
+          BRANCHES="$(git for-each-ref --contains "$COMMIT" --format='%(refname:lstrip=3)' refs/candidate-check/heads/)"
+          if [ -z "$BRANCHES" ]; then
+            echo "::error::no branch of this repository contains $COMMIT"
+            exit 1
+          fi
+          echo "Branches that contain $COMMIT:"
+          echo "$BRANCHES"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: npm ci
+
+      - name: Set the version for this build only
+        if: ${{ inputs.version != '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: npm pkg set "version=$VERSION" --workspace @telepath-computer/television-desktop
+
+      - name: Record the candidate
+        env:
+          COMMIT: ${{ inputs.commit }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          VERSION="$(node -p "require('./packages/desktop/package.json').version")"
+          {
+            echo "## Desktop candidate build"
+            echo ""
+            echo "- Candidate commit: \`$COMMIT\`"
+            echo "- Version built: \`$VERSION\`"
+            echo "- Workflow commit: \`$WORKFLOW_SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build in ToDesktop
+        env:
+          TODESKTOP_EMAIL: ${{ secrets.TODESKTOP_EMAIL }}
+          TODESKTOP_ACCESS_TOKEN: ${{ secrets.TODESKTOP_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TODESKTOP_EMAIL" ] || [ -z "$TODESKTOP_ACCESS_TOKEN" ]; then
+            echo "::error::the repository secrets TODESKTOP_EMAIL and TODESKTOP_ACCESS_TOKEN must both be set"
+            exit 1
+          fi
+          npm run todesktop-build --workspace @telepath-computer/television-desktop

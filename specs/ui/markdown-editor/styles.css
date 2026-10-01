@@ -1,0 +1,89 @@
+/* The Markdown editor color treatment ([[ui/markdown-editor/index.md]]).
+   Canonical supplies every role consumed here; the editor supplies no
+   light-only foreground, fill, boundary, outline, or caret of its own. */
+
+#editor > .cm-editor {
+  color: var(--color-text);
+
+  /* The table extension is configured with one theme for both appearances.
+     Override every color property it exposes so its built-in light palette
+     cannot reach a rendered table state. */
+  --tbl-theme-row-background: transparent;
+  --tbl-theme-header-row-background: var(--color-surface-muted);
+  --tbl-theme-even-row-background: transparent;
+  --tbl-theme-odd-row-background: transparent;
+  --tbl-theme-border-color: var(--color-border);
+  --tbl-theme-border-hover-color: color-mix(in srgb, var(--color-text) 22%, transparent);
+  --tbl-theme-border-active-color: color-mix(in srgb, var(--color-text) 40%, transparent);
+  --tbl-theme-outline-color: var(--color-primary);
+  --tbl-theme-text-color: var(--color-text);
+  --tbl-theme-menu-border-color: var(--color-border);
+  --tbl-theme-menu-background: var(--color-surface);
+  --tbl-theme-menu-hover-background: var(--option-background-highlighted);
+  --tbl-theme-menu-text-color: var(--color-text);
+  --tbl-theme-menu-hover-text-color: var(--color-text);
+  --tbl-theme-select-all-focus-overlay: var(--tint-primary);
+  --tbl-theme-select-all-blur-overlay: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+
+#editor > .cm-editor.cm-focused {
+  outline-color: var(--color-primary);
+}
+
+/* CodeMirror's light theme reaches table-owned tooltip wrappers because the
+   editor does not install a second CodeMirror theme for dark appearance. */
+#editor > .cm-editor .cm-tooltip {
+  color: var(--color-text);
+  border-color: var(--color-border);
+  background-color: var(--color-surface);
+}
+
+/* The table extension otherwise fixes this foreground to white, which is not
+   guaranteed to contrast with a theme's primary surface. */
+#editor > .cm-editor[data-tbl-handle-position="outside"]
+  .tbl-handle[data-type="header"][data-active] {
+  color: var(--color-primary-text);
+}
+
+#editor .cm-content {
+  caret-color: currentColor;
+}
+
+#editor .cm-cursor,
+#editor .cm-dropCursor {
+  border-left-color: currentColor;
+}
+
+#editor .cm-md-mark,
+#editor .cm-md-list-bullet::before,
+#editor .cm-md-blockquote-line {
+  color: var(--color-text-muted);
+}
+
+#editor .cm-md-blockquote-line {
+  border-left-color: var(--color-border);
+}
+
+#editor .cm-md-inline-code,
+#editor .cm-md-fenced-line {
+  background-color: var(--color-surface-muted);
+}
+
+#editor .cm-md-tag {
+  color: var(--color-primary);
+  background-color: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+#editor .cm-md-hr {
+  border-top-color: var(--color-border);
+}
+
+#editor a.cm-md-link {
+  color: var(--color-link);
+}
+
+#editor input.cm-md-task-checkbox {
+  accent-color: var(--checkbox-color);
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}

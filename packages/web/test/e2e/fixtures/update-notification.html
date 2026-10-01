@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/packages/web/src/views/television-app.css" />
+    <style>
+      body { padding: 24px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="top-bar-controls" id="notification-mount"></div>
+    </div>
+
+    <script type="module">
+      // Production direct-view mount (specs/arch/testing-policy.md): the
+      // controller consumes production-shaped retained state and renders the
+      // adjacent pair without a custom-element host.
+
+      const { render } = await import("lit-html");
+      const { ServerStatusEvent } = await import("/packages/web/src/events.ts");
+      const { renderMarkdown } = await import("/packages/web/src/markdown.ts");
+      const { detectElectronContext } = await import(
+        "/packages/web/src/services/desktop-gate.ts"
+      );
+      const { UpdateNotificationController } = await import(
+        "/packages/web/src/views/update-notification.ts"
+      );
+      const { DesktopUpdateState, desktopSelfUpdateNoticeMarkdown } = await import(
+        "/packages/web/src/services/desktop-update.ts"
+      );
+
+      // A stand-in for the bridge's update operations: ?desktopUpdate=<version>
+      // reports that version, as the preload does once the runtime has
+      // downloaded an update; restart requests are counted.
+      const search = new URLSearchParams(window.location.search);
+      const reportedVersion = search.get("desktopUpdate");
+      const bridge = {
+        restarts: 0,
+        onDesktopUpdateDownloaded(callback) {
+          if (reportedVersion !== null) callback(reportedVersion);
+        },
+        restartToInstallUpdate() {
+          this.restarts += 1;
+        },
+      };
+      const detection = detectElectronContext({ search: window.location.search });
+      const desktopUpdate = new DesktopUpdateState({ electron: detection.electron, bridge });
+
+      const PRIMARY = "http://primary.test";
+      const owner = new EventTarget();
+      const connection = {
+        url: PRIMARY,
+        status: "connected",
+        serverVersion: null,
+        updateState: null,
+        signals: [],
+        sendTelemetrySignal(event, properties) {
+          this.signals.push({ event, properties });
+        },
+      };
+      owner.connection = connection;
+
+      const mount = document.querySelector("#notification-mount");
+      const dismissalBacking = new Map();
+      let controller;
+      const draw = () => render(controller.template(), mount);
+      controller = new UpdateNotificationController(draw);
+      controller.configure({
+        connectionOwner: owner,
+        primaryServerURL: PRIMARY,
+        // In-memory dismissal store: fixture loads stay isolated from each other.
+        dismissalStorage: {
+          getItem: (key) => dismissalBacking.get(key) ?? null,
+          setItem: (key, value) => dismissalBacking.set(key, value),
+        },
+        desktopRecommendation: detection,
+        desktopUpdate,
+      });
+      controller.connect();
+      draw();
+
+      window.__sendStatus = (toast) => {
+        const message = {
+          type: "server-status",
+          version: "1.0.0",
+          requiredDesktopVersion: null,
+          update: { toast, desktop: null },
+        };
+        // The retention invariant the real ServerConnection maintains.
+        connection.serverVersion = message.version;
+        connection.updateState = message.update ?? null;
+        owner.dispatchEvent(new ServerStatusEvent("server-status", { serverURL: PRIMARY, message }));
+      };
+      window.__renderMarkdown = renderMarkdown;
+      window.__desktopSelfUpdateNoticeMarkdown = desktopSelfUpdateNoticeMarkdown;
+      window.__desktopUpdateBridge = bridge;
+      window.__connection = connection;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

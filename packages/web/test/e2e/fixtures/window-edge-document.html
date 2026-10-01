@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Independent document</title>
+<style>html,body { margin: 0; height: 100%; } body { background: #fff; color: #17191d; font: 16px sans-serif; } body.dark { background: #17191d; color: white; } main { padding: 24px; }</style>
+</head><body><main><h1>Independent document</h1><button>Click document</button></main>
+<script>document.body.className = new URLSearchParams(location.search).get('shade'); document.querySelector('button').onclick = event => event.target.textContent = 'Clicked';</script>
+</body></html>

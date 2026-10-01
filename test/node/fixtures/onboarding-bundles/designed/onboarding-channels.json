@@ -1,0 +1,44 @@
+{
+  "version": 3,
+  "focusChannel": "studio",
+  "channels": [
+    {
+      "slug": "studio",
+      "name": "Studio",
+      "artifacts": [
+        {
+          "slug": "main",
+          "title": "Main",
+          "size": {
+            "width": 960.5,
+            "height": 640.25
+          }
+        },
+        {
+          "slug": "side",
+          "title": "Side",
+          "geometry": {
+            "kind": "single",
+            "full_screen": true
+          }
+        },
+        {
+          "slug": "left",
+          "title": "Left",
+          "size": {
+            "width": 720,
+            "height": 480
+          },
+          "geometry": {
+            "kind": "single",
+            "full_screen": true
+          }
+        },
+        {
+          "slug": "right",
+          "title": "Right"
+        }
+      ]
+    }
+  ]
+}

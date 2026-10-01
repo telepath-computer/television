@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Production tab-strip fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      body {
+        padding: 40px;
+      }
+
+      .fixture-row {
+        display: grid;
+        grid-template-columns: auto 520px auto;
+        align-items: center;
+        gap: 16px;
+      }
+
+      #tab-strip-mount {
+        min-width: 0;
+      }
+
+      #gesture-stage-mount {
+        width: 100%;
+        height: 280px;
+        margin-top: 24px;
+      }
+
+      #gesture-stage-mount > .stage {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gesture-shell">
+      <div class="fixture-row">
+        <button id="before" type="button">Before strip</button>
+        <div id="tab-strip-mount"></div>
+        <button id="after" type="button">After strip</button>
+      </div>
+      <div id="gesture-stage-mount"></div>
+    </div>
+
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { refreshThemeLink, clearThemeLink } from "/packages/web/src/theme.ts";
+      window.__themeLinks = { refreshThemeLink, clearThemeLink };
+      import { StageView } from "/packages/web/src/views/stage.ts";
+      import { TabStripView } from "/packages/web/src/views/tab-strip.ts";
+
+      const defaultTitles = Array.from(
+        { length: 14 },
+        (_, index) => `Artifact ${String(index + 1).padStart(2, "0")} planning record`,
+      );
+      let definitions = createDefinitions(defaultTitles);
+      function createDefinitions(titles) {
+        return titles.map((title, index) => ({ id: `artifact-${index}`, title }));
+      }
+      const BASE_PAGE_WIDTH = 560.25;
+      const BASE_PAGE_HEIGHT = 740.5;
+      const pageSize = (artifactId) => {
+        const index = Number(artifactId.split("-").at(-1));
+        return { width: BASE_PAGE_WIDTH + index, height: BASE_PAGE_HEIGHT + index };
+      };
+      const mount = document.querySelector("#tab-strip-mount");
+      const stageMount = document.querySelector("#gesture-stage-mount");
+      const captureEvents = [];
+      const gestureStates = [];
+      const fullScreenStates = [];
+      let gestureObserver = null;
+      let fullScreenObserver = null;
+      let count = 14;
+      let selectedIndex = 0;
+      let stageEnabled = false;
+      let motionSuppressed = false;
+      let fullScreenArtifactId = null;
+      let tabReorder = null;
+      let lastCapturedPointerId = null;
+      let channel = createChannel();
+
+      function createChannel() {
+        const artifacts = definitions.slice(0, count).map(({ id, title }) => ({
+          id,
+          kind: "path",
+          path: `/tmp/${id}.html`,
+          title,
+        }));
+        const pages = artifacts.map(({ id }) => ({
+          artifactIds: [id],
+          geometry: { kind: "single", full_screen: id === fullScreenArtifactId },
+          size: pageSize(id),
+        }));
+        return {
+          id: "channel-tabs",
+          name: "Tab fixture",
+          pages,
+          selectedPage: pages[selectedIndex] ?? null,
+          artifacts,
+        };
+      }
+
+      class FakeApplication extends EventTarget {
+        selectionCalls = [];
+        reorderCalls = [];
+
+        selectPage(channelID, artifactID) {
+          const index = channel.pages.findIndex((page) => page.artifactIds.includes(artifactID));
+          if (channelID !== channel.id || index === -1) return;
+          this.selectionCalls.push({ channelID, artifactID });
+          selectedIndex = index;
+          channel = createChannel();
+          draw();
+        }
+
+        updateChannelPages(channelID, pages) {
+          this.reorderCalls.push({
+            channelID,
+            artifactIDs: pages.map((page) => page.artifactIds[0] ?? null),
+            sizes: pages.map((page) => ({ ...page.size })),
+          });
+          if (channelID === channel.id) {
+            const selectedArtifactId = channel.selectedPage?.artifactIds[0] ?? null;
+            const nextPages = pages.map((page) => ({
+              artifactIds: [...page.artifactIds],
+              geometry: { ...page.geometry },
+              size: { ...page.size },
+            }));
+            selectedIndex = nextPages.findIndex((page) =>
+              page.artifactIds.includes(selectedArtifactId)
+            );
+            channel = {
+              ...channel,
+              pages: nextPages,
+              selectedPage: nextPages[selectedIndex] ?? null,
+            };
+            draw();
+          }
+          return Promise.resolve();
+        }
+
+        getArtifactViewURL(artifact) {
+          return `/packages/web/test/e2e/fixtures/stage-document.html?artifact=${artifact.id}`;
+        }
+
+        getArtifactContentURL() {
+          return null;
+        }
+      }
+
+      const application = new FakeApplication();
+
+      function draw() {
+        render(
+          html`${TabStripView(application, channel, null, (next) => {
+            tabReorder = next;
+            draw();
+          }, motionSuppressed)}`,
+          mount,
+        );
+        render(
+          stageEnabled ? html`${StageView(application, channel, tabReorder)}` : null,
+          stageMount,
+        );
+      }
+
+      function currentGestureState() {
+        const strip = document.querySelector(".tab-strip");
+        const tabs = [...strip.querySelectorAll(".tab")];
+        const placeholder = strip.querySelector(".tab-placeholder");
+        return {
+          draggedArtifactId: strip.querySelector(".tab.dragged")?.dataset.artifactId ?? null,
+          placeholderBeforeArtifactId: placeholder?.nextElementSibling?.dataset.artifactId ?? null,
+          tabOrder: tabs.map((tab) => tab.dataset.artifactId),
+        };
+      }
+
+      function recordGestureState() {
+        const state = currentGestureState();
+        if (JSON.stringify(gestureStates.at(-1)) !== JSON.stringify(state)) {
+          gestureStates.push(state);
+        }
+      }
+
+      function startGestureObservation() {
+        gestureObserver?.disconnect();
+        gestureStates.length = 0;
+        recordGestureState();
+        gestureObserver = new MutationObserver(recordGestureState);
+        gestureObserver.observe(mount, {
+          attributes: true,
+          attributeFilter: ["class"],
+          childList: true,
+          subtree: true,
+        });
+      }
+
+      function recordFullScreenState() {
+        const selected = stageMount.querySelector(".page[selected]");
+        const state = {
+          artifactId: selected?.dataset.pageKey ?? null,
+          fullScreen: selected?.hasAttribute("full-screen") ?? false,
+        };
+        if (JSON.stringify(fullScreenStates.at(-1)) !== JSON.stringify(state)) {
+          fullScreenStates.push(state);
+        }
+      }
+
+      function startFullScreenObservation() {
+        fullScreenObserver?.disconnect();
+        fullScreenStates.length = 0;
+        recordFullScreenState();
+        fullScreenObserver = new MutationObserver(recordFullScreenState);
+        fullScreenObserver.observe(stageMount, {
+          attributes: true,
+          attributeFilter: ["selected", "full-screen"],
+          childList: true,
+          subtree: true,
+        });
+      }
+
+      mount.addEventListener("gotpointercapture", (event) => {
+        lastCapturedPointerId = event.pointerId;
+        captureEvents.push({ type: event.type, pointerId: event.pointerId });
+      }, true);
+      mount.addEventListener("lostpointercapture", (event) => {
+        captureEvents.push({ type: event.type, pointerId: event.pointerId });
+      }, true);
+
+      function settle() {
+        return document.fonts.ready.then(() =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          )
+        );
+      }
+
+      function stripReport() {
+        const strip = document.querySelector(".tab-strip");
+        const tabs = [...strip.querySelectorAll(".tab")];
+        const selected = strip.querySelector('.tab[aria-selected="true"]');
+        const selectedPosition = tabs.indexOf(selected);
+        const stripBox = strip.getBoundingClientRect();
+        const selectedBox = selected?.getBoundingClientRect();
+        recordGestureState();
+        const visible = (tab) => {
+          if (!tab) return false;
+          const box = tab.getBoundingClientRect();
+          return box.left >= stripBox.left - 0.5 && box.right <= stripBox.right + 0.5;
+        };
+        const filmstrip = stageMount.querySelector(".filmstrip");
+        const filmstripBox = filmstrip?.getBoundingClientRect();
+        const selectedPage = stageMount.querySelector(".page[selected]");
+        const selectedPageBox = selectedPage?.getBoundingClientRect();
+        const pageLayoutBoxes = Object.fromEntries(
+          [...stageMount.querySelectorAll(".page")].map((page) => [
+            page.dataset.pageKey,
+            { width: page.offsetWidth, height: page.offsetHeight },
+          ]),
+        );
+        recordFullScreenState();
+        return {
+          overflow: strip.hasAttribute("data-overflow"),
+          scrollLeft: strip.scrollLeft,
+          scrollMax: strip.scrollWidth - strip.clientWidth,
+          selectedIndex: selectedPosition,
+          selectedArtifactId: selected?.dataset.artifactId ?? null,
+          selectedCenterOffset: selectedBox
+            ? selectedBox.left + selectedBox.width / 2 - (stripBox.left + stripBox.width / 2)
+            : null,
+          previousVisible: visible(tabs[selectedPosition - 1]),
+          nextVisible: visible(tabs[selectedPosition + 1]),
+          activeArtifactId: document.activeElement?.dataset?.artifactId ?? null,
+          tabIndexes: tabs.map((tab) => tab.getAttribute("tabindex")),
+          selectionCalls: [...application.selectionCalls],
+          reorderCalls: [...application.reorderCalls],
+          selectedPageArtifactId: selectedPage?.dataset.pageKey ?? null,
+          selectedPageFullScreen: selectedPage?.hasAttribute("full-screen") ?? false,
+          selectedPageCenterOffset: selectedPageBox && filmstripBox
+            ? selectedPageBox.left + selectedPageBox.width / 2 -
+              (filmstripBox.left + filmstripBox.width / 2)
+            : null,
+          pageLayoutBoxes,
+          pageOrder: [...stageMount.querySelectorAll(".page")]
+            .map((page) => page.dataset.pageKey),
+          draggedArtifactId: strip.querySelector(".tab.dragged")?.dataset.artifactId ?? null,
+          placeholderCount: strip.querySelectorAll(".tab-placeholder").length,
+          placeholderBeforeArtifactId: strip.querySelector(".tab-placeholder")
+            ?.nextElementSibling?.dataset.artifactId ?? null,
+          tabOrder: tabs.map((tab) => tab.dataset.artifactId),
+          captureEvents: [...captureEvents],
+          hasPointerCapture: lastCapturedPointerId !== null &&
+            strip.hasPointerCapture(lastCapturedPointerId),
+          gestureStates: [...gestureStates],
+          fullScreenStates: [...fullScreenStates],
+          scrollBehavior: getComputedStyle(strip).scrollBehavior,
+        };
+      }
+
+      window.__tabStripFixture = {
+        setMotionSuppressed(value) {
+          motionSuppressed = value;
+          draw();
+        },
+        unmount() {
+          render(null, mount);
+        },
+        async settle() {
+          await settle();
+        },
+        setTabs(nextCount, nextSelectedIndex = 0) {
+          count = nextCount;
+          selectedIndex = Math.max(0, Math.min(nextSelectedIndex, count - 1));
+          channel = createChannel();
+          draw();
+        },
+        setTitles(titles, nextSelectedIndex = 0) {
+          definitions = createDefinitions(titles);
+          count = definitions.length;
+          selectedIndex = Math.max(0, Math.min(nextSelectedIndex, count - 1));
+          channel = createChannel();
+          draw();
+        },
+        resetGestureScenario({ selected = 0, fullScreen = false } = {}) {
+          count = 4;
+          selectedIndex = selected;
+          stageEnabled = true;
+          fullScreenArtifactId = fullScreen ? `artifact-${selected}` : null;
+          tabReorder = null;
+          application.selectionCalls.length = 0;
+          application.reorderCalls.length = 0;
+          captureEvents.length = 0;
+          gestureStates.length = 0;
+          fullScreenStates.length = 0;
+          lastCapturedPointerId = null;
+          channel = createChannel();
+          draw();
+        },
+        startGestureObservation,
+        startFullScreenObservation,
+        dispatchPointerCancel() {
+          const strip = document.querySelector(".tab-strip");
+          if (lastCapturedPointerId === null) throw new Error("No captured pointer");
+          strip.dispatchEvent(new PointerEvent("pointercancel", {
+            bubbles: true,
+            pointerId: lastCapturedPointerId,
+          }));
+        },
+        releasePointerCapture() {
+          const strip = document.querySelector(".tab-strip");
+          if (lastCapturedPointerId === null ||
+              !strip.hasPointerCapture(lastCapturedPointerId)) {
+            throw new Error("No captured pointer");
+          }
+          strip.releasePointerCapture(lastCapturedPointerId);
+        },
+        selectIndex(index) {
+          const artifactID = channel.pages[index]?.artifactIds[0];
+          if (artifactID) application.selectPage(channel.id, artifactID);
+        },
+        scrollTo(fraction) {
+          const strip = document.querySelector(".tab-strip");
+          strip.scrollLeft = (strip.scrollWidth - strip.clientWidth) * fraction;
+        },
+        report: stripReport,
+      };
+
+      draw();
+      await settle();
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

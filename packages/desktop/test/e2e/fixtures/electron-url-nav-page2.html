@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Electron URL navigation page 2</title>
+  </head>
+  <body>
+    <h1 id="page-title">Page 2</h1>
+    <p><a id="external-link" href="/packages/desktop/test/e2e/fixtures/electron-url-nav-external.html">Different external site</a></p>
+    <script>
+      const externalURL = new URL("/packages/desktop/test/e2e/fixtures/electron-url-nav-external.html", location.href);
+      externalURL.hostname = location.hostname === "localhost" ? "127.0.0.1" : "localhost";
+      document.getElementById("external-link").href = externalURL.href;
+    </script>
+  </body>
+</html>

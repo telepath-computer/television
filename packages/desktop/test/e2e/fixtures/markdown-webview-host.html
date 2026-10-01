@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>markdown webview host</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; }
+      artifact-view-fixture { display: block; width: 100%; height: 100%; }
+      webview { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <artifact-view-fixture id="card"></artifact-view-fixture>
+
+    <script type="module">
+      import { render } from "lit-html";
+      import { ArtifactViewView } from "/packages/web/src/views/artifact-view.ts";
+
+      class ArtifactViewFixture extends HTMLElement {
+        _artifact = null;
+        _application = null;
+        part = null;
+
+        set artifact(value) { this._artifact = value; this.draw(); }
+        set application(value) { this._application = value; this.draw(); }
+
+        connectedCallback() {
+          this.part?.setConnected(true);
+          this.draw();
+        }
+
+        disconnectedCallback() {
+          this.part?.setConnected(false);
+        }
+
+        draw() {
+          if (!this.isConnected || !this._artifact || !this._application) return;
+          this.part = render(ArtifactViewView(this._application, this._artifact, {
+            viewURL: null,
+            contentURL: null,
+            inert: false,
+          }), this);
+        }
+      }
+      customElements.define("artifact-view-fixture", ArtifactViewFixture);
+
+      const card = document.getElementById("card");
+      window.__markdownContent = "# Initial content";
+      window.__markdownSaves = [];
+      window.__failNextSave = false;
+      window.__fixtureReady = false;
+
+      const application = new EventTarget();
+      application.readMarkdown = async () => window.__markdownContent;
+      application.writeMarkdown = async (artifactID, content) => {
+        window.__markdownSaves.push({ artifactID, content });
+        if (window.__failNextSave) {
+          window.__failNextSave = false;
+          throw new Error("save failed by fixture");
+        }
+        window.__markdownContent = content;
+      };
+
+      card.application = application;
+      card.artifact = { id: "md-webview", kind: "path", title: "Markdown", path: "/tmp/note.md" };
+
+      const webview = card.querySelector("webview");
+      if (!webview) throw new Error("artifact-frame view did not host a markdown webview");
+
+      const publishContent = (content) => {
+        window.__markdownContent = content;
+        application.dispatchEvent(Object.assign(new Event("artifact-content-changed"), { artifactID: "md-webview" }));
+      };
+
+      window.__readEditor = () => webview.executeJavaScript("window.__cmView.state.doc.toString()");
+      window.__replaceEditor = (content) => webview.executeJavaScript(`
+        {
+          const view = window.__cmView;
+          view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: ${JSON.stringify(content)} } });
+        }
+      `);
+      window.__hasContentBridge = () => webview.executeJavaScript("!!window.__televisionContentBridge");
+      window.__postUpdateFromWebview = (content) => webview.executeJavaScript(`
+        window.__televisionContentBridge.postToHost({ type: "update-content", id: "manual", content: ${JSON.stringify(content)} });
+      `);
+      window.__pushMarkdownContent = publishContent;
+      window.__fireContentChanged = publishContent;
+      window.__reloadMarkdownWebview = () => new Promise((resolve) => {
+        webview.addEventListener("did-finish-load", () => resolve(), { once: true });
+        webview.reload();
+      });
+      window.__disposeMarkdownHost = () => {
+        card.artifact = { id: "disposed", kind: "url", title: "Disposed", url: "/views/markdown/" };
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

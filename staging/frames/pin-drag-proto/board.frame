@@ -1,0 +1,24 @@
+---
+style: |
+  body { margin: 0; background: var(--white); }
+  .holder { width: 300px; height: 100vh; }
+script: |
+  import "../../lib/foundation.ts";
+  import sidebar from "../../../specs/ui/app/sidebar/template.liquid";
+  import { pinned, unpinned } from "../../lib/state.ts";
+  import { wirePinning, wireSelection } from "../../lib/sidebar.ts";
+
+  const { styles } = sidebar({ pinned: pinned(), unpinned: unpinned() });
+  document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+  const holder = document.querySelector(".holder");
+  const paint = wireSelection(holder, sidebar);
+  wirePinning(holder, { repaint: paint });
+---
+<!-- Channel sidebar pinning and drag (design prototype, TV-538, kept after the spec
+     landed): the live sidebar with the shared wiring — what the spec's
+     staging runs, in a frame of its own. The variant-comparison knob this
+     board carried while the placeholder was being decided lives in git
+     history; the slot treatment won. -->
+
+
+<div class="holder"></div>

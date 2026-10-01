@@ -1,0 +1,2 @@
+check: "@phosphor-icons/core/assets/regular/check.svg"
+pin: "./local-pin.svg"

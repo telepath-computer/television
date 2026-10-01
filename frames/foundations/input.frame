@@ -1,0 +1,30 @@
+---
+title: Input
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { padding: var(--space-24); min-height: 100vh; box-sizing: border-box; background: var(--color-surface); color: var(--color-text); }
+  .fields { display: grid; gap: var(--space-16); max-width: 440px; }
+  label, .field { display: grid; gap: var(--space-4); }
+  .hint { color: var(--color-text-muted); }
+---
+<main text-display="prose">
+  <h1>Inputs</h1>
+  <p>Shared text-entry defaults. Tab into a field to review focus. Change appearance or theme to review contrast.</p>
+  <div class="fields">
+    <label>Channel name<input type="text" value="Weekly review"></label>
+    <label>Placeholder<input placeholder="Enter a name"></label>
+    <label>Email<input type="email" placeholder="name@example.com"></label>
+    <label>Access token<input type="password" value="example-token"></label>
+    <label>Count<input type="number" value="3"></label>
+    <label>Disabled<input disabled value="Unavailable"></label>
+    <label>Read-only<input readonly value="Selectable, but not editable"></label>
+    <div class="field">
+      <label>Invalid<input aria-invalid="true" aria-describedby="input-error" value="Invalid value"></label>
+      <p id="input-error" class="tv-error">Enter a valid value.</p>
+    </div>
+    <label>Notes<textarea rows="3" placeholder="Write a note"></textarea></label>
+    <label><span>Excluded checkbox: retains its own control styling</span><input type="checkbox"></label>
+  </div>
+</main>

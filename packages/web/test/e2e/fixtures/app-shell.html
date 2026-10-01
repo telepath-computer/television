@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en" data-television-document="app">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application shell fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      .fixture-overflow {
+        flex: none;
+        width: 2200px;
+        height: 24px;
+      }
+      #fixture { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <main id="fixture"></main>
+    <script type="module">
+      import { render } from "lit-html";
+      import { TelevisionAppView } from "/packages/web/src/views/television-app.ts";
+      import { ChannelSidebarCollapsedPreference } from "/packages/web/src/services/channel-sidebar-collapsed.ts";
+      import { ChannelSidebarWidthPreference } from "/packages/web/src/services/channel-sidebar-width.ts";
+
+      const channel = {
+        id: "channel-1",
+        name: "Research",
+        pages: [{ artifactIds: [], geometry: {}, size: { width: 560, height: 740 } }],
+        artifacts: [],
+      };
+      const application = new (class extends EventTarget {
+        snapshot = {
+          ready: true,
+          channels: [channel],
+          display: {
+            focusedChannelId: channel.id,
+            pinnedChannelIds: [channel.id],
+            activeThemeName: null,
+            acpEnabled: false,
+          },
+          focusedChannel: channel,
+          connection: {
+            authorizationRequired: false,
+            gateHalted: false,
+            status: "connected",
+            hasEverConnected: true,
+            firstConnectError: null,
+            nextRetryAt: null,
+            upgradeInstructions: null,
+          },
+        };
+
+        authenticate() { return Promise.resolve(); }
+        createChannel() { return Promise.reject(new Error("not used")); }
+        focusChannel() { return Promise.resolve(); }
+        setPinnedChannelIds() { return Promise.resolve(); }
+        renameChannel() { return Promise.resolve(); }
+        deleteChannel() { return Promise.resolve(); }
+        getArtifactViewURL() { return ""; }
+        getArtifactContentURL() { return null; }
+      })();
+
+      const app = document.querySelector("#fixture");
+      render(TelevisionAppView(application, {
+        runtimeServerURL: location.origin,
+        electronMode: false,
+        primaryServerURL: location.origin,
+        sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
+        sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
+        onRenderComplete() {
+          if (app.querySelector("#app")?.dataset.appState !== "connected") return;
+          if (!app.querySelector(".fixture-overflow")) {
+            const topOverflow = document.createElement("div");
+            topOverflow.className = "fixture-overflow top-overflow";
+            app.querySelector(".top-bar")?.append(topOverflow);
+            const stageOverflow = document.createElement("div");
+            stageOverflow.className = "fixture-overflow stage-overflow";
+            app.querySelector(".stage")?.append(stageOverflow);
+          }
+          window.__fixtureReady = true;
+        },
+      }), app);
+
+      window.__rootScrollEvents = 0;
+      window.addEventListener("scroll", () => { window.__rootScrollEvents += 1; });
+    </script>
+  </body>
+</html>

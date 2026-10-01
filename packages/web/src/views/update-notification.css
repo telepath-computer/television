@@ -1,0 +1,20 @@
+/* The panel is the popover ([[ui/foundation/popover/index.md]]), declared
+   `manual` — an announcement must not vanish to a stray press — so these
+   styles own the panel's interior. The composed copy button owns its
+   confirmation swap; the bell's placement is the top bar's, and its color
+   is the alert intent's. */
+
+/* The panel's interior; the chrome is the primitive's. */
+.update-popover {
+  width: 360px;
+  padding: var(--space-16);
+  user-select: text;
+}
+
+/* The actions, on one row at the notice's end, actions trailing. */
+.update-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}

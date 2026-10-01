@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings component</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      body { margin: 0; padding: 40px; }
+      .fixture-controls { display: flex; justify-content: flex-end; gap: 4px; }
+      #outside { margin-top: 120px; }
+    </style>
+  </head>
+  <body>
+    <main id="fixture"></main>
+
+    <script type="module">
+      import { html, render } from "lit-html";
+      import {
+        LocalStore,
+        createDefaultLocalState,
+      } from "/packages/web/src/store.ts";
+      import { ServerConnectionOwner } from "/packages/web/src/services/server-connection-owner.ts";
+      import { ApplicationService } from "/packages/web/src/services/application-service.ts";
+      import { SkillSelectorView } from "/packages/web/src/views/skill-selector.ts";
+      import { SettingsView } from "/packages/web/src/views/settings.ts";
+
+      const serverURL = new URL(window.location.href).searchParams.get("serverURL");
+      if (!serverURL) throw new Error("serverURL is required");
+
+      const connectionOwner = new ServerConnectionOwner({
+        localStore: new LocalStore("settings-component", createDefaultLocalState()),
+        serverURL,
+        acpStorage: null,
+      });
+      const application = new ApplicationService({ connectionOwner });
+      const host = document.querySelector("#fixture");
+      const draw = () => {
+        render(html`
+          <div class="fixture-controls">
+            ${SkillSelectorView(connectionOwner.connection)}
+            ${SettingsView(application)}
+          </div>
+          <button id="outside" type="button">Outside</button>
+        `, host);
+      };
+      application.addEventListener("change", draw);
+      draw();
+      window.__settingsApplication = application;
+      window.__fixtureReady = true;
+      void connectionOwner.connect();
+    </script>
+  </body>
+</html>

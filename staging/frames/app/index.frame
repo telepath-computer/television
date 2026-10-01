@@ -1,0 +1,111 @@
+---
+style: |
+  /* A grid of one cell filling the page, with the window centred in it by auto
+     margins.
+     `minmax(0, 1fr)` rather than `1fr`: a `1fr` track will not shrink below its
+     content's minimum, and the stage's content is a row of pages several times
+     wider than the window — the track would size to that instead of to the space
+     available. The 0 minimum lets it.
+     Auto margins rather than `place-content: center`: with centring on the
+     container, content taller than the viewport overflows off both edges and the
+     top cannot be scrolled to. Auto margins collapse to nothing when there is no
+     room, so the overflow all goes one way and stays reachable. */
+  body {
+    height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: grid;
+    grid-template-rows: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  
+  /* The holder carries the window's size (the grip resizes it); `width: 100%`
+     is what makes the cap work: auto margins opt a grid item out of
+     stretching, so without a definite width it falls back to sizing from its
+     content and `max-width` only ever clamps it to the cap rather than letting
+     it shrink. With 100% it takes the track's width, the cap holds it at the
+     design size, and the auto margins centre what is left over. */
+  .window-holder {
+    position: relative;
+    width: 100%;
+    max-width: 1140px;
+    height: min(880px, 100%);
+    margin: auto;
+  }
+  
+  frameset-frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    /* The window's silhouette is the sheet's to draw: an iframe document
+       cannot paint outside its own viewport, so a shadow inside the frame
+       would clip at the boundary. The radius matches the window's own
+       (macOS Golden Gate, 20), and the boundary's content box clips to it. */
+    border-radius: 20px;
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.28),
+      0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+  
+  /* The grip: sheet chrome at the window's bottom-right, a quiet corner mark. */
+  .window-grip {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 28px;
+    height: 28px;
+    cursor: nwse-resize;
+    border-right: 2px solid #b5b5b5;
+    border-bottom: 2px solid #b5b5b5;
+    border-bottom-right-radius: 8px;
+  }
+  
+  body.dragging iframe {
+    pointer-events: none;
+  }
+script: |
+
+  const holder = document.querySelector(".window-holder");
+  const grip = document.querySelector(".window-grip");
+  
+  grip.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startW = holder.getBoundingClientRect().width;
+    const startH = holder.getBoundingClientRect().height;
+    document.body.classList.add("dragging");
+    grip.setPointerCapture(event.pointerId);
+  
+    const move = (ev) => {
+      holder.style.maxWidth = "none";
+      holder.style.width = `${Math.max(520, startW + (ev.clientX - startX))}px`;
+      holder.style.height = `${Math.max(400, startH + (ev.clientY - startY))}px`;
+    };
+    const up = () => {
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", up);
+      document.body.classList.remove("dragging");
+    };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+  });
+---
+<!--
+  The App workshop's sheet: stages ./app.frame — the whole app as its own
+  document — on the workshop ground. The system modal's states are the
+  frame's own control, and fixed poses beside this file (connecting,
+  disconnected, unauthorized, error, needs-upgrade) board them.
+
+  The window is resizeable by its bottom-right grip (sheet chrome, not
+  design): the holder carries the size, the frame fills it, and a frame
+  resize never reloads the embedded document.
+-->
+
+
+
+<div class="window-holder">
+  <frameset-frame src="./app" label="App"></frameset-frame>
+  <div class="window-grip" aria-hidden="true"></div>
+</div>

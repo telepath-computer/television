@@ -1,0 +1,50 @@
+/* Every rule is wrapped in `:where()` — ambient styling is the weakest thing
+   in the cascade ([[ui/foundation/button/index.md#^bt-ambient-is-weakest]]),
+   so a surface's own dialog class overrides any of this with a plain
+   selector. */
+
+/* The overlay: an element filling the window, centring the panel, dimming
+   the screen behind with a flat tint. The strength is a first value to judge
+   in staging. */
+:where(.dialog-overlay) {
+  position: fixed;
+  inset: 0;
+  /* Over everything, as the spec says ([[ui/foundation/index.md]],
+     Layers): the interruption out-paints open panels and every lift. */
+  z-index: var(--layer-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  background: var(--color-overlay);
+}
+
+/* The dialog format ([[ui/app/dialog/index.md]], Appearance): the question,
+   its consequence, and the actions row — left-aligned at a reading width,
+   the actions at the end. The composing surface authors the contents; these
+   rules are the shared shape they take. */
+:where(.dialog-alert) {
+  width: min(384px, 90vw);
+  box-sizing: border-box;
+  padding: var(--space-24);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+:where(.dialog-alert h2) {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: break-word;
+}
+
+:where(.dialog-alert p) {
+  color: var(--color-text-muted);
+}
+
+:where(.dialog-actions) {
+  margin-top: var(--space-16);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-8);
+}

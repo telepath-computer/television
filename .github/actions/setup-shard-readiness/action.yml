@@ -1,0 +1,61 @@
+name: Setup shard readiness
+description: >-
+  Select Node from .nvmrc and restore the exact combined workspace-plus-Playwright-browser cache for
+  an e2e shard runner. The cache identity includes the resolved Node major and
+  the hosted runner's concrete ImageOS/ImageVersion, so an ubuntu-latest image
+  rollover cannot reuse readiness proven on the prior image.
+
+inputs:
+  cache-namespace:
+    description: Cache namespace; isolated validation workflows must use a scratch value.
+    default: shard-readiness-v2
+  cache-key-suffix:
+    description: Optional suffix used by isolated validation runs to force an exact-key miss.
+    default: ""
+
+outputs:
+  cache-hit:
+    description: Whether the exact combined cache was restored.
+    value: ${{ steps.readiness-cache.outputs.cache-hit }}
+  cache-key:
+    description: Concrete image- and Node-bound cache key.
+    value: ${{ steps.readiness-key.outputs.key }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+
+    # Resolve after setup-node so the key's node label comes from the actual
+    # selected runtime rather than a duplicated hand-written label. ImageOS
+    # and ImageVersion are supplied by GitHub's hosted runner image.
+    - name: Resolve concrete shard-readiness key
+      id: readiness-key
+      shell: bash
+      env:
+        CACHE_INPUT_HASH: ${{ hashFiles('package-lock.json', 'packages/skills/package.json', 'packages/skillbench/**') }}
+        CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
+      run: |
+        set -euo pipefail
+        node_version="$(node -p 'process.versions.node')"
+        node_major="${node_version%%.*}"
+        image_os="${ImageOS:?GitHub hosted runner did not expose ImageOS}"
+        image_version="${ImageVersion:?GitHub hosted runner did not expose ImageVersion}"
+        key="${{ inputs.cache-namespace }}-${RUNNER_OS}-${RUNNER_ARCH}-node${node_major}-${image_os}-${image_version}-${CACHE_INPUT_HASH}"
+        if [ -n "$CACHE_KEY_SUFFIX" ]; then
+          key="${key}-${CACHE_KEY_SUFFIX}"
+        fi
+        echo "resolved Node $node_version on $image_os/$image_version"
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - name: Restore combined workspace and Playwright browser cache
+      id: readiness-cache
+      uses: actions/cache/restore@v4
+      with:
+        path: |
+          node_modules
+          packages/skillbench/dist
+          ~/.cache/ms-playwright
+        key: ${{ steps.readiness-key.outputs.key }}

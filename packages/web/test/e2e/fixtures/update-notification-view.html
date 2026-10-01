@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      body { padding: 24px; }
+      /* The bell sits at the trailing edge, as the top bar places it. */
+      #mount { display: flex; justify-content: flex-end; }
+      #outside { margin-top: 180px; }
+    </style>
+  </head>
+  <body>
+    <button id="working" type="button">Current work</button>
+    <button id="other-trigger" type="button">Other panel</button>
+    <tv-popover id="other-panel" trigger="other-trigger">Other content</tv-popover>
+    <main id="mount"></main>
+    <button id="outside" type="button">Outside the notice</button>
+
+    <script type="module">
+      const { html, render } = await import("lit-html");
+      const { UpdateNotificationView } = await import(
+        "/packages/web/src/views/update-notification.ts"
+      );
+      await import("/packages/web/src/elements/menu.ts");
+      await import("/packages/web/src/elements/select.ts");
+
+      const mount = document.getElementById("mount");
+      const state = {
+        presented: false,
+        prompt: undefined,
+        copied: false,
+        restart: undefined,
+        restarts: 0,
+        dismissals: 0,
+        presentations: 0,
+        copies: 0,
+        renderCount: 0,
+        scheduledTasks: [],
+        toggles: [],
+      };
+      let renderQueued = false;
+      let nextTimerId = 1;
+
+      function popoverOpen(panel) {
+        return panel.hasAttribute("open");
+      }
+
+      function requestRender() {
+        if (renderQueued) return;
+        renderQueued = true;
+        queueMicrotask(() => {
+          renderQueued = false;
+          draw();
+        });
+      }
+
+      function draw(onRenderComplete = () => {}) {
+        render(
+          html`${UpdateNotificationView({
+            body: html`
+              <h3 data-notice-body>Television 2.0 is available</h3>
+              <p>Upgrade when convenient.</p>
+            `,
+            prompt: state.prompt,
+            copied: state.copied,
+            restart: state.restart,
+            onRestart() {
+              state.restarts += 1;
+              state.restart = "restarting";
+              requestRender();
+            },
+            onPresent() {
+              if (state.presented) return;
+              state.presented = true;
+              state.presentations += 1;
+              requestRender();
+            },
+            onDismiss() {
+              if (!state.presented) return;
+              state.presented = false;
+              state.copied = false;
+              state.dismissals += 1;
+              requestRender();
+            },
+            onCopy() {
+              state.copied = true;
+              state.copies += 1;
+            },
+          })}`,
+          mount,
+        );
+
+        const panel = document.querySelector("#update-popover");
+        if (!panel.dataset.toggleRecorder) {
+          panel.dataset.toggleRecorder = "installed";
+          let open = panel.hasAttribute("open");
+          new MutationObserver(() => {
+            const next = panel.hasAttribute("open");
+            if (next === open) return;
+            state.toggles.push(`after:${open ? "open" : "closed"}->${next ? "open" : "closed"}`);
+            open = next;
+          }).observe(panel, { attributes: true, attributeFilter: ["open"] });
+        }
+
+        // Script presentation names the bell as invoker (^po-invoker).
+        if (state.presented && !popoverOpen(panel)) {
+          panel.setAttribute("open", "");
+        }
+        if (!state.presented && popoverOpen(panel)) panel.removeAttribute("open");
+        state.renderCount += 1;
+        onRenderComplete();
+      }
+
+      window.__presentNotice = ({ prompt, restart } = {}) => {
+        state.prompt = prompt;
+        state.restart = restart;
+        state.copied = false;
+        state.presented = true;
+        draw();
+      };
+      window.__clearNoticeRecords = () => {
+        state.dismissals = 0;
+        state.restarts = 0;
+        state.presentations = 0;
+        state.copies = 0;
+        state.toggles.length = 0;
+      };
+      window.__controlNoticeTimers = () => {
+        state.scheduledTasks.length = 0;
+        window.setTimeout = (callback, delay = 0, ...args) => {
+          const id = nextTimerId++;
+          state.scheduledTasks.push({
+            id,
+            delay,
+            run: () => callback(...args),
+          });
+          return id;
+        };
+        window.clearTimeout = (id) => {
+          const index = state.scheduledTasks.findIndex((task) => task.id === id);
+          if (index >= 0) state.scheduledTasks.splice(index, 1);
+        };
+      };
+      window.__drainNoticeTasks = () => {
+        state.scheduledTasks.sort((left, right) => left.delay - right.delay);
+        while (state.scheduledTasks.length > 0) state.scheduledTasks.shift().run();
+      };
+      window.__noticeState = () => ({
+        presented: state.presented,
+        copied: state.copied,
+        dismissals: state.dismissals,
+        presentations: state.presentations,
+        copies: state.copies,
+        restarts: state.restarts,
+        renderCount: state.renderCount,
+        scheduledTaskCount: state.scheduledTasks.length,
+        toggles: [...state.toggles],
+      });
+      draw(() => { window.__fixtureReady = true; });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stage document</title>
+  </head>
+  <body>
+    <p>Live stage document</p>
+    <script>
+      const artifactID = new URLSearchParams(location.search).get("artifact");
+      window.__stageArtifactID = artifactID;
+      window.__stageDocumentState = `initial:${artifactID}`;
+      const owner = window.parent;
+      owner.__stageDocumentLoads ??= {};
+      owner.__stageDocumentLoads[artifactID] = (owner.__stageDocumentLoads[artifactID] ?? 0) + 1;
+      document.addEventListener("pointerdown", () => {
+        owner.postMessage({ type: "stage-document-pointerdown", artifactID }, location.origin);
+      });
+      owner.postMessage({ type: "stage-document-ready", artifactID }, location.origin);
+    </script>
+  </body>
+</html>

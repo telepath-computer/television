@@ -1,0 +1,22 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  
+  frameset-frame {
+    flex: none;
+  }
+---
+<!-- The dialog's sheet: the panel bare, and the overlay over a page. -->
+
+
+<frameset-frame src="./panel" label="Panel" width="450" height="170"></frameset-frame>
+<frameset-frame src="./open" label="Overlay" width="900" height="600"></frameset-frame>

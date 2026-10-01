@@ -1,0 +1,26 @@
+[
+  {
+    "id": "node_modules/outer-package/node_modules/nested-package/index.js",
+    "renderedLength": 35
+  },
+  {
+    "id": "\u0000vite/preload-helper.js",
+    "renderedLength": 20
+  },
+  {
+    "id": "node_modules/tree-shaken-package/index.js",
+    "renderedLength": 0
+  },
+  {
+    "id": "src/index.ts",
+    "renderedLength": 42
+  },
+  {
+    "id": "node_modules/plain-package/index.js",
+    "renderedLength": 25
+  },
+  {
+    "id": "node_modules/@fixture/scoped-package/index.js",
+    "renderedLength": 30
+  }
+]

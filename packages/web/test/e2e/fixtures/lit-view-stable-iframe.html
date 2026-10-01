@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lit-view stable iframe fixture</title>
+  </head>
+  <body>
+    <main id="host"></main>
+
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { view, View } from "/packages/utils/src/lit-view.ts";
+
+      let loadCount = 0;
+
+      class OwnedIframe extends View {
+        iframe = document.createElement("iframe");
+
+        constructor(partInfo) {
+          super(partInfo);
+          this.iframe.title = "Owned document";
+          this.iframe.srcdoc = "<!doctype html><html><body>Owned document</body></html>";
+          this.iframe.addEventListener("load", () => {
+            loadCount += 1;
+          });
+        }
+
+        disconnected() {}
+
+        template(hostArgument) {
+          this.iframe.dataset.hostArgument = hostArgument;
+          return this.iframe;
+        }
+      }
+
+      const OwnedIframeView = view(OwnedIframe);
+      const host = document.querySelector("#host");
+
+      window.__litViewStableIframe = {
+        get loadCount() {
+          return loadCount;
+        },
+        render(hostArgument) {
+          render(html`${OwnedIframeView(hostArgument)}`, host);
+        },
+      };
+
+      window.__litViewStableIframe.render("initial");
+    </script>
+  </body>
+</html>

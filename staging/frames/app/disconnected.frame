@@ -1,0 +1,13 @@
+---
+params:
+  now: { type: boolean, default: false }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ state: "disconnected", secondsControl: true });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app, connection lost (staging): the dialog over the held screen. -->
+
+<div class="window">
+</div>

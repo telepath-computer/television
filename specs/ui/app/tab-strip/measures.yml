@@ -1,0 +1,10 @@
+# The tab strip's measures ([[ui/app/tab-strip/index.md]]). Script
+# classifies natural label width plus horizontal chrome as `capped` only when
+# that basis exceeds floor_px + floor_slack_px; tab.frame maps the resulting
+# stable `hugging` or `capped` classification to its minimum width.
+tab:
+  floor_px: 90 # the width a tab compresses to before the strip overflows
+  floor_slack_px: 1 # compression requires a saving greater than this slack
+
+overflow:
+  fade_px: 24 # inward fade at an edge while more tabs remain past it

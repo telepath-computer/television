@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/packages/canonical/styles/canonical/v2/index.css">
+<style>
+  :root { --popover-shadow: none; }
+  body { padding: 40px; background: white; }
+  tv-popover { width: 200px; padding: 0; --panel-radius: 24px; }
+  #height { height: 100px; }
+  #height > div { height: 600px; background: rgb(0, 128, 255); }
+  #grid[open] { display: grid; grid-template-columns: 100px 100px; }
+  #flex[open] { display: flex; flex-wrap: wrap; }
+  #grid > div, #flex > div { width: 100px; height: 40px; background: rgb(0, 128, 255); }
+  #corner > img { display: block; width: 200px; height: 100px; }
+</style>
+</head>
+<body>
+<button id="open-height">Height</button><button id="open-grid">Grid</button><button id="open-flex">Flex</button><button id="open-corner">Corner</button>
+<tv-popover id="height" trigger="open-height"><div>Tall content</div></tv-popover>
+<tv-popover id="grid" trigger="open-grid"><div>A</div><div>B</div><div>C</div><div>D</div></tv-popover>
+<tv-popover id="flex" trigger="open-flex"><div>A</div><div>B</div><div>C</div><div>D</div></tv-popover>
+<tv-popover id="corner" trigger="open-corner"><img alt="Blue rectangle" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Cpath fill='%230080ff' d='M0 0h200v100H0z'/%3E%3C/svg%3E"></tv-popover>
+<script type="module">import '/packages/canonical/canonical-components.ts';</script>
+</body>
+</html>

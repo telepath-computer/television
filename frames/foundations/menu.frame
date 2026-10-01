@@ -1,0 +1,17 @@
+---
+title: Menu
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  open: { type: boolean, default: true, description: stage the menu open }
+style: |
+  /* staging pose: the pair on its own ground */
+  body { margin: 0; min-height: 100vh; padding: 48px; box-sizing: border-box; background: var(--app-wallpaper); color: var(--color-text); }
+---
+<button id="menu-trigger"{% if open %} aria-expanded="true"{% endif %}>Channel actions</button>
+<tv-menu trigger="menu-trigger"{% if open %} open{% endif %}>
+  <tv-menu-item>Rename</tv-menu-item>
+  <tv-menu-item>Pin</tv-menu-item>
+  <hr>
+  <tv-menu-item intent="danger">Delete&#8230;</tv-menu-item>
+</tv-menu>

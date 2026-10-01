@@ -1,0 +1,93 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    padding: 48px 24px 24px;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  .staging-frames {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  
+  /* The trigger sits at the board's top right so the below-end panel opens
+     into the board's room. */
+  .staging-anchor {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-8);
+  }
+  
+  /* Staging contents only — the panel's interior belongs to whatever surface
+     composes a popover, so this stands in for one. */
+  .staging-contents {
+    width: 240px;
+    padding: var(--space-16);
+  }
+  
+  .board {
+    position: relative;
+    box-sizing: border-box;
+    background: var(--white);
+  }
+  
+  .board::before {
+    content: attr(data-label);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+script: |
+  import "../lib/foundation.ts";
+
+  // The invoker is named explicitly: a popover shown by script has no invoker,
+  // and the invoker is what the placement anchors to.
+  document.querySelector("#open-popover").showPopover({
+    source: document.querySelector('button[popovertarget="open-popover"]'),
+  });
+---
+<!--
+  The popover spec staged as a frame (staging, not spec content).
+
+  There is no template to render: a popover is the platform's element with the
+  foundation's chrome, so the markup below is the whole of it. What is being
+  judged is specs/ui/foundation/panels/panels.css.
+
+  The Demo trigger is live — popovertarget is the entire toggle, and outside
+  press or Escape dismisses. The Open board shows the panel presented, via
+  showPopover(): openness is a runtime state, not markup, so staging shows it
+  the way it shows any behavioural state.
+-->
+
+
+
+<div class="staging-frames">
+  <div class="board" data-label="Demo" style="width: 360px; height: 220px">
+    <div class="staging-anchor">
+      <button popovertarget="demo-popover">Open popover</button>
+      <div id="demo-popover" popover placement="bottom-end">
+        <div class="staging-contents">A popover: the platform's panel with the foundation's chrome. Press outside, or Escape, to dismiss.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="board" data-label="Open" style="width: 360px; height: 220px">
+    <div class="staging-anchor">
+      <button popovertarget="open-popover">Open popover</button>
+      <!-- manual, as staging apparatus: an auto popover would be closed the
+           moment the Demo one opens — the platform keeps one auto popover at a
+           time per document, and every board here shares one. -->
+      <div id="open-popover" popover="manual" placement="bottom-end">
+        <div class="staging-contents">The presented state, shown by script rather than a press.</div>
+      </div>
+    </div>
+  </div>
+</div>

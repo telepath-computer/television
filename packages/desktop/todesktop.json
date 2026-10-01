@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "260923p52umxx",
+  "appId": "computer.telepath.television",
+  "productName": "Television",
+  "icon": "assets/icon.icns",
+  "appBuilderLibVersion": "26.16.1",
+  "fuses": {
+    "runAsNode": false
+  }
+}

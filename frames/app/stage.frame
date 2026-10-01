@@ -1,0 +1,15 @@
+---
+title: Stage
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+  /* The stage sits on the app ground; the board supplies it like the shell does. */
+  frameset-frame { background: var(--app-wallpaper, #e8e8e6); }
+  /* The open control strip paints below its embed's box; give it its room. */
+  frameset-frame[controls] { margin-bottom: 96px; }
+---
+<main>
+  <frameset-frame src="../../specs/ui/app/stage/stage" label="Stage" width="1100" height="620" controls></frameset-frame>
+</main>

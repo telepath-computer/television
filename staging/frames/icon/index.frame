@@ -1,0 +1,24 @@
+---
+title: Icon
+description: The icon spec staged — the whole set, then the sizing rule read two ways, each board a frame of its own. The set stands on its own at the left; the two sizing boards stack beside it, since they are the same subject read two ways.
+style: |
+  .sheet {
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  .sheet-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+---
+<div class="sheet">
+  <frameset-frame src="./gallery" label="Icons" width="420" height="902" background="white"></frameset-frame>
+  <div class="sheet-column">
+    <frameset-frame src="./inline" label="Inline sizing" width="420" height="171" background="white"></frameset-frame>
+    <frameset-frame src="./block" label="Block sizing" width="420" height="83" background="white"></frameset-frame>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+---
+params:
+  pose: { enum: [missing-with-path, missing-no-details, url-web, url-plain, url-none], default: missing-with-path }
+script: |
+  import "../../lib/foundation.ts";
+  import page from "../../../specs/ui/app/artifact-frame/error-page/error-page.liquid";
+
+  const POSES = {
+    "missing-with-path": { state: "missing", title: "Daily brief", path: "/Users/rupert/notes/daily-brief.html" },
+    "missing-no-details": { state: "missing" },
+    "url-web": { state: "url-unsupported", url: "https://example.com/some/long/article-path", url_is_web: true },
+    "url-plain": { state: "url-unsupported", url: "ftp://example.com/archive" },
+    "url-none": { state: "url-unsupported" },
+  };
+  let stylesInjected = false;
+  const paint = () => {
+    const requestedPose = new URLSearchParams(location.search).get("pose");
+    const pose = Object.hasOwn(POSES, requestedPose) ? requestedPose : "missing-with-path";
+    const { markup, styles } = page(POSES[pose]);
+    if (!stylesInjected) {
+      document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+      stylesInjected = true;
+    }
+    document.body.innerHTML = markup;
+  };
+
+  paint();
+  window.addEventListener("frameset:rendered", paint);
+---
+<!-- The frame's error page (staging): one board, the pose a viewer knob —
+     each value mounts the spec template with that state's arguments. -->

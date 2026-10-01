@@ -1,0 +1,16 @@
+---
+title: Channel placeholder
+style: |
+  /* The drag placeholder ([[ui/app/sidebar/index.md]], Pinning and
+     reordering): while a row is carried, a tint in the row's shape holds the
+     slot release will fill. Every row is one control line, so the slot's
+     height is the sum the row states — line, padding, border — and the
+     width is the slot's own, taken in flow. */
+  .channel-placeholder {
+    display: block;
+    height: calc(var(--line-control) + 2 * var(--space-4) + 2 * 1px);
+    border-radius: var(--control-radius);
+    background: var(--drag-placeholder-background);
+  }
+---
+<span class="channel-placeholder" aria-hidden="true"></span>

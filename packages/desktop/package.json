@@ -1,0 +1,28 @@
+{
+  "name": "@telepath-computer/television-desktop",
+  "productName": "Television",
+  "version": "1.4.11",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://television.run",
+  "author": "Unternet PBC <contact@telepath.computer>",
+  "type": "module",
+  "main": "dist/electron.cjs",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "todesktop-build": "node build.mjs && node scripts/todesktop-build.mjs",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@todesktop/runtime": "2.1.4"
+  },
+  "devDependencies": {
+    "@telepath-computer/television-artifact": "*",
+    "@telepath-computer/television-shared": "*",
+    "@todesktop/cli": "1.28.2",
+    "electron": "43.7.6"
+  }
+}

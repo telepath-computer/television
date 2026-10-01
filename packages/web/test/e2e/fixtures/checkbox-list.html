@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Static checkbox-list fixture</title>
+    <style>
+      body {
+        padding: 24px;
+      }
+
+      checkbox-list {
+        width: 180px;
+      }
+    </style>
+  </head>
+  <body>
+    <checkbox-list id="checklist">
+      <checkbox-item id="open">Open incident follow-up</checkbox-item>
+      <checkbox-item id="done" checked>
+        Close the retry-storm action item <strong>before Friday's review</strong>.
+      </checkbox-item>
+    </checkbox-list>
+
+    <script type="module">
+      await import("/packages/web/src/elements/checkbox-list.ts");
+      await Promise.all([
+        customElements.whenDefined("checkbox-list"),
+        customElements.whenDefined("checkbox-item"),
+      ]);
+
+      const list = document.querySelector("#checklist");
+      const open = document.querySelector("#open");
+      const mutations = [];
+      const events = [];
+      const clicks = [];
+
+      const observer = new MutationObserver((records) => {
+        for (const record of records) {
+          mutations.push({
+            attributeName: record.attributeName,
+            targetId: record.target instanceof HTMLElement ? record.target.id : "",
+            type: record.type,
+          });
+        }
+      });
+      observer.observe(list, {
+        attributes: true,
+        characterData: true,
+        childList: true,
+        subtree: true,
+      });
+
+      for (const type of ["input", "change"]) {
+        list.addEventListener(type, (event) => {
+          events.push({
+            targetId: event.target instanceof HTMLElement ? event.target.id : "",
+            type: event.type,
+          });
+        }, true);
+      }
+      list.addEventListener("click", (event) => {
+        const item = event.target instanceof Element
+          ? event.target.closest("checkbox-item")
+          : null;
+        if (item?.parentElement === list) clicks.push(item.id);
+      }, true);
+
+      // Positive controls prove each negative recorder is live, then leave a
+      // clean record before either real pointer press.
+      list.setAttribute("data-recorder-positive-control", "");
+      list.removeAttribute("data-recorder-positive-control");
+      open.dispatchEvent(new Event("input", { bubbles: true }));
+      open.dispatchEvent(new Event("change", { bubbles: true }));
+      await Promise.resolve();
+      const controls = {
+        events: structuredClone(events),
+        mutations: structuredClone(mutations),
+      };
+      events.length = 0;
+      mutations.length = 0;
+
+      const state = () => ({
+        list: {
+          attributes: list.getAttributeNames().sort(),
+          directChildIds: Array.from(list.children, (child) => child.id),
+          directChildNames: Array.from(list.children, (child) => child.localName),
+          shadowRoot: list.shadowRoot !== null,
+        },
+        items: Array.from(list.children, (child) => ({
+          attributes: child.getAttributeNames().sort(),
+          checked: child.hasAttribute("checked"),
+          generatedControlCount:
+            child.querySelectorAll("input, button, select, textarea, [role='checkbox']").length
+            + (child.shadowRoot?.querySelectorAll("input, button, select, textarea, [role='checkbox']").length ?? 0),
+          id: child.id,
+          shadowRoot: child.shadowRoot !== null,
+          strongText: child.querySelector("strong")?.textContent ?? null,
+          text: child.textContent.replace(/\s+/g, " ").trim(),
+        })),
+      });
+
+      window.__checkboxListFixture = {
+        controls,
+        async settle() {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+        },
+        snapshot() {
+          return {
+            clicks: structuredClone(clicks),
+            events: structuredClone(events),
+            mutations: structuredClone(mutations),
+            state: state(),
+          };
+        },
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

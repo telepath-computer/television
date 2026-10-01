@@ -1,0 +1,46 @@
+/* Aquarium — a living tank behind the interface (iframe-background.js). Lagoon by day, deep sea by night. */
+:root {
+  --accent: oklch(0.72 0.15 200);
+  --neutral: oklch(0.556 0.03 225);
+  --control-radius: 10px;
+  --panel-radius: 14px;
+  --color-link: var(--accent-600);
+}
+
+[data-theme="dark"] {
+  --accent: oklch(0.8 0.14 190);
+  --color-surface: oklch(0.22 0.04 235);
+  --color-surface-muted: oklch(0.18 0.04 238);
+  --color-link: var(--accent-300);
+}
+
+:root[data-television-document="app"] {
+  --frame-radius: 16px;
+  --tab-radius: var(--radius-pill);
+  --channel-radius: 10px;
+  /* Tank glass: frosted controls so the fish stay visible but labels stay readable. */
+  --wallpaper-overlay-background: var(--tint-surface);
+  --wallpaper-overlay-blur: 12px;
+  --wallpaper-overlay-border: 1px solid oklch(1 0 0 / 25%);
+  --page-inactive-opacity: 0.7;
+  /* The wallpaper is a water gradient that also serves when the script is off or still loading… */
+  --app-wallpaper: linear-gradient(to bottom, oklch(0.86 0.09 200), oklch(0.62 0.13 225) 60%, oklch(0.45 0.12 245));
+  --wallpaper-overlay-text-color: oklch(0.25 0.06 240);
+  --sidebar-background: oklch(from var(--color-surface-muted) l c h / 82%);
+}
+
+:root[data-television-document="app"][data-theme="dark"] {
+  --app-wallpaper: linear-gradient(to bottom, oklch(0.26 0.08 245), oklch(0.15 0.06 255) 60%, oklch(0.08 0.03 260));
+  --wallpaper-overlay-text-color: oklch(0.93 0.03 200);
+  --wallpaper-overlay-border: 1px solid oklch(1 0 0 / 12%);
+}
+
+/* …and becomes transparent once the background frame exists, because the wallpaper paints on .app-main in front of the frame and would hide it. */
+:root[data-television-document="app"]:has(#theme-iframe-background) {
+  --app-wallpaper: transparent;
+}
+
+/* Let the water show faintly through the sidebar. */
+:root[data-television-document="app"] .sidebar {
+  backdrop-filter: blur(14px);
+}

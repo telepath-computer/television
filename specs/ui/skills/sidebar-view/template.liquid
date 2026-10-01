@@ -1,0 +1,26 @@
+{% doc %}
+  Sidebar view skill — a master–detail artifact: a navigation sidebar of
+  items, in groups, beside a detail pane of views keyed to items by
+  identity. A view's content is free-form authored markup, placed verbatim.
+  @param {array} groups - [{ title?, items: [{ id, label, selected? }] }]
+  @param {array} [views] - [{ item, html, shown? }] — one per sidebar item
+{% enddoc %}
+{% attach_styles './styles.css' %}
+
+<div class="sidebar-view">
+  <tv-sidebar>
+    {% for group in groups %}
+    <tv-sidebar-group>
+      {% if group.title %}<h2>{{ group.title }}</h2>{% endif %}
+      {% for item in group.items %}
+      <tv-sidebar-item item="{{ item.id }}"{% if item.selected %} selected{% endif %}><label>{{ item.label }}</label></tv-sidebar-item>
+      {% endfor %}
+    </tv-sidebar-group>
+    {% endfor %}
+  </tv-sidebar>
+  <main class="detail">
+    {% for view in views %}
+    <tv-view item="{{ view.item }}"{% if view.shown %} shown{% endif %}>{{ view.html }}</tv-view>
+    {% endfor %}
+  </main>
+</div>

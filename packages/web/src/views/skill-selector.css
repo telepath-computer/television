@@ -1,0 +1,87 @@
+/* The panel is the popover ([[ui/foundation/popover/index.md]]) — chrome,
+   placement and dismissal are the element's — so these styles own only the
+   interior: the panel's size and room, the section heading, the card grid,
+   and the per-card copy-prompt placement. */
+
+.skill-popover {
+  width: 500px;
+  padding: var(--space-16);
+}
+
+.skill-heading {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  padding: 0 var(--space-2) var(--space-4);
+}
+
+.skill-intro {
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-12);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.skill-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-20);
+}
+
+.skill-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The image fills a stable frame; neutral ground remains visible while its
+   committed bytes load. */
+.skill-thumb {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--panel-radius);
+  overflow: hidden;
+  background: var(--color-surface-muted);
+}
+
+.skill-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.skill-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-top: var(--space-6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skill-desc {
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 var(--space-6);
+}
+
+/* The card's copy button is the composed copy-button surface; its swap is
+   owned there. Here we only place and compact it for the dense card (copy-button
+   leaves placement, intent, and size to the caller): pinned to the card's
+   bottom (so buttons align across a row), left-aligned, at content height. */
+.skill-card button.copy-button {
+  align-self: flex-start;
+  margin-top: auto;
+  height: auto;
+  min-height: 0;
+  padding: var(--space-2) var(--space-6);
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,4 @@
+/* The view's implementation host must not add a box around the modal. */
+.system-modal-host {
+  display: contents;
+}

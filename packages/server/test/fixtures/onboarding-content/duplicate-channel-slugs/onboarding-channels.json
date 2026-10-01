@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "focusChannel": "one",
+  "channels": [
+    {
+      "slug": "one",
+      "name": "One",
+      "artifacts": [
+        {
+          "slug": "a",
+          "title": "A"
+        }
+      ]
+    },
+    {
+      "slug": "one",
+      "name": "One Again",
+      "artifacts": [
+        {
+          "slug": "b",
+          "title": "B"
+        }
+      ]
+    }
+  ]
+}

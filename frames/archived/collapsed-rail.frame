@@ -1,0 +1,122 @@
+---
+title: Collapsed rail
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  shell: { enum: [desktop, web], default: desktop }
+imports:
+  - application: ../lib/app.ts
+style: |
+  .canvas { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+  .window {
+    position: relative;
+    width: 1100px;
+    height: 720px;
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08), 0 8px 24px oklch(0 0 0 / 0.06);
+  }
+  .window.desktop {
+    border-radius: 10px;
+    overflow: clip;
+    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.12), 0 18px 48px oklch(0 0 0 / 0.18);
+  }
+  .shell-host, .shell-host #app { height: 100%; }
+  .traffic-lights { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; z-index: 2; }
+  .traffic-lights span { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2); }
+  .traffic-lights span:nth-child(1) { background: #ff5f57; }
+  .traffic-lights span:nth-child(2) { background: #febc2e; }
+  .traffic-lights span:nth-child(3) { background: #28c840; }
+
+  /* Prototype: collapsing turns the sidebar into a floating rail — a rounded
+     vertical bar inset from the left, below the bar, one chip per channel.
+     The rail replaces the navbar's lead switcher, so the lead is hidden. */
+  .shell-host .top-bar-lead { display: none; }
+
+  .rail {
+    position: absolute;
+    z-index: 3;
+    top: calc(var(--app-bar-height) + var(--space-8));
+    left: var(--space-8);
+    width: 44px;
+    /* Fits its contents; the overlay text color, like everything on glass. */
+    color: var(--wallpaper-overlay-text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) 0;
+    /* The overlay treatment, as the bar's ghost chips wear it. */
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+    border-radius: var(--panel-radius);
+  }
+
+  .rail hr {
+    width: 24px;
+    border: 0;
+    /* The overlay border tokens are near-invisible by design (chip edges);
+       a divider needs ink — the overlay text color, well faded. */
+    border-top: 1px solid oklch(from currentColor l c h / var(--alpha-25));
+    margin: var(--space-2) 0;
+  }
+
+  .rail > button:not([intent]) {
+    color: inherit;
+  }
+
+  .rail > button[variant="ghost"]:not([intent]):hover:not(:disabled) {
+    background: var(--wallpaper-overlay-background-hover);
+  }
+
+  .rail > button[variant="ghost"]:not([intent]):is(:active, [aria-expanded="true"]):not(:disabled) {
+    background: var(--wallpaper-overlay-background-active);
+  }
+
+  .rail-chip {
+    inline-size: 32px;
+    block-size: 32px;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-medium);
+    /* Chips read as objects, not floating initials: the overlay chip
+       treatment, as the bar's buttons wear it. */
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+  }
+
+  .rail-chip.current {
+    background: var(--channel-background-selected);
+    color: var(--color-primary-text);
+  }
+script: |
+  if (document.querySelector(".window.desktop")) {
+    document.documentElement.setAttribute("data-platform", "electron");
+  } else {
+    document.documentElement.removeAttribute("data-platform");
+  }
+---
+<div class="canvas">
+  <div class="window{% if shell == 'desktop' %} desktop{% endif %}">
+    {% if shell == 'desktop' %}<div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>{% endif %}
+    <div class="shell-host">
+      {% render '../../specs/ui/app/app', channels: application.channels, selected: 'television', selected_tab: 'roadmap', show_notice: true, collapsed: true %}
+    </div>
+    <aside class="rail" aria-label="Channels">
+      <button class="rail-toggle" variant="ghost" icon aria-label="Show sidebar" title="Show sidebar">{% render '../../specs/ui/foundation/icons/icon', name: 'sidebar' %}</button>
+      <hr>
+      {% assign pinned_channels = application.channels | where: "pinned" %}
+      {% assign unpinned_channels = application.channels | where_exp: "channel", "channel.pinned != true" %}
+      {% for channel in pinned_channels %}
+      <button class="rail-chip{% if forloop.first %} current{% endif %}" variant="ghost" icon title="{{ channel.name }}"><span>{{ channel.name | slice: 0, 2 }}</span></button>
+      {% endfor %}
+      {% if pinned_channels.size > 0 and unpinned_channels.size > 0 %}<hr>{% endif %}
+      {% for channel in unpinned_channels %}
+      <button class="rail-chip" variant="ghost" icon title="{{ channel.name }}"><span>{{ channel.name | slice: 0, 2 }}</span></button>
+      {% endfor %}
+    </aside>
+  </div>
+</div>

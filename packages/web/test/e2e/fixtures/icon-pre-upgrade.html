@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tv-icon pre-upgrade fixture</title>
+  </head>
+  <body style="font-size: 18px">
+    <tv-icon name="artifact" data-variant="default"></tv-icon>
+    <tv-icon name="artifact" size="sm" data-variant="sm"></tv-icon>
+    <tv-icon name="artifact" size="md" data-variant="md"></tv-icon>
+    <tv-icon name="artifact" size="lg" data-variant="lg"></tv-icon>
+    <tv-icon name="artifact" size="xl" data-variant="xl"></tv-icon>
+
+    <script type="module">
+      window.__defineIcons = () => import("/packages/web/src/elements/icon.ts");
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

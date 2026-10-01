@@ -1,0 +1,1 @@
+This file pauses the npm auto-publish workflow (.github/workflows/publish.yml); delete it to resume publishing on the next successful CI run on main. It remains until a maintainer decides to resume publishing.

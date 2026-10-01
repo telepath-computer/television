@@ -1,0 +1,11 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+  }
+script: |
+  import { mountBell } from "./bell.ts";
+
+  mountBell("active");
+---

@@ -1,0 +1,678 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, 'integration/**']
+  pull_request:
+    branches: [main, 'integration/**']
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+# Only newer runs of the same PR supersede one another. Push and manual
+# runs get unique groups so release validation can finish independently.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Tree-hash attestation decision (specs/arch/test-runner/attestation.md#skip-semantics-in-ci):
+  # cheap, no install, always runs. Expected negative outcomes (no ref,
+  # unreachable origin, disabled policy, malformed ref) complete successfully
+  # with skip=false; continue-on-error keeps even an unexpected crash
+  # non-gating. Outputs from a successful decide step SURVIVE a later step
+  # failing the job, and under job-level continue-on-error dependents read
+  # needs.attest-check.result as 'success' even when the job failed
+  # (measured: run 29558875144) — so skip authorization is bound to the
+  # `authorized` output, emitted only by the FINAL step, which a failure of
+  # any earlier step skips. A failed decision job therefore always runs
+  # full validation.
+  attest-check:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    outputs:
+      skip: ${{ steps.decide.outputs.skip }}
+      tree: ${{ steps.decide.outputs.tree }}
+      version: ${{ steps.decide.outputs.version }}
+      authorized: ${{ steps.authorize.outputs.authorized }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Decide skip from the attestation lookup
+        id: decide
+        run: node scripts/test/attestation.mjs decide
+
+      # MUST remain the last step: the implicit success() condition means a
+      # failure of any earlier step leaves `authorized` unset, which is the
+      # only signal of decision-job failure that survives job-level
+      # continue-on-error (needs.*.result reads 'success' regardless).
+      - name: Authorize skip
+        id: authorize
+        run: echo "authorized=true" >> "$GITHUB_OUTPUT"
+
+  # Static checks inherit the workflow's read-only token. They do not create
+  # run directories and therefore cannot publish test-run refs.
+  ci:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    name: ${{ matrix.suite.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - { name: lint,              cmd: "npm run lint" }
+          - { name: type-check,        cmd: "npm run type-check" }
+          - { name: package-manifests, cmd: "npm run lint:package-manifests" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-workspace
+        with:
+          image-identity: ubuntu-latest
+
+      - name: Run ${{ matrix.suite.name }}
+        run: ${{ matrix.suite.cmd }}
+        env:
+          SKIP_ACP_TESTS: "1"
+
+  # Vibe-mode check (specs/arch/test-runner/test-runner.md#^verify-vibe-mode):
+  # a branch carrying specs/vibe-waiver.md is never merged into main. This job
+  # runs the same script verify runs last, and the required join depends on
+  # it, so a vibe branch fails the required check while every other job still
+  # reports its own result.
+  vibe-mode:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Fail on a vibe branch
+        run: node scripts/test/vibe-mode-check.mjs
+
+  # Only rows that finalize run artifacts read their own Actions run for
+  # schedule timing. Keeping these rows in a separate job avoids unsupported
+  # matrix expressions under jobs.<job_id>.permissions while preserving every
+  # check-run name.
+  test:
+    needs: [attest-check]
+    # !cancelled(): a crashed attest-check must never suppress validation —
+    # the implicit success() gate would skip the heavy tier and let the join
+    # green a run with zero heavy validation
+    # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    name: ${{ matrix.suite.name }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    env:
+      TV_TEST_TIMING_PROVIDER: github-ubuntu-24.04-x64-2vcpu-vm
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - { name: unit,              cmd: 'npm test -- local --suite unit --run-dir-output "$RUNNER_TEMP/test-run-dir"', playwright: false, electron: false, cleanup: true }
+          - { name: e2e:desktop,       cmd: 'npm test -- local --surface e2e:desktop --run-dir-output "$RUNNER_TEMP/test-run-dir"', playwright: true, electron: true, cleanup: true }
+    steps:
+      # Attested skip is enforced at STEP level: the job always expands so
+      # the concrete required check contexts (unit, e2e:desktop) are emitted,
+      # and under a skip every real step below is guarded and the job
+      # fast-succeeds as an explicit no-op
+      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      - name: Attested skip no-op
+        if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
+        run: 'echo "attested skip: ${{ matrix.suite.name }} already proven for this tree"'
+
+      - name: Start checkout phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          echo "TV_TEST_PHASE_METRICS_FILE=$RUNNER_TEMP/test-phase-metrics.ndjson" >> "$GITHUB_ENV"
+          echo "TV_TEST_CHECKOUT_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+
+      - name: Record VM schedule and checkout phases
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --github-job-name "${{ matrix.suite.name }}"
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name checkout --category checkout --started-ms "$TV_TEST_CHECKOUT_STARTED_MS"
+
+      - name: Start dependency phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: echo "TV_TEST_DEPENDENCIES_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - id: workspace
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        uses: ./.github/actions/setup-workspace
+        with:
+          image-identity: ubuntu-latest
+
+      - name: Record dependency phase
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name dependencies --category dependencies --started-ms "$TV_TEST_DEPENDENCIES_STARTED_MS" \
+            --cache-status "${{ steps.workspace.outputs.cache-hit == 'true' && 'hit' || 'miss' }}"
+
+      # Never assume a tool: jobs that reach the runner's cleanup paths need
+      # ss and a readable /proc
+      # (specs/arch/test-runner/github-ci.md#tool-prerequisites-on-ci-workers).
+      - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.cleanup }}
+        name: Assert or install cleanup tools
+        run: |
+          started=$(date +%s%3N)
+          set +e
+          test -r /proc/net/tcp && { command -v ss >/dev/null 2>&1 || sudo apt-get install -y --no-install-recommends iproute2; } && command -v ss
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name cleanup-tools --category dependencies --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::cleanup-tools phase metric recorder crashed"
+          exit "$status"
+
+      - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.playwright }}
+        name: Start browser readiness phase timer
+        run: echo "TV_TEST_BROWSER_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.playwright }}
+        id: playwright
+        uses: ./.github/actions/setup-playwright
+
+      - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.playwright }}
+        name: Record browser readiness phase
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name browser-readiness --category readiness --started-ms "$TV_TEST_BROWSER_STARTED_MS" \
+            --cache-status "${{ steps.playwright.outputs.cache-hit == 'true' && 'hit' || 'miss' }}"
+
+      - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.electron }}
+        name: Check Electron readiness
+        run: |
+          started=$(date +%s%3N)
+          set +e
+          node scripts/check-electron-e2e.mjs
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name electron-readiness --category readiness --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::electron-readiness phase metric recorder crashed"
+          exit "$status"
+
+      - name: Run ${{ matrix.suite.name }}
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: ${{ matrix.suite.cmd }}
+        env:
+          SKIP_ACP_TESTS: "1"
+
+      - name: Resolve finalized test run
+        if: ${{ always() && (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.cleanup }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          identity="$RUNNER_TEMP/test-run-dir"
+          test -s "$identity"
+          run_dir="$(cat "$identity")"
+          test "$(dirname "$run_dir")" = "$GITHUB_WORKSPACE/.test-runs"
+          test -d "$run_dir"
+          echo "test_run_dir=$run_dir" >> "$GITHUB_ENV"
+          echo "test_run_id=$(basename "$run_dir")" >> "$GITHUB_ENV"
+
+      - name: Upload complete test run
+        if: ${{ always() && (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.cleanup }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-${{ env.test_run_id }}
+          path: ${{ env.test_run_dir }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  # One deduplicated round of the surfaces' preCommand builds
+  # (test.prebuilt.mjs recipes), fanned out to the e2e shard jobs as a run
+  # artifact so no shard rebuilds them
+  # (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+  build:
+    needs: [attest-check]
+    # !cancelled(): run even when attest-check crashes (see the test job).
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    name: build prebuilt dists
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.prebuilt.outputs.name }}
+    steps:
+      # Step-level attested skip: the job still runs (the e2e shards' needs
+      # require its success) and no-ops fast under a skip
+      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      - name: Attested skip no-op
+        if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
+        run: 'echo "attested skip: prebuilt dists not needed for this tree"'
+
+      - uses: actions/checkout@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+
+      - uses: ./.github/actions/setup-shard-readiness
+        id: shard-readiness
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+
+      - name: npm ci (combined-cache miss only)
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        run: npm ci
+
+      - name: Seed Playwright browsers and system dependencies (combined-cache miss only)
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/setup-playwright
+
+      - name: Prove Chromium and Firefox launch on this runner image
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium, firefox } from "@playwright/test";
+          for (const browserType of [chromium, firefox]) {
+            const browser = await browserType.launch();
+            await browser.close();
+          }
+          EOF
+
+      - name: Save combined workspace and Playwright browser cache
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            node_modules
+            packages/skillbench/dist
+            ~/.cache/ms-playwright
+          key: ${{ steps.shard-readiness.outputs.cache-key }}
+
+      - name: Manifest consistency check
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: node scripts/test/prebuilt.mjs check
+
+      - name: Run manifest build recipes
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: node scripts/test/prebuilt.mjs run
+
+      # The helper packs every untracked file and symlink except dependency
+      # state under node_modules and run scratch under .test-runs. Tar preserves
+      # the built CLI's executable mode.
+      # (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+      - name: Resolve artifact name and pack all untracked build output
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        id: prebuilt
+        run: |
+          set -euo pipefail
+          echo "name=$(node scripts/test/prebuilt.mjs artifact-name)" >> "$GITHUB_OUTPUT"
+          node scripts/test/prebuilt.mjs pack --archive "$RUNNER_TEMP/prebuilt-dists.tgz"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        with:
+          name: ${{ steps.prebuilt.outputs.name }}
+          retention-days: 1
+          path: ${{ runner.temp }}/prebuilt-dists.tgz
+
+  # Browser/node e2e files are assigned once by an independently reproduced
+  # duration-aware plan. The registry-owned e2e-ci suite excludes Electron;
+  # desktop runs in the `e2e:desktop` job above (on the VM, with its own
+  # preCommand builds — the stated desktop exception). Non-unit planned
+  # surfaces keep the documented 2-retry runner budget.
+  # Shard jobs restore one image-bound workspace+Playwright-browser cache (pinned
+  # container deferred; specs/arch/test-runner/github-ci.md#browser-environment),
+  # self-seed locally on a hosted-image rollover miss, prove Chromium launches
+  # on their own VM, and consume the prebuilt artifact.
+  e2e:
+    needs: [attest-check, build]
+    # !cancelled() so a crashed attest-check never suppresses the shards, but
+    # an explicit build-success requirement so a failed build still skips
+    # them (join integrity: build=failure, e2e=skipped reads as failure).
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) && needs.build.result == 'success' }}
+    # The measured GitHub knee is 16 shards: run 29561697838 reached 3m31s;
+    # 24-way run 29565323284 saved only 17s for 26% more e2e runner time.
+    # Keep the /16 check name, matrix, planner, worker, and join synchronized.
+    name: e2e shard ${{ matrix.shard }}/16
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    env:
+      TV_TEST_TIMING_PROVIDER: github-ubuntu-24.04-x64-2vcpu-vm
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    steps:
+      # Step-level attested skip: the matrix always expands so every concrete
+      # `e2e shard n/16` required context is emitted; under a skip the shard
+      # fast-succeeds as an explicit no-op
+      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      - name: Attested skip no-op
+        if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
+        run: 'echo "attested skip: e2e shard ${{ matrix.shard }}/16 already proven for this tree"'
+
+      - name: Start checkout phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          echo "TV_TEST_PHASE_METRICS_FILE=$RUNNER_TEMP/test-phase-metrics.ndjson" >> "$GITHUB_ENV"
+          echo "TV_TEST_CHECKOUT_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+
+      - name: Record VM schedule and checkout phases
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --github-job-name "e2e shard ${{ matrix.shard }}/16" --needs-job-name "build prebuilt dists"
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name checkout --category checkout --started-ms "$TV_TEST_CHECKOUT_STARTED_MS"
+
+      - name: Start dependency phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: echo "TV_TEST_DEPENDENCIES_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - id: shard-readiness
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        uses: ./.github/actions/setup-shard-readiness
+
+      - name: Record dependency phase
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name dependencies --category dependencies --started-ms "$TV_TEST_DEPENDENCIES_STARTED_MS" \
+            --cache-status "${{ steps.shard-readiness.outputs.cache-hit == 'true' && 'hit' || 'miss' }}"
+
+      - name: Warn and start shard-readiness self-seed fallback
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        run: |
+          echo "::warning::Shard readiness cache missed for ${ImageOS}/${ImageVersion}; self-seeding dependencies and Playwright browsers on this runner so a gradual hosted-image rollout does not fail tests before execution."
+          echo "TV_TEST_SHARD_FALLBACK_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - name: npm ci (shard-readiness fallback)
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        run: npm ci
+
+      - name: Install Playwright browsers and system dependencies (shard-readiness fallback)
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        uses: ./.github/actions/setup-playwright
+
+      - name: Record shard-readiness self-seed fallback phase
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name shard-readiness-fallback --category readiness --started-ms "$TV_TEST_SHARD_FALLBACK_STARTED_MS" \
+            --cache-status miss
+
+      # Never assume a tool: the cleanup/leak-detection path needs ss and a
+      # readable /proc (specs/arch/test-runner/github-ci.md#tool-prerequisites-on-ci-workers).
+      - name: Assert or install cleanup tools
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          started=$(date +%s%3N)
+          set +e
+          test -r /proc/net/tcp && { command -v ss >/dev/null 2>&1 || sudo apt-get install -y --no-install-recommends iproute2; } && command -v ss
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name cleanup-tools --category dependencies --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::cleanup-tools phase metric recorder crashed"
+          exit "$status"
+
+      - name: Start browser readiness phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: echo "TV_TEST_BROWSER_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      # Mandatory for initial promotion: the concrete ImageOS/ImageVersion is
+      # in the cache key, and every consuming shard still proves the restored
+      # browsers launch on its own VM. The operator may remove these probes only
+      # after the post-promotion runner-image rollover observation window.
+      - name: Prove Chromium and Firefox launch on this runner image
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          node --input-type=module <<'EOF'
+          import { chromium, firefox } from "@playwright/test";
+          for (const browserType of [chromium, firefox]) {
+            const browser = await browserType.launch();
+            await browser.close();
+          }
+          EOF
+
+      - name: Record browser readiness phase
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name browser-readiness --category readiness --started-ms "$TV_TEST_BROWSER_STARTED_MS" \
+            --cache-status "${{ steps.shard-readiness.outputs.cache-hit == 'true' && 'hit' || 'miss' }}"
+
+      - name: Start prebuilt artifact phase timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: echo "TV_TEST_PREBUILT_STARTED_MS=$(date +%s%3N)" >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: ${{ runner.temp }}/prebuilt
+
+      - name: Unpack prebuilt outputs (restores file modes)
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          archive="$RUNNER_TEMP/prebuilt/prebuilt-dists.tgz"
+          if [ ! -f "$archive" ]; then
+            echo "::error::missing prebuilt artifact archive: $archive"
+            exit 1
+          fi
+          if ! tar --extract --gzip --file "$archive" --same-permissions --no-same-owner; then
+            echo "::error::failed to extract prebuilt artifact archive: $archive"
+            exit 1
+          fi
+
+      - name: Record prebuilt artifact phase
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        continue-on-error: true
+        run: |
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name prebuilt-artifact --category dependencies --started-ms "$TV_TEST_PREBUILT_STARTED_MS"
+
+      - name: Compute complete duration-aware plan
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          started=$(date +%s%3N)
+          set +e
+          mkdir -p .testshards/results
+          node scripts/plan-test-shards.mjs \
+            --commit "$GITHUB_SHA" \
+            --suite e2e-ci \
+            --timing-provider "$TV_TEST_TIMING_PROVIDER" \
+            --shards 16 \
+            --output .testshards/results/shard-plan.json
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name shard-plan --category plan --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::shard-plan phase metric recorder crashed"
+          exit "$status"
+
+      - name: Run e2e shard ${{ matrix.shard }}/16
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        run: |
+          node scripts/run-test-shard.mjs \
+            --plan .testshards/results/shard-plan.json \
+            --shard "${{ matrix.shard }}" \
+            --total 16 \
+            --test-retries 2 \
+            --results-dir .testshards/results
+        env:
+          SKIP_ACP_TESTS: "1"
+          TEST_SHARD_SKIP_PRECOMMANDS: "1"
+
+      - name: Resolve finalized shard run
+        if: ${{ always() && (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          summary=".testshards/results/shard-${{ matrix.shard }}.json"
+          test -f "$summary"
+          run_dir="$(node -e 'const s=require("./'"$summary"'"); if(!s.runDir) process.exit(1); process.stdout.write(s.runDir)')"
+          test -d "$run_dir"
+          echo "test_run_dir=$run_dir" >> "$GITHUB_ENV"
+          echo "test_run_id=$(basename "$run_dir")" >> "$GITHUB_ENV"
+
+      - name: Upload complete shard run
+        if: ${{ always() && (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-run-${{ env.test_run_id }}
+          path: ${{ env.test_run_dir }}/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30
+
+  # Single required status check for the e2e matrix so branch protection can
+  # gate on one stable name regardless of shard count. Draft PRs make this
+  # check not applicable by skipping the job. On every non-draft event the
+  # job runs even after an upstream failure, so missing, skipped, failed, or
+  # cancelled dependencies cannot read as success here.
+  # (specs/arch/test-runner/github-ci.md#build-once-fan-out, Join integrity).
+  e2e-required:
+    if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
+    needs: [attest-check, build, e2e, vibe-mode]
+    runs-on: ubuntu-latest
+    steps:
+      # Green requires the vibe-mode check plus successful build and shard jobs. An authorized
+      # attestation reaches success through step-level no-ops, so concrete
+      # required contexts still emit. Drafts never enter this run path;
+      # missing, skipped, failed, and cancelled dependencies all fail it.
+      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      - name: Require the build and all e2e shards to pass
+        run: |
+          vibe_result="${{ needs.vibe-mode.result }}"
+          if [ "$vibe_result" != "success" ]; then
+            echo "::error::vibe-mode check did not pass (vibe-mode=$vibe_result): a vibe branch is never merged into main"
+            exit 1
+          fi
+          build_result="${{ needs.build.result }}"
+          e2e_result="${{ needs.e2e.result }}"
+          echo "build result: $build_result; e2e matrix result: $e2e_result"
+          if [ "${{ needs.attest-check.outputs.skip }}" = "true" ] && [ "${{ needs.attest-check.outputs.authorized }}" = "true" ] && [ "$build_result" = "success" ] && [ "$e2e_result" = "success" ]; then
+            echo "attested skip: heavy jobs no-op-succeeded on the explicit third condition"
+            exit 0
+          elif [ "$build_result" = "success" ] && [ "$e2e_result" = "success" ]; then
+            echo "build and e2e matrix passed; validating shard agreement"
+          else
+            echo "::error::build or e2e did not pass (build=$build_result, e2e=$e2e_result)"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && needs.e2e.result == 'success' }}
+
+      - uses: actions/setup-node@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && needs.e2e.result == 'success' }}
+        with:
+          node-version-file: .nvmrc
+
+      - uses: actions/download-artifact@v4
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && needs.e2e.result == 'success' }}
+        with:
+          pattern: test-run-*
+          path: test-runs
+
+      - name: Require exact shard-plan agreement
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && needs.e2e.result == 'success' }}
+        shell: bash
+        run: |
+          metrics="$RUNNER_TEMP/join-phase-metrics.ndjson"
+          started=$(date +%s%3N)
+          set +e
+          node scripts/test/gha-plan-agreement.mjs --root test-runs --shards 16
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$metrics" \
+            --name shard-agreement-join --category join --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::join phase metric recorder crashed"
+          if [ -s "$metrics" ]; then
+            node - "$metrics" "$GITHUB_STEP_SUMMARY" <<'NODE' || echo "::warning::join phase summary unavailable"
+          const fs = require("fs");
+          const [metrics, summary] = process.argv.slice(2);
+          const rows = fs.readFileSync(metrics, "utf8").trim().split(/\n/).filter(Boolean).map(JSON.parse);
+          fs.appendFileSync(summary, `## Test phase metrics\n\n${rows.map((row) => `- ${row.category}/${row.name}: ${(row.durationMs / 1000).toFixed(3)}s (${row.status})`).join("\n")}\n`);
+          NODE
+          else
+            echo "::warning::join phase metric unavailable"
+          fi
+          exit "$status"
+
+      - name: Upload join phase metrics
+        if: ${{ always() && (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && needs.e2e.result == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-phase-metrics-${{ github.run_id }}-join
+          path: ${{ runner.temp }}/join-phase-metrics.ndjson
+          if-no-files-found: warn
+          retention-days: 30
+
+  # Attestation writer (specs/arch/test-runner/attestation.md#who-writes-and-when):
+  # on a fully green run, publish an attestation for the validated tree. The
+  # CLI re-reads the trusted origin/main policy at completion and refuses
+  # (a logged no-op) on missing attest-check outputs, a disabled policy, an
+  # version differing from the captured output, or a HEAD tree differing from
+  # the captured tree — a run started under version N never publishes under
+  # N+1. Publication is an optimization, never a gate: continue-on-error
+  # keeps a loud transport failure or malformed collision from reddening the
+  # run.
+  attest-write:
+    needs: [attest-check, ci, test, build, e2e, e2e-required]
+    if: ${{ always() && needs.attest-check.outputs.authorized == 'true' && needs.attest-check.outputs.skip != 'true' && needs.ci.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && needs.e2e.result == 'success' && needs.e2e-required.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+    permissions:
+      contents: write
+    env:
+      # The writer command also checks the GitHub workflow/job identity. Forks
+      # stay positively classified read-only and cannot reach the writer.
+      TV_TEST_REF_PUBLICATION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork && 'not-authorized' || 'required' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Publish attestation (create-only lease CAS)
+        run: |
+          node scripts/test/attestation.mjs write \
+            --captured-tree "${{ needs.attest-check.outputs.tree }}" \
+            --captured-version "${{ needs.attest-check.outputs.version }}"

@@ -1,0 +1,97 @@
+{
+  "name": "television-monorepo",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": "24.x",
+    "npm": ">=11.5 <12"
+  },
+  "workspaces": [
+    "packages/*",
+    "packages/skills/skills/*",
+    "storybook"
+  ],
+  "bin": {
+    "tv": "packages/cli/dist/cli.cjs"
+  },
+  "scripts": {
+    "preinstall": "npm run toolchain:check",
+    "toolchain:check": "node scripts/check-toolchain.mjs",
+    "start:server": "scripts/dev-server.sh",
+    "start:electron": "scripts/dev-electron.sh",
+    "storybook": "npm --workspace @telepath-computer/storybook run dev",
+    "build": "npm --workspace @telepath-computer/television run build",
+    "build:canonical": "npm --workspace @telepath-computer/canonical run build",
+    "build:web": "npm --workspace @telepath-computer/television-web run build",
+    "build:views": "npm --workspace @telepath-computer/television run build:views",
+    "build:web-and-artifact-documents": "npm run build:web && npm run build:views && npm run build:canonical",
+    "build:cli": "npm --workspace @telepath-computer/television run build",
+    "build:desktop": "npm --workspace @telepath-computer/television-desktop run build",
+    "link": "npm run build && npm link",
+    "unlink": "npm unlink -g television-monorepo",
+    "lint": "eslint . --ext .ts --max-warnings=0",
+    "check:vibe-mode": "node scripts/test/vibe-mode-check.mjs",
+    "lint:fix": "npm run lint -- --fix",
+    "type-check": "tsc --noEmit",
+    "test": "node scripts/test/cli.mjs",
+    "verify": "npm run test -- verify",
+    "lint:package-manifests": "node scripts/check-publishable.mjs --manifest-only",
+    "check:publish-tarballs": "node scripts/check-publishable.mjs --tarballs",
+    "specs:index": "node scripts/specs-index.mjs",
+    "skillbench": "node packages/skillbench/dist/cli.js",
+    "frameset": "frameset ${TAILSCALE_REMOTE:+--host 0.0.0.0 --allowed-hosts all}"
+  },
+  "devDependencies": {
+    "@agentclientprotocol/sdk": "0.18.1",
+    "@blaxel/core": "^0.3.24",
+    "@eslint/js": "9.39.4",
+    "@playwright/test": "1.58.2",
+    "@rupertsworld/daemon": "0.2.1",
+    "@rupertsworld/dependencies": "0.2.1",
+    "@rupertsworld/event-target": "0.1.2",
+    "@telepath-computer/television": "*",
+    "@telepath-computer/television-artifact": "*",
+    "@telepath-computer/television-desktop": "*",
+    "@telepath-computer/television-server": "*",
+    "@telepath-computer/television-shared": "*",
+    "@telepath-computer/television-web": "*",
+    "@types/express": "5.0.6",
+    "@types/node": "22.19.15",
+    "@types/supertest": "6.0.3",
+    "@types/ws": "8.18.1",
+    "@vitest/eslint-plugin": "1.6.14",
+    "commander": "14.0.3",
+    "disposablestack": "1.1.7",
+    "dompurify": "3.4.16",
+    "electron": "43.7.6",
+    "esbuild": "0.28.2",
+    "eslint": "9.39.4",
+    "express": "4.22.3",
+    "frameset": "^0.17.1",
+    "globals": "17.4.0",
+    "jsdom": "28.1.0",
+    "lit-html": "3.3.2",
+    "marked": "17.0.5",
+    "postcss": "^8.4.43",
+    "supertest": "7.2.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.58.0",
+    "ulid": "3.0.2",
+    "vite": "6.4.3",
+    "vitest": "4.1.11",
+    "ws": "8.22.0",
+    "zod": "4.3.6"
+  },
+  "overrides": {
+    "@todesktop/cli": {
+      "react": "17.0.2",
+      "fast-uri": "3.1.8"
+    },
+    "@hey-api/json-schema-ref-parser": {
+      "js-yaml": "4.3.2"
+    }
+  }
+}

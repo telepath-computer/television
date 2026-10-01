@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Production stage fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      html,
+      body,
+      #fixture {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      #fixture {
+        display: flex;
+        flex-direction: column;
+      }
+
+      #tab-strip-mount {
+        flex: none;
+        min-width: 0;
+        padding: 8px 16px;
+      }
+
+      #stage-mount {
+        flex: 1;
+        min-height: 0;
+      }
+
+      #stage-mount > .stage {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="fixture">
+      <div id="tab-strip-mount"></div>
+      <div id="stage-mount"></div>
+    </div>
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { StageView } from "/packages/web/src/views/stage.ts";
+      import { TabStripView } from "/packages/web/src/views/tab-strip.ts";
+
+      const artifactIDs = ["artifact-a", "artifact-b", "artifact-c"];
+      const replacementArtifactIDs = ["artifact-d", "artifact-e"];
+      const pageSizes = new Map([
+        ["artifact-a", { width: 561.25, height: 741.5 }],
+        ["artifact-b", { width: 612.75, height: 702.25 }],
+        ["artifact-c", { width: 523.5, height: 763.75 }],
+        ["artifact-d", { width: 574.25, height: 714.5 }],
+        ["artifact-e", { width: 625.75, height: 725.25 }],
+      ]);
+      const documentURL = (artifactID) =>
+        `/packages/web/test/e2e/fixtures/stage-document.html?artifact=${artifactID}`;
+      const createArtifacts = (ids, revision = 0) => ids.map((id) => ({
+        id,
+        kind: "path",
+        title: `${id} revision ${revision}`,
+        path: `/tmp/${id}.html`,
+      }));
+      let pageState = artifactIDs.map((artifactID) => ({
+        artifactIds: [artifactID],
+        geometry: { kind: "single", full_screen: false },
+        size: { ...pageSizes.get(artifactID) },
+      }));
+      const createChannel = (revision = 0, selectedArtifactID = "artifact-b") => {
+        const pages = pageState.map((page) => ({
+          artifactIds: [...page.artifactIds],
+          geometry: { ...page.geometry },
+          size: { ...page.size },
+        }));
+        return {
+          id: "channel-stage",
+          name: "Stage fixture",
+          pages,
+          selectedPage: pages.find((page) => page.artifactIds.includes(selectedArtifactID)) ?? pages[0],
+          artifacts: createArtifacts(artifactIDs, revision),
+        };
+      };
+      const createReplacementChannel = (revision = 0) => {
+        const pages = replacementArtifactIDs.map((artifactID) => ({
+          artifactIds: [artifactID],
+          geometry: { kind: "single", full_screen: false },
+          size: { ...pageSizes.get(artifactID) },
+        }));
+        return {
+          id: "channel-replacement",
+          name: "Replacement channel",
+          pages,
+          selectedPage: pages[1],
+          artifacts: createArtifacts(replacementArtifactIDs, revision),
+        };
+      };
+
+      class FakeApplication extends EventTarget {
+        selectionCalls = [];
+        pageUpdateCalls = [];
+
+        selectPage(channelID, artifactID) {
+          this.selectionCalls.push({ channelID, artifactID });
+          channel = createChannel(revision, artifactID);
+          draw();
+        }
+
+        updateChannelPages(channelID, pages) {
+          this.pageUpdateCalls.push({
+            channelID,
+            fullScreen: pages.find((page) => page.artifactIds.includes("artifact-b"))
+              ?.geometry.full_screen ?? null,
+            sizes: pages.map((page) => ({ ...page.size })),
+          });
+          pageState = pages.map((page) => ({
+            artifactIds: [...page.artifactIds],
+            geometry: { ...page.geometry },
+            size: { ...page.size },
+          }));
+          const selectedArtifactID = channel.selectedPage?.artifactIds[0] ?? "artifact-b";
+          channel = createChannel(revision, selectedArtifactID);
+          draw();
+          return Promise.resolve();
+        }
+
+        getArtifactViewURL(artifact) {
+          return documentURL(artifact.id);
+        }
+
+        getArtifactContentURL() {
+          return null;
+        }
+      }
+
+      const application = new FakeApplication();
+      const tabMount = document.querySelector("#tab-strip-mount");
+      const mount = document.querySelector("#stage-mount");
+      let revision = 0;
+      let channel = createChannel(revision);
+      let captured = null;
+      let capturedScrollLeft = null;
+      let geometryObservation = null;
+      let renderCount = 0;
+      const renderCompleteCallbacks = new Set();
+      const artifactPresses = [];
+
+      const currentNodes = () => [...document.querySelectorAll(".page")].map((page) => {
+        const view = page.querySelector(".artifact-view");
+        const frame = view?.querySelector("iframe") ?? null;
+        return { page, view, frame, contentWindow: frame?.contentWindow ?? null };
+      });
+
+      const draw = () => {
+        render(html`${TabStripView(application, channel, null)}`, tabMount);
+        render(html`${StageView(application, channel)}`, mount);
+        queueMicrotask(() => {
+          renderCount += 1;
+          for (const callback of renderCompleteCallbacks) callback();
+        });
+      };
+      application.addEventListener("change", draw);
+
+      const waitForRenderAfter = (before) => {
+        if (renderCount > before) return Promise.resolve();
+        return new Promise((resolve) => {
+          const onComplete = () => {
+            if (renderCount <= before) return;
+            renderCompleteCallbacks.delete(onComplete);
+            resolve();
+          };
+          renderCompleteCallbacks.add(onComplete);
+        });
+      };
+
+      const waitForDocuments = (ids) => {
+        if (ids.every((id) => window.__stageDocumentsReady.has(id))) return Promise.resolve();
+        return new Promise((resolve) => {
+          const onReady = () => {
+            if (!ids.every((id) => window.__stageDocumentsReady.has(id))) return;
+            window.removeEventListener("stage-document-ready", onReady);
+            resolve();
+          };
+          window.addEventListener("stage-document-ready", onReady);
+        });
+      };
+
+      window.__stageDocumentLoads = {};
+      window.__stageDocumentsReady = new Set();
+      window.addEventListener("message", (event) => {
+        if (event.origin !== location.origin) return;
+        if (event.data?.type === "stage-document-ready") {
+          window.__stageDocumentsReady.add(event.data.artifactID);
+          window.dispatchEvent(new Event("stage-document-ready"));
+        } else if (event.data?.type === "stage-document-pointerdown") {
+          artifactPresses.push(event.data.artifactID);
+        }
+      });
+
+      function geometryReport() {
+        const stage = document.querySelector(".stage");
+        const page = document.querySelector(".page[selected]");
+        const filmstrip = document.querySelector(".filmstrip");
+        if (!stage || !page || !filmstrip) return null;
+        const stageBox = stage.getBoundingClientRect();
+        const pageBox = page.getBoundingClientRect();
+        const filmstripBox = filmstrip.getBoundingClientRect();
+        const style = getComputedStyle(stage);
+        return {
+          stage: { width: stageBox.width, height: stageBox.height },
+          page: { width: pageBox.width, height: pageBox.height },
+          inlinePage: { width: page.style.width, height: page.style.height },
+          centerOffset: pageBox.left + pageBox.width / 2 -
+            (filmstripBox.left + filmstripBox.width / 2),
+          stageInset: Number.parseFloat(style.getPropertyValue("--page-inset")),
+        };
+      }
+
+      function handleReport() {
+        const pages = [...document.querySelectorAll(".page")];
+        const selected = document.querySelector(".page[selected]");
+        const controls = [...(selected?.querySelectorAll(".artifact-title-bar > button") ?? [])];
+        const handles = [...(selected?.querySelectorAll(".page-handle") ?? [])];
+        const overlaps = [];
+        const hitRegions = handles.flatMap((handle) => {
+          const box = handle.getBoundingClientRect();
+          const position = [...handle.classList].find((name) => name !== "page-handle");
+          if (!position.includes("-")) return [box];
+          const thickness = Number.parseFloat(
+            getComputedStyle(handle).getPropertyValue("--handle-thickness"),
+          );
+          return [
+            {
+              left: box.left,
+              right: box.right,
+              top: position.startsWith("top") ? box.top : box.bottom - thickness,
+              bottom: position.startsWith("top") ? box.top + thickness : box.bottom,
+            },
+            {
+              left: position.endsWith("left") ? box.left : box.right - thickness,
+              right: position.endsWith("left") ? box.left + thickness : box.right,
+              top: box.top,
+              bottom: box.bottom,
+            },
+          ];
+        });
+        for (const control of controls) {
+          const box = control.getBoundingClientRect();
+          const overlapsHandle = hitRegions.some((region) =>
+            Math.min(box.right, region.right) - Math.max(box.left, region.left) > 0.01 &&
+            Math.min(box.bottom, region.bottom) - Math.max(box.top, region.top) > 0.01
+          );
+          if (overlapsHandle) {
+            overlaps.push(control.getAttribute("aria-label") ?? control.textContent);
+          }
+        }
+        return {
+          selected: handles.map((handle) => [...handle.classList].sort().join(" ")).sort(),
+          backgroundCounts: pages
+            .filter((page) => !page.hasAttribute("selected"))
+            .map((page) => page.querySelectorAll(".page-handle").length),
+          controlOverlaps: overlaps,
+        };
+      }
+
+      function settle() {
+        return document.fonts.ready.then(() =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+          )
+        );
+      }
+
+      window.__stageFixture = {
+        async settle() {
+          await settle();
+        },
+        startGeometryObservation() {
+          geometryObservation?.observer.disconnect();
+          const selectedPage = document.querySelector(".page[selected]");
+          if (!selectedPage) throw new Error("Selected page was not rendered");
+          const samples = [];
+          const sample = () => {
+            const geometry = geometryReport();
+            if (geometry) samples.push(geometry);
+          };
+          const observer = new ResizeObserver(sample);
+          geometryObservation = { observer, samples };
+          sample();
+          observer.observe(selectedPage);
+        },
+        finishGeometryObservation() {
+          if (!geometryObservation) throw new Error("Geometry observation was not started");
+          geometryObservation.observer.disconnect();
+          const geometry = geometryReport();
+          if (geometry) geometryObservation.samples.push(geometry);
+          const samples = geometryObservation.samples;
+          geometryObservation = null;
+          return samples;
+        },
+        capture() {
+          captured = currentNodes();
+          capturedScrollLeft = document.querySelector(".filmstrip")?.scrollLeft ?? null;
+          for (const node of captured) {
+            if (node.contentWindow) {
+              node.contentWindow.__stageDocumentState = `retained:${node.page.dataset.pageKey}`;
+            }
+          }
+        },
+        rerender() {
+          revision += 1;
+          const selectedArtifactID = document.querySelector(".page[selected]")?.dataset.pageKey;
+          channel = createChannel(revision, selectedArtifactID);
+          draw();
+        },
+        async replaceChannel() {
+          if (!captured) throw new Error("Capture the initial channel before replacing it");
+          const stage = document.querySelector(".stage");
+          if (!stage) throw new Error("Stage was not rendered");
+          const keySamples = [];
+          const readKeys = () =>
+            [...document.querySelectorAll(".page")].map((page) => page.dataset.pageKey);
+          const observer = new MutationObserver(() => keySamples.push(readKeys()));
+          observer.observe(stage, { childList: true, subtree: true });
+
+          const before = renderCount;
+          const completed = waitForRenderAfter(before);
+          channel = createReplacementChannel(revision);
+          application.dispatchEvent(new Event("change"));
+          await completed;
+          await waitForDocuments(replacementArtifactIDs);
+
+          const frameSamples = [];
+          for (let index = 0; index < 2; index += 1) {
+            await new Promise((resolve) => requestAnimationFrame(resolve));
+            frameSamples.push({
+              geometry: geometryReport(),
+              keys: readKeys(),
+              scrollLeft: document.querySelector(".filmstrip")?.scrollLeft ?? null,
+              animations: document.querySelector(".stage")?.getAnimations({ subtree: true }).length ?? 0,
+            });
+          }
+          observer.disconnect();
+
+          const current = currentNodes();
+          return {
+            renderCount,
+            keySamples,
+            frameSamples,
+            pageKeys: readKeys(),
+            selectedArtifactID: document.querySelector(".page[selected]")?.dataset.pageKey ?? null,
+            loads: { ...window.__stageDocumentLoads },
+            states: current.map((node) => node.contentWindow?.__stageDocumentState ?? null),
+            oldNodesDetached: captured.every((node) =>
+              !node.page.isConnected &&
+              !node.view.isConnected &&
+              (node.frame === null || !node.frame.isConnected)
+            ),
+            freshNodes: current.every((node) => captured.every((oldNode) =>
+              node.page !== oldNode.page &&
+              node.view !== oldNode.view &&
+              node.frame !== oldNode.frame &&
+              node.contentWindow !== oldNode.contentWindow
+            )),
+          };
+        },
+        report() {
+          const current = currentNodes();
+          const filmstrip = document.querySelector(".filmstrip");
+          const selectedPage = document.querySelector(".page[selected]");
+          const stripBox = filmstrip?.getBoundingClientRect();
+          const pageBox = selectedPage?.getBoundingClientRect();
+          return {
+            pageCount: current.length,
+            selectedArtifactID: document.querySelector(".page[selected]")?.dataset.pageKey ?? null,
+            selectedCenterOffset: stripBox && pageBox
+              ? pageBox.left + pageBox.width / 2 - (stripBox.left + stripBox.width / 2)
+              : null,
+            filmstripPositionSame: capturedScrollLeft === filmstrip?.scrollLeft,
+            selectionCalls: [...application.selectionCalls],
+            pageUpdateCalls: [...application.pageUpdateCalls],
+            selectedFullScreen: selectedPage?.hasAttribute("full-screen") ?? false,
+            geometry: geometryReport(),
+            handles: handleReport(),
+            snapOutlined: document.querySelector(".snap-outline") !== null,
+            artifactPresses: [...artifactPresses],
+            loads: { ...window.__stageDocumentLoads },
+            pagesSame: captured?.every((node, index) => node.page === current[index]?.page) ?? false,
+            viewsSame: captured?.every((node, index) => node.view === current[index]?.view) ?? false,
+            framesSame: captured?.every((node, index) => node.frame === current[index]?.frame) ?? false,
+            windowsSame: captured?.every((node, index) => node.contentWindow === current[index]?.contentWindow) ?? false,
+            states: current.map((node) => node.contentWindow?.__stageDocumentState ?? null),
+          };
+        },
+      };
+
+      draw();
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

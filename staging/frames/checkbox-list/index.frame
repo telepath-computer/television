@@ -1,0 +1,17 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+---
+<!-- The checklist staged in a document of its own, so it is judged on the
+     foundation alone — the ground an artifact gives it. -->
+
+
+<frameset-frame src="./list" label="Checklist" width="480" height="181" background="white"></frameset-frame>

@@ -1,0 +1,13 @@
+{
+  "name": "@telepath-computer/skillbench",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "description": "The skill-eval tool (specs/arch/skillbench.md): the CLI that runs eval configs and the read-only review page served by the Storybook dev server.",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "prepare": "npm run build"
+  }
+}

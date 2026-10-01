@@ -1,0 +1,9 @@
+---
+style: |
+  body { height: 100vh; margin: 0; display: flex; }
+  .stage { flex: 1; }
+script: |
+  import { mountStage } from "./mock.ts";
+
+  mountStage();
+---

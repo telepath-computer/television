@@ -1,0 +1,494 @@
+---
+params:
+  makeRoom: { type: boolean, default: true, title: make room }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* The board column: the strip's band, then the stage ground. */
+  .board-col {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .workshop-bar {
+    flex: none;
+    display: flex;
+    align-items: center;
+    padding: var(--space-8) var(--space-12) 0;
+    background: var(--color-background);
+    min-height: 40px;
+  }
+
+  .workshop-bar [data-reset] {
+    margin-left: var(--space-8);
+  }
+  
+  .board-col > .shape {
+    flex: 1;
+    min-height: 0;
+  }
+  
+  /* While a drag is live, iframes must not swallow pointer events. */
+  body.dragging iframe {
+    pointer-events: none;
+  }
+  
+  /* The dragged tab: the real element, picked up. */
+  .dragging-tab {
+    position: fixed;
+    z-index: 20;
+    margin: 0;
+    box-sizing: border-box;
+    /* Hit-transparent: the carried thing must never block the pointer's
+       view of the panes beneath it. */
+    pointer-events: none;
+  }
+  
+  .dragging-tab.morph {
+    transition:
+      left 240ms ease,
+      top 240ms ease,
+      width 240ms ease,
+      height 240ms ease,
+      border-radius 240ms ease,
+      background 240ms ease,
+      border-color 240ms ease;
+  }
+  
+  /* Morphed into the placeholder artifact. */
+  .dragging-tab.as-card {
+    background: var(--blue-100);
+    border: 2px dashed var(--blue-400);
+    border-radius: var(--radius-12);
+    color: transparent;
+  }
+  
+  
+  /* The strip spacer holding a picked-up tab's place while it collapses. */
+  .tab-spacer {
+    flex: none;
+    transition: width 200ms ease;
+  }
+  
+  /* In make-room mode the placeholder's visual is the morphed tab itself;
+     the ghost pane only holds layout space. */
+  .pane.ghost {
+    background: transparent;
+  }
+  
+  /* The candidate half lights up in highlight mode. */
+  .drop-zone {
+    position: absolute;
+    z-index: 5;
+    background: var(--blue-200);
+    opacity: 0.6;
+    border-radius: var(--radius-8);
+    pointer-events: none;
+  }
+  
+  .split.animating > .slot {
+    transition: flex-basis 240ms ease;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import { pane, split, build, flushStyles, nodeOf, setRatio, paneMarkup, SPLIT_CSS } from "../../lib/splits.ts";
+  import tabTpl from "../../../specs/ui/app/stage/tab-strip/tab.liquid";
+  import stripCss from "../../../specs/ui/app/stage/tab-strip/tab-strip.css?inline";
+  document.head.insertAdjacentHTML("beforeend", `<style>${SPLIT_CSS}\n${stripCss}</style>`);
+  
+  const board = document.querySelector(".shape");
+  const strip = document.querySelector("[data-strip]");
+  const minPx = (size) => Math.min(240, size * 0.3);
+  const buildOpts = { minPx };
+  const GAP = 8; // --pane-gap
+  
+  const ARTIFACTS = [
+    { name: "Calendar", src: "https://example.com", placed: false },
+    { name: "Notes", src: "https://example.com", placed: false },
+    { name: "Table", src: "https://example.com", placed: false },
+  ];
+  
+  let root;
+  const tabStyles = new Set();
+  const renderStrip = () => {
+    strip.innerHTML = "";
+    for (const artifact of ARTIFACTS.filter((a) => !a.placed)) {
+      const { markup, styles } = tabTpl({ tab: { name: artifact.name } });
+      styles.forEach((r) => tabStyles.add(r));
+      const holder = document.createElement("div");
+      holder.innerHTML = markup;
+      const tabEl = holder.querySelector(".tab");
+      strip.append(tabEl);
+      wireTab(tabEl, artifact);
+    }
+    document.head.insertAdjacentHTML("beforeend", `<style>${[...tabStyles].join("\n")}</style>`);
+  };
+  
+  const reset = () => {
+    for (const a of ARTIFACTS) a.placed = false;
+    root = pane();
+    board.innerHTML = "";
+    board.append(build(root, buildOpts));
+    flushStyles();
+    renderStrip();
+  };
+  reset();
+  
+  // Hovering with "make room" on makes the artifact move out of the way;
+  // off, a painted highlight marks the half instead.
+  const makeRoom = new URLSearchParams(location.search).get("makeRoom") !== "false";
+  document.querySelector("[data-reset]").addEventListener("click", reset);
+  
+  // ---- grammar gate + zones ----
+  const allowedDirs = (paneNode) => {
+    const walk = (node, depth, parentDir) => {
+      if (node === paneNode) return depth === 0 ? ["h", "v"] : depth === 1 ? [parentDir === "h" ? "v" : "h"] : [];
+      if (node.type !== "split") return null;
+      return walk(node.a, depth + 1, node.dir) ?? walk(node.b, depth + 1, node.dir);
+    };
+    return walk(root, 0, null) ?? [];
+  };
+  
+  const zoneFor = (paneEl, ev) => {
+    const dirs = allowedDirs(nodeOf.get(paneEl));
+    if (!dirs.length) return null;
+    const r = paneEl.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width;
+    const y = (ev.clientY - r.top) / r.height;
+    const candidates = [];
+    if (dirs.includes("h")) candidates.push({ d: x, dir: "h", first: true }, { d: 1 - x, dir: "h", first: false });
+    if (dirs.includes("v")) candidates.push({ d: y, dir: "v", first: true }, { d: 1 - y, dir: "v", first: false });
+    candidates.sort((a, b) => a.d - b.d);
+    // Snap only near an edge: the pane's middle is a dead zone where the
+    // carried card keeps following the pointer. (Candidate threshold: 20%.)
+    if (candidates[0].d > 0.2) return null;
+    return { paneEl, ...candidates[0] };
+  };
+  
+  let zoneEl = null;
+  const clearZone = () => {
+    zoneEl?.remove();
+    zoneEl = null;
+  };
+  const showZone = (zone) => {
+    clearZone();
+    zoneEl = document.createElement("div");
+    zoneEl.className = "drop-zone";
+    const { dir, first } = zone;
+    zoneEl.style.inset =
+      dir === "h" ? (first ? "0 50% 0 0" : "0 0 0 50%") : first ? "0 0 50% 0" : "50% 0 0 0";
+    zone.paneEl.append(zoneEl);
+  };
+  
+  // ---- make-room preview (DOM only; the tree commits on drop) ----
+  let preview = null;
+  const applyPreview = (zone) => {
+    const { paneEl, dir, first } = zone;
+    const target = nodeOf.get(paneEl);
+    const ghost = pane(null);
+    const node = first ? split(dir, ghost, target, 0.001) : split(dir, target, ghost, 0.999);
+    const container = build(node, buildOpts);
+    const slots = container.querySelectorAll(":scope > .slot");
+    const slot = slots[first ? 1 : 0];
+    const placeholder = slot.firstElementChild;
+    // The final rect the ghost's half settles into, computed from the pane's
+    // rect before the split opens.
+    const r = paneEl.getBoundingClientRect();
+    const half =
+      dir === "h"
+        ? { w: (r.width - GAP) / 2, h: r.height }
+        : { w: r.width, h: (r.height - GAP) / 2 };
+    const finalRect = {
+      left: dir === "h" && !first ? r.left + half.w + GAP : r.left,
+      top: dir === "v" && !first ? r.top + half.h + GAP : r.top,
+      width: half.w,
+      height: half.h,
+    };
+    paneEl.before(container);
+    if (slot.moveBefore) {
+      slot.moveBefore(paneEl, placeholder);
+      placeholder.remove();
+    } else {
+      placeholder.replaceWith(paneEl);
+    }
+    container.classList.add("animating");
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        node.ratio = 0.5;
+        setRatio(container, 0.5);
+      }),
+    );
+    preview = {
+      container,
+      ghostPaneEl: slots[first ? 0 : 1].firstElementChild,
+      node,
+      target,
+      paneEl,
+      zone,
+      finalRect,
+    };
+  };
+  
+  const revertPreview = () => {
+    if (!preview) return;
+    const { container, paneEl } = preview;
+    const parent = container.parentElement;
+    if (parent.moveBefore) parent.moveBefore(paneEl, container);
+    else container.before(paneEl);
+    container.remove();
+    preview = null;
+  };
+  
+  const commitPreview = (src) => {
+    const { ghostPaneEl, node, target, container } = preview;
+    const ghostNode = node.a.type === "pane" && node.a.src === null ? node.a : node.b;
+    ghostNode.src = src;
+    ghostPaneEl.classList.remove("ghost");
+    ghostPaneEl.innerHTML = paneMarkup(src);
+    container.classList.remove("animating");
+    const swap = (n) => {
+      if (n.type !== "split") return false;
+      if (n.a === target) return (n.a = node), true;
+      if (n.b === target) return (n.b = node), true;
+      return swap(n.a) || swap(n.b);
+    };
+    if (root === target) root = node;
+    else swap(root);
+    flushStyles();
+    preview = null;
+  };
+  
+  // ---- tab dragging ----
+  const deepElementFromPoint = (x, y) => {
+    let el = document.elementFromPoint(x, y);
+    while (el?.shadowRoot) {
+      const inner = el.shadowRoot.elementFromPoint(x, y);
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    return el;
+  };
+  
+  function wireTab(tabEl, artifact) {
+    tabEl.addEventListener("pointerdown", (down) => {
+      down.preventDefault();
+      // From the very first move the pointer may cross an iframe, which
+      // would swallow the events before pickup even happens — so the
+      // iframes go inert at pointerdown, not at pickup.
+      document.body.classList.add("dragging");
+      const startX = down.clientX;
+      const startY = down.clientY;
+      let picked = false;
+      let spacer = null;
+      let grab = null;
+      let tabSize = null;
+      let zone = null;
+      // The carried thing has three forms: a tab outside the stage, a
+      // pointer-following card inside it, and — over a half it can live in —
+      // snapped into that place at its settled size.
+      let form = "tab";
+      let morphTimer = null;
+      // Snapping arms only once the drag has visited the dead zone: entering
+      // the stage across a snap band must not snap before the card phase.
+      let armed = false;
+      // The carried card sits at a quarter of the stage — the size a pane
+      // takes in a four-up — computed from the board at pickup.
+      let CARD = { w: 200, h: 140 };
+  
+      const pickup = () => {
+        picked = true;
+        const br = board.getBoundingClientRect();
+        CARD = { w: (br.width - 24 - GAP) / 2, h: (br.height - 24 - GAP) / 2 };
+        const r = tabEl.getBoundingClientRect();
+        grab = { dx: startX - r.left, dy: startY - r.top };
+        tabSize = { w: r.width, h: r.height };
+        spacer = document.createElement("div");
+        spacer.className = "tab-spacer";
+        spacer.style.width = `${r.width}px`;
+        tabEl.before(spacer);
+        document.body.append(tabEl);
+        tabEl.classList.add("dragging-tab");
+        tabEl.style.left = `${r.left}px`;
+        tabEl.style.top = `${r.top}px`;
+        tabEl.style.width = `${r.width}px`;
+        tabEl.style.height = `${r.height}px`;
+        requestAnimationFrame(() => {
+          spacer.style.width = "0px";
+          setTimeout(() => (spacer.style.display = "none"), 220);
+        });
+      };
+  
+      const setForm = (next, ev) => {
+        if (form === next) return;
+        form = next;
+        tabEl.classList.add("morph");
+        if (next === "tab") {
+          tabEl.classList.remove("as-card");
+          tabEl.style.width = `${tabSize.w}px`;
+          tabEl.style.height = `${tabSize.h}px`;
+          if (ev) {
+            tabEl.style.left = `${ev.clientX - grab.dx}px`;
+            tabEl.style.top = `${ev.clientY - grab.dy}px`;
+          }
+        } else if (next === "card") {
+          tabEl.classList.add("as-card");
+          tabEl.style.width = `${CARD.w}px`;
+          tabEl.style.height = `${CARD.h}px`;
+          if (ev) {
+            tabEl.style.left = `${ev.clientX - CARD.w / 2}px`;
+            tabEl.style.top = `${ev.clientY - CARD.h / 2}px`;
+          }
+        } else {
+          // snapped: fill the place it would live
+          tabEl.classList.add("as-card");
+          const { finalRect } = preview;
+          tabEl.style.left = `${finalRect.left}px`;
+          tabEl.style.top = `${finalRect.top}px`;
+          tabEl.style.width = `${finalRect.width}px`;
+          tabEl.style.height = `${finalRect.height}px`;
+        }
+        clearTimeout(morphTimer);
+        morphTimer = setTimeout(() => tabEl.classList.remove("morph"), 250);
+      };
+  
+      const follow = (ev) => {
+        if (form === "snapped") return;
+        if (form === "card") {
+          tabEl.style.left = `${ev.clientX - CARD.w / 2}px`;
+          tabEl.style.top = `${ev.clientY - CARD.h / 2}px`;
+        } else {
+          tabEl.style.left = `${ev.clientX - grab.dx}px`;
+          tabEl.style.top = `${ev.clientY - grab.dy}px`;
+        }
+      };
+  
+      const move = (ev) => {
+        if (!picked) {
+          if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 4) return;
+          pickup();
+        }
+        const stageRect = board.getBoundingClientRect();
+        const inStage =
+          ev.clientX >= stageRect.left && ev.clientX <= stageRect.right &&
+          ev.clientY >= stageRect.top && ev.clientY <= stageRect.bottom;
+        // Within the snapped place (geometrically): the target stands.
+        if (form === "snapped" && preview) {
+          const fr = preview.finalRect;
+          if (
+            ev.clientX >= fr.left && ev.clientX <= fr.left + fr.width &&
+            ev.clientY >= fr.top && ev.clientY <= fr.top + fr.height
+          ) return;
+        }
+        const under = deepElementFromPoint(ev.clientX, ev.clientY);
+        const paneEl = under?.closest?.(".pane:not(.ghost)");
+        const zoneRaw = paneEl && board.contains(paneEl) ? zoneFor(paneEl, ev) : null;
+        if (!armed && inStage && !zoneRaw) armed = true;
+        const next = armed ? zoneRaw : null;
+        if (makeRoom) {
+          const same =
+            preview && next && preview.paneEl === next.paneEl &&
+            preview.zone.dir === next.dir && preview.zone.first === next.first;
+          if (preview && !same) {
+            revertPreview();
+            setForm(inStage ? "card" : "tab", ev);
+          }
+          if (next && !preview) {
+            zone = next;
+            applyPreview(next);
+            setForm("snapped");
+          }
+          if (!next && form !== "snapped") setForm(inStage ? "card" : "tab", ev);
+          if (!next) zone = null;
+          follow(ev);
+        } else {
+          zone = next;
+          if (zone) showZone(zone);
+          else clearZone();
+          follow(ev);
+        }
+      };
+  
+      const returnToStrip = () => {
+        spacer.style.display = "";
+        spacer.style.transition = "none";
+        spacer.style.width = `${tabSize.w}px`;
+        const target = spacer.getBoundingClientRect();
+        tabEl.classList.add("morph");
+        tabEl.classList.remove("as-card");
+        tabEl.style.left = `${target.left}px`;
+        tabEl.style.top = `${target.top}px`;
+        tabEl.style.width = `${tabSize.w}px`;
+        tabEl.style.height = `${tabSize.h}px`;
+        setTimeout(() => {
+          tabEl.classList.remove("dragging-tab", "morph");
+          tabEl.style.cssText = "";
+          spacer.before(tabEl);
+          spacer.remove();
+          spacer = null;
+        }, 250);
+      };
+  
+      const up = (ev) => {
+        document.removeEventListener("pointermove", move);
+        document.removeEventListener("pointerup", up);
+        document.body.classList.remove("dragging");
+        if (!picked) return;
+        clearZone();
+        if (makeRoom && preview) {
+          commitPreview(artifact.src);
+          artifact.placed = true;
+          tabEl.remove();
+          spacer.remove();
+        } else if (!makeRoom && zone) {
+          applyPreview(zone);
+          commitPreview(artifact.src);
+          artifact.placed = true;
+          tabEl.remove();
+          spacer.remove();
+        } else {
+          if (preview) revertPreview();
+          returnToStrip();
+        }
+      };
+  
+      document.addEventListener("pointermove", move);
+      document.addEventListener("pointerup", up);
+    });
+  }
+
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!--
+  Design workshop (off-spec): drag & drop behaviour for building splits
+  (specs/ui/app/stage/index.md — Panes; the creation gestures are on its
+  not-yet list, and this workshop is where they get discovered).
+
+  The drag source is the tab strip (rendered from the spec's tab template):
+  picking a tab up removes it from the strip (the others settle), and the
+  tab itself is what you drag. In "make room" mode, carrying it over a half
+  of a pane opens the split provisionally — the real pane moves to where it
+  would settle — and the dragged tab morphs into a placeholder artifact
+  filling the space; carrying it away morphs it back into a tab and the
+  layout closes. Releasing in place commits: the placeholder becomes the
+  artifact. Releasing elsewhere returns the tab to the strip. With "make
+  room" off, a painted highlight marks the half instead.
+
+  Nothing here is reference; what settles is formalized into the spec.
+-->
+
+
+
+<div class="board-col">
+  <div class="workshop-bar">
+    <div class="tab-strip" role="tablist" data-strip></div>
+    <button type="button" size="sm" data-reset>Reset</button>
+  </div>
+  <div class="shape"></div>
+</div>

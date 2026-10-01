@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skillbench</title>
+    <link rel="stylesheet" href="/skillbench/style.css" />
+    <script type="module" src="/skillbench/app.js"></script>
+  </head>
+  <body>
+    <main class="view">
+      <div class="artifact-stage">
+        <iframe class="artifact" title="eval output"></iframe>
+        <div class="artifact-empty" hidden>No eval output here yet — run the eval</div>
+      </div>
+    </main>
+    <aside class="rail">
+      <h2 class="jobs-title">Jobs</h2>
+      <ul class="jobs" aria-label="Eval jobs"></ul>
+      <form class="inspector">
+        <label class="prompt-field">Prompt
+          <textarea class="prompt" readonly></textarea>
+        </label>
+        <label>Size
+          <select class="size"></select>
+        </label>
+      </form>
+    </aside>
+  </body>
+</html>

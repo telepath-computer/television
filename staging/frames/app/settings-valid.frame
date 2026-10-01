@@ -1,0 +1,20 @@
+---
+params:
+  state: { enum: [connected, connecting, disconnected, unauthorized, error, needs-upgrade, no-channels], default: connected }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({
+    settings: {
+      activeThemeName: "clouds",
+      themes: [
+        { id: "clouds", name: "Clouds", version: "1.0.0" },
+        { id: "midnight", name: "Midnight", version: "2.1.0" },
+      ],
+    },
+  });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app settings panel with selectable installed themes (staging). -->
+
+<div class="window"></div>

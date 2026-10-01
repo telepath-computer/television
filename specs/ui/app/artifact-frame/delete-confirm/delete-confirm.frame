@@ -1,0 +1,10 @@
+---
+title: Artifact delete confirmation
+params:
+  title:
+    type: string
+    default: "Roadmap"
+    description: "the artifact's name, asked about"
+---
+{% capture body %}<div class="dialog-alert" role="alertdialog"><h2>Delete “{{ title | escape }}”?</h2><p>It’s removed from this channel; the file or web page it points to is not deleted.</p><div class="dialog-actions"><button>Cancel</button><button intent="danger">Delete</button></div></div>{% endcapture %}
+{% render '../../dialog/dialog', content: body %}

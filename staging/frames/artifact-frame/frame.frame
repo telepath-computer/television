@@ -1,0 +1,53 @@
+---
+params:
+  history: { enum: [empty, at-tail, middle, at-home], default: empty }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import artifactFrame from "../../../specs/ui/app/artifact-frame/template.liquid";
+
+  let stylesInjected = false;
+  const paint = () => {
+    const histories = ["empty", "at-tail", "middle", "at-home"];
+    const requestedHistory = new URLSearchParams(location.search).get("history");
+    const history = histories.includes(requestedHistory) ? requestedHistory : histories[0];
+    const { markup, styles } = artifactFrame({
+      src: "https://example.com",
+      title: "Daily brief",
+      can_back: history === "at-tail" || history === "middle",
+      can_forward: history === "middle" || history === "at-home",
+    });
+    if (!stylesInjected) {
+      document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+      stylesInjected = true;
+    }
+    document.body.innerHTML = markup;
+    const trigger = document.querySelector(".artifact-menu-trigger");
+    const panel = trigger?.nextElementSibling;
+    if (trigger && panel?.matches(".menu")) {
+      panel.id = "workshop-artifact-menu";
+      trigger.setAttribute("popovertarget", panel.id);
+    }
+  };
+
+  paint();
+  window.addEventListener("frameset:rendered", paint);
+---
+<!--
+  The artifact frame live (staging, not spec content): the spec's markup,
+  rendered from specs/ui/app/artifact-frame/template.liquid, filling this
+  document — the frame takes its size from whatever places it, here the
+  embedding sheet.
+
+  The document is example.com: a real cross-origin page, so the frame is judged
+  holding content it does not control — which is the only kind it will ever
+  hold. Staging picks the URL and title; the spec takes them as parameters.
+
+  The `history` control poses the navigation states: empty (no controls),
+  at-tail (Back live, Forward disabled), middle (both live), and at-home
+  (Back disabled, Forward live). Each pose is a fresh spec render.
+-->

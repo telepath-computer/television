@@ -1,0 +1,3 @@
+# Ripgrep and ripgrep-based agent search tools skip the docs archive by default.
+# Archived documents are nobody's job to keep updated; see specs/spec-docs.md.
+docs/archive/

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tv-icon tree-scope fixture</title>
+  </head>
+  <body>
+    <div data-icon-scope="light" style="display: flex; align-items: center; font-size: 18px">
+      <tv-icon name="artifact" data-variant="unsized"></tv-icon>
+      <tv-icon name="artifact" size="lg" data-variant="named"></tv-icon>
+    </div>
+    <div id="shadow-icon-host"></div>
+
+    <script type="module">
+      await import("/packages/web/src/elements/icon.ts");
+      await customElements.whenDefined("tv-icon");
+
+      const shadow = document.querySelector("#shadow-icon-host").attachShadow({ mode: "open" });
+      shadow.innerHTML = `
+        <div data-icon-scope="shadow" style="display: flex; align-items: center; font-size: 18px">
+          <tv-icon name="artifact" data-variant="unsized"></tv-icon>
+          <tv-icon name="artifact" size="lg" data-variant="named"></tv-icon>
+        </div>
+      `;
+    </script>
+  </body>
+</html>

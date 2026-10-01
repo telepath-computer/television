@@ -1,0 +1,19 @@
+trigger_label: Settings
+heading: Settings
+appearance_label: Light/dark mode
+appearance_options:
+  - value: system
+    label: Adapt to system
+  - value: light
+    label: Light
+  - value: dark
+    label: Dark
+theme_label: Theme
+null_theme_label: None
+refresh_label: Refresh themes
+javascript_section_label: Experimental main-page JavaScript
+javascript_disclosure: This theme uses experimental JavaScript. JavaScript can access your Television content, so only enable for themes you trust or have had your agent inspect.
+javascript_toggle_label: Enable experimental javascript for this theme
+loading: Loading themes…
+themes_directory_label: Themes directory
+validation_errors_label: Theme validation errors

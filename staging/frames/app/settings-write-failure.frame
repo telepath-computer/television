@@ -1,0 +1,19 @@
+---
+params:
+  state: { enum: [connected, connecting, disconnected, unauthorized, error, needs-upgrade, no-channels], default: connected }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({
+    settings: {
+      activeThemeName: "clouds",
+      appearanceMode: "dark",
+      themes: [{ id: "clouds", name: "Clouds", version: "1.0.0" }],
+      failure: "Unable to change theme: display is read-only",
+    },
+  });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app settings panel after a preference write fails (staging). -->
+
+<div class="window"></div>

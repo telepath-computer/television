@@ -1,0 +1,18 @@
+---
+title: Popover
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  content:
+    description: "the panel's contents: the composing surface's markup, padding included"
+    default: '<p class="popover-sample">A popover panel. The box is the element; the contents and their padding are the composing surface&rsquo;s.</p>'
+  open: { type: boolean, default: true, description: stage the panel open }
+style: |
+  /* staging pose: the pair on its own ground, the panel in flow below its
+     trigger until the behavior module places it */
+  body { margin: 0; min-height: 100vh; padding: 48px; box-sizing: border-box; background: var(--app-wallpaper); color: var(--color-text); }
+  tv-popover { margin-top: var(--popover-distance); }
+  .popover-sample { margin: 0; padding: 12px 16px; max-width: 288px; }
+---
+<button id="popover-trigger"{% if open %} aria-expanded="true"{% endif %}>Open popover</button>
+<tv-popover trigger="popover-trigger"{% if open %} open{% endif %}>{{ content }}</tv-popover>

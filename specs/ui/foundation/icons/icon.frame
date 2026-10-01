@@ -1,0 +1,19 @@
+---
+title: Icon
+description: One icon, asked for by name — a tv-icon whose open shadow root holds the glyph.
+params:
+  name: { type: string, default: check, description: which icon to draw, one of the names in icons.ts }
+  size: { type: string, description: "sm, md, lg or xl; omitted, the icon follows the text it sits in" }
+  spinning: { type: boolean, default: false, description: the icon turns continuously; the loading state's verb }
+imports:
+  - icons: ./icons.ts
+adoptedStyles:
+  tv-icon: |
+    @import "./styles.css";
+---
+<tv-icon name="{{ name }}"
+  {% if size %} size="{{ size }}"{% endif %}
+  {% if spinning %} spinning{% endif %}
+>
+  <template shadowrootmode="open" shadowrootclonable>{{ icons[name] }}</template>
+</tv-icon>

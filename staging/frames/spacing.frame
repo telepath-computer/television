@@ -1,0 +1,123 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    min-width: 860px;
+    position: relative;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  .board {
+    position: absolute;
+    box-sizing: border-box;
+    background: var(--white);
+  }
+  
+  .board::before {
+    content: attr(data-label);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+  
+  .staging-pad {
+    padding: var(--space-16);
+    background: var(--white);
+  }
+  
+  .staging-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    width: 100%;
+  }
+  
+  .staging-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  
+  .staging-row > small {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    width: 90px;
+    flex: none;
+  }
+  
+  .staging-value {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+  
+  .staging-bar {
+    height: 12px;
+    background: var(--color-primary);
+    border-radius: 2px;
+  }
+  
+  .staging-group {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-8);
+  }
+  
+  .staging-named {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  
+  .staging-named > small {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  
+  .staging-radius-box {
+    width: 56px;
+    height: 40px;
+    background: var(--white);
+    border: 1px solid var(--neutral-300);
+  }
+script: |
+  import "../lib/foundation.ts";
+  import { groups, named } from "../lib/tokens.ts";
+
+  document.querySelector("[data-spacing]").innerHTML = (groups["Spacing"] ?? [])
+    .map(
+      (t) => `<div class="staging-row">
+        <small>${t.name}</small>
+        <div class="staging-bar" style="width: var(--${t.name})"></div>
+        <span class="staging-value">${t.value}</span>
+      </div>`,
+    )
+    .join("");
+  
+  document.querySelector("[data-radius]").innerHTML = (groups["Radius"] ?? [])
+    .map((t) => named(`<div class="staging-radius-box" style="border-radius: var(--${t.name})"></div>`, t.name))
+    .join("");
+---
+<!--
+  The foundation's size tokens staged as a frame (staging, not spec
+  content): the spacing scale as bars, the radii on boxes — parsed out of
+  the foundation's token files. Every board is absolutely positioned on the
+  page.
+-->
+
+
+
+<div class="board staging-pad" data-label="Spacing" style="left: 24px; top: 56px; width: 380px">
+  <div class="staging-rows" data-spacing></div>
+</div>
+
+<div class="board staging-pad" data-label="Radius" style="left: 452px; top: 56px; width: 420px">
+  <div class="staging-group" data-radius></div>
+</div>

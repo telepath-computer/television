@@ -1,0 +1,29 @@
+# The trigger's accessible name and tooltip.
+trigger: Artifact skills
+
+# The popover's section heading and the sentence explaining what the skills are.
+heading: Artifact skills
+intro: Ready-made starting prompts for creating Television artifacts. Copy one, add the details of what you want, and send it to your agent.
+
+# The copy-prompt button's label (passed to the composed copy button).
+copy_prompt: Copy prompt
+
+# The bundled skills. v1 is fully specified here; each skill's name, description,
+# and prompt move to its own spec once skills become specs.
+skills:
+  calendar:
+    name: Calendar
+    description: Visualize your calendar events across day and week views.
+    prompt: "Use the tv-calendar skill to make a calendar artifact for the following request, and put it on TV: "
+  table:
+    name: Table
+    description: Beautiful tables with headers, grouping, and chips for displaying data.
+    prompt: "Use the tv-table skill to make a table artifact for the following request, and put it on TV: "
+  tasks:
+    name: Tasks
+    description: Track tasks and plans in a checklist, with due dates, projects, and labels.
+    prompt: "Use the tv-tasks skill to make a task list artifact for the following request, and put it on TV: "
+  markdown:
+    name: Markdown
+    description: An interactive markdown editor for Obsidian notes and other formatted docs.
+    prompt: "Make a markdown artifact for the following request, and put it on TV: "

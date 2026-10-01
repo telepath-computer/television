@@ -1,0 +1,51 @@
+/* The application root clips at the shell boundary. The sidebar wrapper
+   lets its shadow extend onto the main region; its body owns scrolling. */
+#app {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#app > .app-main {
+  overflow: hidden;
+}
+
+/* Implementation-owned behavior scaffold declared by
+   specs/ui/app/index.md ^ap-resize-band-exemption. It straddles the existing
+   boundary without adding any resting, hover, or active treatment. The 6px
+   band and -3px half-width offset restate
+   specs/ui/app/measures.yml#sidebar.resize_band_px. */
+.app-sidebar-resize {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 0;
+  left: var(--sidebar-width);
+  width: 6px;
+  translate: -3px 0;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+/* Resting seats preserve layout while the same semantic toggle moves into
+   the shell motion layer. Visual motion is authored in the app frame. */
+.sidebar-toggle-seat {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+
+#app[data-sidebar-transition] > :is(.app-sidebar, .app-main) {
+  pointer-events: none;
+}
+
+#app[data-sidebar-transition] > .sidebar-motion-toggle {
+  pointer-events: auto;
+}
+
+.sidebar-toggle-paint {
+  pointer-events: none;
+}

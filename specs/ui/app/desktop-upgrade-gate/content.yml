@@ -1,0 +1,21 @@
+# What both messages tell the user is set by
+# [product/update-notifications.md#^gate-instructions-fallback](../../../product/update-notifications.md#^gate-instructions-fallback).
+
+# The gate's message when the app has downloaded an update, rendered with the
+# restart button.
+downloaded_update_instructions: |-
+  # Desktop app update required
+
+  This version of the Television desktop app does not work with this server and needs to be updated. The new version has already downloaded and installs when you restart the app.
+
+# The built-in fallback instructions (markdown), rendered when the app reports
+# no downloaded update and the channel provides none. Its link is the desktop
+# [download link](../../../arch/desktop/distribution.md#^desktop-dist-links).
+fallback_instructions: |-
+  # Desktop app update required
+
+  This version of the Television desktop app does not work with this server and needs to be updated. [Download the latest version for Mac](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64) and install it.
+
+# The restart button's label, and its label once pressed.
+restart_to_update: Restart to update
+restarting: Restarting…

@@ -1,0 +1,15 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+    /* The app's ground, not white: a tab is judged against what the strip
+       sits on — the selected tab is white, so on a white ground it would
+       have nothing to be lifted off. */
+    background: var(--color-background);
+  }
+script: |
+  import { mountStrip } from "./strip.ts";
+
+  mountStrip("strip");
+---

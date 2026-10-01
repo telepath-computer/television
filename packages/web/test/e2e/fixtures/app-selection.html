@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-television-document="app">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application selection fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <link rel="stylesheet" href="/packages/web/src/views/television-app.css" />
+    <style>
+      body { padding: 40px; }
+      #app { display: grid; height: auto; gap: 24px; }
+      .selection-region { width: 360px; padding: 16px; }
+      #ordinary { background: #eeeeee; }
+      #readable { background: #ffffff; user-select: text; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="ordinary" class="selection-region">ORDINARY interface text must not select.</div>
+      <div id="readable" class="selection-region" selectable>READABLE text can be selected.</div>
+      <button id="panel-trigger">Open floating controls</button>
+      <tv-popover trigger="panel-trigger">
+        <div id="panel-ordinary" class="selection-region">ORDINARY floating interface text must not select.</div>
+        <div id="panel-readable" class="selection-region" style="user-select: text">READABLE floating text can be selected.</div>
+      </tv-popover>
+    </div>
+    <script type="module">
+      import "/packages/web/src/elements/popover.ts";
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

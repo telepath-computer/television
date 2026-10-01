@@ -1,0 +1,38 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    margin: 0;
+  }
+  
+  .ground {
+    padding: 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  
+  .ground > div {
+    height: 120px;
+    border-radius: 8px;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import confirm from "../../../specs/ui/app/artifact-frame/delete-confirm/delete-confirm.liquid";
+
+  const { markup, styles } = confirm({ title: "Daily brief" });
+  document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+  document.body.insertAdjacentHTML("beforeend", markup);
+---
+<!-- The delete confirmation (staging): the frame's alert over a busy
+     ground, posed from the spec template. -->
+
+
+<div class="ground" aria-hidden="true">
+  <div style="background: oklch(80% 0.12 210)"></div>
+  <div style="background: oklch(80% 0.12 30)"></div>
+  <div style="background: oklch(80% 0.12 130)"></div>
+  <div style="background: oklch(80% 0.12 270)"></div>
+  <div style="background: oklch(80% 0.12 0)"></div>
+  <div style="background: oklch(80% 0.12 180)"></div>
+</div>

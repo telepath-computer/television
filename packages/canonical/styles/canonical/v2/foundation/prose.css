@@ -1,0 +1,127 @@
+/* The prose treatment ([[ui/foundation/index.md]], Prose): document
+   typography for plain semantic HTML, applying inside any region marked
+   text-display="prose". Zero specificity like every foundation rule; a
+   document's own styling outranks all of it. */
+
+:where([text-display="prose"]) {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The heading scale. */
+:where([text-display="prose"] h1) {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  margin: 0 0 var(--space-12);
+}
+
+:where([text-display="prose"] h2) {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  margin: var(--space-24) 0 var(--space-8);
+}
+
+:where([text-display="prose"] h3, [text-display="prose"] h4, [text-display="prose"] h5, [text-display="prose"] h6) {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-16) 0 var(--space-4);
+}
+
+/* Block rhythm. */
+:where([text-display="prose"] p, [text-display="prose"] ul, [text-display="prose"] ol, [text-display="prose"] blockquote, [text-display="prose"] pre, [text-display="prose"] hr, [text-display="prose"] table, [text-display="prose"] figure) {
+  margin: 0 0 var(--space-12);
+}
+
+:where([text-display="prose"] > :last-child) {
+  margin-bottom: 0;
+}
+
+:where([text-display="prose"] a) {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+:where([text-display="prose"] ul, [text-display="prose"] ol) {
+  padding-left: var(--space-24);
+}
+
+:where([text-display="prose"] li + li) {
+  margin-top: var(--space-4);
+}
+
+:where([text-display="prose"] blockquote) {
+  border-left: 2px solid var(--color-border);
+  padding-left: var(--space-12);
+  color: var(--color-text-muted);
+}
+
+:where([text-display="prose"] code, [text-display="prose"] kbd, [text-display="prose"] samp) {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  border-radius: var(--control-radius);
+  padding: 1px var(--space-4);
+}
+
+:where([text-display="prose"] pre) {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--control-radius);
+  padding: var(--space-12);
+  overflow-x: auto;
+}
+
+/* A block's code cell. */
+:where([text-display="prose"] pre code) {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+:where([text-display="prose"] hr) {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+:where([text-display="prose"] table) {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+:where([text-display="prose"] th) {
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-surface-muted);
+}
+
+:where([text-display="prose"] th, [text-display="prose"] td) {
+  padding: var(--space-4) var(--space-12) var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+:where([text-display="prose"] img) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The header idiom. */
+:where([text-display="prose"] header p) {
+  color: var(--color-text-muted);
+}
+
+/* The heading's own bottom margin would collapse with the subtitle's; the
+   pair states its gap once. */
+:where(header :is(h1, h2, h3, h4, h5, h6):has(+ p)) {
+  margin-bottom: 0;
+}
+
+:where(header :is(h1, h2, h3, h4, h5, h6) + p) {
+  margin-top: var(--space-4);
+}

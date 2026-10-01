@@ -1,0 +1,26 @@
+:where(:root) {
+  /* Controls follow the standard UI text size by default. */
+  --control-font-size: var(--text-md);
+
+  /* Type — one seed; each size a stated multiple, written as its tuned pixel
+     over the default base: retune --text-base and every size follows (at the
+     root — the var chain resolves there, not per subtree); read the fraction
+     and you see the pixels it lands on at 14. */
+  --text-base: 14px;
+  --text-sm: round(calc(var(--text-base) * 12 / 14), 1px);
+  --text-md: var(--text-base);
+  --text-lg: round(calc(var(--text-base) * 16 / 14), 1px);
+  --text-xl: round(calc(var(--text-base) * 18 / 14), 1px);
+  --text-2xl: round(calc(var(--text-base) * 20 / 14), 1px);
+  --text-3xl: round(calc(var(--text-base) * 24 / 14), 1px);
+  --text-4xl: round(calc(var(--text-base) * 30 / 14), 1px);
+
+  /* The control lines: the line-height a control's label uses, and the one
+     input its height derives from — the line, plus the space-2 padding step
+     top and bottom, plus a 1px border each side, gives every control the
+     same height: 18 + 4 + 2 = 24px (14 + 4 + 2 = 20px at the small step).
+     Stated in pixels, not a ratio: a control's cell is tighter than prose,
+     immune to the leading around it, and lands on even pixels in any font. */
+  --line-control: 18px;
+  --line-control-sm: 14px;
+}

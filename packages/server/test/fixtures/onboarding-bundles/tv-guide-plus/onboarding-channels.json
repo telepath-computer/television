@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "focusChannel": "tv-guide",
+  "channels": [
+    {
+      "slug": "tv-guide",
+      "name": "TV Guide",
+      "artifacts": [
+        {
+          "slug": "welcome",
+          "title": "Welcome to Television"
+        }
+      ]
+    },
+    {
+      "slug": "extras",
+      "name": "Extras",
+      "artifacts": [
+        {
+          "slug": "more",
+          "title": "More"
+        }
+      ]
+    }
+  ]
+}

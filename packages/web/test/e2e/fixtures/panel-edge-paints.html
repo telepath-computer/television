@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/packages/canonical/styles/canonical/v2/index.css">
+  <style>
+    body { padding: 40px; display: flex; gap: 24px; align-items: start; }
+    tv-popover, tv-menu, tv-select, dialog { padding: 12px; margin: 0; }
+    tv-popover { --panel-radius: 6px; }
+    tv-menu { --panel-radius: 18px; }
+  </style>
+</head>
+<body>
+  <tv-popover open><button>Popover action</button></tv-popover>
+  <tv-menu open><button>Menu action</button></tv-menu>
+  <tv-select open><button>Select action</button></tv-select>
+  <dialog open><div class="dialog-content"><input aria-label="Dialog input" value="Editable"><button>Dialog action</button><hr></div></dialog>
+  <script>document.documentElement.dataset.theme = new URLSearchParams(location.search).get('appearance') || 'light';</script>
+</body>
+</html>

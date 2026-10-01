@@ -1,0 +1,19 @@
+# The stage's measures ([[ui/app/stage/index.md]]): the size a page starts
+# at, the sizing reference and shares, the bands its resize handles occupy,
+# the snap's arming distance, and the selection crossing.
+page:
+  initial_width_px: 560 # the width a new page renders at on the reference page box
+  initial_height_px: 740 # the height a new page renders at on the reference page box
+sizing:
+  reference_width_px: 1280 # the page box whose sizing factor is 1
+  reference_height_px: 800
+  width_share: 0.4 # the share of the stage's change a rendered width takes
+  height_share: 0.4 # the share of the stage's change a rendered height takes
+handles:
+  edge_band_px: 14 # an edge band's thickness, centred on the edge
+  corner_reach_px: 45 # a corner's reach along each adjoining edge
+  corner_thickness_px: 16 # the thickness of a corner's arms
+snap:
+  arm_px: 64 # how near the stage's extents a corner drag arms full-screen
+crossing:
+  duration_ms: 280 # a selection change's time crossing the filmstrip

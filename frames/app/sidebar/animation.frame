@@ -1,0 +1,12 @@
+---
+title: Sidebar animation
+params:
+  collapsed: { type: boolean, default: false, description: "start collapsed rather than expanded" }
+  slow_motion: { type: boolean, default: false, description: "play collapse and expand at one thirtieth speed" }
+  inspect: { type: boolean, default: false, description: "hold the exact boundary position given by progress" }
+  progress: { type: number, minimum: 0, maximum: 1, multipleOf: 0.01, default: 0.5, description: "0 expanded, 1 collapsed; used when inspect is on" }
+---
+<!-- Reuse the App composition and wiring; this board supplies only motion controls. -->
+<div data-sidebar-animation data-staging-theme="clouds" data-slow-motion="{{ slow_motion }}" data-inspect="{{ inspect }}" data-progress="{{ progress }}">
+  {% render '../app', shell: 'desktop', collapsed: collapsed, switcher_open: false %}
+</div>

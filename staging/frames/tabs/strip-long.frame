@@ -1,0 +1,12 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+    background: var(--color-background);
+  }
+script: |
+  import { mountStrip } from "./strip.ts";
+
+  mountStrip("long");
+---

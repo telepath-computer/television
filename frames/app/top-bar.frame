@@ -1,0 +1,13 @@
+---
+title: Navbar
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+  /* The open control strip paints below its embed's box; give it its room. */
+  frameset-frame[controls] { margin-bottom: 96px; }
+---
+<main>
+  <frameset-frame src="../../specs/ui/app/top-bar/top-bar" label="Navbar" width="1100" height="40" controls></frameset-frame>
+</main>

@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting prep</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css">
+<script type="module" src="/canonical/v2/components.js"></script>
+<style>
+/* Shared base for onboarding artifacts ([[../index.md]]): document padding
+   and the centered content shell. Typography, text color, and background
+   are the canonical stylesheet's — nothing in this set restates or pins
+   them, so artifacts follow the active theme ([[../index.md#^respect-theme]]). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-64, 64px);
+}
+
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  /* Pin the single column to the container so a wide child (a data table)
+     scrolls inside its own .table-wrap instead of stretching the track and
+     overflowing the card. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-20, 20px);
+}
+
+/* Card-density headings ([[../index.md]]): document-scale h1 is oversized
+   inside a TV card. */
+h1 {
+  margin: 0;
+  font-size: var(--text-xl, 17px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* A lead paragraph (the .lede or .summary-deck standfirst) belongs in the
+   header, tight beneath the title — not a full grid-gap below it. Every
+   onboarding artifact places its lead this way so the spacing is uniform. */
+header > .lede,
+header > .summary-deck {
+  margin-top: var(--space-8, 8px);
+}
+
+
+/* The hero header idiom ([[../index.md]]): a plain document header opening a
+   dashboard-shaped artifact — the title with a fictional freshness line and
+   an optional source/meta line, sitting on the document itself rather than
+   inside a card. */
+
+header.hero h1 {
+  margin: 0 0 var(--space-6, 6px);
+}
+
+.generated {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  font-weight: 500;
+}
+
+.meta-line {
+  margin-top: var(--space-4, 4px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+
+/* The panel/section idioms ([[../index.md]]): a bordered surface panel with
+   a heading and optional note, the muted summary-box, the section-title row,
+   and — for artifacts that lean on headings and spacing over nested cards —
+   the borderless .section and the .summary-deck lead paragraph. */
+
+/* Borderless section: a title row (or heading) then its stack, no box. */
+.section {
+  display: grid;
+  gap: var(--space-16, 16px);
+}
+
+/* Summary/lead as a standfirst paragraph — the borderless counterpart to
+   .summary-box. */
+/* Lead/standfirst paragraph — the same size as the About .lede (body text),
+   not enlarged; it leads by position and primary color, not scale. */
+.summary-deck {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.panel {
+  padding: var(--space-20, 20px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.panel h2 {
+  margin: 0 0 var(--space-4, 4px);
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.panel .note {
+  margin: 0 0 var(--space-16, 16px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+.summary-box {
+  padding: var(--space-16, 16px) var(--space-20, 20px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.summary-box h2 {
+  margin: 0 0 var(--space-8, 8px);
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.summary-box p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-12, 12px);
+  margin-bottom: var(--space-12, 12px);
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.section-title .note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+
+/* The pill idiom ([[../index.md]]): small rounded status/tag chips. The
+   base pill is neutral; variant classes tint with canonical ramp tokens
+   (stable across themes by design, [[../index.md#^respect-theme]]). */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  padding: 2px var(--space-10, 10px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 9999px);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pill.blue   { color: var(--blue-700);   border-color: var(--blue-200);   background: var(--blue-50); }
+.pill.green  { color: var(--green-700);  border-color: var(--green-200);  background: var(--green-50); }
+.pill.orange { color: var(--orange-700); border-color: var(--orange-200); background: var(--orange-50); }
+.pill.red    { color: var(--red-700);    border-color: var(--red-200);    background: var(--red-50); }
+.pill.dim    { color: var(--neutral-500); border-color: var(--neutral-200); background: var(--neutral-100); }
+
+
+/* Meeting prep ([[../index.md]]): artifact-specific styling. Kept low on
+   borders to match Priorities and Open model research — the panels are the
+   shared borderless .section, references and the person block carry no box,
+   and the option cards are held by an accent rule rather than a card. The
+   section, section-title, and pill styles are defined above. */
+
+.shell {
+  max-width: 880px;
+  gap: var(--space-24, 24px);
+}
+
+/* Meeting-prep sections keep their heading tight to the content below it —
+   the section gap alone (no extra heading margin, which would double up). */
+.section {
+  gap: var(--space-8, 8px);
+}
+
+/* Section headings sit at the bare level (no box), tight to the content. */
+.section > h2 {
+  margin: 0;
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+/* Person block: initial avatar, role, and bio in a border-only box. */
+.person-card {
+  display: flex;
+  align-items: start;
+  gap: var(--space-16, 16px);
+  padding: var(--space-16, 16px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: white;
+  background: var(--purple-500);
+  font-size: var(--text-lg, 15px);
+  font-weight: 700;
+}
+
+.person-info h3 {
+  margin: 0 0 var(--space-4, 4px);
+  font-size: var(--text-base, 13.5px);
+  font-weight: 600;
+}
+
+.person-info .role {
+  margin-bottom: var(--space-6, 6px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  font-weight: 600;
+}
+
+.person-info p {
+  margin: 0;
+  font-size: var(--text-sm, 12px);
+  line-height: 1.42;
+}
+
+/* Purpose: plain prose — a heading, lead paragraphs, and the options list,
+   in normal block flow (not the grid .section, whose gap double-spaced). */
+.purpose h2 {
+  margin: 0 0 var(--space-8, 8px);
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.purpose p {
+  margin: 0 0 var(--space-10, 10px);
+  line-height: 1.45;
+}
+
+/* The two options as clear dot points. A hanging indent keeps the marker on
+   the prose left edge while wrapped lines stay indented under the text:
+   the marker flows inside the first line, which is pulled back by the same
+   amount the list is padded. */
+.options {
+  list-style: disc;
+  list-style-position: inside;
+  margin: 0;
+  padding-left: 1.4em;
+}
+
+.options li {
+  margin-bottom: var(--space-8, 8px);
+  line-height: 1.5;
+  text-indent: -1.4em;
+}
+
+.options li:last-child {
+  margin-bottom: 0;
+}
+
+.options .ask {
+  color: var(--color-text-muted);
+}
+
+/* Reference lists: the meeting entry itself is the box (bare section
+   heading above it), a heading/date row, text, and tag pills. */
+.ref-list {
+  display: grid;
+  gap: var(--space-12, 12px);
+}
+
+.ref-item {
+  padding: var(--space-12, 12px) var(--space-16, 16px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.ref-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-10, 10px);
+  margin-bottom: var(--space-4, 4px);
+}
+
+.ref-head h3 {
+  margin: 0;
+  font-size: var(--text-base, 13.5px);
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.ref-date {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  white-space: nowrap;
+}
+
+.ref-item p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  line-height: 1.4;
+}
+
+.ref-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4, 4px);
+  margin-top: var(--space-8, 8px);
+}
+
+@media (max-width: 760px) {
+  .person-card {
+    flex-direction: column;
+    gap: var(--space-10, 10px);
+  }
+}
+
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <h1>Meeting Prep — 1:1 with Priya</h1>
+    <div class="generated">Today at 12:00 PM · 30 minutes</div>
+  </header>
+
+  <section class="section">
+    <div class="person-card">
+      <div class="avatar">P</div>
+      <div class="person-info">
+        <h3>Priya Sharma</h3>
+        <div class="role">Lead Developer</div>
+        <p>
+          Priya has been leading the engineering team for 14 months. She owns
+          architecture decisions, runs the daily standup, and is the primary
+          point of contact for all platform reliability work. She reports
+          directly to you.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="purpose">
+    <h2>Purpose of this meeting</h2>
+    <p>
+      Discuss several ways the dev team has been feeling blocked and what you
+      can do as founder to help unblock them. Priya raised this informally in
+      Slack last week and asked for dedicated time to go deeper.
+    </p>
+    <p>
+      Based on those recent conversations and your own notes, two approaches
+      have emerged — neither finalized; the goal today is to get Priya's
+      reaction before you commit.
+    </p>
+    <ul class="options">
+      <li>
+        <strong>Dedicated QA champion</strong> — assign Marcus as owner of
+        evals and release gates. <span class="ask">Is he the right person?</span>
+      </li>
+      <li>
+        <strong>Merge checklist + rotation</strong> — a merge checklist with
+        weekly rotating ownership. <span class="ask">Why did the previous
+        rotation fail?</span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Prior 1:1s with Priya</h2>
+    <div class="ref-list">
+      <div class="ref-item">
+        <div class="ref-head">
+          <h3>1:1 — June 24</h3>
+          <span class="ref-date">2 weeks ago</span>
+        </div>
+        <p>
+          Priya flagged that the lack of clear eval ownership is causing
+          engineers to second-guess every release. She proposed rotating
+          ownership but wasn't confident it would stick without a founder
+          decision. You agreed to think about it and revisit.
+        </p>
+        <div class="ref-tags">
+          <span class="pill blue">Meeting</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Other recent meetings on the same topic</h2>
+    <div class="ref-list">
+      <div class="ref-item">
+        <div class="ref-head">
+          <h3>Engineering review with Marcus</h3>
+          <span class="ref-date">July 3</span>
+        </div>
+        <p>
+          Marcus (senior engineer) raised that the team is spending roughly 30%
+          of its time on rework that stems from unclear quality bars. He
+          suggested either a dedicated QA champion or a formal
+          definition-of-done checklist. He emphasized that the team needs a
+          decision from you, not another discussion.
+        </p>
+        <div class="ref-tags">
+          <span class="pill blue">Meeting</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</body>
+</html>

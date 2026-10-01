@@ -1,0 +1,122 @@
+---
+title: Artifact error page
+params:
+  state:
+    enum: [missing, url-unsupported]
+    default: missing
+    description: "missing (the artifact's file is gone) or url-unsupported (an external web page the browser cannot embed)"
+  path:
+    type: string
+    default: "/Users/rupert/artifacts/roadmap.html"
+    description: "the artifact's registered path, shown while missing; absent, the path block does not render"
+  url:
+    type: string
+    default: "https://example.com/dashboard"
+    description: "the one address the frame was asked to show, shown while url-unsupported; absent, the address block does not render"
+  url_is_web:
+    type: boolean
+    default: true
+    description: "whether url passes the HTTP(S) web-URL check; when true, that same url is the link target"
+imports:
+  - content: ./content.yml
+style: |
+  /* The page: a muted surface with the state's message in a centred reading
+     column — quiet ground of its own, not the app's wallpaper. Canonical
+     supplies the reset, foundation tokens, and base prose. */
+  .artifact-error {
+    min-height: 100vh;
+    padding: var(--space-24);
+    display: grid;
+    place-items: center;
+    background: var(--color-surface-muted);
+  }
+
+  .artifact-error-body {
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+  }
+
+  .artifact-error h1,
+  .artifact-error p {
+    margin: 0;
+  }
+
+  .artifact-error h1 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .artifact-error-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  /* The address and the guide link: wrapping anywhere, a link plainly a link. */
+  .artifact-error a,
+  .artifact-error .plain-address {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .artifact-error a {
+    color: var(--color-primary);
+  }
+
+  /* The path chip: mono, wrapping anywhere, selected whole by one press —
+     it exists to be copied. */
+  .artifact-error code {
+    display: inline-block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    padding: var(--space-2) var(--space-6);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    background: var(--color-surface-muted);
+    user-select: all;
+  }
+
+  /* The fixed documents reveal optional blocks after their host replies. */
+  [hidden] {
+    display: none !important;
+  }
+---
+<main class="artifact-error">
+  {% if state == "missing" %}
+  <div class="artifact-error-body">
+    <h1>{{ content.missing_title }}</h1>
+    <p>{{ content.missing_description }}</p>
+    {% if path %}
+    <section class="artifact-error-block" aria-label="Missing artifact path">
+      <p>{{ content.missing_path_label }}</p>
+      <p><code>{{ path }}</code></p>
+    </section>
+    {% endif %}
+    <p>{{ content.missing_recovery }}</p>
+  </div>
+  {% endif %}
+  {% if state == "url-unsupported" %}
+  <div class="artifact-error-body">
+    <h1>{{ content.url_title }}</h1>
+    {% if url %}
+    <section class="artifact-error-block">
+      <p>{{ content.url_address_label }}</p>
+      {% if url_is_web %}
+      <p><strong><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ url }}</a></strong></p>
+      {% else %}
+      <p class="plain-address">{{ url }}</p>
+      {% endif %}
+    </section>
+    {% endif %}
+    <p>{{ content.url_explanation }}</p>
+    <section class="artifact-error-block" aria-label="Television desktop app">
+      <p>{{ content.url_install_intro }}</p>
+      <p><a href="{{ content.url_install_guide }}" target="_blank" rel="noopener noreferrer">{{ content.url_install_guide }}</a></p>
+    </section>
+  </div>
+  {% endif %}
+</main>

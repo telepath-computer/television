@@ -1,0 +1,6 @@
+/* The view root fills its assigned band without letting tab contents establish
+   a larger minimum width. */
+.tab-strip {
+  width: 100%;
+  min-width: 0;
+}

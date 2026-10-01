@@ -1,0 +1,74 @@
+---
+params:
+  open: { type: boolean, default: false }
+  hovered: { type: boolean, default: false }
+style: |
+  body {
+    height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    /* The trigger sits above centre so its open menu has room below it. */
+    padding-bottom: 140px;
+    display: grid;
+    place-items: center;
+    background: var(--color-background);
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import iconTpl from "../../../specs/ui/foundation/icons/template.liquid";
+  import menuTpl from "../../../specs/ui/elements/menu/template.liquid";
+  import { installPseudoStates } from "../../lib/pseudo-states.ts";
+  import { wireMenu } from "./wire.ts";
+
+  const icon = iconTpl({ name: "expand", size: "sm" });
+  const menu = menuTpl({
+    items: [
+      { label: "Rename" },
+      { label: "Pin" },
+      { separator: true },
+      { label: "Delete", destructive: true },
+    ],
+  });
+  document.head.insertAdjacentHTML("beforeend", `<style>${[...icon.styles, ...menu.styles].join("\n")}</style>`);
+  installPseudoStates();
+
+  const wireUp = () => {
+    const trigger = document.querySelector("[data-trigger]");
+    trigger.innerHTML = icon.markup;
+    trigger.insertAdjacentHTML("afterend", menu.markup);
+
+    const panel = trigger.nextElementSibling;
+    panel.id = "row-menu";
+    wireMenu(panel);
+    const firstItem = panel.querySelector(".menu-item");
+
+    const params = new URLSearchParams(location.search);
+    firstItem.toggleAttribute("data-hover", params.get("hovered") === "true");
+    if (params.get("open") === "true") panel.showPopover({ source: trigger });
+
+    // Native light dismissal and Escape write the real popover state back to
+    // the URL, which is the frame control source of truth.
+    panel.addEventListener("toggle", () => {
+      const open = String(panel.matches(":popover-open"));
+      const next = new URL(location.href);
+      if (next.searchParams.get("open") === open) return;
+      next.searchParams.set("open", open);
+      history.replaceState(null, "", `${next.pathname}${next.search}${next.hash}`);
+    });
+  };
+
+  wireUp();
+  window.addEventListener("frameset:rendered", wireUp);
+---
+<!--
+  Design workshop (off-spec): the overflow menu floating free — a popover whose
+  interior is the menu vocabulary (./menu.css), opened from a ghost caret
+  trigger. The reference form; ./sidebar.frame shows the same menu in context.
+-->
+
+
+
+<button variant="ghost" icon-only popovertarget="row-menu" aria-label="More" data-trigger></button>

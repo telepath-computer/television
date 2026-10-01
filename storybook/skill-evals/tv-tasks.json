@@ -1,0 +1,58 @@
+{
+  "jobs": [
+    {
+      "name": "Today list",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a 'Today' list titled with today's date, where the list itself carries a genuinely long description under its title \u2014 three or four full sentences about what this list covers and how I use it. Four tasks \u2014 one overdue, one due today, one with a short note plus a project and a tag, and one plain task. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/today",
+      "before_command": "rm -rf out/tv-tasks/today && mkdir -p out/tv-tasks/today && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/today/"
+    },
+    {
+      "name": "Project sections",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a project view with three sections \u2014 Today, Upcoming, and Someday. A couple of tasks are completed (struck through); the Someday section is empty and shows a placeholder. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/project",
+      "before_command": "rm -rf out/tv-tasks/project && mkdir -p out/tv-tasks/project && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/project/"
+    },
+    {
+      "name": "Errands checklist",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a simple errands checklist: five short tasks, no due dates or tags, one already checked off. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/errands",
+      "before_command": "rm -rf out/tv-tasks/errands && mkdir -p out/tv-tasks/errands && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/errands/"
+    },
+    {
+      "name": "Urgent standout",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: my day plan \u2014 six tasks across a Morning and an Afternoon section. I asked for one thing to be impossible to miss: 'Submit the visa application' is due today and must stand out from every other task. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/urgent",
+      "before_command": "rm -rf out/tv-tasks/urgent && mkdir -p out/tv-tasks/urgent && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/urgent/"
+    },
+    {
+      "name": "Sprint with counts",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a sprint board for a small team \u2014 sections In progress, Blocked, and Done, each section heading showing how many tasks it holds. Mix of assignees as projects, a few tags, two done tasks. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/sprint",
+      "before_command": "rm -rf out/tv-tasks/sprint && mkdir -p out/tv-tasks/sprint && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/sprint/"
+    },
+    {
+      "name": "Bare quick list",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: jot down a quick throwaway list of three things I said aloud: call mum, cancel the gym trial, buy stamps. Nothing else \u2014 no dates, no organizing. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/bare",
+      "before_command": "rm -rf out/tv-tasks/bare && mkdir -p out/tv-tasks/bare && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/bare/"
+    },
+    {
+      "name": "Packing list dark",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a ski-trip packing list in dark mode, grouped by Clothing, Gear, and Documents; a few items already packed (checked), one item with a note about the rental pickup deadline of this Friday. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/packing",
+      "before_command": "rm -rf out/tv-tasks/packing && mkdir -p out/tv-tasks/packing && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/packing/"
+    },
+    {
+      "name": "Heavy metadata",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: my overloaded work week \u2014 ten tasks, most with due dates spread from last week to next month, projects, and multiple tags each; two completed; keep it readable despite the density. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/heavy",
+      "before_command": "rm -rf out/tv-tasks/heavy && mkdir -p out/tv-tasks/heavy && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/heavy/"
+    },
+    {
+      "name": "Interactive habits",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a daily habits checklist (six habits, no dates) where checking a habit persists across page reloads using localStorage, per the skill's Interactivity guidance. Write index.html into the current directory. The skill's runtime assets (task.css, task.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-tasks/habits",
+      "before_command": "rm -rf out/tv-tasks/habits && mkdir -p out/tv-tasks/habits && cp ../../packages/skills/dist/tv-tasks/SKILL.md ../../packages/skills/dist/tv-tasks/task.css ../../packages/skills/dist/tv-tasks/task.js out/tv-tasks/habits/"
+    }
+  ]
+}

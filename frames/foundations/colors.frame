@@ -1,0 +1,374 @@
+---
+title: Colors
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main {
+    /* self-grounded: the theme control must paint its own world */
+    padding: 32px 40px 64px;
+    max-width: 1040px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  h1 { font-size: var(--text-lg); margin: 0 0 16px; }
+  h2 {
+    font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--color-text-muted); margin: 28px 0 8px;
+  }
+  .scale-label { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); margin: 10px 0 2px; }
+  .row { display: flex; }
+  .row > div { flex: 1; height: 44px; }
+  .row > div:first-child { border-radius: 6px 0 0 6px; }
+  .row > div:last-child { border-radius: 0 6px 6px 0; }
+  .steps { display: flex; margin-bottom: 4px; }
+  .steps span { flex: 1; text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--color-text-muted); }
+  .checker { background: repeating-conic-gradient(oklch(0 0 0 / 8%) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px; border-radius: 6px; }
+  .token { display: flex; align-items: center; gap: 12px; padding: 3px 0; font-family: var(--font-mono); font-size: 12px; }
+  .token .sw { width: 36px; height: 20px; border-radius: 4px; border: 1px solid oklch(0 0 0 / 10%); flex: none; }
+  .token .name { min-width: 260px; }
+  .token .name.pad { margin-left: 48px; }
+  .token .value { color: var(--color-text-muted); }
+  .slots { display: flex; gap: 12px; flex-wrap: wrap; }
+  .slot { text-align: center; font-family: var(--font-mono); font-size: 11px; }
+  .slot .sw { width: 56px; height: 56px; border-radius: var(--panel-radius); margin: 0 auto 4px; border: 1px solid oklch(0 0 0 / 8%); }
+---
+<main>
+<!-- Static swatch boards for the foundation's color tokens. Regenerate the
+     board markup when the token census changes; values shown are the light
+     table's declared text, swatches render live in either mode. -->
+<h1>Colors</h1>
+<h2>Slots</h2>
+<div class="slots">
+  <div class="slot"><div class="sw" style="background: var(--neutral)"></div>--neutral</div>
+  <div class="slot"><div class="sw" style="background: var(--red)"></div>--red</div>
+  <div class="slot"><div class="sw" style="background: var(--orange)"></div>--orange</div>
+  <div class="slot"><div class="sw" style="background: var(--yellow)"></div>--yellow</div>
+  <div class="slot"><div class="sw" style="background: var(--green)"></div>--green</div>
+  <div class="slot"><div class="sw" style="background: var(--cyan)"></div>--cyan</div>
+  <div class="slot"><div class="sw" style="background: var(--blue)"></div>--blue</div>
+  <div class="slot"><div class="sw" style="background: var(--purple)"></div>--purple</div>
+  <div class="slot"><div class="sw" style="background: var(--pink)"></div>--pink</div>
+  <div class="slot"><div class="sw" style="background: var(--accent)"></div>--accent</div>
+</div>
+<h2>Scales</h2>
+<div class="scale-label">neutral</div>
+<div class="row">
+  <div style="background: var(--neutral-50)"></div>
+  <div style="background: var(--neutral-100)"></div>
+  <div style="background: var(--neutral-200)"></div>
+  <div style="background: var(--neutral-300)"></div>
+  <div style="background: var(--neutral-400)"></div>
+  <div style="background: var(--neutral-500)"></div>
+  <div style="background: var(--neutral-600)"></div>
+  <div style="background: var(--neutral-700)"></div>
+  <div style="background: var(--neutral-800)"></div>
+  <div style="background: var(--neutral-900)"></div>
+  <div style="background: var(--neutral-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">red</div>
+<div class="row">
+  <div style="background: var(--red-50)"></div>
+  <div style="background: var(--red-100)"></div>
+  <div style="background: var(--red-200)"></div>
+  <div style="background: var(--red-300)"></div>
+  <div style="background: var(--red-400)"></div>
+  <div style="background: var(--red-500)"></div>
+  <div style="background: var(--red-600)"></div>
+  <div style="background: var(--red-700)"></div>
+  <div style="background: var(--red-800)"></div>
+  <div style="background: var(--red-900)"></div>
+  <div style="background: var(--red-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">orange</div>
+<div class="row">
+  <div style="background: var(--orange-50)"></div>
+  <div style="background: var(--orange-100)"></div>
+  <div style="background: var(--orange-200)"></div>
+  <div style="background: var(--orange-300)"></div>
+  <div style="background: var(--orange-400)"></div>
+  <div style="background: var(--orange-500)"></div>
+  <div style="background: var(--orange-600)"></div>
+  <div style="background: var(--orange-700)"></div>
+  <div style="background: var(--orange-800)"></div>
+  <div style="background: var(--orange-900)"></div>
+  <div style="background: var(--orange-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">yellow</div>
+<div class="row">
+  <div style="background: var(--yellow-50)"></div>
+  <div style="background: var(--yellow-100)"></div>
+  <div style="background: var(--yellow-200)"></div>
+  <div style="background: var(--yellow-300)"></div>
+  <div style="background: var(--yellow-400)"></div>
+  <div style="background: var(--yellow-500)"></div>
+  <div style="background: var(--yellow-600)"></div>
+  <div style="background: var(--yellow-700)"></div>
+  <div style="background: var(--yellow-800)"></div>
+  <div style="background: var(--yellow-900)"></div>
+  <div style="background: var(--yellow-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">green</div>
+<div class="row">
+  <div style="background: var(--green-50)"></div>
+  <div style="background: var(--green-100)"></div>
+  <div style="background: var(--green-200)"></div>
+  <div style="background: var(--green-300)"></div>
+  <div style="background: var(--green-400)"></div>
+  <div style="background: var(--green-500)"></div>
+  <div style="background: var(--green-600)"></div>
+  <div style="background: var(--green-700)"></div>
+  <div style="background: var(--green-800)"></div>
+  <div style="background: var(--green-900)"></div>
+  <div style="background: var(--green-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">cyan</div>
+<div class="row">
+  <div style="background: var(--cyan-50)"></div>
+  <div style="background: var(--cyan-100)"></div>
+  <div style="background: var(--cyan-200)"></div>
+  <div style="background: var(--cyan-300)"></div>
+  <div style="background: var(--cyan-400)"></div>
+  <div style="background: var(--cyan-500)"></div>
+  <div style="background: var(--cyan-600)"></div>
+  <div style="background: var(--cyan-700)"></div>
+  <div style="background: var(--cyan-800)"></div>
+  <div style="background: var(--cyan-900)"></div>
+  <div style="background: var(--cyan-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">blue</div>
+<div class="row">
+  <div style="background: var(--blue-50)"></div>
+  <div style="background: var(--blue-100)"></div>
+  <div style="background: var(--blue-200)"></div>
+  <div style="background: var(--blue-300)"></div>
+  <div style="background: var(--blue-400)"></div>
+  <div style="background: var(--blue-500)"></div>
+  <div style="background: var(--blue-600)"></div>
+  <div style="background: var(--blue-700)"></div>
+  <div style="background: var(--blue-800)"></div>
+  <div style="background: var(--blue-900)"></div>
+  <div style="background: var(--blue-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">purple</div>
+<div class="row">
+  <div style="background: var(--purple-50)"></div>
+  <div style="background: var(--purple-100)"></div>
+  <div style="background: var(--purple-200)"></div>
+  <div style="background: var(--purple-300)"></div>
+  <div style="background: var(--purple-400)"></div>
+  <div style="background: var(--purple-500)"></div>
+  <div style="background: var(--purple-600)"></div>
+  <div style="background: var(--purple-700)"></div>
+  <div style="background: var(--purple-800)"></div>
+  <div style="background: var(--purple-900)"></div>
+  <div style="background: var(--purple-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">pink</div>
+<div class="row">
+  <div style="background: var(--pink-50)"></div>
+  <div style="background: var(--pink-100)"></div>
+  <div style="background: var(--pink-200)"></div>
+  <div style="background: var(--pink-300)"></div>
+  <div style="background: var(--pink-400)"></div>
+  <div style="background: var(--pink-500)"></div>
+  <div style="background: var(--pink-600)"></div>
+  <div style="background: var(--pink-700)"></div>
+  <div style="background: var(--pink-800)"></div>
+  <div style="background: var(--pink-900)"></div>
+  <div style="background: var(--pink-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="scale-label">accent</div>
+<div class="row">
+  <div style="background: var(--accent-50)"></div>
+  <div style="background: var(--accent-100)"></div>
+  <div style="background: var(--accent-200)"></div>
+  <div style="background: var(--accent-300)"></div>
+  <div style="background: var(--accent-400)"></div>
+  <div style="background: var(--accent-500)"></div>
+  <div style="background: var(--accent-600)"></div>
+  <div style="background: var(--accent-700)"></div>
+  <div style="background: var(--accent-800)"></div>
+  <div style="background: var(--accent-900)"></div>
+  <div style="background: var(--accent-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<h2>Alpha scales</h2>
+<div class="scale-label">neutral</div>
+<div class="row checker">
+  <div style="background: var(--neutral-alpha-5)"></div>
+  <div style="background: var(--neutral-alpha-10)"></div>
+  <div style="background: var(--neutral-alpha-15)"></div>
+  <div style="background: var(--neutral-alpha-25)"></div>
+  <div style="background: var(--neutral-alpha-50)"></div>
+  <div style="background: var(--neutral-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">red</div>
+<div class="row checker">
+  <div style="background: var(--red-alpha-5)"></div>
+  <div style="background: var(--red-alpha-10)"></div>
+  <div style="background: var(--red-alpha-15)"></div>
+  <div style="background: var(--red-alpha-25)"></div>
+  <div style="background: var(--red-alpha-50)"></div>
+  <div style="background: var(--red-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">orange</div>
+<div class="row checker">
+  <div style="background: var(--orange-alpha-5)"></div>
+  <div style="background: var(--orange-alpha-10)"></div>
+  <div style="background: var(--orange-alpha-15)"></div>
+  <div style="background: var(--orange-alpha-25)"></div>
+  <div style="background: var(--orange-alpha-50)"></div>
+  <div style="background: var(--orange-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">yellow</div>
+<div class="row checker">
+  <div style="background: var(--yellow-alpha-5)"></div>
+  <div style="background: var(--yellow-alpha-10)"></div>
+  <div style="background: var(--yellow-alpha-15)"></div>
+  <div style="background: var(--yellow-alpha-25)"></div>
+  <div style="background: var(--yellow-alpha-50)"></div>
+  <div style="background: var(--yellow-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">green</div>
+<div class="row checker">
+  <div style="background: var(--green-alpha-5)"></div>
+  <div style="background: var(--green-alpha-10)"></div>
+  <div style="background: var(--green-alpha-15)"></div>
+  <div style="background: var(--green-alpha-25)"></div>
+  <div style="background: var(--green-alpha-50)"></div>
+  <div style="background: var(--green-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">cyan</div>
+<div class="row checker">
+  <div style="background: var(--cyan-alpha-5)"></div>
+  <div style="background: var(--cyan-alpha-10)"></div>
+  <div style="background: var(--cyan-alpha-15)"></div>
+  <div style="background: var(--cyan-alpha-25)"></div>
+  <div style="background: var(--cyan-alpha-50)"></div>
+  <div style="background: var(--cyan-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">blue</div>
+<div class="row checker">
+  <div style="background: var(--blue-alpha-5)"></div>
+  <div style="background: var(--blue-alpha-10)"></div>
+  <div style="background: var(--blue-alpha-15)"></div>
+  <div style="background: var(--blue-alpha-25)"></div>
+  <div style="background: var(--blue-alpha-50)"></div>
+  <div style="background: var(--blue-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">purple</div>
+<div class="row checker">
+  <div style="background: var(--purple-alpha-5)"></div>
+  <div style="background: var(--purple-alpha-10)"></div>
+  <div style="background: var(--purple-alpha-15)"></div>
+  <div style="background: var(--purple-alpha-25)"></div>
+  <div style="background: var(--purple-alpha-50)"></div>
+  <div style="background: var(--purple-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">pink</div>
+<div class="row checker">
+  <div style="background: var(--pink-alpha-5)"></div>
+  <div style="background: var(--pink-alpha-10)"></div>
+  <div style="background: var(--pink-alpha-15)"></div>
+  <div style="background: var(--pink-alpha-25)"></div>
+  <div style="background: var(--pink-alpha-50)"></div>
+  <div style="background: var(--pink-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<div class="scale-label">accent</div>
+<div class="row checker">
+  <div style="background: var(--accent-alpha-5)"></div>
+  <div style="background: var(--accent-alpha-10)"></div>
+  <div style="background: var(--accent-alpha-15)"></div>
+  <div style="background: var(--accent-alpha-25)"></div>
+  <div style="background: var(--accent-alpha-50)"></div>
+  <div style="background: var(--accent-alpha-75)"></div>
+</div>
+<div class="steps"><span>alpha-5</span><span>alpha-10</span><span>alpha-15</span><span>alpha-25</span><span>alpha-50</span><span>alpha-75</span></div>
+<h2>Roles</h2>
+<div class="tokens">
+  <div class="token"><div class="sw" style="background: var(--color-surface)"></div><span class="name">--color-surface</span><span class="value">white</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-surface-muted)"></div><span class="name">--color-surface-muted</span><span class="value">var(--neutral-100)</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-text)"></div><span class="name">--color-text</span><span class="value">var(--neutral-900)</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-text-muted)"></div><span class="name">--color-text-muted</span><span class="value">var(--neutral-500)</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-text-reversed)"></div><span class="name">--color-text-reversed</span><span class="value">white</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-border)"></div><span class="name">--color-border</span><span class="value">12% light / 18% dark text tint</span></div>
+  <div class="token"><div class="sw" style="background: var(--control-background)"></div><span class="name">--control-background</span><span class="value">var(--color-surface)</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-danger)"></div><span class="name">--color-danger</span><span class="value">var(--red-500)</span></div>
+  <div class="token"><div class="sw" style="background: var(--tint-danger)"></div><span class="name">--tint-danger</span><span class="value">oklch(from var(--color-danger) l c h / var(--alpha-10))</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-alert)"></div><span class="name">--color-alert</span><span class="value">var(--yellow-500)</span></div>
+  <div class="token"><div class="sw" style="background: var(--tint-alert)"></div><span class="name">--tint-alert</span><span class="value">oklch(from var(--color-alert) l c h / var(--alpha-10))</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-success)"></div><span class="name">--color-success</span><span class="value">var(--green-500)</span></div>
+  <div class="token"><div class="sw" style="background: var(--tint-success)"></div><span class="name">--tint-success</span><span class="value">oklch(from var(--color-success) l c h / var(--alpha-10))</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-primary)"></div><span class="name">--color-primary</span><span class="value">var(--accent-500)</span></div>
+  <div class="token"><div class="sw" style="background: var(--tint-primary)"></div><span class="name">--tint-primary</span><span class="value">oklch(from var(--color-primary) l c h / var(--alpha-10))</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-primary-text)"></div><span class="name">--color-primary-text</span><span class="value">computed against --color-primary: dark ink above --contrast-flip, near-white below</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-link)"></div><span class="name">--color-link</span><span class="value">currentColor — follows surrounding text</span></div>
+  <div class="token"><div class="sw" style="background: var(--color-overlay)"></div><span class="name">--color-overlay</span><span class="value">oklch(from var(--neutral-950) l c h / var(--alpha-40))</span></div>
+</div>
+<h2>State machinery</h2>
+<div class="tokens">
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-hover)"></div></div><span class="name">--hover-mix</span><span class="value">62.5% light / 66.6666667% dark — progress from resting to active</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: oklch(from var(--color-text) l c h / var(--alpha-active))"></div></div><span class="name">--alpha-active</span><span class="value">8% light / 12% dark — default active strength</span></div>
+  <div class="token"><div class="sw" style="background: linear-gradient(to right, black 35%, white 35%)"></div><span class="name">--state-flip</span><span class="value">0.35 — a fill lighter than this darkens in its states; a darker one lightens</span></div>
+  <div class="token"><div class="sw" style="background: linear-gradient(to right, black 66%, white 66%)"></div><span class="name">--contrast-flip</span><span class="value">0.66 — a fill lighter than this wears dark text; a darker one wears reversed type</span></div>
+</div>
+<h2>Tints</h2>
+<div class="tokens">
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-hover)"></div></div><span class="name">--tint-hover</span><span class="value">transparent mixed with --tint-active at --hover-mix</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-active)"></div></div><span class="name">--tint-active</span><span class="value">text pigment at --alpha-active</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-danger-hover)"></div></div><span class="name">--tint-danger-hover</span><span class="value">transparent mixed with --tint-danger-active at --hover-mix</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-danger-active)"></div></div><span class="name">--tint-danger-active</span><span class="value">danger pigment at --alpha-active</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-alert-hover)"></div></div><span class="name">--tint-alert-hover</span><span class="value">transparent mixed with --tint-alert-active at --hover-mix</span></div>
+  <div class="token"><div class="sw checker"><div style="width:100%;height:100%;border-radius:4px;background: var(--tint-alert-active)"></div></div><span class="name">--tint-alert-active</span><span class="value">alert pigment at --alpha-active</span></div>
+</div>
+<h2>State fills</h2>
+<div class="scale-label">control</div>
+<div class="row">
+  <div style="background: var(--control-background)"></div>
+  <div style="background: var(--control-background-hover)"></div>
+  <div style="background: var(--control-background-active)"></div>
+</div>
+<div class="steps"><span>rest</span><span>hover</span><span>active</span></div>
+<div class="scale-label">primary</div>
+<div class="row">
+  <div style="background: var(--color-primary)"></div>
+  <div style="background: var(--color-primary-hover)"></div>
+  <div style="background: var(--color-primary-active)"></div>
+</div>
+<div class="steps"><span>rest</span><span>hover</span><span>active</span></div>
+<div class="scale-label">danger</div>
+<div class="row">
+  <div style="background: var(--color-danger)"></div>
+  <div style="background: var(--color-danger-hover)"></div>
+  <div style="background: var(--color-danger-active)"></div>
+</div>
+<div class="steps"><span>rest</span><span>hover</span><span>active</span></div>
+<div class="scale-label">alert</div>
+<div class="row">
+  <div style="background: var(--color-alert)"></div>
+  <div style="background: var(--color-alert-hover)"></div>
+  <div style="background: var(--color-alert-active)"></div>
+</div>
+<div class="steps"><span>rest</span><span>hover</span><span>active</span></div>
+</main>

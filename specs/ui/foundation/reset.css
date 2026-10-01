@@ -1,0 +1,42 @@
+/* Foundation styling carries no specificity: every selector that can be is
+   wrapped in `:where()`, so later sheets — the element sheets, surfaces,
+   themes — override any of this with a plain rule. The universal box-sizing
+   rule stays bare only because pseudo-elements cannot appear inside
+   `:where()`; its selectors carry no specificity anyway. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:where(html, body) {
+  margin: 0;
+  padding: 0;
+}
+
+/* The document's base typography, stated once at the root: surfaces inherit
+   rather than restate, and the form controls below inherit it in turn. */
+:where(body) {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-normal);
+  line-height: normal;
+  color: var(--color-text);
+}
+
+:where(h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, hr) {
+  margin: 0;
+}
+
+:where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+/* Floating elements arrive with UA chrome — a solid border and padding on
+   dialog and on popover hosts. Zeroed here so the panel styling states only
+   what a panel looks like. The UA margin stays: it centers a modal dialog. */
+:where(dialog, [popover]) {
+  border: 0;
+  padding: 0;
+}

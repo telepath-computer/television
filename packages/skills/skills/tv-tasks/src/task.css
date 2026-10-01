@@ -1,0 +1,181 @@
+/*
+ * Task styles for the tv-tasks artifact skill.
+ * Targets the `tv-task-*` element/attribute vocabulary (no classes); uses
+ * canonical design tokens (--color-*, --space-*, --radius-*, --text-*).
+ *
+ * Behavioral parts live in their own web components' shadow DOM:
+ *   <tv-task-checkbox>  — the circular pop checkbox + focus ring
+ *   <tv-task-meta-due>  — the due-date glyph + label; task.css only colors it.
+ */
+
+:root {
+  /* Task accents follow the active canonical/theme semantic roles. */
+  --task-due-today: var(--color-alert);
+  /* Highlight hue — the highlighted row's wash derives from this one knob.
+     Set it on any ancestor (or the row itself) to retint. */
+  --task-highlight: var(--task-due-today);
+  /* The meta line recedes a step behind the note: 85% of muted. */
+  --task-meta-text: color-mix(in srgb, var(--color-text-muted) 85%, transparent);
+}
+
+/* One task row — a checkbox column + the body column. */
+tv-task {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  column-gap: var(--space-12, 12px);
+  padding: var(--space-8, 8px) var(--space-4, 4px);
+}
+
+/* The content column of a row (title / note / meta). */
+tv-task-body {
+  display: block;
+}
+
+tv-task-title {
+  display: block;
+  font-weight: var(--font-weight-normal);
+  line-height: 1.35;
+}
+/* Completed — tracks the checkbox's reflected host attribute live, not a
+   static class. (The real <input> lives in the component's shadow DOM, where
+   :has() can't reach it.) */
+tv-task:has(tv-task-checkbox[checked]) tv-task-title {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+/* A completed task's due date is always muted, overriding the today/overdue
+   emphasis. */
+tv-task:has(tv-task-checkbox[checked]) tv-task-meta-due {
+  color: var(--task-meta-text);
+}
+
+tv-task-note {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: calc(var(--text-sm) + 1px);
+  line-height: 1.4;
+  margin-top: 0;
+}
+
+/* Shared metadata line under the title/note — holds the due date, project,
+   and label pills. */
+tv-task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8, 8px);
+  margin-top: var(--space-2, 2px);
+  font-size: var(--text-sm);
+  color: var(--task-meta-text);
+}
+
+/* Generic icon + text meta item (project, area, …). The <tv-task-meta-due>
+   component supplies its own inline-flex/gap/icon, so it isn't styled here
+   beyond color. */
+tv-task-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2, 2px);
+  white-space: nowrap;
+}
+
+/* Due-date urgency — the <tv-task-meta-due> component reflects its computed
+   state; task.css only colors it. Default / upcoming stay muted (inherited
+   from tv-task-meta). */
+tv-task-meta-due[state="today"] { color: var(--task-due-today); }
+tv-task-meta-due[state="overdue"] { color: var(--color-danger); }
+
+/* Label pill — labels, tags, and contexts are the same thing. */
+tv-task-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 5px;
+  padding-bottom: 1px;
+  border-radius: 6px;
+  background: var(--color-surface-muted);
+  color: var(--task-meta-text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Disabled — the row reads muted rather than dimmed. */
+tv-task:has(tv-task-checkbox[disabled]) tv-task-title {
+  color: var(--color-text-muted);
+}
+
+/* ---- List container ----
+   No frame of its own: the artifact page is the surface, and Television's
+   artifact frame supplies the chrome around the document. */
+
+tv-task-list {
+  display: block;
+  padding: 0 var(--space-16, 16px) var(--space-16, 16px);
+}
+/* Nothing above the list (no page heading): give it its own top breathing
+   room. When a header precedes it, the gap is the subtitle's house margin —
+   or the h1 rule below when there is no subtitle. */
+tv-task-list:first-child {
+  padding-top: var(--space-16, 16px);
+}
+
+/* The artifact's own heading lives on the page, above the list, as the house
+   page-header idiom (header > h1 + p) — house typography styles it; the
+   skill only aligns it with the list's interior padding. */
+header:has(+ tv-task-list) {
+  padding: var(--space-16, 16px) var(--space-16, 16px) 0;
+}
+/* A header whose last child is the h1 (no subtitle) has no house margin
+   below it — supply the gap the subtitle's margin would have given. */
+header:has(+ tv-task-list) > h1:last-child {
+  margin-bottom: var(--space-12, 12px);
+}
+
+/* Section headers lay their title out inline. */
+tv-task-section > header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6, 6px);
+}
+
+/* ---- Section ----
+   A titled group of tasks. Generic — the title can be a when-bucket (Today /
+   Upcoming / Someday), a project, or an area. Rows separate by whitespace;
+   sections by more whitespace + their header. */
+tv-task-section {
+  display: block;
+  margin-top: var(--space-20, 20px);
+}
+tv-task-section:first-of-type { margin-top: 0; }
+
+tv-task-section > header { padding-bottom: var(--space-6, 6px); }
+tv-task-section > header h2 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+/* Task count beside a section heading — the author writes the number, the
+   skill only styles it. Inline right of the heading (the header's baseline
+   flex places it), never floated to the far edge. */
+tv-task-count {
+  color: var(--task-meta-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-normal);
+}
+
+/* Empty state — shown when a section or list has no tasks. */
+tv-task-placeholder {
+  display: block;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: var(--space-32, 32px) var(--space-16, 16px);
+  font-size: calc(var(--text-sm) + 1px);
+}
+
+
+/* Highlighted row — sanctioned emphasis: a soft wash derived from
+   --task-highlight. No edge lines — rows are borderless throughout. */
+tv-task[highlighted] {
+  background: color-mix(in srgb, var(--task-highlight) 10%, transparent);
+}

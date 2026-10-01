@@ -1,0 +1,10 @@
+---
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ state: "error" });
+---
+<!-- The app, first connect failed (staging): the failure in a panel. -->
+
+<div class="window">
+</div>

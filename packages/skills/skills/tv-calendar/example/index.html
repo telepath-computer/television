@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Product Week</title>
+    <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=<version>" />
+    <link rel="stylesheet" href="/skills/tv-calendar/calendar.css" />
+    <script type="module" src="/skills/tv-calendar/calendar.js"></script>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+      }
+
+      body {
+        min-height: 100vh;
+        background: var(--color-surface);
+        color: var(--color-text);
+      }
+
+      main {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        overflow: hidden;
+      }
+
+      header {
+        padding: var(--space-24, 24px) var(--space-24, 24px) var(--space-12, 12px);
+        border-bottom: 0.5px solid var(--color-border);
+        background: color-mix(in srgb, var(--color-surface) 92%, white);
+      }
+
+      h1 {
+        margin: 0 0 var(--space-6, 6px);
+        font-size: var(--text-2xl);
+      }
+
+      p {
+        margin: 0;
+        color: var(--color-text-muted);
+        max-width: 72ch;
+      }
+
+      calendar-week {
+        height: 100%;
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Product team week</h1>
+        <p>
+          A realistic seven-day schedule with recurring meetings, overlapping
+          all-day events, a timed overlap cascade, and the live now-line when
+          today falls inside the visible range.
+        </p>
+      </header>
+
+      <calendar-week start-date="2026-05-04" days="7">
+        <calendar-event title="Holiday" start="2026-05-04" end="2026-05-05" all-day color="red"></calendar-event>
+        <calendar-event title="Offsite" start="2026-05-05" end="2026-05-08" all-day color="purple"></calendar-event>
+        <calendar-event title="Birthday" start="2026-05-06" end="2026-05-07" all-day color="yellow"></calendar-event>
+        <calendar-event title="Speaker prep" start="2026-05-07" end="2026-05-08" all-day color="blue"></calendar-event>
+
+        <calendar-event title="Standup" start="2026-05-04T09:00" end="2026-05-04T09:30" color="blue"></calendar-event>
+        <calendar-event title="Standup" start="2026-05-05T09:00" end="2026-05-05T09:30" color="blue"></calendar-event>
+        <calendar-event title="Standup" start="2026-05-06T09:00" end="2026-05-06T09:30" color="blue"></calendar-event>
+        <calendar-event title="Standup" start="2026-05-07T09:00" end="2026-05-07T09:30" color="blue"></calendar-event>
+        <calendar-event title="Standup" start="2026-05-08T09:00" end="2026-05-08T09:30" color="blue"></calendar-event>
+
+        <calendar-event title="Team lunch" start="2026-05-05T12:00" end="2026-05-05T13:00" color="yellow"></calendar-event>
+        <calendar-event title="Team lunch" start="2026-05-06T12:00" end="2026-05-06T13:00" color="yellow"></calendar-event>
+        <calendar-event title="Team lunch" start="2026-05-07T12:00" end="2026-05-07T13:00" color="yellow"></calendar-event>
+        <calendar-event title="Team lunch" start="2026-05-08T12:00" end="2026-05-08T13:00" color="yellow"></calendar-event>
+
+        <calendar-event title="Roadmap review" start="2026-05-05T11:00" end="2026-05-05T12:30" color="purple"></calendar-event>
+        <calendar-event title="Design critique" start="2026-05-05T10:00" end="2026-05-05T11:00" color="orange"></calendar-event>
+        <calendar-event title="Research playback" start="2026-05-06T10:00" end="2026-05-06T11:30" color="orange"></calendar-event>
+        <calendar-event title="Partner sync" start="2026-05-06T10:30" end="2026-05-06T11:15" color="green"></calendar-event>
+        <calendar-event title="1:1 with Maya" start="2026-05-07T14:00" end="2026-05-07T15:00" color="green"></calendar-event>
+        <calendar-event title="Deep work" start="2026-05-08T13:00" end="2026-05-08T17:00" color="orange"></calendar-event>
+        <calendar-event title="Project sync" start="2026-05-09T16:00" end="2026-05-09T17:00" color="red"></calendar-event>
+        <calendar-event title="Sunday planning" start="2026-05-10T16:30" end="2026-05-10T17:30" color="green"></calendar-event>
+      </calendar-week>
+    </main>
+  </body>
+</html>

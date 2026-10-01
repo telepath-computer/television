@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      body { padding: 24px; }
+    </style>
+  </head>
+  <body>
+    <main id="copy-button-host"></main>
+
+    <script type="module">
+      // `?no-clipboard` stages the insecure-context capability shape for the
+      // real synchronous fallback, retaining the real clipboard only for
+      // system readback. The ordinary row records the real modern method.
+      const params = new URLSearchParams(location.search);
+      if (params.has("no-clipboard")) {
+        window.__realClipboard = navigator.clipboard;
+        Object.defineProperty(navigator, "clipboard", { value: undefined, configurable: true });
+      } else if (navigator.clipboard) {
+        window.__clipboardWrites = [];
+        const original = navigator.clipboard.writeText.bind(navigator.clipboard);
+        navigator.clipboard.writeText = (text) => {
+          window.__clipboardWrites.push(text);
+          return original(text);
+        };
+      }
+
+      const { render } = await import("lit-html");
+      const { copyButtonTemplate } = await import("/packages/web/src/views/copy-button.ts");
+      await import("/packages/web/src/elements/icon.ts");
+
+      render(
+        copyButtonTemplate({ label: "Copy prompt", prompt: "THE PROMPT TEXT" }),
+        document.querySelector("#copy-button-host"),
+      );
+      document.querySelector("button.copy-button").id = "cb";
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

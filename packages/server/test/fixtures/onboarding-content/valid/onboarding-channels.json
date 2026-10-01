@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "focusChannel": "first",
+  "channels": [
+    {
+      "slug": "first",
+      "name": "First Screen",
+      "artifacts": [
+        {
+          "slug": "intro",
+          "title": "Intro",
+          "size": {
+            "width": 901.5,
+            "height": 677.25
+          },
+          "geometry": {
+            "kind": "single",
+            "full_screen": true
+          }
+        }
+      ]
+    },
+    {
+      "slug": "second",
+      "name": "Second Screen",
+      "artifacts": [
+        {
+          "slug": "notes",
+          "title": "Notes"
+        },
+        {
+          "slug": "readme",
+          "title": "Readme"
+        },
+        {
+          "slug": "extra",
+          "title": "Extra"
+        }
+      ]
+    }
+  ]
+}

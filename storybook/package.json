@@ -1,0 +1,28 @@
+{
+  "name": "@telepath-computer/storybook",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "storybook dev -p 6006 ${TAILSCALE_REMOTE:+--host 0.0.0.0}",
+    "build": "storybook build -o dist",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@rupertsworld/dependencies": "0.2.1",
+    "@rupertsworld/event-target": "0.1.2",
+    "@telepath-computer/television-artifact": "*",
+    "@telepath-computer/television-shared": "*",
+    "@telepath-computer/utils": "*",
+    "lit-html": "3.3.2",
+    "swiper": "^14.0.6"
+  },
+  "devDependencies": {
+    "@storybook/addon-docs": "10.4.6",
+    "@storybook/web-components-vite": "10.4.6",
+    "liquidjs": "^10.27.2",
+    "storybook": "10.4.6",
+    "yaml": "2.9.0"
+  }
+}

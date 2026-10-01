@@ -1,0 +1,80 @@
+---
+title: Button
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main {
+    /* self-grounded: the theme control must paint its own world */
+    padding: 32px 40px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  h2 {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin: 28px 0 12px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-6) 0;
+  }
+  .row > small {
+    width: 140px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+  .wallpaper {
+    background: var(--app-wallpaper);
+    padding: var(--space-16);
+    border-radius: var(--panel-radius);
+    display: inline-flex;
+    gap: var(--space-12);
+  }
+---
+<main>
+  <h2>Intents</h2>
+  <div class="row"><small>bare</small><button>Settings</button></div>
+  <div class="row"><small>intent="primary"</small><button intent="primary">Save</button></div>
+  <div class="row"><small>intent="danger"</small><button intent="danger">Delete</button></div>
+  <div class="row"><small>intent="alert"</small><button intent="alert">Review</button></div>
+
+  <h2>Ghost</h2>
+  <div class="row"><small>variant="ghost"</small><button variant="ghost">Settings</button></div>
+  <div class="row"><small>ghost intent="danger"</small><button variant="ghost" intent="danger">Delete</button></div>
+
+  <h2>States — hover and press them</h2>
+  <div class="row"><small>disabled</small>
+    <button disabled>Settings</button>
+    <button intent="primary" disabled>Save</button>
+    <button intent="danger" disabled>Delete</button>
+    <button intent="alert" disabled>Review</button>
+    <button variant="ghost" disabled>Settings</button>
+  </div>
+  <div class="row"><small>aria-expanded="true"</small>
+    <button aria-expanded="true">Settings</button>
+    <button icon variant="ghost" aria-expanded="true" aria-label="Menu"><span>&#8942;</span></button>
+  </div>
+
+  <h2>Layout attributes</h2>
+  <div class="row"><small>icon ghost</small><button icon variant="ghost" aria-label="Back"><span>&#8592;</span></button><button icon variant="ghost" aria-label="Forward"><span>&#8594;</span></button></div>
+  <div class="row"><small>icon intent="alert"</small><button icon intent="alert" aria-label="Update available"><span>&#9679;</span></button></div>
+  <div class="row"><small>size="sm"</small><button size="sm">Compact</button></div>
+
+  <h2>On the wallpaper</h2>
+  <div class="row"><small>mixed row</small>
+    <div class="wallpaper">
+      <button>Cancel</button>
+      <button intent="primary">Confirm</button>
+      <button intent="danger">Delete</button>
+      <button variant="ghost">Later</button>
+    </div>
+  </div>
+</main>

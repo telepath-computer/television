@@ -1,0 +1,24 @@
+---
+title: Channel popover
+params:
+  open: { type: boolean, default: true, description: "show the channel popover" }
+  renaming: { type: boolean, default: false, description: "show the selected channel being renamed" }
+style: |
+  main {
+    min-height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+  }
+---
+<main>
+  <frameset-frame
+    src="../prototypes/channel-popover?open={{ open }}&amp;renaming={{ renaming }}"
+    label="Channel popover"
+    width="1100"
+    height="420"
+    background="var(--color-surface)"
+  ></frameset-frame>
+</main>

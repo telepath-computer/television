@@ -1,0 +1,5 @@
+/* The authored overlay paints the dimming. Native modality adds input and
+   focus isolation; its UA backdrop must not dim the same ground again. */
+.dialog-overlay > dialog::backdrop {
+  background: transparent;
+}

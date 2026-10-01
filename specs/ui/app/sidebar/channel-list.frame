@@ -1,0 +1,63 @@
+---
+title: Channel list
+params:
+  channels:
+    description: "the channels, each with an id and a name; `pinned: true` marks the pinned ones, listed in arranged order, and the rest follow newest first by creation"
+    default:
+      - { id: "television", name: "Television", pinned: true }
+      - { id: "agenda", name: "Agenda", pinned: true }
+      - { id: "weekend-recipes", name: "Weekend recipes" }
+      - { id: "return-to-australia", name: "Return to Australia" }
+      - { id: "daily-plan-flow", name: "Daily plan flow" }
+  selected: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: television, description: the one open channel — selection is singular }
+  renaming: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: none, description: the one row whose name is being edited in place }
+  menus: { type: boolean, default: true, description: "rows carry their menu triggers; false hides the context-menu triggers" }
+  menu_channel: { type: string, default: "none", description: "the id of the channel whose channel context menu is posed open" }
+style: |
+  /* The channel list ([[ui/app/sidebar/index.md]], Markup and styling). */
+  .channel-list {
+    padding: var(--space-4) var(--space-8) var(--space-12);
+  }
+
+  .channel-group + .channel-group {
+    margin-top: var(--space-24);
+  }
+
+  /* The heading is a label for the group, not a heading in the document's
+     outline sense — it reads as quieter than the channels it introduces. */
+  .channel-group-label {
+    margin: 0 0 var(--space-4);
+    padding: 0 var(--space-8);
+    font-size: var(--sidebar-heading-font-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--sidebar-heading-text-color);
+  }
+---
+{% assign pinned_channels = channels | where: "pinned" %}
+{% assign unpinned_channels = channels | where_exp: "channel", "channel.pinned != true" %}
+<div class="channel-list" role="listbox" aria-label="Channels">
+  {% if pinned_channels.size > 0 %}
+  <div class="channel-group" role="group" aria-labelledby="channel-group-pinned">
+    <div class="channel-group-label" id="channel-group-pinned">Pinned</div>
+    {% for channel in pinned_channels %}
+    {% assign is_selected = false %}{% if channel.id == selected %}{% assign is_selected = true %}{% endif %}
+    {% assign is_renaming = false %}{% if channel.id == renaming %}{% assign is_renaming = true %}{% endif %}
+    {% assign row_state = 'rest' %}{% if is_renaming %}{% assign row_state = 'renaming' %}{% endif %}
+    {% assign menu_open = false %}{% if channel.id == menu_channel %}{% assign menu_open = true %}{% endif %}
+    {% render './channel', name: channel.name, selected: is_selected, state: row_state, menu: menus, menu_open: menu_open, pinned: channel.pinned %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% if unpinned_channels.size > 0 %}
+  <div class="channel-group" role="group" aria-labelledby="channel-group-unpinned">
+    <div class="channel-group-label" id="channel-group-unpinned">Recent</div>
+    {% for channel in unpinned_channels %}
+    {% assign is_selected = false %}{% if channel.id == selected %}{% assign is_selected = true %}{% endif %}
+    {% assign is_renaming = false %}{% if channel.id == renaming %}{% assign is_renaming = true %}{% endif %}
+    {% assign row_state = 'rest' %}{% if is_renaming %}{% assign row_state = 'renaming' %}{% endif %}
+    {% assign menu_open = false %}{% if channel.id == menu_channel %}{% assign menu_open = true %}{% endif %}
+    {% render './channel', name: channel.name, selected: is_selected, state: row_state, menu: menus, menu_open: menu_open, pinned: channel.pinned %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>

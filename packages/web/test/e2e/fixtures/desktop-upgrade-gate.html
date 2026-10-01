@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Desktop upgrade gate fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+  </head>
+  <body>
+    <main id="fixture"></main>
+    <script type="module">
+      import { render } from "lit-html";
+      import { renderMarkdown } from "/packages/web/src/markdown.ts";
+      import { DesktopUpgradeGateView } from "/packages/web/src/views/desktop-upgrade-gate.ts";
+      import { DesktopUpdateState } from "/packages/web/src/services/desktop-update.ts";
+
+      // A stand-in for the bridge's update operations: nothing is reported
+      // until the test reports a download, and restart requests are counted.
+      const bridge = {
+        callbacks: [],
+        restarts: 0,
+        version: null,
+        onDesktopUpdateDownloaded(callback) {
+          this.callbacks.push(callback);
+          if (this.version !== null) callback(this.version);
+        },
+        restartToInstallUpdate() {
+          this.restarts += 1;
+        },
+      };
+      const desktopUpdate = new DesktopUpdateState({ electron: true, bridge });
+
+      const host = document.querySelector("#fixture");
+      render(DesktopUpgradeGateView(null, desktopUpdate), host);
+      await Promise.resolve();
+      const gate = host.querySelector(".desktop-upgrade-gate");
+
+      const dialog = gate.querySelector("dialog");
+      const overlay = gate.querySelector(".dialog-overlay");
+      const body = gate.querySelector('[data-testid="upgrade-gate-body"]');
+      const record = {
+        backdropPresses: 0,
+        bodyScrollEvents: 0,
+        cancelEvents: 0,
+        closeEvents: 0,
+        dialogScrollEvents: 0,
+        documentScrollEvents: 0,
+        overlayScrollEvents: 0,
+        preventedCancels: 0,
+        scrollSamples: [],
+        windowScrollEvents: 0,
+      };
+
+      dialog.addEventListener("cancel", (event) => {
+        record.cancelEvents += 1;
+        if (event.defaultPrevented) record.preventedCancels += 1;
+      });
+      dialog.addEventListener("click", (event) => {
+        if (event.target !== dialog) return;
+        const bounds = dialog.getBoundingClientRect();
+        const outside =
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom;
+        if (outside) record.backdropPresses += 1;
+      });
+      dialog.addEventListener("close", () => {
+        record.closeEvents += 1;
+      });
+      body.addEventListener("scroll", () => {
+        record.bodyScrollEvents += 1;
+      });
+      dialog.addEventListener("scroll", () => {
+        record.dialogScrollEvents += 1;
+      });
+      overlay.addEventListener("scroll", () => {
+        record.overlayScrollEvents += 1;
+      });
+      document.addEventListener("scroll", () => {
+        record.documentScrollEvents += 1;
+      });
+      window.addEventListener("scroll", () => {
+        record.windowScrollEvents += 1;
+      });
+
+      const frame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+      const rect = (element) => {
+        const bounds = element.getBoundingClientRect();
+        return { bottom: bounds.bottom, left: bounds.left, right: bounds.right, top: bounds.top };
+      };
+      const scrollState = () => ({
+        bodyScrollLeft: body.scrollLeft,
+        bodyScrollTop: body.scrollTop,
+        dialogScrollLeft: dialog.scrollLeft,
+        dialogScrollTop: dialog.scrollTop,
+        documentScrollLeft: document.documentElement.scrollLeft,
+        documentScrollTop: document.documentElement.scrollTop,
+        overlayScrollLeft: overlay.scrollLeft,
+        overlayScrollTop: overlay.scrollTop,
+        windowScrollX: window.scrollX,
+        windowScrollY: window.scrollY,
+      });
+
+      window.__upgradeGateFixture = {
+        async settle() {
+          await frame();
+          await frame();
+        },
+        async waitForStableBodyScroll() {
+          let previous = body.scrollTop;
+          let stableFrames = 0;
+          for (let index = 0; index < 120; index += 1) {
+            await frame();
+            const sample = scrollState();
+            record.scrollSamples.push(sample);
+            if (record.bodyScrollEvents > 0 && body.scrollTop === previous) stableFrames += 1;
+            else stableFrames = 0;
+            previous = body.scrollTop;
+            if (stableFrames >= 2) return;
+          }
+          throw new Error("Upgrade instructions did not reach a stable scrolled position");
+        },
+        setInstructions(desktop) {
+          render(DesktopUpgradeGateView(desktop, desktopUpdate), host);
+        },
+        reportDownload(version) {
+          bridge.version = version;
+          for (const callback of bridge.callbacks) callback(version);
+        },
+        restarts() {
+          return bridge.restarts;
+        },
+        snapshot() {
+          return {
+            ...structuredClone(record),
+            ...scrollState(),
+            bodyClientHeight: body.clientHeight,
+            bodyRect: rect(body),
+            bodyScrollHeight: body.scrollHeight,
+            dialogRect: rect(dialog),
+            modal: dialog.matches(":modal"),
+            open: dialog.open,
+            overlayRect: rect(overlay),
+          };
+        },
+      };
+      window.__renderMarkdown = renderMarkdown;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

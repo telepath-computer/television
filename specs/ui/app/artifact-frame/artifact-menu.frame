@@ -1,0 +1,11 @@
+---
+title: Artifact menu
+params:
+  full_screen: { type: boolean, default: false, description: the artifact is full-screen — the menu leads with the way back instead of the way in }
+  open: { type: boolean, default: false, description: the menu rendered open }
+---
+<tv-menu{% if open %} open{% endif %}>
+  <tv-menu-item>{% if full_screen %}Exit full-screen{% else %}Make full-screen{% endif %}</tv-menu-item>
+  <hr>
+  <tv-menu-item intent="danger">Delete</tv-menu-item>
+</tv-menu>

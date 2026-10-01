@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "focusChannel": "alpha-screen",
+  "channels": [
+    {
+      "slug": "alpha-screen",
+      "name": "Alpha Screen",
+      "artifacts": [
+        {
+          "slug": "alpha",
+          "title": "Alpha"
+        }
+      ]
+    },
+    {
+      "slug": "beta-screen",
+      "name": "Beta Screen",
+      "artifacts": [
+        {
+          "slug": "beta",
+          "title": "Beta"
+        }
+      ]
+    },
+    {
+      "slug": "gamma-screen",
+      "name": "Gamma Screen",
+      "artifacts": [
+        {
+          "slug": "gamma",
+          "title": "Gamma"
+        }
+      ]
+    }
+  ]
+}

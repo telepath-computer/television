@@ -1,0 +1,134 @@
+name: Publish to npm
+
+# Release-version and build order: specs/arch/updates/index.md.
+# Toolchain values: specs/arch/node-versions.md.
+#
+# The bump-version commit is pushed back to protected `main` using a GitHub App
+# installation token. Its permissions must satisfy the live branch protections.
+# Requires repo secrets RELEASE_APP_ID and RELEASE_APP_PRIVATE_KEY.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  publish:
+    if: >-
+      ${{ github.repository == 'telepath-computer/television' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_repository.full_name == github.repository &&
+          github.event.workflow_run.head_branch == 'main' }}
+    # Retain waiting eligible jobs. Separate other inputs even if GitHub
+    # considers concurrency before the job condition; they must not displace
+    # an eligible publication. The pause/stale gate runs after admission.
+    concurrency:
+      group: npm-publish-${{ github.event.workflow_run.event }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}-${{ github.event.workflow_run.conclusion }}
+      queue: max
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Mint GitHub App token
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
+        id: app-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Publish gate, two checks (the run stays green with all later steps
+      # skipped when either trips):
+      #
+      # 1. Pause switch: committing .github/PAUSE_PUBLISH stops publishing;
+      #    deleting it resumes. Checked at BOTH the checked-out head SHA and
+      #    the current tip of main (fetched here — the checkout has only the
+      #    head SHA), so a CI run already in flight for a
+      #    pre-pause commit still pauses once the sentinel lands on main.
+      # 2. Stale run: if the head SHA is no longer the tip of main, skip —
+      #    a newer run covers the newer tip, and publishing an older SHA
+      #    would tag an old version as latest on npm. This also makes the
+      #    resume boundary exact: a pre-pause run finishing after the
+      #    sentinel's deletion cannot publish its stale SHA.
+      - name: Check publish gate
+        id: gate
+        run: |
+          PUBLISH=true
+          if [ -f .github/PAUSE_PUBLISH ]; then
+            echo "publishing paused via .github/PAUSE_PUBLISH — skipping (sentinel present at head SHA)"
+            PUBLISH=false
+          fi
+          git fetch --depth=1 origin main
+          if git cat-file -e FETCH_HEAD:.github/PAUSE_PUBLISH 2>/dev/null; then
+            echo "publishing paused via .github/PAUSE_PUBLISH — skipping (sentinel present on current main)"
+            PUBLISH=false
+          fi
+          MAIN_TIP=$(git rev-parse FETCH_HEAD)
+          HEAD_SHA=$(git rev-parse HEAD)
+          if [ "$MAIN_TIP" != "$HEAD_SHA" ]; then
+            echo "stale run: head SHA $HEAD_SHA is no longer the tip of main ($MAIN_TIP) — skipping; a newer run covers the newer tip"
+            PUBLISH=false
+          fi
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: ${{ steps.gate.outputs.publish == 'true' }}
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+        if: ${{ steps.gate.outputs.publish == 'true' }}
+
+      - name: Determine version, build, and publish
+        if: ${{ steps.gate.outputs.publish == 'true' }}
+        run: |
+          PKG=packages/cli/package.json
+          VERSION=$(node -p "require('./$PKG').version")
+
+          # Publish the version the manifests carry unless npm already has it,
+          # so a commit that sets a new version is published under it even when
+          # publishing resumes from a later commit. An ordinary merge carries
+          # the last published version, and the patch number rises past it.
+          npm version "$VERSION" --workspaces --include-workspace-root --no-git-tag-version --allow-same-version
+          while npm view "@telepath-computer/television@$VERSION" version > /dev/null 2>&1; do
+            echo "Version $VERSION already on npm; bumping patch"
+            npm version patch --workspaces --include-workspace-root --no-git-tag-version
+            VERSION=$(node -p "require('./$PKG').version")
+          done
+          echo "Publishing version $VERSION"
+
+          # The initial npm ci validated only the checked-in, pre-bump lockfile.
+          # This is the only validation of the lockfile rewritten by npm version:
+          # the bump commit below carries [skip ci] and never gets its own CI run.
+          npm ci --dry-run
+
+          # Build AFTER the version is finalized so the bundler bakes the
+          # right version stamp into dist/. Building before the bump leaves
+          # the published tarball with last release's version inside cli.cjs
+          # while package.json claims the new one.
+          TV_NPM_RELEASE=1 npm run build
+          npm run check:publish-tarballs
+          node scripts/check-release-telemetry.mjs packages/cli/dist/cli.cjs
+
+          # npm Trusted Publishing uses OIDC via the job's id-token: write;
+          # no npm token secret is involved. The desktop app is released
+          # through ToDesktop, not npm (specs/arch/desktop/distribution.md).
+          npm publish --workspace @telepath-computer/television --access public
+
+          git config user.name "${{ steps.app-token.outputs.app-slug }}[bot]"
+          git config user.email "${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+          git add -u package-lock.json ':(glob)**/package.json'
+          # Successful main CI triggers this workflow, so the bump must skip CI
+          # or it would publish another patch and repeat. --no-verify skips the
+          # local full-e2e hook: CI verified the triggering SHA, and this job
+          # validated the post-version lockfile and tarballs above.
+          git diff --cached --quiet || (git commit -m "bump version to $VERSION [skip ci]" && git push --no-verify origin HEAD:main)

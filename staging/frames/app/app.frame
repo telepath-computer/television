@@ -1,0 +1,19 @@
+---
+params:
+  state: { enum: [connected, connecting, disconnected, unauthorized, error, needs-upgrade, no-channels], default: connected }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp();
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!--
+  The App spec staged as a frame (staging, not spec content). The markup is
+  the spec's, rendered from specs/ui/app/template.liquid; everything the
+  frame does lives in ./mount.ts, shared with the state boards
+  (./connecting.frame, ./disconnected.frame). ./index.frame is the sheet that
+  stages this document at the judged size.
+-->
+
+<div class="window">
+</div>

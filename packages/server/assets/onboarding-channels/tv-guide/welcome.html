@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Welcome to Television</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css">
+<script type="module" src="/canonical/v2/components.js"></script>
+<style>
+html {
+  min-height: 100%;
+  background: var(--color-surface);
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-48);
+  min-height: 100%;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+tv-icon {
+  position: relative;
+  top: 1px;
+  color: var(--color-text-muted);
+}
+
+.logo {
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  margin-right: -2px;
+  vertical-align: -3px;
+}
+
+h1 {
+  margin-bottom: var(--space-10);
+  font-size: var(--text-3xl);
+}
+
+.lede {
+  margin-bottom: 18px;
+  color: var(--color-text-muted);
+}
+
+.prompts {
+  position: relative;
+  max-width: 460px;
+  height: 220px;
+  margin: var(--space-24) auto;
+}
+
+.prompt {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: flex-start;
+  width: 238px;
+  min-height: 104px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-muted);
+  box-shadow: var(--shadow-md);
+  color: color-mix(in srgb, var(--color-text) 82%, var(--color-text-muted));
+  font-size: 13.5px;
+}
+
+.prompt svg {
+  width: 22px;
+  height: 22px;
+  color: var(--color-primary);
+}
+
+.prompt svg.weather-icon { color: var(--yellow-500); }
+.prompt svg.todo-icon { color: var(--color-success); }
+.prompt svg.food-icon { color: var(--color-danger); }
+
+.prompt:nth-child(1) {
+  left: -48px;
+  top: 0;
+  width: 298px;
+  transform: rotate(-4deg);
+}
+
+.prompt:nth-child(2) {
+  right: -52px;
+  top: 40px;
+  min-height: 78px;
+  transform: rotate(5deg);
+}
+
+.prompt:nth-child(3) {
+  left: 74px;
+  top: 106px;
+  width: 310px;
+  transform: rotate(2deg);
+}
+
+.callout {
+  margin-top: 28px;
+  padding: var(--space-12) 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-muted);
+}
+
+.callout h2 {
+  display: flex;
+  gap: var(--space-6);
+  align-items: center;
+  margin-top: 0;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.callout-icon {
+  width: var(--space-16);
+  height: var(--space-16);
+  flex: none;
+}
+
+.callout p { color: var(--color-text); }
+.callout p:last-child { margin-bottom: 0; }
+
+@media (max-width: 560px) {
+  .prompts {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+    gap: var(--space-8);
+  }
+
+  .prompt,
+  .prompt:nth-child(1),
+  .prompt:nth-child(2),
+  .prompt:nth-child(3) {
+    position: static;
+    width: min(350px, 100%);
+    min-height: 0;
+    transform: none !important;
+  }
+}
+
+</style>
+</head>
+<body>
+<main text-display="prose">
+  <h1>Your <svg class="logo" viewBox="0 0 55 55" aria-hidden="true"><defs><linearGradient id="tv-logo-shell" x1="27.5" y1="1.45" x2="27.5" y2="53.55" gradientUnits="userSpaceOnUse"><stop offset="0"/><stop offset="1" stop-color="#262626"/></linearGradient><clipPath id="tv-logo-screen"><path d="M14.2 7.7h26.6c3.15 0 5.7 2.66 5.7 5.94v27.72c0 3.28-2.55 5.94-5.7 5.94H14.2c-3.15 0-5.7-2.66-5.7-5.94V13.64c0-3.28 2.55-5.94 5.7-5.94Z"/></clipPath></defs><path fill="url(#tv-logo-shell)" d="M12.5 1.45h30c5.47 0 10.48 4.46 10.89 9.98.73 10.7.73 21.44 0 32.13-.41 5.52-5.42 9.98-10.89 9.98h-30c-5.47 0-10.48-4.46-10.89-9.98-.73-10.7-.73-21.44 0-32.13C2.02 5.91 7.03 1.45 12.5 1.45Z"/><g clip-path="url(#tv-logo-screen)"><rect fill="#fff" x="8.5" y="7.7" width="38" height="39.6" rx="5.7"/><path fill="#38c428" d="M27.5 48.78V6.71h-9.98v42.07h9.98Z"/><path fill="#ff01d0" d="M27.5 6.71v42.07h9.97V6.71H27.5Z"/><path fill="#40d2b3" d="M22.75 48.29c-3.8-18.22-1.58-34.98 0-41.08H10.87v41.08c3.96.33 11.88.79 11.88 0Z"/><path fill="#d24043" d="M32.25 7.21c3.8 18.22 1.58 34.98 0 41.08h11.88V7.21c-3.96-.33-11.88-.79-11.88 0Z"/><path fill="#ffcd27" d="M15.62 47.3c-5.7-17.42-2.38-33.66 0-39.6H7.07v39.6s9.03.49 8.55 0Z"/><path fill="#0015ff" d="M38.92 6.93c5.69 17.76 2.37 34.31 0 40.36h8.53V6.93s-9.01-.5-8.53 0Z"/></g><path fill="none" stroke="#fff" stroke-width="3" d="M14.2 8.74h26.6c2.56 0 5.25 2.06 5.8 4.64 1.89 9.31 1.89 18.91 0 28.23-.55 2.58-3.25 4.64-5.8 4.64H14.2c-2.56 0-5.25-2.06-5.8-4.64-1.89-9.31-1.89-18.91 0-28.23.55-2.58 3.25-4.64 5.8-4.64Z"/></svg> Television is on!</h1>
+
+  <p class="lede">Television is the missing GUI for your personal agent, created by the team at Telepath. We’re glad you’re here.</p>
+  <p>Your TV is organized into <strong>Channels</strong>, which are listed in the sidebar. We put you on "TV Guide" to start. Click <tv-icon name="expand"></tv-icon> to rename a channel or pin it to the top. Use <tv-icon name="add"></tv-icon> to add a new channel.</p>
+  <p>Channels hold <tv-icon name="artifact"></tv-icon> <strong>Artifacts</strong>, like this one. They're live surfaces your agent can create, edit, and update. Artifacts can be notes, editable documents, dashboards, web pages, reports, or custom web apps. Each artifact has a button at the top of the screen; click these buttons to navigate, or double-click to zoom. (You can also navigate with Option + arrow on macOS or Ctrl + arrow on Windows and Linux.)</p>
+  <p>To create or change an artifact, simply tell your agent what you want to see! Click <tv-icon name="skills"></tv-icon> to view some of the artifacts that TV supports. Or try asking your agent…</p>
+
+  <div class="prompts">
+    <p class="prompt"><svg class="weather-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M139.84 84.41a68.22 68.22 0 0 0-41.65 46 44.08 44.08 0 0 0-38.54 5 48 48 0 1 1 80.19-50.94Z" opacity=".2"/><path d="M164 72a76.2 76.2 0 0 0-20.26 2.73A55.63 55.63 0 0 0 134.33 63l9.51-13.57a8 8 0 1 0-13.11-9.18L121.22 54A55.9 55.9 0 0 0 96 48l-1.74.03-2.89-16.32a8 8 0 1 0-15.75 2.77l2.88 16.34A56.1 56.1 0 0 0 55.23 65.67l-13.62-9.53a8 8 0 1 0-9.17 13.11L46 78.77A55.55 55.55 0 0 0 40 104l.03 1.72-16.32 2.88a8 8 0 0 0 2.77 15.76l16.32-2.88a55.74 55.74 0 0 0 5.86 12.42A52 52 0 0 0 84 224h80a76 76 0 0 0 0-152ZM56 104a40 40 0 0 1 72.54-23.24 76.26 76.26 0 0 0-35.62 40 52.14 52.14 0 0 0-31 4.17A40 40 0 0 1 56 104Zm108 104H84a36 36 0 1 1 4.78-71.69c-.37 2.37-.63 4.79-.77 7.23a8 8 0 0 0 16 .92 58.91 58.91 0 0 1 1.88-11.81l.12-.48A60.06 60.06 0 1 1 164 208Z"/></svg><span>What’s the 3-day weather forecast for New York City? Include a nice icon for each day’s weather. Update it twice a day.</span></p>
+    <p class="prompt"><svg class="todo-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M216 48v160a8 8 0 0 1-8 8H48a8 8 0 0 1-8-8V48a8 8 0 0 1 8-8h160a8 8 0 0 1 8 8Z" opacity=".2"/><path d="M173.66 98.34a8 8 0 0 1 0 11.32l-56 56a8 8 0 0 1-11.32 0l-24-24a8 8 0 0 1 11.32-11.32L112 148.69l50.34-50.35a8 8 0 0 1 11.32 0ZM224 48v160a16 16 0 0 1-16 16H48a16 16 0 0 1-16-16V48a16 16 0 0 1 16-16h160a16 16 0 0 1 16 16Zm-16 160V48H48v160h160Z"/></svg><span>Open my to-do list from my Obsidian vault.</span></p>
+    <p class="prompt"><svg class="food-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208 40v128h-56S152 64 208 40Z" opacity=".2"/><path d="M72 88V40a8 8 0 0 1 16 0v48a8 8 0 0 1-16 0Zm144-48v184a8 8 0 0 1-16 0v-48h-48a8 8 0 0 1-8-8 268.75 268.75 0 0 1 7.22-56.88c9.78-40.49 28.32-67.63 53.63-78.47A8 8 0 0 1 216 40Zm-16 13.9c-32.17 24.57-38.47 84.42-39.7 106.1H200V53.9Zm-80.11-15.21a8 8 0 1 0-15.78 2.63L112 88.63a32 32 0 0 1-64 0l7.88-47.31a8 8 0 1 0-15.78-2.63l-8 48A8.17 8.17 0 0 0 32 88a48.07 48.07 0 0 0 40 47.32V224a8 8 0 0 0 16 0v-88.68A48.07 48.07 0 0 0 128 88a8.17 8.17 0 0 0-.11-1.31Z"/></svg><span>Research the best Thai restaurants in San Francisco and give me a report on the top three. Include photos.</span></p>
+  </div>
+
+  <p>Your agent will usually know when to answer by creating an artifact. If it replies in chat instead, just say: “put that on my TV.”</p>
+
+  <section class="callout">
+    <h2><svg class="callout-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208 104a79.86 79.86 0 0 1-30.59 62.92A24.29 24.29 0 0 0 168 186v6a8 8 0 0 1-8 8H96a8 8 0 0 1-8-8v-6a24.11 24.11 0 0 0-9.3-19A79.87 79.87 0 0 1 48 104.45C47.76 61.09 82.72 25 126.07 24A80 80 0 0 1 208 104Z" opacity=".2"/><path d="M176 232a8 8 0 0 1-8 8H88a8 8 0 0 1 0-16h80a8 8 0 0 1 8 8Zm40-128a87.55 87.55 0 0 1-33.64 69.21A16.24 16.24 0 0 0 176 186v6a16 16 0 0 1-16 16H96a16 16 0 0 1-16-16v-6a16 16 0 0 0-6.23-12.66A87.59 87.59 0 0 1 40 104.49C39.74 56.83 78.26 17.14 125.88 16A88 88 0 0 1 216 104Zm-16 0a72 72 0 0 0-73.74-72C87.26 32.92 55.79 65.39 56 104.39a71.65 71.65 0 0 0 27.64 56.3A32 32 0 0 1 96 186v6h64v-6a32.15 32.15 0 0 1 12.47-25.35A71.65 71.65 0 0 0 200 104Zm-16.11-9.34a57.6 57.6 0 0 0-46.56-46.55 8 8 0 0 0-2.66 15.78c16.57 2.79 30.63 16.85 33.44 33.45A8 8 0 0 0 176 104a9 9 0 0 0 1.35-.11 8 8 0 0 0 6.54-9.23Z"/></svg>More examples</h2>
+    <p>See the other channels for more examples of how to use Television. (You can delete these channels whenever you like; they're just there to give you ideas!)</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<title>Overflow-fade helper fixture</title>
+<style>
+#strip { display: flex; width: 300px; border: 7px solid black; overflow: auto; }
+.item { flex: 0 0 100px; height: 30px; }
+.item.natural { flex-basis: max-content; }
+</style>
+<div id="strip"><div class="item">One</div><div class="item">Two</div><div class="item">Three</div><div class="item">Four</div><div class="item">Five</div><div class="item">Six</div></div>
+<script type="module">
+import { mountItemEdgeFade } from "/packages/web/src/item-edge-fade.ts";
+const params = new URLSearchParams(location.search);
+const fade = mountItemEdgeFade(document.querySelector("#strip"), {
+  items: ".item", distance: Number(params.get("distance") ?? 24), edges: params.get("edges") ?? "right",
+});
+window.__cleanup = () => fade.dispose();
+window.__refresh = () => fade.refresh();
+</script>
+</html>

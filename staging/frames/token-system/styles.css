@@ -1,0 +1,328 @@
+/* Palette seeds, derived scales and yellow reference ramp adapted from Tailwind CSS.
+   https://github.com/tailwindlabs/tailwindcss
+   Copyright (c) Tailwind Labs, Inc.
+   MIT License; see the repository-root THIRD-PARTY-NOTICES.txt. */
+:root {
+  /* alpha ladder — nominal coverage, shared by every scale's twins and any
+     role that veils. A scale whose washes read weak may drift its own twin a
+     few points under the same name (the neighborhood rule). */
+  /* the lightness above which a fill takes dark text instead of reversed;
+     tuned by eye against the shipped fills. */
+  --contrast-flip: 0.66;
+
+  --alpha-5: 5%; --alpha-10: 10%; --alpha-15: 15%; --alpha-25: 25%;
+  --alpha-40: 40%; --alpha-50: 50%; --alpha-75: 75%;
+
+  /* radius roles — jobs, themable; values are v1's tuning. Census grows on
+     collision, same as everywhere. */
+  --radius-control: 6px;   /* buttons, inputs, menu items, small insets */
+  --radius-panel: 12px;    /* cards, dialogs, floating panels */
+  --radius-pill: 9999px;
+
+  /* roles — jobs, pointed at the material. Sheets read these. */
+  /* Pure white, stated: the surface is a frame for user content, and
+     white-backgrounded artifacts and images must composite seamlessly. */
+  --color-surface: white;
+  --color-surface-muted: var(--neutral-100);
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-500);
+  /* a control rests on surface material by default; dark tables and themes
+     may float it a step off. */
+  --color-control: var(--color-surface);
+
+  /* situations — set values, no scales. Meanings are conventions applied to
+     situations; only the accent is material. */
+  --color-danger: var(--red-500);
+  --color-alert: var(--yellow-500);
+  --color-success: var(--green-500);
+  --color-selected: var(--accent-500);
+  --color-link: inherit;
+  /* deep neutral pigment at scrim coverage — the veil carries the theme's
+     undertone. The one sanctioned deep-pigment-at-alpha derivation. */
+  --color-overlay: oklch(from var(--neutral-950) l c h / var(--alpha-40));
+
+  /* interaction dials — how hard the UI leans when touched. Component
+     sheets derive states from arbitrary fills with these; the state tokens
+     below point at tuned scale steps instead (scales carry per-hue state
+     tuning — yellow's eased rotation — that generic dials cannot). */
+  --hover-lightness: 0.906;  --hover-chroma: 1.034;
+  --active-lightness: 0.793; --active-chroma: 0.899;
+
+  /* state and tint tokens — named override points with derived defaults.
+     Each follows its base automatically; a theme overrides only what it
+     cares about. Cap rule: a situation token exists only for hover, active,
+     or tint with a live caller — never a grid.
+     Status states point at their hue's tuned steps; whoever repoints a
+     status to another hue restates its two pointers. Control states point
+     at ladder steps: multiplicative dials degenerate on near-white fills. */
+  --color-control-hover: var(--neutral-100);
+  --color-control-active: var(--neutral-200);
+  --color-accent-hover: var(--accent-600);
+  --color-accent-active: var(--accent-700);
+  --color-danger-hover: var(--red-600);
+  --color-danger-active: var(--red-700);
+  --color-alert-hover: var(--yellow-600);
+  --color-alert-active: var(--yellow-700);
+  --color-danger-tint: var(--red-alpha-10);
+  --color-alert-tint: var(--yellow-alpha-10);
+  --color-selected-tint: var(--accent-alpha-10);
+  /* success has no fill today; its states are minted with its first caller */
+
+  /* reversed type — the text knocked out of a solid fill. One token, because fills share the
+     white-text band by contract (a meaning points at the step of its scale
+     that honors it: warning is orange-700, not -600). A theme that moves its
+     fills out of the band restates this in the same breath — whoever moves
+     the band owns the text. */
+  --color-text-reversed: white;
+
+  --color-wallpaper: var(--neutral-200);
+  --color-border: var(--neutral-300);
+  --color-border-muted: var(--neutral-200);
+
+  /* slots — each stated at its own 600 step. The neutral is genuinely
+     neutral: zero chroma, so its scale reproduces the v1 neutral ramp;
+     a themed undertone is one stated chroma/hue away. */
+  --neutral: oklch(0.556 0 0);
+  --red: oklch(0.637 0.237 25.331);
+  --orange: oklch(0.705 0.213 47.604);
+  --yellow: oklch(0.852 0.199 91.936);  /* Tailwind yellow-400: the mid that reads right for yellow */
+  --green: oklch(0.723 0.219 149.579);
+  --cyan: oklch(0.715 0.143 215.221);
+  --blue: oklch(0.623 0.214 259.815);
+  --purple: oklch(0.627 0.265 303.9);
+  --pink: oklch(0.656 0.241 354.308);
+  /* the one tunable identity — any color; its scale regenerates from it */
+  --accent: var(--blue);
+
+  /* Each scale is generated around its slot: pale steps climb a fraction of
+     the distance from the slot's lightness to white, deep steps climb toward
+     black, and every step keeps a fraction of the slot's chroma. The numbers
+     sit inline, per scale, per step — tuning is editing the line. The cluster
+     scales start from the curve measured off the hand-tuned red ramp;
+     yellow's numbers are measured off its own (its mid-step chroma exceeds 1:
+     pale yellows are more pigmented than the slot).
+
+     the neutral scale — its own lightness ladder, chroma carried unchanged */
+  --neutral-50: oklch(from var(--neutral) 0.985 c h);
+  --neutral-100: oklch(from var(--neutral) 0.97 c h);
+  --neutral-200: oklch(from var(--neutral) 0.922 c h);
+  --neutral-300: oklch(from var(--neutral) 0.87 c h);
+  --neutral-400: oklch(from var(--neutral) 0.708 c h);
+  --neutral-500: var(--neutral);
+  --neutral-600: oklch(from var(--neutral) 0.439 c h);
+  --neutral-700: oklch(from var(--neutral) 0.371 c h);
+  --neutral-800: oklch(from var(--neutral) 0.269 c h);
+  --neutral-900: oklch(from var(--neutral) 0.205 c h);
+  --neutral-950: oklch(from var(--neutral) 0.145 c h);
+
+  /* neutral twins — the slot at nominal coverage; composite on whatever is beneath */
+  --neutral-alpha-5: oklch(from var(--neutral) l c h / var(--alpha-5));
+  --neutral-alpha-10: oklch(from var(--neutral) l c h / var(--alpha-10));
+  --neutral-alpha-15: oklch(from var(--neutral) l c h / var(--alpha-15));
+  --neutral-alpha-25: oklch(from var(--neutral) l c h / var(--alpha-25));
+  --neutral-alpha-50: oklch(from var(--neutral) l c h / var(--alpha-50));
+  --neutral-alpha-75: oklch(from var(--neutral) l c h / var(--alpha-75));
+
+  /* the red scale */
+  --red-50: oklch(from var(--red) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --red-100: oklch(from var(--red) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --red-200: oklch(from var(--red) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --red-300: oklch(from var(--red) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --red-400: oklch(from var(--red) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --red-500: var(--red);
+  --red-600: oklch(from var(--red) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --red-700: oklch(from var(--red) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --red-800: oklch(from var(--red) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --red-900: oklch(from var(--red) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --red-950: oklch(from var(--red) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* red twins — the slot at nominal coverage; composite on whatever is beneath */
+  --red-alpha-5: oklch(from var(--red) l c h / var(--alpha-5));
+  --red-alpha-10: oklch(from var(--red) l c h / var(--alpha-10));
+  --red-alpha-15: oklch(from var(--red) l c h / var(--alpha-15));
+  --red-alpha-25: oklch(from var(--red) l c h / var(--alpha-25));
+  --red-alpha-50: oklch(from var(--red) l c h / var(--alpha-50));
+  --red-alpha-75: oklch(from var(--red) l c h / var(--alpha-75));
+
+  /* the orange scale */
+  --orange-50: oklch(from var(--orange) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --orange-100: oklch(from var(--orange) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --orange-200: oklch(from var(--orange) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --orange-300: oklch(from var(--orange) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --orange-400: oklch(from var(--orange) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --orange-500: var(--orange);
+  --orange-600: oklch(from var(--orange) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --orange-700: oklch(from var(--orange) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --orange-800: oklch(from var(--orange) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --orange-900: oklch(from var(--orange) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --orange-950: oklch(from var(--orange) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* orange twins — the slot at nominal coverage; composite on whatever is beneath */
+  --orange-alpha-5: oklch(from var(--orange) l c h / var(--alpha-5));
+  --orange-alpha-10: oklch(from var(--orange) l c h / var(--alpha-10));
+  --orange-alpha-15: oklch(from var(--orange) l c h / var(--alpha-15));
+  --orange-alpha-25: oklch(from var(--orange) l c h / var(--alpha-25));
+  --orange-alpha-50: oklch(from var(--orange) l c h / var(--alpha-50));
+  --orange-alpha-75: oklch(from var(--orange) l c h / var(--alpha-75));
+
+  /* the yellow scale — its own numbers, including hue rotation: dark yellow
+     at constant hue is olive; the tuned ramp swings deep steps toward
+     amber-brown and pale steps slightly lemon-ward. */
+  --yellow-50: oklch(from var(--yellow) calc(l + (1 - l) * 0.937) calc(c * 0.141) calc(h + 10));
+  --yellow-100: oklch(from var(--yellow) calc(l + (1 - l) * 0.868) calc(c * 0.386) calc(h + 11));
+  --yellow-200: oklch(from var(--yellow) calc(l + (1 - l) * 0.732) calc(c * 0.701) calc(h + 10));
+  --yellow-300: oklch(from var(--yellow) calc(l + (1 - l) * 0.537) calc(c * 0.989) calc(h + 6));
+  --yellow-400: oklch(from var(--yellow) calc(l + (1 - l) * 0.278) calc(c * 1.082) calc(h + 3));
+  --yellow-500: var(--yellow);
+  --yellow-600: oklch(from var(--yellow) calc(l * (1 - 0.080)) calc(c * 0.950) calc(h - 6));
+  --yellow-700: oklch(from var(--yellow) calc(l * (1 - 0.190)) calc(c * 0.800) calc(h - 14));
+  --yellow-800: oklch(from var(--yellow) calc(l * (1 - 0.330)) calc(c * 0.650) calc(h - 26));
+  --yellow-900: oklch(from var(--yellow) calc(l * (1 - 0.460)) calc(c * 0.520) calc(h - 32));
+  --yellow-950: oklch(from var(--yellow) calc(l * (1 - 0.640)) calc(c * 0.359) calc(h - 38));
+
+  /* yellow twins — the slot at nominal coverage; composite on whatever is beneath */
+  --yellow-alpha-5: oklch(from var(--yellow) l c h / var(--alpha-5));
+  --yellow-alpha-10: oklch(from var(--yellow) l c h / var(--alpha-10));
+  --yellow-alpha-15: oklch(from var(--yellow) l c h / var(--alpha-15));
+  --yellow-alpha-25: oklch(from var(--yellow) l c h / var(--alpha-25));
+  --yellow-alpha-50: oklch(from var(--yellow) l c h / var(--alpha-50));
+  --yellow-alpha-75: oklch(from var(--yellow) l c h / var(--alpha-75));
+
+  /* the green scale */
+  --green-50: oklch(from var(--green) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --green-100: oklch(from var(--green) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --green-200: oklch(from var(--green) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --green-300: oklch(from var(--green) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --green-400: oklch(from var(--green) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --green-500: var(--green);
+  --green-600: oklch(from var(--green) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --green-700: oklch(from var(--green) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --green-800: oklch(from var(--green) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --green-900: oklch(from var(--green) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --green-950: oklch(from var(--green) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* green twins — the slot at nominal coverage; composite on whatever is beneath */
+  --green-alpha-5: oklch(from var(--green) l c h / var(--alpha-5));
+  --green-alpha-10: oklch(from var(--green) l c h / var(--alpha-10));
+  --green-alpha-15: oklch(from var(--green) l c h / var(--alpha-15));
+  --green-alpha-25: oklch(from var(--green) l c h / var(--alpha-25));
+  --green-alpha-50: oklch(from var(--green) l c h / var(--alpha-50));
+  --green-alpha-75: oklch(from var(--green) l c h / var(--alpha-75));
+
+  /* the cyan scale */
+  --cyan-50: oklch(from var(--cyan) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --cyan-100: oklch(from var(--cyan) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --cyan-200: oklch(from var(--cyan) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --cyan-300: oklch(from var(--cyan) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --cyan-400: oklch(from var(--cyan) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --cyan-500: var(--cyan);
+  --cyan-600: oklch(from var(--cyan) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --cyan-700: oklch(from var(--cyan) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --cyan-800: oklch(from var(--cyan) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --cyan-900: oklch(from var(--cyan) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --cyan-950: oklch(from var(--cyan) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* cyan twins — the slot at nominal coverage; composite on whatever is beneath */
+  --cyan-alpha-5: oklch(from var(--cyan) l c h / var(--alpha-5));
+  --cyan-alpha-10: oklch(from var(--cyan) l c h / var(--alpha-10));
+  --cyan-alpha-15: oklch(from var(--cyan) l c h / var(--alpha-15));
+  --cyan-alpha-25: oklch(from var(--cyan) l c h / var(--alpha-25));
+  --cyan-alpha-50: oklch(from var(--cyan) l c h / var(--alpha-50));
+  --cyan-alpha-75: oklch(from var(--cyan) l c h / var(--alpha-75));
+
+  /* the blue scale */
+  --blue-50: oklch(from var(--blue) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --blue-100: oklch(from var(--blue) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --blue-200: oklch(from var(--blue) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --blue-300: oklch(from var(--blue) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --blue-400: oklch(from var(--blue) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --blue-500: var(--blue);
+  --blue-600: oklch(from var(--blue) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --blue-700: oklch(from var(--blue) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --blue-800: oklch(from var(--blue) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --blue-900: oklch(from var(--blue) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --blue-950: oklch(from var(--blue) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* blue twins — the slot at nominal coverage; composite on whatever is beneath */
+  --blue-alpha-5: oklch(from var(--blue) l c h / var(--alpha-5));
+  --blue-alpha-10: oklch(from var(--blue) l c h / var(--alpha-10));
+  --blue-alpha-15: oklch(from var(--blue) l c h / var(--alpha-15));
+  --blue-alpha-25: oklch(from var(--blue) l c h / var(--alpha-25));
+  --blue-alpha-50: oklch(from var(--blue) l c h / var(--alpha-50));
+  --blue-alpha-75: oklch(from var(--blue) l c h / var(--alpha-75));
+
+  /* the purple scale */
+  --purple-50: oklch(from var(--purple) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --purple-100: oklch(from var(--purple) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --purple-200: oklch(from var(--purple) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --purple-300: oklch(from var(--purple) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --purple-400: oklch(from var(--purple) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --purple-500: var(--purple);
+  --purple-600: oklch(from var(--purple) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --purple-700: oklch(from var(--purple) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --purple-800: oklch(from var(--purple) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --purple-900: oklch(from var(--purple) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --purple-950: oklch(from var(--purple) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* purple twins — the slot at nominal coverage; composite on whatever is beneath */
+  --purple-alpha-5: oklch(from var(--purple) l c h / var(--alpha-5));
+  --purple-alpha-10: oklch(from var(--purple) l c h / var(--alpha-10));
+  --purple-alpha-15: oklch(from var(--purple) l c h / var(--alpha-15));
+  --purple-alpha-25: oklch(from var(--purple) l c h / var(--alpha-25));
+  --purple-alpha-50: oklch(from var(--purple) l c h / var(--alpha-50));
+  --purple-alpha-75: oklch(from var(--purple) l c h / var(--alpha-75));
+
+  /* the pink scale */
+  --pink-50: oklch(from var(--pink) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --pink-100: oklch(from var(--pink) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --pink-200: oklch(from var(--pink) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --pink-300: oklch(from var(--pink) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --pink-400: oklch(from var(--pink) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --pink-500: var(--pink);
+  --pink-600: oklch(from var(--pink) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --pink-700: oklch(from var(--pink) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --pink-800: oklch(from var(--pink) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --pink-900: oklch(from var(--pink) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --pink-950: oklch(from var(--pink) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* pink twins — the slot at nominal coverage; composite on whatever is beneath */
+  --pink-alpha-5: oklch(from var(--pink) l c h / var(--alpha-5));
+  --pink-alpha-10: oklch(from var(--pink) l c h / var(--alpha-10));
+  --pink-alpha-15: oklch(from var(--pink) l c h / var(--alpha-15));
+  --pink-alpha-25: oklch(from var(--pink) l c h / var(--alpha-25));
+  --pink-alpha-50: oklch(from var(--pink) l c h / var(--alpha-50));
+  --pink-alpha-75: oklch(from var(--pink) l c h / var(--alpha-75));
+
+  /* the accent scale — generated from whatever the seed holds */
+  --accent-50: oklch(from var(--accent) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --accent-100: oklch(from var(--accent) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --accent-200: oklch(from var(--accent) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --accent-300: oklch(from var(--accent) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --accent-400: oklch(from var(--accent) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --accent-500: var(--accent);
+  --accent-600: oklch(from var(--accent) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --accent-700: oklch(from var(--accent) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --accent-800: oklch(from var(--accent) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --accent-900: oklch(from var(--accent) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --accent-950: oklch(from var(--accent) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+  /* accent twins */
+  --accent-alpha-5: oklch(from var(--accent) l c h / var(--alpha-5));
+  --accent-alpha-10: oklch(from var(--accent) l c h / var(--alpha-10));
+  --accent-alpha-15: oklch(from var(--accent) l c h / var(--alpha-15));
+  --accent-alpha-25: oklch(from var(--accent) l c h / var(--alpha-25));
+  --accent-alpha-50: oklch(from var(--accent) l c h / var(--alpha-50));
+  --accent-alpha-75: oklch(from var(--accent) l c h / var(--alpha-75));
+}
+
+
+
+/* Tailwind's hand-tuned yellow ramp, for comparison on the frame */
+:root {
+  --yellowT-50: oklch(0.987 0.026 102.212); --yellowT-100: oklch(0.973 0.071 103.193);
+  --yellowT-200: oklch(0.945 0.129 101.54); --yellowT-300: oklch(0.905 0.182 98.111);
+  --yellowT-400: oklch(0.852 0.199 91.936); --yellowT-500: oklch(0.795 0.184 86.047);
+  --yellowT-600: oklch(0.681 0.162 75.834); --yellowT-700: oklch(0.554 0.135 66.442);
+  --yellowT-800: oklch(0.476 0.114 61.907); --yellowT-900: oklch(0.421 0.095 57.708);
+  --yellowT-950: oklch(0.286 0.066 53.813);
+}
+

@@ -1,0 +1,13 @@
+# The system modal's copy ([[ui/app/system-modal/index.md]], States). The
+# reattempt line interpolates the template's `seconds`.
+connecting_title: Connecting
+disconnected_title: Disconnected
+reattempting: "Reattempting in {{ seconds }}s…"
+reattempting_now: Reattempting now…
+unauthorized_title: Enter access token
+unauthorized_copy: This server requires an access token to connect.
+unauthorized_placeholder: paste token here
+unauthorized_field_label: Access token
+unauthorized_invalid: The previous token was rejected. Try again.
+unauthorized_submit: Connect
+error_title: Can’t connect with server

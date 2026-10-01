@@ -1,0 +1,17 @@
+---
+imports:
+  - ../../lib/foundation.ts
+  - ../../../specs/ui/elements/checkbox-list/styles.css
+---
+<!--
+  The checklist element staged (staging, not spec content): the spec's
+  template with sample rows. The element inherits its context's text; the
+  board supplies only the foundation.
+-->
+<checkbox-list>
+  <checkbox-item checked>Resize the connection pool</checkbox-item>
+  <checkbox-item checked>Move the saturation alert ahead of the knee</checkbox-item>
+  <checkbox-item>Jitter every client's backoff</checkbox-item>
+  <checkbox-item>Link dashboards from the runbooks</checkbox-item>
+  <checkbox-item checked>Write the postmortem for the April outage, including the retry-storm amplification analysis and the pool-saturation graphs, and circulate it before the review</checkbox-item>
+</checkbox-list>

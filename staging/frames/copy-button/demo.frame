@@ -1,0 +1,32 @@
+---
+title: Copy button demo
+description: The spec's button with throwaway interactivity, to judge the feel — clicking copies the prompt and swaps the label to its confirmation for the spec's dwell.
+imports:
+  - ../../lib/foundation.ts
+style: |
+  .demo {
+    padding: var(--space-16);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+script: |
+  const COPIED_CONFIRMATION_MS = 1400;
+  let timer;
+  // The `copied` attribute is toggled on the live element rather than
+  // re-rendering the frame — the spec requires the button not to change size,
+  // and a re-render would hide whether that holds.
+  document.addEventListener("click", (event) => {
+    const el = event.target.closest(".copy-button");
+    if (!el) return;
+    const prompt = el.getAttribute("prompt") ?? "";
+    // rubot is served over http, where navigator.clipboard is unavailable.
+    if (navigator.clipboard && window.isSecureContext) {
+      void navigator.clipboard.writeText(prompt).catch(() => {});
+    }
+    el.setAttribute("copied", "");
+    clearTimeout(timer);
+    timer = setTimeout(() => el.removeAttribute("copied"), COPIED_CONFIRMATION_MS);
+  });
+---
+<div class="demo">{% render '../../../specs/ui/app/copy-button/copy-button', label: 'Copy prompt', prompt: 'Create a calendar artifact for …' %}</div>

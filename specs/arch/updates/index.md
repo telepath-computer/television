@@ -1,0 +1,61 @@
+*The update-notifications architecture root: the npm publishing eligibility and serialization rules, the release-version validation and comparison rules every update mechanism shares, the lockstep rule that exempts server↔client update contracts from compatibility discipline, and the map to the module specs.*
+
+**Plain english:** this is the front door to the machinery behind Television's update notices: how servers and apps tell each other what version they are, how the published "a new release is out" announcement file works, how the downloaded desktop app tells its user that an update is ready to install, how a desktop app installed from npm is advised to move to the downloaded app, and how an older desktop app is blocked when necessary. It also governs which CI completions may publish npm releases and how publishing jobs wait for one another. It pins the few ground rules the pieces share — what counts as a version, how versions are compared, which messages may change freely between releases — and points to the spec that owns each piece.
+
+# Updates architecture
+
+## What this owns
+
+This is the root of the architecture behind [product/update-notifications.md](../../product/update-notifications.md). [Product versioning](../../product/versioning.md) owns release naming and the exact release identity. This spec owns validation of that identity, its two comparison rules, workspace synchronization, npm publishing eligibility, serialization and action pinning, publication order, and the **lockstep contract rule** for the server↔client shapes the modules exchange. Everything else is owned by the module specs in the [Module map](#module-map).
+
+## The release version
+
+The release pipeline stamps the product's exact [release version](../../product/versioning.md#^pv-exact-version) into npm packages and build artifacts. The CLI/server build inlines it as the `__TV_VERSION__` build-time constant (`packages/cli/build.mjs`). The publish workflow versions every workspace before the release build, then finishes that build before publishing the CLI package. This order keeps `__TV_VERSION__` equal to the version in the published `package.json`. The web bundle carries its own stamp of the same version ([version-advertisement.md#Web bundle version](./version-advertisement.md#Web bundle version)), and the desktop shell reports its package version through Electron's `app.getVersion()`.
+
+Every workspace package, including the private desktop workspace, has the same release version as the root manifest. The publish workflow publishes that version if npm does not have it yet, and otherwise raises the patch number first. A commit that sets a new version is therefore published under it, even when publishing resumes from a later commit. While `.github/PAUSE_PUBLISH` exists on `main`, the publish workflow publishes nothing, and it publishes again from the first commit on `main` without that file. A desktop build takes its version from the commit it is built from, so a build of a commit that carries a release's version and code carries that release's version, as [product versioning](../../product/versioning.md#^pv-desktop-release-version) requires.
+
+A desktop release usually follows a publish ([distribution.md](../desktop/distribution.md#^desktop-dist-release)). A release that raises the required desktop version reverses that order: publishing is paused until its desktop release is out ([the gate's operations](./desktop-upgrade-gate.md#^ops-bump)). ^updates-publication-order
+
+For update behavior, version resolution is **stamp-only**: `__TV_VERSION__` defined → that version; undefined → `0.0.0`. No other source is consulted — in particular, the `package.json` fallback inside `readServerPackageVersion()` serves telemetry's own reporting and never feeds this domain. `0.0.0` means *development build*: every consumer in this domain treats it as unknown-and-exempt — it never triggers a reload ([version-advertisement.md](./version-advertisement.md)), suppresses update-channel polling ([update-channel.md](./update-channel.md)), and never gates ([desktop-upgrade-gate.md](./desktop-upgrade-gate.md)). It is never treated as "older than everything." This domain reads exactly **one signal**: the build axis (the stamp), mirroring the `__TV_TELEMETRY_BUILD__` precedent. The `~/.tv-developer` marker is deliberately not consulted anywhere in this domain ([update-channel.md#^dev-marker-no-bypass](./update-channel.md#^dev-marker-no-bypass)); `NODE_ENV` is deliberately not a signal either. Non-goals, not omissions. ^updates-dev-version
+
+A release version is valid in this domain only when it is a plain `major.minor.patch` triple (the pipeline's `npm version` output); a string not matching `^\d+\.\d+\.\d+$` is invalid wherever a version is validated. Exactly two comparisons exist in this domain, and both are deliberately minimal — no semver library, no prerelease or precedence rules, because the pipeline never produces anything but plain triples: ^updates-version-comparisons
+
+- **Reload staleness is string inequality.** The bundle either is or is not the one this server serves; ordering is meaningless for that question (subject to the `0.0.0` exemption above).
+- **"Newer" is numeric triple greater-than.** The ordering comparisons — the channel's announced release vs. the server's version ([update-channel.md](./update-channel.md)), the web bundle's recommended desktop release vs. the shell's version ([desktop-upgrade-recommendation.md](./desktop-upgrade-recommendation.md)), and the server's required desktop release vs. the shell's version ([desktop-upgrade-gate.md](./desktop-upgrade-gate.md)) — compare the three numeric components in order.
+
+## npm publishing eligibility
+
+The npm publishing job runs only in `telepath-computer/television`, after successful CI for a push to that repository’s `main`. It skips the job when the triggering CI run has another event or head repository, before obtaining release credentials or checking out that run’s commit. Eligible publishing jobs run one at a time without cancelling an active publication. Waiting eligible jobs do not replace one another; ineligible runs neither join the queue nor displace eligible jobs. Once admitted, each checks that its commit is still the tip of `main` and applies the pause checks before publishing. This does not make npm publication and the subsequent Git push atomic. External actions used by the publishing job are pinned to full commit SHAs. ^updates-publish-eligibility
+
+## Lockstep contracts need no compatibility discipline
+
+The server→client and client→server shapes defined in this domain — the version advertisement, the update-state relay, and the update telemetry signals, all riding the `/events` websocket — are **internal contracts that ship in lockstep with the web bundle**. The server serves the bundle, and auto-reload ([version-advertisement.md](./version-advertisement.md)) is precisely the mechanism that restores a matched pair after a server upgrade. So these shapes carry no schema versioning, no unknown-variant tolerance requirements, and may change freely between releases; the transient mismatch window between a server restart and the client's reload only needs to not crash either side. The client must ignore valid `/events` messages whose `type` it does not recognize ([version-advertisement.md#^unknown-messages](./version-advertisement.md#^unknown-messages)). The unknown message must not affect the page or socket, and the client must still handle later messages whose types it recognizes. Malformed JSON is also dropped. ^updates-lockstep-contracts
+
+This is the opposite posture from contracts consumed across releases. The public update channel's readers are old installs by definition, so it gets a strict evolution protocol ([update-channel.md#Evolution protocol](./update-channel.md#Evolution protocol)). The installed desktop shell's pre-page identity contracts are likewise outside the server/served-bundle lockstep; [desktop-upgrade-gate.md#^pre-gate-handshake](./desktop-upgrade-gate.md#^pre-gate-handshake) owns their compatibility discipline so an admitted shell can reach the served gate. The desktop app's update operations on the native preload bridge, which the gate calls, are consumed across releases too; [desktop updates](../desktop/updates.md#^desktop-updates-frozen) keeps them stable.
+
+## Module map
+
+| Spec | Owns |
+|---|---|
+| [version-advertisement.md](./version-advertisement.md) | the server's version surfaces (`/health`, response header, `/events`), web-bundle version injection, interface cache headers, the client reload contract with its loop guard, and the *client autoreloaded* telemetry event |
+| [update-channel.md](./update-channel.md) | the public update-channel file: schema, shape validation, evolution protocol, server-side polling and failure semantics, the update-state relay, the server toast and bell rendering and clipboard contracts, dismissal persistence, the toast telemetry events, and channel-deploy operations |
+| [desktop-upgrade-recommendation.md](./desktop-upgrade-recommendation.md) | the deprecated desktop upgrade recommendation, which moves apps installed from npm to the downloaded app: the web-bundle-owned recommended version, Electron eligibility and server-toast precedence, fixed markdown handoff, separate dismissal persistence, and bell lifetime |
+| [desktop-self-update-notice.md](./desktop-self-update-notice.md) | the desktop self-update notice, which tells a downloaded desktop app's user that an update has downloaded: its condition on the native bridge's report, its place after the server notice and before the recommendation, its body and restart handoff, its dismissal persistence, and its bell lifetime |
+| [desktop-upgrade-gate.md](./desktop-upgrade-gate.md) | the desktop upgrade gate: cross-release shell entrance contracts, the server-baked required desktop version and its maintenance, the Electron-mode boot barrier and where it lives, comparison inputs, the gate screen with its downloaded-update message, restart action and instructions fallback, and reload-before-gate / gate-before-notice ordering |
+
+## Runbooks
+
+Two runbooks ([spec-policy.md#^runbook-type](../../spec-policy.md#^runbook-type)) exercise this domain's mechanisms:
+
+- [runbook-channel-deploy.md](./runbook-channel-deploy.md) — announcing a curated release: authoring and deploying `update-channel.json`, bumping the required desktop version, verifying the deploy.
+- [runbook-ux-staging.md](./runbook-ux-staging.md) — staging every user-visible update state (server toast, bell, dismissal, desktop self-update notice, desktop recommendation, and desktop upgrade gate) on demand for design/UX review.
+
+Before raising the required desktop version, follow the gate's [required-floor procedure](./desktop-upgrade-gate.md#^ops-bump).
+
+## Telemetry
+
+This domain's four events (*client autoreloaded*, *update toast shown*, *update prompt copy clicked*, *desktop upgrade gate shown*) split their authority three ways: their names, properties, and validation patterns belong to the closed vocabulary in [arch/telemetry/index.md](../telemetry/index.md) — a privacy guarantee whose value is one complete reviewable list; their transport is the shared telemetry client signal ([client-signals.md](../telemetry/client-signals.md)); and **when and why** each fires is owned by the module specs above, next to the mechanism it observes. ^telemetry-split
+
+## Testing
+
+The testing policy says to name coverage provided by other specs rather than duplicate it ([testing-policy.md#Tests are the validation mechanism](../testing-policy.md#Tests are the validation mechanism)). This spec's proof covers validation of plain `major.minor.patch` release versions and the two shared comparisons. It also covers whether workspace manifests match the root version, how the publish workflow chooses the version it publishes, its pause file, and the order in which workspaces are versioned, built, and published. The [version advertisement](./version-advertisement.md#Web bundle version) spec owns coverage of the built web stamp. [Product CLI](../../product/cli.md#Command model, help, version, and recovery text) owns coverage of the packaged `tv --version` and running-server `tv status` outcomes.

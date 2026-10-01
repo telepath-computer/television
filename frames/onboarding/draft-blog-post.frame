@@ -1,0 +1,6 @@
+---
+title: Draft blog post
+imports:
+  - document: ../lib/onboarding-markdown.ts
+---
+{{ document }}

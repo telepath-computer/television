@@ -1,0 +1,86 @@
+---
+title: System modal
+params:
+  state:
+    enum: [connecting, disconnected, unauthorized, needs-upgrade, error]
+    default: unauthorized
+    description: the modal's state
+  server_url:
+    type: string
+    description: the server the connect was to, shown while error
+  message:
+    type: string
+    description: "the failure's own message, shown while error"
+  seconds:
+    type: number
+    description: seconds until the next reconnection attempt; absent, an attempt is in flight
+  invalid:
+    type: boolean
+    default: false
+    description: the previous token was rejected, shown while unauthorized
+  upgrade_instructions:
+    description: the selected upgrade instructions, passed to the gate while needs-upgrade; markdown pipeline output (sanitized), placed verbatim
+    default: "<h1>Desktop app update required</h1><p>This version of the Television desktop app does not work with this server and needs to be updated. <a href=\"https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64\" target=\"_blank\" rel=\"noopener noreferrer\">Download the latest version for Mac</a> and install it.</p>"
+  upgrade_restart:
+    enum: [absent, ready, restarting]
+    default: absent
+    description: the gate's restart button, passed to the gate while needs-upgrade
+imports:
+  - content: ./content.yml
+style: |
+  /* The system modal's standard interior — icon, title, supporting line,
+     at a fixed width. [[ui/app/dialog/index.md]] owns the panel and the
+     backdrop; what is on the panel is this surface's. */
+  .system-modal {
+    width: min(400px, 90vw);
+    padding: var(--space-32) var(--space-24);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: center;
+  }
+
+  .system-modal h2 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .system-modal p:not(.tv-error) {
+    color: var(--color-text-muted);
+  }
+
+  /* Shared input styling owns the field; this surface stretches it. */
+  .auth-form .auth-token {
+    align-self: stretch;
+  }
+
+  .auth-form .auth-submit {
+    align-self: stretch;
+  }
+
+  /* The error state's server line: the address as an address. */
+  .system-modal .server-url {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+  }
+---
+{% if state == "connecting" %}
+{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.connecting_title }}</h2></div>{% endcapture %}
+{% render '../dialog/dialog', content: body %}
+{% endif %}
+{% if state == "disconnected" %}
+{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.disconnected_title }}</h2><p>{% if seconds %}{{ content.reattempting }}{% else %}{{ content.reattempting_now }}{% endif %}</p></div>{% endcapture %}
+{% render '../dialog/dialog', content: body %}
+{% endif %}
+{% if state == "unauthorized" %}
+{% capture body %}<form class="system-modal auth-form">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{{ content.unauthorized_copy }}</p><input class="auth-token"{% if invalid %} aria-invalid="true" aria-describedby="auth-token-error"{% endif %} type="password" name="token" placeholder="{{ content.unauthorized_placeholder }}" aria-label="{{ content.unauthorized_field_label }}" autofocus required>{% if invalid %}<p id="auth-token-error" class="tv-error" role="alert">{{ content.unauthorized_invalid }}</p>{% endif %}<button intent="primary" class="auth-submit">{{ content.unauthorized_submit }}</button></form>{% endcapture %}
+{% render '../dialog/dialog', content: body %}
+{% endif %}
+{% if state == "error" %}
+{% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ message }}</p></div>{% endcapture %}
+{% render '../dialog/dialog', content: body %}
+{% endif %}
+{% if state == "needs-upgrade" %}
+{% render '../desktop-upgrade-gate/desktop-upgrade-gate', body: upgrade_instructions, restart: upgrade_restart %}
+{% endif %}

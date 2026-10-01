@@ -1,0 +1,21 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* Staging: the panel as plain content, the platform's hiding and the
+     placement's anchoring overridden. */
+  [popover] {
+    display: block;
+    position: static;
+  }
+script: |
+  import { mountNotice } from "./notification.ts";
+
+  mountNotice(true);
+---

@@ -1,0 +1,21 @@
+---
+title: Channels
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 64px; padding: 32px; }
+  .column { display: flex; flex-direction: column; gap: 40px; }
+  /* The open control strip paints below its embed's box; give it its room. */
+  frameset-frame[controls] { margin-bottom: 96px; }
+---
+<main>
+  <div class="column">
+    <frameset-frame src="../../../specs/ui/app/sidebar/channel" label="Channel" width="260" height="28" controls></frameset-frame>
+    <frameset-frame src="../../../specs/ui/app/sidebar/channel-menu?open=true" label="Channel menu" width="260" height="104"></frameset-frame>
+    <frameset-frame src="../../../specs/ui/app/sidebar/channel-placeholder" label="Placeholder" width="260" height="28"></frameset-frame>
+  </div>
+  <div class="column">
+    <frameset-frame src="../../../specs/ui/app/sidebar/delete-confirm?name=Weekend%20recipes" label="Delete confirm" width="420" height="220"></frameset-frame>
+  </div>
+</main>

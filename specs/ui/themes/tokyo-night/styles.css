@@ -1,0 +1,31 @@
+/* Tokyo Night color palette — https://github.com/folke/tokyonight.nvim
+ * Apache License 2.0; full upstream terms in THIRD-PARTY-NOTICES.txt.
+ * Palette adapted to Television color roles and a fixed dark appearance.
+ */
+/* The Tokyo Night theme ([[ui/themes/tokyo-night/index.md]]). */
+:root {
+  --accent: var(--blue);
+  --neutral: #545c7e;
+  --red: #f7768e;
+  --orange: #ff9e64;
+  --yellow: #e0af68;
+  --green: #9ece6a;
+  --cyan: #7dcfff;
+  --blue: #7aa2f7;
+  --purple: #9d7cd8;
+  --pink: #ff007c;
+
+  --color-surface: #1a1b26;
+  --color-surface-muted: #292e42;
+  --color-text: #c0caf5;
+  --color-text-muted: #737aa2;
+}
+
+/* Shared image and readable controls over the city lights. */
+:root[data-television-document="app"] {
+  --app-wallpaper-image: url(wallpaper.webp);
+  --app-wallpaper: var(--app-wallpaper-image) center / cover no-repeat, #16161e;
+  --wallpaper-overlay-background: var(--tint-surface-muted);
+  --wallpaper-overlay-text-color: var(--color-text);
+  --wallpaper-overlay-blur: 8px;
+}

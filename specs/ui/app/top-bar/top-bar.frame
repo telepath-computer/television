@@ -1,0 +1,240 @@
+---
+title: Navbar
+params:
+  tabs:
+    description: the artifacts open on this channel, each with an id and a name, passed to the tab strip
+    default:
+      - { id: "roadmap", name: "Roadmap" }
+      - { id: "weekly-review", name: "Weekly review" }
+      - { id: "draft-blog-post", name: "Draft blog post" }
+      - { id: "budget", name: "Budget" }
+      - { id: "reading-list", name: "Reading list" }
+  selected: { enum: [roadmap, weekly-review, draft-blog-post, budget, reading-list], default: roadmap, description: the id of the selected tab, passed to the tab strip }
+  show_notice: { type: boolean, default: true, description: an update notice applies, so the bell shows }
+  collapsed: { type: boolean, default: false, description: "the channel sidebar is collapsed: the bar opens with the expand control and the current channel's switcher" }
+  channel: { default: "Television", description: "the open channel's name, shown by the switcher while collapsed; empty poses the no-channels lead — the expand control alone" }
+  switcher_open: { type: boolean, default: false, description: the channel switcher's popover rendered open (collapsed only) }
+  channels:
+    description: the channels with their pinned marks, listed by the switcher's popover while collapsed
+    default:
+      - { id: "television", name: "Television", pinned: true }
+      - { id: "agenda", name: "Agenda", pinned: true }
+      - { id: "weekend-recipes", name: "Weekend recipes" }
+      - { id: "return-to-australia", name: "Return to Australia" }
+  selected_channel: { default: "television", description: the open channel's id, marking its row in the switcher's popover }
+  menu_channel: { type: string, default: "none", description: "the id of the channel whose channel context menu is posed open; none closes all channel context menus" }
+  renaming: { type: string, default: "none", description: "the popover row renaming in place — a creation's birth pose; a channel id, or none" }
+style: |
+  /* The strip centres on the stage's centre while it fits, and gives way
+     leftward when space runs short ([[ui/app/top-bar/index.md#^tp-strip-centres]]).
+     The grid states that rule exactly: two flexible flanks around the strip,
+     equal while there is room (true centre); the trailing flank refuses to
+     shrink below the controls' natural width. The clear gaps survive
+     pressure; the strip compresses and then scrolls within what remains. */
+  .top-bar {
+    background: var(--navbar-background);
+    border-bottom: var(--navbar-border);
+    color: var(--navbar-text-color);
+    /* Keep the row stable across empty and populated channels; the height is
+       the app bars' shared one ([[ui/foundation/tokens/app.css#--app-bar-height]]). */
+    height: var(--app-bar-height);
+    /* Balance the bottom border so controls centre in the complete band. */
+    padding-top: var(--navbar-border-width);
+    flex-shrink: 0;
+    display: grid;
+    -webkit-app-region: drag;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+    align-items: center;
+    column-gap: var(--space-8);
+  }
+
+  .top-bar > .tab-strip {
+    grid-column: 2;
+    min-width: 0;
+    margin-inline: 0;
+  }
+
+  /* Keep both clear gaps when the strip scrolls. The empty leading
+     column has no width, but its gap remains navbar ground. */
+  .top-bar:has(> .tab-strip[data-overflow]) {
+    grid-template-columns: 0 minmax(0, 1fr) max-content;
+  }
+
+  /* The stage's own controls, as opposed to the tabs, which are the channel's:
+     the tabs travel on a channel change and the controls stay put. Stage one
+     holds the skill selector and the optional update bell in this row. */
+  .top-bar-controls {
+    grid-column: 3;
+    justify-self: end;
+    /* Together with the grid gap, reserve 48px of draggable ground on the right. */
+    margin-left: calc(48px - var(--space-8));
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  /* Ordinary controls follow the bar text token; intent controls retain
+     their semantic color. The lead group's controls are the bar's like the
+     trailing cluster's, so both wear the same treatment. */
+  .top-bar :is(.top-bar-controls, .top-bar-lead) > button:not([intent]) {
+    color: var(--navbar-text-color);
+  }
+
+  /* Wallpaper treatment belongs to the individual ordinary ghost controls,
+     not the whole bar or the contents of their popovers. */
+  .top-bar :is(.top-bar-controls, .top-bar-lead) > button[variant="ghost"]:not([intent]) {
+    background: var(--wallpaper-overlay-background);
+    background-clip: border-box;
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+  }
+
+  .top-bar :is(.top-bar-controls, .top-bar-lead) > button[variant="ghost"]:not([intent]):hover:not(:disabled) {
+    background: var(--wallpaper-overlay-background-hover);
+  }
+
+  .top-bar :is(.top-bar-controls, .top-bar-lead) > button[variant="ghost"]:not([intent]):is(:active, [aria-expanded="true"]):not(:disabled) {
+    background: var(--wallpaper-overlay-background-active);
+  }
+
+  .top-bar :is(.top-bar-controls, .top-bar-lead) > button[variant="ghost"]:not([intent]):focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: 1px;
+  }
+
+  /* Only empty bar ground is a native window grab area. The strip and controls
+     remain ordinary interactive bands, including their internal gaps. */
+  .top-bar > .tab-strip,
+  .top-bar > .top-bar-controls {
+    -webkit-app-region: no-drag;
+  }
+
+  /* The lead group ([[ui/app/top-bar/index.md#^tb-lead-group]]). */
+  /* The leading flank's floor ([[ui/app/top-bar/index.md#^tp-lead-floor]]). */
+  .top-bar:has(> .top-bar-lead) {
+    grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  }
+
+  /* Collapsed and overflowing together. */
+  .top-bar:has(> .top-bar-lead):has(> .tab-strip[data-overflow]) {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+  }
+  .top-bar:has(> .top-bar-lead) > .tab-strip[data-overflow] {
+    grid-column: 2;
+  }
+  .top-bar:has(> .top-bar-lead):has(> .tab-strip[data-overflow]) > .top-bar-controls {
+    grid-column: 3;
+  }
+
+  .top-bar-lead {
+    grid-column: 1;
+    justify-self: start;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding-left: var(--traffic-light-x-reserve);
+    min-width: 0;
+  }
+
+  .top-bar-lead > button {
+    -webkit-app-region: no-drag;
+  }
+
+  .channel-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    font-weight: var(--font-weight-medium);
+    max-width: 220px;
+  }
+
+  .channel-switcher > .channel-switcher-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Navbar panels stay compact; placement can impose a smaller viewport limit. */
+  .top-bar tv-popover { max-height: 600px; }
+
+  /* The channel switcher popover ([[ui/app/top-bar/index.md#^tb-switcher]]). */
+  .channel-switcher-pop {
+    /* Reuse channel geometry, with the ordinary panel and option colour roles. */
+    --sidebar-text-color: var(--panel-text-color);
+    --sidebar-heading-text-color: var(--color-text-muted);
+    --channel-background: transparent;
+    --channel-text-color: var(--panel-text-color);
+    --channel-background-hover: var(--option-background-highlighted);
+    --channel-background-active: var(--option-background-active);
+    --channel-background-selected: var(--color-primary);
+    --channel-text-color-selected: var(--color-primary-text);
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Match menu highlighting without changing the permanent sidebar. */
+  .channel-switcher-pop .channel:not([aria-selected="true"]) {
+    background: var(--channel-background);
+  }
+
+  .channel-switcher-pop:not(:has(:focus-visible)) .channel-row:hover > .channel:not([aria-selected="true"]),
+  .channel-switcher-pop .channel:focus-visible:not([aria-selected="true"]),
+  .channel-switcher-pop .channel-row:has(> .channel-menu-trigger[aria-expanded="true"]) > .channel:not([aria-selected="true"]) {
+    background: var(--channel-background-hover);
+  }
+
+  .channel-switcher-pop .channel-row:active > .channel:not([aria-selected="true"]) {
+    background: var(--channel-background-active);
+  }
+
+  .channel-switcher-pop .channel:focus-visible {
+    outline: none;
+  }
+
+  .channel-switcher-pop-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-top: var(--space-8);
+  }
+
+  /* The create bar, pinned under the list. */
+  .channel-switcher-pop-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-4) var(--space-8);
+  }
+---
+<header class="top-bar">
+  {% if collapsed %}
+  <div class="top-bar-lead">
+    <button class="sidebar-expand" variant="ghost" icon aria-label="Show sidebar" title="Show sidebar">{% render '../../foundation/icons/icon', name: 'sidebar', size: 'sm' %}</button>
+    {% if channel != blank %}
+    <button class="channel-switcher" variant="ghost" target aria-haspopup="listbox"{% if switcher_open %} aria-expanded="true"{% endif %}><span class="channel-switcher-name">{{ channel }}</span>{% render '../../foundation/icons/icon', name: 'select', size: 'sm' %}</button>
+    {% endif %}
+    {% if channel != blank and switcher_open %}
+    <tv-popover open class="channel-switcher-pop">
+      <div class="channel-switcher-pop-body">
+        {% render '../sidebar/channel-list', channels: channels, selected: selected_channel, renaming: renaming, menu_channel: menu_channel %}
+      </div>
+      <footer class="channel-switcher-pop-footer">
+        <button class="channel-create" variant="ghost" icon aria-label="New channel" title="New channel">{% render '../../foundation/icons/icon', name: 'add' %}</button>
+      </footer>
+    </tv-popover>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% render '../tab-strip/tab-strip', tabs: tabs, selected: selected %}
+  <div class="top-bar-controls">
+    {% render '../skill-selector/skill-selector' %}
+    {% render '../settings/settings' %}
+    {% if show_notice %}
+    {% render '../update-notification/update-notification' %}
+    {% endif %}
+  </div>
+</header>

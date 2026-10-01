@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artifact view dispatcher fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body { display: grid; place-items: stretch; background: #e8edf2; }
+      artifact-view-fixture { display: block; width: 640px; height: 420px; margin: 20px; }
+    </style>
+  </head>
+  <body>
+    <artifact-view-fixture id="view"></artifact-view-fixture>
+    <script type="module">
+      import { render } from "lit-html";
+      import { view as wrapView } from "@telepath-computer/utils/lit-view";
+      import { ArtifactView } from "/packages/web/src/views/artifact-view.ts";
+      import { RequestError } from "/packages/shared/src/errors.ts";
+
+      let drawingHost = null;
+      class CapturedArtifactView extends ArtifactView {
+        update(...args) {
+          if (drawingHost) drawingHost.artifactView = this;
+          return super.update(...args);
+        }
+      }
+      const CapturedArtifactViewView = wrapView(CapturedArtifactView);
+
+      class ArtifactViewFixture extends HTMLElement {
+        artifact = null;
+        application = Object.assign(new EventTarget(), {
+          handleNavigationKey() {},
+          readMarkdown: async () => "",
+          writeMarkdown: async () => undefined,
+        });
+        viewURL = null;
+        contentURL = null;
+        artifactView = null;
+        part = null;
+
+        connectedCallback() {
+          this.part?.setConnected(true);
+          this.draw();
+        }
+
+        disconnectedCallback() {
+          this.part?.setConnected(false);
+        }
+
+        draw() {
+          if (!this.isConnected || !this.artifact) return;
+          drawingHost = this;
+          try {
+            this.part = render(CapturedArtifactViewView(this.application, this.artifact, {
+              viewURL: this.viewURL,
+              contentURL: this.contentURL,
+              inert: false,
+            }), this);
+            const root = this.querySelector(".artifact-view");
+            if (root) root._trustedChannel = this.artifactView._trustedChannel;
+            this._trustedChannel = this.artifactView._trustedChannel;
+          } finally {
+            drawingHost = null;
+          }
+        }
+      }
+      customElements.define("artifact-view-fixture", ArtifactViewFixture);
+
+      window.RequestError = RequestError;
+      const view = document.getElementById("view");
+      window.setArtifact = (artifact) => {
+        view.artifact = artifact;
+        view.draw();
+      };
+      window.setApplication = (application) => {
+        view.application = application;
+        view.draw();
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

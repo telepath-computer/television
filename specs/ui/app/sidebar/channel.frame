@@ -1,0 +1,175 @@
+---
+title: Channel
+params:
+  name: { type: string, default: "Weekend recipes", description: the channel's name }
+  selected: { type: boolean, default: false, description: the channel currently open — selection survives every gesture, so it combines with any state }
+  state: { enum: [rest, renaming, dragged, unpinning], default: rest, description: "the row's gesture state, one at a time: renaming edits the name in place; dragged is carried by a drag; unpinning is carried where release would unpin, wearing the action over its top corner" }
+  menu: { type: boolean, default: true, description: "the row carries its menu trigger; false hides the context-menu trigger" }
+  menu_open: { type: boolean, default: false, description: "the channel context menu rendered open beside this row" }
+  pinned: { type: boolean, default: false, description: "the row belongs to the pinned group, so its menu offers Unpin" }
+style: |
+  /* The row pairs the channel with its menu trigger as siblings, the trigger
+     overlaid at the row's end — the channel is a listbox option, and an
+     option must not contain an interactive control. */
+  .channel-row {
+    position: relative;
+    /* Create/delete animates max-height on the real row so neighbouring rows
+       continuously occupy the released space instead of jumping at either end. */
+    overflow: clip;
+  }
+
+  .channel {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    /* The control line, stated: the row is a control, not prose, and a div
+       inherits prose leading without it. */
+    font-size: var(--text-md);
+    line-height: var(--line-control);
+    cursor: default;
+    /* The right side reserves the trigger's seat — its width plus its offset —
+       so a long name ellipsizes short of the overlay rather than under it. */
+    padding: var(--space-4) calc(2 * var(--space-4) + 20px) var(--space-4) var(--space-8);
+    /* Transparent, not absent: the channel shows no border but shares the
+       control box formula ([[ui/foundation/index.md]], Controls), so its
+       height is the same stated sum as every bordered control. */
+    border: 1px solid transparent;
+    border-radius: var(--channel-radius);
+    background: var(--channel-background);
+    color: var(--channel-text-color);
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Keyed on the row, not the channel: the trigger is the channel's sibling,
+     and moving onto it must not drop the row's fill. Stated here because the
+     channel's own `background` outranks the ambient button's hover. The hover
+     excludes the selected channel outright — hover marks where you could go,
+     selection where you are — so neither rule contests the other. A row whose
+     menu is open keeps the fill after the pointer leaves — the menu is the
+     row's own, so its openness is structural — the row stays the menu's
+     subject. */
+  :where(.channel-row:hover, .channel-row:has(.channel-menu-trigger[aria-expanded="true"])) .channel:not([aria-selected="true"]) {
+    background: var(--channel-background-hover);
+  }
+
+  :where(.channel-row:active) .channel:not([aria-selected="true"]) {
+    background: var(--channel-background-active);
+  }
+
+  /* Selection outranks hover and press: the open channel keeps its fill while the pointer
+     passes over it, so the list never loses track of where you are. */
+  .channel[aria-selected="true"] {
+    background: var(--channel-background-selected);
+    color: var(--channel-text-color-selected);
+  }
+
+  /* The sibling menu trigger shares the selected row’s text color.
+     Foundation tints follow currentColor for hover, press and expanded. */
+  .channel-row:has(> .channel[aria-selected="true"]) .channel-menu-trigger {
+    color: var(--channel-text-color-selected);
+  }
+
+  /* There on approach, not always: the row's hover reveals the trigger, and
+     the row's open menu holds it visible after the pointer leaves. */
+  .channel-menu-trigger {
+    position: absolute;
+    top: 50%;
+    right: var(--space-4);
+    translate: 0 -50%;
+    opacity: 0;
+  }
+
+  .channel-row:hover .channel-menu-trigger,
+  .channel-menu-trigger:focus-visible,
+  .channel-row:has(.channel-menu-trigger[aria-expanded="true"]) .channel-menu-trigger,
+  /* The selected row shows its trigger outright: it is the row you are in,
+     and its actions should not need discovering by pointer. */
+  .channel-row:has(> .channel[aria-selected="true"]) .channel-menu-trigger {
+    opacity: 1;
+  }
+
+  /* Rename is a shared text input. Preserve the channel row's seat and
+     trailing action space; foundation owns its border, colors and focus. */
+  .channel-rename {
+    display: block;
+    width: 100%;
+    padding: var(--space-4) calc(2 * var(--space-4) + 20px) var(--space-4) var(--space-8);
+  }
+
+  /* The native input's focus ring extends outside the row's border box. */
+  .channel-row:has(.channel-rename) {
+    overflow: visible;
+  }
+
+  /* The commit check: the trigger's seat, held by the commit action while the
+     name is edited. */
+  .channel-rename-commit {
+    position: absolute;
+    top: 50%;
+    right: var(--space-4);
+    translate: 0 -50%;
+  }
+
+  /* The carried row rides the foreground as a lifted surface, shrunk
+     to its name — a compact preview, not the full row; where it sits is
+     behaviour's — under the pointer. */
+  .channel-row.dragged {
+    z-index: calc(var(--layer-ground) + 1);
+    /* The row's clip serves the create/delete height animation; a carried
+       row doesn't animate height, and its action straddles the top corner —
+       the clip would take the pill with it. */
+    overflow: visible;
+    width: fit-content;
+    min-width: 160px;
+    background: var(--color-surface);
+    /* The action pill's own ring, so the pair reads as one vocabulary. */
+    border: 1px solid var(--color-border);
+    border-radius: var(--channel-radius);
+    box-shadow: var(--drag-item-shadow);
+  }
+
+  /* The trigger seat's reservation is not needed while carried. */
+  .channel-row.dragged .channel {
+    padding-right: var(--space-8);
+  }
+
+  /* The carried row's action ([[ui/app/sidebar/index.md]], Pinning and
+     reordering): what release would do, straddling the preview's top-right
+     corner — a small ringed pill, the slashed pin and its word, while
+     release would unpin. */
+  .channel-drag-action {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    height: 20px;
+    padding: 0 var(--space-8) 0 var(--space-6);
+    border-radius: 10px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--drag-action-shadow);
+    font-size: var(--text-sm);
+  }
+
+  .channel-drag-action tv-icon {
+    font-size: 12px;
+  }
+---
+<div class="channel-row{% if state == 'dragged' or state == 'unpinning' %} dragged{% endif %}{% if state == 'unpinning' %} unpinning{% endif %}">
+  {% if state == 'unpinning' %}<span class="channel-drag-action" aria-hidden="true">{% render '../../foundation/icons/icon', name: 'unpin' %}Unpin</span>{% endif %}
+  {% if state == 'renaming' %}
+  <input class="channel-rename" value="{{ name }}" aria-label="Channel name">
+  <button class="channel-rename-commit" icon variant="ghost" size="sm" tabindex="-1" aria-label="Rename">{% render '../../foundation/icons/icon', name: 'check' %}</button>
+  {% else %}
+  <div class="channel" role="option"{% if selected %} aria-selected="true"{% endif %} tabindex="-1">{{ name }}</div>
+  {% unless menu == false %}
+  <button class="channel-menu-trigger" icon variant="ghost" size="sm" tabindex="-1" aria-haspopup="menu" title="{{ name }} menu"{% if menu_open %} aria-expanded="true"{% endif %}>{% render '../../foundation/icons/icon', name: 'expand' %}</button>
+  {% if menu_open %}{% render './channel-menu', pinned: pinned, open: true %}{% endif %}
+  {% endunless %}
+  {% endif %}
+</div>

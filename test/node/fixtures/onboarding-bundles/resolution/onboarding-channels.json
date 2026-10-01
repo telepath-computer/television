@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "sibling-proof",
+  "channels": [
+    {
+      "slug": "sibling-proof",
+      "name": "Sibling Proof",
+      "artifacts": [
+        {
+          "slug": "proof",
+          "title": "Proof"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>webview bridge host (inner scroll)</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      webview { width: 100%; height: 100%; }
+    </style>
+  </head>
+  <body>
+    <webview
+      id="frame"
+      src="/packages/desktop/test/e2e/fixtures/webview-bridge-embed-inner-scroll.html"
+    ></webview>
+
+    <script type="module">
+      const frame = document.getElementById("frame");
+
+      // Read the inner scrollable container's scrollTop (the page's body
+      // does not scroll in this fixture, by design).
+      window.__embedInnerScrollTop = () =>
+        frame.executeJavaScript("document.getElementById('scroller').scrollTop");
+
+      // Also expose window.scrollY so the test can confirm the body
+      // intentionally does not move.
+      window.__embedScrollY = () => frame.executeJavaScript("window.scrollY");
+
+      frame.addEventListener("did-finish-load", () => {
+        window.__fixtureReady = true;
+      });
+    </script>
+  </body>
+</html>

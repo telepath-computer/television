@@ -1,0 +1,59 @@
+/* Staging simulation of the spec's interaction claims (the mechanism is
+   the implementation's, not the spec sheet's): the filmstrip scrolls for
+   this specimen's script but never for a swipe or wheel. The motion
+   itself is scripted below — one fixed-time crossing however far. */
+.filmstrip {
+  overflow-x: hidden;
+}
+
+/* While a tab is picked up, the filmstrip draws back ([[ui/app/stage/index.md]],
+   Reordering) — the whole strip as one, gaps included. A scale transform,
+   never a resize: the scale sits on an inner wrapper (vehicle DOM) inside
+   the scroll clip, so the clip stays at the stage's true edges, no
+   element's bounds change, and no text reflows. The measures reach this
+   sheet as vars set by the mount from the spec's yml. */
+.filmstrip-inner {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  gap: var(--stage-gap);
+  transition: scale var(--drawback-duration) ease;
+}
+
+body.tab-held .filmstrip-inner {
+  scale: var(--drawback-scale);
+}
+
+/* Window tracking is not a state change: while the stage is being resized,
+   pages follow the shared factor exactly, with no morph. */
+body.window-tracking .page {
+  transition: none;
+}
+/* The frame's height chain: the viewer gives html a height and body only a
+   min-height, which is not a definite height for a percentage to resolve
+   against — so the window would size to its content. Stated here so the
+   window fills the frame at whatever size the sheet gives it. */
+body {
+  height: 100%;
+}
+
+.window {
+  position: relative;
+  height: 100%;
+  background: #fff;
+  /* clip-path, not just overflow: the dialog overlay is fixed, and
+     overflow cannot clip fixed descendants — the wash would paint square
+     corners over the window silhouette. A paint-level clip reaches it. */
+  clip-path: inset(0 round 20px);
+  /* macOS Golden Gate's window corner radius, which the system states as 20
+     (NSConvolutionOverride1); Tahoe was 26 and everything before it 10. Those
+     are AppKit points, which map 1:1 to CSS px — not CSS `pt`, which would be
+     4/3 larger and would land on Tahoe's radius instead. */
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.window > #app {
+  height: 100%;
+}
+

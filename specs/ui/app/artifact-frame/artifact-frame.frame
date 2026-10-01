@@ -1,0 +1,168 @@
+---
+title: Artifact frame
+params:
+  src:
+    type: string
+    description: the artifact document this frame shows
+  title:
+    type: string
+    default: "Roadmap"
+    description: "the artifact's name: shown in the title bar, and naming the document for assistive technology"
+  can_back:
+    type: boolean
+    default: false
+    description: "an earlier page exists: Back is live rather than disabled"
+  can_forward:
+    type: boolean
+    default: false
+    description: "a remembered page exists ahead: Forward is live rather than disabled"
+  full_screen:
+    type: boolean
+    default: false
+    description: "the artifact occupies the stage's full extents and offers the way back in its menu"
+  can_return:
+    type: boolean
+    default: false
+    description: "an external page artifact in a browser under browser demo mode: the artifact icon is a button that returns the frame to the artifact's own URL, and Back and Forward never render"
+imports:
+  - content: ./content.yml
+style: |
+  /* The frame takes its size from its container. Its translucent inner ring
+     blends over the document; the sharp outer rim precedes the broad shadow. */
+  /* --frame-radius is a root token ([[ui/foundation/tokens/app.css]]), so
+     themes override it at the root; consumed here and by the document's own
+     corners ([[ui/app/artifact-frame/index.md#^af-document-corners]]). */
+  .artifact-frame {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    /* Arbitrary document contents must not make this flex frame refuse to shrink. */
+    box-sizing: border-box;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    /* Optional theme borders inset the content; the default border is absent. */
+    background: var(--frame-background);
+    background-clip: border-box;
+    box-shadow: var(--artifact-frame-shadow);
+    border: var(--frame-border);
+    border-radius: var(--frame-radius);
+  }
+
+  /* This box clips the document and titlebar without clipping the rim shadow. */
+  .artifact-frame-clip {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    padding: 1px;
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
+  .artifact-frame::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: var(--panel-edge-shadow);
+    pointer-events: none;
+  }
+
+  .artifact-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    z-index: calc(var(--layer-ground) + 2);
+    background: var(--panel-edge-highlight);
+    font-size: var(--frame-radius);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+
+  /* The document fills the frame above the bar. `min-width: 0` because a flex
+     item will not shrink below its content otherwise, and an artifact is
+     arbitrary content whose width is not ours to predict. */
+  .artifact-frame-clip > :is(iframe, webview) {
+    /* Paint through the padding track, including beneath the titlebar. */
+    margin: -1px;
+    width: calc(100% + 2px);
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+  }
+
+  /* The title bar: a quiet band below the document, naming the artifact; its
+     contents grow as they are designed. The band is a step off the frame's surface
+     rather than the surface itself — the faintest step there is, enough that the
+     bar reads as the frame's own chrome and not as more document, and no more
+     than that. The line above it partitions the band off from the document the
+     way the sidebar's create affordance is partitioned from its list
+     ([[ui/app/sidebar/sidebar.frame]]) — a quieter line than the frame's own edge,
+     because it divides one surface rather than bounding it.
+
+     The bar's own padding carries the whole of its air now that the frame holds
+     none: the sides and bottom absorb what the frame's margin used to contribute,
+     so the band reads exactly as it did when the document was inset. */
+  .artifact-title-bar {
+    position: relative;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: var(--frame-titlebar-padding);
+    background: var(--frame-titlebar-background);
+    color: var(--frame-titlebar-text-color);
+    border-top: var(--frame-titlebar-border);
+    margin: 0 -1px -1px;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+    border-bottom: 1px solid transparent;
+    background-clip: border-box;
+  }
+
+  /* The title takes the room and truncates, keeping the menu trigger in reach
+     at the bar's end. */
+  .artifact-title-bar .artifact-title {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The divider setting the navigation cluster off from the menu caret. */
+  .artifact-bar-divider {
+    width: 1px;
+    height: 14px;
+    margin: 0 var(--space-2);
+    background: var(--frame-titlebar-divider-color);
+  }
+---
+<div class="artifact-frame">
+  <div class="artifact-frame-clip">
+    <iframe src="{{ src }}" title="{{ title }}"></iframe>
+    <footer class="artifact-title-bar">
+      {% if can_return %}
+      <button class="artifact-return" icon variant="ghost" size="sm" aria-label="{{ content.return_aria_label }}">{% render '../../foundation/icons/icon', name: 'artifact' %}</button>
+      {% else %}
+      {% render '../../foundation/icons/icon', name: 'artifact' %}
+      {% endif %}
+      <span class="artifact-title">{{ title }}</span>
+      {% if can_return %}{% elsif can_back or can_forward %}
+      <button class="artifact-back" icon variant="ghost" size="sm"{% unless can_back %} disabled{% endunless %} aria-label="{{ content.back_aria_label }}">{% render '../../foundation/icons/icon', name: 'back' %}</button>
+      <button class="artifact-forward" icon variant="ghost" size="sm"{% unless can_forward %} disabled{% endunless %} aria-label="{{ content.forward_aria_label }}">{% render '../../foundation/icons/icon', name: 'forward' %}</button>
+      <span class="artifact-bar-divider" aria-hidden="true"></span>
+      {% endif %}
+      <button class="artifact-menu-trigger" icon variant="ghost" size="sm" aria-label="{{ title }} menu">{% render '../../foundation/icons/icon', name: 'expand' %}</button>
+      {% render './artifact-menu', full_screen: full_screen %}
+    </footer>
+  </div>
+</div>

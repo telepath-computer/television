@@ -1,0 +1,11 @@
+---
+title: Update notification
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+---
+<main>
+  <frameset-frame src="../../../specs/ui/app/update-notification/update-notification?open=true" label="Update notification" width="420" height="240"></frameset-frame>
+</main>

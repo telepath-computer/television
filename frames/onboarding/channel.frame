@@ -1,0 +1,33 @@
+---
+imports:
+  - channels: ../lib/onboarding.ts
+  - ../../specs/ui/app/styles.css
+style: |
+  /* A viewport for one channel's existing app composition; no second layout
+     or document renderer lives in this workshop wrapper. */
+  .onboarding-channel {
+    height: 100vh;
+  }
+  .onboarding-channel > .app-main {
+    height: 100%;
+  }
+script: |
+  import { onboardingChannel } from "../lib/onboarding-channel.ts";
+
+  let cleanup: (() => void) | undefined;
+  const wire = () => {
+    cleanup?.();
+    const host = document.querySelector<HTMLElement>(".onboarding-channel");
+    if (host) cleanup = onboardingChannel(host);
+  };
+  wire();
+  window.addEventListener("frameset:rendered", wire);
+---
+{% assign channel = channels[slug] %}
+{% assign first = channel.pages | first %}
+<div class="onboarding-channel" data-channel="{{ slug }}" aria-label="{{ channel.name }}">
+  <main class="app-main">
+    {% render '../../specs/ui/app/top-bar/top-bar', tabs: channel.pages, selected: first.id, show_notice: false %}
+    {% render '../../specs/ui/app/stage/stage', pages: channel.pages, selected: first.id %}
+  </main>
+</div>

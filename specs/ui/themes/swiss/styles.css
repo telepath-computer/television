@@ -1,0 +1,34 @@
+/* Swiss adds a red primary accent to the default palette. */
+:root {
+  --color-primary: #df363c;
+}
+
+:root[data-theme="dark"] {
+  --color-surface: oklch(from var(--neutral-800) calc(l + 0.03) c h);
+  --color-surface-muted: oklch(from var(--neutral-800) calc(l + 0.07) c h);
+}
+
+/* Keep the sidebar dark in both appearances. */
+:root[data-television-document="app"] {
+  --sidebar-background: var(--neutral-800);
+  --sidebar-text-color: var(--neutral-100);
+  --sidebar-heading-text-color: var(--neutral-400);
+}
+
+:root[data-television-document="app"][data-theme="light"] {
+  --app-wallpaper: oklch(from var(--neutral-200) calc(l - 0.03) c h);
+}
+
+:root[data-television-document="app"][data-theme="dark"] {
+  --app-wallpaper: oklch(from var(--sidebar-background) calc(l - 0.015) c h);
+}
+
+/* Dragged rows keep the sidebar ground behind their light text. */
+:root[data-television-document="app"] .sidebar .channel-row.dragged {
+  background: var(--sidebar-background);
+}
+
+/* Rename and drag actions retain standard surfaces and their matching text. */
+:root[data-television-document="app"] .sidebar :is(.channel-rename-commit, .channel-drag-action) {
+  color: var(--control-text-color);
+}

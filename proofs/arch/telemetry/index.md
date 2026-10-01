@@ -1,0 +1,23 @@
+*How the promises in Telemetry architecture are proven.*
+
+# Telemetry architecture — proof
+
+Proves [specs/arch/telemetry/index.md](../../../specs/arch/telemetry/index.md).
+
+## Coverage model
+
+Compile-time probes constrain the production vocabulary; the capture contract proves suppression, identity stamping, and the sink handoff; a repository-source contract guards the single outbound path. The harnesses and delivery mock are declared below. The theme and appearance extension adds type probes for its closed enums and booleans; complete runtime payloads are proven at the [emitter seams](./emitters.md#^t-theme-settings-refresh) and [product boundary](../../product/telemetry.md#^ac-theme-adoption). This follows the root spec's testing directives without duplicating classifiers or analytics delivery.
+
+## Assertions
+
+### Test assertions
+
+The assertions use three contract harnesses. The **type harness** compiles the real telemetry types with valid values and `@ts-expect-error` negative probes; it has no mocks. The **capture harness** calls the real chokepoint with authored event, identity, and environment fixtures and a recording sink. That sink is a mock of delivery and forfeits the buffer and PostHog boundary, covered by [sink.md#^t-posthog-lands](./sink.md#^t-posthog-lands) and its transport contracts. The **repository-source harness** reads the checked-out production TypeScript tree and module exports without replacing any production mechanism.
+
+- **Contract** (type harness): the `TelemetryEvent` union and property types are closed: no production call site can construct an event name, property name, or enumerated value outside the union, and `installed_by_agent` is the only free-string property, accepting open-ended names for event and person properties — *(covered by inherited tests: expanded vocabulary probes in `packages/server/src/telemetry/types.test.ts`)*. ^t-closed-vocab
+- **Contract** (the same compile-time type harness, no mocks): the [theme settings vocabulary](../../../specs/arch/telemetry/index.md#^theme-settings-vocabulary) accepts the declared event names, both change reasons, all appearance preferences, and boolean JavaScript settings in event and person properties; rejects arbitrary custom theme IDs, consent-list properties, undeclared reasons/preferences, and non-boolean JavaScript values — *(covered by `packages/server/src/telemetry/types.test.ts` “TV-755 accepts closed settings in events and person properties”; checked by `npm run type-check`, including its negative probes)*. ^t-theme-settings-vocabulary
+- **Contract** (capture harness): `capture` returns without enqueueing when the suppression gate is closed, builds and stamps exactly one event when enabled, and never lets a sink exception escape to its caller — *(covered by inherited tests: all three cases in `packages/server/src/telemetry/capture.test.ts`)*. ^t-capture-gate
+- **Contract** (repository-source harness): the server package exposes `capture` without exposing sink construction or `enqueue`, no production module outside the telemetry runtime imports the sink, the runtime does not call `sink.enqueue` directly, and no production module outside the sink constructs a PostHog capture request — *(covered by inherited tests: both cases in `test/repo/telemetry-single-path.test.ts`, with the source scan minimally extended to guard the runtime's direct sink use)*. ^t-single-path
+- **Contract** (real event builder, authored event/person properties, no sink or transport): a compile-time-complete fixture of every `TelemetryVersion` property (currently eight) is classified before enqueue, including `$set`; invalid and private-labeled inputs never appear in the resulting serialization, input objects are unchanged, and numeric browser versions remain numeric. Covers [outbound version classification](../../../specs/arch/telemetry/index.md#The event chokepoint), composing with [the classifier table](./derivation.md#^t-version-classification) and [real metadata acceptance](../../product/telemetry.md#^ac-private-metadata) — *(covered by tests: `packages/server/src/telemetry/capture.test.ts`, “classifies every outbound version without changing local inputs”)*. ^t-version-payload
+
+The exact-name fence around the six frozen screen-named PostHog literals is [product/telemetry.md#^ac-channel](../../product/telemetry.md#^ac-channel). Its cited emitter seam checks all three event names and the exact screen-named property-key set; the type contract above supplies closure around that pinned vocabulary. The per-module breadth and seams are owned by each module spec above; the remaining product outcomes are [product/telemetry.md](../../../specs/product/telemetry.md)'s assertions.

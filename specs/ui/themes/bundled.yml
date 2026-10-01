@@ -1,0 +1,14 @@
+- id: aquarium
+  minimumVersion: 1.0.2
+- id: blueprint
+  minimumVersion: 1.0.0
+- id: crt-phosphor
+  minimumVersion: 1.0.0
+- id: clouds
+  minimumVersion: 2.1.0
+- id: nord
+  minimumVersion: 1.1.0
+- id: swiss
+  minimumVersion: 1.1.0
+- id: tokyo-night
+  minimumVersion: 1.1.0

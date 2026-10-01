@@ -1,0 +1,9 @@
+---
+title: Channel delete confirmation
+params:
+  name:
+    type: string
+    description: "the channel's name, asked about"
+---
+{% capture body %}<div class="dialog-alert" role="alertdialog"><h2>Delete “{{ name }}”?</h2><p>This will permanently delete this channel from Television.</p><div class="dialog-actions"><button>Cancel</button><button intent="danger">Delete</button></div></div>{% endcapture %}
+{% render '../dialog/dialog', content: body %}

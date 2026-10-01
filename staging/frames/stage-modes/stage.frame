@@ -1,0 +1,536 @@
+---
+params:
+  mode: { enum: [overview-mode, fullscreen], default: overview-mode }
+  dnd: { type: boolean, default: false, title: drag & drop }
+  gap: { type: number, default: 16, minimum: 0, multipleOf: 4 }
+  scale: { type: number, default: 94, minimum: 50, maximum: 100, multipleOf: 1, title: scale % }
+  fade: { type: number, default: 55, minimum: 0, maximum: 100, multipleOf: 5, title: fade % }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* The window, as the app frame stages it. The ground behind it belongs to
+     whatever shows this frame (the sheet paints #f0f0f0). */
+  .window {
+    position: relative;
+    height: 100%;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  
+  .window > #app {
+    height: 100%;
+  }
+  
+  /* The stage column: a bar with the strip CENTRED (workshop departure from
+     the top-bar spec) and the controls at the trailing edge, then the mode
+     stage below. */
+  .m-stage-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-background);
+  }
+  
+  .m-bar {
+    flex: none;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: var(--space-8) var(--space-12) 0;
+    min-height: 40px;
+  }
+  
+  .m-bar > .tab-strip {
+    grid-column: 2;
+  }
+  
+  .m-bar > .m-bar-controls {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  
+  .m-viewport {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    padding: var(--space-12);
+  }
+  
+  .m-row {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    transition: translate 280ms ease;
+  }
+  
+  /* Every animated quantity shares one duration and easing, so the mode
+     morph is coherent: the row's translate and each screen's size interpolate
+     on the same curve and the selected card expands from where it stands. */
+  .m-screen {
+    /* The splits CSS sizes slots and dividers from --pane-gap, which its
+       workshops define on .shape; here the screen is that container. */
+    --pane-gap: var(--space-8);
+  
+    flex: none;
+    height: 100%;
+    position: relative;
+    transition:
+      scale 280ms ease,
+      opacity 280ms ease,
+      width 280ms ease,
+      height 280ms ease,
+      margin-right 280ms ease;
+  }
+  
+  .m-screen:not(.selected) {
+    scale: var(--neighbour-scale, 0.94);
+    opacity: var(--neighbour-fade, 0.55);
+  }
+  
+  /* The shield takes presses on every card: a press selects, a double-click
+     pops full screen and back. The artifacts behind it are inert here. */
+  .m-shield {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+  }
+  
+  .m-screen > .artifact-frame,
+  .m-screen > .pane,
+  .m-screen > .split {
+    height: 100%;
+  }
+  
+  /* A group wears its own slightly darker ground: a ring of it around the
+     panes, and the divider gap showing it between them. */
+  .m-screen.grouped {
+    background: var(--neutral-300);
+    border-radius: var(--radius-12);
+    padding: var(--space-8);
+  }
+  
+  .m-screen.grouped > .split {
+    height: 100%;
+  }
+  
+  /* The selected screen is live — no shield — so its inner dividers drag
+     and its artifacts are the interactive ones. */
+  .m-screen.selected > .m-shield {
+    display: none;
+  }
+  
+  /* Drop target: the half of the ACTIVE card a dragged artifact would join. */
+  .g-zone {
+    position: absolute;
+    z-index: 5;
+    background: var(--blue-200);
+    opacity: 0.6;
+    border-radius: var(--radius-8);
+    pointer-events: none;
+  }
+  
+  .g-ghost {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+    padding: var(--space-4) var(--space-10);
+    border-radius: var(--radius-6);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    opacity: 0.9;
+  }
+  
+  body.dragging iframe {
+    pointer-events: none;
+  }
+  
+  /* Full-screen shows on the strip too: the selected tab wears a ring while
+     its artifact is popped. */
+  .tab-strip.fullscreen .tab[aria-selected="true"] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import { installTrafficLights } from "../../lib/traffic-lights.ts";
+  import { pane, split, build, flushStyles, SPLIT_CSS } from "../../lib/splits.ts";
+  import tabTpl from "../../../specs/ui/app/stage/tab-strip/tab.liquid";
+  import sidebarTpl from "../../../specs/ui/app/sidebar/template.liquid";
+  import skillsTpl from "../../../specs/ui/app/skill-selector/template.liquid";
+  import appCss from "../../../specs/ui/app/styles.css?inline";
+  import stripCss from "../../../specs/ui/app/stage/tab-strip/tab-strip.css?inline";
+  import { PAGE_INITIAL_HEIGHT_PX, PAGE_INITIAL_WIDTH_PX } from "../../lib/stage-measures.ts";
+  document.head.insertAdjacentHTML("beforeend", `<style>${appCss}\n${stripCss}\n${SPLIT_CSS}</style>`);
+  installTrafficLights(document.querySelector(".window"));
+  
+  const collected = new Set();
+  const collect = ({ markup, styles }) => {
+    styles.forEach((r) => collected.add(r));
+    return markup;
+  };
+  
+  // The chrome: the spec's sidebar and skill selector, sample content.
+  document.querySelector("[data-sidebar]").innerHTML = collect(
+    sidebarTpl({
+      pinned: [{ name: "Today", selected: true }, { name: "Business ops" }],
+      unpinned: [{ name: "Kitchen reno" }, { name: "Trip planning" }],
+    }),
+  );
+  document.querySelector("[data-skills]").innerHTML = collect(skillsTpl({}));
+  
+  // Real artifacts: the productivity onboarding designs, hosted as fixture
+  // pages (Onboarding → Productivity in the sidebar).
+  const ARTIFACTS = [
+    { name: "Today's calendar", src: "/specs/ui/onboarding-artifacts/productivity/todays-calendar" },
+    { name: "Priorities today", src: "/specs/ui/onboarding-artifacts/productivity/priorities-today" },
+    { name: "Company to-dos", src: "/specs/ui/onboarding-artifacts/productivity/company-todos" },
+    { name: "Meeting prep", src: "/specs/ui/onboarding-artifacts/productivity/meeting-prep" },
+  ];
+  
+  const viewport = document.querySelector(".m-viewport");
+  const row = document.querySelector(".m-row");
+  const strip = document.querySelector("[data-strip]");
+  
+  // The workshop keeps only the ordinary and full-screen modes. Ordinary
+  // dimensions are read from the authoritative stage sheet rather than
+  // repeated as controls or per-page state.
+  // A page's size is its own state, not the sheet's ([[ui/app/stage/index.md]], Page sizing);
+  // this board poses every screen at the authored initial size, deliberately
+  // without the stage's scaling factor — it is a freeform composition
+  // exploration, not a spec board; the stage boards apply the factor.
+  const ORDINARY_WIDTH_PX = PAGE_INITIAL_WIDTH_PX;
+  const ORDINARY_HEIGHT_PX = PAGE_INITIAL_HEIGHT_PX;
+  const MODES = ["overview-mode", "fullscreen"];
+  const params = new URLSearchParams(location.search);
+  const numberParam = (key, fallback) => {
+    const value = Number(params.get(key));
+    return params.has(key) && Number.isFinite(value) ? value : fallback;
+  };
+  const knobs = {
+    dnd: params.get("dnd") === "true",
+    gap: Math.max(0, numberParam("gap", 16)),
+    scale: Math.min(100, Math.max(50, numberParam("scale", 94))),
+    fade: Math.min(100, Math.max(0, numberParam("fade", 55))),
+  };
+  const requestedMode = params.get("mode");
+  let mode = MODES.includes(requestedMode) ? requestedMode : MODES[0];
+  // Overview's double-click expands the composition to full-screen geometry
+  // while the mode control itself stays in overview-mode.
+  let overviewExpanded = false;
+  let selected = 0;
+  
+  // A screen is a carousel slot: a pane, or a split composition of panes
+  // (the stage spec's grammar). Grouping merges screens — and their tabs.
+  const screens = ARTIFACTS.map((a) => ({ tree: pane(a.src), names: [a.name] }));
+  
+  const buildOpts = { minPx: (size) => Math.min(240, size * 0.3) };
+  
+  // ---- row ----
+  const renderRow = () => {
+    row.innerHTML = "";
+    screens.forEach((screenData, index) => {
+      const screen = document.createElement("div");
+      screen.className = "m-screen";
+      screen.classList.toggle("grouped", screenData.tree.type === "split");
+      screen.append(build(screenData.tree, buildOpts));
+      const shield = document.createElement("div");
+      shield.className = "m-shield";
+      shield.addEventListener("pointerdown", (ev) => beginPress(ev, index, screenData.names.join(" + ")));
+      shield.addEventListener("dblclick", () => popScreen(index));
+      screen.append(shield);
+      screen.addEventListener("dblclick", (ev) => {
+        // The selected screen has no shield; its chrome (frame margins,
+        // dividers) still accepts the pop gesture.
+        if (index === selected && !ev.target.closest(".m-shield")) popScreen(index);
+      });
+      row.append(screen);
+    });
+    flushStyles();
+    document.head.insertAdjacentHTML("beforeend", `<style>${[...collected].join("\n")}</style>`);
+  };
+  
+  // Double-click toggles the composition between its authored ordinary and
+  // full-screen boxes. The mode control may also hold it full-screen.
+  const popScreen = (index) => {
+    select(index);
+    if (mode === "fullscreen") return;
+    if (mode === "overview-mode") overviewExpanded = !overviewExpanded;
+    layout();
+    saveControls();
+  };
+  
+  // ---- strip: one tab per screen; group screens merge their names ----
+  const buildStrip = () => {
+    strip.innerHTML = "";
+    screens.forEach((screenData, i) => {
+      const holder = document.createElement("div");
+      holder.innerHTML = collect(tabTpl({ tab: { name: screenData.names.join(" + "), selected: i === selected } }));
+      const tabEl = holder.querySelector(".tab");
+      tabEl.addEventListener("pointerdown", (ev) => {
+        beginPress(ev, i, screenData.names.join(" + "));
+      });
+      tabEl.addEventListener("dblclick", (ev) => {
+        popScreen(i);
+      });
+      strip.append(tabEl);
+    });
+    document.head.insertAdjacentHTML("beforeend", `<style>${[...collected].join("\n")}</style>`);
+  };
+  
+  const syncStrip = () => {
+    [...strip.querySelectorAll(".tab")].forEach((tabEl, i) => {
+      tabEl.setAttribute("aria-selected", String(i === selected));
+      tabEl.setAttribute("tabindex", i === selected ? "0" : "-1");
+    });
+  };
+  
+  // ---- geometry ----
+  const GAP = 12;
+  // A group's size is whatever its screen already had — merging never
+  // resizes the slot.
+  const isExpanded = () => mode === "fullscreen" || (mode === "overview-mode" && overviewExpanded);
+  const widthOf = (i, inner) => isExpanded() && i === selected ? inner : Math.min(ORDINARY_WIDTH_PX, inner);
+  const GROUP_PAD = 8; // the grouped screen's ring padding (CSS)
+  const layout = () => {
+    const fs = isExpanded();
+    const inner = viewport.clientWidth - 24; // minus the viewport padding
+    const gap = fs ? GAP : knobs.gap;
+    const ws = screens.map((_, i) => widthOf(i, inner));
+    // The gap reads between white content, so a grouped neighbour's ring
+    // padding is subtracted from the margin beside it.
+    const grouped = screens.map((scr) => scr.tree.type === "split");
+    const margins = screens.map((_, i) =>
+      Math.max(
+        0,
+        gap - (grouped[i] ? GROUP_PAD : 0) - (grouped[i + 1] ? GROUP_PAD : 0),
+      ),
+    );
+    for (const [i, screen] of [...row.children].entries()) {
+      const full = fs && i === selected;
+      screen.style.width = `${ws[i]}px`;
+      screen.style.height = full ? "100%" : `${Math.min(ORDINARY_HEIGHT_PX, viewport.clientHeight - 24)}px`;
+      screen.style.marginRight = `${margins[i]}px`;
+      screen.classList.toggle("selected", i === selected);
+    }
+    const before = ws.slice(0, selected).reduce((a, b, j) => a + b + margins[j], 0);
+    row.style.translate = `${-before + (inner - ws[selected]) / 2}px 0`;
+    row.style.setProperty("--neighbour-scale", fs ? "1" : String(knobs.scale / 100));
+    row.style.setProperty("--neighbour-fade", fs ? "1" : String(knobs.fade / 100));
+    strip.classList.toggle("fullscreen", fs);
+  };
+  
+  const select = (i) => {
+    selected = i;
+    syncStrip();
+    layout();
+  };
+  
+  const setMode = (next) => {
+    mode = next;
+    layout();
+  };
+  new ResizeObserver(layout).observe(viewport);
+  
+  // The frame URL persists the declared controls. Local storage retains the
+  // overview expansion, which is direct interaction state rather than a knob.
+  const STORAGE_KEY = "stage-modes-controls";
+  const saveControls = () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        mode,
+        overviewExpanded,
+        dnd: knobs.dnd,
+        gap: knobs.gap,
+        scale: knobs.scale,
+        fade: knobs.fade,
+      }),
+    );
+  };
+  const restoreControls = () => {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+    if (!saved) return;
+    overviewExpanded = !!saved.overviewExpanded;
+  };
+  
+  // ---- grouping: drag a tab or a peeked card into the ACTIVE card ----
+  // Grammar gates (stage spec, Panes): two-slot splits, alternation, two
+  // levels deep. Wrapping the target tree with a new split must leave every
+  // split's children legal and the whole at most two levels.
+  const depthOf = (n) => (n.type === "pane" ? 0 : 1 + Math.max(depthOf(n.a), depthOf(n.b)));
+  const okChild = (n, dir) => n.type === "pane" || n.dir !== dir;
+  const allowedDirs = (target, source) =>
+    ["h", "v"].filter(
+      (d) => okChild(target, d) && okChild(source, d) && 1 + Math.max(depthOf(target), depthOf(source)) <= 2,
+    );
+  
+  const deepElementFromPoint = (x, y) => {
+    let el = document.elementFromPoint(x, y);
+    while (el?.shadowRoot) {
+      const inner = el.shadowRoot.elementFromPoint(x, y);
+      if (!inner || inner === el) break;
+      el = inner;
+    }
+    return el;
+  };
+  
+  let zoneEl = null;
+  const clearZone = () => {
+    zoneEl?.remove();
+    zoneEl = null;
+  };
+  const showZone = (screenEl, dir, first) => {
+    clearZone();
+    zoneEl = document.createElement("div");
+    zoneEl.className = "g-zone";
+    zoneEl.style.inset =
+      dir === "h" ? (first ? "0 50% 0 0" : "0 0 0 50%") : first ? "0 0 50% 0" : "50% 0 0 0";
+    screenEl.append(zoneEl);
+  };
+  
+  // A press on a tab or shield: a click selects; with drag & drop enabled, a
+  // move beyond the threshold becomes a drag into the active card.
+  function beginPress(down, sourceIndex, label) {
+    if (!knobs.dnd) {
+      select(sourceIndex);
+      return;
+    }
+    down.preventDefault();
+    const startX = down.clientX;
+    const startY = down.clientY;
+    let dragging = false;
+    let ghost = null;
+    let zone = null;
+    const move = (ev) => {
+      if (!dragging) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 4) return;
+        dragging = true;
+        document.body.classList.add("dragging");
+        ghost = document.createElement("div");
+        ghost.className = "g-ghost";
+        ghost.textContent = label;
+        document.body.append(ghost);
+      }
+      ghost.style.left = `${ev.clientX + 10}px`;
+      ghost.style.top = `${ev.clientY + 12}px`;
+      zone = null;
+      clearZone();
+      if (sourceIndex === selected) return;
+      const targetEl = row.children[selected];
+      const r = targetEl.getBoundingClientRect();
+      const insideTarget =
+        ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+      if (!insideTarget) return;
+      const dirs = allowedDirs(screens[selected].tree, screens[sourceIndex].tree);
+      if (!dirs.length) return;
+      const x = (ev.clientX - r.left) / r.width;
+      const y = (ev.clientY - r.top) / r.height;
+      const candidates = [];
+      if (dirs.includes("h")) candidates.push({ d: x, dir: "h", first: true }, { d: 1 - x, dir: "h", first: false });
+      if (dirs.includes("v")) candidates.push({ d: y, dir: "v", first: true }, { d: 1 - y, dir: "v", first: false });
+      candidates.sort((a, b) => a.d - b.d);
+      zone = { ...candidates[0], targetEl };
+      showZone(targetEl, zone.dir, zone.first);
+    };
+    const up = () => {
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", up);
+      document.body.classList.remove("dragging");
+      clearZone();
+      ghost?.remove();
+      if (!dragging) {
+        select(sourceIndex);
+        return;
+      }
+      if (zone) mergeScreens(sourceIndex, zone.dir, zone.first);
+    };
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", up);
+  }
+  
+  const mergeScreens = (sourceIndex, dir, first) => {
+    const target = screens[selected];
+    const source = screens[sourceIndex];
+    target.tree = first ? split(dir, source.tree, target.tree) : split(dir, target.tree, source.tree);
+    target.names = first ? [...source.names, ...target.names] : [...target.names, ...source.names];
+    screens.splice(sourceIndex, 1);
+    if (sourceIndex < selected) selected -= 1;
+    renderRow();
+    buildStrip();
+    layout();
+  };
+  
+  const reset = () => {
+    screens.length = 0;
+    for (const a of ARTIFACTS) {
+      screens.push({ tree: pane(a.src), names: [a.name] });
+    }
+    selected = 0;
+    renderRow();
+    buildStrip();
+    layout();
+  };
+  
+  // Boot: restore persisted state first, so both the layout and the control
+  // URL-derived state start together.
+  restoreControls();
+  document.querySelector("[data-reset]").addEventListener("click", reset);
+  renderRow();
+  buildStrip();
+  setMode(mode);
+
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!--
+  Design workshop (off-spec): two modes for the stage — regular and
+  full-screen — mocked inside the app's chrome. The sidebar and skill
+  selector are the spec's own templates; the tab strip is the spec's tabs
+  CENTRED in the bar (a deliberate departure from the top-bar spec's
+  leading-edge strip, part of what this workshop is judging). Regular mode
+  shows the selected artifact as a centred portrait-ish card with its
+  siblings adjacent — partially visible, faded, smaller; full-screen is the
+  spec'd stage (the card exactly the stage). One geometry, so mode changes
+  morph with the same transition as selection.
+
+  No free horizontal movement: selection (tab, or pressing a peeked
+  sibling) is the only mover. Double-click — on a card or its tab — pops
+  full screen and back. The strip is built once and selection updates
+  attributes in place: a rebuild would destroy the element between a
+  double-click's two clicks.
+
+  Candidate values live in the frame's declared controls (frameset renders
+  them on whatever surface shows this frame). Nothing here is reference.
+  ./index.frame is the sheet that stages this document at the design size.
+-->
+
+
+
+<div class="window">
+  <div id="app">
+    <aside class="app-sidebar" data-sidebar></aside>
+    <main class="m-stage-col">
+      <div class="m-bar">
+        <div class="tab-strip" role="tablist" data-strip></div>
+        <div class="m-bar-controls">
+          <button type="button" size="sm" data-reset>Reset</button>
+          <div data-skills></div>
+        </div>
+      </div>
+      <div class="m-viewport">
+        <div class="m-row"></div>
+      </div>
+    </main>
+  </div>
+</div>

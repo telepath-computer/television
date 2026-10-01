@@ -1,0 +1,52 @@
+/*
+ * Storybook staging defaults: the stage a story sits on, and the box a frame
+ * renders in.
+ *
+ * Loaded once into the preview document (.storybook/preview.ts), so stories
+ * do not link it themselves. A staging document that is itself a stage —
+ * one holding its own boxes inside an isolated frame — links it into that
+ * document, since preview styles do not cross an iframe boundary.
+ *
+ * Self-contained on purpose: system fonts and literal colors, no design
+ * tokens, so staging never depends on product styles. The storybook-prefixed
+ * classes mark staging apparatus — never product markup.
+ *
+ * Deliberately no frame dimensions: a box's size belongs to the story that
+ * asks for it, set inline from its frame options.
+ */
+
+:root {
+  --storybook-bg: #f0f0f0;
+}
+
+.storybook-stage {
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--storybook-bg);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  overflow: auto;
+}
+
+.storybook-frame {
+  flex: none;
+  display: flex;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.storybook-caption {
+  flex: none;
+  max-width: 720px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #888;
+  text-align: center;
+}

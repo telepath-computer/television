@@ -1,0 +1,58 @@
+/* The menu interior ([[ui/foundation/menu/index.md]]): the panel is the
+   popover's box ([[ui/foundation/popover/styles.css]]); these rules state
+   what a menu holds inside it. */
+:where(tv-menu) {
+  min-width: 180px;
+  padding: var(--space-4);
+}
+
+:where(tv-menu-item) {
+  display: flex;
+  align-items: center;
+  /* The control line, stated as the button states it — a menu row is a
+     control, not prose, and inherits prose leading without this. */
+  font-size: var(--text-md);
+  line-height: var(--line-control);
+  /* A deeper inset than a control's row padding, and no border at all —
+     menu rows read as one list, and sit denser than controls standing
+     alone. */
+  padding: var(--space-3) var(--space-10);
+  /* The panel's radius less its padding, so the two curves sit concentric. */
+  border-radius: calc(var(--panel-radius) - var(--space-4));
+  cursor: default;
+}
+
+/* One highlight: the hover tint stands down while the keyboard holds the
+   highlight (a script focus from pointing shows no :focus-visible, so the
+   pointer path keeps its tint); the mouse moving again takes it back. */
+:where(tv-menu:not(:has(:focus-visible)) tv-menu-item:hover),
+:where(tv-menu-item:focus-visible) {
+  background: var(--option-background-highlighted);
+  outline: none;
+}
+
+:where(tv-menu-item:active) {
+  background: var(--option-background-active);
+}
+
+/* The destructive treatment: the danger situation as text, and the
+   situation's own tints, stated explicitly so a theme
+   overrides the pigment through the role. */
+:where(tv-menu-item[intent="danger"]) {
+  color: var(--color-danger);
+}
+
+:where(tv-menu:not(:has(:focus-visible)) tv-menu-item[intent="danger"]:hover),
+:where(tv-menu-item[intent="danger"]:focus-visible) {
+  background: var(--tint-danger-hover);
+}
+
+:where(tv-menu-item[intent="danger"]:active) {
+  background: var(--tint-danger-active);
+}
+
+:where(tv-menu hr) {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-4) calc(-1 * var(--space-4));
+}

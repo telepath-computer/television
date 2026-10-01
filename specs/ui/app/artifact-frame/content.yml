@@ -1,0 +1,4 @@
+# The title bar's copy ([[ui/app/artifact-frame/index.md]]).
+back_aria_label: Back
+forward_aria_label: Forward
+return_aria_label: Return to the original page

@@ -1,0 +1,11 @@
+---
+params:
+  state: { enum: [connecting, disconnected-countdown, disconnected-now, unauthorized, unauthorized-invalid, error, needs-upgrade], default: connecting }
+script: |
+  import "./mount.ts";
+---
+<!-- The production system-modal view, mounted with staging-owned state and a
+     shallow application fake. Production foundation and surface styles are
+     imported by ./mount.ts. -->
+
+<main id="system-modal-implementation"></main>

@@ -1,0 +1,156 @@
+---
+params:
+  shape: { enum: [One, "Two ↔", "Two ↕", "Three ↔", "Three ↕", "Four ↔", "Four ↕"], default: One }
+  minPx: { type: number, default: 240, minimum: 0, multipleOf: 10, title: min px }
+  minPct: { type: number, default: 30, minimum: 0, maximum: 100, multipleOf: 5, title: min % }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* Staging chrome: the board resizes from its corner, centre held (the
+     body's centring does the holding). The frame's own size is the embedding
+     surface's, so the board caps at the viewport. */
+  .stage-wrap {
+    position: relative;
+  }
+  
+  .corner-handle {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 2px solid var(--white);
+    cursor: nwse-resize;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import { pane, split, build, flushStyles, SPLIT_CSS } from "../../lib/splits.ts";
+  document.head.insertAdjacentHTML("beforeend", `<style>${SPLIT_CSS}</style>`);
+  
+  // Two distinct Fours: the continuous line is the outer split's, the other
+  // axis is per-slot independent — drag a cross-axis divider to see it.
+  const SHAPES = [
+    ["One", () => pane()],
+    ["Two ↔", () => split("h", pane(), pane())],
+    ["Two ↕", () => split("v", pane(), pane())],
+    ["Three ↔", () => split("h", pane(), split("v", pane(), pane()))],
+    ["Three ↕", () => split("v", pane(), split("h", pane(), pane()))],
+    ["Four ↔", () => split("h", split("v", pane(), pane()), split("v", pane(), pane()))],
+    ["Four ↕", () => split("v", split("h", pane(), pane()), split("h", pane(), pane()))],
+  ];
+  
+  const board = document.querySelector(".shape");
+  
+  const params = new URLSearchParams(location.search);
+  const numberParam = (key, fallback) => {
+    const value = Number(params.get(key));
+    return params.has(key) && Number.isFinite(value) ? value : fallback;
+  };
+  const requestedShape = params.get("shape");
+  const initialShape = SHAPES.find(([label]) => label === requestedShape) ?? SHAPES[0];
+  let minPxValue = Math.max(0, numberParam("minPx", 240));
+  let minPctValue = Math.min(100, Math.max(0, numberParam("minPct", 30)));
+  
+  // The playground's state — active shape, its ratios, the minimum, the
+  // board size — kept in localStorage so a reload lands where you left off.
+  const STORAGE_KEY = "splits-playground";
+  let activeLabel = null;
+  let currentTree = null;
+  const save = () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        label: activeLabel,
+        tree: currentTree,
+        minPx: minPxValue,
+        minPct: minPctValue,
+        stage: [board.style.width.replace("px", ""), board.style.height.replace("px", "")],
+      }),
+    );
+  };
+  
+  // The effective minimum is the smaller of the two candidates: the px value
+  // is the floor on roomy containers, and the percentage takes over on small
+  // ones, where a fixed floor would become unsatisfiable.
+  const minPx = (containerSize) => Math.min(minPxValue, (containerSize * minPctValue) / 100);
+  
+  const buildOpts = { minPx, onSettle: () => save() };
+  
+  const show = (label, tree) => {
+    activeLabel = label;
+    currentTree = tree;
+    board.innerHTML = "";
+    board.append(build(tree, buildOpts));
+    flushStyles();
+    save();
+  };
+  
+  // Corner resize: the pointer states the corner, the centre stays put, so
+  // both dimensions read as twice the distance from centre to pointer —
+  // clamped to the viewport, which is the frame's fixed size, so the handle
+  // never leaves reach.
+  const setStageSize = (w, h) => {
+    board.style.width = `${Math.round(Math.min(Math.max(320, w), window.innerWidth))}px`;
+    board.style.height = `${Math.round(Math.min(Math.max(240, h), window.innerHeight))}px`;
+  };
+  document.querySelector(".corner-handle").addEventListener("pointerdown", (down) => {
+    down.preventDefault();
+    const handle = down.target;
+    handle.setPointerCapture(down.pointerId);
+    const move = (ev) => {
+      const rect = board.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      setStageSize(2 * (ev.clientX - cx), 2 * (ev.clientY - cy));
+    };
+    const up = () => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      save();
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+  });
+  
+  // Restore the requested shape's ratios and board size where possible.
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+  if (saved && saved.label === initialShape[0]) {
+    if (saved.stage) setStageSize(...saved.stage.map(Number));
+    else setStageSize(window.innerWidth, window.innerHeight);
+    show(saved.label, saved.tree);
+  } else {
+    setStageSize(window.innerWidth, window.innerHeight);
+    const [label, make] = initialShape;
+    show(label, make());
+  }
+
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!--
+  Design workshop (off-spec): a splits playground for the stage's pane
+  grammar (specs/ui/app/stage/index.md, Panes). The shape control builds each
+  shape the grammar admits, every divider is draggable, the minimum pane size
+  is a live control (px and % — the smaller wins), and the board resizes from
+  its corner. State persists in localStorage. Nothing here is reference; what
+  settles is formalized into the spec. The split machinery is shared with the
+  other Stage workshops: staging/lib/splits.ts.
+-->
+
+
+
+<div class="stage-wrap">
+  <div class="shape"></div>
+  <div class="corner-handle" title="Resize the board"></div>
+</div>

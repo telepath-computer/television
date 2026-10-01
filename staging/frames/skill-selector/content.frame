@@ -1,0 +1,19 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+  }
+  
+  /* Staging: the panel shown as plain content — in flow, always visible —
+     overriding the platform's hidden-until-shown and the placement's
+     anchoring. What is being judged here is the interior, not the float. */
+  body [popover] {
+    display: block;
+    position: static;
+  }
+script: |
+  import { mountSkillSelector } from "./selector.ts";
+
+  mountSkillSelector("content");
+---

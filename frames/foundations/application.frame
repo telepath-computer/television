@@ -1,0 +1,67 @@
+---
+title: Application
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main {
+    /* self-grounded: the theme control must paint its own world */
+    padding: 32px 40px 64px;
+    max-width: 1040px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  h1 { font-size: var(--text-lg); margin: 0 0 16px; }
+  h2 {
+    font-size: var(--text-sm); text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--color-text-muted); margin: 28px 0 8px;
+  }
+  .token { display: flex; align-items: center; gap: 12px; padding: 3px 0; font-family: var(--font-mono); font-size: 12px; }
+  .token .sw { width: 36px; height: 20px; border-radius: 4px; border: 1px solid oklch(0 0 0 / 10%); flex: none; }
+  .token .sw > div { width: 100%; height: 100%; border-radius: 4px; }
+  .token .name { min-width: 260px; }
+  .token .value { color: var(--color-text-muted); }
+  .checker { background: repeating-conic-gradient(oklch(0 0 0 / 8%) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px; }
+  .bar-row { display: flex; align-items: center; gap: 16px; padding: 3px 0; }
+  .bar-row > small { width: 220px; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
+  .bar { height: 16px; background: var(--accent-alpha-25); border-left: 1px solid var(--color-primary); border-right: 1px solid var(--color-primary); }
+  .corner { width: 96px; height: 56px; background: var(--control-background); border: 1px solid var(--color-border); }
+  .wallpaper { height: 96px; border-radius: var(--panel-radius); background: var(--app-wallpaper); border: 1px solid var(--color-border); margin-bottom: 8px; }
+  .shadow-sw { width: 96px; height: 40px; border-radius: var(--control-radius); background: var(--color-surface); border: 1px solid var(--color-border); }
+---
+<main>
+<!-- Static board for the application vocabulary ([[ui/foundation/tokens/app.css]]):
+     the component tokens of the chrome. Regenerate when the census changes. -->
+<h1>Application</h1>
+<h2>Wallpaper</h2>
+<div class="wallpaper"></div>
+<div class="token"><div class="sw"></div><span class="name">--app-wallpaper-image</span><span class="value">none — an optional image part over the color</span></div>
+<div class="token"><div class="sw" style="background: var(--app-wallpaper)"></div><span class="name">--app-wallpaper</span><span class="value">the composed value the shell paints</span></div>
+<h2>Stage</h2>
+<div class="bar-row"><small>page-gap</small><div class="bar" style="width: var(--page-gap)"></div></div>
+<div class="bar-row"><small>page-inset</small><div class="bar" style="width: var(--page-inset)"></div></div>
+<div class="token"><div class="sw" style="background: var(--color-surface); opacity: var(--page-inactive-opacity)"></div><span class="name">--page-inactive-opacity</span><span class="value">0.55 — a background page's presence</span></div>
+<div class="token"><div class="sw"></div><span class="name">--page-inactive-scale</span><span class="value">0.94 — a background page's shrink</span></div>
+<div class="token"><div class="sw checker"><div style="background: var(--page-snap-preview-border-color)"></div></div><span class="name">--page-snap-preview-border-color</span><span class="value">currentColor at alpha-25 — the armed snap's outline pigment</span></div>
+<div class="token"><div class="sw checker"><div style="background: var(--page-snap-preview-background)"></div></div><span class="name">--page-snap-preview-background</span><span class="value">transparent</span></div>
+<div class="bar-row"><small>page-snap-preview-border-width</small><div class="bar" style="width: var(--page-snap-preview-border-width)"></div></div>
+<div class="bar-row"><small>page-snap-preview-radius</small><div class="corner" style="border-radius: var(--page-snap-preview-radius)"></div></div>
+<h2>Tab</h2>
+<div class="bar-row"><small>tab-radius</small><div class="corner" style="border-radius: var(--tab-radius)"></div></div>
+<div class="bar-row"><small>tab-gap</small><div class="bar" style="width: var(--tab-gap)"></div></div>
+<div class="token"><div class="sw" style="border: var(--tab-border); background: var(--tab-background-selected)"></div><span class="name">--tab-border</span><span class="value">var(--wallpaper-overlay-border) — the complete overlay border</span></div>
+<div class="token"><div class="sw checker"><div style="background: var(--tab-background)"></div></div><span class="name">--tab-background</span><span class="value">transparent — rest is surfaceless</span></div>
+<div class="token"><div class="sw checker"><div style="background: var(--tab-background-hover)"></div></div><span class="name">--tab-background-hover</span><span class="value">interpolation from resting to active background</span></div>
+<div class="token"><div class="sw checker"><div style="background: var(--tab-background-active)"></div></div><span class="name">--tab-background-active</span><span class="value">var(--wallpaper-overlay-background-active)</span></div>
+<div class="token"><div class="sw" style="background: var(--tab-background-selected)"></div><span class="name">--tab-background-selected</span><span class="value">var(--color-surface-muted)</span></div>
+<div class="token"><div class="sw" style="border: var(--tab-border-selected)"></div><span class="name">--tab-border-selected</span><span class="value">1px solid var(--surface-border-color) — the selected edge</span></div>
+<h2>Drag</h2>
+<div class="token"><div class="sw checker"><div style="background: var(--drag-placeholder-background)"></div></div><span class="name">--drag-placeholder-background</span><span class="value">text pigment at alpha-10 — the "could land here" mark</span></div>
+<div class="token"><div class="shadow-sw" style="box-shadow: var(--drag-item-shadow)"></div><span class="name">--drag-item-shadow</span><span class="value">the carried item's lift</span></div>
+<div class="token"><div class="shadow-sw" style="box-shadow: var(--drag-action-shadow)"></div><span class="name">--drag-action-shadow</span><span class="value">the action pill's contact shadow</span></div>
+<h2>Bar and frame</h2>
+<div class="bar-row"><small>navbar-gap</small><div class="bar" style="width: var(--navbar-gap)"></div></div>
+<div class="bar-row"><small>frame-radius</small><div class="corner" style="border-radius: var(--frame-radius)"></div></div>
+</main>

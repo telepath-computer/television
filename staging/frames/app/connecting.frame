@@ -1,0 +1,10 @@
+---
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ state: "connecting" });
+---
+<!-- The app, never yet connected (staging): the dialog over no chrome. -->
+
+<div class="window">
+</div>

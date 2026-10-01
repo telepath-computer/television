@@ -1,0 +1,26 @@
+{
+  "name": "@telepath-computer/television-server",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "scripts/build.sh",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@rupertsworld/event-target": "0.1.2",
+    "@telepath-computer/television-artifact": "*",
+    "@telepath-computer/television-shared": "*",
+    "@telepath-computer/utils": "*",
+    "express": "4.22.3",
+    "marked": "17.0.5",
+    "send": "0.19.2",
+    "ulid": "3.0.2",
+    "ws": "8.22.0",
+    "zod": "4.3.6"
+  }
+}

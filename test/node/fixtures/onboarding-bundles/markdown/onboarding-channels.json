@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "md-notes",
+  "channels": [
+    {
+      "slug": "md-notes",
+      "name": "Notes",
+      "artifacts": [
+        {
+          "slug": "guide",
+          "title": "Guide"
+        }
+      ]
+    }
+  ]
+}

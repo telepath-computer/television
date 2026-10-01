@@ -1,0 +1,521 @@
+/* Canonical v1 ([[arch/canonical.md]], v1): the stylesheet an
+   artifact linking /canonical/v1/styles.css receives, composed from the
+   foundation and elements specified beside this file as v1 shipped them;
+   compat.css holds the public names v1 shipped that the foundation had already
+   retired. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* The document's base typography, stated once at the root: surfaces inherit
+   rather than restate, and the form controls below inherit it in turn. */
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  color: var(--color-text);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+blockquote,
+pre,
+hr {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Hind — the committed variable cut, weights 300–700. */
+@font-face {
+  font-family: "Hind";
+  src: url(/canonical/v1/fonts/Hind-Variable.933e9900.woff2) format("woff2-variations");
+  font-weight: 300 700;
+  font-display: block;
+}
+
+:root {
+  /* Colors */
+  --black: #000000;
+  --white: #ffffff;
+
+  /* Neutral */
+  --neutral-50: oklch(98.5% 0 none);
+  --neutral-100: oklch(97% 0 none);
+  --neutral-200: oklch(92.2% 0 none);
+  --neutral-300: oklch(87% 0 none);
+  --neutral-400: oklch(70.8% 0 none);
+  --neutral-500: oklch(55.6% 0 none);
+  --neutral-600: oklch(43.9% 0 none);
+  --neutral-700: oklch(37.1% 0 none);
+  --neutral-800: oklch(26.9% 0 none);
+  --neutral-900: oklch(20.5% 0 none);
+  --neutral-950: oklch(14.5% 0 none);
+
+  /* Alpha */
+  --alpha-50: 4%;
+  --alpha-100: 8%;
+  --alpha-200: 15%;
+  --alpha-300: 22%;
+  --alpha-400: 30%;
+  --alpha-500: 40%;
+  --alpha-600: 50%;
+  --alpha-700: 65%;
+  --alpha-800: 80%;
+  --alpha-900: 90%;
+  --alpha-950: 95%;
+
+  /* Blue */
+  --blue-50: oklch(0.97 0.014 254.604);
+  --blue-100: oklch(0.932 0.032 255.585);
+  --blue-200: oklch(0.882 0.059 254.128);
+  --blue-300: oklch(0.809 0.105 251.813);
+  --blue-400: oklch(0.707 0.165 254.624);
+  --blue-500: oklch(0.623 0.214 259.815);
+  --blue-600: oklch(0.546 0.245 262.881);
+  --blue-700: oklch(0.488 0.243 264.376);
+  --blue-800: oklch(0.424 0.199 265.638);
+  --blue-900: oklch(0.379 0.146 265.522);
+
+  /* Red — the destructive and error hue: a press that destroys, a rejected
+     token, a failure line. Tailwind's red, like the blue. */
+  --red-50: oklch(0.971 0.013 17.38);
+  --red-100: oklch(0.936 0.032 17.717);
+  --red-200: oklch(0.885 0.062 18.334);
+  --red-300: oklch(0.808 0.114 19.571);
+  --red-400: oklch(0.704 0.191 22.216);
+  --red-500: oklch(0.637 0.237 25.331);
+  --red-600: oklch(0.577 0.245 27.325);
+  --red-700: oklch(0.505 0.213 27.518);
+  --red-800: oklch(0.444 0.177 26.899);
+  --red-900: oklch(0.396 0.141 25.723);
+
+  /* Yellow — the attention color: worn by things that need noticing exactly
+     while they apply (the update bell), never for emphasis, which is the key
+     color's job. */
+  --yellow-50: oklch(0.987 0.026 102.212);
+  --yellow-100: oklch(0.973 0.071 103.193);
+  --yellow-200: oklch(0.945 0.129 101.54);
+  --yellow-300: oklch(0.905 0.182 98.111);
+  --yellow-400: oklch(0.852 0.199 91.936);
+  --yellow-500: oklch(0.795 0.184 86.047);
+  --yellow-600: oklch(0.681 0.162 75.834);
+  --yellow-700: oklch(0.554 0.135 66.442);
+  --yellow-800: oklch(0.476 0.114 61.907);
+  --yellow-900: oklch(0.421 0.095 57.708);
+  --yellow-950: oklch(0.286 0.066 53.813);
+
+  /* Green, orange, purple — accent ramps. Tailwind's values, like the
+     blue. */
+  --green-50: oklch(0.982 0.018 155.826);
+  --green-100: oklch(0.962 0.044 156.743);
+  --green-200: oklch(0.925 0.084 155.995);
+  --green-300: oklch(0.871 0.15 154.449);
+  --green-400: oklch(0.792 0.209 151.711);
+  --green-500: oklch(0.723 0.219 149.579);
+  --green-600: oklch(0.627 0.194 149.214);
+  --green-700: oklch(0.527 0.154 150.069);
+  --green-800: oklch(0.448 0.119 151.328);
+  --green-900: oklch(0.393 0.095 152.535);
+
+  --orange-50: oklch(0.98 0.016 73.684);
+  --orange-100: oklch(0.954 0.038 75.164);
+  --orange-200: oklch(0.901 0.076 70.697);
+  --orange-300: oklch(0.837 0.128 66.29);
+  --orange-400: oklch(0.75 0.183 55.934);
+  --orange-500: oklch(0.705 0.213 47.604);
+  --orange-600: oklch(0.646 0.222 41.116);
+  --orange-700: oklch(0.553 0.195 38.402);
+  --orange-800: oklch(0.47 0.157 37.304);
+  --orange-900: oklch(0.408 0.123 38.172);
+
+  --purple-50: oklch(0.977 0.014 308.299);
+  --purple-100: oklch(0.946 0.033 307.174);
+  --purple-200: oklch(0.902 0.063 306.703);
+  --purple-300: oklch(0.827 0.119 306.383);
+  --purple-400: oklch(0.714 0.203 305.504);
+  --purple-500: oklch(0.627 0.265 303.9);
+  --purple-600: oklch(0.558 0.288 302.321);
+  --purple-700: oklch(0.496 0.265 301.924);
+  --purple-800: oklch(0.438 0.218 303.724);
+  --purple-900: oklch(0.381 0.176 304.987);
+
+  /* Tint */
+  --tint-50: color-mix(in srgb, currentColor var(--alpha-50), transparent);
+  --tint-100: color-mix(in srgb, currentColor var(--alpha-100), transparent);
+  --tint-200: color-mix(in srgb, currentColor var(--alpha-200), transparent);
+  --tint-300: color-mix(in srgb, currentColor var(--alpha-300), transparent);
+  --tint-400: color-mix(in srgb, currentColor var(--alpha-400), transparent);
+  --tint-500: color-mix(in srgb, currentColor var(--alpha-500), transparent);
+  --tint-600: color-mix(in srgb, currentColor var(--alpha-600), transparent);
+  --tint-700: color-mix(in srgb, currentColor var(--alpha-700), transparent);
+  --tint-800: color-mix(in srgb, currentColor var(--alpha-800), transparent);
+  --tint-900: color-mix(in srgb, currentColor var(--alpha-900), transparent);
+  --tint-950: color-mix(in srgb, currentColor var(--alpha-950), transparent);
+
+  /* Color roles — what a color is for, resolved onto the ramps above. */
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-500);
+  /* The interface's key color — what carries emphasis and marks the thing
+     you are on. Selection reads as this rather than as a heavier grey, so
+     "hovered" and "selected" differ in hue, not just in weight. */
+  --color-primary: var(--blue-600);
+  /* A fill and the text that survives on it are a pair. Naming the foreground
+     keeps the contrast a stated decision rather than something each use site
+     guesses at — white on blue-500 measures 3.76:1 and fails AA at body size. */
+  --color-on-primary: var(--white);
+  --color-selected: var(--color-primary);
+  /* What the app's own content sits on, behind the surfaces it holds. Darker
+     than those surfaces rather than lighter, so a white one reads as lifted
+     off it — a gap of background is how the app shows where its own chrome
+     ends and something it is holding begins. */
+  --color-background: var(--neutral-200);
+  /* The ground of a document or artifact the app holds. Surface vocabulary
+     belongs to that held content; the chrome's own ground stays
+     --color-background. */
+  --color-surface: var(--white);
+  /* A quiet region within a held surface: distinct without reading as a
+     second layer of app chrome. */
+  --color-surface-muted: var(--neutral-100);
+  /* The ordinary seam between surface regions. Ten percent is deliberate:
+     the alpha ramp's neighbouring steps are too faint and too strong. */
+  --color-border: rgb(0 0 0 / 10%);
+  /* A repeated or subordinate seam should organize without boxing things in;
+     six percent stays below the ordinary border without disappearing. */
+  --color-border-muted: rgb(0 0 0 / 6%);
+  /* A link follows its surrounding text unless a theme gives it an accent. */
+  --color-link: inherit;
+  /* The destructive and error role. */
+  --color-danger: var(--red-600);
+  /* The affirmative and completed-state role. */
+  --color-success: var(--green-600);
+  /* The caution and warning role. */
+  --color-warning: var(--orange-600);
+
+  color-scheme: light;
+}
+
+:root {
+  /* Type */
+  /* The base the steps below compute from. */
+  --text-base: 14px;
+  --text-sm: round(calc(var(--text-md) / var(--text-scale)), 1px);
+  --text-md: var(--text-base);
+  --text-lg: round(calc(var(--text-md) * var(--text-scale)), 1px);
+  --text-xl: round(calc(var(--text-lg) * var(--text-scale)), 1px);
+  --text-2xl: round(calc(var(--text-xl) * var(--text-scale)), 1px);
+  --text-3xl: 24px;
+  --text-4xl: 30px;
+  --text-scale: 1.125;
+  --leading-base: 1.5;
+
+  /* Fonts */
+  --font-sans: "Hind", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-body: var(--font-weight-medium);
+  --font-weight-semibold: 600;
+}
+
+:root {
+  /* Spacing */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* Radius */
+  --radius-4: 4px;
+  --radius-6: 6px;
+  --radius-8: 8px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-24: 24px;
+  --radius-full: 9999px; /* pill — fully rounded ends at any element size */
+}
+
+:root {
+  /* The elevation a floating panel lifts off the page with: a broad soft
+     throw and a tight contact shadow. A role, not a ramp — there is one
+     elevation in the system; a scale grows if more appear. */
+  --shadow-panel:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Public names v1 shipped that the foundation has since retired, kept at their
+   shipped values or aliased to a same-meaning successor. */
+:root {
+  --color-bg: var(--neutral-50);
+  --color-bg-muted: var(--color-surface-muted);
+  --color-interactive: var(--neutral-200);
+  --color-interactive-hover: var(--neutral-300);
+  --color-focus-ring: var(--color-primary);
+  --color-overlay-backdrop: rgb(0 0 0 / 0.5);
+  --color-overlay-hover: color-mix(in srgb, var(--black) var(--alpha-100), transparent);
+  --color-overlay-active: color-mix(in srgb, var(--black) var(--alpha-300), transparent);
+  --color-highlight: rgb(255 255 255 / 0.5);
+
+  --font-brand: var(--font-sans);
+
+  --shadow-hairline: 0 0 0 0.5px var(--color-border);
+  --shadow-control:
+    0 1px 1px rgb(0 0 0 / 0.04),
+    0 2px 6px rgb(0 0 0 / 0.06);
+
+  --control-height-xs: 18px;
+  --control-height-sm: 24px;
+  --control-height-md: 28px;
+  --control-height-lg: 32px;
+
+  --layer-chrome: 100;
+  --layer-panel: 500;
+  --layer-overlay: 2000;
+
+  --backdrop-blur-glass: blur(20px) saturate(1.4);
+
+  --neutral-350: oklch(0.79 0 0);
+  --alpha-150: 11%;
+  --tint-150: color-mix(in srgb, currentColor var(--alpha-150), transparent);
+  --blue-950: oklch(0.282 0.091 267.935);
+  --orange-950: oklch(0.266 0.079 36.259);
+  --red-950: oklch(0.271 0.105 12.094);
+  --green-950: oklch(0.262 0.051 172.552);
+  --purple-950: oklch(0.283 0.141 291.089);
+}
+
+/* The prose treatment ([[ui/foundation/index.md]], Prose): document
+   typography for plain semantic HTML, written for a document that is the
+   sheet's own — an artifact's page. Selectors are bare elements at the
+   reset's own specificity, loading after it; a document's own styling,
+   arriving later still, outranks both. */
+
+/* The document's base, set at the root so the scale's steps follow. */
+:root {
+  --text-base: 14.5px;
+}
+
+body {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-body);
+  line-height: var(--leading-base);
+  /* The reset supplies the paired text colour. */
+  background: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The heading scale. */
+h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  margin: 0 0 var(--space-12);
+}
+
+h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+  margin: var(--space-24) 0 var(--space-8);
+}
+
+h3, h4, h5, h6 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-16) 0 var(--space-4);
+}
+
+/* Block rhythm. */
+p, ul, ol, blockquote, pre, hr, table, figure {
+  margin: 0 0 var(--space-12);
+}
+
+body > :last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+ul, ol {
+  padding-left: var(--space-24);
+}
+
+li + li {
+  margin-top: var(--space-4);
+}
+
+blockquote {
+  border-left: 2px solid var(--color-border);
+  padding-left: var(--space-12);
+  color: var(--color-text-muted);
+}
+
+code, kbd, samp {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-4);
+  padding: 1px var(--space-4);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-6);
+  padding: var(--space-12);
+  overflow-x: auto;
+}
+
+/* A block's code cell. */
+pre code {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  text-align: left;
+  font-weight: var(--font-weight-semibold);
+  background: var(--color-surface-muted);
+}
+
+th, td {
+  padding: var(--space-4) var(--space-12) var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* The header idiom. */
+header p {
+  color: var(--color-text-muted);
+}
+
+/* The heading's own bottom margin would collapse with the subtitle's; the
+   pair states its gap once. */
+header :is(h1, h2, h3, h4, h5, h6):has(+ p) {
+  margin-bottom: 0;
+}
+
+header :is(h1, h2, h3, h4, h5, h6) + p {
+  margin-top: var(--space-4);
+}
+
+tv-icon:not(:defined) {
+  display: inline-flex;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
+
+tv-icon:not(:defined)[size="sm"] { font-size: 16px; }
+
+tv-icon:not(:defined)[size="md"] { font-size: 20px; }
+
+tv-icon:not(:defined)[size="lg"] { font-size: 24px; }
+
+tv-icon:not(:defined)[size="xl"] { font-size: 32px; }
+
+/* The checklist's looks ([[ui/elements/checkbox-list/index.md]]): the list's
+   stack, the row's marker-and-content grid, and the done treatment.
+   `--checkbox-color` is the styling API ([[arch/ui/elements.md]]). */
+checkbox-list {
+  display: grid;
+  gap: var(--space-6);
+  margin: var(--space-12) 0;
+}
+
+checkbox-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1em minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: baseline;
+}
+
+/* The marker box, seated on the first line's text. */
+checkbox-item::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  align-self: start;
+  translate: 0 0.12em;
+  background: transparent;
+  border: 1px solid var(--tint-300);
+  border-radius: var(--radius-4);
+  box-sizing: border-box;
+  cursor: not-allowed;
+}
+
+checkbox-item[checked]::before {
+  background: var(--checkbox-color, var(--color-primary));
+  border-color: var(--checkbox-color, var(--color-primary));
+}
+
+/* The check, drawn as a mask over the marker's cell. */
+checkbox-item[checked]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.12em;
+  width: 1em;
+  height: 1em;
+  background: var(--color-surface);
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M10.2 3.1 5.1 8.2 2.4 5.5" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>') center / 80% no-repeat;
+}
+
+checkbox-item[checked] {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+}

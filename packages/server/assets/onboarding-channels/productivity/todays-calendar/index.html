@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today&#39;s Calendar</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css">
+<link rel="stylesheet" href="./calendar.css">
+<script type="module" src="./calendar.js"></script>
+<style>
+/* Today's Calendar ([[../index.md]]) fills the card edge to edge.
+   The tv-calendar skill supplies its appearance: the workshop loads source
+   components, and the bake links built assets. */
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+calendar-week {
+  height: 100vh;
+}
+
+</style>
+</head>
+<body>
+<calendar-week start-date="2026-07-08" days="1" start-hour="8">
+
+  <calendar-event title="Daily Standup" start="2026-07-08T09:00" end="2026-07-08T09:15" color="blue"></calendar-event>
+
+  <calendar-event title="Product Reliability Sync" start="2026-07-08T09:30" end="2026-07-08T10:00" color="green"></calendar-event>
+
+  <calendar-event title="NeonBank Champion Follow-up" start="2026-07-08T11:00" end="2026-07-08T11:30" color="blue"></calendar-event>
+
+  <calendar-event title="1:1 with Priya" start="2026-07-08T12:00" end="2026-07-08T12:30" color="purple"></calendar-event>
+
+  <calendar-event title="Issue Bash" start="2026-07-08T13:00" end="2026-07-08T14:00" color="orange"></calendar-event>
+
+  <calendar-event title="Acme AI CTO Call" start="2026-07-08T14:30" end="2026-07-08T15:00" color="orange"></calendar-event>
+
+  <calendar-event title="Seed Update Draft Review" start="2026-07-08T16:00" end="2026-07-08T16:30" color="yellow"></calendar-event>
+
+</calendar-week>
+</body>
+</html>

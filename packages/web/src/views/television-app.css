@@ -1,0 +1,172 @@
+/* Theme visual layers ([[ui/app/index.md]], Theme visual layers) — the
+   document-level sandwich around #app, deliberately outside the interface
+   layer vocabulary ([[ui/foundation/index.md]], Layers); the app spec
+   states these values. */
+#theme-iframe-background,
+#foreground-overlay,
+#theme-iframe-overlay {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  pointer-events: none !important;
+}
+
+#theme-iframe-background,
+#theme-iframe-overlay {
+  border: 0;
+  background: transparent;
+}
+
+:root[data-theme="light"] #theme-iframe-background,
+:root[data-theme="light"] #theme-iframe-overlay {
+  color-scheme: light !important;
+}
+
+:root[data-theme="dark"] #theme-iframe-background,
+:root[data-theme="dark"] #theme-iframe-overlay {
+  color-scheme: dark !important;
+}
+
+#theme-iframe-background {
+  z-index: 0 !important;
+}
+
+#foreground-overlay {
+  z-index: 2147483646 !important;
+}
+
+#theme-iframe-overlay {
+  z-index: 2147483647 !important;
+}
+
+#app {
+  position: relative;
+  z-index: 1 !important;
+  display: flex;
+  height: 100%;
+  /* A flex shell must be allowed to shrink below its contents. */
+  min-width: 0;
+}
+
+#app:focus {
+  outline: none;
+}
+
+.app-sidebar {
+  flex: none;
+  width: var(--sidebar-width);
+  /* Long channel content must not establish the shell's minimum width. */
+  min-width: 0;
+}
+
+/* The main region: the top bar over the stage. The bar belongs to the pages
+   it names, so it sits a tight gap above the stage rather than floating —
+   and takes the stage's inset, so a tab sits over the edge of the page
+   below it. */
+/* --navbar-gap is a root token ([[ui/foundation/tokens/app.css]]). */
+.app-main {
+  /* The sidebar's outer line sits beside its inner border without overlap. */
+  border-left: 1px solid transparent;
+  position: relative;
+  flex: 1;
+  /* Flex children otherwise refuse to shrink within the window. */
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--navbar-gap);
+  /* The ground beneath the bar and the stage's pages
+     ([[ui/app/index.md]], Markup and styling). */
+  background: var(--app-wallpaper);
+  /* A backdrop root confines tab blur to this wallpaper. Using opacity's
+     will-change behavior leaves opacity at 1 and preserves the viewport
+     containing block required by fixed-position popovers. */
+  will-change: opacity;
+}
+
+/* Clip the shared sharp shadow to the sidebar-facing seam. The one-pixel
+   box ends at the sidebar edge; fractional spread survives at DPR1. */
+.app-main::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 1px;
+  box-shadow: var(--panel-edge-shadow);
+  clip-path: inset(0 -1px 0 1px);
+  translate: -1px;
+  pointer-events: none;
+}
+
+.app-main > .top-bar {
+  /* An overflowing tab strip must not establish the main region's width. */
+  min-width: 0;
+  /* Match the outer horizontal control padding to the controls’ top inset. */
+  padding-inline: var(--app-bar-padding-inline);
+  /* The main region’s 1px seam is part of the outer left inset. */
+  padding-left: calc(var(--app-bar-padding-inline) - 1px);
+}
+
+/* Selection, off across the app ([[ui/app/index.md]], Selection). */
+#app {
+  user-select: none;
+}
+
+.sidebar-motion-toggle { display: none; }
+#app[data-sidebar-motion] { overflow: clip; }
+#app[data-sidebar-motion] * { transition: none !important; animation: none !important; }
+#app[data-sidebar-motion] > .app-sidebar {
+  margin-left: calc(var(--motion-boundary) - var(--sidebar-width));
+}
+#app[data-sidebar-motion] :is(.sidebar-collapse, .sidebar-expand) { visibility: hidden; }
+#app[data-sidebar-motion] .sidebar-titlebar > :not(.sidebar-collapse) { opacity: var(--motion-titlebar-opacity); }
+#app[data-sidebar-motion] .top-bar { position: relative; }
+#app[data-sidebar-motion] .top-bar-lead {
+  width: var(--motion-lead-reservation);
+  padding-left: 0;
+}
+#app[data-sidebar-motion] .channel-switcher {
+  position: absolute;
+  left: var(--motion-switcher-left);
+  opacity: var(--motion-switcher-opacity);
+  pointer-events: none;
+}
+#app[data-sidebar-motion] .sidebar-motion-toggle {
+  display: inline-grid;
+  place-items: center;
+  position: absolute;
+  z-index: 3;
+  top: var(--motion-toggle-top);
+  left: var(--motion-toggle-left);
+  width: var(--motion-toggle-width);
+  height: var(--motion-toggle-height);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sidebar-text-color);
+  -webkit-app-region: no-drag;
+}
+.sidebar-motion-toggle > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--control-radius);
+}
+.sidebar-motion-toggle > .expanded-paint {
+  clip-path: inset(0 calc(100% - var(--motion-toggle-wipe)) 0 0);
+}
+.sidebar-motion-toggle > .collapsed-paint {
+  color: var(--navbar-text-color);
+  background: var(--wallpaper-overlay-background);
+  border: var(--wallpaper-overlay-border);
+  outline: var(--wallpaper-overlay-outline);
+  outline-offset: 0;
+  backdrop-filter: blur(var(--wallpaper-overlay-blur));
+  clip-path: inset(0 0 0 var(--motion-toggle-wipe));
+}

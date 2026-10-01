@@ -1,0 +1,15 @@
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
+}
+
+[electron-draggable] {
+  -webkit-app-region: drag;
+}
+
+[electron-draggable] :where(button, input, textarea, select, a, [role="button"], [role="combobox"]) {
+  -webkit-app-region: no-drag;
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artifact menu placement fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      html,
+      body,
+      #stage-mount {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      #stage-mount > .stage {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage-mount"></div>
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { StageView } from "/packages/web/src/views/stage.ts";
+
+      const artifactIDs = ["artifact-a", "artifact-b", "artifact-c"];
+      const documentURL = (artifactID) =>
+        `/packages/web/test/e2e/fixtures/stage-document.html?artifact=${artifactID}`;
+      let pages = artifactIDs.map((artifactID) => ({
+        artifactIds: [artifactID],
+        geometry: { kind: "single", full_screen: false },
+        size: { width: 512, height: 320 },
+      }));
+
+      const createChannel = () => ({
+        id: "channel-menu-placement",
+        name: "Menu placement fixture",
+        pages,
+        selectedPage: pages.find((page) => page.artifactIds.includes("artifact-b")),
+        artifacts: artifactIDs.map((id) => ({
+          id,
+          kind: "path",
+          title: id,
+          path: `/tmp/${id}.html`,
+        })),
+      });
+
+      class FakeApplication extends EventTarget {
+        updateChannelPages(_channelID, nextPages) {
+          pages = nextPages.map((page) => ({
+            artifactIds: [...page.artifactIds],
+            geometry: { ...page.geometry },
+            size: { ...page.size },
+          }));
+          channel = createChannel();
+          draw();
+          return Promise.resolve();
+        }
+
+        getArtifactViewURL(artifact) {
+          return documentURL(artifact.id);
+        }
+
+        getArtifactContentURL() {
+          return null;
+        }
+      }
+
+      const application = new FakeApplication();
+      const mount = document.querySelector("#stage-mount");
+      let channel = createChannel();
+      const draw = () => render(html`${StageView(application, channel)}`, mount);
+
+      window.__artifactMenuDocumentsReady = new Set();
+      window.addEventListener("message", (event) => {
+        if (event.origin !== location.origin || event.data?.type !== "stage-document-ready") return;
+        window.__artifactMenuDocumentsReady.add(event.data.artifactID);
+      });
+
+      window.__artifactMenuFixture = {
+        artifactIDs,
+        settle: () => document.fonts.ready.then(() =>
+          new Promise((resolve) => requestAnimationFrame(() =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve))
+          )),
+        ),
+      };
+
+      draw();
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

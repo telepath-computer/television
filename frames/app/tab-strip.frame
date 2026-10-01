@@ -1,0 +1,68 @@
+---
+title: Tab strip
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  selected: { type: boolean, default: false }
+  dragged: { type: boolean, default: false }
+  tabs:
+    default:
+      - { id: roadmap, name: Roadmap, compression: hugging }
+      - { id: spec-review, name: Spec review, compression: hugging }
+      - { id: weekly-sync, name: Weekly sync notes and follow-up actions, compression: capped }
+      - { id: return-flight-options, name: Return flight options and fare comparison, compression: capped }
+style: |
+  /* Stage the tabs on the application wallpaper in either appearance. */
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; background: var(--app-wallpaper); }
+  .column { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 640px; }
+  /* Workshop widths expose clipping at the tab ceiling and under compression. */
+  .narrow { width: min(100%, 360px); }
+  .specimen { display: flex; max-width: 220px; margin-top: 12px; }
+  .placeholder { width: 120px; }
+  h2 { font-size: var(--text-md); margin: 0 0 12px; }
+  p { margin: 0; }
+script: |
+  // Staging selection lets the same label be judged in both tab states.
+  let cleanup: (() => void) | undefined;
+  const wire = () => {
+    cleanup?.();
+    const main = document.querySelector('main');
+    const select = (event: Event) => {
+      const tab = (event.target as Element).closest?.('.tab-strip .tab');
+      if (!tab) return;
+      for (const sibling of tab.parentElement!.querySelectorAll<HTMLElement>('.tab')) {
+        const selected = sibling === tab;
+        sibling.setAttribute('aria-selected', String(selected));
+        sibling.tabIndex = selected ? 0 : -1;
+      }
+    };
+    main?.addEventListener('click', select);
+    cleanup = () => main?.removeEventListener('click', select);
+  };
+  wire();
+  window.addEventListener('frameset:rendered', wire);
+---
+<main>
+  <div class="column">
+    <p>Overflowing titles fade at the right edge. Click tabs to compare selection, resize the preview, and use Appearance to compare light and dark.</p>
+    <section>
+      <h2>Wide strip</h2>
+      {% render '../../specs/ui/app/tab-strip/tab-strip', tabs: tabs, selected: 'weekly-sync' %}
+    </section>
+    <section class="narrow">
+      <h2>Narrow strip</h2>
+      {% render '../../specs/ui/app/tab-strip/tab-strip', tabs: tabs, selected: 'roadmap' %}
+    </section>
+    <section>
+      <h2>Tab states</h2>
+      <p>Use Selected and Dragged to compare tab states.</p>
+      <div class="specimen">
+        {% render '../../specs/ui/app/tab-strip/tab', name: 'Return flight options and fare comparison', selected: selected, dragged: dragged %}
+      </div>
+    </section>
+    <section class="placeholder">
+      <h2>Placeholder</h2>
+      {% render '../../specs/ui/app/tab-strip/tab-placeholder' %}
+    </section>
+  </div>
+</main>

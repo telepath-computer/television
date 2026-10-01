@@ -1,0 +1,281 @@
+---
+title: Collapse transition
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: clouds }
+  duration_ms: { type: number, default: 180, description: the envelope's duration }
+  easing: { enum: [ease-out, ease-in-out, ease-in, linear], default: ease-out, description: the envelope's curve }
+  slow_mo: { type: boolean, default: false, description: run the envelope at a thirtieth speed }
+  shell: { enum: [desktop, web], default: desktop, description: desktop stages the traffic lights and their reservation; web has neither }
+  many_tabs: { type: boolean, default: false, description: the open channel carries enough tabs to pressure the strip }
+  channels_many:
+    description: "staging fixture: the sample world with the open channel widened to many tabs"
+    default:
+      - { id: "television", name: "Television", pinned: true, tabs: [
+          { id: "roadmap", name: "Roadmap", src: "/frames/app/example-artifact", width: 720, height: 520 },
+          { id: "spec-review", name: "Spec review", src: "/frames/app/example-artifact", width: 640, height: 480 },
+          { id: "budget", name: "Budget", src: "/frames/app/example-artifact", width: 600, height: 460 },
+          { id: "reading-list", name: "Reading list", src: "/frames/app/example-artifact", width: 560, height: 420 },
+          { id: "weekly-review", name: "Weekly review", src: "/frames/app/example-artifact", width: 680, height: 500 },
+          { id: "draft-blog-post", name: "Draft blog post", src: "/frames/app/example-artifact", width: 620, height: 470 },
+          { id: "metrics", name: "Metrics", src: "/frames/app/example-artifact", width: 640, height: 480 },
+          { id: "inbox", name: "Inbox", src: "/frames/app/example-artifact", width: 580, height: 440 },
+          { id: "archive", name: "Archive", src: "/frames/app/example-artifact", width: 600, height: 450 } ] }
+      - { id: "agenda", name: "Agenda", pinned: true, tabs: [{ id: "today", name: "Today", src: "/frames/app/example-artifact", width: 680, height: 500 }] }
+      - { id: "weekend-recipes", name: "Weekend recipes", tabs: [{ id: "shortlist", name: "Shortlist", src: "/frames/app/example-artifact", width: 600, height: 460 }] }
+      - { id: "return-to-australia", name: "Return to Australia", tabs: [{ id: "timeline", name: "Timeline", src: "/frames/app/example-artifact", width: 640, height: 480 }] }
+imports:
+  - application: ../lib/app.ts
+style: |
+  /* A focused rig for the collapse/expand transition, over the REAL shell
+     markup: the app frame renders whole (sidebar, navbar, tab strip, stage),
+     and the rig drives the actual boundary — the sidebar's layout margin —
+     so every region reflows for real each frame. Rig-owned overlays carry
+     what the transition itself introduces: the traveling twin of the toggle
+     (the rendered one is hidden), the edge-wipe repaint, and the fading
+     switcher. Press the toggle to run it; press mid-flight to reverse. */
+  .canvas { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+
+  .scene {
+    position: relative;
+    width: 1100px;
+    height: 720px;
+    overflow: clip;
+    border-radius: 10px;
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.12), 0 18px 48px oklch(0 0 0 / 0.18);
+  }
+
+  .traffic-lights { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; z-index: 4; }
+  .traffic-lights span { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2); }
+  .traffic-lights span:nth-child(1) { background: #ff5f57; }
+  .traffic-lights span:nth-child(2) { background: #febc2e; }
+  .traffic-lights span:nth-child(3) { background: #28c840; }
+
+  .shell-host, .shell-host #app { height: 100%; }
+
+  /* The rig's hand on the real boundary: sliding the sidebar's margin moves
+     the actual flex boundary, so .app-main and the strip reflow for real. */
+  .shell-host .app-sidebar {
+    margin-left: calc(var(--edge, var(--sidebar-width)) - var(--sidebar-width));
+  }
+
+  /* The rendered toggle is hidden; the rig's twin travels in scene
+     coordinates so it can stop at its seat while the sidebar continues. */
+  .shell-host .sidebar-collapse { visibility: hidden; }
+
+  /* During the envelope nothing runs its own motion: geometry derives per
+     frame from the boundary, so element transitions would only trail it. */
+  .scene.in-flight .shell-host * {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* The rig's overlay cluster lives in scene coordinates, so the real bar
+     must reserve its band as the boundary passes — the strip centres in the
+     remaining space and never runs under the toggle or switcher. */
+  .shell-host .top-bar {
+    padding-left: var(--lead-reserve, 0px);
+  }
+
+  /* The titlebar's create button and separator fade across the toggle's
+     attached travel, so nothing rides through the stopped control. */
+  .shell-host :is(.channel-create, .toolbar-separator) {
+    opacity: var(--plus-opacity, 1);
+  }
+
+  .toggle {
+    position: absolute;
+    z-index: 3;
+    top: calc((var(--app-bar-height) - 24px) / 2);
+    left: var(--toggle-x, -100px);
+    inline-size: 24px;
+    block-size: 24px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: var(--control-radius);
+    color: var(--sidebar-text-color);
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .toggle.chip {
+    color: var(--navbar-text-color);
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+    /* The wipe: the collapsed paint exists wherever the boundary has passed.
+       --wipe is how much of the control the edge has yet to cross. */
+    clip-path: inset(0 0 0 var(--wipe, 24px));
+  }
+
+  .toggle svg { width: 16px; height: 16px; }
+
+  /* The switcher rides at its final distance from the toggle — elements
+     keep their settled spacing through the motion and never overlap. */
+  .switcher {
+    position: absolute;
+    z-index: 3;
+    top: calc((var(--app-bar-height) - 24px) / 2);
+    left: calc(var(--toggle-x, 76px) + 24px + var(--space-4));
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-6);
+    border-radius: var(--control-radius);
+    font-size: var(--control-font-size);
+    font-weight: var(--font-weight-medium);
+    color: var(--navbar-text-color);
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+    opacity: var(--switcher-opacity, 0);
+    pointer-events: none;
+  }
+script: |
+  import appMeasures from "../../specs/ui/app/measures.yml";
+
+  const SIDEBAR_W = appMeasures.sidebar.default_width_px;
+  const TOGGLE_FROM_EDGE = 36; // the toggle's left, measured from the sidebar's right edge
+  const SEAT_DESKTOP = 76;     // the lead seat: the reserve (72) plus a hair
+  const SEAT_WEB = 12;         // no cluster, an ordinary inset
+
+  const scene = () => document.querySelector(".scene");
+
+  // The knobs re-render into the scene's data attributes on every control
+  // change, so they are read live rather than captured at load.
+  const knobs = () => {
+    const s = scene();
+    const duration = Number(s?.dataset.duration ?? 200) || 200;
+    const slow = s?.dataset.slow === "true";
+    return {
+      duration: duration * (slow ? 30 : 1),
+      easing: s?.dataset.easing ?? "ease-in-out",
+      desktop: s?.dataset.shell === "desktop",
+    };
+  };
+
+  const curves = {
+    "linear": (t) => t,
+    "ease-in": (t) => t * t,
+    "ease-out": (t) => 1 - (1 - t) * (1 - t),
+    "ease-in-out": (t) => t * t * (3 - 2 * t),
+  };
+
+  // The path is a pure function of pos (0 = expanded, 1 = collapsed); the
+  // timing eases per direction — each toggle runs a fresh curve toward its
+  // target, so expand eases out like collapse instead of mirroring its
+  // timing. Duration scales with the distance, so an interrupted reversal
+  // moves at the same speed as a full run.
+  let pos = 0;
+  let target = 0;
+  let raf = null;
+  let startPos = 0;
+  let startTime = null;
+  let runDur = 1;
+
+  const apply = () => {
+    const s = scene();
+    if (!s) return;
+    const { desktop } = knobs();
+    const seat = desktop ? SEAT_DESKTOP : SEAT_WEB;
+    const edge = SIDEBAR_W * (1 - pos);
+    const toggleX = Math.max(edge - TOGGLE_FROM_EDGE, seat);
+    const wipe = Math.max(0, Math.min(24, edge - toggleX));
+    // The whole transition is a function of the boundary's position, so
+    // reverse is the same path backward. The switcher belongs to the
+    // collapsed world: hidden until the edge clears its docked seat, full
+    // as the toggle's wipe completes. The titlebar's + and separator fade
+    // across the toggle's attached travel — gone before they could cross
+    // the stopped control.
+    const dockEdge = seat + TOGGLE_FROM_EDGE;
+    const switcherOpacity = Math.max(0, Math.min(1, (seat + 28 - edge) / 28));
+    const plusOpacity = Math.max(0, Math.min(1, (edge - dockEdge) / (SIDEBAR_W - dockEdge)));
+    // The bar's reservation for the overlay cluster, linear in the boundary's
+    // progress so the strip never doubles back ([[ui/app/index.md#^ap-collapse-monotone]]):
+    // the settled reserve — seat, toggle, gap, switcher, gap — taken in proportion.
+    const switcherW = s.querySelector(".switcher")?.offsetWidth ?? 0;
+    const settledReserve = seat + 24 + 4 + switcherW + 8;
+    const leadReserve = (1 - edge / SIDEBAR_W) * settledReserve;
+    s.style.setProperty("--lead-reserve", `${leadReserve}px`);
+    s.style.setProperty("--edge", `${edge}px`);
+    s.style.setProperty("--toggle-x", `${toggleX}px`);
+    s.style.setProperty("--seat-x", `${seat}px`);
+    s.style.setProperty("--wipe", `${wipe}px`);
+    s.style.setProperty("--switcher-opacity", `${switcherOpacity}`);
+    s.style.setProperty("--plus-opacity", `${plusOpacity}`);
+    // The selected page stays centred as derived geometry, every frame —
+    // the stage's centring rule holds continuously, with no scroll motion
+    // of its own (production wiring animates this; the envelope must not).
+    const strip = s.querySelector(".filmstrip");
+    const page = s.querySelector(".page[selected]") ?? s.querySelector(".page");
+    if (strip && page) {
+      strip.scrollLeft = page.offsetLeft + page.offsetWidth / 2 - strip.clientWidth / 2;
+    }
+  };
+
+  const step = (now) => {
+    if (startTime === null) startTime = now;
+    const { easing } = knobs();
+    const p = Math.min(1, (now - startTime) / runDur);
+    pos = startPos + (target - startPos) * (curves[easing] ?? curves["ease-out"])(p);
+    apply();
+    if (p < 1) { raf = requestAnimationFrame(step); }
+    else { raf = null; startTime = null; scene()?.classList.remove("in-flight"); }
+  };
+
+  const toggle = () => {
+    target = target === 1 ? 0 : 1;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      pos = target; apply(); return;
+    }
+    if (raf !== null) cancelAnimationFrame(raf);
+    startPos = pos;
+    startTime = null;
+    runDur = Math.max(1, knobs().duration * Math.abs(target - startPos));
+    scene()?.classList.add("in-flight");
+    raf = requestAnimationFrame(step);
+  };
+
+  const wire = () => {
+    const s = scene();
+    if (!s) return;
+    if (knobs().desktop) {
+      document.documentElement.setAttribute("data-platform", "electron");
+    } else {
+      document.documentElement.removeAttribute("data-platform");
+    }
+    // The rig plays the client for the width property, as the boards do.
+    s.style.setProperty("--sidebar-width", `${SIDEBAR_W}px`);
+    apply();
+    for (const b of s.querySelectorAll(".toggle")) {
+      b.addEventListener("click", toggle);
+    }
+  };
+  wire();
+  window.addEventListener("frameset:rendered", () => {
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    startTime = null;
+    pos = target = 0;
+    wire();
+  });
+---
+<div class="canvas">
+  <div class="scene" data-duration="{{ duration_ms }}" data-easing="{{ easing }}" data-slow="{{ slow_mo }}" data-shell="{{ shell }}">
+    {% if shell == 'desktop' %}<div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>{% endif %}
+    <div class="shell-host">
+      {% if many_tabs %}
+      {% render '../../specs/ui/app/app', channels: channels_many, selected: 'television', selected_tab: 'roadmap', show_notice: true %}
+      {% else %}
+      {% render '../../specs/ui/app/app', channels: application.channels, selected: 'television', selected_tab: 'roadmap', show_notice: true %}
+      {% endif %}
+    </div>
+    <button class="switcher" tabindex="-1"><span>Television</span>{% render '../../specs/ui/foundation/icons/icon', name: 'select', size: 'sm' %}</button>
+    <button class="toggle ghost" aria-label="Toggle sidebar">{% render '../../specs/ui/foundation/icons/icon', name: 'sidebar' %}</button>
+    <button class="toggle chip" aria-label="Toggle sidebar" aria-hidden="true" tabindex="-1">{% render '../../specs/ui/foundation/icons/icon', name: 'sidebar' %}</button>
+  </div>
+</div>

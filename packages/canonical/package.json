@@ -1,0 +1,15 @@
+{
+  "name": "@telepath-computer/canonical",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-canonical.mjs",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "postcss": "^8.4.43"
+  }
+}

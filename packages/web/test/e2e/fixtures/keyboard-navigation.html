@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shell keyboard navigation fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      html, body, #fixture { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+      #keyboard-field { position: fixed; right: 20px; bottom: 20px; z-index: 2; }
+    </style>
+  </head>
+  <body>
+    <main id="fixture"></main>
+    <script type="module">
+      import { render } from "lit-html";
+      import {
+        ChangeEvent,
+        DEFAULT_PAGE_GEOMETRY,
+      } from "@telepath-computer/television-shared";
+      import { ApplicationService } from "/packages/web/src/services/application-service.ts";
+      import { handleApplicationNavigationKey } from "/packages/web/src/services/application-navigation.ts";
+      import { ChannelSidebarCollapsedPreference } from "/packages/web/src/services/channel-sidebar-collapsed.ts";
+      import { ChannelSidebarWidthPreference } from "/packages/web/src/services/channel-sidebar-width.ts";
+      import { TelevisionAppView } from "/packages/web/src/views/television-app.ts";
+
+      const FOCUSED_CHANNEL_ID = "01J00000000000000000000008";
+      const NEWEST_CHANNEL_ID = "01J00000000000000000000007";
+      const OLDEST_CHANNEL_ID = "01J00000000000000000000001";
+      const DANGLING_PINNED_CHANNEL_ID = "01J00000000000000000000009";
+      const FIRST_ARTIFACT_ID = "artifact-a1";
+      const SECOND_ARTIFACT_ID = "artifact-a2";
+      const DOCUMENT_URL = "/packages/web/test/e2e/fixtures/channel-sidebar-document.html";
+      const PAGE_SIZES = new Map([
+        [FIRST_ARTIFACT_ID, { width: 561.25, height: 741.5 }],
+        [SECOND_ARTIFACT_ID, { width: 612.75, height: 702.25 }],
+      ]);
+
+      const page = (artifactId) => ({
+        artifactIds: [artifactId],
+        geometry: { ...DEFAULT_PAGE_GEOMETRY },
+        size: { ...PAGE_SIZES.get(artifactId) },
+      });
+      const artifacts = new Map([
+        [FIRST_ARTIFACT_ID, {
+          id: FIRST_ARTIFACT_ID,
+          kind: "path",
+          title: "First page",
+          path: "/tmp/first.html",
+        }],
+        [SECOND_ARTIFACT_ID, {
+          id: SECOND_ARTIFACT_ID,
+          kind: "path",
+          title: "Second page",
+          path: "/tmp/second.html",
+        }],
+      ]);
+      const channels = [
+        {
+          id: OLDEST_CHANNEL_ID,
+          name: "Oldest",
+          layout: [],
+        },
+        {
+          id: FOCUSED_CHANNEL_ID,
+          name: "Pinned",
+          layout: [page(FIRST_ARTIFACT_ID), page(SECOND_ARTIFACT_ID)],
+        },
+        {
+          id: NEWEST_CHANNEL_ID,
+          name: "Newest",
+          layout: [],
+        },
+      ];
+      const display = {
+        focusedChannelId: FOCUSED_CHANNEL_ID,
+        pinnedChannelIds: [FOCUSED_CHANNEL_ID, DANGLING_PINNED_CHANNEL_ID],
+        activeThemeName: null,
+        themeJavaScriptConsentIds: [],
+        acpEnabled: false,
+      };
+
+      const clone = (value) => structuredClone(value);
+      const client = {
+        channels: {
+          list: async () => ({ channels: clone(channels) }),
+          get: async ({ channelID }) => {
+            const channel = channels.find(({ id }) => id === channelID);
+            if (!channel) throw new Error(`Unknown channel ${channelID}`);
+            return {
+              channel: clone(channel),
+              artifacts: channelID === FOCUSED_CHANNEL_ID
+                ? [...artifacts.values()].map(clone)
+                : [],
+            };
+          },
+          create: async () => { throw new Error("not used"); },
+          update: async () => { throw new Error("not used"); },
+          remove: async () => { throw new Error("not used"); },
+        },
+        display: {
+          get: async () => clone(display),
+          patch: async () => undefined,
+        },
+        artifacts: {
+          get: async ({ artifactID }) => ({ artifact: clone(artifacts.get(artifactID)) }),
+          delete: async () => { throw new Error("not used"); },
+          list: async () => ({ artifacts: [] }),
+        },
+        markdown: {
+          get: async () => "",
+          update: async () => undefined,
+        },
+      };
+
+      class FixtureACPClient {
+        setEnabled() {}
+        setChannelContext() {}
+      }
+
+      class FixtureConnection extends EventTarget {
+        url = location.origin;
+        name = "Keyboard fixture";
+        acpClient = new FixtureACPClient();
+        client = client;
+        status = "disconnected";
+        bootState = "booted";
+        hasEverConnected = false;
+        hasAuthRejected = false;
+        nextRetryAt = null;
+        updateState = null;
+
+        getViewURL() { return DOCUMENT_URL; }
+        getContentURL() { return null; }
+      }
+
+      class FixtureOwner extends EventTarget {
+        connection = new FixtureConnection();
+        connectError = null;
+        authenticate() { return Promise.resolve(); }
+
+        connect() {
+          this.connection.status = "connected";
+          this.connection.hasEverConnected = true;
+          this.dispatchEvent(new ChangeEvent("change"));
+        }
+      }
+
+      const owner = new FixtureOwner();
+      const operations = {
+        handler: [],
+        selectPage: [],
+        focusChannel: [],
+        serverFocus: [],
+        shellEvents: [],
+      };
+
+      let application;
+      application = new ApplicationService({
+        connectionOwner: owner,
+        navigationKeyHandler: (key) => {
+          operations.handler.push(key);
+          handleApplicationNavigationKey(application, key);
+        },
+      });
+
+      const selectPage = application.selectPage.bind(application);
+      application.selectPage = (channelId, artifactId) => {
+        operations.selectPage.push({ channelId, artifactId });
+        selectPage(channelId, artifactId);
+      };
+      const focusChannel = application.focusChannel.bind(application);
+      application.focusChannel = (channelId) => {
+        operations.focusChannel.push(channelId);
+        return focusChannel(channelId);
+      };
+      client.display.patch = async (patch) => {
+        if (patch.focusedChannelId !== undefined) {
+          operations.serverFocus.push(patch.focusedChannelId);
+        }
+      };
+
+      const app = document.querySelector("#fixture");
+
+      const ensureKeyboardField = () => {
+        const main = app.querySelector(".app-main");
+        if (!main || app.querySelector("#keyboard-field")) return;
+        const field = document.createElement("input");
+        field.id = "keyboard-field";
+        field.value = "fixture text";
+        main.append(field);
+      };
+      render(TelevisionAppView(application, {
+        runtimeServerURL: location.origin,
+        electronMode: false,
+        primaryServerURL: location.origin,
+        sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
+        sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
+        onRenderComplete() {
+          ensureKeyboardField();
+          if (application.snapshot.ready && app.querySelector("#keyboard-field")) {
+            window.__fixtureReady = true;
+          }
+        },
+      }), app);
+      document.addEventListener("keydown", (event) => {
+        operations.shellEvents.push({
+          key: event.key,
+          defaultPrevented: event.defaultPrevented,
+        });
+      }, { capture: true });
+      owner.connect();
+
+      const clearOperations = () => {
+        operations.handler.length = 0;
+        operations.selectPage.length = 0;
+        operations.focusChannel.length = 0;
+        operations.serverFocus.length = 0;
+        operations.shellEvents.length = 0;
+      };
+      const selectedArtifactId = () =>
+        application.snapshot.focusedChannel?.selectedPage?.artifactIds[0] ?? null;
+      const matchingModifiers = () =>
+        /^(Mac|iPhone|iPad|iPod)/i.test(navigator.platform)
+          ? { altKey: true }
+          : { ctrlKey: true };
+
+      window.__keyboardNavigationFixture = {
+        constants: {
+          focusedChannelId: FOCUSED_CHANNEL_ID,
+          newestChannelId: NEWEST_CHANNEL_ID,
+          oldestChannelId: OLDEST_CHANNEL_ID,
+          danglingPinnedChannelId: DANGLING_PINNED_CHANNEL_ID,
+          firstArtifactId: FIRST_ARTIFACT_ID,
+          secondArtifactId: SECOND_ARTIFACT_ID,
+        },
+        clearOperations,
+        resetPage() {
+          selectPage(FOCUSED_CHANNEL_ID, FIRST_ARTIFACT_ID);
+          clearOperations();
+        },
+        dispatchMatch(key, targetKind = "field", overrides = {}) {
+          const target = targetKind === "tab"
+            ? app.querySelector(`[data-artifact-id="${FIRST_ARTIFACT_ID}"]`)
+            : targetKind === "body"
+            ? document.body
+            : app.querySelector("#keyboard-field");
+          if (!(target instanceof HTMLElement)) throw new Error(`Missing ${targetKind} target`);
+          target.focus();
+          const event = new KeyboardEvent("keydown", {
+            key,
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            ...matchingModifiers(),
+            ...overrides,
+          });
+          const nativeResult = target.dispatchEvent(event);
+          return {
+            defaultPrevented: event.defaultPrevented,
+            nativeResult,
+            activeElementId: document.activeElement?.id ?? null,
+          };
+        },
+        report() {
+          return {
+            platform: navigator.platform,
+            selectedArtifactId: selectedArtifactId(),
+            activeElementId: document.activeElement?.id ?? null,
+            operations: clone(operations),
+          };
+        },
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>External web page</title>
+    <link data-television-style="canonical" rel="stylesheet" href="/canonical/v2/styles.css" />
+    <style>/* The page: a muted surface with the state's message in a centred reading
+   column — quiet ground of its own, not the app's wallpaper. Canonical
+   supplies the reset, foundation tokens, and base prose. */
+.artifact-error {
+  min-height: 100vh;
+  padding: var(--space-24);
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-muted);
+}
+
+.artifact-error-body {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.artifact-error h1,
+.artifact-error p {
+  margin: 0;
+}
+
+.artifact-error h1 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.artifact-error-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The address and the guide link: wrapping anywhere, a link plainly a link. */
+.artifact-error a,
+.artifact-error .plain-address {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.artifact-error a {
+  color: var(--color-primary);
+}
+
+/* The path chip: mono, wrapping anywhere, selected whole by one press —
+   it exists to be copied. */
+.artifact-error code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-6);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  user-select: all;
+}
+
+/* The fixed documents reveal optional blocks after their host replies. */
+[hidden] {
+  display: none !important;
+}
+</style>
+  </head>
+  <body>
+    <main class="artifact-error">
+      <div class="artifact-error-body">
+        <h1>This is an external web page</h1>
+        <section id="target-block" class="artifact-error-block" hidden>
+          <p id="address-label"></p>
+          <p><strong><a id="target-link" target="_blank" rel="noopener noreferrer"></a></strong></p>
+          <p id="plain-address" class="plain-address" hidden></p>
+        </section>
+
+        <p>Television can't display external web pages directly inside a web browser. You can view external web pages right inside Television with the desktop app.</p>
+
+        <section id="desktop-app" class="artifact-error-block" aria-label="Television desktop app" hidden>
+          <p>To install the Television desktop app, ask your agent to follow the Television admin guide:</p>
+          <p><a href="https://television.run/install.md" target="_blank" rel="noopener noreferrer">https://television.run/install.md</a></p>
+        </section>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Task appearance contract</title>
+  </head>
+  <body>
+    <tv-task-list>
+      <tv-task-section>
+        <header><h2>Tasks</h2><tv-task-count>4</tv-task-count></header>
+        <tv-task id="today" highlighted>
+          <tv-task-checkbox></tv-task-checkbox>
+          <tv-task-body>
+            <tv-task-title>Review today</tv-task-title>
+            <tv-task-note>Supporting note</tv-task-note>
+            <tv-task-meta>
+              <tv-task-meta-due></tv-task-meta-due>
+              <tv-task-meta-tag>review</tv-task-meta-tag>
+            </tv-task-meta>
+          </tv-task-body>
+        </tv-task>
+        <tv-task id="overdue">
+          <tv-task-checkbox></tv-task-checkbox>
+          <tv-task-body>
+            <tv-task-title>Finish overdue work</tv-task-title>
+            <tv-task-meta><tv-task-meta-due date="2000-01-01"></tv-task-meta-due></tv-task-meta>
+          </tv-task-body>
+        </tv-task>
+        <tv-task id="upcoming">
+          <tv-task-checkbox></tv-task-checkbox>
+          <tv-task-body>
+            <tv-task-title>Plan ahead</tv-task-title>
+            <tv-task-meta><tv-task-meta-due date="2999-01-01"></tv-task-meta-due></tv-task-meta>
+          </tv-task-body>
+        </tv-task>
+        <tv-task id="disabled">
+          <tv-task-checkbox disabled></tv-task-checkbox>
+          <tv-task-body><tv-task-title>Waiting</tv-task-title></tv-task-body>
+        </tv-task>
+      </tv-task-section>
+      <tv-task-placeholder>No more tasks</tv-task-placeholder>
+    </tv-task-list>
+    <script type="module" src="./appearance.ts"></script>
+  </body>
+</html>

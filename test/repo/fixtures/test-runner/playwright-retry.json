@@ -1,0 +1,40 @@
+{
+  "suites": [
+    {
+      "title": "probe.test.ts",
+      "file": "probe.test.ts",
+      "specs": [
+        {
+          "title": "recovers",
+          "file": "probe.test.ts",
+          "line": 7,
+          "column": 1,
+          "tests": [
+            {
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "status": "flaky",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 11,
+                  "retry": 0,
+                  "startTime": "2026-01-01T00:00:00.000Z",
+                  "error": { "message": "intentional first attempt", "location": { "file": "probe.test.ts", "line": 7, "column": 1 } }
+                },
+                {
+                  "status": "passed",
+                  "duration": 5,
+                  "retry": 1,
+                  "startTime": "2026-01-01T00:00:00.020Z"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": { "startTime": "2026-01-01T00:00:00.000Z", "duration": 25, "expected": 0, "skipped": 0, "unexpected": 0, "flaky": 1 }
+}

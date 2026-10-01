@@ -1,0 +1,19 @@
+# Research channel manifest — display name and cards in tab-page order.
+# Schema and ordering rules: see ../index.md#channel-layout.
+name: Research
+cards:
+  - id: about
+    slug: about
+    title: About this channel
+    size:
+      width: 300
+      height: 740
+  - id: news
+    slug: todays-news
+    title: Today's AI News
+  - id: openmodel
+    slug: open-model-research
+    title: Open model research
+  - id: blog
+    slug: draft-blog-post
+    title: Draft blog post

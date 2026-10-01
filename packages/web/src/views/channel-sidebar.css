@@ -1,0 +1,261 @@
+.sidebar {
+  /* The frame fills its stage — the viewport it is given, whole or an
+     embed's box. */
+  min-height: 100vh;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  /* The sidebar carries its own ground rather than borrowing the window's, so
+     it reads the same wherever it is placed — and so the states inside it are
+     chosen against a known surface instead of whatever happens to be behind. */
+  position: relative;
+  background: var(--sidebar-background);
+  background-clip: border-box;
+  color: var(--sidebar-text-color);
+  border-right: var(--sidebar-border);
+  padding-right: 1px;
+  box-shadow: var(--sidebar-shadow);
+}
+
+.sidebar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 1px;
+  background: var(--panel-edge-highlight);
+  font-size: 0;
+  background-size: 100% calc(100% + 2px);
+  background-position: bottom;
+  pointer-events: none;
+}
+
+
+/* The grab handle and the traffic lights' space ([[ui/app/sidebar/index.md#^sb-titlebar]]). */
+.sidebar-titlebar {
+  flex: none;
+  height: var(--app-bar-height);
+  /* Balance the bottom border to share the navbar control centre. */
+  padding-top: 1px;
+  padding-left: var(--traffic-light-x-reserve);
+  padding-right: var(--app-bar-padding-inline);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  -webkit-app-region: drag;
+  /* Scrolled content slides under this edge: while anything is past it, the
+     titlebar closes with a 1px sidebar border, and at rest
+     the edge is bare. Transparent, not absent, so nothing moves when it
+     appears. The body carries `continues-start` while scrolled. */
+  border-bottom: 1px solid transparent;
+}
+
+.sidebar:has(.sidebar-body[continues-start]) .sidebar-titlebar {
+  border-bottom-color: var(--sidebar-border-color);
+}
+
+/* The list scrolls — one region, pinned and unpinned together; the titlebar
+   above stays put. The list itself is [[./channel-list.frame]]'s. */
+.sidebar-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.sidebar-titlebar > button {
+  -webkit-app-region: no-drag;
+}
+
+/* Toolbar separator between grouped bar controls. */
+.toolbar-separator {
+  flex: none;
+  width: 1px;
+  height: 16px;
+  background: var(--color-border);
+  margin: 0 var(--space-4);
+}
+
+/* The channel list ([[ui/app/sidebar/index.md]], Markup and styling). */
+.channel-list {
+  padding: var(--space-4) var(--space-8) var(--space-12);
+}
+
+.channel-group + .channel-group {
+  margin-top: var(--space-24);
+}
+
+/* The heading is a label for the group, not a heading in the document's
+   outline sense — it reads as quieter than the channels it introduces. */
+.channel-group-label {
+  margin: 0 0 var(--space-4);
+  padding: 0 var(--space-8);
+  font-size: var(--sidebar-heading-font-size);
+  font-weight: var(--font-weight-medium);
+  color: var(--sidebar-heading-text-color);
+}
+
+/* The row pairs the channel with its menu trigger as siblings, the trigger
+   overlaid at the row's end — the channel is a listbox option, and an
+   option must not contain an interactive control. */
+.channel-row {
+  position: relative;
+  /* Create/delete animates max-height on the real row so neighbouring rows
+     continuously occupy the released space instead of jumping at either end. */
+  overflow: clip;
+}
+
+.channel {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  /* The control line, stated: the row is a control, not prose, and a div
+     inherits prose leading without it. */
+  font-size: var(--text-md);
+  line-height: var(--line-control);
+  cursor: default;
+  /* The right side reserves the trigger's seat — its width plus its offset —
+     so a long name ellipsizes short of the overlay rather than under it. */
+  padding: var(--space-4) calc(2 * var(--space-4) + 20px) var(--space-4) var(--space-8);
+  /* Transparent, not absent: the channel shows no border but shares the
+     control box formula ([[ui/foundation/index.md]], Controls), so its
+     height is the same stated sum as every bordered control. */
+  border: 1px solid transparent;
+  border-radius: var(--channel-radius);
+  background: var(--channel-background);
+  color: var(--channel-text-color);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Keyed on the row, not the channel: the trigger is the channel's sibling,
+   and moving onto it must not drop the row's fill. Stated here because the
+   channel's own `background` outranks the ambient button's hover. The hover
+   excludes the selected channel outright — hover marks where you could go,
+   selection where you are — so neither rule contests the other. A row whose
+   menu is open keeps the fill after the pointer leaves — the menu is the
+   row's own, so its openness is structural — the row stays the menu's
+   subject. */
+:where(.channel-row:hover, .channel-row:has(.channel-menu-trigger[aria-expanded="true"])) .channel:not([aria-selected="true"]) {
+  background: var(--channel-background-hover);
+}
+
+:where(.channel-row:active) .channel:not([aria-selected="true"]) {
+  background: var(--channel-background-active);
+}
+
+/* Selection outranks hover and press: the open channel keeps its fill while the pointer
+   passes over it, so the list never loses track of where you are. */
+.channel[aria-selected="true"] {
+  background: var(--channel-background-selected);
+  color: var(--channel-text-color-selected);
+}
+
+/* The sibling menu trigger shares the selected row’s text color.
+   Foundation tints follow currentColor for hover, press and expanded. */
+.channel-row:has(> .channel[aria-selected="true"]) .channel-menu-trigger {
+  color: var(--channel-text-color-selected);
+}
+
+/* There on approach, not always: the row's hover reveals the trigger, and
+   the row's open menu holds it visible after the pointer leaves. */
+.channel-menu-trigger {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  translate: 0 -50%;
+  opacity: 0;
+}
+
+.channel-row:hover .channel-menu-trigger,
+.channel-menu-trigger:focus-visible,
+.channel-row:has(.channel-menu-trigger[aria-expanded="true"]) .channel-menu-trigger,
+/* The selected row shows its trigger outright: it is the row you are in,
+   and its actions should not need discovering by pointer. */
+.channel-row:has(> .channel[aria-selected="true"]) .channel-menu-trigger {
+  opacity: 1;
+}
+
+/* Rename is a shared text input. Preserve the channel row's seat and
+   trailing action space; foundation owns its border, colors and focus. */
+.channel-rename {
+  display: block;
+  width: 100%;
+  padding: var(--space-4) calc(2 * var(--space-4) + 20px) var(--space-4) var(--space-8);
+}
+
+/* The native input's focus ring extends outside the row's border box. */
+.channel-row:has(.channel-rename) {
+  overflow: visible;
+}
+
+/* The commit check: the trigger's seat, held by the commit action while the
+   name is edited. */
+.channel-rename-commit {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  translate: 0 -50%;
+}
+
+/* The carried row rides the foreground as a lifted surface, shrunk
+   to its name — a compact preview, not the full row; where it sits is
+   behaviour's — under the pointer. */
+.channel-row.dragged {
+  z-index: calc(var(--layer-ground) + 1);
+  /* The row's clip serves the create/delete height animation; a carried
+     row doesn't animate height, and its action straddles the top corner —
+     the clip would take the pill with it. */
+  overflow: visible;
+  width: fit-content;
+  min-width: 160px;
+  background: var(--color-surface);
+  /* The action pill's own ring, so the pair reads as one vocabulary. */
+  border: 1px solid var(--color-border);
+  border-radius: var(--channel-radius);
+  box-shadow: var(--drag-item-shadow);
+}
+
+/* The trigger seat's reservation is not needed while carried. */
+.channel-row.dragged .channel {
+  padding-right: var(--space-8);
+}
+
+/* The carried row's action ([[ui/app/sidebar/index.md]], Pinning and
+   reordering): what release would do, straddling the preview's top-right
+   corner — a small ringed pill, the slashed pin and its word, while
+   release would unpin. */
+.channel-drag-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  height: 20px;
+  padding: 0 var(--space-8) 0 var(--space-6);
+  border-radius: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--drag-action-shadow);
+  font-size: var(--text-sm);
+}
+
+.channel-drag-action tv-icon {
+  font-size: 12px;
+}
+
+/* The drag placeholder ([[ui/app/sidebar/index.md]], Pinning and
+   reordering): while a row is carried, a tint in the row's shape holds the
+   slot release will fill. Every row is one control line, so the slot's
+   height is the sum the row states — line, padding, border — and the
+   width is the slot's own, taken in flow. */
+.channel-placeholder {
+  display: block;
+  height: calc(var(--line-control) + 2 * var(--space-4) + 2 * 1px);
+  border-radius: var(--control-radius);
+  background: var(--drag-placeholder-background);
+}

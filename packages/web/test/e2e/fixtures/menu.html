@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Command menu keyboard fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+  </head>
+  <body>
+    <main id="menu-host"></main>
+
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { MenuView } from "/packages/web/src/views/menu.ts";
+
+      const record = {
+        actions: { rename: 0, pin: 0, delete: 0 },
+        clicks: [],
+        focus: [],
+        signals: [],
+      };
+      const action = (name) => () => {
+        record.actions[name] += 1;
+        record.clicks.push(name);
+      };
+
+      render(
+        html`${MenuView([
+            { label: "Rename", action: action("rename") },
+            { separator: true },
+            { label: "Pin", action: action("pin") },
+            { label: "Delete", destructive: true, action: action("delete") },
+          ], {
+            trigger: (id) => html`
+              <button id=${id} class="menu-trigger" type="button">Actions</button>
+            `,
+          })}`,
+        document.querySelector("#menu-host"),
+      );
+
+      const menu = document.querySelector("tv-menu");
+      document.addEventListener("focusin", (event) => {
+        if (!(event.target instanceof HTMLElement) || !event.target.matches("tv-menu-item")) return;
+        record.focus.push(event.target.id);
+        record.signals.push(`focus:${event.target.id}`);
+      });
+
+
+      const actionIds = ["rename", "pin", "delete"];
+      for (const [index, id] of actionIds.entries()) {
+        menu.querySelectorAll("tv-menu-item")[index].id = id;
+      }
+
+      window.__menuFixture = {
+        snapshot() {
+          return {
+            ...structuredClone(record),
+            activeId: document.activeElement instanceof HTMLElement ? document.activeElement.id : "",
+          };
+        },
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

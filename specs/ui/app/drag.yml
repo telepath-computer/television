@@ -1,0 +1,11 @@
+# Dragging's measures ([[ui/app/stage/index.md]], Reordering;
+# [[ui/app/sidebar/index.md]], Pinning and reordering).
+press:
+  threshold_px: 4 # movement past which a press counts as a drag
+displacement:
+  duration_ms: 200 # time a displaced neighbour takes to slide aside
+zones:
+  below_pinned_px: 24 # distance below the last pinned row where the unpinned zone begins with no unpinned group rendered
+autoscroll:
+  zone_px: 28 # distance from the scrolling region's edge within which a held drag scrolls it
+  speed_px_s: 800 # speed at the very edge, tapering to zero across the zone

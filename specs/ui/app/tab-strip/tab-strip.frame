@@ -1,0 +1,35 @@
+---
+title: Tab strip
+params:
+  tabs:
+    description: "the open artifacts, in order, each with an id and a name; `compression` carries a tab's measured width class and `overflowing` says whether its label exceeds the available width"
+    default:
+      - { id: "roadmap", name: "Roadmap" }
+      - { id: "spec-review", name: "Spec review" }
+      - { id: "weekly-sync", name: "Weekly sync notes" }
+      - { id: "return-flight-options", name: "Return flight options and fare comparison" }
+  selected: { enum: [roadmap, spec-review, weekly-sync, return-flight-options], default: roadmap, description: the one selected tab — with tabs present, exactly one is }
+style: |
+  /* Tabs run from the left and stop where they stop: the strip is a row of
+     separate pills, not a partitioning of the full width, so a strip holding two
+     tabs looks like two tabs rather than two halves. The tab itself is
+     [[tab.frame]] — this frame owns only the row they sit in. */
+  .tab-strip {
+    display: flex;
+    align-items: center;
+    gap: var(--tab-gap);
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* Scrolling clips both axes, and a tab's focus ring sits outside its box —
+       the scrollport carries enough padding for the ring to live in, cancelled
+       by negative margins so the bar's geometry is unchanged. */
+    padding: var(--space-4);
+    margin: calc(-1 * var(--space-4));
+  }
+---
+<div class="tab-strip" role="tablist">
+  {% for tab in tabs %}
+  {% assign is_selected = false %}{% if tab.id == selected %}{% assign is_selected = true %}{% endif %}
+  {% render './tab', name: tab.name, selected: is_selected, compression: tab.compression, overflowing: tab.overflowing %}
+  {% endfor %}
+</div>

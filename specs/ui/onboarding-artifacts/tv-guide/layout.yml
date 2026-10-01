@@ -1,0 +1,10 @@
+# TV Guide channel manifest — display name and cards in tab-page order.
+# Schema and ordering rules: see ../index.md#channel-layout.
+name: TV Guide
+cards:
+  - id: welcome
+    slug: welcome
+    title: Welcome to Television
+    size:
+      width: 800
+      height: 740

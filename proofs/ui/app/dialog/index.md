@@ -1,0 +1,23 @@
+*How the promises in Dialog (UI) are proven.*
+
+# Dialog (UI) — proof
+
+Proves [specs/ui/app/dialog/index.md](../../../../specs/ui/app/dialog/index.md).
+
+## Coverage model
+
+The markup contract covers the composed overlay and native dialog with caller-supplied contents. A real-browser contract covers native modal input/focus containment, immediate presentation, ordinary dismissal, and closure of production floating controls. The browser fixture exercises the production floating elements. Surface proofs retain entry conditions, contents, and the upgrade-gate dismissal exception; this proof adds no new dialog presentation mode.
+
+Canonical dialog edge-paint consumption is composed from [foundation panel coverage](../../foundation/index.md#^foundation-ac-panel-edges). Native modal behavior remains with this proof.
+
+## Assertions
+
+### Test assertions
+
+The suite samples the panel/overlay markup and proves the blocking behavior shared by every dialog composition. It does not measure the wash, centring, dimensions, padding, panel chrome, or destructive colour ([arch/testing-policy.md#^ui-suite-scope](../../../../specs/arch/testing-policy.md#^ui-suite-scope), [arch/testing-policy.md#^ui-styling-out](../../../../specs/arch/testing-policy.md#^ui-styling-out)).
+
+- **Contract** (the production dialog rendering as the consumer side of the caller-content/dialog-markup handoff, exercised in a mocked DOM; plain and alert-shaped supplied contents are authored fixtures; the mocked DOM forfeits browser focus, input blocking, and popover interaction to the functional contract below; no styling or motion claim): one table-driven markup smoke check covers plain and alert-shaped contents. Each rendering contains one overlay holding one open native dialog and the supplied content exactly once, without rewriting it — *(covered by `packages/web/test/dialog.test.ts`; “dialogTemplate (^dg-ac-markup-smoke)” covers plain and alert contents within the required overlay)*. ^dg-ac-markup-smoke
+- **Contract** (the production dialog behavior mounted in a real browser with authored background controls, already-open production floating controls, with fixture cases for non-manual and manual `tv-popover`, `tv-menu`, and `tv-select`, and alert contents carrying a non-closing inside control; an implementation-mount hook presents and withdraws the dialog without replacing its focus, input-blocking, dismissal, or popover-closing mechanisms; direct presentation state is a mock that forfeits environment-driven entry and exit to the composing surface rows; animation and transition overrides are absent; transition, animation, Web Animations API, and presentation-state recorders start before entry and each withdrawal and remain through two animation frames; entry also observes removal of the panel `open` state and the Cancel `focus` event; blocked-focus/input and inside-control non-dismissal use focus, click, and cancel recorders): presenting the alert closes the open floating controls, focuses Cancel, and reaches its presented state immediately with no presentation motion; Tab, programmatic focus, and real pointer input cannot reach the screen behind it; pressing the non-closing control inside the panel records no dismissal and leaves the dialog presented; pressing the backdrop or Escape each records one dismissal and leaves the dialog withdrawn immediately with no presentation motion — *(covered by `packages/web/test/e2e/dialog.test.ts`; “native dialog modal behavior and dismissal (^dg-ac-modal-behaviour)” and the parameterized “dialog entry closes” cases cover manual and non-manual popovers, menus, and selects)*. ^dg-ac-modal-behaviour
+
+Coverage relationship: composing-surface markup smoke checks own each dialog's contents and semantic state, including the artifact and channel alerts' title, consequence, Cancel-first order, and destructive action. Their functional and product assertions own what Cancel, Connect, Delete, and environment changes do. This row owns only the common panel/overlay rendering, focus containment, background inertness, backdrop/Escape dismissal, inside-panel hit discrimination, and open-popover closure. The desktop upgrade gate is the explicit blocking exception: its product and UI owners require that surface to ignore ordinary dialog dismissal and remain presented ([product/update-notifications.md#^gate-behavior](../../../../specs/product/update-notifications.md#^gate-behavior), [ui/app/desktop-upgrade-gate/index.md](../../../../specs/ui/app/desktop-upgrade-gate/index.md)). [arch/ui/foundation.md#^ui-t-foundation-copy](../../../arch/ui/foundation.md#^ui-t-foundation-copy) owns delivery of the authoritative dialog stylesheet.
+

@@ -1,0 +1,58 @@
+name: Setup workspace
+description: >-
+  Select Node from .nvmrc and install the workspace via the exact-key dependency cache contract
+  (specs/arch/test-runner/github-ci.md#dependency-install). Restores
+  node_modules plus the prepare-chain dist outputs under a key covering every
+  input of the cached content; on a hit npm ci is skipped entirely; on a miss
+  npm ci runs and the paths are saved. No restore-keys fallback, ever.
+  Checkout must have run first.
+
+outputs:
+  cache-hit:
+    description: Whether the exact workspace cache key was restored.
+    value: ${{ steps.workspace-cache.outputs.cache-hit }}
+
+inputs:
+  image-identity:
+    description: >-
+      Execution-image identity (key component): the container image tag for
+      container jobs, the runner image label for VM jobs.
+    required: true
+  cache-namespace:
+    description: >-
+      Cache key namespace. The production workflow uses the default; isolated
+      validation workflows pass a scratch namespace so their entries stay out
+      of the production namespace and are deleted wholesale after validation.
+    default: "nm"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+
+    - name: Resolve Node major for workspace cache
+      id: node-runtime
+      shell: bash
+      run: |
+        set -euo pipefail
+        node_version="$(node -p 'process.versions.node')"
+        node_major="${node_version%%.*}"
+        echo "resolved Node $node_version"
+        echo "major=$node_major" >> "$GITHUB_OUTPUT"
+
+    - name: Restore workspace (exact key, no fallback)
+      id: workspace-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          node_modules
+          packages/skillbench/dist
+        key: ${{ inputs.cache-namespace }}-${{ runner.os }}-${{ runner.arch }}-node${{ steps.node-runtime.outputs.major }}-${{ inputs.image-identity }}-${{ hashFiles('package-lock.json', 'packages/skills/package.json', 'packages/skillbench/**') }}
+
+    - name: npm ci (cache miss only)
+      if: steps.workspace-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci

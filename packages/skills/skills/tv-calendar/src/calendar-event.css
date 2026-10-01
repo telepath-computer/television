@@ -1,0 +1,105 @@
+calendar-event {
+  display: contents;
+}
+
+calendar-event .event-block {
+  pointer-events: none;
+  z-index: 2;
+}
+
+calendar-event .event-block-inner {
+  background: var(--event-bg-timed, var(--neutral-100));
+  border-left: 3px solid var(--event-border-color, var(--neutral-300));
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 0.5px var(--neutral-200);
+}
+
+calendar-grid calendar-event .event-block {
+  grid-column: calc(var(--day-index) + 1);
+  grid-row: 1 / -1;
+  position: relative;
+  z-index: 0;
+}
+
+calendar-grid calendar-event .event-block-inner {
+  position: absolute;
+  top: calc(var(--y-start) * 100%);
+  height: calc((var(--y-end) - var(--y-start)) * 100%);
+  left: calc(2px + var(--cascade-depth, 0) * 6px);
+  right: 2px;
+  padding: var(--space-4) var(--space-8);
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: calc(1 + var(--cascade-depth, 0));
+}
+
+calendar-allday calendar-event .event-block {
+  grid-column: calc(var(--day-start) + 1) / span var(--day-span);
+  grid-row: var(--lane-index);
+  padding: 2px;
+}
+
+calendar-allday calendar-event .event-block-inner {
+  background: var(--event-bg-all-day, var(--event-bg-timed, var(--neutral-100)));
+  border-left: var(
+    --event-all-day-border,
+    3px solid var(--event-border-color, var(--neutral-300))
+  );
+  padding: 1px var(--space-8);
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
+}
+
+calendar-event[color="red"] {
+  --event-bg-timed: var(--red-100);
+  --event-bg-all-day: var(--red-200);
+  --event-border-color: var(--red-500);
+  --event-all-day-border: none;
+}
+
+calendar-event[color="orange"] {
+  --event-bg-timed: var(--orange-100);
+  --event-bg-all-day: var(--orange-200);
+  --event-border-color: var(--orange-500);
+  --event-all-day-border: none;
+}
+
+calendar-event[color="yellow"] {
+  --event-bg-timed: var(--yellow-100);
+  --event-bg-all-day: var(--yellow-200);
+  --event-border-color: var(--yellow-500);
+  --event-all-day-border: none;
+}
+
+calendar-event[color="green"] {
+  --event-bg-timed: var(--green-100);
+  --event-bg-all-day: var(--green-200);
+  --event-border-color: var(--green-500);
+  --event-all-day-border: none;
+}
+
+calendar-event[color="blue"] {
+  --event-bg-timed: var(--blue-100);
+  --event-bg-all-day: var(--blue-200);
+  --event-border-color: var(--blue-500);
+  --event-all-day-border: none;
+}
+
+calendar-event[color="purple"] {
+  --event-bg-timed: var(--purple-100);
+  --event-bg-all-day: var(--purple-200);
+  --event-border-color: var(--purple-500);
+  --event-all-day-border: none;
+}
+
+calendar-event h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  /* Event backgrounds stay on light ramp steps in both appearances. */
+  color: var(--neutral-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

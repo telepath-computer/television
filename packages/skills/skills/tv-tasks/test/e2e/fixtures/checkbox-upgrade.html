@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>tv-task-checkbox upgrade E2E</title>
+    <!-- task.css so the row's :has(tv-task-checkbox[checked]) styling is observable. -->
+    <link rel="stylesheet" href="../../../src/task.css" />
+  </head>
+  <body>
+    <tv-task>
+      <tv-task-checkbox id="cb"></tv-task-checkbox>
+      <tv-task-body>
+        <tv-task-title id="title">Upgrade me</tv-task-title>
+      </tv-task-body>
+    </tv-task>
+
+    <script type="module">
+      // Deliberately set the property BEFORE the defining module is imported,
+      // so it lands as an own instance property that shadows the class accessor
+      // once the element upgrades (the classic upgrade-property hazard).
+      const cb = document.getElementById("cb");
+      cb.checked = true;
+      await import("../../../src/task.ts");
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

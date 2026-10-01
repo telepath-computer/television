@@ -1,0 +1,45 @@
+/* The copy button ([[spec-ui.md]]): a control that copies a value and briefly
+   confirms in place. A native <button> classed copy-button carries idle and
+   done content. This file owns the confirm swap: the done content overlays
+   the idle content so the button never resizes and its container does not
+   reflow. Placement, variant, and size are the caller's. */
+
+.copy-button {
+  position: relative;
+}
+
+.copy-button .copy-button-idle,
+.copy-button .copy-button-done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.copy-button .copy-button-done {
+  display: none;
+}
+
+.copy-button[copied] .copy-button-idle {
+  visibility: hidden;
+}
+
+.copy-button[copied] .copy-button-done {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-button-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

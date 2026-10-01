@@ -1,0 +1,47 @@
+---
+style: |
+  /* Air around the panel so its shadow shows — an iframe clips at its
+     viewport, so the room must be inside the frame. The sheet states the
+     frame at panel size plus this margin. */
+  body {
+    margin: 0;
+  }
+  
+  dialog {
+    margin: 24px;
+  }
+  
+  .dialog-body {
+    width: min(400px, 90vw);
+    padding: var(--space-32) var(--space-24);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: center;
+  }
+  
+  /* Sample text on the foundation's scale — the real contents (and their
+     text) are a composing surface's to spec. */
+  .dialog-body h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  .dialog-body p {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import panel from "../../../specs/ui/elements/dialog/template.liquid";
+
+  const { markup, styles } = panel({
+    content: `<div class="dialog-body"><h2>Disconnected</h2><p>Retrying in 3 seconds.</p></div>`,
+  });
+  document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+  document.body.insertAdjacentHTML("beforeend", markup);
+---
+<!-- The panel alone (staging, not spec content): the dialog template with
+     sample contents, judged bare on the workshop ground. -->

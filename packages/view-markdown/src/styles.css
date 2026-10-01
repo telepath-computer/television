@@ -1,0 +1,40 @@
+/* Canonical supplies the document reset, font, tokens, and prose treatment. */
+html,
+body {
+  height: 100%;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  display: flex;
+  letter-spacing: 0.015em;
+}
+
+#editor {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.cm-editor {
+  height: 100%;
+}
+
+/* Editor tables own their header treatment; canonical prose styling applies
+   only to document prose, not CodeMirror's interactive table widgets. */
+.cm-editor .tbl-header-cell {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Preserve the input chrome specific to the editor's task-list widget. */
+input.cm-md-task-checkbox {
+  height: 32px;
+  padding: 0 12px;
+  border: 0.5px solid transparent;
+  border-radius: 12px;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}

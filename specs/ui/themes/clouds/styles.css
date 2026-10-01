@@ -1,0 +1,62 @@
+/* Gray, Neutral and Slate palettes adapted from Tailwind CSS.
+   https://github.com/tailwindlabs/tailwindcss
+   Copyright (c) Tailwind Labs, Inc.
+   MIT License; see THIRD-PARTY-NOTICES.txt. */
+:root {
+  /* Bright blue for primary controls and selection in light appearance. */
+  --color-primary: #3994c9;
+  --neutral: oklch(55.1% 0.027 264.364);
+  --neutral-50: oklch(98.5% 0.002 247.839);
+  --neutral-100: oklch(96.7% 0.003 264.542);
+  --neutral-200: oklch(92.8% 0.006 264.531);
+  --neutral-300: oklch(87.2% 0.01 258.338);
+  --neutral-400: oklch(70.7% 0.022 261.325);
+  --neutral-500: var(--neutral);
+  --neutral-600: oklch(44.6% 0.03 256.802);
+  --neutral-700: oklch(37.3% 0.034 259.733);
+  --neutral-800: oklch(27.8% 0.033 256.848);
+  --neutral-900: oklch(21% 0.034 264.665);
+  --neutral-950: oklch(13% 0.028 261.692);
+}
+
+:root[data-theme="light"] {
+  --color-border: oklch(from var(--color-text) l c h / var(--alpha-20));
+}
+
+/* Mostly Neutral, with a trace of Gray for a cool dark surface. */
+:root[data-theme="dark"] {
+  /* Slate 500 keeps the dark appearance subdued. */
+  --color-primary: oklch(55.4% 0.046 257.417);
+  --neutral: color-mix(in oklch, oklch(55.1% 0.027 264.364) 25%, oklch(55.6% 0 none));
+  --neutral-50: color-mix(in oklch, oklch(98.5% 0.002 247.839) 25%, oklch(98.5% 0 none));
+  --neutral-100: color-mix(in oklch, oklch(96.7% 0.003 264.542) 25%, oklch(97% 0 none));
+  --neutral-200: color-mix(in oklch, oklch(92.8% 0.006 264.531) 25%, oklch(92.2% 0 none));
+  --neutral-300: color-mix(in oklch, oklch(87.2% 0.01 258.338) 25%, oklch(87% 0 none));
+  --neutral-400: color-mix(in oklch, oklch(70.7% 0.022 261.325) 25%, oklch(70.8% 0 none));
+  --neutral-500: var(--neutral);
+  --neutral-600: color-mix(in oklch, oklch(44.6% 0.03 256.802) 25%, oklch(43.9% 0 none));
+  --neutral-700: color-mix(in oklch, oklch(37.3% 0.034 259.733) 25%, oklch(37.1% 0 none));
+  --neutral-800: color-mix(in oklch, oklch(27.8% 0.033 256.848) 25%, oklch(26.9% 0 none));
+  --neutral-900: color-mix(in oklch, oklch(21% 0.034 264.665) 25%, oklch(20.5% 0 none));
+  --neutral-950: color-mix(in oklch, oklch(13% 0.028 261.692) 25%, oklch(14.5% 0 none));
+}
+
+:root[data-television-document="app"] {
+  --app-wallpaper-image: url(wallpaper.webp);
+  --sidebar-background: var(--color-surface-muted);
+  --sidebar-shadow: var(--shadow-sm);
+  --frame-titlebar-background: var(--color-surface-muted);
+  --wallpaper-overlay-background: oklch(27.9% 0.041 260.031 / var(--alpha-50));
+  --wallpaper-overlay-background-active: oklch(from var(--wallpaper-overlay-background) calc(l * 0.8) c h / var(--alpha-75));
+  --wallpaper-overlay-text-color: var(--neutral-50);
+  --tab-text-color: var(--wallpaper-overlay-text-color);
+  --wallpaper-overlay-blur: 8px;
+}
+
+:root[data-television-document="app"][data-theme="light"] {
+  --wallpaper-overlay-background: oklch(from var(--color-primary) calc(l - 0.18) c h / var(--alpha-50));
+}
+
+:root[data-television-document="app"][data-theme="dark"] {
+  --app-wallpaper-image: url(wallpaper-dark.webp);
+}

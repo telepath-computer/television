@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Electron URL navigation start</title>
+  </head>
+  <body>
+    <h1 id="page-title">Start</h1>
+    <p><a id="same-origin-link" href="/packages/desktop/test/e2e/fixtures/electron-url-nav-page2.html">Same origin page</a></p>
+    <p><a id="new-tab-link" href="/packages/desktop/test/e2e/fixtures/electron-url-nav-external.html">Open externally</a></p>
+    <p><a id="fragment-link" href="#section-two">Fragment</a></p>
+    <button id="push-state" type="button">Push state</button>
+    <iframe
+      id="navigation-subframe"
+      title="Navigation subframe"
+      src="/packages/desktop/test/e2e/fixtures/electron-url-nav-subframe.html"
+    ></iframe>
+    <div style="height: 900px"></div>
+    <h2 id="section-two">Section two</h2>
+    <script>
+      const externalURL = new URL("/packages/desktop/test/e2e/fixtures/electron-url-nav-external.html", location.href);
+      externalURL.hostname = location.hostname === "localhost" ? "127.0.0.1" : "localhost";
+      document.getElementById("new-tab-link").href = externalURL.href;
+
+      document.getElementById("push-state").addEventListener("click", () => {
+        history.pushState({ page: "spa" }, "", "/packages/desktop/test/e2e/fixtures/electron-url-nav-start.html?spa=1");
+        document.body.dataset.spa = "1";
+      });
+    </script>
+  </body>
+</html>

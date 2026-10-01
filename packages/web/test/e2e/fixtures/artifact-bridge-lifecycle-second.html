@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Second lifecycle document</title>
+  </head>
+  <body>
+    <h1>Second lifecycle document</h1>
+    <script type="module">
+      import { installBridge } from "/packages/artifact/src/browser/artifact-bridge.ts";
+
+      setTimeout(() => installBridge(window, { reportNavigation: false }), 750);
+    </script>
+  </body>
+</html>

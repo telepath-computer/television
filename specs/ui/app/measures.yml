@@ -1,0 +1,18 @@
+# The app shell's measures ([[ui/app/index.md]]).
+window:
+  min_width_px: 500 # the narrowest the desktop app's window resizes to
+  min_height_px: 500 # the shortest the desktop app's window resizes to
+sidebar:
+  min_width_px: 160
+  max_width_px: 350
+  default_width_px: 260
+  resize_band_px: 6
+  collapse:
+    duration_ms: 180
+    easing: quadratic-ease-out
+# Where the desktop shell asks macOS to place the traffic-light cluster
+# (titleBarStyle "hidden"). y centers the 14px buttons in the app bars'
+# shared height (--app-bar-height); a bar-height change moves y with it.
+traffic_lights:
+  x_px: 15
+  y_px: 15

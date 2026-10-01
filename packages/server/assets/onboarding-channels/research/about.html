@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About this channel</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css">
+<script type="module" src="/canonical/v2/components.js"></script>
+<style>
+/* Shared base for onboarding artifacts ([[../index.md]]): document padding
+   and the centered content shell. Typography, text color, and background
+   are the canonical stylesheet's — nothing in this set restates or pins
+   them, so artifacts follow the active theme ([[../index.md#^respect-theme]]). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-64, 64px);
+}
+
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  /* Pin the single column to the container so a wide child (a data table)
+     scrolls inside its own .table-wrap instead of stretching the track and
+     overflowing the card. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-20, 20px);
+}
+
+/* Card-density headings ([[../index.md]]): document-scale h1 is oversized
+   inside a TV card. */
+h1 {
+  margin: 0;
+  font-size: var(--text-xl, 17px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* A lead paragraph (the .lede or .summary-deck standfirst) belongs in the
+   header, tight beneath the title — not a full grid-gap below it. Every
+   onboarding artifact places its lead this way so the spacing is uniform. */
+header > .lede,
+header > .summary-deck {
+  margin-top: var(--space-8, 8px);
+}
+
+
+/* The About-card idiom ([[../index.md#^about-cards]]): a lede in primary
+   text, then a stack of example prompts rendered as callout blockquotes —
+   no box, a left accent rule, a blue kicker label, and the quoted ask set
+   muted and italic so it reads as a quotation rather than body copy. One
+   accent for all three (the rule is decoration, not a categorization). */
+
+/* The About cards read as the channel's guide, not an example result: they sit
+   on a post-it yellow surface, a deliberate exception to the set's "artifacts
+   don't set backgrounds" rule. The surface is a fixed ramp token (yellow in
+   any theme, like a sticky note), so the text and accent are pinned to fixed
+   dark amber tones rather than the theme's own text colors — those would flip
+   light and vanish on the yellow in a dark theme ([[../index.md#^about-cards]]). */
+body {
+  background: var(--yellow-100);
+  color: var(--neutral-900);
+}
+
+.lede {
+  margin: 0;
+  color: var(--neutral-900);
+}
+
+.prompt-list {
+  display: grid;
+  gap: var(--space-24, 24px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A callout blockquote: the accent rule down the left, text offset from it,
+   no surrounding card. The ask is muted italic; the kicker is upright. */
+.prompt {
+  position: relative;
+  padding-left: var(--space-20, 20px);
+  line-height: 1.5;
+  color: var(--neutral-700);
+  font-style: italic;
+}
+
+.prompt::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: var(--radius-pill, 9999px);
+  background: var(--yellow-700);
+}
+
+.prompt > span {
+  display: block;
+  margin-bottom: var(--space-6, 6px);
+  color: var(--yellow-800);
+  font-size: var(--text-sm, 12px);
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+</style>
+</head>
+<body>
+<main class="shell">
+  <header>
+    <h1>About this channel</h1>
+
+    <p class="lede">
+    This channel shows examples of TV artifacts focused on online research.
+    Instead of using Google and your browser, you can ask your agent to do
+    research and display results as artifacts on your TV.
+    </p>
+  </header>
+
+  <ul class="prompt-list">
+    <li class="prompt">
+      <span>Try asking your agent</span>
+      Read Hacker News, Techmeme, and my X/Twitter feed several times a
+      day, find the ten posts that are most relevant to my interests and
+      work, and put a report on my TV that summarizes each post and
+      explains why it might matter to me.
+    </li>
+    <li class="prompt">
+      <span>Try asking your agent</span>
+      Research which open LLMs perform best on agentic evaluations, then
+      on my TV give me a table that compares them.
+    </li>
+    <li class="prompt">
+      <span>Try asking your agent</span>
+      Create a new markdown document on my TV so I can write my next blog
+      post. Include an outline for me to work with based on the open model
+      research on this channel.
+    </li>
+  </ul>
+</main>
+</body>
+</html>

@@ -1,0 +1,67 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    margin: 0;
+  }
+  
+  /* A busy ground for the scrim to work against. */
+  .ground {
+    padding: 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  
+  .ground > div {
+    height: 120px;
+    border-radius: 8px;
+  }
+  
+  .dialog-body {
+    width: min(400px, 90vw);
+    padding: var(--space-32) var(--space-24);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    text-align: center;
+  }
+  
+  /* Sample text on the foundation's scale — the real contents (and their
+     text) are a composing surface's to spec. */
+  .dialog-body h2 {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  .dialog-body p {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import overlay from "../../../specs/ui/elements/dialog/overlay.liquid";
+
+  const { markup, styles } = overlay({
+    content: `<div class="dialog-body"><h2>Disconnected</h2><p>Retrying in 3 seconds.</p></div>`,
+  });
+  document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+  document.body.insertAdjacentHTML("beforeend", markup);
+---
+<!-- The overlay template over a busy page (staging, not spec content): the
+     scrim and the centring judged against real colour. -->
+
+
+<div class="ground" aria-hidden="true">
+  <div style="background: oklch(80% 0.12 210)"></div>
+  <div style="background: oklch(80% 0.12 30)"></div>
+  <div style="background: oklch(80% 0.12 130)"></div>
+  <div style="background: oklch(80% 0.12 270)"></div>
+  <div style="background: oklch(80% 0.12 0)"></div>
+  <div style="background: oklch(80% 0.12 180)"></div>
+  <div style="background: oklch(80% 0.12 60)"></div>
+  <div style="background: oklch(80% 0.12 320)"></div>
+  <div style="background: oklch(80% 0.12 90)"></div>
+</div>

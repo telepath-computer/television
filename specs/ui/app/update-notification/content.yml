@@ -1,0 +1,35 @@
+# The bell's accessible name and tooltip.
+update_available: Update available
+
+# The copy-prompt button's label.
+copy_prompt: Copy upgrade prompt
+
+# The explicit close button; closing is dismissing, and the bell is the way back.
+later: Later
+
+# The desktop self-update notice's restart button, and its label once pressed.
+restart_to_update: Restart to update
+restarting: Restarting…
+
+# The desktop self-update notice's body. It goes through the same markdown
+# pipeline as a channel notice, with {version} replaced by the downloaded version.
+desktop_self_update_notice: |-
+  ### Desktop app update ready
+
+  Television updates its desktop app automatically. Version {version} has downloaded and installs when you restart the app.
+
+# The fixed desktop-upgrade recommendation body. It goes through the same
+# markdown pipeline as a channel notice. Its link and steps match the
+# administrator guide's.
+desktop_upgrade_recommendation: |-
+  ### Recommended desktop upgrade available
+
+  The Television desktop app is now a downloaded Mac app that updates itself. This copy was installed with npm and receives no more updates.
+
+  To move to the downloaded app on an Apple Silicon Mac:
+
+  1. [Download Television for Mac](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64).
+  2. Open the downloaded disk image and drag Television to Applications.
+  3. Quit this app, then open Television from Applications. It keeps your saved server connection.
+
+  From then on, open Television from Applications, not with `tv-desktop`.

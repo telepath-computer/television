@@ -1,0 +1,27 @@
+---
+title: Channel popover interaction
+params:
+  open: { type: boolean, default: true }
+  renaming: { type: boolean, default: false }
+style: |
+  /* The rig retains empty groups for restoration; the spec omits them. */
+  .channel-group[hidden] + .channel-group { margin-top: 0; }
+script: |
+  import { channelPopoverPrototype } from "../lib/channel-popover.ts";
+
+  let cleanup: (() => void) | undefined;
+  const wire = () => {
+    cleanup?.();
+    const host = document.querySelector<HTMLElement>(".channel-popover-prototype");
+    if (host) cleanup = channelPopoverPrototype(host);
+  };
+  wire();
+  window.addEventListener("frameset:rendered", wire);
+---
+<div class="channel-popover-prototype" data-open="{{ open }}">
+  {% if renaming %}
+    {% render '../../specs/ui/app/top-bar/top-bar', collapsed: true, switcher_open: true, renaming: 'television' %}
+  {% else %}
+    {% render '../../specs/ui/app/top-bar/top-bar', collapsed: true, switcher_open: true %}
+  {% endif %}
+</div>

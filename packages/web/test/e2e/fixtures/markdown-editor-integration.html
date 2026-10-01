@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown editor integration fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <style>
+      html, body { margin: 0; height: 100%; }
+      artifact-view-fixture { display: block; width: 760px; height: 520px; margin: 20px; }
+    </style>
+  </head>
+  <body>
+    <artifact-view-fixture id="view"></artifact-view-fixture>
+    <script type="module">
+      import { render } from "lit-html";
+      import {
+        AppearanceChangedEvent,
+        ArtifactContentChangedEvent,
+        ThemeChangedEvent,
+      } from "/packages/shared/src/events.ts";
+      import { ArtifactViewView } from "/packages/web/src/views/artifact-view.ts";
+
+      class ArtifactViewFixture extends HTMLElement {
+        _artifact = null;
+        _application = null;
+        _contentURL = null;
+        part = null;
+
+        get artifact() { return this._artifact; }
+        set artifact(value) { this._artifact = value; this.draw(); }
+        get application() { return this._application; }
+        set application(value) { this._application = value; this.draw(); }
+        get contentURL() { return this._contentURL; }
+        set contentURL(value) { this._contentURL = value; this.draw(); }
+
+        connectedCallback() {
+          this.part?.setConnected(true);
+          this.draw();
+        }
+
+        disconnectedCallback() {
+          this.part?.setConnected(false);
+        }
+
+        draw() {
+          if (!this.isConnected || !this._artifact) return;
+          this.part = render(ArtifactViewView(this._application, this._artifact, {
+            viewURL: null,
+            contentURL: this._contentURL,
+            inert: false,
+          }), this);
+        }
+      }
+      customElements.define("artifact-view-fixture", ArtifactViewFixture);
+
+      const params = new URLSearchParams(window.location.search);
+      const deferApplication = params.get("deferApplication") === "1";
+      const deferMarkdownGet = params.get("deferMarkdownGet") === "1";
+      let artifact = { id: "md", kind: "path", title: "Note", path: "/tmp/note.md" };
+      const events = new EventTarget();
+      const view = document.getElementById("view");
+      const pendingMarkdownGets = [];
+      window.__savedMarkdown = [];
+      window.__markdownGetCalls = 0;
+      window.__markdownContent = "# Hello\n\n<script>window.__pwned = true<\/script>\n";
+      window.__markdownContents = {};
+      window.__contentReadyMessages = 0;
+      window.__contentReadyBeforeApplication = false;
+      window.addEventListener("message", (event) => {
+        if (event.data?.type !== "ready") return;
+        window.__contentReadyMessages += 1;
+        if (view.application === null) {
+          window.__contentReadyBeforeApplication = true;
+        }
+      });
+      window.__application = {
+        addEventListener: (...args) => events.addEventListener(...args),
+        removeEventListener: (...args) => events.removeEventListener(...args),
+        async readMarkdown(artifactID) {
+          window.__lastGet = { artifactID };
+          window.__markdownGetCalls += 1;
+          if (deferMarkdownGet) {
+            await new Promise((resolve) => pendingMarkdownGets.push(resolve));
+          }
+          return artifactID === "md"
+            ? window.__markdownContent
+            : (window.__markdownContents[artifactID] ?? "");
+        },
+
+        async writeMarkdown(artifactID, content) {
+          window.__savedMarkdown.push({ artifactID, content });
+          window.__markdownContents[artifactID] = content;
+          if (artifactID === "md") {
+            window.__markdownContent = content;
+          }
+        },
+      };
+      window.__emitArtifactChanged = () => {
+        events.dispatchEvent(new ArtifactContentChangedEvent("artifact-content-changed", { artifactID: artifact.id }));
+      };
+      window.__emitThemeChanged = () => {
+        events.dispatchEvent(new ThemeChangedEvent("theme-changed", { themeName: "fixture" }));
+      };
+      window.__emitAppearanceChanged = () => {
+        events.dispatchEvent(new AppearanceChangedEvent("appearance-changed", { appearanceMode: "dark" }));
+      };
+      window.__resolveMarkdownGets = () => {
+        const resolvers = pendingMarkdownGets.splice(0);
+        for (const resolve of resolvers) resolve();
+      };
+      window.__setContentURL = (contentURL) => {
+        view.contentURL = contentURL;
+      };
+      window.__setArtifact = (next) => {
+        artifact = { ...artifact, ...next };
+        view.artifact = artifact;
+      };
+      window.__reloadMarkdownFrame = () => new Promise((resolve, reject) => {
+        const frame = view.querySelector("iframe[src='/views/markdown/']");
+        if (!frame) {
+          reject(new Error("markdown iframe not found"));
+          return;
+        }
+        frame.addEventListener("load", () => resolve(), { once: true });
+        frame.src = frame.getAttribute("src") || frame.src;
+      });
+      window.__reparentView = () => {
+        let target = document.getElementById("reparent-target");
+        if (!target) {
+          target = document.createElement("section");
+          target.id = "reparent-target";
+          document.body.appendChild(target);
+        }
+        target.appendChild(view);
+      };
+      window.__attachApplication = () => {
+        view.application = window.__application;
+      };
+      if (!deferApplication) {
+        window.__attachApplication();
+      }
+      view.artifact = artifact;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

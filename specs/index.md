@@ -1,0 +1,184 @@
+*Generated index of the Television spec set; the first line of each spec is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*
+
+# Spec Index
+
+Generated from the first-line description of every spec by `scripts/specs-index.mjs`, mirroring the `specs/` folder tree. See `spec-policy.md` for the description requirement and `spec-docs.md` for what belongs outside `specs/`.
+
+- `reviewer-checklist.md` (20 lines) — *Review questions that restate the spec policies, for use when reviewing any spec or change.*
+- `spec-docs.md` (62 lines) — *The repository docs folder: guides, working documents, and the archive; what each holds, what standing it has, and the pre-merge docs prep that moves documents from working to archived.*
+- `spec-migration.md` (55 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
+- `spec-policy.md` (211 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
+- `spec-proofs.md` (73 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
+- `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
+- `spec-workflow.md` (248 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
+- `staging.md` (46 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
+- `terms.md` (172 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- **product/**
+  - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
+  - `artifacts.md` (109 lines) — *What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
+  - `channels.md` (65 lines) — *What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
+  - `cli.md` (561 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+  - `desktop-app.md` (54 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
+  - `keyboard-navigation.md` (51 lines) — *How the keyboard moves through the app: the navigation chord that steps between tab pages and between channels, where it always works, and the one place it can't.*
+  - `licensing.md` (109 lines) — *Television's licensing promises: the project is MIT and every published package and the desktop application say so, every shipped artifact carries the licenses and attributions of the third-party code and assets it redistributes, and the standard test suites block unacceptably-licensed dependencies from shipping.*
+  - `tab-pages.md` (60 lines) — *What tab pages promise the user: one tab per page of the focused channel, labeled by its artifact, stepped through by tab or keyboard, with selection private to each browser.*
+  - `telemetry.md` (325 lines) — *Anonymous, opt-out product telemetry: what Television measures about how early users use it, the privacy guarantees that bound what is collected, and the disclosure and opt-out behavior users get.*
+  - `themes-and-appearance.md` (125 lines) — *Themes and appearance: how people choose a server-wide installed theme, use its CSS and JavaScript visual surfaces, grant per-theme consent for main-page JavaScript, and set the light, dark, or system preference that the active theme resolves into appearance.*
+  - `update-notifications.md` (139 lines) — *How users learn about important Television updates and how clients stay current: the shared update notice and persistent bell, the deprecated desktop upgrade recommendation for apps installed from npm, silent client auto-reload, the desktop app's own updates, and the desktop upgrade gate.*
+  - `versioning.md` (45 lines) — *How Television names release lines, carries exact Semantic Versions unchanged, and gives each desktop release the version of the Television release it is built from.*
+  - **onboarding/**
+    - `onboarding-channels.md` (72 lines) — *Onboarding channels: the bundled starter channels every Television installation receives exactly once — what fresh installs and upgrading users see, and the promise that deleted or edited onboarding content is never recreated.*
+- **arch/**
+  - `canonical.md` (73 lines) — *The canonical bundle: the stylesheet and components script Television serves an artifact document at `/canonical/v<n>/*`, the live and frozen inputs that produce it, and the compatibility contract over each version.*
+  - `developer-skills.md` (23 lines) — *Developer skill distribution: the editable source collection and its installation into agent skill directories under the developer’s home.*
+  - `explainer-appearance.md` (97 lines) — *Explainer: how Television combines a theme with the server-wide appearance preference across the application, artifacts, theme script frames, and Electron-native surfaces.*
+  - `explainer-desktop-app.md` (77 lines) — *Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
+  - `licensing.md` (280 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
+  - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
+  - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
+  - `skillbench.md` (55 lines) — *Arch spec: the skillbench package — the skill-eval tool: the CLI that runs eval configs and the read-only page for reviewing what agents produced.*
+  - `testing-policy.md` (236 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - **artifact-frame/**
+    - `artifact-bridge.md` (352 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
+    - `index.md` (49 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
+    - `reload-navigation.md` (138 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
+  - **channel-state/**
+    - `index.md` (167 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
+  - **cli/**
+    - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
+    - `index.md` (460 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+    - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
+  - **desktop/**
+    - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
+    - `connect-flow.md` (34 lines) — *The desktop main-process connection flow: local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge.*
+    - `distribution.md` (100 lines) — *The ToDesktop build of the desktop app: the private workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link.*
+    - `e2e-harness.md` (101 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
+    - `index.md` (59 lines) — *The desktop architecture root: server connection, appearance, the ToDesktop build, the app's updates, the Electron runtime for development and tests, the test harness, and main-process identity.*
+    - `runtime.md` (86 lines) — *The Electron runtime for development runs and tests: its exact version and declarations, installed-file validity on development and test hosts, how those hosts obtain it, and the recurring major-upgrade procedure.*
+    - `updates.md` (47 lines) — *Desktop updates: how the main process starts ToDesktop's update runtime, records a downloaded update, tells the served interface about it, and restarts the app to install it.*
+  - **layout/**
+    - `index.md` (91 lines) — *The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](arch/layout/migration.md)'s.*
+    - `migration.md` (101 lines) — *The server migration: the one boot-time migration that carries a stored data directory across everything the redesign changes on disk — the screen-to-channel names, the version-1 card-tree layouts flattened into version-2 tab pages, the onboarding marker slimmed to its slug, the redesigned display record, the page-size backfill, and the required appearance preference.*
+  - **onboarding/**
+    - `bake.md` (174 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
+    - `content.md` (142 lines) — *Onboarding content and server packaging: the bundled content tree under `packages/server/assets/onboarding-channels/`, the onboarding config schema that orders channels and artifacts, slug rules, and server build-time validation.*
+    - `index.md` (38 lines) — *The onboarding architecture root: bundled content and build validation, the design bake, the per-data-directory installer, and the contracts this feature imposes on architecture modules that do not yet have their own specs.*
+    - `installer.md` (168 lines) — *The onboarding installer: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with deterministic IDs and crash-safe idempotency, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, and the default-channel invariant.*
+  - **skills/**
+    - `sidebar-view.md` (33 lines) — *Arch spec: the tv-sidebar-view skill's bundle facts — storage contract, event stance, known gaps against its ui spec, and how each shipped file was derived.*
+  - **telemetry/**
+    - `client-signals.md` (73 lines) — *The client telemetry signal: the generic, content-free client→server envelope over the `/events` websocket by which a client reports a telemetry-worthy moment it alone can observe, the light per-event validation that backstops the no-UGC call-site policy, and the forwarding rule into the chokepoint.*
+    - `client.md` (42 lines) — *The client telemetry agent (browser + Electron): the anonymous client id, a single standard client metadata payload attached to all communications, engagement detection and the content-free activity signal, and the fact that the client is unaware of the telemetry setting.*
+    - `derivation.md` (28 lines) — *Property derivation: the pure functions that turn server and request state into enumerated and integer telemetry properties — config, host binding, client/user-agent, artifact classification, tab-page order and presentation, channel pins, theme, agent type, and versions — emitting only classifications, never source strings.*
+    - `emitters.md` (46 lines) — *The telemetry emitters: the server-side hook points that build events from server state at boot, CRUD, layout, pins, page presentation, and theme changes, the CLI emitter for skill installs, the forwarding point for client-signaled events, and which properties ride on which events.*
+    - `identity.md` (63 lines) — *Telemetry identity and control: the per-server telemetry user GUID, the telemetry state file that stores it with the opt-out flag and last-seen version, install/start/upgrade detection, and the suppression gate.*
+    - `index.md` (172 lines) — *The telemetry architecture root: the single typed event chokepoint and the closed event/property vocabulary that structurally enforce "no user-generated content", with a map to the module specs that own each part.*
+    - `server-telemetry-buffer.md` (50 lines) — *Buffer for the contracts telemetry imposes on existing, un-specced server modules — event-stream, server-store, bootstrap, and the data directory — held here until a server architecture spec exists to absorb them.*
+    - `sessions.md` (51 lines) — *The telemetry session module: server-side per-client session state, the content-free client activity signal, server-managed UUIDv7 `$session_id` minting and lazy rotation, and how every event is attributed to a session so PostHog derives sessions natively.*
+    - `sink.md` (63 lines) — *The telemetry sink: the PostHog transport, its bounded in-memory buffer, fire-and-forget delivery that never blocks or crashes the server, and the platform operations (region, key, agent access).*
+  - **test-runner/**
+    - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
+    - `blaxel-testshards.md` (121 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
+    - `flaky-tests.md` (74 lines) — *The flaky-test policy: the runner's retry budget, the per-test `FLAKY_TEST_RETRIES` annotation, and how recovered flakes are surfaced.*
+    - `github-ci.md` (137 lines) — *The GitHub Actions CI execution contract: PR concurrency, per-job dependency and browser environment, build-once fan-out with an artifact manifest, cleanup tool prerequisites, worker counts, and the retirement record for the Blacksmith-dispatched shard provider.*
+    - `preflight.md` (92 lines) — *The checks the test runner runs before tests: local capability checks for the selected surfaces, and the git-safety and provider-auth checks that gate a committed-revision remote run.*
+    - `reporting.md` (411 lines) — *The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
+    - `sharded-execution.md` (341 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
+    - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
+    - `test-runner.md` (255 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
+  - **themes/**
+    - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
+    - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*
+    - `delivery.md` (156 lines) — *Theme delivery: how the selected installed package reaches application and artifact documents and combines with the shared appearance preference.*
+    - `index.md` (158 lines) — *Theme architecture: installed package validation, the in-memory registry, shared display and main-JavaScript-consent contracts, control APIs, events, and privacy-preserving telemetry.*
+  - **ui/**
+    - `conformance.md` (44 lines) — *The UI conformance machinery: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
+    - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
+    - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
+    - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*
+    - `keyboard-navigation.md` (43 lines) — *The keyboard-navigation architecture: the shell's single navigation handler, the three paths that deliver the chord into it, and the delegation map across the specs that own each piece.*
+    - `lit-view.md` (50 lines) — *Arch spec: the lit-view module — stateful views for lit-html; what each member does with lit's directive machinery.*
+    - `menu-view.md` (11 lines) — *The menu-view architecture: how production views author menus, and the one rule for trigger ids.*
+    - `overflow-fade.md` (57 lines) — *Overflow fade: an independent helper that supplies per-item mask geometry for scrolling surfaces.*
+  - **updates/**
+    - `desktop-self-update-notice.md` (45 lines) — *The desktop self-update notice: how the web client tells the user of a downloaded desktop app that an update has downloaded, through the shared update bell and notice, and hands the notice the restart that installs it.*
+    - `desktop-upgrade-gate.md` (122 lines) — *The desktop upgrade gate: cross-release shell entrance, the server-baked required desktop version, the Electron-mode boot barrier, the gate screen with its downloaded-update message, restart action and instructions fallback, notice-precedence rules, and gate telemetry.*
+    - `desktop-upgrade-recommendation.md` (42 lines) — *The deprecated desktop upgrade recommendation: how the web bundle uses a release threshold and the update notice to tell users of desktop apps installed from npm that they can move to the downloaded app, without blocking startup.*
+    - `index.md` (61 lines) — *The update-notifications architecture root: the npm publishing eligibility and serialization rules, the release-version validation and comparison rules every update mechanism shares, the lockstep rule that exempts server↔client update contracts from compatibility discipline, and the map to the module specs.*
+    - `runbook-channel-deploy.md` (84 lines) — *Runbook: announcing a curated release on the update channel — authoring and deploying `update-channel.json`, bumping the required desktop version when the release needs it, and verifying the deploy.*
+    - `runbook-ux-staging.md` (158 lines) — *Runbook: staging every user-visible update-notifications state — server toast, bell, dismissal, desktop self-update notice, desktop recommendation, and desktop upgrade gate — on a development machine, for design/UX review.*
+    - `update-channel.md` (135 lines) — *The public update channel: the manually-deployed JSON notice at television.run, its schema and additive evolution protocol; server-side polling with silent failure semantics; the update-state relay to clients; dismissal persistence; the notice telemetry events; and the channel-deploy procedure.*
+    - `version-advertisement.md` (72 lines) — *How the server advertises its release version to clients (health endpoint, response header, `/events` message), how the web bundle learns its own version at build time, the cache headers that make a reload effective, and the client auto-reload contract with its loop guard.*
+- **ui/**
+  - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
+  - **app/**
+    - `index.md` (115 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - **artifact-frame/**
+      - `index.md` (64 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
+    - **copy-button/**
+      - `index.md` (45 lines) — *UI spec: the copy button — a control that copies a value and briefly confirms, without resizing.*
+    - **desktop-upgrade-gate/**
+      - `index.md` (34 lines) — *UI spec: the desktop upgrade gate screen — the blocking surface a gated desktop app renders instead of the interface.*
+    - **dialog/**
+      - `index.md` (46 lines) — *UI spec: the dialog — the panel that interrupts the screen for an important decision or issue.*
+    - **settings/**
+      - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
+    - **sidebar/**
+      - `index.md` (78 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
+    - **skill-selector/**
+      - `index.md` (38 lines) — *UI spec: the skill selector — the navbar trigger and the skills popover; its interaction, markup, and styling.*
+    - **stage/**
+      - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
+    - **system-modal/**
+      - `index.md` (41 lines) — *UI spec: the system modal — the app's interrupting surface: one dialog, its contents by state.*
+    - **tab-strip/**
+      - `index.md` (60 lines) — *UI spec: the tab strip — the row of open artifacts, and the tab that stands for each.*
+    - **top-bar/**
+      - `index.md` (79 lines) — *UI spec: the navbar — artifact tabs and application controls.*
+    - **update-notification/**
+      - `index.md` (50 lines) — *UI spec: the update notification — the navbar bell and the notice popover; its interaction, markup, and styling.*
+  - **foundation/**
+    - `index.md` (127 lines) — *UI spec: the foundation — the design tokens, base element styling, and materials every surface builds on.*
+    - **button/**
+      - `index.md` (56 lines) — *UI spec: the button — what a button looks like across its states, and the attributes that vary it.*
+    - **checkbox-list/**
+      - `index.md` (18 lines) — *UI spec: the checklist — the static done/not-done idiom an authored artifact writes as markup.*
+    - **icons/**
+      - `index.md` (61 lines) — *UI spec: the icon — what one looks like, the set of them, and how one is sized.*
+    - **input/**
+      - `index.md` (39 lines) — *UI spec: text inputs and textareas — shared text-entry styling in the application and artifacts.*
+    - **menu/**
+      - `index.md` (25 lines) — *UI spec: the menu — a popover whose contents are actions, and the vocabulary its interior is built from.*
+    - **popover/**
+      - `index.md` (75 lines) — *UI spec: the popover — the panel that floats over the page while the page stays live, anchored to the trigger that opened it.*
+    - **select/**
+      - `index.md` (42 lines) — *UI spec: the select — the control that chooses one option from a list; its trigger, selection, interior, and keyboard.*
+  - **markdown-editor/**
+    - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
+  - **onboarding-artifacts/**
+    - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
+  - **skillbench/**
+    - `index.md` (26 lines) — *UI spec: skillbench — the eval review page's interaction, markup, and styling.*
+  - **skills/**
+    - **sidebar-view/**
+      - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*
+  - **themes/**
+    - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
+    - **aquarium/**
+      - `index.md` (9 lines) — *UI spec: the Aquarium theme — a light and dark aquarium with a sandboxed animated background.*
+    - **blueprint/**
+      - `index.md` (9 lines) — *UI spec: the Blueprint theme — a fixed dark cyanotype engineering drawing.*
+    - **clouds/**
+      - `index.md` (9 lines) — *UI spec: the Clouds theme — a cool, light and airy treatment, minimal but distinct.*
+    - **crt-phosphor/**
+      - `index.md` (9 lines) — *UI spec: the CRT Phosphor theme — a fixed dark green terminal with CSS foreground effects.*
+    - **nord/**
+      - `index.md` (9 lines) — *UI spec: the Nord theme — the fixed dark Nord palette mapped to cool Television v2 color roles.*
+      - `README.md` (11 lines) — *Nord theme overview and credits.*
+    - **swiss/**
+      - `index.md` (9 lines) — *UI spec: Swiss — the default appearance with an always-dark sidebar and a red primary accent.*
+      - `README.md` (7 lines) — *Swiss theme overview and credits.*
+    - **tokyo-night/**
+      - `index.md` (9 lines) — *UI spec: the Tokyo Night theme — the fixed dark Night palette mapped to Television v2 color roles.*
+      - `README.md` (19 lines) — *Tokyo Night theme overview and credits.*

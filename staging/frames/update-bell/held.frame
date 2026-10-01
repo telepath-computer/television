@@ -1,0 +1,17 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+  }
+  
+  /* Held is judged on the bell, not the notice: the panel is open for real
+     (the held selector requires it) and hidden here. */
+  [popover]:popover-open {
+    display: none;
+  }
+script: |
+  import { mountBell } from "./bell.ts";
+
+  mountBell("held");
+---

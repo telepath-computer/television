@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open model research</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css">
+<script type="module" src="/canonical/v2/components.js"></script>
+<style>
+/* Shared base for onboarding artifacts ([[../index.md]]): document padding
+   and the centered content shell. Typography, text color, and background
+   are the canonical stylesheet's — nothing in this set restates or pins
+   them, so artifacts follow the active theme ([[../index.md#^respect-theme]]). */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-64, 64px);
+}
+
+.shell {
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  /* Pin the single column to the container so a wide child (a data table)
+     scrolls inside its own .table-wrap instead of stretching the track and
+     overflowing the card. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-20, 20px);
+}
+
+/* Card-density headings ([[../index.md]]): document-scale h1 is oversized
+   inside a TV card. */
+h1 {
+  margin: 0;
+  font-size: var(--text-xl, 17px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* A lead paragraph (the .lede or .summary-deck standfirst) belongs in the
+   header, tight beneath the title — not a full grid-gap below it. Every
+   onboarding artifact places its lead this way so the spacing is uniform. */
+header > .lede,
+header > .summary-deck {
+  margin-top: var(--space-8, 8px);
+}
+
+
+/* The hero header idiom ([[../index.md]]): a plain document header opening a
+   dashboard-shaped artifact — the title with a fictional freshness line and
+   an optional source/meta line, sitting on the document itself rather than
+   inside a card. */
+
+header.hero h1 {
+  margin: 0 0 var(--space-6, 6px);
+}
+
+.generated {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  font-weight: 500;
+}
+
+.meta-line {
+  margin-top: var(--space-4, 4px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+
+/* The panel/section idioms ([[../index.md]]): a bordered surface panel with
+   a heading and optional note, the muted summary-box, the section-title row,
+   and — for artifacts that lean on headings and spacing over nested cards —
+   the borderless .section and the .summary-deck lead paragraph. */
+
+/* Borderless section: a title row (or heading) then its stack, no box. */
+.section {
+  display: grid;
+  gap: var(--space-16, 16px);
+}
+
+/* Summary/lead as a standfirst paragraph — the borderless counterpart to
+   .summary-box. */
+/* Lead/standfirst paragraph — the same size as the About .lede (body text),
+   not enlarged; it leads by position and primary color, not scale. */
+.summary-deck {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.panel {
+  padding: var(--space-20, 20px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.panel h2 {
+  margin: 0 0 var(--space-4, 4px);
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.panel .note {
+  margin: 0 0 var(--space-16, 16px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+.summary-box {
+  padding: var(--space-16, 16px) var(--space-20, 20px);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-muted);
+}
+
+.summary-box h2 {
+  margin: 0 0 var(--space-8, 8px);
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.summary-box p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-12, 12px);
+  margin-bottom: var(--space-12, 12px);
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: var(--text-lg, 15px);
+  font-weight: 600;
+}
+
+.section-title .note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+
+
+/* The pill idiom ([[../index.md]]): small rounded status/tag chips. The
+   base pill is neutral; variant classes tint with canonical ramp tokens
+   (stable across themes by design, [[../index.md#^respect-theme]]). */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  padding: 2px var(--space-10, 10px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill, 9999px);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.pill.blue   { color: var(--blue-700);   border-color: var(--blue-200);   background: var(--blue-50); }
+.pill.green  { color: var(--green-700);  border-color: var(--green-200);  background: var(--green-50); }
+.pill.orange { color: var(--orange-700); border-color: var(--orange-200); background: var(--orange-50); }
+.pill.red    { color: var(--red-700);    border-color: var(--red-200);    background: var(--red-50); }
+.pill.dim    { color: var(--neutral-500); border-color: var(--neutral-200); background: var(--neutral-100); }
+
+
+/* The data-table idiom ([[../index.md]]): a dense comparison table with
+   uppercase column headers, hairline row rules, hover, and right-aligned
+   numeric columns in the mono face. Wrap in .table-wrap so wide tables
+   scroll inside the card instead of the page. */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table-wrap table {
+  width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  font-size: var(--text-sm, 12px);
+}
+
+/* Only horizontal row rules — clear the cells' default vertical borders so
+   the edge columns don't double up against a container border. */
+.table-wrap th,
+.table-wrap td {
+  border-left: 0;
+  border-right: 0;
+}
+
+.table-wrap thead th {
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table-wrap thead th.num {
+  text-align: right;
+}
+
+.table-wrap tbody td {
+  padding: var(--space-10, 10px) var(--space-12, 12px);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table-wrap tbody td.num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.table-wrap tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table-wrap tbody tr:hover {
+  background: var(--color-surface-muted);
+}
+
+
+/* Artifact-specific styling for Open model research ([[../index.md]]): the
+   wider shell, the horizontal bar chart, and a couple of table-cell
+   tweaks. The hero, summary box, panel, pills, and comparison table come
+   from the shared idioms; bar and legend colors are canonical ramp tokens
+   applied through tier classes, so the artifact never redefines the theme
+   chrome tokens ([[../index.md#^respect-theme]]). */
+
+.shell {
+  max-width: 860px;
+  gap: var(--space-16, 16px);
+}
+
+/* Bring the cards closer to the artifact edge, and inset the header by the
+   panel's own padding so every line — title, summary (now nested in the
+   header), panel headings, cell text — shares one left margin. */
+body {
+  padding-left: var(--space-16, 16px);
+  padding-right: var(--space-16, 16px);
+}
+
+header.hero {
+  padding-left: var(--space-20, 20px);
+  padding-right: var(--space-20, 20px);
+}
+
+/* Horizontal bar chart. */
+.chart {
+  display: grid;
+  gap: var(--space-12, 12px);
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 44px;
+  gap: var(--space-12, 12px);
+  align-items: center;
+}
+.bar-label {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: var(--text-base, 13.5px);
+  font-weight: 600;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bar-track {
+  position: relative;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+.bar-value {
+  color: var(--color-text);
+  font-size: var(--text-base, 13.5px);
+  font-weight: 700;
+  text-align: left;
+}
+
+/* (.summary-deck comes from the shared panel/section idiom; the alignment
+   inset above keeps its text lined up with the panel content.) */
+
+/* Bar fills and matching legend dots key off the model's tool-use rating,
+   the same language as the table's Tool-use pills. */
+.bar-fill.excellent, .legend-dot.excellent { background: var(--green-500); }
+.bar-fill.good,      .legend-dot.good      { background: var(--blue-500); }
+.bar-fill.moderate,  .legend-dot.moderate  { background: var(--orange-500); }
+.bar-fill.limited,   .legend-dot.limited   { background: var(--neutral-400); }
+
+.chart-legend {
+  display: flex;
+  gap: var(--space-16, 16px);
+  margin-top: var(--space-12, 12px);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm, 12px);
+}
+.chart-legend span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 4px;
+}
+
+/* Comparison table: the model column reads as a label, not data. */
+.table-wrap td.model-name {
+  font-weight: 600;
+}
+
+/* The comparison table runs edge to edge inside its panel: it breaks out of
+   the panel's padding on both sides and the bottom, keeping its horizontal
+   scroll. The panel clips the rounded corners. */
+.panel:has(.table-wrap) {
+  overflow: hidden;
+}
+
+.table-wrap {
+  margin: 0 calc(-1 * var(--space-20, 20px)) calc(-1 * var(--space-20, 20px));
+}
+
+@media (max-width: 640px) {
+  .bar-row { grid-template-columns: 90px minmax(0, 1fr) 36px; }
+  .bar-label { font-size: var(--text-sm, 12px); }
+}
+
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="hero">
+    <h1>Open model research</h1>
+    <div class="meta-line">Deep research on open-weight LLMs for agentic workloads · Eval: AgentBench-2.0</div>
+    <p class="summary-deck">Evaluated 8 open-weight models on <strong>AgentBench-2.0</strong>, a multi-task agentic evaluation suite covering tool-use orchestration, multi-step reasoning, code execution, and retrieval-augmented planning. Three models stand out for production agentic workloads: <strong>GLM-4.6-405B</strong> leads on tool-use orchestration, <strong>Llama-4-70B</strong> retains the strongest reasoning edge, and <strong>Mistral-Large-2</strong> offers the best performance-per-parameter ratio. Smaller models (below 35B) struggle with multi-step tool chains but remain viable for single-step tasks.</p>
+  </header>
+
+  <section class="panel">
+    <h2>AgentBench-2.0 scores</h2>
+    <p class="note">Composite score across tool-use, reasoning, code execution, and RAG planning tasks · 0–100 scale</p>
+    <div class="chart">
+
+      <div class="bar-row">
+        <div class="bar-label">GLM-4.6-405B</div>
+        <div class="bar-track"><div class="bar-fill excellent" style="width: 89%"></div></div>
+        <div class="bar-value">89</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Llama-4-70B</div>
+        <div class="bar-track"><div class="bar-fill good" style="width: 84%"></div></div>
+        <div class="bar-value">84</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Mistral-Large-2</div>
+        <div class="bar-track"><div class="bar-fill good" style="width: 79%"></div></div>
+        <div class="bar-value">79</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">DeepSeek-V3</div>
+        <div class="bar-track"><div class="bar-fill good" style="width: 74%"></div></div>
+        <div class="bar-value">74</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Qwen-3-72B</div>
+        <div class="bar-track"><div class="bar-fill moderate" style="width: 68%"></div></div>
+        <div class="bar-value">68</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Gemma-3-27B</div>
+        <div class="bar-track"><div class="bar-fill moderate" style="width: 54%"></div></div>
+        <div class="bar-value">54</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Phi-4-14B</div>
+        <div class="bar-track"><div class="bar-fill limited" style="width: 41%"></div></div>
+        <div class="bar-value">41</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Llama-4-8B</div>
+        <div class="bar-track"><div class="bar-fill limited" style="width: 33%"></div></div>
+        <div class="bar-value">33</div>
+      </div>
+
+    </div>
+    <div class="chart-legend">
+
+      <span><div class="legend-dot excellent"></div>Excellent</span>
+
+      <span><div class="legend-dot good"></div>Good</span>
+
+      <span><div class="legend-dot moderate"></div>Moderate</span>
+
+      <span><div class="legend-dot limited"></div>Limited</span>
+
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Model comparison</h2>
+    <p class="note">Key traits for evaluating production readiness in agentic systems</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Params</th>
+            <th>Size (Q4)</th>
+            <th>Context</th>
+            <th>Tool-use</th>
+            <th>License</th>
+            <th>Best for</th>
+          </tr>
+        </thead>
+        <tbody>
+
+          <tr>
+            <td class="model-name">GLM-4.6-405B</td>
+            <td>405B</td>
+            <td>~210 GB</td>
+            <td>128K</td>
+            <td><span class="pill green">Excellent</span></td>
+            <td><span class="pill dim">Apache 2.0</span></td>
+            <td>Multi-tool orchestration</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Llama-4-70B</td>
+            <td>70B</td>
+            <td>~42 GB</td>
+            <td>256K</td>
+            <td><span class="pill blue">Good</span></td>
+            <td><span class="pill dim">Llama license</span></td>
+            <td>Multi-step reasoning</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Mistral-Large-2</td>
+            <td>123B</td>
+            <td>~68 GB</td>
+            <td>128K</td>
+            <td><span class="pill blue">Good</span></td>
+            <td><span class="pill dim">MPL 2.0</span></td>
+            <td>Best perf/param ratio</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">DeepSeek-V3</td>
+            <td>671B MoE</td>
+            <td>~350 GB</td>
+            <td>128K</td>
+            <td><span class="pill blue">Good</span></td>
+            <td><span class="pill dim">MIT</span></td>
+            <td>Cost-efficient inference</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Qwen-3-72B</td>
+            <td>72B</td>
+            <td>~44 GB</td>
+            <td>32K</td>
+            <td><span class="pill orange">Moderate</span></td>
+            <td><span class="pill dim">Qwen license</span></td>
+            <td>Code + retrieval tasks</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Gemma-3-27B</td>
+            <td>27B</td>
+            <td>~16 GB</td>
+            <td>128K</td>
+            <td><span class="pill orange">Moderate</span></td>
+            <td><span class="pill dim">Gemma terms</span></td>
+            <td>Single-step tasks</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Phi-4-14B</td>
+            <td>14B</td>
+            <td>~8 GB</td>
+            <td>16K</td>
+            <td><span class="pill dim">Limited</span></td>
+            <td><span class="pill dim">MIT</span></td>
+            <td>Edge / lightweight</td>
+          </tr>
+
+          <tr>
+            <td class="model-name">Llama-4-8B</td>
+            <td>8B</td>
+            <td>~5 GB</td>
+            <td>32K</td>
+            <td><span class="pill dim">Limited</span></td>
+            <td><span class="pill dim">Llama license</span></td>
+            <td>Prototyping</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+</body>
+</html>

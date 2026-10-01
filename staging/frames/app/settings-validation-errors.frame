@@ -1,0 +1,20 @@
+---
+params:
+  state: { enum: [connected, connecting, disconnected, unauthorized, error, needs-upgrade, no-channels], default: connected }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({
+    settings: {
+      themes: [{ id: "clouds", name: "Clouds", version: "1.0.0" }],
+      errors: [
+        { folder: "unfinished-theme", error: "cannot read manifest.json" },
+        { folder: null, error: "cannot read themes directory" },
+      ],
+    },
+  });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app settings panel with package and directory validation errors (staging). -->
+
+<div class="window"></div>

@@ -1,0 +1,39 @@
+name: Setup Playwright
+description: >-
+  Install the Chromium and Firefox browsers for Playwright, restoring them from a
+  version-keyed cache when possible. On a cache hit the browser binary is
+  reused and only the apt system dependencies are (re)installed, since those
+  cannot be cached on an ephemeral runner. Requires `npm ci` to have run first
+  so `@playwright/test` is resolvable.
+
+outputs:
+  cache-hit:
+    description: Whether the version-pinned Playwright browser cache was restored.
+    value: ${{ steps.pw-cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  # Node selection belongs to the caller's setup composite. These node/npx
+  # commands inherit that runtime so each CI job selects .nvmrc exactly once.
+  steps:
+    - name: Resolve Playwright version
+      id: pw-version
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright browsers
+      id: pw-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-chromium-firefox
+
+    - name: Install Chromium, Firefox, and system deps (cache miss)
+      if: steps.pw-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npx playwright install --with-deps chromium firefox
+
+    - name: Install system deps only (cache hit)
+      if: steps.pw-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: npx playwright install-deps chromium firefox

@@ -1,0 +1,37 @@
+:where(:root) {
+  /* Ordinary buttons and text fields share control padding. */
+  --control-padding: var(--space-2) var(--space-16);
+
+  /* Spacing — the thirteen legal distances. The ladder is a constraint, not a
+     theming surface: names state their fixed pixel values, and an off-ladder
+     length in a sheet is a visible smell. A density mode, if ever real,
+     swaps the ladder wholesale rather than lying under these names. */
+  --space-2: 2px;
+  --space-3: 3px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* Radius roles — jobs, themable. A numbered ladder would be value-names a
+     theme cannot restate without lying. */
+  --control-radius: 6px; /* buttons, inputs, menu items, small insets */
+  --radius-pill: 9999px; /* fully rounded ends at any element size */
+
+  /* Shared panel corners. */
+  --panel-radius: 8px;
+
+  /* The clearance a placed panel keeps on every side — off the trigger and
+     off every window edge ([[ui/foundation/popover/index.md]], Placement).
+     The element reads it from computed style, so a theme override reaches
+     the placement algorithm. Foundation, not app chrome: the popover family
+     ships to artifact documents, so its clearance must travel with it. */
+  --popover-distance: var(--space-4);
+}

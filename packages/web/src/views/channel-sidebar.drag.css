@@ -1,0 +1,44 @@
+/* Gesture-state scaffolding for the JS-driven channel drag choreography.
+   The behavioral contract remains specs/ui/app/sidebar/index.md. */
+.sidebar[dragging] .sidebar-body,
+.channel-switcher-pop[dragging] .channel-switcher-pop-body {
+  overflow-anchor: none;
+}
+
+.channel-group[drag-collapsed] {
+  height: 0;
+  margin-top: 0;
+  overflow: visible;
+}
+
+.channel-group[drag-collapsed] > .channel-group-label {
+  display: none;
+}
+
+.channel-group[drag-collapsed] + .channel-group {
+  margin-top: 0;
+}
+
+.channel-group-withdrawal {
+  position: fixed;
+  z-index: 2;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.channel-placeholder {
+  width: 100%;
+}
+
+.channel-row.dragged {
+  position: fixed;
+  z-index: 3;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.channel-row.dragged :where(.channel-menu-trigger, tv-menu) {
+  display: none;
+}

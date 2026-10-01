@@ -1,0 +1,56 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  
+  .staging-frames {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  
+  .staging-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+---
+<!--
+  The tab strip spec staged (staging, not spec content).
+
+  Two things are being judged, so they are staged separately: the strip as a row
+  (specs/ui/app/stage/tab-strip/tab-strip.liquid), and one tab in each of its states
+  (specs/ui/app/stage/tab-strip/tab.liquid). The single tabs are rendered from the same
+  template the bar composes, so what you look at below is what the strip is made
+  of, not a restatement of it. Each board is a frame of its own.
+
+  The boards sit on the app's background rather than on white — the board
+  documents paint it, and the embeds here stay transparent — because that is
+  what a tab is judged against: the selected tab is white, so on a white ground
+  it would have nothing to be lifted off.
+-->
+
+
+
+<div class="staging-frames">
+  <div class="staging-column">
+    <frameset-frame src="./strip" label="Strip" width="440" height="48"></frameset-frame>
+    <frameset-frame src="./strip-one" label="One tab open" width="440" height="48"></frameset-frame>
+    <frameset-frame src="./strip-long" label="Long name" width="440" height="48"></frameset-frame>
+  </div>
+
+  <div class="staging-column">
+    <frameset-frame src="./tab-rest" label="Rest" width="240" height="44"></frameset-frame>
+    <frameset-frame src="./tab-hover" label="Hover" width="240" height="44"></frameset-frame>
+    <frameset-frame src="./tab-selected" label="Selected" width="240" height="44"></frameset-frame>
+    <frameset-frame src="./tab-selected-hover" label="Selected, hover" width="240" height="44"></frameset-frame>
+  </div>
+</div>

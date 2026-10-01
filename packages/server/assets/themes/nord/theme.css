@@ -1,0 +1,28 @@
+/*
+ * Colors from Nord — https://github.com/nordtheme/nord
+ * Copyright (c) 2016-present Sven Greb <development@svengreb.de> (https://www.svengreb.de)
+ * MIT License; full text in THIRD-PARTY-NOTICES.txt.
+ */
+
+/* The Nord theme ([[ui/themes/nord/index.md]]). */
+:root {
+  --neutral: #4c566a;
+  --red: #bf616a;
+  --orange: #d08770;
+  --yellow: #ebcb8b;
+  --green: #a3be8c;
+  --cyan: #88c0d0;
+  --blue: #5e81ac;
+  --purple: #b48ead;
+  --pink: #b48ead;
+  --accent: var(--cyan);
+
+  --color-surface: #2e3440;
+  --color-surface-muted: #3b4252;
+  --color-text: #d8dee9;
+  --color-text-muted: var(--neutral-400);
+}
+
+:root[data-television-document="app"] {
+  --app-wallpaper: oklch(from var(--color-surface) calc(l - 0.03) calc(c * 0.85) h);
+}

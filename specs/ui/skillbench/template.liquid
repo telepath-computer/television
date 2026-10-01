@@ -1,0 +1,44 @@
+{% doc %}
+  Skillbench — the eval review page: a central view (the active job's
+  artifact) and a single right rail, halved into the job list and the
+  inspector form.
+  @param {string} title - the active job's name (the artifact iframe's accessible title)
+  @param {array} jobs - [{ name, active?, hasOutput? }]
+  @param {string} prompt - the active job's prompt
+  @param {array} sizes - [{ label, selected? }]
+  @param {boolean} [notRun] - active job has no output; the central view shows the empty message
+{% enddoc %}
+{% import './content.yml' as content %}
+{% attach_styles './styles.css' %}
+
+<div class="skillbench">
+  <main class="view">
+    <div class="artifact-stage">
+      {% if notRun %}
+      <div class="artifact-empty">{{ content.not_run_empty }}</div>
+      {% else %}
+      <iframe class="artifact" title="{{ title }}"></iframe>
+      {% endif %}
+    </div>
+  </main>
+  <aside class="rail">
+    <h2 class="jobs-title">{{ content.jobs_label }}</h2>
+    <ul class="jobs">
+      {% for job in jobs %}
+      <li{% if job.active %} class="active"{% elsif job.hasOutput == false %} class="no-output"{% endif %}>{{ job.name }}{% if job.hasOutput == false %}<span class="not-run">{{ content.not_run_suffix }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    <form class="inspector">
+      <label class="prompt-field">{{ content.prompt_label }}
+        <textarea class="prompt" readonly>{{ prompt }}</textarea>
+      </label>
+      <label>{{ content.size_label }}
+        <select class="size">
+          {% for size in sizes %}
+          <option{% if size.selected %} selected{% endif %}>{{ size.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+  </aside>
+</div>

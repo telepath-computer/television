@@ -1,0 +1,46 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  
+  frameset-frame {
+    flex: none;
+  }
+  
+  .staging-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+  
+  .staging-states {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+---
+<!-- The sidebar spec staged: the live list, and one channel in each state,
+     each board a frame of its own. -->
+
+
+<div class="staging-row">
+  <frameset-frame src="./list" label="Sidebar" width="320" height="750" background="white"></frameset-frame>
+
+  <div class="staging-states">
+    <frameset-frame src="./channel-rest" label="Resting" width="304" height="44" background="white"></frameset-frame>
+    <frameset-frame src="./channel-hover" label="Hover" width="304" height="44" background="white"></frameset-frame>
+    <frameset-frame src="./channel-selected" label="Selected" width="304" height="44" background="white"></frameset-frame>
+    <frameset-frame src="./channel-renaming" label="Renaming" width="304" height="44" background="white"></frameset-frame>
+    <frameset-frame src="./channel-unpinning" label="Carried, would unpin" width="304" height="80" background="white"></frameset-frame>
+  </div>
+</div>
+
+<frameset-frame src="./delete-confirm" label="Delete confirmation" width="760" height="440" style="margin-top: 40px"></frameset-frame>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Channel sidebar continuity document</title>
+    <style>
+      body { min-height: 1200px; }
+    </style>
+  </head>
+  <body>
+    <label>Retained value <input id="retained-value" /></label>
+    <p>Live document retained across sidebar updates.</p>
+    <script>
+      const owner = window.parent;
+      owner.__channelSidebarDocumentLoads = (owner.__channelSidebarDocumentLoads ?? 0) + 1;
+      window.__channelSidebarCounter = 0;
+      const tick = () => {
+        window.__channelSidebarCounter += 1;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      owner.postMessage({ type: "channel-sidebar-document-ready" }, location.origin);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,91 @@
+.artifact-view .artifact-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior-y: contain;
+  background: var(--color-surface);
+}
+
+.artifact-view[data-embed-loaded] .artifact-content {
+  background: transparent;
+}
+
+.artifact-view iframe.artifact-content,
+.artifact-view webview.artifact-content {
+  margin-bottom: -1px;
+  border: 0;
+  width: calc(100% + 2px);
+  /* Conformance exemption from the spec's radius-less document (#113;
+     [[ui/app/artifact-frame/index.md#^af-document-corners]]):
+     Chromium composites iframe/webview replaced elements separately, and they
+     can paint square through the wrapper's rounded overflow clip under the two
+     live scaled-ancestor sites — `.filmstrip-inner[tab-held]` at 0.9 and
+     `.page:not([selected])` at 0.94 in stage.css. Repeat only the top corners
+     from the wrapper's inherited, spec-owned custom property; no radius value
+     is copied, and the bottom stays square against the title bar. */
+  border-radius: var(--frame-radius) var(--frame-radius) 0 0;
+}
+
+.artifact-view iframe.artifact-content {
+  display: block;
+}
+
+/* Do not set display on Electron <webview>. Electron's default display:flex
+   is load-bearing: overriding it (for example with display:block) leaves the
+   guest viewport at Chromium's default 150px height. */
+
+.artifact-view .artifact-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted, #888);
+  font-size: 12px;
+}
+
+.artifact-view .artifact-missing {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  padding: 24px;
+  color: #222222;
+  background: #dadada;
+}
+
+.artifact-view .artifact-missing-wrapper {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.artifact-view .artifact-missing h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.125rem;
+  line-height: 1.25;
+}
+
+.artifact-view .artifact-missing p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.artifact-view .artifact-missing-path {
+  margin: 1rem 0;
+}
+
+.artifact-view .artifact-missing-path-label {
+  margin-bottom: 0.375rem;
+}
+
+.artifact-view .artifact-missing code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 0.125rem 0.3rem;
+  border-radius: 0.35rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85em;
+  color: #253040;
+  background: #cbcbcb;
+  user-select: all;
+}

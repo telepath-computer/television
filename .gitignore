@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Skill eval outputs (specs/arch/making-skills.md)
+/storybook/skill-evals/out/
+/.licenses-inventory/
+
+# Electron
+.electron/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude local state
+.claude/
+
+# Firecrawl research output
+.firecrawl/
+
+# Remote test shard local output
+.blaxel-gh-token
+.blaxel-testshards/
+.testshards/
+.test-runs/
+
+# Environment
+.env
+.env.local
+
+# Television home used by scripts/dev-server.sh
+.tv-dev-home/
+
+# Logs
+*.log
+npm-debug.log*
+.verify/
+
+# Test coverage
+coverage/
+.playwright/
+playwright-report/
+test-results/
+
+.bladerunrc
+.pi
+
+# controlplane
+.run/
+
+# Worktrees
+.worktrees/
+
+# Local working notes
+scratch/
+
+
+# agent scratch/work docs
+tmp/
+/plans

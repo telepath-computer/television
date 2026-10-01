@@ -1,0 +1,21 @@
+---
+title: Tab placeholder
+style: |
+  /* The drag placeholder ([[ui/app/stage/index.md]], Reordering): while a
+     tab is carried, a tint in the tab's own size and shape holds its slot —
+     drawn where release will drop it. Every tab is one control line, so the
+     slot's height is the sum the tab states — line, the label's padding, the
+     border — while the width is the carried tab's own, arriving from
+     behaviour. The tint is the shared one — mixed from currentColor, like
+     the ghost hover's, so it reads on whatever ground it lands. */
+  .tab-placeholder {
+    display: block;
+    flex: none;
+    height: calc(var(--line-control) + 2 * var(--space-4) + 2 * 1px);
+    box-sizing: border-box;
+    border: var(--tab-border);
+    border-radius: var(--tab-radius);
+    background: var(--drag-placeholder-background);
+  }
+---
+<span class="tab-placeholder" aria-hidden="true"></span>

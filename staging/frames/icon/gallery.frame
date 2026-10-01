@@ -1,0 +1,30 @@
+---
+title: Icon gallery
+description: The whole set at once, each glyph's name under it — the names are what a surface actually types. Drawn from the set itself, so an icon added there appears here without this file changing.
+imports:
+  - ../../lib/foundation.ts
+  - icons: ../../../specs/ui/foundation/icons/icons.ts
+style: |
+  .set {
+    padding: var(--space-16);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-16);
+    font-size: 24px;
+  }
+  .named {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .named > small {
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+---
+<div class="set">
+  {% for entry in icons %}
+  <div class="named">{% render '../../../specs/ui/foundation/icons/icon', name: entry[0] %}<small>{{ entry[0] }}</small></div>
+  {% endfor %}
+</div>

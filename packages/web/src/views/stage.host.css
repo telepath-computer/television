@@ -1,0 +1,88 @@
+/* The production view root occupies the spec template's frame seat. */
+.page > .artifact-view {
+  width: 100%;
+  height: 100%;
+}
+
+.page:not([selected]) .artifact-view {
+  pointer-events: none;
+}
+
+/* Pointer mechanics are implementation-owned. The authoritative stage sheet
+   owns the page and snap appearance; these transparent hit regions realize
+   its edge bands and L-shaped corners without taking artifact interior. */
+.page-handle {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+
+.page-handle.left,
+.page-handle.right {
+  top: 0;
+  bottom: 0;
+  width: var(--handle-band);
+  cursor: ew-resize;
+}
+
+.page-handle.top,
+.page-handle.bottom {
+  left: 0;
+  right: 0;
+  height: var(--handle-band);
+  cursor: ns-resize;
+}
+
+.page-handle.left { left: calc(var(--handle-band) / -2); }
+.page-handle.right { right: calc(var(--handle-band) / -2); }
+.page-handle.top { top: calc(var(--handle-band) / -2); }
+.page-handle.bottom { bottom: calc(var(--handle-band) / -2); }
+
+.page-handle.top-left,
+.page-handle.top-right,
+.page-handle.bottom-left,
+.page-handle.bottom-right {
+  width: var(--handle-reach);
+  height: var(--handle-reach);
+  z-index: 3;
+}
+
+.page-handle.top-left {
+  left: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  top: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  cursor: nwse-resize;
+  clip-path: polygon(0 0, 100% 0, 100% var(--handle-thickness), var(--handle-thickness) var(--handle-thickness), var(--handle-thickness) 100%, 0 100%);
+}
+
+.page-handle.bottom-right {
+  right: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  bottom: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  cursor: nwse-resize;
+  clip-path: polygon(calc(100% - var(--handle-thickness)) 0, 100% 0, 100% 100%, 0 100%, 0 calc(100% - var(--handle-thickness)), calc(100% - var(--handle-thickness)) calc(100% - var(--handle-thickness)));
+}
+
+.page-handle.top-right {
+  right: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  top: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  cursor: nesw-resize;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, calc(100% - var(--handle-thickness)) 100%, calc(100% - var(--handle-thickness)) var(--handle-thickness), 0 var(--handle-thickness));
+}
+
+.page-handle.bottom-left {
+  left: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  bottom: calc(var(--handle-band) / 2 - var(--handle-thickness));
+  cursor: nesw-resize;
+  clip-path: polygon(0 0, var(--handle-thickness) 0, var(--handle-thickness) calc(100% - var(--handle-thickness)), 100% calc(100% - var(--handle-thickness)), 100% 100%, 0 100%);
+}
+
+/* Live dragging and window tracking change page geometry without the authored
+   state-change morph. Captured drags also keep embedded documents inert. */
+.stage[resizing] iframe,
+.stage[resizing] webview {
+  pointer-events: none;
+}
+
+.stage[resizing] .page,
+.stage[window-tracking] .page {
+  transition: none;
+}

@@ -1,0 +1,75 @@
+---
+title: Update notification
+params:
+  open: { type: boolean, default: false, description: stage the notice open }
+  kind:
+    enum: [server, server-copied, desktop-self-update, desktop-self-update-restarting, desktop-upgrade-recommendation]
+    default: server
+    description: >-
+      which notice, in which state: a server update with its copy-prompt button
+      (idle or just copied), the desktop self-update notice with its restart
+      button (ready or restarting), or the desktop upgrade recommendation. Each
+      shows its real body and actions; the body is markdown pipeline output
+      (sanitized), placed verbatim.
+imports:
+  - content: ./content.yml
+style: |
+  /* The panel is the popover ([[ui/foundation/popover/index.md]]), declared
+     `manual` — an announcement must not vanish to a stray press — so these
+     styles own the panel's interior. The composed copy button owns its
+     confirmation swap; the bell's placement is the top bar's, and its color
+     is the alert intent's. */
+
+  /* The panel's interior; the chrome is the primitive's. */
+  .update-popover {
+    width: 360px;
+    padding: var(--space-16);
+    user-select: text;
+  }
+
+  /* The actions, on one row at the notice's end, actions trailing. */
+  .update-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-8);
+    margin-top: var(--space-12);
+  }
+---
+<button class="update-bell" id="update-bell" icon intent="alert"
+        aria-label="{{ content.update_available }}" title="{{ content.update_available }}">
+  {% render '../../foundation/icons/icon', name: 'notification', size: 'sm' %}
+</button>
+
+<tv-popover class="update-popover" manual trigger="update-bell" role="status"{% if open %} open{% endif %}>
+  {% case kind %}
+  {% when 'desktop-self-update', 'desktop-self-update-restarting' %}
+  <h3>Desktop app update ready</h3>
+  <p>Television updates its desktop app automatically. Version 1.5.0 has downloaded and installs when you restart the app.</p>
+  {% when 'desktop-upgrade-recommendation' %}
+  <h3>Recommended desktop upgrade available</h3>
+  <p>The Television desktop app is now a downloaded Mac app that updates itself. This copy was installed with npm and receives no more updates.</p>
+  <p>To move to the downloaded app on an Apple Silicon Mac:</p>
+  <ol>
+    <li><a href="https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64" target="_blank" rel="noopener noreferrer">Download Television for Mac</a>.</li>
+    <li>Open the downloaded disk image and drag Television to Applications.</li>
+    <li>Quit this app, then open Television from Applications. It keeps your saved server connection.</li>
+  </ol>
+  <p>From then on, open Television from Applications, not with <code>tv-desktop</code>.</p>
+  {% else %}
+  <p><strong>Television 0.2.0</strong> is out.</p>
+  {% endcase %}
+
+  <div class="update-actions">
+    <button size="sm" class="update-later">{{ content.later }}</button>
+    {% case kind %}
+    {% when 'server' %}
+    {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: 'Upgrade my Television server to the latest version', intent: 'primary' %}
+    {% when 'server-copied' %}
+    {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: 'Upgrade my Television server to the latest version', intent: 'primary', copied: true %}
+    {% when 'desktop-self-update' %}
+    <button size="sm" intent="primary" class="update-restart">{{ content.restart_to_update }}</button>
+    {% when 'desktop-self-update-restarting' %}
+    <button size="sm" intent="primary" class="update-restart" disabled>{{ content.restarting }}</button>
+    {% endcase %}
+  </div>
+</tv-popover>

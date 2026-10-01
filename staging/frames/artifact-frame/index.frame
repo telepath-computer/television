@@ -1,0 +1,28 @@
+---
+style: |
+  body {
+    height: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  
+  frameset-frame {
+    flex: none;
+  }
+---
+<!-- The artifact frame spec staged as a single board, a frame of its own,
+     at the size staging chooses — the frame itself takes its size from
+     whatever places it. -->
+
+
+<!-- No background: the artifact frame is a white card, judged against the
+     sheet's grey ground — a white board would swallow its silhouette. -->
+<frameset-frame src="./frame" label="Artifact frame" width="600" height="780"></frameset-frame>
+<frameset-frame src="./delete-confirm" label="Delete confirmation" width="760" height="440"></frameset-frame>
+<frameset-frame src="./error-page" label="Error page" width="760" height="520"></frameset-frame>

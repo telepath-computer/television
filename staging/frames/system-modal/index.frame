@@ -1,0 +1,25 @@
+---
+params:
+  source: { enum: [Spec, Implementation], default: Spec }
+style: |
+  body {
+    height: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  frameset-frame {
+    flex: none;
+  }
+---
+<!-- The system modal's comparison sheet: one board switches between the
+     isolated specification and production implementation. Each owns its
+     state knob. -->
+
+
+<frameset-frame src="./{{ source | downcase }}" label="{{ source }}" width="1140" height="880"></frameset-frame>

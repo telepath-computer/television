@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "focusChannel": "first",
+  "channels": [
+    {
+      "slug": "first",
+      "name": "First Screen",
+      "artifacts": [
+        {
+          "slug": "alpha",
+          "title": "Alpha"
+        }
+      ]
+    },
+    {
+      "slug": "second",
+      "name": "Second Screen",
+      "artifacts": [
+        {
+          "slug": "beta",
+          "title": "Beta"
+        }
+      ]
+    }
+  ]
+}

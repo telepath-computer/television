@@ -1,0 +1,62 @@
+---
+title: Copy button
+description: A control that copies a value and briefly confirms in place, without resizing.
+params:
+  label: { type: string, default: "Copy prompt", description: the idle button label; the calling surface's own copy }
+  prompt: { type: string, default: "Make me a table", description: the value copied to the clipboard }
+  intent: { type: string, description: 'the button intent (for example, "primary" or "danger")' }
+  copied: { type: boolean, default: false, description: whether the confirmed state is shown }
+imports:
+  - content: ./content.yml
+style: |
+  /* The copy button ([[spec-ui.md]]): a control that copies a value and briefly
+     confirms in place. A native <button> classed copy-button carries idle and
+     done content. This file owns the confirm swap: the done content overlays
+     the idle content so the button never resizes and its container does not
+     reflow. Placement, variant, and size are the caller's. */
+
+  .copy-button {
+    position: relative;
+  }
+
+  .copy-button .copy-button-idle,
+  .copy-button .copy-button-done {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  .copy-button .copy-button-done {
+    display: none;
+  }
+
+  .copy-button[copied] .copy-button-idle {
+    visibility: hidden;
+  }
+
+  .copy-button[copied] .copy-button-done {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .copy-button-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+---
+<button class="copy-button" size="sm" aria-label="{{ label }}"{% if intent %} intent="{{ intent }}"{% endif %}{% if copied %} copied{% endif %} prompt="{{ prompt }}">
+  <span class="copy-button-idle">{% render '../../foundation/icons/icon', name: 'copy' %}{{ label }}</span>
+  <span class="copy-button-done">{% render '../../foundation/icons/icon', name: 'check' %}{{ content.copied }}</span>
+</button>
+<span class="copy-button-status" role="status" aria-live="polite">{% if copied %}{{ content.copied }}{% endif %}</span>

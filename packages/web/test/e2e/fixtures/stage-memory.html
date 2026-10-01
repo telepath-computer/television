@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stage memory fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      html,
+      body,
+      #stage-mount,
+      #stage-mount > .stage {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage-mount"></div>
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { StageView } from "/packages/web/src/views/stage.ts";
+
+      const ARTIFACTS_PER_CHANNEL = 24;
+      const channelArtifacts = (channelIndex) =>
+        Array.from({ length: ARTIFACTS_PER_CHANNEL }, (_, artifactIndex) => ({
+          id: `memory-${channelIndex}-${artifactIndex}`,
+          kind: "path",
+          title: `Memory ${channelIndex}-${artifactIndex}`,
+          path: `/tmp/memory-${channelIndex}-${artifactIndex}.html`,
+        }));
+      const createChannel = (channelIndex) => {
+        const artifacts = channelArtifacts(channelIndex);
+        const pages = artifacts.map(({ id }) => ({
+          artifactIds: [id],
+          geometry: { kind: "single", full_screen: false },
+          size: { width: 640, height: 720 },
+        }));
+        return {
+          id: `memory-channel-${channelIndex}`,
+          name: `Memory channel ${channelIndex}`,
+          pages,
+          selectedPage: pages[0],
+          artifacts,
+        };
+      };
+      const documentURL = (artifactID) =>
+        `/packages/web/test/e2e/fixtures/stage-document.html?artifact=${artifactID}`;
+
+      class FakeApplication extends EventTarget {
+        selectPage() {}
+        updateChannelPages() {
+          return Promise.resolve();
+        }
+        getArtifactViewURL(artifact) {
+          return documentURL(artifact.id);
+        }
+        getArtifactContentURL() {
+          return null;
+        }
+      }
+
+      const application = new FakeApplication();
+      const mount = document.querySelector("#stage-mount");
+      const discarded = [];
+      let channelIndex = 0;
+      let channel = createChannel(channelIndex);
+
+      const draw = () => {
+        render(html`${StageView(application, channel)}`, mount);
+      };
+      const waitForFrames = () => Promise.all(
+        [...document.querySelectorAll(".artifact-view iframe")].map((frame) =>
+          new Promise((resolve) => {
+            if (frame.contentDocument?.readyState === "complete") {
+              resolve();
+              return;
+            }
+            frame.addEventListener("load", resolve, { once: true });
+          })
+        ),
+      );
+      const trackCurrentNodes = () => {
+        for (const view of document.querySelectorAll(".artifact-view")) {
+          discarded.push({ kind: "view", value: new WeakRef(view) });
+          const frame = view.querySelector("iframe");
+          if (frame) discarded.push({ kind: "frame", value: new WeakRef(frame) });
+        }
+      };
+      const collectionReport = () => {
+        let aliveViews = 0;
+        let aliveFrames = 0;
+        for (const entry of discarded) {
+          if (entry.value.deref() === undefined) continue;
+          if (entry.kind === "view") aliveViews += 1;
+          else aliveFrames += 1;
+        }
+        return {
+          trackedViews: discarded.filter(({ kind }) => kind === "view").length,
+          trackedFrames: discarded.filter(({ kind }) => kind === "frame").length,
+          aliveViews,
+          aliveFrames,
+          currentViews: document.querySelectorAll(".artifact-view").length,
+          currentFrames: document.querySelectorAll(".artifact-view iframe").length,
+        };
+      };
+
+      window.__stageMemoryFixture = {
+        artifactsPerChannel: ARTIFACTS_PER_CHANNEL,
+        async discardChannels(switchCount) {
+          for (let index = 0; index < switchCount; index += 1) {
+            trackCurrentNodes();
+            channelIndex = channelIndex === 0 ? 1 : 0;
+            channel = createChannel(channelIndex);
+            draw();
+            await waitForFrames();
+          }
+          return collectionReport();
+        },
+        collectionReport,
+      };
+
+      draw();
+      await waitForFrames();
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

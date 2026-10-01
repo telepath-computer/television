@@ -1,0 +1,46 @@
+---
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  body {
+    padding: 32px 40px;
+    max-width: 720px;
+  }
+  h2 {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin: 28px 0 8px;
+  }
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 3px 0;
+  }
+  .row > small {
+    width: 140px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+---
+<h2>Faces</h2>
+<div class="row"><small>font-sans</small><span>The quick brown fox jumps over the lazy dog — 0123456789</span></div>
+<div class="row"><small>font-mono</small><span style="font-family: var(--font-mono)">The quick brown fox jumps over the lazy dog — 0123456789</span></div>
+
+<h2>Sizes</h2>
+<div class="row"><small>text-sm</small><span style="font-size: var(--text-sm)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>text-md</small><span style="font-size: var(--text-md)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>text-lg</small><span style="font-size: var(--text-lg)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>text-xl</small><span style="font-size: var(--text-xl)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>text-2xl</small><span style="font-size: var(--text-2xl)">The quick brown fox jumps</span></div>
+<div class="row"><small>text-3xl</small><span style="font-size: var(--text-3xl)">The quick brown fox</span></div>
+<div class="row"><small>text-4xl</small><span style="font-size: var(--text-4xl)">The quick brown fox</span></div>
+
+<h2>Weights</h2>
+<div class="row"><small>normal</small><span style="font-weight: var(--font-weight-normal)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>medium</small><span style="font-weight: var(--font-weight-medium)">The quick brown fox jumps over the lazy dog</span></div>
+<div class="row"><small>semibold</small><span style="font-weight: var(--font-weight-semibold)">The quick brown fox jumps over the lazy dog</span></div>

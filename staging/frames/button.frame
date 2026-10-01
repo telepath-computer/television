@@ -1,0 +1,123 @@
+---
+imports:
+  - ../lib/foundation.ts
+style: |
+  body {
+    min-height: 100vh;
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* One column per variant, so a state can be compared across variants by
+     reading sideways and across states by reading down. */
+  .staging-states {
+    display: flex;
+    align-items: flex-start;
+    gap: 64px;
+  }
+  
+  /* The gap has to clear a board's label as well as the board, since the label
+     sits above the box rather than inside it — a gap that looks right between
+     two boxes reads cramped once the labels are in it. */
+  .staging-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 40px;
+  }
+  
+  .staging-heading {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  .board {
+    position: relative;
+    box-sizing: border-box;
+    background: var(--white);
+  }
+  
+  .board::before {
+    content: attr(data-label);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #999;
+    white-space: nowrap;
+  }
+script: |
+  import { installPseudoStates } from "../lib/pseudo-states.ts";
+
+  installPseudoStates();
+---
+<!--
+  The button spec staged as a frame (staging, not spec content).
+
+  There is no template to render: a button is the native element, so the markup
+  below is the whole of it. What is being judged is specs/ui/foundation/button/button.css.
+
+  Hover and active cannot be expressed in markup, so every rule mentioning them
+  is given a mirrored selector driven by an attribute (staging/lib/pseudo-states).
+  The spec is untouched — the mirror competes in the cascade identically, so a
+  box marked `data-hover` draws exactly what a pointer would.
+-->
+
+
+
+<div class="staging-states">
+  <div class="staging-column">
+    <h2 class="staging-heading">Button</h2>
+
+    <div class="board" data-label="Rest">
+      <button>Button</button>
+    </div>
+
+    <div class="board" data-label="Hover">
+      <button data-hover>Button</button>
+    </div>
+
+    <div class="board" data-label="Active">
+      <button data-active>Button</button>
+    </div>
+
+    <div class="board" data-label="Disabled">
+      <button disabled>Button</button>
+    </div>
+
+    <div class="board" data-label="Icon only">
+      <button icon-only aria-label="Close">{% render '../../specs/ui/foundation/icons/icon', name: 'close', size: 'sm' %}</button>
+    </div>
+  </div>
+
+  <div class="staging-column">
+    <h2 class="staging-heading">Ghost</h2>
+
+    <div class="board" data-label="Rest">
+      <button variant="ghost">Button</button>
+    </div>
+
+    <div class="board" data-label="Hover">
+      <button variant="ghost" data-hover>Button</button>
+    </div>
+
+    <div class="board" data-label="Active">
+      <button variant="ghost" data-active>Button</button>
+    </div>
+
+    <div class="board" data-label="Disabled">
+      <button variant="ghost" disabled>Button</button>
+    </div>
+
+    <div class="board" data-label="Icon only">
+      <button variant="ghost" icon-only aria-label="Close">{% render '../../specs/ui/foundation/icons/icon', name: 'close', size: 'sm' %}</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+---
+title: Icons
+description: The whole set, drawn from the census itself — an icon added there appears here.
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+imports:
+  - icons: ../../specs/ui/foundation/icons/icons.ts
+style: |
+  main {
+    padding: 40px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  .set {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 28px;
+    /* the glyphs size from the text they sit in; this is the "text" */
+    font-size: 40px;
+  }
+  .named {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .named > small {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+---
+<main>
+  <div class="set">
+    {% for entry in icons %}
+    <div class="named">{% render '../../specs/ui/foundation/icons/icon', name: entry[0] %}<small>{{ entry[0] }}</small></div>
+    {% endfor %}
+  </div>
+</main>

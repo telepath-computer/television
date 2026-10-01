@@ -1,0 +1,35 @@
+---
+title: Ribbon shell (prototype)
+params:
+  channels:
+    description: the channels with their pinned marks, passed to the sidebar; each carries its tabs, and the open channel's feed the top bar and the stage as its pages
+  no_channel:
+    description: "no channel exists at all, passed to the stage: the ground stays blank"
+  selected:
+    description: the one open channel, passed to the sidebar
+  selected_tab:
+    description: the id of the open channel's selected tab, passed to the top bar
+  full_screen:
+    description: the id of the page shown at the stage's extents, passed to the stage
+  behavior:
+    description: "the stage behavior variant — ribbon, centered, or shipped — passed to the stage ([[frames/prototypes/ribbon/stage.frame]])"
+  focus:
+    description: "whether the open channel is in focus mode (ribbon only), passed to the stage ([[frames/prototypes/ribbon/stage.frame]])"
+  show_notice:
+    description: an update notice applies, passed to the top bar
+imports:
+  - ../../../specs/ui/app/styles.css
+---
+{% comment %} PROTOTYPE — a copy of [[specs/ui/app/app.frame]] that composes
+the ribbon stage in place of the shipped one. Sidebar and top bar render from
+their spec frames unchanged. {% endcomment %}
+<div id="app" tabindex="-1">
+  <aside class="app-sidebar">{% render '../../../specs/ui/app/sidebar/sidebar', channels: channels, selected: selected %}</aside>
+  <main class="app-main">
+    {% assign open_channels = channels | where: "id", selected %}
+    {% assign open_channel = open_channels | first %}
+    {% render '../../../specs/ui/app/top-bar/top-bar', tabs: open_channel.tabs, selected: selected_tab, show_notice: show_notice %}
+    {% render './stage', pages: open_channel.tabs, selected: selected_tab, full_screen: full_screen, behavior: behavior, focus: focus, no_channel: no_channel %}
+  </main>
+</div>
+<div id="foreground-overlay" inert aria-hidden="true"></div>

@@ -1,0 +1,31 @@
+# Productivity channel manifest — display name and cards in tab-page order.
+# Schema and ordering rules: see ../index.md#channel-layout.
+name: Productivity
+cards:
+  - id: about
+    slug: about
+    title: About this channel
+    size:
+      width: 300
+      height: 740
+  - id: priorities
+    slug: priorities-today
+    title: Priorities for Today
+  - id: todos
+    slug: company-todos
+    title: Company To-dos
+    skill: tv-tasks
+    size:
+      width: 400
+      height: 740
+  - id: calendar
+    slug: todays-calendar
+    title: Today's Calendar
+    skill: tv-calendar
+    components: false
+    size:
+      width: 300
+      height: 740
+  - id: meeting
+    slug: meeting-prep
+    title: Meeting prep

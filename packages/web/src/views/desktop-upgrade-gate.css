@@ -1,0 +1,50 @@
+/* The runtime mounts the gate directly under body, so its surface occupies
+   the halted page while the fixed overlay and top-layer dialog paint it. */
+.desktop-upgrade-gate {
+  position: fixed;
+  inset: 0;
+}
+
+/* The instructions: a prose document at the reading width, scrolling within
+   the panel when they outgrow the window — the backdrop never scrolls. */
+.upgrade-gate-body {
+  box-sizing: border-box;
+  width: min(560px, calc(100vw - 2 * var(--space-16)));
+  max-height: calc(100vh - 2 * var(--space-16));
+  overflow-y: auto;
+  padding: var(--space-32) var(--space-24);
+}
+
+/* The reset zeroes block margins; this app-chrome markdown body needs its
+   rhythm back locally. Canonical's prose treatment belongs to artifact
+   documents and is intentionally not loaded here. */
+.upgrade-gate-body h1 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--space-12);
+}
+
+.upgrade-gate-body p {
+  margin: 0 0 var(--space-12);
+}
+
+.upgrade-gate-body pre {
+  margin: 0 0 var(--space-12);
+  padding: var(--space-12);
+  background: var(--color-surface-muted);
+  border-radius: var(--control-radius);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.upgrade-gate-body :last-child {
+  margin-bottom: 0;
+}
+
+/* The restart action, trailing, below the message. */
+.upgrade-gate-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 var(--space-24) var(--space-32);
+}

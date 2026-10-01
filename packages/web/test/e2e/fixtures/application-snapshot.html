@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Application snapshot seam</title>
+  </head>
+  <body>
+    <pre id="snapshot"></pre>
+    <script type="module">
+      import {
+        LocalStore,
+        createDefaultLocalState,
+      } from "/packages/web/src/store.ts";
+      import { ServerConnectionOwner } from "/packages/web/src/services/server-connection-owner.ts";
+      import { ApplicationService } from "/packages/web/src/services/application-service.ts";
+
+      const serverURL = new URL(window.location.href).searchParams.get("serverURL");
+      if (!serverURL) throw new Error("serverURL is required");
+
+      const connectionOwner = new ServerConnectionOwner({
+        localStore: new LocalStore("application-snapshot-seam", createDefaultLocalState()),
+        serverURL,
+        acpStorage: null,
+      });
+      const application = new ApplicationService({ connectionOwner });
+      window.__application = application;
+      const output = document.querySelector("#snapshot");
+      const render = () => {
+        output.textContent = JSON.stringify(application.snapshot);
+      };
+      application.addEventListener("change", render);
+      render();
+      void connectionOwner.connect();
+    </script>
+  </body>
+</html>

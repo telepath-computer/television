@@ -1,0 +1,26 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+  }
+  
+  .staging-frames {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+---
+<!-- The update notification spec staged: the notice's content shown as
+     content, with and without the copyable upgrade prompt, each board a frame
+     of its own. The bell has its own sheet (../update-bell/); the notice's
+     floating and its refusal to light-dismiss are judged in the App frame,
+     where the surface is composed live. -->
+
+
+<div class="staging-frames">
+  <frameset-frame src="./notice" label="Notice" width="376" height="145" background="white"></frameset-frame>
+  <frameset-frame src="./no-prompt" label="No prompt" width="376" height="145" background="white"></frameset-frame>
+</div>

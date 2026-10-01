@@ -1,0 +1,61 @@
+---
+imports:
+  - ../lib/foundation.ts
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  .staging-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-12);
+    padding: var(--space-16);
+  }
+  
+  .staging-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  
+  .staging-row > small {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    width: 60px;
+    flex: none;
+  }
+---
+<!--
+  The foundation's control sizing staged as a frame (staging, not spec
+  content): each size across the button's variants, labelled and icon-only,
+  so the pairing (text step + padding step + held icon) can be judged in a
+  mixed row.
+-->
+
+
+
+<div class="staging-rows">
+  <div class="staging-row" data-size="">
+    <small>default</small>
+    <button>Settings</button>
+    <button variant="primary">Save</button>
+    <button variant="ghost">Cancel</button>
+    <button icon-only aria-label="Settings">{% render '../../specs/ui/foundation/icons/icon', name: 'settings', size: 'sm' %}</button>
+    <button variant="ghost" icon-only aria-label="Settings">{% render '../../specs/ui/foundation/icons/icon', name: 'settings', size: 'sm' %}</button>
+  </div>
+  <div class="staging-row" data-size="sm">
+    <small>sm</small>
+    <button size="sm">Settings</button>
+    <button size="sm" variant="primary">Save</button>
+    <button size="sm" variant="ghost">Cancel</button>
+    <button size="sm" icon-only aria-label="Settings">{% render '../../specs/ui/foundation/icons/icon', name: 'settings', size: 'sm' %}</button>
+    <button size="sm" variant="ghost" icon-only aria-label="Settings">{% render '../../specs/ui/foundation/icons/icon', name: 'settings', size: 'sm' %}</button>
+  </div>
+</div>

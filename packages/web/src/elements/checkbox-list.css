@@ -1,0 +1,53 @@
+/* The checklist's looks ([[ui/foundation/checkbox-list/index.md]]): the list's
+   stack, the row's marker-and-content grid, and the done treatment.
+   The checked marker consumes the shared `--checkbox-color` token. */
+checkbox-list {
+  display: grid;
+  gap: var(--space-6);
+  margin: var(--space-12) 0;
+}
+
+checkbox-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1em minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: baseline;
+}
+
+/* The marker box, seated on the first line's text. */
+checkbox-item::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  align-self: start;
+  translate: 0 0.12em;
+  background: transparent;
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  box-sizing: border-box;
+  cursor: not-allowed;
+}
+
+checkbox-item[checked]::before {
+  background: var(--checkbox-color);
+  border-color: var(--checkbox-color);
+}
+
+/* The check, drawn as a mask over the marker's cell. */
+checkbox-item[checked]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.12em;
+  width: 1em;
+  height: 1em;
+  background: var(--color-surface);
+  mask: var(--icon-check) center / 80% no-repeat;
+}
+
+checkbox-item[checked] {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+}

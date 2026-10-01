@@ -1,0 +1,124 @@
+/* The foundation owns panel chrome and button treatment. These styles own
+   the panel's interior. */
+.settings-popover {
+  width: 320px;
+  padding: var(--space-16);
+}
+
+.settings-heading {
+  padding: 0 var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.settings-field {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-12);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.settings-theme-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+/* The selects' triggers take the field's width, the caret pinned at the
+   trailing edge — the choice reads like a field value. */
+.settings-field button[aria-haspopup="listbox"] {
+  width: 100%;
+  min-width: 0;
+  color: var(--color-text);
+}
+
+.settings-javascript-consent {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+  font-size: var(--text-sm);
+}
+
+.settings-javascript-disclosure {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.settings-javascript-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: center;
+  color: var(--color-text);
+}
+
+.settings-javascript-toggle input {
+  appearance: none;
+  box-sizing: border-box;
+  width: 32px;
+  height: 18px;
+  margin: 0;
+  padding: 2px;
+  border: var(--control-border);
+  border-radius: var(--radius-pill);
+  background: var(--control-background);
+}
+
+.settings-javascript-toggle input::before {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  transition: transform 120ms ease;
+}
+
+.settings-javascript-toggle input:checked {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.settings-javascript-toggle input:checked::before {
+  background: var(--color-text-reversed);
+  transform: translateX(14px);
+}
+
+.settings-javascript-toggle input:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: 2px;
+}
+
+.settings-status,
+.settings-failure,
+.settings-errors {
+  margin: var(--space-12) 0 0;
+  font-size: var(--text-sm);
+}
+
+.settings-status {
+  color: var(--color-text-muted);
+}
+
+.settings-failure {
+  color: var(--color-danger);
+}
+
+.settings-errors {
+  display: grid;
+  gap: var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.settings-errors p {
+  margin: 0;
+}
+
+.settings-errors strong {
+  color: var(--color-text);
+}

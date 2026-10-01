@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      body { margin: 0; padding: 40px; }
+    </style>
+  </head>
+  <body>
+    <main id="fixture"></main>
+
+    <script type="module">
+      import { html, render } from "lit-html";
+      import { SkillSelectorView } from "/packages/web/src/views/skill-selector.ts";
+
+      const signals = [];
+      const sender = {
+        sendTelemetrySignal(event, properties) {
+          signals.push({ event, properties });
+        },
+      };
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async () => {} },
+      });
+
+      render(html`${SkillSelectorView(sender)}`, document.querySelector("#fixture"));
+      window.__skillSelectorSignals = signals;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

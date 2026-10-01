@@ -1,0 +1,22 @@
+/* Host sizing follows the containing page; visual chrome belongs to the
+   authored artifact-frame sheet. */
+.artifact-view {
+  width: 100%;
+}
+
+/* The implementation-owned document identity gets the spec document box;
+   the wrapper identity remains exclusively on the view root. The #113
+   compositing exemption for the document's top clip is isolated in the
+   document host sheet. */
+.artifact-view > .artifact-frame-clip > .artifact-content {
+  flex: 1;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+}
+
+.artifact-view > .artifact-frame-clip > iframe.artifact-content {
+  display: block;
+}

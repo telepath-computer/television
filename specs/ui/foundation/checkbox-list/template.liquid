@@ -1,0 +1,10 @@
+{% doc %}
+  @param {array} items - the checklist's rows, in order; each has a label, and `checked` marks it done
+{% enddoc %}
+{% attach_styles './styles.css' %}
+
+<checkbox-list>
+  {% for item in items %}
+  <checkbox-item{% if item.checked %} checked{% endif %}>{{ item.label }}</checkbox-item>
+  {% endfor %}
+</checkbox-list>

@@ -1,0 +1,13 @@
+/* The app-level paint order ([[ui/foundation/index.md]], Layers): every
+   z-index either places an element on one of these or lifts above siblings
+   with a calculation on one. Zero specificity like every token table — a
+   plain `:root` rule from a theme beats it. */
+:where(:root) {
+  /* The base plane the document lays out. Nothing is placed on it; lifts on
+     the base plane calculate from it. */
+  --layer-ground: 0;
+  /* Floating panels opened from a surface: menus, the top-bar popovers. */
+  --layer-panel: 100;
+  /* The interruption: the dialog overlay and its backdrop. */
+  --layer-overlay: 200;
+}

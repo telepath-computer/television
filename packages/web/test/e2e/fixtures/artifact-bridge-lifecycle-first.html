@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>First lifecycle document</title>
+  </head>
+  <body>
+    <h1>First lifecycle document</h1>
+    <a id="next" href="artifact-bridge-lifecycle-second.html">Next</a>
+    <script type="module">
+      import { installBridge } from "/packages/artifact/src/browser/artifact-bridge.ts";
+
+      installBridge(window, { reportNavigation: false });
+    </script>
+  </body>
+</html>

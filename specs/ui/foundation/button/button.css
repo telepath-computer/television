@@ -1,0 +1,222 @@
+/* Every rule in this sheet is wrapped in `:where()`, which contributes
+   nothing to specificity — foundation styling is the weakest thing in the
+   cascade, and a component placing a button overrides any of it with a plain
+   selector instead of contriving one that outranks it. Without this,
+   `button:hover:not(:disabled)` beats a component's own `:hover` rule, and
+   the component has to mirror the `:not()` to win — a workaround that reads
+   like an accident and gets tidied away. Within the sheet, source order does
+   the layering: intents beat the bare element, sizes beat the intents. */
+:where(button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--control-padding);
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  /* A button is a surface of its own, lifted off whatever it sits on, rather
+     than a bordered hole in it. The fill is the kind's situation role, and
+     hover and press are that role's derived state fills in the token table
+     ([[ui/foundation/tokens/colors.css]]) — the state rules below point at
+     them per kind, so a theme that restates a fill gets its states for
+     free, and one with an exact opinion overrides a state token. */
+  background: var(--control-background);
+  color: var(--control-text-color);
+  /* A button is a target, not text to select through. */
+  cursor: default;
+}
+
+/* A colored intent is a fill declaration; its states follow below. The
+   label is reversed type with the contrast clamp layered over it per kind,
+   so a theme's repointed situation keeps a legible label — the clamp
+   answers dark text on the alert gold (a clamp line drops at parse time in
+   engines without relative color, leaving the reversed role). */
+:where(button[intent]) {
+  border-color: transparent;
+  color: var(--color-text-reversed);
+}
+
+/* The primary intent is the default action — the one Return fires; the
+   accent worn as a fill, macOS-style. */
+:where(button[intent="primary"]) {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+:where(button[intent="danger"]) {
+  background: var(--color-danger);
+  color: oklch(from var(--color-danger) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h);
+}
+
+:where(button[intent="alert"]) {
+  background: var(--color-alert);
+  color: oklch(from var(--color-alert) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h);
+}
+
+/* Buttons retain their resting appearance on hover. Pressed fills follow
+   the base fills so source order lets the state win. */
+:where(button:active:not(:disabled)) {
+  background: var(--control-background-active);
+}
+
+:where(button[intent="primary"]:active:not(:disabled)) {
+  background: var(--color-primary-active);
+}
+
+:where(button[intent="danger"]:active:not(:disabled)) {
+  background: var(--color-danger-active);
+}
+
+:where(button[intent="alert"]:active:not(:disabled)) {
+  background: var(--color-alert-active);
+}
+
+/* Keyboard focus only — a ring on every click would be noise. */
+:where(button:focus-visible) {
+  outline: var(--outline-focus);
+  outline-offset: 1px;
+}
+
+/* Faded rather than restyled, so a disabled button keeps its shape and stays
+   recognisable as the control it is. */
+:where(button:disabled) {
+  opacity: 0.4;
+}
+
+/* A button whose whole content is an icon: a square line-sized cell, the
+   glyph centred. Geometry only — the quiet treatment is `ghost`, stated
+   separately. */
+:where(button[icon]) {
+  padding: var(--space-2);
+  display: inline-grid;
+  place-items: center;
+}
+
+/* A snug press-target around inline content, for a button living dense in
+   chrome — a bar, a row, a line — rather than standing alone. Geometry only;
+   an icon button is already snug, so `target` adds nothing there. */
+:where(button[target]:not([icon])) {
+  padding: var(--space-2) var(--space-6);
+}
+
+/* The expanded state: the button holds the panel it opened (the element
+   maintains `aria-expanded`).
+   Source order puts it after the ghost and pointer-state rules. A filled
+   button holds the press-step fill; the ghost's tint treatment below is
+   guarded out of every kind. */
+:where(button[aria-expanded="true"]:not(:disabled):not([variant="ghost"])) {
+  background: var(--control-background-active);
+}
+
+:where(button[intent="primary"][aria-expanded="true"]:not(:disabled):not([variant="ghost"])) {
+  background: var(--color-primary-active);
+}
+
+:where(button[intent="danger"][aria-expanded="true"]:not(:disabled):not([variant="ghost"])) {
+  background: var(--color-danger-active);
+}
+
+:where(button[intent="alert"][aria-expanded="true"]:not(:disabled):not([variant="ghost"])) {
+  background: var(--color-alert-active);
+}
+
+/* Ghost buttons inherit their containing text color. Intent colors
+   remain explicit; hover gives way to pressed and expanded states. */
+:where(button[variant="ghost"]) {
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+}
+
+:where(button[variant="ghost"][intent="primary"]) { color: var(--color-primary); }
+:where(button[variant="ghost"][intent="danger"]) { color: var(--color-danger); }
+:where(button[variant="ghost"][intent="alert"]) { color: var(--color-alert); }
+
+:where(button[variant="ghost"]:hover:not(:disabled)) {
+  background: var(--tint-hover);
+}
+
+:where(button[variant="ghost"]:is(:active, [aria-expanded="true"]):not(:disabled)) {
+  background: var(--tint-active);
+  background-clip: border-box;
+}
+
+:where(button[variant="ghost"][intent="primary"]:hover:not(:disabled)) {
+  background: var(--tint-primary-hover);
+}
+
+:where(button[variant="ghost"][intent="primary"]:is(:active, [aria-expanded="true"]):not(:disabled)) {
+  background: var(--tint-primary-active);
+}
+
+:where(button[variant="ghost"][intent="danger"]:hover:not(:disabled)) {
+  background: var(--tint-danger-hover);
+}
+
+:where(button[variant="ghost"][intent="danger"]:is(:active, [aria-expanded="true"]):not(:disabled)) {
+  background: var(--tint-danger-active);
+}
+
+:where(button[variant="ghost"][intent="alert"]:hover:not(:disabled)) {
+  background: var(--tint-alert-hover);
+}
+
+:where(button[variant="ghost"][intent="alert"]:is(:active, [aria-expanded="true"]):not(:disabled)) {
+  background: var(--tint-alert-active);
+}
+
+:where(button[icon])::before {
+  content: "";
+  inline-size: 1lh;
+  block-size: 1lh;
+  grid-area: 1 / 1;
+}
+
+:where(button[icon] > *) {
+  grid-area: 1 / 1;
+}
+
+/* Sizes. A size pairs a text step — the line a control's cell follows —
+   with a padding step, so a size means the same thing wherever it appears
+   and mixed rows line up. The control lines are shared vocabulary
+   ([[ui/foundation/tokens/text.css]]): non-button controls — the tab, the
+   sidebar channel — state the same line from their own sheets.
+
+   Placed after the attribute rules above: at equal (zero) specificity,
+   source order lets a size outrank them (`size="sm"` padding beats
+   `icon`). */
+
+/* The default size, stated: a control's line is the control's, not its
+   context's — without this, height follows whatever leading the surroundings
+   happen to have. Stated in pixels, not the prose leading: a control's cell
+   is tighter than a paragraph's. A control's height is derived, never
+   declared: the control line, plus the space-2 padding step top and
+   bottom, plus a 1px border each side (transparent where no border
+   shows) — 24px, with the line as the only input
+   ([[ui/foundation/tokens/text.css]]). A control that visually contains
+   another holds it as an overlaid sibling. */
+:where(button) {
+  font-size: var(--control-font-size);
+  line-height: var(--line-control);
+}
+
+:where(button[size="sm"]) {
+  font-size: var(--text-sm);
+  /* Stated in pixels, not a ratio: a compact control's cell hugs its content,
+     and the default's prose leading would leave it mostly air. */
+  line-height: var(--line-control-sm);
+  padding: var(--space-2) var(--space-8);
+}
+
+:where(button[size="sm"][icon]) {
+  padding: var(--space-2);
+}
+
+/* A sized control sizes the icon it holds: whatever size the composer put on
+   the icon, the control's own wins — `tv-icon[size]` names a fixed pixel
+   size, so left alone the icon would ignore the control shrinking around it.
+   12px is the even-pixel step below the sm line, the same seat the default
+   button gives its glyph. */
+:where(button[size="sm"] tv-icon) {
+  font-size: 12px;
+}

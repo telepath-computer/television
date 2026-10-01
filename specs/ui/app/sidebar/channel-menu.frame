@@ -1,0 +1,12 @@
+---
+title: Channel context menu
+params:
+  pinned: { type: boolean, default: false, description: the composing row sits in the pinned group — the menu offers Unpin instead of Pin }
+  open: { type: boolean, default: false, description: the menu rendered open }
+---
+<tv-menu{% if open %} open{% endif %}>
+  <tv-menu-item>Rename</tv-menu-item>
+  <tv-menu-item>{% if pinned %}Unpin{% else %}Pin{% endif %}</tv-menu-item>
+  <hr>
+  <tv-menu-item intent="danger">Delete</tv-menu-item>
+</tv-menu>

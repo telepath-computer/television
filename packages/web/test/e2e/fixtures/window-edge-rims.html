@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en" data-television-document="app">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Production window edge fixture</title>
+  <link rel="stylesheet" href="/packages/web/src/foundation/index.css">
+  <link rel="stylesheet" href="/packages/web/src/foundation/app.css">
+  <link rel="stylesheet" href="/packages/web/src/views/television-app.css">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    .app-main { padding: 24px; gap: 24px; }
+    .specimen { height: 240px; min-width: 0; }
+  </style>
+</head>
+<body>
+  <div id="app" style="--sidebar-width: 200px"><aside class="app-sidebar"></aside><main class="app-main"><div class="specimen"></div><div class="specimen"></div></main></div>
+  <script type="module">
+    import { render } from 'lit-html';
+    import { ArtifactViewView } from '/packages/web/src/views/artifact-view.ts';
+    import { ChannelSidebarView } from '/packages/web/src/views/channel-sidebar.ts';
+    const params = new URLSearchParams(location.search);
+    document.documentElement.dataset.theme = params.get('appearance') || 'light';
+    document.documentElement.style.setProperty('--app-wallpaper', params.get('ground') === 'dark' ? 'rgb(35 32 33)' : '#fff');
+    if (params.get('theme') === 'swiss') {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet'; link.href = '/packages/server/assets/themes/swiss/theme.css'; document.head.append(link);
+    }
+    const application = Object.assign(new EventTarget(), { handleNavigationKey() {}, focusChannel: async () => {} });
+    const channel = { id: 'edges', name: 'Window edges', artifacts: [], pages: [] };
+    render(ChannelSidebarView(application, { channels: [channel], display: { pinnedChannelIds: ['edges'], focusedChannelId: 'edges' }, focusedChannel: channel }, false, () => {}), document.querySelector('.app-sidebar'));
+    for (const [index, mount] of [...document.querySelectorAll('.specimen')].entries()) {
+      const shade = index ? 'dark' : 'light';
+      const artifact = { id: shade, kind: 'path', path: `/tmp/${shade}.html`, title: `${shade} document` };
+      render(ArtifactViewView(application, artifact, {
+        viewURL: `/packages/web/test/e2e/fixtures/window-edge-document.html?shade=${shade}`,
+        contentURL: null, fullScreen: false, inert: false, onFullScreenChange() {},
+      }), mount);
+    }
+  </script>
+</body>
+</html>

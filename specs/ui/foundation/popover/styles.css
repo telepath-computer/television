@@ -1,0 +1,134 @@
+/* The popover: the panel that floats over the page while the page stays
+   live, anchored to the trigger that opened it
+   ([[ui/foundation/popover/index.md]]). This sheet states the box and the
+   open state; the contents belong to the composing surface, and where the
+   panel sits is stated by the placement algorithm in the spec. */
+
+/* The box: the panel and the background, nothing inward. Sized to the
+   contents, not the page. tv-menu ([[ui/foundation/menu/index.md]]) and
+   tv-select ([[ui/foundation/select/index.md]]) are popover
+   specializations and wear the same box. */
+:where(tv-popover, tv-menu, tv-select) {
+  position: relative;
+  isolation: isolate;
+  width: max-content;
+  background: var(--panel-background);
+  background-clip: border-box;
+  /* Its own surface, its own ink and face: a panel floats over arbitrary
+     context and never inherits the color or font treatment around it —
+     the way a native menu renders as a system panel wherever it opens.
+     Weight and leading are the document base's and inherit unrepeated. */
+  color: var(--panel-text-color);
+  font-family: var(--font-sans);
+  border: var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--popover-shadow);
+}
+
+:where(tv-popover, tv-menu, tv-select)::before {
+  content: "";
+  position: var(--_panel-edge-position, absolute);
+  inset: var(--_panel-edge-inset, 0);
+  width: var(--_panel-edge-width, auto);
+  height: var(--_panel-edge-height, auto);
+  box-sizing: border-box;
+  border-radius: inherit;
+  box-shadow: var(--panel-edge-shadow);
+  pointer-events: none;
+}
+
+:where(tv-popover, tv-menu, tv-select)::after {
+  content: "";
+  position: var(--_panel-edge-position, absolute);
+  inset: var(--_panel-edge-inset, 0);
+  width: var(--_panel-edge-width, auto);
+  height: var(--_panel-edge-height, auto);
+  box-sizing: border-box;
+  border-radius: inherit;
+  padding: 1px;
+  font-size: var(--panel-radius);
+  background: var(--panel-edge-highlight);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The `open` attribute is the open state ([[ui/foundation/popover/index.md]],
+   Markup). The closed rule is deliberately not `:where()`-wrapped: an
+   interior sheet stating its own open display (a flex panel) must not
+   accidentally out-cascade closedness. */
+tv-popover:not([open]),
+tv-menu:not([open]),
+tv-select:not([open]) {
+  display: none;
+}
+
+:where(tv-popover[open], tv-menu[open], tv-select[open]) {
+  display: block;
+}
+
+/* The expanded trigger's treatment is the button's
+   ([[ui/foundation/button/index.md]]): the element maintains
+   `aria-expanded`, and the button sheet paints the state. */
+
+/* Native dialogs use the same paints; their container owns placement. */
+:where(dialog) {
+  position: relative;
+  isolation: isolate;
+  background: var(--panel-background);
+  background-clip: border-box;
+  color: var(--panel-text-color);
+  border: var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: var(--dialog-shadow);
+}
+
+:where(dialog)::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--panel-edge-shadow);
+  pointer-events: none;
+}
+
+:where(dialog)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  font-size: var(--panel-radius);
+  background: var(--panel-edge-highlight);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The panel is a container: it can hold focus, but it never wears the focus
+   ring — that affordance belongs to its contents. */
+:where(dialog:focus-visible) {
+  outline: none;
+}
+
+:where(dialog:has(> .dialog-content)) {
+  overflow: visible;
+}
+
+/* Flex sizing applies both authored height and max-height to the scroll box. */
+:where(dialog[open]:has(> .dialog-content)) {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The content scrolls inside the native dialog while its exterior paints remain visible. */
+:where(dialog > .dialog-content) {
+  height: 100%;
+  min-height: 0;
+  max-width: calc(100vw - 2 * var(--space-16));
+  max-height: calc(100vh - 2 * var(--space-16));
+  overflow: auto;
+  border-radius: inherit;
+}

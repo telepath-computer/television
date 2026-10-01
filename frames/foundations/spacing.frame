@@ -1,0 +1,64 @@
+---
+title: Spacing
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  body {
+    padding: 32px 40px;
+    max-width: 720px;
+  }
+  h2 {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin: 28px 0 8px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 3px 0;
+  }
+  .row > small {
+    width: 140px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+  .bar {
+    height: 16px;
+    background: var(--accent-alpha-25);
+    border-left: 1px solid var(--color-primary);
+    border-right: 1px solid var(--color-primary);
+  }
+  .corner {
+    width: 96px;
+    height: 56px;
+    background: var(--control-background);
+    border: 1px solid var(--color-border);
+  }
+---
+<h2>Spacing</h2>
+<div class="row"><small>space-2</small><div class="bar" style="width: var(--space-2)"></div></div>
+<div class="row"><small>space-3</small><div class="bar" style="width: var(--space-3)"></div></div>
+<div class="row"><small>space-4</small><div class="bar" style="width: var(--space-4)"></div></div>
+<div class="row"><small>space-6</small><div class="bar" style="width: var(--space-6)"></div></div>
+<div class="row"><small>space-8</small><div class="bar" style="width: var(--space-8)"></div></div>
+<div class="row"><small>space-10</small><div class="bar" style="width: var(--space-10)"></div></div>
+<div class="row"><small>space-12</small><div class="bar" style="width: var(--space-12)"></div></div>
+<div class="row"><small>space-16</small><div class="bar" style="width: var(--space-16)"></div></div>
+<div class="row"><small>space-20</small><div class="bar" style="width: var(--space-20)"></div></div>
+<div class="row"><small>space-24</small><div class="bar" style="width: var(--space-24)"></div></div>
+<div class="row"><small>space-32</small><div class="bar" style="width: var(--space-32)"></div></div>
+<div class="row"><small>space-48</small><div class="bar" style="width: var(--space-48)"></div></div>
+<div class="row"><small>space-64</small><div class="bar" style="width: var(--space-64)"></div></div>
+
+<h2>Gaps</h2>
+<div class="row"><small>popover-distance</small><div class="bar" style="width: var(--popover-distance)"></div></div>
+
+<h2>Radius</h2>
+<div class="row"><small>control-radius</small><div class="corner" style="border-radius: var(--control-radius)"></div></div>
+<div class="row"><small>panel-radius</small><div class="corner" style="border-radius: var(--panel-radius)"></div></div>
+<div class="row"><small>radius-pill</small><div class="corner" style="border-radius: var(--radius-pill)"></div></div>

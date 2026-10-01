@@ -1,0 +1,12 @@
+---
+title: Sidebar
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  .canvas { min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 32px; }
+  frameset-frame { box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08), 0 8px 24px oklch(0 0 0 / 0.06); }
+---
+<div class="canvas">
+  <frameset-frame src="../../../specs/ui/app/sidebar/sidebar" label="Sidebar" width="260" height="660" controls></frameset-frame>
+</div>

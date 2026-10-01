@@ -1,0 +1,17 @@
+---
+title: Copy button
+description: The copy button spec staged — the interactive demo above each state on its own, centred on a shared axis so the two states' widths can be compared.
+style: |
+  .sheet {
+    padding: 48px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 24px;
+  }
+---
+<div class="sheet">
+  <frameset-frame src="./demo" label="Demo" width="240" height="52" background="white"></frameset-frame>
+  <frameset-frame src="/specs/ui/app/copy-button/copy-button?label=Copy+prompt&prompt=Create+a+calendar+artifact" label="Idle" width="240" height="52" background="white"></frameset-frame>
+  <frameset-frame src="/specs/ui/app/copy-button/copy-button?label=Copy+prompt&prompt=Create+a+calendar+artifact&copied=true" label="Copied" width="240" height="52" background="white"></frameset-frame>
+</div>

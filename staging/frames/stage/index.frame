@@ -1,0 +1,28 @@
+---
+style: |
+  body {
+    /* The wrapper pins body height to the viewport; grown back to content
+       height so the column's end padding sits below the last board. */
+    height: auto;
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  
+  /* The boards hold their stated size — a column flex would otherwise
+     shrink them to fit the viewport instead of overflowing it. */
+  frameset-frame {
+    flex: none;
+  }
+---
+<!-- The stage's states: an ordinary populated filmstrip and a channel with
+     nothing open. Full-screen and its interactions are staged in the App. -->
+
+
+<frameset-frame src="./populated" label="Populated" width="960" height="560"></frameset-frame>
+<frameset-frame src="./blank" label="Blank" width="960" height="560"></frameset-frame>

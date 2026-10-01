@@ -1,0 +1,19 @@
+{
+  "name": "@telepath-computer/skill-tv-calendar",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "files": [
+    "SKILL.md",
+    "example",
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.config.ts",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3"
+  }
+}

@@ -1,0 +1,33 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  
+  .staging-frames {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+---
+<!--
+  The skill selector spec staged (staging, not spec content).
+
+  The surface is a trigger and a panel, so they are staged as the two things
+  they are: the trigger on its own, and the popover's content shown as content
+  — in flow, pinned open by its board — since its anchored, floating behaviour
+  is the popover primitive's and is judged on that spec's frame and in the App.
+-->
+
+
+
+<div class="staging-frames">
+  <frameset-frame src="./trigger" label="Trigger" width="60" height="44" background="white"></frameset-frame>
+  <frameset-frame src="./content" label="Popover content" width="516" height="616" background="white"></frameset-frame>
+</div>

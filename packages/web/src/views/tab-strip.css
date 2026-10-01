@@ -1,0 +1,166 @@
+/* Tabs run from the left and stop where they stop: the strip is a row of
+   separate pills, not a partitioning of the full width, so a strip holding two
+   tabs looks like two tabs rather than two halves. The tab itself is
+   [[tab.frame]] — this frame owns only the row they sit in. */
+.tab-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--tab-gap);
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Scrolling clips both axes, and a tab's focus ring sits outside its box —
+     the scrollport carries enough padding for the ring to live in, cancelled
+     by negative margins so the bar's geometry is unchanged. */
+  padding: var(--space-4);
+  margin: calc(-1 * var(--space-4));
+}
+
+/* Each tab is its own shape sitting on the background rather than a segment
+   of a continuous strip — nothing joins a tab to the surface below it, so the
+   strip reads as a set of things you can pick up, not as a frame the
+   content hangs from.
+
+   The pill is the tab: a button carrying the tab role, and the whole of it is
+   the press target — it holds nothing but its label.
+
+   A tab hugs its label ([[ui/app/tab-strip/index.md#^tb-tab-bounds]]): its
+   width is the text's, to the `max-width` below. The implementation classifies
+   the label against the authored floor and slack in [[measures.yml]], then the
+   attribute rules below select the matching minimum width. */
+.tab {
+  position: relative;
+  display: grid;
+  align-items: center;
+  /* The control line, stated — a tab is a control, not prose. */
+  font-size: var(--tab-font-size);
+  line-height: var(--line-control);
+  cursor: default;
+  border: var(--tab-border);
+  outline: var(--tab-outline);
+  outline-offset: 0;
+  border-radius: var(--tab-radius);
+  max-width: 220px;
+  flex: 0 1 auto;
+  /* No vertical padding of its own — the label's line carries the height. */
+  padding: 0 var(--space-8);
+  /* Resting appearance follows the root tab tokens. */
+  background: var(--tab-background);
+  /* Paint the state fill beneath the translucent border. */
+  background-clip: border-box;
+  color: var(--tab-text-color);
+}
+
+/* Classification uses the untruncated text, not this live flex item's size.
+   A label below the authored floor keeps its intrinsic width; one above it
+   can compress to the floor before the strip itself overflows. */
+.tab[data-compression="hugging"] {
+  min-width: max-content;
+}
+
+/* Mirrors measures.yml#tab.floor_px; the threshold also uses
+   measures.yml#tab.floor_slack_px. Keep in step with constants.ts
+   TAB_COMPRESSION_FLOOR_PX and TAB_COMPRESSION_FLOOR_SLACK_PX. */
+.tab[data-compression="capped"] {
+  min-width: 90px;
+}
+
+/* Clipping and the mask leave the complete label text intact. */
+.tab-label {
+  min-width: 0;
+  padding: var(--space-4) 0;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.tab-label[data-overflow] {
+  mask-image: linear-gradient(to right, black calc(100% - 16px), transparent);
+}
+
+/* Only unselected tabs expose the wallpaper behind them. */
+.tab:not([aria-selected="true"]) {
+  backdrop-filter: blur(var(--wallpaper-overlay-blur));
+}
+
+/* State backgrounds inherit the complete wallpaper-overlay treatment. */
+.tab:hover:not([aria-selected="true"]) {
+  background: var(--tab-background-hover);
+  background-clip: border-box;
+}
+
+.tab:active:not([aria-selected="true"]) {
+  background: var(--tab-background-active);
+  background-clip: border-box;
+}
+
+/* Selection has separate background and foreground tokens. */
+.tab[aria-selected="true"] {
+  border: var(--tab-border-selected);
+  outline: var(--tab-outline-selected);
+  background: var(--tab-background-selected);
+  background-clip: border-box;
+  color: var(--tab-text-color-selected);
+}
+
+/* Selection uses the shared edge paints; the native border keeps its layout track. */
+.tab[aria-selected="true"]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: var(--panel-edge-shadow);
+  pointer-events: none;
+}
+
+.tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  font-size: var(--tab-radius);
+  background: var(--panel-edge-highlight);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.tab:focus-visible {
+  outline: var(--outline-focus);
+}
+
+/* Mask the item after its backdrop has been painted, not its ancestor. */
+.tab[data-item-edge-fade] {
+  mask-image: linear-gradient(to right,
+    transparent var(--item-fade-start),
+    black calc(var(--item-fade-start) + var(--item-fade-left)),
+    black calc(var(--item-fade-end) - var(--item-fade-right)),
+    transparent var(--item-fade-end));
+  mask-origin: border-box;
+  mask-clip: border-box;
+  mask-repeat: no-repeat;
+}
+
+/* The carried tab rides the foreground ([[ui/app/stage/index.md]],
+   Reordering); where it sits is behaviour's — under the pointer. */
+.tab.dragged {
+  position: relative;
+  z-index: calc(var(--layer-ground) + 1);
+}
+
+/* The drag placeholder ([[ui/app/stage/index.md]], Reordering): while a
+   tab is carried, a tint in the tab's own size and shape holds its slot —
+   drawn where release will drop it. Every tab is one control line, so the
+   slot's height is the sum the tab states — line, the label's padding, the
+   border — while the width is the carried tab's own, arriving from
+   behaviour. The tint is the shared one — mixed from currentColor, like
+   the ghost hover's, so it reads on whatever ground it lands. */
+.tab-placeholder {
+  display: block;
+  flex: none;
+  height: calc(var(--line-control) + 2 * var(--space-4) + 2 * 1px);
+  box-sizing: border-box;
+  border: var(--tab-border);
+  border-radius: var(--tab-radius);
+  background: var(--drag-placeholder-background);
+}

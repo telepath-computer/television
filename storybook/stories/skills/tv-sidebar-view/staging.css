@@ -1,0 +1,42 @@
+/* Story staging (apparatus, not spec): styling for the sample view content
+   supplied by the story — the spec deliberately doesn't specify what's
+   inside a view. */
+
+tv-view {
+  padding: 24px 32px;
+}
+
+tv-view h1 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+tv-view p {
+  margin: 0 0 12px;
+  max-width: 48em;
+}
+
+.staged-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.staged-task .box {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--white);
+}
+
+.staged-task .meta {
+  margin-left: auto;
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "Bad_Slug",
+  "channels": [
+    {
+      "slug": "Bad_Slug",
+      "name": "Bad",
+      "artifacts": [
+        {
+          "slug": "a",
+          "title": "A"
+        }
+      ]
+    }
+  ]
+}

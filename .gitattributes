@@ -1,0 +1,2 @@
+# Generated notices preserve upstream legal-text line endings and whitespace verbatim.
+THIRD-PARTY-NOTICES.txt -text whitespace=-trailing-space

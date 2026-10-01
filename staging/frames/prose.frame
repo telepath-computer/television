@@ -1,0 +1,61 @@
+---
+imports:
+  - ../lib/foundation.ts
+  - ../../specs/ui/foundation/prose.css
+---
+<!--
+  The foundation's prose treatment staged (staging, not spec content): one
+  sample document written in plain semantic HTML and nothing else, so what
+  renders is exactly what an unstyled artifact gets.
+-->
+
+
+<header>
+  <h1>Quarterly reliability report</h1>
+  <p>Where the platform held, where it strained, and what we change next quarter.</p>
+</header>
+
+<p>Uptime landed at <code>99.94%</code> across the fleet, with the two visible incidents both traced to the <a href="#">connection pool exhaustion</a> first flagged in March. The pool was resized and the alert threshold moved ahead of saturation rather than at it.</p>
+
+<h2>What happened</h2>
+
+<p>Three findings shaped the quarter:</p>
+
+<ul>
+  <li>Retry storms amplified the April outage — clients retried in lockstep after the first failure.</li>
+  <li>The staging environment drifted from production kernels, hiding a scheduler regression.</li>
+  <li>On-call escalations resolved fastest when the runbook linked the exact dashboard.</li>
+</ul>
+
+<blockquote>
+  <p>The pool did not fail loudly. It failed by getting slow, and slow looks like everything else until you graph it.</p>
+</blockquote>
+
+<h3>The fix, in order</h3>
+
+<ol>
+  <li>Jittered exponential backoff in every client.</li>
+  <li>Kernel parity checks in the deploy pipeline.</li>
+  <li>Dashboards linked from each runbook step.</li>
+</ol>
+
+<pre><code>pool:
+  max_connections: 512
+  saturation_alert: 0.8</code></pre>
+
+<h2>The numbers</h2>
+
+<table>
+  <thead>
+    <tr><th>Month</th><th>Uptime</th><th>Incidents</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>April</td><td>99.87%</td><td>2</td></tr>
+    <tr><td>May</td><td>99.98%</td><td>0</td></tr>
+    <tr><td>June</td><td>99.97%</td><td>0</td></tr>
+  </tbody>
+</table>
+
+<hr />
+
+<p>Full incident writeups live in the ops channel; press <kbd>g</kbd> then <kbd>r</kbd> to jump there.</p>

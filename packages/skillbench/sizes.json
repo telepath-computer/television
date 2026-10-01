@@ -1,0 +1,10 @@
+{
+  "note": "Artifact review viewport dimensions retained for consistent skill evaluation.",
+  "sizes": [
+    { "label": "Default — 4×6 units (528×800)", "width": 528, "height": 800 },
+    { "label": "Max width — 8×6 units (1072×800)", "width": 1072, "height": 800 },
+    { "label": "Narrow — 2×6 units (256×800)", "width": 256, "height": 800 },
+    { "label": "Half height — 4×3 units (528×392)", "width": 528, "height": 392 },
+    { "label": "Small square — 2×2 units (256×256)", "width": 256, "height": 256 }
+  ]
+}

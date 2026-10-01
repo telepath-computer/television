@@ -1,0 +1,214 @@
+---
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  .mock {
+    width: 900px;
+    height: 620px;
+    display: flex;
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  }
+  
+  .rail {
+    flex: none;
+    width: 140px;
+    padding: var(--space-16) var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+  
+  .chip {
+    padding: var(--space-4) var(--space-8);
+    border: 0;
+    border-radius: var(--radius-6);
+    background: none;
+    text-align: left;
+  }
+  
+  .chip[aria-current] {
+    background: var(--color-selected);
+    color: var(--color-on-primary);
+  }
+  
+  .ground {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    background: var(--color-background);
+    overflow: hidden;
+  }
+  
+  /* The band: the strips travel with their channels, fading over the whole
+     travel, and release through a mask at the band's edges. */
+  .band {
+    position: relative;
+    z-index: 1;
+    height: 32px;
+    margin-block: -8px;
+    padding-block: 8px;
+    mask-image: linear-gradient(to bottom, transparent 0, black 8px, black calc(100% - 8px), transparent 100%);
+  }
+  
+  .strip {
+    position: absolute;
+    inset: 8px auto auto 50%;
+    translate: -50% 0;
+    display: flex;
+    gap: var(--space-4);
+    transition: translate 700ms ease, opacity 700ms ease;
+  }
+  
+  .strip .pill {
+    width: 84px;
+    height: 24px;
+    border-radius: var(--radius-6);
+    border: 1px solid var(--tint-200);
+  }
+  
+  .strip .pill.on {
+    background: var(--white);
+  }
+  
+  /* The viewport: masked, not veiled — a passing channel ghosts under the
+     band, gone before its top, fully present exactly at its resting edge. */
+  .viewport {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    margin-top: -24px;
+    padding-top: 24px;
+    mask-image: linear-gradient(to bottom, transparent 0, black 24px);
+  }
+  
+  .channel {
+    position: absolute;
+    inset: 24px 0 0;
+    display: flex;
+    gap: 12px;
+    padding: 0 12px 12px;
+    /* The fade runs shorter than the travel, so mid-flight reads as one
+       thing giving way to another. */
+    transition: translate 700ms ease, opacity 520ms ease;
+  }
+  
+  .card {
+    flex: 1;
+    border-radius: var(--radius-12);
+    opacity: 0.92;
+  }
+script: |
+  import "../lib/foundation.ts";
+
+  const CHANNELS = [
+    { name: "Today", hues: [210, 190, 230] },
+    { name: "Research", hues: [30, 50] },
+    { name: "Q3 launch", hues: [120, 100, 140] },
+    { name: "Trip", hues: [280] },
+  ];
+  
+  const rail = document.querySelector("[data-rail]");
+  const band = document.querySelector("[data-band]");
+  const viewport = document.querySelector("[data-viewport]");
+  let current = 0;
+  let settle = null;
+  
+  const stripFor = (channel) =>
+    `<div class="strip">${channel.hues
+      .map((_, i) => `<span class="pill${i === 0 ? " on" : ""}"></span>`)
+      .join("")}</div>`;
+  
+  const channelFor = (channel) =>
+    `<div class="channel">${channel.hues
+      .map((h) => `<div class="card" style="background: oklch(0.9 0.07 ${h})"></div>`)
+      .join("")}</div>`;
+  
+  rail.innerHTML = CHANNELS.map(
+    (c, i) => `<button class="chip"${i === 0 ? " aria-current='true'" : ""}>${c.name}</button>`,
+  ).join("");
+  band.innerHTML = stripFor(CHANNELS[0]);
+  viewport.innerHTML = channelFor(CHANNELS[0]);
+  
+  const change = (index) => {
+    if (index === current) return;
+    settle?.();
+    const direction = index > current ? 1 : -1;
+    current = index;
+    [...rail.children].forEach((chip, i) =>
+      i === index ? chip.setAttribute("aria-current", "true") : chip.removeAttribute("aria-current"),
+    );
+  
+    const oldChannel = viewport.querySelector(".channel");
+    const oldStrip = band.querySelector(".strip");
+    viewport.insertAdjacentHTML("beforeend", channelFor(CHANNELS[index]));
+    band.insertAdjacentHTML("beforeend", stripFor(CHANNELS[index]));
+    const newChannel = viewport.lastElementChild;
+    const newStrip = band.lastElementChild;
+  
+    // The pair starts one step away, then everything moves in the same frame.
+    for (const el of [newChannel, newStrip]) {
+      el.style.transition = "none";
+      el.style.translate = `${el === newStrip ? "-50%" : "0"} calc(${direction * 100}% + ${direction * 8}px)`;
+      el.style.opacity = "0";
+    }
+    void newChannel.offsetHeight;
+    for (const el of [newChannel, newStrip]) {
+      el.style.transition = "";
+      el.style.translate = el === newStrip ? "-50% 0" : "0 0";
+      el.style.opacity = "1";
+    }
+    for (const el of [oldChannel, oldStrip]) {
+      el.style.translate = `${el === oldStrip ? "-50%" : "0"} calc(${-direction * 100}% + ${-direction * 8}px)`;
+      el.style.opacity = "0";
+    }
+  
+    const timer = setTimeout(() => settle?.(), 760);
+    settle = () => {
+      clearTimeout(timer);
+      settle = null;
+      oldChannel.remove();
+      oldStrip.remove();
+    };
+  };
+  
+  rail.addEventListener("click", (ev) => {
+    const chip = ev.target.closest(".chip");
+    if (chip) change([...rail.children].indexOf(chip));
+  });
+---
+<!--
+  Design workshop (off-spec): the channel-change motion, kept as an
+  indicative prototype — the direction was designed and then moved out of
+  the stage's scope, so it lives here rather than in the real templates.
+
+  Indicative means mock everything: coloured cards stand in for artifacts,
+  pill rows for the tab strips, a chip rail for the sidebar. What is being
+  kept is the choreography itself: the leaving channel and the arriving one
+  move vertically together — one motion, butted, fading as they travel, the
+  strips riding along — and the band above the cards is a threshold the
+  passing surface ghosts under, never at strength.
+-->
+
+
+
+<div class="mock">
+  <nav class="rail" data-rail></nav>
+  <div class="ground">
+    <div class="band" data-band></div>
+    <div class="viewport" data-viewport></div>
+  </div>
+</div>

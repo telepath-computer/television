@@ -1,0 +1,14 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+    display: flex;
+    align-items: flex-start;
+    background: var(--color-background);
+  }
+script: |
+  import { mountTab } from "./tab.ts";
+
+  mountTab("selected");
+---

@@ -1,0 +1,141 @@
+/* Skillbench — internal dev tooling: system fonts, literal values (no
+   dependency on product styles). Central view + one right rail, the rail
+   halved into the job list and the inspector form. */
+
+.skillbench {
+  display: flex;
+  height: 100vh;
+  box-sizing: border-box;
+  font: 13.5px/1.45 ui-sans-serif, system-ui, sans-serif;
+  color: #2f2f33;
+  background: #f0f0f0;
+}
+
+.skillbench *,
+.skillbench *::before,
+.skillbench *::after {
+  box-sizing: border-box;
+}
+
+/* --- Central view --- */
+
+.view {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px;
+}
+
+.artifact-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+}
+
+/* margin auto centers the artifact both ways while it fits, and degrades
+   to a scrollable start-aligned box when the size exceeds the stage. */
+.artifact {
+  display: block;
+  margin: auto;
+  /* Demonstrates the default card size (4×6 units); the implementation
+     sizes the element per the live size selection. */
+  width: 528px;
+  height: 800px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.artifact-empty {
+  color: #888;
+  margin: auto;
+}
+
+/* --- Right rail --- */
+
+.rail {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+  background: #f6f6f6;
+}
+
+/* Section title: same voice as the inspector's field labels. */
+.jobs-title {
+  margin: 0;
+  padding: 12px 14px 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #777;
+}
+
+/* Top half: the job list — plain tappable rows, iOS-list style. */
+.jobs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 8px;
+  list-style: none;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.jobs li {
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: default;
+}
+
+.jobs li:hover:not(.active) { background: rgba(0, 0, 0, 0.04); }
+.jobs li.active { background: rgba(0, 0, 0, 0.08); }
+.jobs li.no-output { color: #999; }
+.jobs .not-run { font-size: 11.5px; }
+
+/* Bottom half: the inspector form. */
+.inspector {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+.inspector label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #777;
+}
+
+/* The prompt fills whatever height the form has to give. */
+.inspector .prompt-field {
+  flex: 1;
+  min-height: 0;
+}
+
+.inspector .prompt {
+  flex: 1;
+  min-height: 0;
+  resize: none;
+  cursor: default;
+  font: 12.5px/1.5 ui-sans-serif, system-ui, sans-serif;
+  color: #2f2f33;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  padding: 8px;
+  background: #fff;
+}
+
+.inspector select {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+  background: #fff;
+}

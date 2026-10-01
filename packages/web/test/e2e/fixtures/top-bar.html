@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      html, body { margin: 0; height: 100%; }
+      body { display: grid; place-items: center; }
+      #fixture-app { height: 320px; }
+    </style>
+  </head>
+  <body>
+    <div id="fixture-app">
+      <main id="app">
+        <section class="app-main" id="fixture-main"></section>
+      </main>
+    </div>
+
+    <script type="module">
+      import { render, html } from "lit-html";
+      import { ServerStatusEvent } from "/packages/web/src/events.ts";
+      import "/packages/web/src/views/channel-sidebar.ts";
+      import { TopBarView } from "/packages/web/src/views/top-bar.ts";
+      await import("/packages/web/src/views/television-app.css");
+
+      const PRIMARY = "http://primary.test";
+      const host = document.querySelector("#fixture-app");
+      const main = document.querySelector("#fixture-main");
+      const params = new URLSearchParams(location.search);
+      const initialWidth = Number(params.get("width"));
+      if (Number.isFinite(initialWidth) && initialWidth > 0) {
+        host.style.width = `${initialWidth}px`;
+      }
+      const owner = new EventTarget();
+      const connection = {
+        url: PRIMARY,
+        status: "connected",
+        serverVersion: "1.0.0",
+        updateState: null,
+        signals: [],
+        sendTelemetrySignal(event, properties) {
+          this.signals.push({ event, properties });
+        },
+      };
+      owner.connection = connection;
+
+      let channelSerial = 0;
+      const makeChannel = (titles, name) => {
+        channelSerial += 1;
+        const artifacts = titles.map((title, index) => ({
+          id: `artifact-${channelSerial}-${index}`,
+          kind: "path",
+          path: `/tmp/artifact-${channelSerial}-${index}.html`,
+          title,
+        }));
+        const pages = artifacts.map(({ id }) => ({
+          artifactIds: [id],
+          geometry: { width: "standard", height: "standard" },
+          size: { width: 560, height: 740 },
+        }));
+        return {
+          id: `01J000000000000000000${String(channelSerial).padStart(4, "0")}`,
+          name: name ?? `Channel ${channelSerial}`,
+          pages,
+          selectedPage: pages[0] ?? null,
+          artifacts,
+        };
+      };
+
+      class FakeApplication extends EventTarget {
+        get snapshot() {
+          return {
+            ready: true,
+            channels,
+            display: {
+              focusedChannelId,
+              pinnedChannelIds,
+              activeThemeName: null,
+              activeThemeColorScheme: null,
+              appearanceMode: "system",
+              themeJavaScriptConsentIds: [],
+              acpEnabled: false,
+            },
+            focusedChannel: channels.find(({ id }) => id === focusedChannelId) ?? null,
+            connection: {
+              authorizationRequired: false,
+              authorizationRejected: false,
+              gateHalted: false,
+              status: "connected",
+              hasEverConnected: true,
+              firstConnectError: null,
+              nextRetryAt: null,
+              upgradeInstructions: null,
+            },
+          };
+        }
+        async listThemes() { return { themes: [], errors: [] }; }
+        async refreshThemes() { return { themes: [], errors: [] }; }
+        async setActiveTheme() {}
+        async setAppearanceMode() {}
+        selectPage() {}
+        async focusChannel(channelId) {
+          if (!channels.some(({ id }) => id === channelId)) return;
+          focusedChannelId = channelId;
+          this.dispatchEvent(new Event("change"));
+        }
+        async setPinnedChannelIds(ids) {
+          pinnedChannelIds = [...ids];
+          this.dispatchEvent(new Event("change"));
+        }
+        async createChannel() {
+          createCount += 1;
+          return { id: `fixture-created-${createCount}` };
+        }
+        async renameChannel(channelId, name) {
+          channels = channels.map((channel) =>
+            channel.id === channelId ? { ...channel, name } : channel
+          );
+          this.dispatchEvent(new Event("change"));
+        }
+        async deleteChannel() {}
+      }
+      const application = new FakeApplication();
+      let collapsed = params.get("collapsed") === "true";
+      let channels = [makeChannel([], params.get("channel") ?? undefined)];
+      let focusedChannelId = channels[0].id;
+      let pinnedChannelIds = [];
+      let createCount = 0;
+      let renderCount = 0;
+      let resizeCount = 0;
+      const dismissal = new Map();
+
+      const resizeObserver = new ResizeObserver(() => { resizeCount += 1; });
+      resizeObserver.observe(host);
+      const observedLayoutElements = new WeakSet();
+      const observeLayoutElements = () => {
+        for (const element of main.querySelectorAll(
+          ".top-bar, .top-bar-lead, .tab-strip, .top-bar-controls, " +
+            ".channel-switcher-pop, .channel-switcher-pop-body, .channel-switcher-pop-footer",
+        )) {
+          if (observedLayoutElements.has(element)) continue;
+          observedLayoutElements.add(element);
+          resizeObserver.observe(element);
+        }
+      };
+      new MutationObserver(observeLayoutElements).observe(main, {
+        childList: true,
+        subtree: true,
+      });
+
+      const draw = () => {
+        render(html`
+          ${TopBarView(application, application.snapshot, {
+            connectionOwner: owner,
+            primaryServerURL: PRIMARY,
+            dismissalStorage: {
+              getItem: (key) => dismissal.get(key) ?? null,
+              setItem: (key, value) => dismissal.set(key, value),
+            },
+            collapsed,
+            onRenderComplete: () => { renderCount += 1; },
+          })}
+          <div class="stage" aria-hidden="true"></div>
+        `, main);
+        observeLayoutElements();
+      };
+      application.addEventListener("change", draw);
+
+      const waitForRenderAfter = async (before) => {
+        for (let index = 0; index < 20 && renderCount <= before; index += 1) {
+          await Promise.resolve();
+        }
+        if (renderCount <= before) throw new Error("top-bar render did not complete");
+      };
+
+      const waitForStableFrames = async () => {
+        await document.fonts.ready;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      };
+
+      const api = {
+        get renderCount() { return renderCount; },
+        get resizeCount() { return resizeCount; },
+        get createCount() { return createCount; },
+        setWidth(width) {
+          host.style.width = `${width}px`;
+        },
+        async setChannel(titles) {
+          const before = renderCount;
+          const current = channels.find(({ id }) => id === focusedChannelId);
+          const replacement = makeChannel(titles, current?.name);
+          channels = [replacement, ...channels.filter(({ id }) => id !== focusedChannelId)];
+          focusedChannelId = replacement.id;
+          application.dispatchEvent(new Event("change"));
+          await waitForRenderAfter(before);
+        },
+        async setLead({ isCollapsed, channelName, channelCount }) {
+          const before = renderCount;
+          collapsed = isCollapsed;
+          const focused = makeChannel([], channelName);
+          channels = [
+            focused,
+            ...Array.from({ length: Math.max(0, channelCount - 1) }, (_, index) =>
+              makeChannel([], `Channel ${index + 2}`)
+            ),
+          ];
+          focusedChannelId = focused.id;
+          pinnedChannelIds = channels.slice(1, 3).map(({ id }) => id);
+          application.dispatchEvent(new Event("change"));
+          await waitForRenderAfter(before);
+        },
+        async setNotice(applies) {
+          const before = renderCount;
+          connection.updateState = applies
+            ? {
+                toast: {
+                  version: "1.5.0",
+                  markdown: "**Television 1.5.0** is available.",
+                  prompt: "Upgrade Television",
+                },
+                desktop: null,
+              }
+            : null;
+          const message = {
+            type: "server-status",
+            version: "1.0.0",
+            requiredDesktopVersion: null,
+            update: connection.updateState,
+          };
+          owner.dispatchEvent(new ServerStatusEvent("server-status", {
+            serverURL: PRIMARY,
+            message,
+          }));
+          await waitForRenderAfter(before);
+        },
+      };
+
+      draw();
+      await waitForRenderAfter(0);
+      await waitForStableFrames();
+      window.__topBarFixture = api;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

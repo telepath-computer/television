@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "focusChannel": "broken",
+  "channels": [
+    {
+      "slug": "broken",
+      "name": "Broken Screen",
+      "artifacts": [
+        {
+          "slug": "gone",
+          "title": "Gone"
+        }
+      ]
+    },
+    {
+      "slug": "good",
+      "name": "Good Screen",
+      "artifacts": [
+        {
+          "slug": "fine",
+          "title": "Fine"
+        }
+      ]
+    }
+  ]
+}

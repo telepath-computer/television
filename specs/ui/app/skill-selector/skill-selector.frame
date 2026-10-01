@@ -1,0 +1,139 @@
+---
+title: Skill selector
+params:
+  open: { type: boolean, default: false, description: stage the panel open }
+imports:
+  - content: ./content.yml
+  - thumb_calendar: ./thumbnails/calendar.png
+  - thumb_table: ./thumbnails/table.png
+  - thumb_tasks: ./thumbnails/tasks.png
+  - thumb_markdown: ./thumbnails/markdown.png
+style: |
+  /* The panel is the popover ([[ui/foundation/popover/index.md]]) — chrome,
+     placement and dismissal are the element's — so these styles own only the
+     interior: the panel's size and room, the section heading, the card grid,
+     and the per-card copy-prompt placement. */
+
+  .skill-popover {
+    width: 500px;
+    padding: var(--space-16);
+  }
+
+  .skill-heading {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    padding: 0 var(--space-2) var(--space-4);
+  }
+
+  .skill-intro {
+    margin: 0;
+    padding: 0 var(--space-2) var(--space-12);
+    font-size: var(--text-sm);
+    line-height: 1.4;
+    color: var(--color-text-muted);
+  }
+
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-20);
+  }
+
+  .skill-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* The image fills a stable frame; neutral ground remains visible while its
+     committed bytes load. */
+  .skill-thumb {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--panel-radius);
+    overflow: hidden;
+    background: var(--color-surface-muted);
+  }
+
+  .skill-thumb img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .skill-name {
+    font-size: var(--text-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin-top: var(--space-6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .skill-desc {
+    font-size: var(--text-sm);
+    line-height: 1.35;
+    color: var(--color-text-muted);
+    margin: var(--space-2) 0 var(--space-6);
+  }
+
+  /* The card's copy button is the composed copy-button surface; its swap is
+     owned there. Here we only place and compact it for the dense card (copy-button
+     leaves placement, intent, and size to the caller): pinned to the card's
+     bottom (so buttons align across a row), left-aligned, at content height. */
+  .skill-card button.copy-button {
+    align-self: flex-start;
+    margin-top: auto;
+    height: auto;
+    min-height: 0;
+    padding: var(--space-2) var(--space-6);
+    font-size: var(--text-sm);
+  }
+---
+<button class="skill-trigger" id="skills-trigger" icon variant="ghost"
+        aria-label="{{ content.trigger }}" title="{{ content.trigger }}">
+  {% render '../../foundation/icons/icon', name: 'skills', size: 'sm' %}
+</button>
+
+<tv-popover class="skill-popover" trigger="skills-trigger"{% if open %} open{% endif %}>
+  <div class="skill-heading">{{ content.heading }}</div>
+  <p class="skill-intro">{{ content.intro }}</p>
+  <div class="skill-grid">
+
+    <article class="skill-card">
+      <div class="skill-thumb"><img src="{{ thumb_calendar }}" alt=""></div>
+      <div class="skill-name">{{ content.skills.calendar.name }}</div>
+      <p class="skill-desc">{{ content.skills.calendar.description }}</p>
+      {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: content.skills.calendar.prompt %}
+    </article>
+
+    <article class="skill-card">
+      <div class="skill-thumb"><img src="{{ thumb_table }}" alt=""></div>
+      <div class="skill-name">{{ content.skills.table.name }}</div>
+      <p class="skill-desc">{{ content.skills.table.description }}</p>
+      {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: content.skills.table.prompt %}
+    </article>
+
+    <article class="skill-card">
+      <div class="skill-thumb"><img src="{{ thumb_tasks }}" alt=""></div>
+      <div class="skill-name">{{ content.skills.tasks.name }}</div>
+      <p class="skill-desc">{{ content.skills.tasks.description }}</p>
+      {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: content.skills.tasks.prompt %}
+    </article>
+
+    <article class="skill-card">
+      <div class="skill-thumb"><img src="{{ thumb_markdown }}" alt=""></div>
+      <div class="skill-name">{{ content.skills.markdown.name }}</div>
+      <p class="skill-desc">{{ content.skills.markdown.description }}</p>
+      {% render '../copy-button/copy-button', label: content.copy_prompt, prompt: content.skills.markdown.prompt %}
+    </article>
+
+  </div>
+</tv-popover>

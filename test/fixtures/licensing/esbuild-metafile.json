@@ -1,0 +1,49 @@
+{
+  "inputs": {
+    "src/index.ts": {
+      "bytes": 42,
+      "imports": []
+    },
+    "node_modules/plain-package/index.js": {
+      "bytes": 25,
+      "imports": []
+    },
+    "node_modules/@fixture/scoped-package/index.js": {
+      "bytes": 30,
+      "imports": []
+    },
+    "node_modules/outer-package/node_modules/nested-package/index.js": {
+      "bytes": 35,
+      "imports": []
+    },
+    "node_modules/tree-shaken-package/index.js": {
+      "bytes": 40,
+      "imports": []
+    }
+  },
+  "outputs": {
+    "dist/app.js": {
+      "imports": [],
+      "exports": [],
+      "entryPoint": "src/index.ts",
+      "inputs": {
+        "src/index.ts": {
+          "bytesInOutput": 20
+        },
+        "node_modules/plain-package/index.js": {
+          "bytesInOutput": 15
+        },
+        "node_modules/@fixture/scoped-package/index.js": {
+          "bytesInOutput": 18
+        },
+        "node_modules/outer-package/node_modules/nested-package/index.js": {
+          "bytesInOutput": 22
+        },
+        "node_modules/tree-shaken-package/index.js": {
+          "bytesInOutput": 0
+        }
+      },
+      "bytes": 75
+    }
+  }
+}

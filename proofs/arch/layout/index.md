@@ -1,0 +1,28 @@
+*How the promises in Layout (architecture) are proven.*
+
+# Layout (architecture) — proof
+
+Proves [specs/arch/layout/index.md](../../../specs/arch/layout/index.md).
+
+## Coverage model
+
+Coverage declarations are carried inside the migrated assertion blocks below.
+
+## Assertions
+
+### Test assertions
+
+The redesign's page model is greenfield. Plain markers below are policy-grade to be written; inherited evidence is labeled separately. The migration contract, boot seams, and upgrade acceptance spine live with [arch/layout/migration.md](../../../specs/arch/layout/migration.md).
+
+Shared acceptance declaration ([arch/testing-policy.md#^declaration-schema](../../../specs/arch/testing-policy.md#^declaration-schema)): unless an assertion says otherwise, the boundary is a really-running server over a real temporary data directory, driven through a real HTTP client and, where the assertion claims an event, a real websocket client; no mocks or test hooks are used. Ordinary channels and one-artifact pages are created through the production API. The valid-update and membership matrices additionally use an authored version-2 channel record containing a multi-artifact page, so the test proves each page remains a unit and exercises the split branch from a format-valid state that stage 1 does not create through its UI; the real server loads that fixture before the HTTP update.
+
+- **Acceptance.** In one server fixture, reordering pages on both an API-created channel and an authored version-2 channel containing a page whose ordered `artifactIds` has several entries is accepted without changing any page's membership. Changing only a page's `full_screen` value is likewise accepted. Each HTTP response and resulting channel event carries the submitted order and `full_screen` state, each stored channel record carries `layoutVersion: 2`, and a server restart exposes the same pages, order, and `full_screen` state — *(policy-grade test: `packages/server/test/page-layout.test.ts` “persists page reorder and full-screen state without narrowing multi-artifact membership”)*. ^ly-ac-update-valid
+- **Acceptance.** An update that duplicates or drops an artifact id, names an unknown one, or regroups artifacts by splitting or merging a page's `artifactIds` is rejected; the exposed layout and stored channel bytes remain unchanged — *(policy-grade tests: the duplicate, dropped, unknown, split, merged, and internally reordered generated cases under `packages/server/test/page-layout.test.ts` “rejects an update that … without changing exposed or stored state”)*. ^ly-ac-membership
+- **Acceptance.** An update containing an empty `artifactIds` list or an unknown geometry `kind` is rejected; the exposed layout and stored channel bytes remain unchanged — *(policy-grade tests: `packages/server/test/page-layout.test.ts` “rejects an update that contains empty membership without changing exposed or stored state” and “rejects an update that contains an unknown geometry kind without changing exposed or stored state”)*. ^ly-ac-shape-invalid
+- **Acceptance.** An update setting a page's `size` — a fractional pair included — is accepted; the HTTP response and resulting channel event carry it, a second connected client observes it, and a server restart exposes the same size — *(policy-grade test: `packages/server/test/page-layout.test.ts` “persists a fractional page size through HTTP, two websocket clients, and restart”)*. ^ly-ac-size-persists
+- **Acceptance.** An update whose page lacks `size`, or whose `size` is half-shaped (one axis missing), non-numeric, non-finite, zero, or negative, is rejected; the exposed layout and stored channel bytes remain unchanged — *(policy-grade tests: the invalid-size generated cases under `packages/server/test/page-layout.test.ts` “rejects an update that … without changing exposed or stored state” and “rejects a non-finite JSON size without changing exposed or stored state”, with contract breadth under `packages/shared/test/layout.test.ts` “stored page size (^ly-ac-size-invalid)”)*. ^ly-ac-size-invalid
+- **Acceptance.** Creating an artifact appends a page whose `artifactIds` contains exactly that artifact and whose geometry is the shared default — *(covered by inherited tests: `packages/server/test/endpoints.test.ts` “POST /artifacts requires channelID and appends one default page”, minimally updated to assert the page shape, default geometry, and shared default size)*. ^ly-ac-create-appends
+- **Acceptance.** Deleting a page's only artifact removes that page from the layout — *(covered by inherited tests: `packages/server/test/endpoints.test.ts` “DELETE /artifacts/:id deletes metadata and does not touch the target” and `packages/server/test/server-store-attach-detach-delete.test.ts` “persists the stripped layout to disk”, minimally updated from card removal to page removal)*. ^ly-ac-delete-removes
+
+Coverage relationship: [tab-pages.md#^tp-ac-reorder-shared](../../product/tab-pages.md#^tp-ac-reorder-shared) owns the two-browser outcome of a page reorder; this spec proves the server's validation, persistence, and broadcast once. [arch/onboarding/content.md#^layout-config](../../../specs/arch/onboarding/content.md#^layout-config) and [arch/onboarding/installer.md#^t-layout-install](../onboarding/installer.md#^t-layout-install) own using the shipped onboarding config's `artifacts` array as page order and installing each page with its configured `size` and `geometry`, independently falling back to the shared defaults when either is absent. Page creation and version-1 traversal continue to compare against the same defaults without restating their shapes.
+

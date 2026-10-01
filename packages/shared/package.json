@@ -1,0 +1,19 @@
+{
+  "name": "@telepath-computer/television-shared",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@rupertsworld/event-target": "0.1.2",
+    "@telepath-computer/television-artifact": "*",
+    "ulid": "3.0.2",
+    "zod": "4.3.6"
+  }
+}

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Artifact file not found</title>
+    <link data-television-style="canonical" rel="stylesheet" href="/canonical/v2/styles.css" />
+    <style>/* The page: a muted surface with the state's message in a centred reading
+   column — quiet ground of its own, not the app's wallpaper. Canonical
+   supplies the reset, foundation tokens, and base prose. */
+.artifact-error {
+  min-height: 100vh;
+  padding: var(--space-24);
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-muted);
+}
+
+.artifact-error-body {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.artifact-error h1,
+.artifact-error p {
+  margin: 0;
+}
+
+.artifact-error h1 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.artifact-error-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The address and the guide link: wrapping anywhere, a link plainly a link. */
+.artifact-error a,
+.artifact-error .plain-address {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.artifact-error a {
+  color: var(--color-primary);
+}
+
+/* The path chip: mono, wrapping anywhere, selected whole by one press —
+   it exists to be copied. */
+.artifact-error code {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: var(--space-2) var(--space-6);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  background: var(--color-surface-muted);
+  user-select: all;
+}
+
+/* The fixed documents reveal optional blocks after their host replies. */
+[hidden] {
+  display: none !important;
+}
+</style>
+  </head>
+  <body>
+    <main class="artifact-error">
+      <div class="artifact-error-body">
+        <h1 id="missing-title"></h1>
+        <p id="missing-description"></p>
+        <section id="path-block" class="artifact-error-block" aria-label="Missing artifact path" hidden>
+          <p>Registered path:</p>
+          <p><code id="missing-path"></code></p>
+        </section>
+        <p id="missing-recovery"></p>
+      </div>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

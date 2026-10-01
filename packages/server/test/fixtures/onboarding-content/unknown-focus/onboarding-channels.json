@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "elsewhere",
+  "channels": [
+    {
+      "slug": "one",
+      "name": "One",
+      "artifacts": [
+        {
+          "slug": "a",
+          "title": "A"
+        }
+      ]
+    }
+  ]
+}

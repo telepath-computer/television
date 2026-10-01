@@ -1,0 +1,74 @@
+*How the promises in Test Runner are proven.*
+
+# Test Runner — proof
+
+Proves [specs/arch/test-runner/test-runner.md](../../../specs/arch/test-runner/test-runner.md).
+
+## Coverage model
+
+Coverage declarations are carried inside the migrated assertion blocks below. Provider-selection assertions honor the spec’s directive to spawn the canonical CLI through real subprocesses and filesystem marker lookup: unmarked selection never reaches remote preflight, while marked selection consumes declared preflight results.
+
+The [combined-project seam](sharded-execution.md#^combined-vitest-projects) crosses the shared `vitestProjectsArgs` handoff that writes the combined config and selects it for the Vitest command used by local and sharded runs. It exercises project roots, exact file selection and attempt recording. The local wrapper's pre-commands, execution without an explicit file list and result splitting remain within the real local end-to-end boundary gap below; the shared-helper seam does not claim that whole path.
+
+Two test-infrastructure rules concern the product's `tv serve` and are proven where the product is. The recipe for a test that spawns `tv serve` gives the server a temporary [Television home](../../../specs/product/cli.md#^cli-home) whose config file sets port `0`, passes that home with `--home` to the server and every client command, and passes the acquired port as client `--port`. It is a way of writing tests, honored by the design of the tests that spawn the server: the [product CLI proof](../../product/cli.md#Acceptance criteria: CLI spine) declares it for its acceptances, and review checks it elsewhere. No separate assertion is ordered for it; the repository scan below guards only numeric test-service URLs. The daemon-acceptance surface's form of installation (a temporary home, a released stable port written with `tv config set port`, then `tv --home <home> serve --persist`) is carried by the same proof's [home-based persisted-install assertion](../../product/cli.md#^cli-ac-persist-home-install).
+
+## Test hooks
+
+
+`TV_TEST_RUNNER_SELFTEST=1` permits the guarded self-test seams that separately check for it; the variable changes no behavior by itself. Every other value leaves those seams disabled. A seam input supplied without it is ignored or refused as the seam's owning spec states. Production leaves it unset.
+
+`TV_TEST_RUNNER_DRY_RUN=1` lets a provider shortcut print its resolved provider, suite, surfaces, and files after selection and guardrail checks without running preflight or tests. It requires `TV_TEST_RUNNER_SELFTEST=1`, and `verify` rejects it because verification requires a finalized run. Production leaves it unset.
+
+`isCursorAgentRuntime` accepts `env` to supply the environment used for Cursor-agent classification. `stripCursorAgentEnv` accepts `env` to supply the child environment it copies and filters. Production classifies `process.env` at canonical CLI startup, and the Electron wrapper filters its inherited child environment.
+
+`createSurfaceSupervisor` accepts `termGraceMs` to set the wait after cleanup signals for an active surface scope. `reapStaleOwnerProcesses` accepts `termGraceMs` to set the wait while removing abandoned surface scopes. Production omits both controls and uses `TEST_PROCESS_TERM_GRACE_MS`.
+
+## Assertions
+
+### Test assertions
+
+The runner's own tests run the **real `scripts/test/cli.mjs` process** with `spawnSync` and assert exit codes and stdout/stderr — the subprocess/CLI boundary that [testing-policy.md](../../../specs/arch/testing-policy.md) requires for process behavior. The guardrail and provider-resolution decision chains execute for real in that process; self-test-gated env seams stand in only for the expensive downstream that sits *outside* the asserted decision (actually launching a suite, or running the real remote preflight), never inside the chain under assertion. Current coverage lives in `test/repo/test-runner-guardrails.test.ts`.
+
+- A bare provider shortcut (`local` | `blaxel`) is refused with exit `2` and the broad-run message.
+- An explicit `--suite all` shortcut is refused with exit `2`.
+- A bare `--grep` shortcut with no other selector defaults to `all` and is refused with exit `2`.
+- `--force` allows a broad shortcut; a dry-run reports `provider=<p> suite=all`.
+- `--grep` paired with `--file` or with `--surface` is treated as targeted and runs.
+- Targeted selectors (`--file`, `--surface`, `--package`, `--runner`, `--tag`) and the `--suite unit` / `--suite e2e` / `--suite telemetry-posthog-roundtrip` / `--suite daemon-acceptance` selections pass the guardrail unless a selected surface carries an execution-placement tag.
+- `daemon-acceptance` fails preflight before its build when `TV_DAEMON_TEST_HOST` is not exactly `1`, and passes that check when the designated-host acknowledgement is present.
+- `isolated-github-only` surfaces are rejected before preflight for developer local and every Blaxel path; the exact dedicated GitHub workflow identity plus explicit opt-in permits only its local execution path.
+- `--suite all` includes `unit:build-config`, which validates the ordinary CLI output and an isolated release-configured `--outfile` bundle without network or secrets, as proven by [the build seam](../telemetry/sink.md#^t-build-config-integrity).
+- **Acceptance** (real canonical CLI process, real temporary home with no marker): default `verify` and explicit `--provider auto` select local phases without bypass or Blaxel preflight/fallback diagnostics. The [preflight hook](preflight.md#Test hooks) `TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT` is supplied with `TV_TEST_RUNNER_SELFTEST` explicitly removed from the child environment and must remain untouched: reaching remote preflight would fail the command, so a successful local plan proves it was not consulted. The same unauthorized input on a marked home must fail with the remote hook’s authorization error, confirming the detector is active. No remote mechanism is mocked on the unmarked path; `--plan` proves selection and phase construction, not suite execution. Proves [provider resolution](../../../specs/arch/test-runner/test-runner.md#Verify orchestration). Evidence: `test/repo/test-runner-guardrails.test.ts`. ^t-local-verify-default
+- **Acceptance** (real CLI process and temporary marked home; remote checks replaced by the declared preflight hook): a passing remote result makes default `verify --plan` select Blaxel phases. This proves provider selection, forfeiting real service and Git checks to the [preflight proof](preflight.md#Assertions), which records their committed boundary-test gap. The [live-evidence directive](../../../specs/arch/test-runner/preflight.md#Testing) governs live validation. Passing self-test results are refused outside `verify --plan`, before any remote dispatch. Proves [provider resolution](../../../specs/arch/test-runner/test-runner.md#Verify orchestration). Evidence: `test/repo/test-runner-guardrails.test.ts`. ^t-marked-verify-default
+- **Acceptance** (real CLI process and temporary marked home; declared failed remote-preflight result, with the same forfeit as above): failed remote preflight refuses verification with exit `2`, the failing check, remediation, and the explicit `local --allow-extreme-inefficiency` escape hatch. Passing the bypass flag without selecting `local` does not enable fallback. Evidence: `test/repo/test-runner-guardrails.test.ts`. ^t-marked-verify-refusal
+- `verify local` (positional or `--provider local`) when `~/.tvdev-use-blaxel` exists is refused with exit `2` unless `--allow-extreme-inefficiency` is passed.
+- **Acceptance** (real CLI process, real temporary home directories and marker files): marker presence enables protection regardless of contents, marker absence permits explicit local verification and explicit Blaxel plans, and `AGENT_BLAXEL_GUARDRAILS` does not affect protection. The default-provider cases are covered by [unmarked selection](#^t-local-verify-default) and [marked selection](#^t-marked-verify-default). The same marker leaves targeted local commands available. Proves [host marker](../../../specs/arch/test-runner/test-runner.md#^blaxel-host-marker). Remote preflight is supplied through the existing self-test seam, forfeiting real service access as documented below; marker lookup and provider selection are real. Evidence: `test/repo/test-runner-guardrails.test.ts`. ^t-blaxel-host-marker
+- **Acceptance** (real script process in a temporary directory): the vibe-mode check exits nonzero and names vibe mode when `specs/vibe-waiver.md` exists, and exits zero otherwise; `verify --plan` lists it as the last phase for both providers. Proves [vibe-mode check](../../../specs/arch/test-runner/test-runner.md#^verify-vibe-mode). A full verify on a vibe branch is not exercised; the phase runner is the same one every other phase uses. Evidence: `test/repo/test-runner-guardrails.test.ts`. ^t-verify-vibe-mode
+- `verify` rejects a positional provider given together with `--provider` (exit `2`).
+- `verify` rejects an invalid positional provider (exit `2`); `gha` is invalid everywhere a provider is named — shortcut, positional, and `--provider` (exit `2`). Acceptance-shaped: the real `scripts/test/cli.mjs` process, real argv, asserted exit codes and stderr.
+- `verify --plan` prints the resolved provider and each phase command, and the broad test phase includes `--suite all --force`; it does not report a pass. Both providers list the vibe-mode check as their last phase.
+- `verify` has no path that reports a pass without running its phases.
+- Publication qualification accepts only Blaxel plus the complete `all` suite without `--surface`, `--package`, `--file`, `--grep`, `--runner`, `--tag`, or `--shard-indices`; it accepts explicit `--suite all` / `--all` and a changed shard total when all indices run. Every local run and each narrowing selector is rejected independently.
+- The CLI help documents `--no-publish` as the attestation opt-out for a qualifying Blaxel verify. The removed opt-in spelling is rejected as a usage error rather than silently accepted.
+- A repository test reads .github/workflows/ci.yml and asserts that the pull request end-to-end shard step invokes scripts/run-test-shard.mjs with --test-retries 2.
+
+The lifecycle assertions are seam tests that run real subprocesses and listeners through the canonical runner boundary; no process or socket mechanism under assertion is mocked:
+
+- **Seam:** the surface-service manager starts two real Vite services in declaration order and passes both independently bound full URLs across the real process environment to a real Playwright child. The later Vite config observes the earlier service URL, both servers answer real HTTP requests, teardown restores prior parent values on success and later-service startup failure, and both ports can be rebound afterward. The handoff is registry declaration → service manager → process environment → Playwright config; there is no mock on that path.
+- **Acceptance:** invoking the canonical CLI for the registered dynamic-service fixture runs its real Playwright test against both real Vite services and exits successfully. Local, planned-shard, and targeted-Blaxel contract tests pin the same service declarations into each execution path; the migrated real browser surfaces provide remote execution evidence.
+- A repository assertion rejects numeric loopback URLs used as live test-service consumers in canonical runner configs, e2e source, and served fixture `src`/`href` attributes; each allowlisted numeric-port datum states why no live test listener is addressed.
+- A static fixture served from a dynamic Vite URL resolves same-origin dependencies through relative `src` and `href` values.
+- A restart fixture retains one kernel-selected browser-facing origin while forwarding to two successive backends that each bind port `0`.
+- The shared test-child helper starts a real listener in its own process group with the current surface owner token, registers it for prompt cleanup, and disposes it idempotently. `test/node/owned-process.e2e.test.ts` proves normal TERM cleanup on Linux and macOS using each host's real process inspection; its TERM-resistant KILL contract runs only on the isolated GitHub lifecycle surface.
+- A fixture surface that exits while an ordinary child listener remains is reported as a process leak against that surface with the child's PID, command, and listening port; the child is gone before the next fixture surface starts.
+- A fixture child that creates a new process group and ignores `SIGTERM` is still found by its owner token, reported, and killed with `SIGKILL`.
+- Sending `SIGTERM` to a runner with an active fixture surface leaves no process carrying the scope's owner token.
+- A clean fixture surface reports no lifecycle failure.
+- **Contract:** lifecycle cleanup omits a candidate whose revalidation reports `already-exited` before either signal, while retaining an `already-exited` candidate that had already required `SIGTERM` or `SIGKILL`; the real listener leak assertions prove the retained record crosses the supervisor and reporting seam.
+- A stale owner token found at worker startup is reported as an infrastructure preflight failure and is reaped before any selected surface starts.
+
+**Boundary gaps — stated honestly per [testing-policy.md](../../../specs/arch/testing-policy.md):**
+
+- The guardrail/verify tests stub the downstream with self-test seams, so no test here pins a real local end-to-end run — a real suite executing and the runner propagating a non-zero child exit code to `1`.
+- On marked homes, the tests replace the Blaxel/`origin` checks with passing or failing results; the real remote-preflight boundary it depends on is owned and assessed by [preflight.md](../../../specs/arch/test-runner/preflight.md), and the real-provider report boundary by [sharded-execution.md](../../../specs/arch/test-runner/sharded-execution.md).
+- The workflow-file assertion reads the committed YAML file. It catches removal of the retry argument from the pull request CI workflow, but it does not prove that a live GitHub Actions job starts correctly or reaches the test runner. Live GitHub Actions execution is still confirmed by CI itself and by review.

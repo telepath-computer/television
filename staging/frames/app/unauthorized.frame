@@ -1,0 +1,14 @@
+---
+params:
+  invalid: { type: boolean, default: false }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ state: "unauthorized", invalidControl: true });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app, unauthorized (staging): the token entry over no chrome. The
+     rejected-token variant is the board's own control. -->
+
+<div class="window">
+</div>

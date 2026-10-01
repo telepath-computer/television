@@ -1,0 +1,22 @@
+---
+params:
+  state: { enum: [connecting, disconnected-countdown, disconnected-now, unauthorized, unauthorized-invalid, error, needs-upgrade], default: connecting }
+style: |
+  html,
+  body,
+  #system-modal-specification {
+    width: 100%;
+    height: 100%;
+  }
+  
+  body {
+    margin: 0;
+  }
+script: |
+  import "./spec-mount.ts";
+---
+<!-- The system-modal specification rendered in isolation. Its mount supplies
+     the spec foundation and injects the styles attached by the Liquid render. -->
+
+
+<main id="system-modal-specification"></main>

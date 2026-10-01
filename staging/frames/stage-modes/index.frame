@@ -1,0 +1,28 @@
+---
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: grid;
+    place-items: center;
+  }
+  
+  /* The window's silhouette is the sheet's to draw: an iframe document cannot
+     paint outside its own viewport, so a shadow inside the frame would clip
+     at the boundary. Radius matches the window's own. */
+  frameset-frame {
+    border-radius: 20px;
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.28),
+      0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+---
+<!--
+  The stage-modes workshop's sheet: stages ./stage.frame at the design size on
+  the workshop ground. The mock's knobs are the embedded frame's declared
+  controls, which this surface renders in the strip under the boundary —
+  nothing hand-rolled here.
+-->
+
+
+<frameset-frame src="./stage" label="Stage modes" width="1200" height="800"></frameset-frame>

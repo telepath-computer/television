@@ -1,0 +1,484 @@
+---
+style: |
+  /* Shared base for onboarding artifacts ([[../index.md]]): document padding
+     and the centered content shell. Typography, text color, and background
+     are the canonical stylesheet's — nothing in this set restates or pins
+     them, so artifacts follow the active theme ([[../index.md#^respect-theme]]). */
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-64, 64px);
+  }
+
+  .shell {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    /* Pin the single column to the container so a wide child (a data table)
+       scrolls inside its own .table-wrap instead of stretching the track and
+       overflowing the card. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-20, 20px);
+  }
+
+  /* Card-density headings ([[../index.md]]): document-scale h1 is oversized
+     inside a TV card. */
+  h1 {
+    margin: 0;
+    font-size: var(--text-xl, 17px);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  /* A lead paragraph (the .lede or .summary-deck standfirst) belongs in the
+     header, tight beneath the title — not a full grid-gap below it. Every
+     onboarding artifact places its lead this way so the spacing is uniform. */
+  header > .lede,
+  header > .summary-deck {
+    margin-top: var(--space-8, 8px);
+  }
+
+
+  /* The hero header idiom ([[../index.md]]): a plain document header opening a
+     dashboard-shaped artifact — the title with a fictional freshness line and
+     an optional source/meta line, sitting on the document itself rather than
+     inside a card. */
+
+  header.hero h1 {
+    margin: 0 0 var(--space-6, 6px);
+  }
+
+  .generated {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    font-weight: 500;
+  }
+
+  .meta-line {
+    margin-top: var(--space-4, 4px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+
+  /* Artifact-specific styling for Today's AI News ([[../index.md]]): the wider
+     feed shell, per-source accent props over canonical ramp tokens, the
+     source chips, the agent "why" notes, and the three source-shaped cards.
+     Chrome colors are semantic tokens; the artifact never redefines them
+     ([[../index.md#^respect-theme]]). */
+
+  .shell {
+    max-width: 760px;
+    gap: var(--space-16, 16px);
+
+    /* Source accents, scoped to this artifact. */
+    --hn-color: var(--orange-600);
+    --x-color: var(--neutral-950);
+    --tm-color: var(--red-600);
+  }
+
+  .feed {
+    display: grid;
+    gap: var(--space-12, 12px);
+  }
+
+  /* Each source is one card: a brand-colored header band, the body, and a grey
+     "Why:" footer. The source color lives only in the header now. */
+  .card {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+  }
+
+  .card-header {
+    padding: var(--space-10, 10px) var(--space-16, 16px);
+    color: white;
+  }
+  .card.hn .card-header { background: var(--hn-color); }
+  .card.x .card-header  { background: var(--x-color); }
+  .card.tm .card-header { background: var(--tm-color); }
+
+  /* Small source label, then the item's own title, both inside the band. */
+  .card-source {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .card-title {
+    display: block;
+    margin-top: var(--space-2, 2px);
+    color: white;
+    font-size: var(--text-base, 13.5px);
+    font-weight: 600;
+    line-height: 1.3;
+    text-decoration: none;
+  }
+  a.card-title:hover {
+    text-decoration: underline;
+  }
+  /* Source metadata (domain / timestamp / outlet) under the title, dimmed. */
+  .card-meta {
+    margin-top: var(--space-4, 4px);
+    color: white;
+    font-size: var(--text-sm, 12px);
+    opacity: 0.75;
+  }
+  /* X: author name is the title; handle rides alongside it, dimmed. */
+  .x-handle-h {
+    margin-left: var(--space-4, 4px);
+    font-weight: 400;
+    opacity: 0.7;
+  }
+  .x-handle-h::before {
+    content: "@";
+  }
+
+  .card-body {
+    padding: var(--space-12, 12px) var(--space-16, 16px);
+  }
+
+  .card-footer {
+    padding: var(--space-8, 8px) var(--space-16, 16px);
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.4;
+  }
+  .card-footer::before {
+    content: "Why: ";
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  /* Hacker News body. */
+  .hn-subhead {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.4;
+  }
+  .hn-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-16, 16px);
+    margin: var(--space-10, 10px) 0 0;
+  }
+  .hn-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4, 4px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+  .hn-stat strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+  .hn-discussion {
+    color: var(--hn-color);
+    font-size: var(--text-sm, 12px);
+    text-decoration: none;
+  }
+  .hn-discussion:hover {
+    text-decoration: underline;
+  }
+  .hn-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6, 6px);
+    margin: var(--space-8, 8px) 0 0;
+  }
+  .hn-tag {
+    display: inline-flex;
+    padding: 2px var(--space-8, 8px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-surface-muted);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+  /* X body. */
+  .x-text {
+    margin: 0;
+    color: var(--color-text);
+    font-size: var(--text-base, 13.5px);
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .x-text a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .x-text a:hover {
+    text-decoration: underline;
+  }
+  .x-stats {
+    display: flex;
+    gap: var(--space-24, 24px);
+    margin: var(--space-12, 12px) 0 0;
+    padding-top: var(--space-10, 10px);
+    border-top: 1px solid var(--color-border);
+  }
+  .x-stat {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6, 6px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+  .x-stat strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+
+  /* TechMeme body. */
+  .tm-excerpt {
+    margin: 0 0 var(--space-8, 8px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.45;
+  }
+  .tm-related {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.5;
+  }
+  .tm-related-label {
+    color: var(--tm-color);
+    font-weight: 700;
+  }
+  .tm-related a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .tm-related a:hover {
+    text-decoration: underline;
+  }
+  .tm-related-sep {
+    margin: 0 var(--space-2, 2px);
+    opacity: 0.3;
+  }
+
+  @media (max-width: 520px) {
+    .x-stats { gap: var(--space-16, 16px); }
+  }
+---
+<main class="shell">
+  <header class="hero">
+    <h1>Today's AI News</h1>
+    <div class="meta-line">38 posts read across Hacker News, X, and TechMeme · 7 selected by relevance</div>
+  </header>
+
+  <div class="feed">
+
+
+    <article class="card hn">
+      <div class="card-header">
+        <div class="card-source">Hacker News</div>
+
+        <a class="card-title" href="https://news.ycombinator.com/item?id=42901234" target="_blank" rel="noopener">Why Open Models Are Critical to the Future of Computing</a>
+        <div class="card-meta">openweights.blog</div>
+
+      </div>
+      <div class="card-body">
+
+        <p class="hn-subhead">A front-page essay argues that open models — weights you can download, inspect, modify, and run on your own hardware — are the only path that preserves user sovereignty, privacy, censorship resistance, low latency, and cost control. The thread also rounds up recent open model releases: GLM-4.6-405B, Llama-4-70B, Mistral-Large-2, DeepSeek-V3, and Qwen-3-72B. Commenters debate whether the frontier gap is closing fast enough to matter for production deployments.</p>
+        <div class="hn-stats">
+          <span class="hn-stat">▲ <strong>927</strong> points</span>
+          <span class="hn-stat">💬 <strong>413</strong> comments</span>
+          <a class="hn-discussion" href="https://news.ycombinator.com/item?id=42901234" target="_blank" rel="noopener">view discussion →</a>
+        </div>
+        <div class="hn-tags">
+
+          <span class="hn-tag">open-models</span>
+
+          <span class="hn-tag">llm</span>
+
+          <span class="hn-tag">sovereignty</span>
+
+          <span class="hn-tag">privacy</span>
+
+          <span class="hn-tag">latency</span>
+
+        </div>
+
+      </div>
+      <div class="card-footer">You've been thinking and writing a lot about open models lately.</div>
+    </article>
+
+
+    <article class="card x">
+      <div class="card-header">
+        <div class="card-source">X</div>
+
+        <div class="card-title">Marcus Vane <span class="x-handle-h">marcusvane</span></div>
+        <div class="card-meta">3h ago</div>
+
+      </div>
+      <div class="card-body">
+
+        <div class="x-text">most AI startups are building for the demo, not the deployment. the enterprise buyers i talk to care about three things: does it work reliably, can i audit what it did, and can i roll it back. "autonomy" is maybe 4th on the list. maybe.</div>
+        <div class="x-stats">
+          <div class="x-stat">💬 <strong>287</strong> replies</div>
+          <div class="x-stat">🔁 <strong>1.2K</strong> reposts</div>
+          <div class="x-stat">❤️ <strong>5.8K</strong> likes</div>
+          <div class="x-stat">📊 <strong>89K</strong> views</div>
+        </div>
+
+      </div>
+      <div class="card-footer">Validates the Acme pilot positioning — auditability and rollback over autonomy is exactly what you're betting on.</div>
+    </article>
+
+
+    <article class="card x">
+      <div class="card-header">
+        <div class="card-source">X</div>
+
+        <div class="card-title">Nadia Okonkwo <span class="x-handle-h">nadiaoko</span></div>
+        <div class="card-meta">6h ago</div>
+
+      </div>
+      <div class="card-body">
+
+        <div class="x-text">we just open-sourced an eval framework for agentic workflows — regression thresholds, latency budgets, rollback traces, all configurable. 2k stars in 6 hours. link in reply 👇
+
+the best part: it plugs into CI with 3 lines of yaml. no vendor lock-in. no managed service upsell. just the harness.</div>
+        <div class="x-stats">
+          <div class="x-stat">💬 <strong>94</strong> replies</div>
+          <div class="x-stat">🔁 <strong>2.1K</strong> reposts</div>
+          <div class="x-stat">❤️ <strong>7.3K</strong> likes</div>
+          <div class="x-stat">📊 <strong>120K</strong> views</div>
+        </div>
+
+      </div>
+      <div class="card-footer">This is likely the same framework that showed up as HN #1 today — worth evaluating for the Priya eval ownership discussion.</div>
+    </article>
+
+
+    <article class="card hn">
+      <div class="card-header">
+        <div class="card-source">Hacker News</div>
+
+        <a class="card-title" href="https://news.ycombinator.com/item?id=42900721" target="_blank" rel="noopener">How we cut our LLM inference latency by 60% with streaming + speculative decoding</a>
+        <div class="card-meta">eng.blog</div>
+
+      </div>
+      <div class="card-body">
+
+        <p class="hn-subhead">Engineering deep-dive on reducing p99 latency for agentic workloads using speculative decoding and chunked streaming, with benchmark code included. Covers tradeoffs between accuracy loss and latency gains across three model families.</p>
+        <div class="hn-stats">
+          <span class="hn-stat">▲ <strong>176</strong> points</span>
+          <span class="hn-stat">💬 <strong>63</strong> comments</span>
+          <a class="hn-discussion" href="https://news.ycombinator.com/item?id=42900721" target="_blank" rel="noopener">view discussion →</a>
+        </div>
+        <div class="hn-tags">
+
+          <span class="hn-tag">latency</span>
+
+          <span class="hn-tag">inference</span>
+
+          <span class="hn-tag">engineering</span>
+
+        </div>
+
+      </div>
+      <div class="card-footer">The latency issues that came up in the Product Reliability Sync could benefit from this approach.</div>
+    </article>
+
+
+    <article class="card tm">
+      <div class="card-header">
+        <div class="card-source">TechMeme</div>
+
+        <a class="card-title" href="https://techmeme.com/clip" target="_blank" rel="noopener">Mistral releases Mixtral 12B with Apache 2.0 license; benchmarks show parity with leading hosted mini models on tool-use at 1/8 the cost</a>
+        <div class="card-meta">TechCrunch · 8h ago</div>
+
+      </div>
+      <div class="card-body">
+
+        <p class="tm-excerpt">French AI lab Mistral published Mixtral 12B under Apache 2.0, with a Mixture-of-Experts architecture active at 4B parameters per token. Independent benchmarks on the AgentBench-2.0 agentic suite score it at parity with leading hosted mini models while running at roughly $0.30/M input tokens on self-hosted A100s.</p>
+        <div class="tm-related">
+          <span class="tm-related-label">More:</span>
+
+          <a href="#" target="_blank">The Register</a><span class="tm-related-sep">/</span>
+
+          <a href="#" target="_blank">VentureBeat</a><span class="tm-related-sep">/</span>
+
+          <a href="#" target="_blank">Hacker News (298↑)</a>
+
+        </div>
+
+      </div>
+      <div class="card-footer">Apache 2.0 with tool-use parity is worth a spike — could reduce per-workflow inference cost for the Acme pilot significantly.</div>
+    </article>
+
+
+    <article class="card hn">
+      <div class="card-header">
+        <div class="card-source">Hacker News</div>
+
+        <a class="card-title" href="https://news.ycombinator.com/item?id=42900555" target="_blank" rel="noopener">Seed funding landscape Q3 2026: AI rounds are closing faster but valuations are flattening</a>
+        <div class="card-meta">pitchbook.com</div>
+
+      </div>
+      <div class="card-body">
+
+        <p class="hn-subhead">Analysis of 120 seed rounds shows AI startups are raising 2-3x faster than last year, but median valuations have plateaued as investors demand more proof of revenue. The median time-to-close dropped from 8 weeks to 3 weeks.</p>
+        <div class="hn-stats">
+          <span class="hn-stat">▲ <strong>256</strong> points</span>
+          <span class="hn-stat">💬 <strong>98</strong> comments</span>
+          <a class="hn-discussion" href="https://news.ycombinator.com/item?id=42900555" target="_blank" rel="noopener">view discussion →</a>
+        </div>
+        <div class="hn-tags">
+
+          <span class="hn-tag">fundraising</span>
+
+          <span class="hn-tag">seed</span>
+
+          <span class="hn-tag">valuation</span>
+
+        </div>
+
+      </div>
+      <div class="card-footer">Relevant to your investor update with Jake — sets context for what investors are seeing across the market right now.</div>
+    </article>
+
+
+    <article class="card x">
+      <div class="card-header">
+        <div class="card-source">X</div>
+
+        <div class="card-title">Lena Park <span class="x-handle-h">lenapark</span></div>
+        <div class="card-meta">14h ago</div>
+
+      </div>
+      <div class="card-body">
+
+        <div class="x-text">hot take: the "eval harness" conversation is the most important infra convo in AI right now.
+
+if you can't define what "good enough" means, you can't ship reliably, and if you can't ship reliably, enterprise won't buy.
+
+it's not a QA problem, it's a go-to-market problem.</div>
+        <div class="x-stats">
+          <div class="x-stat">💬 <strong>156</strong> replies</div>
+          <div class="x-stat">🔁 <strong>847</strong> reposts</div>
+          <div class="x-stat">❤️ <strong>3.4K</strong> likes</div>
+          <div class="x-stat">📊 <strong>54K</strong> views</div>
+        </div>
+
+      </div>
+      <div class="card-footer">Directly relevant to the eval harness ownership decision you're discussing with Priya today.</div>
+    </article>
+
+  </div>
+</main>

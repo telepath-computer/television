@@ -1,0 +1,3822 @@
+{
+  "schemaVersion": 1,
+  "sourceThrough": "2026-09-29T18:40:36.192Z",
+  "files": {
+    "packages/artifact/test/artifacts.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/e2e/artifact-view-client.spec.ts": {
+      "surfaceId": "e2e:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3613,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/e2e/scroll-bridge.spec.ts": {
+      "surfaceId": "e2e:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 472,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/appearance-resolver.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/artifact-bridge.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 538,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/artifact-view-client.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 198,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/artifact-view-protocol.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/link-target.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/artifact/test/unit/model.test.ts": {
+      "surfaceId": "unit:artifact",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/canonical/test/build-canonical.test.ts": {
+      "surfaceId": "unit:canonical",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1117,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/cli/test/cli.test.ts": {
+      "surfaceId": "unit:cli",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2098,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/cli/test/contract-types.test.ts": {
+      "surfaceId": "unit:cli",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-error.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-flow.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 436,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-html.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 65,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-page.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 342,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-preflight.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 25,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-preload.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 53,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connect-url.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/connection-store.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 61,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/all-webview-dispatcher.01.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 10940,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/all-webview-dispatcher.02.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14951,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/artifact-navigation-external.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4873,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/artifact-navigation.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3358,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/artifact-view-webview-wheel.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3518,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/connect-screen.01.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4403,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/connect-screen.02.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7123,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/guerilla-artifact-sharing.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11850,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/isolated-webview-layout.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1162,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/markdown-webview.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7495,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/native-navigation-key.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4724,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/path-webview-content-reload.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4397,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/runtime-setup.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 950,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/smoke.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 769,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/telemetry-client.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2365,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/update-journey.spec.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2116,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/update-notification.spec.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 18400,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/upgrade-gate.spec.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16181,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/user-data-identity.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 752,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/version-param.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1888,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/webview-event-parity.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12236,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/e2e/window-drag-regions.test.ts": {
+      "surfaceId": "e2e:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1765,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/main.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 828,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/native-navigation-key.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/poll-loop-parity.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 105,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/desktop/test/webview-bridge-preload.test.ts": {
+      "surfaceId": "unit:desktop",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 152,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/config.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 32,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/redesign-record-migration.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 15,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/capture.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/client-signals.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 10,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/derivation.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 41,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/identity.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 51,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/runtime.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/sessions.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 30,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/sink.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/skill-install.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/telemetry/types.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/updates/server-status.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/updates/update-channel.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 21,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/src/updates/version.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/acp-bridge-profile.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 338,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/acp.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 149,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/artifact-proxy.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 342,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/auth.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 69,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/bind-addresses.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/bundled-theme-installation.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 828,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/canonical-cache.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 140,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/canonical-styles.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 220,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/canonical.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 145,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/config.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/desktop-connect-check.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 106,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/display.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 860,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/e2e/canonical.spec.ts": {
+      "surfaceId": "e2e:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 846,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/e2e/markdown-doc-style.spec.ts": {
+      "surfaceId": "e2e:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2041,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/endpoints.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 660,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/events.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1938,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/file-watcher-native-boundary.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/file-watcher.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1702,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/logger.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 721,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/logging.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 58,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/markdown.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 186,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/onboarding-content.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 39,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/onboarding-installer-state-write.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 45,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/onboarding-installer.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 230,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/onboarding-marker-transport.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 204,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/onboarding-state.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 28,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/page-layout.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 539,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/routes-views.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 98,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-listeners.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 186,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-storage.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 18,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-artifacts.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 41,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-attach-detach-delete.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 39,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-bootstrap.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 61,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-channels.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 37,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-file-watcher.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9296,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-url-artifacts.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 30,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/server-store-views.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 18,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/storage-name-migration.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 133,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-acceptance.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 441,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-control.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 195,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-emitters.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 144,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-event-stream.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 769,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-lifecycle.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 184,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/telemetry-session-attachment.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 109,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/television-client.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 37,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/theme-delivery.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 632,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/theme-registry.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 64,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/themes-routes.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 125,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/themes.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 84,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/update-channel-marked-host.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 39,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/update-channel.seam.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 543,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/server/test/version-advertisement.test.ts": {
+      "surfaceId": "unit:server",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 263,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/shared/test/layout.test.ts": {
+      "surfaceId": "unit:shared",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skillbench/test/cli.test.ts": {
+      "surfaceId": "unit:skillbench",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 511,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skillbench/test/config.test.ts": {
+      "surfaceId": "unit:skillbench",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skillbench/test/render.test.ts": {
+      "surfaceId": "unit:skillbench",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skillbench/test/run.test.ts": {
+      "surfaceId": "unit:skillbench",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 68,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skillbench/test/ui.test.ts": {
+      "surfaceId": "unit:skillbench",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/television/src/build.test.ts": {
+      "surfaceId": "unit:skills",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 42,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-compatibility.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 480,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-event-allday.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1117,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-event-overlap.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 818,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-event-timed.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 859,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-event-validation.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 544,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-now-line.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 447,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-time-axis.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 311,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-calendar/test/e2e/calendar-week.e2e.test.ts": {
+      "surfaceId": "e2e:calendar-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 672,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/src/due.test.ts": {
+      "surfaceId": "unit:skills",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/test/e2e/task-appearance.e2e.test.ts": {
+      "surfaceId": "e2e:tasks-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3569,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/test/e2e/task-checkbox-upgrade.e2e.test.ts": {
+      "surfaceId": "e2e:tasks-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 239,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/test/e2e/task-checkbox.e2e.test.ts": {
+      "surfaceId": "e2e:tasks-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 983,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/test/e2e/task-meta-due.e2e.test.ts": {
+      "surfaceId": "e2e:tasks-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1085,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/skills/skills/tv-tasks/test/e2e/task-toggle.e2e.test.ts": {
+      "surfaceId": "e2e:tasks-skill",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1308,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/utils/test/disposable.test.ts": {
+      "surfaceId": "unit:utils",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/utils/test/lit-view.test.ts": {
+      "surfaceId": "unit:utils",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 49,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/appearance.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1570,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/links.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4528,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/markers-editing.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11266,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/markers-layout-navigation.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11286,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/markers.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9922,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/e2e/tables.spec.ts": {
+      "surfaceId": "e2e:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 10855,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/view-markdown/test/seed.test.ts": {
+      "surfaceId": "unit:view-markdown",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/artifact-dispatcher.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/components/channel-sidebar-placement.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 15,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/services/application-navigation.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 39,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/services/artifact-navigation-state.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 73,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/services/channel-sidebar-collapsed.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/services/channel-sidebar-width.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/views/artifact-missing/main.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 28,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/views/page-sizing.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/views/tab-strip.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 245,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/views/top-bar.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 654,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/src/views/url-unsupported/main.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 40,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/acp-client.fake-server.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 620,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/app-root.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 977,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/appearance.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 51,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/application-service.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 79,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/artifact-view.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1804,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/channel-sidebar.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 203,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/copy-button.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 47,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/css-module-scripts.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/desktop-gate-runtime.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 44,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/desktop-gate.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 368,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/desktop-update.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/desktop-upgrade-gate.markup.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 104,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/desktop-upgrade-recommendation.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/dialog.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 33,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/app-shell.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3141,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/appearance-delivery.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4629,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/appearance-frame.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 868,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/application-snapshot.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1757,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-full-screen.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2044,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-menu-placement.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2379,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-navigation-history.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7534,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-navigation.01.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5123,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-navigation.02.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9216,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-view-wheel.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9676,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/artifact-view.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12327,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/auth.01.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7247,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/auth.02.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3997,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/browser-demo-mode.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5409,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/channel-crud.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2423,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/channel-product.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12893,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/channel-sidebar-remote.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2390,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/channel-sidebar.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 22287,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/channel-switcher-context-menu.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16440,
+          "sampleCount": 1,
+          "retryCount": 1,
+          "recoveredFlakeCount": 1,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/checkbox-list.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 442,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/copy-button.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3457,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/desktop-upgrade-gate.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1956,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/dialog.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1837,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/gate-boot-barrier.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6682,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/guerilla-artifact-sharing-resilience.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9249,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/guerilla-artifact-sharing.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2940,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/icon.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2352,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/item-edge-fade.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2431,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/keyboard-navigation-product.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7188,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/keyboard-navigation.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2385,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/lit-view-stable-iframe.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 320,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/markdown-content-sync.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4090,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/markdown-editor-integration.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8914,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/menu.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 441,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/motion.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1026,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/navigable-history-real-stack.01.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4951,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/navigable-history-real-stack.02.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5836,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 426,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/onboarding-browser.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5641,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/panel-elements.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12311,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6670,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/path-artifact-saga.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1646,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/platform-marker.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3441,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/popover.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 910,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/reload-after-reconnect.01.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8807,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/reload-after-reconnect.02.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8839,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/settings.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5169,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/sidebar-collapse.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7360,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/sidebar-resize.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3452,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/skill-selector.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 720,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/stage-memory.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3810,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/stage.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16050,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/system-modal.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1159,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/tab-pages.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11189,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/tab-strip.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 25444,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/telemetry-session.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3330,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/theme-product-acceptance.test.ts": {
+      "surfaceId": "e2e:browser-app-real-stack",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 26510,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/theme.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5143,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/token-only-persistence.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1725,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/top-bar.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7089,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/update-journey.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 10618,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/update-notification-view.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6165,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/update-notification.01.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14336,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/update-notification.02.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7399,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/update-reload.spec.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 7022,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/e2e/window-edge-rims.test.ts": {
+      "surfaceId": "e2e:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 20089,
+          "sampleCount": 1,
+          "retryCount": 3,
+          "recoveredFlakeCount": 3,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/electron-draggable.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 20,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/foundation-copy.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3239,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/icon.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 200,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/local-store.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 10,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/menu.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 55,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/panel-controller.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 332,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/reconnect-refresh.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 25,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/renderer.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1144,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/runtime.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/server-connection-owner.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/server-connection.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 71,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/settings.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 414,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/skill-selector.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 67,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/stage.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 322,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/telemetry-client.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/theme.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 575,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/update-notification-view.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 116,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/update-notification.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 868,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/update-reload.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 12,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "packages/web/test/update-version.test.ts": {
+      "surfaceId": "unit:browser-app",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "staging/test/foundation.test.ts": {
+      "surfaceId": "unit:staging",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 248,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "staging/test/pseudo-states.test.ts": {
+      "surfaceId": "unit:staging",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/bake-onboarding.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 28771,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/cli-acceptance.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8790,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/cli-assets.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 77,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/cli-integration.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2879,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/cursor-agent-env.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/desktop-upload.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6885,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/dev-server-script.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1639,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/electron-installer.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9986,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/fresh-install-onboarding.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11273,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/licensing.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3162,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/missing-artifacts.01.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6224,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/missing-artifacts.02.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 4318,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/onboarding-packaging.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 801,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/owned-process.e2e.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 300,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/product-server-proxy.e2e.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 293,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/storage-name-migration.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 626,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/telemetry-cli.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1141,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/test-runner-services.e2e.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3574,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/theme-packaging.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 1069,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/update-channel-fixture.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 72,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/update-reload-guard.e2e.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 18467,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/node/update-reload.e2e.test.ts": {
+      "surfaceId": "e2e:node",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8972,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/artifact-delete-reference-frame.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 556,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/blaxel-github-token.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/blaxel-stale-owner-audit.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 548,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/build-config-integrity.test.ts": {
+      "surfaceId": "unit:build-config",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16366,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/bundled-theme-manifest.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 118,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/desktop-version-thresholds.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/desktop-workspace.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 5,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/developer-skills.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 930,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/drag-measurements.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/electron-e2e-env.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 24,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/electron-runtime.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 14,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/licensing-config.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 40,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/licensing-gate.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 92,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/licensing-generator.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 358,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/licensing-publishable.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6232,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/liquid-plugin.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/node-toolchain.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 544,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/onboarding-legacy-surface.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 24,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/package-version-sync.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3729,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/process-lifecycle.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 25,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/shared-client-telemetry.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/skills-build.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2136,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/spec-links.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 458,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/telemetry-single-path.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 50,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-infrastructure-addresses.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 161,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-attestation.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6961,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-config.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 64,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-guardrails.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 9906,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-prebuilt.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 8048,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-preflight.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 387,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-provider.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 623,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-reporting.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 6418,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-shard-plan.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 3585,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-shard-worker.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 15939,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/test-runner-timing-baseline.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 65,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/theming-reference.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 26,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/ui-measure-crossings.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 16,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/ui-module-shape.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 11,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/ui-style-delivery.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 56,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/ui-style-source.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 13,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
+    "test/repo/update-channel-master-copy.test.ts": {
+      "surfaceId": "unit:root",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 2,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    }
+  }
+}

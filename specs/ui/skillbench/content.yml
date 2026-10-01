@@ -1,0 +1,5 @@
+jobs_label: Jobs
+prompt_label: Prompt
+size_label: Size
+not_run_suffix: " — not run yet"
+not_run_empty: No eval output here yet — run the eval

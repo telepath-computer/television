@@ -1,0 +1,19 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+---
+<!-- Channel sidebar pin + drag-and-drop (design prototype, TV-538): pick up a row —
+     in Pinned a slot placeholder marks where it lands (the tab pattern);
+     over Recent the whole section is the placeholder, since date order
+     fixes the slot. Selection is on pointer up, not press. Menu Pin
+     appends to the pinned group; Unpin returns to the date slot. -->
+
+<frameset-frame src="./board" label="Channel sidebar drag" width="320" height="620" background="white"></frameset-frame>

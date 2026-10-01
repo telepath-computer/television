@@ -1,0 +1,70 @@
+---
+title: Ribbon prototype
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  shell: { enum: [desktop, web], default: desktop, description: "desktop stages the Electron window — rounded corners and the traffic lights the sidebar titlebar reserves space for; web is the bare document" }
+  behavior: { enum: [ribbon, centered, shipped, overview, fit], default: ribbon, description: "ribbon slides with least motion, pans on the wheel, and double-click focuses; centered keeps the shipped centring and double-click full-screen but sheds the recede; shipped is today's stage, the reference; overview rests as a zoomed-out inert tiling — press a tile to focus, double-click its tab or Escape to zoom back out; fit rests as a left-aligned row of narrowed, reflowed pages (no scaling), nothing selected — a single press on a page or tab moves the row to it, a double press focuses" }
+imports:
+  - application: ./ribbon.ts
+style: |
+  /* PROTOTYPE — the ribbon experiment's standalone view, a copy of
+     [[frames/app/app.frame]]. The window fills the board's viewport instead
+     of holding the fixed pose size: the experiment is about what a wide
+     stage shows, so the stage should take whatever width the browser has. */
+  .canvas { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .window {
+    position: relative;
+    width: calc(100vw - 48px);
+    height: calc(100vh - 48px);
+    min-width: 720px;
+    min-height: 520px;
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.08), 0 8px 24px oklch(0 0 0 / 0.06);
+  }
+  .window.desktop {
+    border-radius: 10px;
+    overflow: clip;
+    box-shadow: 0 0 0 1px oklch(0 0 0 / 0.12), 0 18px 48px oklch(0 0 0 / 0.18);
+  }
+  .shell-host, .shell-host #app { height: 100%; }
+  .window .sidebar { min-height: 100%; height: 100%; }
+  /* The traffic lights, in the space the sidebar titlebar reserves:
+     12px in, 14px buttons ([[specs/ui/app/sidebar/sidebar.frame]]). */
+  .traffic-lights {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+  }
+  .traffic-lights span {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 0.5px oklch(0 0 0 / 0.2);
+  }
+  .traffic-lights span:nth-child(1) { background: #ff5f57; }
+  .traffic-lights span:nth-child(2) { background: #febc2e; }
+  .traffic-lights span:nth-child(3) { background: #28c840; }
+script: |
+  import { ribbonPrototype } from "./ribbon.ts";
+
+  let cleanup: (() => void) | undefined;
+  const wire = () => {
+    cleanup?.();
+    const host = document.querySelector<HTMLElement>(".shell-host");
+    if (host) cleanup = ribbonPrototype(host);
+  };
+  wire();
+  window.addEventListener("frameset:rendered", wire);
+---
+<div class="canvas">
+  <div class="window{% if shell == 'desktop' %} desktop{% endif %}">
+    {% if shell == 'desktop' %}<div class="traffic-lights" aria-hidden="true"><span></span><span></span><span></span></div>{% endif %}
+    <div class="shell-host">
+      {% render './shell', channels: application.channels, behavior: behavior, show_notice: true %}
+    </div>
+  </div>
+</div>

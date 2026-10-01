@@ -1,0 +1,35 @@
+name: Build desktop app
+
+# Builds the desktop app in ToDesktop from the tip of main. A maintainer starts
+# it by hand and then releases the finished build from the ToDesktop dashboard
+# (specs/arch/desktop/distribution.md). The CLI access token can start builds;
+# releasing one takes a maintainer's security-key confirmation.
+# Requires repo secrets TODESKTOP_EMAIL and TODESKTOP_ACCESS_TOKEN.
+# Toolchain values: specs/arch/node-versions.md.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ github.repository == 'telepath-computer/television' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: npm ci
+
+      - name: Build in ToDesktop
+        run: npm run todesktop-build --workspace @telepath-computer/television-desktop
+        env:
+          TODESKTOP_EMAIL: ${{ secrets.TODESKTOP_EMAIL }}
+          TODESKTOP_ACCESS_TOKEN: ${{ secrets.TODESKTOP_ACCESS_TOKEN }}

@@ -1,0 +1,408 @@
+---
+params:
+  tabs: { type: number, default: 3, minimum: 1, maximum: 24, multipleOf: 1 }
+  notice: { type: boolean, default: true, title: update notice }
+  barWidth: { type: number, default: 940, minimum: 480, maximum: 1400, multipleOf: 20, title: bar width }
+  tabMin: { type: number, default: 80, minimum: 40, maximum: 300, multipleOf: 4, title: tab min }
+  tabMax: { type: number, default: 220, minimum: 80, maximum: 400, multipleOf: 10, title: tab max }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  /* The band the bar sits on: the stage's ground, at the bar's own height.
+     The bar-width control sets its width — the document fills its frame, so
+     the band carries the width the frame's own box used to. */
+  .band {
+    box-sizing: border-box;
+    width: 940px;
+    background: var(--color-background);
+    padding: var(--space-8) var(--space-12);
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import tabTpl from "../../../specs/ui/app/stage/tab-strip/tab.liquid";
+  import skillSelectorTpl from "../../../specs/ui/app/skill-selector/template.liquid";
+  import updateNotificationTpl from "../../../specs/ui/app/update-notification/template.liquid";
+  import topBarCss from "../../../specs/ui/app/top-bar/styles.css?inline";
+  import stripCss from "../../../specs/ui/app/stage/tab-strip/tab-strip.css?inline";
+  import { AUTOSCROLL_SPEED_PX_S, AUTOSCROLL_ZONE_PX, DRAG_DISPLACEMENT_MS, DRAG_THRESHOLD_PX } from "../../lib/drag.ts";
+  import { RULER_CSS, TAB_FLOOR_PX, addTabRulers } from "../../lib/tab-ruler.ts";
+  import tabCss from "../../../specs/ui/app/stage/tab-strip/tab.css?inline";
+  import * as filmstrip from "../../lib/filmstrip.ts";
+  // The ruler gives a tab its floor (^tb-tab-bounds) — without it tabs shrink
+  // past the lower bound and the strip never overflows.
+  document.head.insertAdjacentHTML("beforeend", `<style>${topBarCss}\n${stripCss}\n${RULER_CSS}</style>`);
+  
+  const NAMES = [
+    "Daily brief",
+    "Calendar",
+    "To-do list",
+    "An artifact with a rather longer name than usual",
+    "Report",
+    "Notes",
+    "Q3 launch plan",
+    "Meeting prep",
+  ];
+  const band = document.querySelector(".band");
+  const strip = document.querySelector("[data-strip]");
+  const controlsBox = document.querySelector("[data-controls]");
+  
+  const params = new URLSearchParams(location.search);
+  const numberParam = (key, fallback, minimum, maximum) => {
+    const value = Number(params.get(key));
+    if (!params.has(key) || !Number.isFinite(value)) return fallback;
+    return Math.min(maximum, Math.max(minimum, value));
+  };
+  let tabCount = Math.round(numberParam("tabs", 3, 1, 24));
+  let noticeApplies = params.has("notice") ? params.get("notice") === "true" : true;
+  let barWidth = numberParam("barWidth", 940, 480, 1400);
+  // The tab bounds start at the authored values — the floor from the spec's
+  // measures, the ceiling from tab.css — and the knobs tune from there.
+  let tabMinPx = numberParam("tabMin", TAB_FLOOR_PX, 40, 300);
+  let tabMaxPx = numberParam("tabMax", Number(tabCss.match(/max-width:\s*(\d+)px/)[1]), 80, 400);
+  
+  // Staging override of the spec's tab bounds, for tuning the candidates.
+  const boundsStyle = document.createElement("style");
+  document.head.append(boundsStyle);
+  const applyBounds = () => {
+    // Keep the override last in the head: the strip re-appends collected
+    // spec styles on rebuild, which would otherwise win the cascade back.
+    document.head.append(boundsStyle);
+    // tab min tunes the ruler's cap — the conditional floor — rather than a
+    // hard min-width, which would re-inflate short tabs.
+    boundsStyle.textContent = `.tab { max-width: ${tabMaxPx}px; } .tab-ruler { max-width: calc(${tabMinPx}px - 2 * var(--space-10)); }`;
+    reflectOverflow();
+  };
+  
+  const collected = new Set();
+  const collect = ({ markup, styles }) => {
+    styles.forEach((r) => collected.add(r));
+    return markup;
+  };
+  
+  let selected = 0;
+  let tabNames = [];
+  
+  // Selection updates in place; the strip is only rebuilt when the count
+  // changes. Centring is separate from state sync: selecting scrolls the tab
+  // toward the band's centre over the stage's crossing, clamped by the
+  // scroll itself (^tb-selected-centres) — but a reorder's release starts no
+  // strip scroll ([[ui/app/stage/index.md]], Reordering), so only actual
+  // selection changes centre.
+  const sync = () => {
+    [...strip.querySelectorAll(".tab")].forEach((tabEl, i) => {
+      tabEl.setAttribute("aria-selected", String(i === selected));
+      tabEl.setAttribute("tabindex", i === selected ? "0" : "-1");
+    });
+    reflectOverflow();
+  };
+  const centreSelected = (instant = false) => {
+    filmstrip.showPage(strip, selected, instant, ".tab");
+  };
+  
+  const reflectOverflow = () => {
+    strip.toggleAttribute("continues-start", strip.scrollLeft > 1);
+    strip.toggleAttribute(
+      "continues-end",
+      strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1,
+    );
+  };
+  
+  const buildStrip = (keepNames = false) => {
+    if (!keepNames) {
+      tabNames = Array.from({ length: tabCount }, (_, i) => NAMES[i % NAMES.length]);
+    }
+    selected = Math.min(selected, tabNames.length - 1);
+    strip.innerHTML = "";
+    for (let i = 0; i < tabNames.length; i++) {
+      const holder = document.createElement("div");
+      holder.innerHTML = collect(tabTpl({ tab: { name: tabNames[i], selected: i === selected } }));
+      const tabEl = holder.querySelector(".tab");
+      tabEl.addEventListener("pointerdown", carry);
+      strip.append(tabEl);
+    }
+    addTabRulers(strip);
+    document.head.insertAdjacentHTML("beforeend", `<style>${[...collected].join("\n")}</style>`);
+    if (boundsStyle.textContent) document.head.append(boundsStyle);
+    sync();
+    // A rebuild poses state rather than changing selection: no motion.
+    centreSelected(true);
+  };
+  
+  // Reordering ([[ui/app/stage/index.md]], Reordering). A press arms;
+  // release without a drag selects, so carrying a tab never selects it. Past
+  // the threshold the tab leaves the flow and follows the pointer, a
+  // placeholder holding its slot, and crossing a neighbour's centre swaps the
+  // two — the neighbour sliding over on the displacement duration. Carried
+  // into either end zone, the strip scrolls under the drag.
+  function carry(event) {
+    const tab = event.currentTarget;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    let placeholder = null;
+    let baseLeft = 0;
+    let baseTop = 0;
+    let slot = [...strip.querySelectorAll(".tab")].indexOf(tab);
+    const originalNames = [...tabNames];
+    const originalTabs = [...strip.querySelectorAll(".tab")];
+    const originalSelected = selected;
+  
+    // Paint a neighbour's travel from where it was to where the DOM now puts
+    // it, over the displacement duration.
+    const slide = (el, from) => {
+      const dx = from.left - el.getBoundingClientRect().left;
+      if (!dx) return;
+      el.style.transition = "none";
+      el.style.translate = `${dx}px 0`;
+      requestAnimationFrame(() => {
+        el.style.transition = `translate ${DRAG_DISPLACEMENT_MS}ms ease`;
+        el.style.translate = "0px 0";
+        setTimeout(() => { el.style.transition = ""; el.style.translate = ""; }, DRAG_DISPLACEMENT_MS + 40);
+      });
+    };
+  
+    const begin = () => {
+      strip.setPointerCapture(event.pointerId);
+      const r = tab.getBoundingClientRect();
+      baseLeft = r.left;
+      baseTop = r.top;
+      placeholder = document.createElement("span");
+      placeholder.className = "tab-placeholder";
+      placeholder.setAttribute("aria-hidden", "true");
+      placeholder.style.width = `${r.width}px`;
+      placeholder.style.height = `${r.height}px`;
+      strip.insertBefore(placeholder, tab);
+      // Out of the strip's clip and its fade mask: the carried tab rides the
+      // page, fixed at the pointer.
+      tab.setAttribute("dragged", "");
+      tab.style.position = "fixed";
+      tab.style.width = `${r.width}px`;
+      tab.style.left = `${baseLeft}px`;
+      tab.style.top = `${baseTop}px`;
+      document.body.append(tab);
+    };
+  
+    const swap = (dir) => {
+      const neighbour = dir < 0 ? placeholder.previousElementSibling : placeholder.nextElementSibling;
+      if (!neighbour?.classList.contains("tab")) return false;
+      const from = neighbour.getBoundingClientRect();
+      if (dir < 0) strip.insertBefore(neighbour, placeholder.nextSibling);
+      else strip.insertBefore(neighbour, placeholder);
+      slide(neighbour, from);
+      const other = slot + dir;
+      [tabNames[slot], tabNames[other]] = [tabNames[other], tabNames[slot]];
+      if (selected === slot) selected = other;
+      else if (selected === other) selected = slot;
+      slot = other;
+      return true;
+    };
+  
+    // The carried tab against its neighbours: swap until it sits where its
+    // centre says it belongs. Re-run after a scrolled frame too — the tabs
+    // moved under a pointer that never left.
+    const settle = () => {
+      const centre = tab.getBoundingClientRect().left + tab.offsetWidth / 2;
+      for (;;) {
+        const prev = placeholder.previousElementSibling;
+        if (prev?.classList.contains("tab")) {
+          const pr = prev.getBoundingClientRect();
+          if (centre < pr.left + pr.width / 2 && swap(-1)) continue;
+        }
+        const next = placeholder.nextElementSibling;
+        if (next?.classList.contains("tab")) {
+          const nr = next.getBoundingClientRect();
+          if (centre > nr.left + nr.width / 2 && swap(1)) continue;
+        }
+        break;
+      }
+    };
+  
+    // The end zones (drag.yml's zone and speed): fastest at the very edge,
+    // tapering to nothing at the zone's inner edge. The loop runs only while
+    // the drag holds inside a zone.
+    let lastX = startX;
+    let scrollFrame = 0;
+    let lastTick = 0;
+    const edgeScroll = (now) => {
+      scrollFrame = 0;
+      if (!placeholder) return;
+      const dt = lastTick ? (now - lastTick) / 1000 : 0;
+      lastTick = now;
+      const rect = strip.getBoundingClientRect();
+      const fromStart = lastX - rect.left;
+      const fromEnd = rect.right - lastX;
+      let velocity = 0;
+      if (fromStart < AUTOSCROLL_ZONE_PX) velocity = -AUTOSCROLL_SPEED_PX_S * (1 - Math.max(0, fromStart) / AUTOSCROLL_ZONE_PX);
+      else if (fromEnd < AUTOSCROLL_ZONE_PX) velocity = AUTOSCROLL_SPEED_PX_S * (1 - Math.max(0, fromEnd) / AUTOSCROLL_ZONE_PX);
+      if (velocity !== 0) {
+        const before = strip.scrollLeft;
+        strip.scrollLeft += velocity * dt;
+        if (strip.scrollLeft !== before) {
+          settle();
+          reflectOverflow();
+        }
+        scrollFrame = requestAnimationFrame(edgeScroll);
+      } else {
+        lastTick = 0;
+      }
+    };
+  
+    const move = (ev) => {
+      if (ev.pointerId !== event.pointerId) return;
+      if (!placeholder) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < DRAG_THRESHOLD_PX) return;
+        begin();
+      }
+      tab.style.left = `${baseLeft + (ev.clientX - startX)}px`;
+      tab.style.top = `${baseTop + (ev.clientY - startY)}px`;
+      lastX = ev.clientX;
+      settle();
+      if (!scrollFrame) {
+        lastTick = 0;
+        scrollFrame = requestAnimationFrame(edgeScroll);
+      }
+    };
+  
+    let finishing = false;
+    const cleanup = () => {
+      strip.removeEventListener("pointermove", move);
+      strip.removeEventListener("pointerup", onPointerUp);
+      strip.removeEventListener("pointercancel", onPointerCancel);
+      strip.removeEventListener("lostpointercapture", onLostCapture);
+      window.removeEventListener("keydown", onKeydown);
+      cancelAnimationFrame(scrollFrame);
+      scrollFrame = 0;
+    };
+    const finish = (commit) => {
+      if (finishing) return;
+      finishing = true;
+      cleanup();
+      if (!placeholder) {
+        // Only ordinary release selects a press that never lifted.
+        if (commit) selected = [...strip.querySelectorAll(".tab")].indexOf(tab);
+        sync();
+        if (commit) centreSelected();
+        return;
+      }
+      tab.removeAttribute("dragged");
+      tab.style.position = tab.style.left = tab.style.top = tab.style.width = "";
+      placeholder.remove();
+      if (commit) {
+        strip.append(tab);
+        // Place the carried tab at the committed slot after the placeholder
+        // has left the flow.
+        const tabs = [...strip.querySelectorAll(".tab")].filter((item) => item !== tab);
+        strip.insertBefore(tab, tabs[slot] ?? null);
+      } else {
+        tabNames.splice(0, tabNames.length, ...originalNames);
+        selected = originalSelected;
+        for (const originalTab of originalTabs) {
+          originalTab.style.transition = originalTab.style.translate = "";
+          strip.append(originalTab);
+        }
+      }
+      placeholder = null;
+      if (!commit && strip.hasPointerCapture(event.pointerId)) {
+        strip.releasePointerCapture(event.pointerId);
+      }
+      sync();
+    };
+    const onPointerUp = (ev) => {
+      if (ev.pointerId === event.pointerId) finish(true);
+    };
+    const onPointerCancel = (ev) => {
+      if (ev.pointerId === event.pointerId) finish(false);
+    };
+    const onLostCapture = (ev) => {
+      if (ev.pointerId === event.pointerId && !finishing) finish(false);
+    };
+    const onKeydown = (ev) => {
+      if (ev.key === "Escape" && placeholder) {
+        ev.preventDefault();
+        finish(false);
+      }
+    };
+  
+    strip.addEventListener("pointermove", move);
+    strip.addEventListener("pointerup", onPointerUp);
+    strip.addEventListener("pointercancel", onPointerCancel);
+    strip.addEventListener("lostpointercapture", onLostCapture);
+    window.addEventListener("keydown", onKeydown);
+  }
+  
+  const buildControls = () => {
+    controlsBox.innerHTML = collect(skillSelectorTpl({}));
+    if (noticeApplies) {
+      controlsBox.insertAdjacentHTML("beforeend", collect(updateNotificationTpl({
+        body: "Television 1.5.0 is available.",
+        prompt: "Upgrade Television",
+        copied: false,
+      })));
+    }
+    document.head.insertAdjacentHTML("beforeend", `<style>${[...collected].join("\n")}</style>`);
+    if (boundsStyle.textContent) document.head.append(boundsStyle);
+    reflectOverflow();
+    // The band's width changed under the strip: the tab re-poses centred.
+    centreSelected(true);
+  };
+  
+  // One tab stop: Tab reaches only the selected tab and leaves; the arrow
+  // keys move selection and focus together within the strip
+  // (^tb-one-tab-stop, selection-follows-focus).
+  strip.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+    ev.preventDefault();
+    const n = strip.querySelectorAll(".tab").length;
+    const next = ev.key === "ArrowRight" ? Math.min(selected + 1, n - 1) : Math.max(selected - 1, 0);
+    if (next === selected) return;
+    selected = next;
+    sync();
+    centreSelected();
+    strip.querySelectorAll(".tab")[selected].focus();
+  });
+  
+  strip.addEventListener("scroll", reflectOverflow);
+  new ResizeObserver(reflectOverflow).observe(strip);
+  
+  buildStrip();
+  buildControls();
+  applyBounds();
+
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!--
+  The top bar staged as a frame (staging, not spec content): the spec's
+  centring, bounds, and overflow rules under live pressure. The declared
+  controls vary the tab count, optional update occupancy, and the bar's width,
+  so the whole regime can be felt: the strip centred on the bar while
+  it fits, giving way leftward, tabs compressing to their lower bound, then
+  the strip scrolling behind its mask — and selection scrolling a tab toward
+  the band's centre (specs/ui/app/top-bar, specs/ui/app/stage/tab-strip).
+
+  Reordering by drag is staged here too, the strip's half of it: a tab picked
+  up follows the pointer, its slot held by a placeholder, neighbours making
+  way — and carried to either end of an overflowing strip, the strip scrolls
+  under it (specs/ui/app/stage/index.md, Reordering). The pages' half of
+  that gesture is the app board's.
+
+  Selection state and the `continues-start`/`continues-end` attributes are
+  staging's to reflect, as the specs describe.
+-->
+
+
+
+<div class="band">
+  <header class="top-bar">
+    <div class="tab-strip" role="tablist" data-strip></div>
+    <div class="top-bar-controls" data-controls></div>
+  </header>
+</div>

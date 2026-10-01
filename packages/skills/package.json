@@ -1,0 +1,10 @@
+{
+  "name": "@telepath-computer/television-skills",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  }
+}

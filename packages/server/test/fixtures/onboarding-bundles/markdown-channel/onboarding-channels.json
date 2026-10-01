@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "notes",
+  "channels": [
+    {
+      "slug": "notes",
+      "name": "Notes Screen",
+      "artifacts": [
+        {
+          "slug": "guide",
+          "title": "Guide"
+        }
+      ]
+    }
+  ]
+}

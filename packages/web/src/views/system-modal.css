@@ -1,0 +1,36 @@
+/* The system modal's standard interior — icon, title, supporting line,
+   at a fixed width. [[ui/app/dialog/index.md]] owns the panel and the
+   backdrop; what is on the panel is this surface's. */
+.system-modal {
+  width: min(400px, 90vw);
+  padding: var(--space-32) var(--space-24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  text-align: center;
+}
+
+.system-modal h2 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.system-modal p:not(.tv-error) {
+  color: var(--color-text-muted);
+}
+
+/* Shared input styling owns the field; this surface stretches it. */
+.auth-form .auth-token {
+  align-self: stretch;
+}
+
+.auth-form .auth-submit {
+  align-self: stretch;
+}
+
+/* The error state's server line: the address as an address. */
+.system-modal .server-url {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}

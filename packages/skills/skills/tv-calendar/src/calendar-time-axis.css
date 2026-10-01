@@ -1,0 +1,23 @@
+calendar-time-axis {
+  display: contents;
+}
+
+calendar-time-axis .hour-label {
+  grid-column: time-left / days-start;
+  grid-row-start: calc(var(--hour-index) + 1);
+  align-self: start;
+  padding: var(--space-2) var(--space-8);
+  font-size: round(calc(var(--text-base) * 10 / 14), 1px);
+  color: var(--color-text-muted);
+  text-align: right;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+calendar-time-axis .hour-label[data-hour="0"] {
+  visibility: hidden;
+  width: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}

@@ -1,0 +1,10 @@
+---
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ state: "needs-upgrade" });
+---
+<!-- The app, gated for upgrade (staging): the instructions over no chrome. -->
+
+<div class="window">
+</div>

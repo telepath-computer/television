@@ -1,0 +1,52 @@
+---
+params:
+  state: { enum: [default, many-channels, nothing-pinned, one-channel, all-pinned, no-channels], default: default }
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import sidebar from "../../../specs/ui/app/sidebar/template.liquid";
+  import { CHANNELS, padChannels, pinned, unpinned } from "../../lib/state.ts";
+  import { wirePinning, wireScrollEdge, wireSelection } from "../../lib/sidebar.ts";
+  import { installTrafficLights } from "../../lib/traffic-lights.ts";
+
+  const { styles } = sidebar({ pinned: pinned(), unpinned: unpinned() });
+  document.head.insertAdjacentHTML("beforeend", `<style>${styles.join("\n")}</style>`);
+  const base = [...CHANNELS];
+  const initialPinned = new Map(CHANNELS.map((channel) => [channel.id, !!channel.pinned]));
+  const states = ["default", "many-channels", "nothing-pinned", "one-channel", "all-pinned", "no-channels"];
+
+  const wireUp = () => {
+    // Re-pose the sample model before wiring the freshly rendered mount.
+    CHANNELS.splice(0, CHANNELS.length, ...base);
+    for (const channel of CHANNELS) channel.pinned = initialPinned.get(channel.id) ?? false;
+    const requestedState = new URLSearchParams(location.search).get("state");
+    const state = states.includes(requestedState) ? requestedState : states[0];
+    if (state === "many-channels") padChannels(18);
+    if (state === "nothing-pinned") for (const channel of CHANNELS) channel.pinned = false;
+    if (state === "one-channel") { CHANNELS.splice(1); CHANNELS[0].pinned = false; }
+    if (state === "all-pinned") for (const channel of CHANNELS) channel.pinned = true;
+    if (state === "no-channels") CHANNELS.splice(0, CHANNELS.length);
+
+    const mount = document.querySelector("[data-mount]");
+    const paint = wireSelection(mount, sidebar);
+    wirePinning(mount, { repaint: paint });
+    wireScrollEdge(mount);
+  };
+
+  // On the body, not the mount: repaints replace the mount contents.
+  installTrafficLights(document.body);
+  wireUp();
+  window.addEventListener("frameset:rendered", wireUp);
+---
+<!-- The channel sidebar live: the full template with its behaviors wired —
+     selection on release, rename in place, create, pinning (menu and drag),
+     scrolling. The state knob poses the model: the sample eight, the list
+     padded to overflow (scrolling, auto-scroll), nothing pinned (the
+     group renders no section), or a single channel — delete it to try the
+     no-channels state. -->
+
+<div data-mount style="height: 100%"></div>

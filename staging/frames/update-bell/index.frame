@@ -1,0 +1,29 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 48px 24px 24px;
+  }
+  
+  .staging-frames {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 40px;
+  }
+---
+<!-- The update bell staged on its own, one board per state, each a frame of
+     its own. Rest, hover and active are pseudo-state mirrors; Held is real —
+     the panel is actually open in that board's document, then hidden by its
+     staging CSS, since the held styling keys on the open state, not on the
+     panel's visibility. -->
+
+
+<div class="staging-frames">
+  <frameset-frame src="./rest" label="Rest" width="44" height="44" background="white"></frameset-frame>
+  <frameset-frame src="./hover" label="Hover" width="44" height="44" background="white"></frameset-frame>
+  <frameset-frame src="./active" label="Active" width="44" height="44" background="white"></frameset-frame>
+  <frameset-frame src="./held" label="Held (notice open)" width="44" height="44" background="white"></frameset-frame>
+</div>

@@ -1,0 +1,262 @@
+---
+title: Ribbon stage (prototype)
+params:
+  pages:
+    description: "one per tab, in the strip's order, each with an id, a name, a src for its document, and the width and height the page was left at — the shape [[ui/app/stage/stage.frame]] takes"
+    default:
+      - { id: "roadmap", name: "Roadmap", src: "/frames/app/example-artifact", width: 720, height: 520 }
+      - { id: "spec-review", name: "Spec review", src: "/frames/app/example-artifact", width: 640, height: 480 }
+      - { id: "notes", name: "Notes", src: "/frames/app/example-artifact", width: 560, height: 420 }
+  selected: { enum: [roadmap, spec-review, notes], default: roadmap, description: the one page being looked at — selection is singular }
+  full_screen: { enum: [none, roadmap, spec-review, notes], default: none, description: the page shown at the stage's own extents, when one is }
+  behavior:
+    enum: [ribbon, centered, shipped, overview, fit]
+    default: ribbon
+    description: "ribbon slides with least motion and keeps every page at full strength; centered keeps the shipped centring motion but sheds the recede; shipped is today's stage, the reference; overview rests zoomed out — every page an inert, labelled tile — and focuses to the shipped look; fit rests as a left-aligned row of narrowed, reflowed pages seating a whole number per screenful, nothing selected — a press moves the row, a double press focuses"
+  focus:
+    type: boolean
+    default: false
+    description: "ribbon and overview — focus mode: the selected page centred, the others receded, the shipped stage's ordinary look. Entered by double-clicking a tab, or in the overview by pressing a tile."
+  no_channel:
+    type: boolean
+    default: false
+    description: "no channel exists at all: the ground stays blank — the empty state is a channel's, and there is none"
+imports:
+  - content: ../../../specs/ui/app/stage/content.yml
+style: |
+  /* PROTOTYPE — a copy of [[specs/ui/app/stage/stage.frame]] exploring the
+     ribbon: background pages do not recede by default, so a wide stage shows
+     several pages at full strength. The shipped recede treatment moves under
+     the stage's `focus` attribute — focus mode is the shipped look. Nothing
+     here is conformance material. */
+
+  body > .stage {
+    height: 100%;
+  }
+
+  .stage {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    container-type: size;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  /* The filmstrip, unchanged: a programmatically moved viewport around the
+     channel's pages, with enough leading and trailing ground for any page to
+     reach the centre (focus mode still centres). */
+  .filmstrip {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: none;
+  }
+
+  .filmstrip-inner {
+    height: 100%;
+    min-width: max-content;
+    display: flex;
+    align-items: center;
+    gap: var(--page-gap);
+    padding-bottom: var(--page-inset);
+  }
+
+  .filmstrip-inner::before,
+  .filmstrip-inner::after {
+    content: "";
+    flex: none;
+    width: 50cqw;
+  }
+
+  .page {
+    flex: none;
+    max-width: calc(100cqw - var(--page-inset) - var(--page-inset));
+    max-height: calc(100cqh - var(--page-inset));
+  }
+
+  .page[full-screen] {
+    width: calc(100cqw - var(--page-inset) - var(--page-inset));
+    height: calc(100cqh - var(--page-inset));
+  }
+
+  .page > .artifact-frame {
+    width: 100%;
+  }
+
+  .page {
+    position: relative;
+    transition: backdrop-filter 280ms ease, scale 280ms ease, width 280ms ease, height 280ms ease;
+  }
+
+  /* The recede — the shipped stage's background treatment — applies in the
+     ribbon's focus mode and in the shipped variant. In the ribbon and the
+     centered variant, a background page stands at full strength; what marks
+     the selected page is the frame shadow its neighbours shed. */
+  .stage[focus] .page:not([selected]),
+  .stage[data-behavior="shipped"] .page:not([selected]) {
+    backdrop-filter: blur(var(--page-inactive-backdrop-blur));
+    border-radius: var(--frame-radius);
+    scale: var(--page-inactive-scale);
+  }
+
+  .page > .artifact-frame {
+    transition: filter 280ms ease, opacity 280ms ease;
+  }
+
+  .stage[focus] .page:not([selected]) > .artifact-frame,
+  .stage[data-behavior="shipped"] .page:not([selected]) > .artifact-frame {
+    filter: blur(var(--page-inactive-blur));
+    opacity: var(--page-inactive-opacity);
+  }
+
+  .page:has(~ .page[selected]) {
+    transform-origin: right center;
+  }
+
+  .page[selected] ~ .page {
+    transform-origin: left center;
+  }
+
+  .page[selected] {
+    z-index: calc(var(--layer-ground) + 1);
+  }
+
+  /* A background page's artifact stays inert in both modes: its frame takes
+     no pointer, so the first press on a neighbour can only mean selection —
+     never a stray press inside its document. */
+  .page:not([selected]) .artifact-frame {
+    box-shadow: none;
+    pointer-events: none;
+  }
+
+  /* In focus mode the receded pages take no pointer at all: the tabs are the
+     way to move, and a press on a ghost should not select it. */
+  .stage[focus] .page:not([selected]) {
+    pointer-events: none;
+  }
+
+  /* The overview: the channel at rest is a full zoom-out — every page a
+     small, inert, labelled tile. The rig sizes each tile (rendered size ×
+     the shared --overview-zoom) and the frame inside it un-scales: authored
+     at full size, transformed down, so the tile is a true miniature rather
+     than a reflowed narrow layout, and a press means only one thing —
+     jump in. */
+  .stage[data-behavior="overview"]:not([focus]) .page {
+    cursor: pointer;
+  }
+
+  .stage[data-behavior="overview"]:not([focus]) .page > .artifact-frame {
+    width: calc(100% / var(--overview-zoom, 0.45));
+    height: calc(100% / var(--overview-zoom, 0.45));
+    transform: scale(var(--overview-zoom, 0.45));
+    transform-origin: top left;
+    /* Tiles are previews: nothing inside one takes the pointer. */
+    pointer-events: none;
+  }
+
+  /* Fit's rest: no scaling anywhere — the rig narrows each page's width so
+     a whole number sit side by side, and the documents reflow responsively
+     at the narrower width. Pages stay inert; a press moves the row, and
+     only a double press focuses. With nothing selected, every frame keeps
+     its shadow so the row reads as a set of equals. */
+  .stage[data-behavior="fit"]:not([focus]) .page {
+    cursor: pointer;
+  }
+
+  .stage[data-behavior="fit"]:not([focus]) .page > .artifact-frame {
+    pointer-events: none;
+  }
+
+  .stage[data-behavior="fit"]:not([focus]) .page:not([selected]) .artifact-frame {
+    box-shadow: var(--artifact-frame-shadow);
+  }
+
+  /* The selected tile carries the one mark the zoom-out needs. */
+  .stage[data-behavior="overview"]:not([focus]) .page[selected] {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 6px;
+    border-radius: var(--frame-radius);
+  }
+
+  /* A tile's name, since the frame's own title bar shrinks past reading. */
+  .page-label {
+    display: none;
+  }
+
+  .stage[data-behavior="overview"]:not([focus]) .page-label {
+    display: block;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: var(--space-8);
+    text-align: center;
+    font-size: var(--text-sm, 12px);
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .page,
+    .page > .artifact-frame {
+      transition: none;
+    }
+  }
+
+  .stage-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-sizing: border-box;
+    width: max-content;
+    min-height: 160px;
+    max-width: calc(100% - var(--page-inset) - var(--page-inset));
+    padding: var(--space-24);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-8);
+    text-align: center;
+    color: var(--wallpaper-overlay-text-color);
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+    border-radius: var(--panel-radius);
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+  }
+
+  .stage-empty p {
+    margin: 0;
+  }
+---
+<section class="stage" data-behavior="{{ behavior | default: 'ribbon' }}"{% if focus %} focus{% endif %}>
+  {% if pages.size == 0 and no_channel != true %}
+  <div class="stage-empty">
+    {% render '../../../specs/ui/foundation/icons/icon', name: 'artifact', size: 'xl' %}
+    <p>{{ content.empty_line }}</p>
+  </div>
+  {% endif %}
+  <div class="filmstrip">
+    <div class="filmstrip-inner">
+      {% for page in pages %}
+      {% assign is_selected = false %}{% if page.id == selected %}{% assign is_selected = true %}{% endif %}
+      {% assign is_full_screen = false %}{% if page.id == full_screen %}{% assign is_full_screen = true %}{% endif %}
+      <div class="page"{% if is_selected %} selected{% endif %}{% if is_full_screen %} full-screen{% endif %}{% if page.width and is_full_screen == false %} style="width: {{ page.width }}px; height: {{ page.height }}px"{% endif %}>
+        {% render '../../../specs/ui/app/artifact-frame/artifact-frame', src: page.src, title: page.name, full_screen: is_full_screen %}
+        <div class="page-label">{{ page.name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,5 @@
+# The artifact frame's measures: the smallest an artifact is shown at, frame
+# included, which a page resize stops against ([[ui/app/stage/index.md]], Page sizing).
+artifact:
+  min_width_px: 230 # the narrowest an artifact and its frame are shown
+  min_height_px: 230 # the shortest an artifact and its frame are shown

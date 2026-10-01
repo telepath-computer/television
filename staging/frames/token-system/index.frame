@@ -1,0 +1,351 @@
+---
+title: Token system v2
+imports:
+  - ./styles.css
+style: |
+  body {
+    margin: 0;
+    padding: 48px;
+    font-family: system-ui, sans-serif;
+    background: var(--color-surface);
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 20px 0 2px; }
+  p { max-width: 620px; color: #444; margin: 4px 0 12px; }
+  .slots { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0 8px; }
+  .slotchip { text-align: center; }
+  .slotchip .sw { width: 56px; height: 56px; border-radius: 10px; margin-bottom: 4px; }
+  .slot { display: flex; align-items: center; gap: 16px; margin: 16px 0 8px; }
+  .slot .swatch { width: 72px; height: 72px; border-radius: 10px; background: var(--neutral); }
+  code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: #666; }
+  .row { display: flex; margin: 8px 0 2px; }
+  .chip { flex: 1; height: 64px; }
+  .chip:first-child { border-radius: 8px 0 0 8px; }
+  .chip:last-child { border-radius: 0 8px 8px 0; }
+  .steps { display: flex; margin-bottom: 12px; }
+  .arow { display: flex; margin: 4px 0 2px; background:
+    repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; border-radius: 8px; }
+  .achip { flex: 1; height: 36px; }
+  .asteps { display: flex; margin-bottom: 10px; }
+  .asteps span { flex: 1; text-align: center; font-size: 10px; color: #bbb; font-family: ui-monospace, monospace; }
+  button:not([variant]) {
+    font: inherit; font-size: 13px; font-weight: 600;
+    background: var(--color-control); color: var(--color-text);
+    border: 1px solid var(--color-border); border-radius: var(--radius-control);
+    padding: 5px 14px; cursor: default;
+  }
+  button:not([variant]):hover { background: var(--color-control-hover); }
+  button:not([variant]):active { background: var(--color-control-active); }
+  button[variant] {
+    font: inherit; font-size: 13px; font-weight: 600;
+    border: 1px solid transparent; border-radius: var(--radius-control);
+    padding: 6px 14px; cursor: default;
+  }
+  button[variant="accent"] { background: var(--accent-500); color: var(--color-text-reversed);
+    color: oklch(from var(--accent-500) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h); }
+  button[variant="accent"]:hover { background: var(--color-accent-hover); }
+  button[variant="accent"]:active { background: var(--color-accent-active); }
+  button[variant="danger"] { background: var(--color-danger); color: var(--color-text-reversed);
+    color: oklch(from var(--color-danger) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h); }
+  button[variant="danger"]:hover { background: var(--color-danger-hover); }
+  button[variant="danger"]:active { background: var(--color-danger-active); }
+  button[variant="alert"] { background: var(--color-alert); color: var(--color-text);
+    color: oklch(from var(--color-alert) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h); }
+  button[variant="alert"]:hover { background: var(--color-alert-hover); }
+  button[variant="alert"]:active { background: var(--color-alert-active); }
+  .steps span { flex: 1; text-align: center; font-size: 10px; color: #999; font-family: ui-monospace, monospace; }
+---
+<h1>Token system v2</h1>
+
+<p>Nine slots, each stated at its own 500 step — the hue's mid, the brand weight. Every scale is generated around
+its slot: pale steps climb toward white, deep steps toward black, chroma a
+per-step fraction of the slot's — the numbers inline in each scale, tuned by
+editing the line. The neutral is genuinely neutral (zero chroma); give it a
+chroma and hue and the whole grey world takes the undertone.</p>
+
+<div class="slots">
+  <div class="slotchip"><div class="sw" style="background: var(--neutral)"></div><code>--neutral</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--red)"></div><code>--red</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--orange)"></div><code>--orange</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--yellow)"></div><code>--yellow</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--green)"></div><code>--green</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--cyan)"></div><code>--cyan</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--blue)"></div><code>--blue</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--purple)"></div><code>--purple</code></div>
+  <div class="slotchip"><div class="sw" style="background: var(--pink)"></div><code>--pink</code></div>
+</div>
+
+
+<h2>Roles</h2>
+<p>Jobs, pointed at the material. Sheets read these; themes repoint them.
+Dark mode will be nothing but a table of different pointers.</p>
+<div class="rolecard" style="background: var(--color-surface); color: var(--color-text);
+     border: 1px solid var(--color-border); border-radius: var(--radius-panel); padding: 16px 20px; max-width: 620px;">
+  <div style="font-weight: 600; margin-bottom: 4px;">Text on surface</div>
+  <div>This card is painted with <code>--color-surface</code> (stated <code>white</code> —
+  user content must composite seamlessly) and <code>--color-text</code>
+  (&rarr; neutral-900). The quiet strip below is <code>--color-surface-muted</code>
+  (&rarr; neutral-100).</div>
+  <div style="margin-top: 12px;">
+    <button>Settings</button>
+    <span style="font-size: 12px; color: var(--color-text-muted); margin-left: 8px;">hover and press — <code>--color-control</code> / <code>-hover</code> (&rarr; neutral-100) / <code>-active</code> (&rarr; neutral-200)</span>
+  </div>
+  <div style="margin-top: 10px; display: flex; gap: 8px; align-items: center;">
+    <button variant="accent">Save</button>
+    <button variant="danger">Delete</button>
+    <button variant="alert">Review</button>
+    <span style="font-size: 12px; color: var(--color-text-muted);">situations verbatim; states derive; text is the variant's pick of an existing role: reversed on blue and red, plain text on gold</span>
+  </div>
+  <div style="background: var(--color-surface-muted); border: 1px solid var(--color-border-muted); border-radius: var(--radius-control); padding: 6px 10px; margin-top: 10px; font-size: 13px;">
+    a muted region on the surface, seamed with <code>--color-border-muted</code>
+  </div>
+  <div style="margin-top: 10px; font-size: 13px; color: var(--color-text);">
+    <span style="color: var(--color-text-muted);">This caption is <code>--color-text-muted</code> (&rarr; neutral-500) — secondary voice on the same sheet.</span><br>
+    The page behind this sheet is <code>--color-wallpaper</code> (&rarr; neutral-200);
+    the sheet is seamed with <code>--color-border</code> (&rarr; neutral-300, opaque — dark mode repoints, joins don't double-darken).
+  </div>
+</div>
+
+
+<h2>neutral</h2>
+<div class="row">
+  <div class="chip" style="background: var(--neutral-50)"></div>
+  <div class="chip" style="background: var(--neutral-100)"></div>
+  <div class="chip" style="background: var(--neutral-200)"></div>
+  <div class="chip" style="background: var(--neutral-300)"></div>
+  <div class="chip" style="background: var(--neutral-400)"></div>
+  <div class="chip" style="background: var(--neutral-500)"></div>
+  <div class="chip" style="background: var(--neutral-600)"></div>
+  <div class="chip" style="background: var(--neutral-700)"></div>
+  <div class="chip" style="background: var(--neutral-800)"></div>
+  <div class="chip" style="background: var(--neutral-900)"></div>
+  <div class="chip" style="background: var(--neutral-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--neutral-alpha-5)"></div>
+    <div class="achip" style="background: var(--neutral-alpha-10)"></div>
+    <div class="achip" style="background: var(--neutral-alpha-15)"></div>
+    <div class="achip" style="background: var(--neutral-alpha-25)"></div>
+    <div class="achip" style="background: var(--neutral-alpha-50)"></div>
+    <div class="achip" style="background: var(--neutral-alpha-75)"></div>
+</div>
+<div class="asteps"><span>neutral-alpha-5</span><span>neutral-alpha-10</span><span>neutral-alpha-15</span><span>neutral-alpha-25</span><span>neutral-alpha-50</span><span>neutral-alpha-75</span></div>
+
+<h2>red</h2>
+<div class="row">
+  <div class="chip" style="background: var(--red-50)"></div>
+  <div class="chip" style="background: var(--red-100)"></div>
+  <div class="chip" style="background: var(--red-200)"></div>
+  <div class="chip" style="background: var(--red-300)"></div>
+  <div class="chip" style="background: var(--red-400)"></div>
+  <div class="chip" style="background: var(--red-500)"></div>
+  <div class="chip" style="background: var(--red-600)"></div>
+  <div class="chip" style="background: var(--red-700)"></div>
+  <div class="chip" style="background: var(--red-800)"></div>
+  <div class="chip" style="background: var(--red-900)"></div>
+  <div class="chip" style="background: var(--red-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--red-alpha-5)"></div>
+    <div class="achip" style="background: var(--red-alpha-10)"></div>
+    <div class="achip" style="background: var(--red-alpha-15)"></div>
+    <div class="achip" style="background: var(--red-alpha-25)"></div>
+    <div class="achip" style="background: var(--red-alpha-50)"></div>
+    <div class="achip" style="background: var(--red-alpha-75)"></div>
+</div>
+<div class="asteps"><span>red-alpha-5</span><span>red-alpha-10</span><span>red-alpha-15</span><span>red-alpha-25</span><span>red-alpha-50</span><span>red-alpha-75</span></div>
+
+<h2>orange</h2>
+<div class="row">
+  <div class="chip" style="background: var(--orange-50)"></div>
+  <div class="chip" style="background: var(--orange-100)"></div>
+  <div class="chip" style="background: var(--orange-200)"></div>
+  <div class="chip" style="background: var(--orange-300)"></div>
+  <div class="chip" style="background: var(--orange-400)"></div>
+  <div class="chip" style="background: var(--orange-500)"></div>
+  <div class="chip" style="background: var(--orange-600)"></div>
+  <div class="chip" style="background: var(--orange-700)"></div>
+  <div class="chip" style="background: var(--orange-800)"></div>
+  <div class="chip" style="background: var(--orange-900)"></div>
+  <div class="chip" style="background: var(--orange-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--orange-alpha-5)"></div>
+    <div class="achip" style="background: var(--orange-alpha-10)"></div>
+    <div class="achip" style="background: var(--orange-alpha-15)"></div>
+    <div class="achip" style="background: var(--orange-alpha-25)"></div>
+    <div class="achip" style="background: var(--orange-alpha-50)"></div>
+    <div class="achip" style="background: var(--orange-alpha-75)"></div>
+</div>
+<div class="asteps"><span>orange-alpha-5</span><span>orange-alpha-10</span><span>orange-alpha-15</span><span>orange-alpha-25</span><span>orange-alpha-50</span><span>orange-alpha-75</span></div>
+
+<h2>yellow</h2>
+<div class="row">
+  <div class="chip" style="background: var(--yellow-50)"></div>
+  <div class="chip" style="background: var(--yellow-100)"></div>
+  <div class="chip" style="background: var(--yellow-200)"></div>
+  <div class="chip" style="background: var(--yellow-300)"></div>
+  <div class="chip" style="background: var(--yellow-400)"></div>
+  <div class="chip" style="background: var(--yellow-500)"></div>
+  <div class="chip" style="background: var(--yellow-600)"></div>
+  <div class="chip" style="background: var(--yellow-700)"></div>
+  <div class="chip" style="background: var(--yellow-800)"></div>
+  <div class="chip" style="background: var(--yellow-900)"></div>
+  <div class="chip" style="background: var(--yellow-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--yellow-alpha-5)"></div>
+    <div class="achip" style="background: var(--yellow-alpha-10)"></div>
+    <div class="achip" style="background: var(--yellow-alpha-15)"></div>
+    <div class="achip" style="background: var(--yellow-alpha-25)"></div>
+    <div class="achip" style="background: var(--yellow-alpha-50)"></div>
+    <div class="achip" style="background: var(--yellow-alpha-75)"></div>
+</div>
+<div class="asteps"><span>yellow-alpha-5</span><span>yellow-alpha-10</span><span>yellow-alpha-15</span><span>yellow-alpha-25</span><span>yellow-alpha-50</span><span>yellow-alpha-75</span></div>
+<div style="font-size: 11px; color: var(--color-text-muted); margin: 6px 0 2px;">Tailwind reference</div>
+<div class="row">
+  <div class="chip" style="background: var(--yellowT-50)"></div>
+  <div class="chip" style="background: var(--yellowT-100)"></div>
+  <div class="chip" style="background: var(--yellowT-200)"></div>
+  <div class="chip" style="background: var(--yellowT-300)"></div>
+  <div class="chip" style="background: var(--yellowT-400)"></div>
+  <div class="chip" style="background: var(--yellowT-500)"></div>
+  <div class="chip" style="background: var(--yellowT-600)"></div>
+  <div class="chip" style="background: var(--yellowT-700)"></div>
+  <div class="chip" style="background: var(--yellowT-800)"></div>
+  <div class="chip" style="background: var(--yellowT-900)"></div>
+  <div class="chip" style="background: var(--yellowT-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+
+<h2>green</h2>
+<div class="row">
+  <div class="chip" style="background: var(--green-50)"></div>
+  <div class="chip" style="background: var(--green-100)"></div>
+  <div class="chip" style="background: var(--green-200)"></div>
+  <div class="chip" style="background: var(--green-300)"></div>
+  <div class="chip" style="background: var(--green-400)"></div>
+  <div class="chip" style="background: var(--green-500)"></div>
+  <div class="chip" style="background: var(--green-600)"></div>
+  <div class="chip" style="background: var(--green-700)"></div>
+  <div class="chip" style="background: var(--green-800)"></div>
+  <div class="chip" style="background: var(--green-900)"></div>
+  <div class="chip" style="background: var(--green-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--green-alpha-5)"></div>
+    <div class="achip" style="background: var(--green-alpha-10)"></div>
+    <div class="achip" style="background: var(--green-alpha-15)"></div>
+    <div class="achip" style="background: var(--green-alpha-25)"></div>
+    <div class="achip" style="background: var(--green-alpha-50)"></div>
+    <div class="achip" style="background: var(--green-alpha-75)"></div>
+</div>
+<div class="asteps"><span>green-alpha-5</span><span>green-alpha-10</span><span>green-alpha-15</span><span>green-alpha-25</span><span>green-alpha-50</span><span>green-alpha-75</span></div>
+
+<h2>cyan</h2>
+<div class="row">
+  <div class="chip" style="background: var(--cyan-50)"></div>
+  <div class="chip" style="background: var(--cyan-100)"></div>
+  <div class="chip" style="background: var(--cyan-200)"></div>
+  <div class="chip" style="background: var(--cyan-300)"></div>
+  <div class="chip" style="background: var(--cyan-400)"></div>
+  <div class="chip" style="background: var(--cyan-500)"></div>
+  <div class="chip" style="background: var(--cyan-600)"></div>
+  <div class="chip" style="background: var(--cyan-700)"></div>
+  <div class="chip" style="background: var(--cyan-800)"></div>
+  <div class="chip" style="background: var(--cyan-900)"></div>
+  <div class="chip" style="background: var(--cyan-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--cyan-alpha-5)"></div>
+    <div class="achip" style="background: var(--cyan-alpha-10)"></div>
+    <div class="achip" style="background: var(--cyan-alpha-15)"></div>
+    <div class="achip" style="background: var(--cyan-alpha-25)"></div>
+    <div class="achip" style="background: var(--cyan-alpha-50)"></div>
+    <div class="achip" style="background: var(--cyan-alpha-75)"></div>
+</div>
+<div class="asteps"><span>cyan-alpha-5</span><span>cyan-alpha-10</span><span>cyan-alpha-15</span><span>cyan-alpha-25</span><span>cyan-alpha-50</span><span>cyan-alpha-75</span></div>
+
+<h2>blue</h2>
+<div class="row">
+  <div class="chip" style="background: var(--blue-50)"></div>
+  <div class="chip" style="background: var(--blue-100)"></div>
+  <div class="chip" style="background: var(--blue-200)"></div>
+  <div class="chip" style="background: var(--blue-300)"></div>
+  <div class="chip" style="background: var(--blue-400)"></div>
+  <div class="chip" style="background: var(--blue-500)"></div>
+  <div class="chip" style="background: var(--blue-600)"></div>
+  <div class="chip" style="background: var(--blue-700)"></div>
+  <div class="chip" style="background: var(--blue-800)"></div>
+  <div class="chip" style="background: var(--blue-900)"></div>
+  <div class="chip" style="background: var(--blue-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--blue-alpha-5)"></div>
+    <div class="achip" style="background: var(--blue-alpha-10)"></div>
+    <div class="achip" style="background: var(--blue-alpha-15)"></div>
+    <div class="achip" style="background: var(--blue-alpha-25)"></div>
+    <div class="achip" style="background: var(--blue-alpha-50)"></div>
+    <div class="achip" style="background: var(--blue-alpha-75)"></div>
+</div>
+<div class="asteps"><span>blue-alpha-5</span><span>blue-alpha-10</span><span>blue-alpha-15</span><span>blue-alpha-25</span><span>blue-alpha-50</span><span>blue-alpha-75</span></div>
+
+<h2>purple</h2>
+<div class="row">
+  <div class="chip" style="background: var(--purple-50)"></div>
+  <div class="chip" style="background: var(--purple-100)"></div>
+  <div class="chip" style="background: var(--purple-200)"></div>
+  <div class="chip" style="background: var(--purple-300)"></div>
+  <div class="chip" style="background: var(--purple-400)"></div>
+  <div class="chip" style="background: var(--purple-500)"></div>
+  <div class="chip" style="background: var(--purple-600)"></div>
+  <div class="chip" style="background: var(--purple-700)"></div>
+  <div class="chip" style="background: var(--purple-800)"></div>
+  <div class="chip" style="background: var(--purple-900)"></div>
+  <div class="chip" style="background: var(--purple-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--purple-alpha-5)"></div>
+    <div class="achip" style="background: var(--purple-alpha-10)"></div>
+    <div class="achip" style="background: var(--purple-alpha-15)"></div>
+    <div class="achip" style="background: var(--purple-alpha-25)"></div>
+    <div class="achip" style="background: var(--purple-alpha-50)"></div>
+    <div class="achip" style="background: var(--purple-alpha-75)"></div>
+</div>
+<div class="asteps"><span>purple-alpha-5</span><span>purple-alpha-10</span><span>purple-alpha-15</span><span>purple-alpha-25</span><span>purple-alpha-50</span><span>purple-alpha-75</span></div>
+
+<h2>pink</h2>
+<div class="row">
+  <div class="chip" style="background: var(--pink-50)"></div>
+  <div class="chip" style="background: var(--pink-100)"></div>
+  <div class="chip" style="background: var(--pink-200)"></div>
+  <div class="chip" style="background: var(--pink-300)"></div>
+  <div class="chip" style="background: var(--pink-400)"></div>
+  <div class="chip" style="background: var(--pink-500)"></div>
+  <div class="chip" style="background: var(--pink-600)"></div>
+  <div class="chip" style="background: var(--pink-700)"></div>
+  <div class="chip" style="background: var(--pink-800)"></div>
+  <div class="chip" style="background: var(--pink-900)"></div>
+  <div class="chip" style="background: var(--pink-950)"></div>
+</div>
+<div class="steps"><span>50</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600</span><span>700</span><span>800</span><span>900</span><span>950</span></div>
+<div class="arow">
+    <div class="achip" style="background: var(--pink-alpha-5)"></div>
+    <div class="achip" style="background: var(--pink-alpha-10)"></div>
+    <div class="achip" style="background: var(--pink-alpha-15)"></div>
+    <div class="achip" style="background: var(--pink-alpha-25)"></div>
+    <div class="achip" style="background: var(--pink-alpha-50)"></div>
+    <div class="achip" style="background: var(--pink-alpha-75)"></div>
+</div>
+<div class="asteps"><span>pink-alpha-5</span><span>pink-alpha-10</span><span>pink-alpha-15</span><span>pink-alpha-25</span><span>pink-alpha-50</span><span>pink-alpha-75</span></div>

@@ -1,0 +1,35 @@
+---
+style: |
+  body {
+    min-height: 100vh;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  
+  .row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+---
+<!-- The menu workshop's frame page: embeds the menu documents rather than
+     carrying markup of its own, so each menu is judged in its own document —
+     its own cascade, its own top layer. The floating reference, then the same
+     menu in the two contexts that want it. -->
+
+
+<!-- Extra room below: the frame's control strip floats under the boundary
+     and needs clearance before the row beneath. -->
+<frameset-frame label="Floating" src="./menu" width="460" height="320" style="margin-bottom: 48px"></frameset-frame>
+
+<div class="row">
+  <frameset-frame label="In the sidebar" src="./sidebar" width="300" height="460"></frameset-frame>
+</div>

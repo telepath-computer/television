@@ -1,0 +1,346 @@
+/* Palette seeds and derived scales adapted from Tailwind CSS.
+   https://github.com/tailwindlabs/tailwindcss
+   Copyright (c) Tailwind Labs, Inc.
+   MIT License; see THIRD-PARTY-NOTICES.txt. */
+
+/* Both tables sit at zero specificity — ambient styling is the weakest
+   thing in the cascade, tokens included. A theme states a token with a
+   plain `:root` and out-cascades both tables at once — one statement, both
+   modes — or writes its own `[data-theme="dark"]` block to retune dark
+   alone. Between the tables themselves, source order decides: the dark
+   table follows the light one, so it wins where the attribute matches. */
+:where(:root) {
+  /* Complete decorative paints. The consuming pseudo sets 1em to its radius. */
+  --panel-edge-highlight: linear-gradient(to bottom,
+    rgb(255 255 255 / .36) 0 .5px,
+    rgb(255 255 255 / .28) .5px 1px,
+    rgb(255 255 255 / .20) 1em);
+  --panel-edge-shadow: 0 0 0 .5px rgb(0 0 0 / .205);
+
+  /* Panels: popovers, menus, selects and dialogs. */
+  --panel-background: var(--color-surface);
+  --panel-text-color: var(--color-text);
+  --panel-border-color: var(--color-border);
+  --panel-border: none;
+
+  /* Options: menu items and select options. */
+  --option-background-highlighted: color-mix(in oklch, transparent, var(--option-background-active) var(--hover-mix));
+  --option-background-active: var(--tint-active);
+
+  /* Checked checklist marker fill and border. */
+  --checkbox-color: var(--color-primary);
+
+  /* Controls share these defaults in app and artifact documents. */
+  --control-text-color: var(--color-text);
+  --control-border-color: var(--color-border);
+  --control-border-width: 1px;
+  --control-border: var(--control-border-width) solid var(--control-border-color);
+  --input-placeholder-text-color: var(--color-text-muted);
+
+  /* Slots — the theme's raw material, each stated at its own 500 step: the
+     hue's mid, the brand weight. A theme restates any of them and the scale
+     below it regenerates. The neutral is genuinely neutral; give it a chroma
+     and hue and the whole grey world takes the undertone. */
+  --neutral: oklch(0.556 0 0);
+  --red: oklch(0.637 0.237 25.331);
+  --orange: oklch(0.705 0.213 47.604);
+  --yellow: oklch(0.852 0.199 91.936);
+  --green: oklch(0.723 0.219 149.579);
+  --cyan: oklch(0.715 0.143 215.221);
+  --blue: oklch(0.623 0.214 259.815);
+  --purple: oklch(0.627 0.265 303.9);
+  --pink: oklch(0.656 0.241 354.308);
+  /* The one tunable identity — any color a theme or picker supplies; used
+     raw as the accent fill, and everything accent-flavored derives from it. */
+  --accent: var(--blue);
+
+  /* Scales. Every step is generated around its slot: pale steps climb a
+     fraction of the headroom from the slot's lightness to white, deep steps
+     climb toward black, and every step keeps a fraction of the slot's chroma.
+     The numbers sit inline, per scale, per step — tuning is editing the line.
+     Cluster scales carry the curve measured off the hand-tuned red ramp;
+     yellow carries its own numbers, including chroma fractions above 1 and
+     per-step hue rotation (dark yellow at constant hue is olive).
+
+     The neutral scale is a lightness ladder with chroma carried unchanged:
+     dose arithmetic cannot hold an undertone at the pale end, and the
+     interface's contrast skeleton wants stated lightnesses. */
+  --neutral-50: oklch(from var(--neutral) 0.985 c h);
+  --neutral-100: oklch(from var(--neutral) 0.97 c h);
+  --neutral-200: oklch(from var(--neutral) 0.922 c h);
+  --neutral-300: oklch(from var(--neutral) 0.87 c h);
+  --neutral-400: oklch(from var(--neutral) 0.708 c h);
+  --neutral-500: var(--neutral);
+  --neutral-600: oklch(from var(--neutral) 0.439 c h);
+  --neutral-700: oklch(from var(--neutral) 0.371 c h);
+  --neutral-800: oklch(from var(--neutral) 0.269 c h);
+  --neutral-900: oklch(from var(--neutral) 0.205 c h);
+  --neutral-950: oklch(from var(--neutral) 0.145 c h);
+
+  --red-50: oklch(from var(--red) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --red-100: oklch(from var(--red) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --red-200: oklch(from var(--red) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --red-300: oklch(from var(--red) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --red-400: oklch(from var(--red) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --red-500: var(--red);
+  --red-600: oklch(from var(--red) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --red-700: oklch(from var(--red) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --red-800: oklch(from var(--red) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --red-900: oklch(from var(--red) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --red-950: oklch(from var(--red) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --orange-50: oklch(from var(--orange) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --orange-100: oklch(from var(--orange) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --orange-200: oklch(from var(--orange) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --orange-300: oklch(from var(--orange) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --orange-400: oklch(from var(--orange) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --orange-500: var(--orange);
+  --orange-600: oklch(from var(--orange) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --orange-700: oklch(from var(--orange) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --orange-800: oklch(from var(--orange) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --orange-900: oklch(from var(--orange) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --orange-950: oklch(from var(--orange) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --yellow-50: oklch(from var(--yellow) calc(l + (1 - l) * 0.937) calc(c * 0.141) calc(h + 10));
+  --yellow-100: oklch(from var(--yellow) calc(l + (1 - l) * 0.868) calc(c * 0.386) calc(h + 11));
+  --yellow-200: oklch(from var(--yellow) calc(l + (1 - l) * 0.732) calc(c * 0.701) calc(h + 10));
+  --yellow-300: oklch(from var(--yellow) calc(l + (1 - l) * 0.537) calc(c * 0.989) calc(h + 6));
+  --yellow-400: oklch(from var(--yellow) calc(l + (1 - l) * 0.278) calc(c * 1.082) calc(h + 3));
+  --yellow-500: var(--yellow);
+  --yellow-600: oklch(from var(--yellow) calc(l * (1 - 0.08)) calc(c * 0.95) calc(h - 6));
+  --yellow-700: oklch(from var(--yellow) calc(l * (1 - 0.19)) calc(c * 0.8) calc(h - 14));
+  --yellow-800: oklch(from var(--yellow) calc(l * (1 - 0.33)) calc(c * 0.65) calc(h - 26));
+  --yellow-900: oklch(from var(--yellow) calc(l * (1 - 0.46)) calc(c * 0.52) calc(h - 32));
+  --yellow-950: oklch(from var(--yellow) calc(l * (1 - 0.64)) calc(c * 0.359) calc(h - 38));
+
+  --green-50: oklch(from var(--green) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --green-100: oklch(from var(--green) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --green-200: oklch(from var(--green) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --green-300: oklch(from var(--green) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --green-400: oklch(from var(--green) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --green-500: var(--green);
+  --green-600: oklch(from var(--green) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --green-700: oklch(from var(--green) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --green-800: oklch(from var(--green) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --green-900: oklch(from var(--green) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --green-950: oklch(from var(--green) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --cyan-50: oklch(from var(--cyan) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --cyan-100: oklch(from var(--cyan) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --cyan-200: oklch(from var(--cyan) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --cyan-300: oklch(from var(--cyan) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --cyan-400: oklch(from var(--cyan) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --cyan-500: var(--cyan);
+  --cyan-600: oklch(from var(--cyan) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --cyan-700: oklch(from var(--cyan) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --cyan-800: oklch(from var(--cyan) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --cyan-900: oklch(from var(--cyan) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --cyan-950: oklch(from var(--cyan) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --blue-50: oklch(from var(--blue) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --blue-100: oklch(from var(--blue) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --blue-200: oklch(from var(--blue) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --blue-300: oklch(from var(--blue) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --blue-400: oklch(from var(--blue) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --blue-500: var(--blue);
+  --blue-600: oklch(from var(--blue) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --blue-700: oklch(from var(--blue) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --blue-800: oklch(from var(--blue) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --blue-900: oklch(from var(--blue) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --blue-950: oklch(from var(--blue) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --purple-50: oklch(from var(--purple) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --purple-100: oklch(from var(--purple) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --purple-200: oklch(from var(--purple) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --purple-300: oklch(from var(--purple) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --purple-400: oklch(from var(--purple) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --purple-500: var(--purple);
+  --purple-600: oklch(from var(--purple) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --purple-700: oklch(from var(--purple) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --purple-800: oklch(from var(--purple) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --purple-900: oklch(from var(--purple) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --purple-950: oklch(from var(--purple) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --pink-50: oklch(from var(--pink) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --pink-100: oklch(from var(--pink) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --pink-200: oklch(from var(--pink) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --pink-300: oklch(from var(--pink) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --pink-400: oklch(from var(--pink) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --pink-500: var(--pink);
+  --pink-600: oklch(from var(--pink) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --pink-700: oklch(from var(--pink) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --pink-800: oklch(from var(--pink) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --pink-900: oklch(from var(--pink) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --pink-950: oklch(from var(--pink) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  --accent-50: oklch(from var(--accent) calc(l + (1 - l) * 0.92) calc(c * 0.055) h);
+  --accent-100: oklch(from var(--accent) calc(l + (1 - l) * 0.824) calc(c * 0.135) h);
+  --accent-200: oklch(from var(--accent) calc(l + (1 - l) * 0.683) calc(c * 0.262) h);
+  --accent-300: oklch(from var(--accent) calc(l + (1 - l) * 0.471) calc(c * 0.481) h);
+  --accent-400: oklch(from var(--accent) calc(l + (1 - l) * 0.185) calc(c * 0.806) h);
+  --accent-500: var(--accent);
+  --accent-600: oklch(from var(--accent) calc(l * (1 - 0.094)) calc(c * 1.034) h);
+  --accent-700: oklch(from var(--accent) calc(l * (1 - 0.207)) calc(c * 0.899) h);
+  --accent-800: oklch(from var(--accent) calc(l * (1 - 0.303)) calc(c * 0.747) h);
+  --accent-900: oklch(from var(--accent) calc(l * (1 - 0.378)) calc(c * 0.595) h);
+  --accent-950: oklch(from var(--accent) calc(l * (1 - 0.595)) calc(c * 0.435) h);
+
+  /* Alpha scales — each color slot at a ladder of opacities, compositing on
+     whatever is beneath: restate the slot and its alphas follow. Used for
+     tinted backgrounds and translucent content. */
+  --neutral-alpha-5: oklch(from var(--neutral) l c h / var(--alpha-5)); --neutral-alpha-10: oklch(from var(--neutral) l c h / var(--alpha-10)); --neutral-alpha-15: oklch(from var(--neutral) l c h / var(--alpha-15));
+  --neutral-alpha-25: oklch(from var(--neutral) l c h / var(--alpha-25)); --neutral-alpha-50: oklch(from var(--neutral) l c h / var(--alpha-50)); --neutral-alpha-75: oklch(from var(--neutral) l c h / var(--alpha-75));
+  --red-alpha-5: oklch(from var(--red) l c h / var(--alpha-5)); --red-alpha-10: oklch(from var(--red) l c h / var(--alpha-10)); --red-alpha-15: oklch(from var(--red) l c h / var(--alpha-15));
+  --red-alpha-25: oklch(from var(--red) l c h / var(--alpha-25)); --red-alpha-50: oklch(from var(--red) l c h / var(--alpha-50)); --red-alpha-75: oklch(from var(--red) l c h / var(--alpha-75));
+  --orange-alpha-5: oklch(from var(--orange) l c h / var(--alpha-5)); --orange-alpha-10: oklch(from var(--orange) l c h / var(--alpha-10)); --orange-alpha-15: oklch(from var(--orange) l c h / var(--alpha-15));
+  --orange-alpha-25: oklch(from var(--orange) l c h / var(--alpha-25)); --orange-alpha-50: oklch(from var(--orange) l c h / var(--alpha-50)); --orange-alpha-75: oklch(from var(--orange) l c h / var(--alpha-75));
+  --yellow-alpha-5: oklch(from var(--yellow) l c h / var(--alpha-5)); --yellow-alpha-10: oklch(from var(--yellow) l c h / var(--alpha-10)); --yellow-alpha-15: oklch(from var(--yellow) l c h / var(--alpha-15));
+  --yellow-alpha-25: oklch(from var(--yellow) l c h / var(--alpha-25)); --yellow-alpha-50: oklch(from var(--yellow) l c h / var(--alpha-50)); --yellow-alpha-75: oklch(from var(--yellow) l c h / var(--alpha-75));
+  --green-alpha-5: oklch(from var(--green) l c h / var(--alpha-5)); --green-alpha-10: oklch(from var(--green) l c h / var(--alpha-10)); --green-alpha-15: oklch(from var(--green) l c h / var(--alpha-15));
+  --green-alpha-25: oklch(from var(--green) l c h / var(--alpha-25)); --green-alpha-50: oklch(from var(--green) l c h / var(--alpha-50)); --green-alpha-75: oklch(from var(--green) l c h / var(--alpha-75));
+  --cyan-alpha-5: oklch(from var(--cyan) l c h / var(--alpha-5)); --cyan-alpha-10: oklch(from var(--cyan) l c h / var(--alpha-10)); --cyan-alpha-15: oklch(from var(--cyan) l c h / var(--alpha-15));
+  --cyan-alpha-25: oklch(from var(--cyan) l c h / var(--alpha-25)); --cyan-alpha-50: oklch(from var(--cyan) l c h / var(--alpha-50)); --cyan-alpha-75: oklch(from var(--cyan) l c h / var(--alpha-75));
+  --blue-alpha-5: oklch(from var(--blue) l c h / var(--alpha-5)); --blue-alpha-10: oklch(from var(--blue) l c h / var(--alpha-10)); --blue-alpha-15: oklch(from var(--blue) l c h / var(--alpha-15));
+  --blue-alpha-25: oklch(from var(--blue) l c h / var(--alpha-25)); --blue-alpha-50: oklch(from var(--blue) l c h / var(--alpha-50)); --blue-alpha-75: oklch(from var(--blue) l c h / var(--alpha-75));
+  --purple-alpha-5: oklch(from var(--purple) l c h / var(--alpha-5)); --purple-alpha-10: oklch(from var(--purple) l c h / var(--alpha-10)); --purple-alpha-15: oklch(from var(--purple) l c h / var(--alpha-15));
+  --purple-alpha-25: oklch(from var(--purple) l c h / var(--alpha-25)); --purple-alpha-50: oklch(from var(--purple) l c h / var(--alpha-50)); --purple-alpha-75: oklch(from var(--purple) l c h / var(--alpha-75));
+  --pink-alpha-5: oklch(from var(--pink) l c h / var(--alpha-5)); --pink-alpha-10: oklch(from var(--pink) l c h / var(--alpha-10)); --pink-alpha-15: oklch(from var(--pink) l c h / var(--alpha-15));
+  --pink-alpha-25: oklch(from var(--pink) l c h / var(--alpha-25)); --pink-alpha-50: oklch(from var(--pink) l c h / var(--alpha-50)); --pink-alpha-75: oklch(from var(--pink) l c h / var(--alpha-75));
+  --accent-alpha-5: oklch(from var(--accent) l c h / var(--alpha-5)); --accent-alpha-10: oklch(from var(--accent) l c h / var(--alpha-10)); --accent-alpha-15: oklch(from var(--accent) l c h / var(--alpha-15));
+  --accent-alpha-25: oklch(from var(--accent) l c h / var(--alpha-25)); --accent-alpha-50: oklch(from var(--accent) l c h / var(--alpha-50)); --accent-alpha-75: oklch(from var(--accent) l c h / var(--alpha-75));
+
+  /* The alpha ladder the alpha scales read — nominal percent, values tunable
+     within a few points of their names. */
+  --alpha-3: 3%; --alpha-5: 5%; --alpha-10: 10%; --alpha-15: 15%; --alpha-20: 20%;
+  --alpha-25: 25%; --alpha-40: 40%; --alpha-50: 50%; --alpha-75: 75%;
+
+  /* Active strength and hover position are independent. Hover moves this
+     fraction of the way from resting to the resolved active color. The
+     default is halfway in both appearances. */
+  --hover-mix: 50%;
+  --alpha-active: 8%;
+
+  /* Ghost controls use their text pigment at active strength. Hover blends
+     transparent with that resolved endpoint, including theme overrides. */
+  --tint-hover: color-mix(in oklch, transparent, var(--tint-active) var(--hover-mix));
+  --tint-active: oklch(from currentColor l c h / var(--alpha-active));
+
+  /* Stencil icons: a drawing from the glyph vocabulary, packaged as a mask
+     for the places a rule must draw it — a pseudo-element can hold no
+     element, so the checklist's done mark and the select's selected mark
+     paint through this stencil instead of composing tv-icon. */
+  --icon-check: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M10.2 3.1 5.1 8.2 2.4 5.5" fill="none" stroke="black" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+
+  /* Neutral roles — the interface's jobs, pointed at the material. Sheets
+     read roles and scales, never a value of their own. */
+  /* Pure white, stated: the surface is a frame for user content, and
+     white-backgrounded artifacts and images must composite seamlessly. */
+  --color-surface: white;
+  --color-surface-muted: var(--neutral-100);
+  --color-text: var(--neutral-900);
+  --color-text-muted: var(--neutral-500);
+  /* Reversed type — the text knocked out of a solid fill. One token: fills
+     share the readable band by construction (meanings sit at fill weight),
+     and a variant whose fill is too light for reversed type wears
+     --color-text instead. */
+  --color-text-reversed: white;
+  /* Borders are tints of the text role, not stated steps: a translucent
+     edge always separates from whatever ground it sits on — an opaque
+     step vanishes the day a region paints that same step. Dark appearance
+     uses stronger tints to keep the edges visible. */
+  --color-border: oklch(from var(--color-text) l c h / 12%);
+  /* Translucent surface fills; backdrop blur is applied by the component. */
+  --tint-surface: oklch(from var(--color-surface) l c h / var(--alpha-50));
+  --tint-surface-muted: oklch(from var(--color-surface-muted) l c h / var(--alpha-50));
+  /* A control is a small surface, lifted by its border. */
+  --control-background: var(--color-surface);
+  /* Situations — danger, alert, success, primary. Each is one pointer at
+     the hue's 500; its tints and state fills derive from it, so repointing
+     the situation moves everything that wears it. */
+  --color-danger: var(--red-500);
+  --tint-danger: oklch(from var(--color-danger) l c h / var(--alpha-10));
+  --tint-danger-hover: color-mix(in oklch, transparent, var(--tint-danger-active) var(--hover-mix));
+  --tint-danger-active: oklch(from var(--color-danger) l c h / var(--alpha-active));
+
+  --color-alert: var(--yellow-500);
+  --tint-alert: oklch(from var(--color-alert) l c h / var(--alpha-10));
+  --tint-alert-hover: color-mix(in oklch, transparent, var(--tint-alert-active) var(--hover-mix));
+  --tint-alert-active: oklch(from var(--color-alert) l c h / var(--alpha-active));
+
+  --color-success: var(--green-500);
+  --tint-success: oklch(from var(--color-success) l c h / var(--alpha-10));
+
+  /* The primary action — the accent worn as a situation: the default
+     button, the current sidebar row. Selection wears it too; a selected
+     role returns the day selection and primary want different colors. */
+  --color-primary: var(--accent-500);
+  --tint-primary: oklch(from var(--color-primary) l c h / var(--alpha-10));
+  --tint-primary-hover: color-mix(in oklch, transparent, var(--tint-primary-active) var(--hover-mix));
+  --tint-primary-active: oklch(from var(--color-primary) l c h / var(--alpha-active));
+  /* The text on the primary fill, computed against it: dark ink above the
+     contrast flip, near-white below — so any accent, light gold included,
+     keeps a legible label wherever the fill appears. */
+  --color-primary-text: oklch(from var(--color-primary) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h);
+  /* The keyboard's ring: one stroke wherever focus lands — width and
+     pigment here, the offset each control's own. */
+  --outline-focus: 2px solid var(--color-primary);
+
+  /* Filled active colors move toward black or white according to state-flip.
+     Hover follows the resolved active endpoint. Ordinary buttons consume
+     only resting and active fills; their hover appearance stays unchanged.
+     Derived states accept colors. Supply explicit states for gradients. */
+  --control-background-hover: color-mix(in oklch, var(--control-background), var(--control-background-active) var(--hover-mix));
+  --control-background-active: color-mix(in oklch, var(--control-background), oklch(from var(--control-background) clamp(0, (var(--state-flip) - l) * 1e6, 1) 0 h) var(--alpha-active));
+  --color-primary-hover: color-mix(in oklch, var(--color-primary), var(--color-primary-active) var(--hover-mix));
+  --color-primary-active: color-mix(in oklch, var(--color-primary), oklch(from var(--color-primary) clamp(0, (var(--state-flip) - l) * 1e6, 1) 0 h) var(--alpha-active));
+  --color-danger-hover: color-mix(in oklch, var(--color-danger), var(--color-danger-active) var(--hover-mix));
+  --color-danger-active: color-mix(in oklch, var(--color-danger), oklch(from var(--color-danger) clamp(0, (var(--state-flip) - l) * 1e6, 1) 0 h) var(--alpha-active));
+  --color-alert-hover: color-mix(in oklch, var(--color-alert), var(--color-alert-active) var(--hover-mix));
+  --color-alert-active: color-mix(in oklch, var(--color-alert), oklch(from var(--color-alert) clamp(0, (var(--state-flip) - l) * 1e6, 1) 0 h) var(--alpha-active));
+
+  /* A link follows its surrounding text unless a theme gives it an accent.
+     currentColor, not inherit: it means the ambient ink in any property it
+     lands in, and CSS-wide keywords substitute brittly through var(). */
+  --color-link: currentColor;
+  /* The dialog backdrop: near-black at the overlay opacity, dimming the
+     page; deriving from the neutral keeps the theme's undertone. */
+  --color-overlay: oklch(from var(--neutral-950) l c h / var(--alpha-40));
+
+  /* Two thresholds read a fill's own lightness and pick between two
+     outcomes. --state-flip steers the fill's motion in its states: a fill
+     lighter than it darkens on hover and press, a darker one lightens —
+     a genuinely dark fill has nowhere darker to go. --contrast-flip
+     steers the ink on the fill: a fill lighter than it wears dark text,
+     a darker one wears reversed type. Different questions flip at
+     different points — a red of 0.6 lightness wants reversed text yet
+     still darkens on press. */
+  --state-flip: 0.35;
+  --contrast-flip: 0.66;
+
+  color-scheme: light;
+}
+
+/* The dark table changes the role pointers. Scales are not restated as
+   scales; the hue slots take slightly lighter values (saturated mids vibrate
+   on near-black), and every derived step follows. The neutral slot does not
+   move — the roles flip which steps they take. */
+:where([data-theme="dark"]) {
+  --panel-edge-shadow: 0 0 0 .5px rgb(0 0 0 / .912);
+  --alpha-active: 12%;
+  --red: oklch(0.704 0.191 22.216);
+  --orange: oklch(0.75 0.183 55.934);
+  --yellow: oklch(0.879 0.169 91.5);
+  --green: oklch(0.792 0.209 151.711);
+  --cyan: oklch(0.789 0.154 211.53);
+  --blue: oklch(0.707 0.165 254.624);
+  --purple: oklch(0.714 0.203 305.504);
+  --pink: oklch(0.718 0.202 349.761);
+
+  --color-surface: var(--neutral-900);
+  --color-surface-muted: var(--neutral-800);
+  --color-text: var(--neutral-100);
+  --color-text-muted: var(--neutral-400);
+  --color-border: oklch(from var(--color-text) l c h / 18%);
+
+  color-scheme: dark;
+}

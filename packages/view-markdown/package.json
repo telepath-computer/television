@@ -1,0 +1,29 @@
+{
+  "name": "@telepath-computer/television-view-markdown",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "build": "vite build --config vite.config.ts",
+    "dev": "vite --config vite.config.ts --host 127.0.0.1 --port 5182 --strictPort"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "6.20.1",
+    "@codemirror/commands": "6.10.3",
+    "@codemirror/lang-markdown": "6.5.0",
+    "@codemirror/language": "6.12.3",
+    "@codemirror/state": "6.6.0",
+    "@codemirror/view": "6.43.0",
+    "@lezer/common": "1.5.2",
+    "@lezer/highlight": "1.2.3",
+    "@lezer/markdown": "1.6.3",
+    "codemirror-markdown-tables": "1.0.0",
+    "@telepath-computer/television-artifact": "*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "vite": "6.4.3"
+  }
+}

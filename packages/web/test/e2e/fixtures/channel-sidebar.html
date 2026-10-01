@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Production channel sidebar fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+    <style>
+      html, body, #fixture { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    </style>
+  </head>
+  <body>
+    <main id="fixture"></main>
+    <script type="module">
+      import { render } from "lit-html";
+      import { TelevisionAppView } from "/packages/web/src/views/television-app.ts";
+      import { ChannelSidebarCollapsedPreference } from "/packages/web/src/services/channel-sidebar-collapsed.ts";
+      import { ChannelSidebarWidthPreference } from "/packages/web/src/services/channel-sidebar-width.ts";
+
+      const EMPTY_GEOMETRY = { kind: "single", full_screen: false };
+      const AUTHORED_PAGE_SIZE = { width: 587.25, height: 719.5 };
+      const artifact = {
+        id: "artifact-sidebar",
+        kind: "path",
+        title: "Sidebar continuity",
+        path: "/tmp/sidebar-continuity.html",
+      };
+      const initialModels = [
+        { id: "01J00000000000000000000003", name: "Planning" },
+        { id: "01J00000000000000000000012", name: "Release notes" },
+        { id: "01J00000000000000000000005", name: "Reading list" },
+        { id: "01J00000000000000000000008", name: "Research", artifact: true },
+        { id: "01J00000000000000000000011", name: "Travel" },
+        { id: "01J00000000000000000000004", name: "Design system" },
+        { id: "01J00000000000000000000010", name: "Hiring" },
+        { id: "01J00000000000000000000009", name: "Onboarding flow" },
+        { id: "01J00000000000000000000007", name: "Customer calls" },
+        { id: "01J00000000000000000000006", name: "Website refresh" },
+        { id: "01J00000000000000000000002", name: "Operations" },
+        { id: "01J00000000000000000000001", name: "Archive" },
+        { id: "01J00000000000000000000013", name: "A complete and deliberately very long channel name" },
+        { id: "01J00000000000000000000014", name: "Budget" },
+        { id: "01J00000000000000000000015", name: "Roadmap" },
+        { id: "01J00000000000000000000016", name: "Experiments" },
+        { id: "01J00000000000000000000017", name: "Partnerships" },
+        { id: "01J00000000000000000000018", name: "Interviews" },
+      ];
+      let models = structuredClone(initialModels);
+      let focusedChannelId = "01J00000000000000000000008";
+      let pinnedChannelIds = [
+        "01J00000000000000000000004",
+        "01J00000000000000000000008",
+        "01J00000000000000000000002",
+      ];
+
+      const operations = {
+        focus: [],
+        pinned: [],
+        rename: [],
+        create: 0,
+        delete: [],
+      };
+      const capture = {
+        activePointerId: null,
+        acquired: [],
+        lost: [],
+      };
+      let rejectCreate = false;
+      let rejectDelete = false;
+      let rejectPinned = false;
+      let capturedDragRow = null;
+      let capturedDragChannelId = null;
+      let restorationAnimations = 0;
+      const nativeAnimate = Element.prototype.animate;
+      // The carried channel is excluded from provisional displacement. Once its
+      // dragged mark is gone, an animation on that channel is a restoration.
+      Element.prototype.animate = function (keyframes, options) {
+        const animation = nativeAnimate.call(this, keyframes, options);
+        if (
+          capturedDragChannelId !== null &&
+          this.getAttribute("data-channel-id") === capturedDragChannelId &&
+          !this.classList.contains("dragged")
+        ) {
+          restorationAnimations += 1;
+        }
+        return animation;
+      };
+      document.addEventListener("gotpointercapture", (event) => {
+        if (!(event.target instanceof Element) || !event.target.matches(".sidebar")) return;
+        capture.activePointerId = event.pointerId;
+        capture.acquired.push(event.pointerId);
+      }, true);
+      document.addEventListener("lostpointercapture", (event) => {
+        if (!(event.target instanceof Element) || !event.target.matches(".sidebar")) return;
+        if (capture.activePointerId === event.pointerId) capture.activePointerId = null;
+        capture.lost.push(event.pointerId);
+      }, true);
+
+      class FakeApplication extends EventTarget {
+        get snapshot() {
+          const channels = models.map((model) => {
+            const pages = model.artifact
+              ? [{
+                  artifactIds: [artifact.id],
+                  geometry: EMPTY_GEOMETRY,
+                  size: AUTHORED_PAGE_SIZE,
+                }]
+              : [];
+            return {
+              id: model.id,
+              name: model.name,
+              pages,
+              selectedPage: pages[0] ?? null,
+              artifacts: model.artifact ? [artifact] : [],
+            };
+          });
+          return {
+            ready: true,
+            channels,
+            display: {
+              focusedChannelId,
+              pinnedChannelIds: [...pinnedChannelIds],
+              activeThemeName: null,
+              acpEnabled: false,
+            },
+            focusedChannel: channels.find(({ id }) => id === focusedChannelId) ?? null,
+            connection: {
+              authorizationRequired: false,
+              gateHalted: false,
+              status: "connected",
+              hasEverConnected: true,
+              firstConnectError: null,
+              nextRetryAt: null,
+              upgradeInstructions: null,
+            },
+          };
+        }
+
+        focusChannel(channelId) {
+          operations.focus.push(channelId);
+          focusedChannelId = channelId;
+          this.dispatchEvent(new Event("change"));
+          return Promise.resolve();
+        }
+
+        setPinnedChannelIds(channelIds) {
+          operations.pinned.push([...channelIds]);
+          if (rejectPinned) {
+            rejectPinned = false;
+            return Promise.reject(new Error("definitive pin-list rejection"));
+          }
+          pinnedChannelIds = [...channelIds];
+          this.dispatchEvent(new Event("change"));
+          return Promise.resolve();
+        }
+
+        renameChannel(channelId, name) {
+          operations.rename.push({ channelId, name });
+          const channel = models.find(({ id }) => id === channelId);
+          if (channel) channel.name = name;
+          this.dispatchEvent(new Event("change"));
+          return Promise.resolve();
+        }
+
+        createChannel(name) {
+          operations.create += 1;
+          if (rejectCreate) {
+            rejectCreate = false;
+            return Promise.reject(new Error("definitive create rejection"));
+          }
+          const model = {
+            id: "01J00000000000000000000019",
+            name,
+          };
+          models.push(model);
+          this.dispatchEvent(new Event("change"));
+          return Promise.resolve({ ...model, layout: [] });
+        }
+
+        deleteChannel(channelId) {
+          operations.delete.push(channelId);
+          if (rejectDelete) {
+            rejectDelete = false;
+            return Promise.reject(new Error("definitive delete rejection"));
+          }
+          models = models.filter(({ id }) => id !== channelId);
+          pinnedChannelIds = pinnedChannelIds.filter((id) => id !== channelId);
+          if (focusedChannelId === channelId) {
+            focusedChannelId = pinnedChannelIds.find((id) =>
+              models.some((model) => model.id === id)
+            ) ?? [...models].sort((left, right) => right.id.localeCompare(left.id))[0]?.id ?? null;
+          }
+          this.dispatchEvent(new Event("change"));
+          return Promise.resolve();
+        }
+
+        authenticate() { return Promise.resolve(); }
+        getArtifactViewURL() {
+          return "/packages/web/test/e2e/fixtures/channel-sidebar-document.html";
+        }
+        getArtifactContentURL() { return null; }
+      }
+
+      const application = new FakeApplication();
+      window.__channelSidebarDocumentLoads = 0;
+      window.__channelSidebarDocumentReady = false;
+      window.addEventListener("message", (event) => {
+        if (event.origin === location.origin && event.data?.type === "channel-sidebar-document-ready") {
+          window.__channelSidebarDocumentReady = true;
+        }
+      });
+
+      const app = document.querySelector("#fixture");
+      let renderCount = 0;
+      const waitForRenderAfter = async (before) => {
+        for (let index = 0; index < 20 && renderCount <= before; index += 1) {
+          await Promise.resolve();
+        }
+        if (renderCount <= before) throw new Error("application render did not complete");
+      };
+      render(TelevisionAppView(application, {
+        runtimeServerURL: location.origin,
+        electronMode: true,
+        primaryServerURL: location.origin,
+        sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
+        sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
+        onRenderComplete() {
+          renderCount += 1;
+          if (app.querySelector("#app")?.dataset.appState === "connected" && app.querySelector(".sidebar")) {
+            window.__fixtureReady = true;
+          }
+        },
+      }), app);
+
+      let captured = null;
+      const currentStage = () => {
+        const page = app.querySelector(".page");
+        const view = page?.querySelector(".artifact-view") ?? null;
+        const frame = view?.querySelector("iframe") ?? null;
+        return { page, view, frame, contentWindow: frame?.contentWindow ?? null };
+      };
+
+      window.__channelSidebarFixture = {
+        reset() {
+          models = structuredClone(initialModels);
+          focusedChannelId = "01J00000000000000000000008";
+          pinnedChannelIds = [
+            "01J00000000000000000000004",
+            "01J00000000000000000000008",
+            "01J00000000000000000000002",
+          ];
+          operations.focus.length = 0;
+          operations.pinned.length = 0;
+          operations.rename.length = 0;
+          operations.create = 0;
+          operations.delete.length = 0;
+          capture.activePointerId = null;
+          capture.acquired.length = 0;
+          capture.lost.length = 0;
+          rejectCreate = false;
+          rejectDelete = false;
+          rejectPinned = false;
+          capturedDragRow = null;
+          capturedDragChannelId = null;
+          application.dispatchEvent(new Event("change"));
+        },
+        async setState(channelIds, pinnedIds, focusedId) {
+          const included = new Set(channelIds);
+          models = structuredClone(initialModels.filter(({ id }) => included.has(id)));
+          pinnedChannelIds = [...pinnedIds];
+          focusedChannelId = focusedId;
+          operations.focus.length = 0;
+          operations.pinned.length = 0;
+          operations.rename.length = 0;
+          operations.create = 0;
+          operations.delete.length = 0;
+          capture.activePointerId = null;
+          capture.acquired.length = 0;
+          capture.lost.length = 0;
+          rejectCreate = false;
+          rejectDelete = false;
+          rejectPinned = false;
+          capturedDragRow = null;
+          capturedDragChannelId = null;
+          const before = renderCount;
+          application.dispatchEvent(new Event("change"));
+          await waitForRenderAfter(before);
+        },
+        captureDragRow(channelId) {
+          capturedDragRow = app.querySelector(`.channel-row[data-channel-id="${channelId}"]`);
+          capturedDragChannelId = channelId;
+        },
+        rejectNextCreate() {
+          rejectCreate = true;
+        },
+        rejectNextDelete() {
+          rejectDelete = true;
+        },
+        rejectNextPinList() {
+          rejectPinned = true;
+        },
+        remoteRename(channelId, name) {
+          const channel = models.find(({ id }) => id === channelId);
+          if (channel) channel.name = name;
+          application.dispatchEvent(new Event("change"));
+        },
+        remotePinOrder(channelIds) {
+          pinnedChannelIds = [...channelIds];
+          application.dispatchEvent(new Event("change"));
+        },
+        captureStage() {
+          const current = currentStage();
+          const frameWindow = current.contentWindow;
+          if (!frameWindow) throw new Error("Stage frame is not ready");
+          frameWindow.document.querySelector("#retained-value").value = "typed and retained";
+          frameWindow.scrollTo(0, 180);
+          captured = {
+            ...current,
+            counter: frameWindow.__channelSidebarCounter,
+          };
+        },
+        report() {
+          const current = currentStage();
+          const frameWindow = current.contentWindow;
+          const body = app.querySelector(".sidebar-body");
+          const dragged = app.querySelector(".channel-row.dragged");
+          const placeholder = app.querySelector(
+            ".channel-group:not(.channel-group-withdrawal) .channel-placeholder",
+          );
+          const carriedRect = dragged?.getBoundingClientRect() ?? null;
+          return {
+            operations: structuredClone(operations),
+            focusedChannelId,
+            pinnedChannelIds: [...pinnedChannelIds],
+            pageSame: captured?.page === current.page,
+            viewSame: captured?.view === current.view,
+            frameSame: captured?.frame === current.frame,
+            windowSame: captured?.contentWindow === current.contentWindow,
+            value: frameWindow?.document.querySelector("#retained-value")?.value ?? null,
+            frameScrollY: frameWindow?.scrollY ?? null,
+            counterAdvanced: captured ? frameWindow.__channelSidebarCounter > captured.counter : false,
+            loads: window.__channelSidebarDocumentLoads,
+            drag: {
+              carriedId: dragged?.dataset.channelId ?? null,
+              carriedSame: dragged !== null && dragged === capturedDragRow,
+              carriedRect: carriedRect === null ? null : {
+                left: carriedRect.left,
+                right: carriedRect.right,
+                top: carriedRect.top,
+                bottom: carriedRect.bottom,
+                width: carriedRect.width,
+                height: carriedRect.height,
+              },
+              placeholder: placeholder === null ? null : {
+                side: placeholder.dataset.channelSide,
+                index: Number(placeholder.dataset.channelIndex),
+              },
+              action: dragged?.querySelector(".channel-drag-action")?.textContent?.trim() ?? null,
+              visibleGroups: [...app.querySelectorAll(".channel-group-label")]
+                .filter((label) => {
+                  const style = getComputedStyle(label);
+                  return style.display !== "none" && style.visibility !== "hidden" &&
+                    label.getBoundingClientRect().height > 0;
+                })
+                .map((label) => label.textContent?.trim()),
+              scrollTop: body?.scrollTop ?? null,
+              selectedId: app.querySelector('.channel[aria-selected="true"]')
+                ?.closest(".channel-row")?.dataset.channelId ?? null,
+              restorationAnimations,
+            },
+            capture: structuredClone(capture),
+          };
+        },
+      };
+    </script>
+  </body>
+</html>

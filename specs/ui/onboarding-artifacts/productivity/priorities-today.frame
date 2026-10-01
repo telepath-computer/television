@@ -1,0 +1,390 @@
+---
+style: |
+  /* Shared base for onboarding artifacts ([[../index.md]]): document padding
+     and the centered content shell. Typography, text color, and background
+     are the canonical stylesheet's — nothing in this set restates or pins
+     them, so artifacts follow the active theme ([[../index.md#^respect-theme]]). */
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-64, 64px);
+  }
+
+  .shell {
+    max-width: 720px;
+    margin: 0 auto;
+    display: grid;
+    /* Pin the single column to the container so a wide child (a data table)
+       scrolls inside its own .table-wrap instead of stretching the track and
+       overflowing the card. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-20, 20px);
+  }
+
+  /* Card-density headings ([[../index.md]]): document-scale h1 is oversized
+     inside a TV card. */
+  h1 {
+    margin: 0;
+    font-size: var(--text-xl, 17px);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  /* A lead paragraph (the .lede or .summary-deck standfirst) belongs in the
+     header, tight beneath the title — not a full grid-gap below it. Every
+     onboarding artifact places its lead this way so the spacing is uniform. */
+  header > .lede,
+  header > .summary-deck {
+    margin-top: var(--space-8, 8px);
+  }
+
+
+  /* The hero header idiom ([[../index.md]]): a plain document header opening a
+     dashboard-shaped artifact — the title with a fictional freshness line and
+     an optional source/meta line, sitting on the document itself rather than
+     inside a card. */
+
+  header.hero h1 {
+    margin: 0 0 var(--space-6, 6px);
+  }
+
+  .generated {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    font-weight: 500;
+  }
+
+  .meta-line {
+    margin-top: var(--space-4, 4px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+
+  /* The panel/section idioms ([[../index.md]]): a bordered surface panel with
+     a heading and optional note, the muted summary-box, the section-title row,
+     and — for artifacts that lean on headings and spacing over nested cards —
+     the borderless .section and the .summary-deck lead paragraph. */
+
+  /* Borderless section: a title row (or heading) then its stack, no box. */
+  .section {
+    display: grid;
+    gap: var(--space-16, 16px);
+  }
+
+  /* Summary/lead as a standfirst paragraph — the borderless counterpart to
+     .summary-box. */
+  /* Lead/standfirst paragraph — the same size as the About .lede (body text),
+     not enlarged; it leads by position and primary color, not scale. */
+  .summary-deck {
+    margin: 0;
+    line-height: 1.5;
+    color: var(--color-text);
+  }
+
+  .panel {
+    padding: var(--space-20, 20px);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface);
+  }
+
+  .panel h2 {
+    margin: 0 0 var(--space-4, 4px);
+    font-size: var(--text-lg, 15px);
+    font-weight: 600;
+  }
+
+  .panel .note {
+    margin: 0 0 var(--space-16, 16px);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+  .summary-box {
+    padding: var(--space-16, 16px) var(--space-20, 20px);
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: var(--color-surface-muted);
+  }
+
+  .summary-box h2 {
+    margin: 0 0 var(--space-8, 8px);
+    font-size: var(--text-lg, 15px);
+    font-weight: 600;
+  }
+
+  .summary-box p {
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .section-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-12, 12px);
+    margin-bottom: var(--space-12, 12px);
+  }
+
+  .section-title h2 {
+    margin: 0;
+    font-size: var(--text-lg, 15px);
+    font-weight: 600;
+  }
+
+  .section-title .note {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+
+  /* The pill idiom ([[../index.md]]): small rounded status/tag chips. The
+     base pill is neutral; variant classes tint with canonical ramp tokens
+     (stable across themes by design, [[../index.md#^respect-theme]]). */
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4, 4px);
+    padding: 2px var(--space-10, 10px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill, 9999px);
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .pill.blue   { color: var(--blue-700);   border-color: var(--blue-200);   background: var(--blue-50); }
+  .pill.green  { color: var(--green-700);  border-color: var(--green-200);  background: var(--green-50); }
+  .pill.orange { color: var(--orange-700); border-color: var(--orange-200); background: var(--orange-50); }
+  .pill.red    { color: var(--red-700);    border-color: var(--red-200);    background: var(--red-50); }
+  .pill.dim    { color: var(--neutral-500); border-color: var(--neutral-200); background: var(--neutral-100); }
+
+
+  /* Priorities for Today ([[../index.md]]): artifact-specific styling only —
+     the ranked-priority and deferred stacks. Kept low on borders: the summary
+     is a shared .summary-deck lead, sections are the shared borderless
+     .section, priorities are carried by their inline rank number, and deferred
+     tasks are a hairline-separated list. The deck, section, section-title, and
+     pill styles are defined above. */
+
+  .shell {
+    max-width: 920px;
+    gap: var(--space-24, 24px);
+  }
+
+  /* Section headings outrank the priority titles (15px) — a clear step up —
+     and carry a full-width hairline beneath them as a section divider. */
+  .section-title {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-8, 8px);
+  }
+
+  .section-title h2 {
+    font-size: var(--text-xl, 18px);
+  }
+
+  /* Ranked priorities: a plain stack — each carries an inline rank number
+     (see .rank) hugging its title, so there is no marker column. */
+  .priority-stack {
+    display: grid;
+    gap: var(--space-20, 20px);
+  }
+
+  /* Unchecked task box — a static marker signalling these are actionable. */
+  .checkbox {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    background: var(--color-surface);
+  }
+
+  .rank {
+    margin-right: var(--space-8, 8px);
+    color: var(--color-primary);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .priority h3 {
+    margin: 0 0 var(--space-4, 4px);
+    font-size: var(--text-lg, 15px);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .priority p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.45;
+  }
+
+  /* The project (a real, recurring category) as a single pill, followed by the
+     ranking evidence as a muted line — not a row of fake tags. */
+  .priority-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-8, 8px);
+    margin-top: var(--space-8, 8px);
+  }
+
+  .priority-meta .evidence {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+  }
+
+  .deferred-stack {
+    display: grid;
+  }
+
+  /* Deferred tasks: a checkbox marker in a fixed left column (ranked priorities
+     use their inline rank number instead), each a hairline-separated row. */
+  .deferred-item {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    gap: var(--space-10, 10px);
+    align-items: start;
+    padding: var(--space-12, 12px) 0;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .deferred-item:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .deferred-item h3 {
+    margin: 0 0 var(--space-4, 4px);
+    font-size: var(--text-base, 13.5px);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .deferred-item p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm, 12px);
+    line-height: 1.35;
+  }
+---
+<main class="shell">
+  <header class="hero">
+    <h1>Priorities for Today</h1>
+    <p class="summary-deck">
+      Two customer-critical threads dominate the day: closing the loop on the
+      Acme pilot before the CTO call, and turning this week's customer
+      conversations into a new narrative for the seed deck. Engineering needs
+      you to weigh in with some decisions to unblock progress. Investor deck
+      polish and conference planning can safely wait until tomorrow.
+    </p>
+  </header>
+
+  <section class="section">
+    <div class="section-title">
+      <h2>Ranked priorities</h2>
+    </div>
+    <div class="priority-stack">
+      <article class="priority">
+        <div class="priority-body">
+          <h3><span class="rank">1</span>Close the loop on the Acme pilot</h3>
+          <p>
+            Ship the reliability memo, lock the pilot success metric, and send
+            the CTO a crisp pre-call brief before 2:30 PM.
+          </p>
+          <div class="priority-meta">
+            <span class="pill">Acme Pilot</span>
+            <span class="evidence">2 Slack escalations · $480k ARR path</span>
+          </div>
+        </div>
+      </article>
+      <article class="priority">
+        <div class="priority-body">
+          <h3><span class="rank">2</span>Turn this week's Granola notes into a new customer story</h3>
+          <p>
+            Synthesize the NeonBank and Mallory Health calls into a single
+            narrative: painful workflow, before/after demo, measurable outcome.
+          </p>
+          <div class="priority-meta">
+            <span class="pill">Seed Deck</span>
+            <span class="evidence">3 transcript mentions · high-leverage reuse</span>
+          </div>
+        </div>
+      </article>
+      <article class="priority">
+        <div class="priority-body">
+          <h3><span class="rank">3</span>Unblock dev team</h3>
+          <p>
+            Name a single owner for red-team evals, latency budgets, and
+            regression gates — engineering is losing cycles to ambiguous
+            thresholds.
+          </p>
+          <div class="priority-meta">
+            <span class="pill">Platform Reliability</span>
+            <span class="evidence">Repeated standup friction · founder decision required</span>
+          </div>
+        </div>
+      </article>
+      <article class="priority">
+        <div class="priority-body">
+          <h3><span class="rank">4</span>Send rough metrics to Jake for investor update</h3>
+          <p>
+            Forward the pipeline and burn numbers so Jake can start the draft —
+            defer visual polish until after customer work is done.
+          </p>
+          <div class="priority-meta">
+            <span class="pill">Investor Update</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <h2>Tasks that can be deferred</h2>
+    </div>
+    <div class="deferred-stack">
+      <div class="deferred-item">
+        <span class="checkbox" aria-hidden="true"></span>
+        <div class="deferred-body">
+          <h3>Redesign the investor deck</h3>
+          <p>
+            Visual polish can wait until the customer story and metrics spine
+            are locked.
+          </p>
+        </div>
+      </div>
+      <div class="deferred-item">
+        <span class="checkbox" aria-hidden="true"></span>
+        <div class="deferred-body">
+          <h3>Debate pricing architecture</h3>
+          <p>
+            No point until the Acme pilot metric is defined — pricing follows
+            proof.
+          </p>
+        </div>
+      </div>
+      <div class="deferred-item">
+        <span class="checkbox" aria-hidden="true"></span>
+        <div class="deferred-body">
+          <h3>Conference invite evaluation</h3>
+          <p>
+            Low urgency unless it directly reaches target enterprise buyers.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

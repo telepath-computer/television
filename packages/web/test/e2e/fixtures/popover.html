@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared popover behavior fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <style>
+      body {
+        min-height: 100vh;
+        padding: 40px;
+      }
+
+      #container {
+        width: 168px;
+        height: 48px;
+        border: 1px solid var(--color-border);
+      }
+
+      tv-popover > div {
+        display: grid;
+        gap: var(--space-8);
+        min-width: 224px;
+        padding: var(--space-12);
+      }
+
+      #other-pairs {
+        display: flex;
+        gap: var(--space-12);
+        margin-top: 120px;
+      }
+
+      #outside {
+        position: fixed;
+        right: 40px;
+        bottom: 40px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <button id="contained-trigger" type="button">Open popover</button>
+      <tv-popover id="contained-panel" trigger="contained-trigger">
+        <div>
+          <span>Panel in its original container</span>
+          <button id="contained-action" type="button">Inside action</button>
+        </div>
+      </tv-popover>
+    </div>
+
+    <div id="other-pairs">
+      <button id="second-trigger" type="button">Open another auto popover</button>
+      <tv-popover id="second-panel" trigger="second-trigger">
+        <div>Second auto panel</div>
+      </tv-popover>
+
+      <button id="manual-trigger" type="button">Open manual popover</button>
+      <tv-popover id="manual-panel" trigger="manual-trigger" manual>
+        <div>Manual panel</div>
+      </tv-popover>
+
+      <button id="script-trigger" type="button">Open by press or script</button>
+      <tv-popover id="script-panel" trigger="script-trigger">
+        <div>Panel presented by press or by script</div>
+      </tv-popover>
+    </div>
+
+    <button id="outside" type="button">Outside</button>
+
+    <script type="module">
+      import "/packages/web/src/elements/popover.ts";
+      const panelIds = ["contained-panel", "second-panel", "manual-panel", "script-panel"];
+      const record = {
+        containedActionPresses: 0,
+        focus: [],
+        states: Object.fromEntries(panelIds.map((id) => [id, []])),
+      };
+
+      const frame = () => new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+      document.addEventListener("focusin", (event) => {
+        record.focus.push(event.target instanceof HTMLElement ? event.target.id : "");
+      });
+      for (const id of panelIds) {
+        const panel = document.getElementById(id);
+        let open = panel.hasAttribute("open");
+        new MutationObserver(() => {
+          const next = panel.hasAttribute("open");
+          if (next === open) return;
+          open = next;
+          record.states[id].push(open ? "open" : "closed");
+        }).observe(panel, { attributes: true, attributeFilter: ["open"] });
+      }
+
+      document.getElementById("contained-action").addEventListener("click", () => {
+        record.containedActionPresses += 1;
+      });
+
+      window.__popoverFixture = {
+        // A script presentation on the trigger's behalf (^po-invoker).
+        presentByScript() {
+          document.getElementById("script-panel").setAttribute("open", "");
+        },
+        async settle() {
+          await frame();
+          await frame();
+        },
+        snapshot() {
+          return {
+            ...structuredClone(record),
+            activeId: document.activeElement instanceof HTMLElement ? document.activeElement.id : "",
+            open: Object.fromEntries(
+              panelIds.map((id) => [id, document.getElementById(id).hasAttribute("open")]),
+            ),
+          };
+        },
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

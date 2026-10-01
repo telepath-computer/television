@@ -1,0 +1,10 @@
+---
+title: None
+description: The application prototype without an installed theme.
+params:
+  appearance: { enum: [light, dark], default: light }
+  shell: { enum: [desktop, web], default: desktop }
+---
+<div data-staging-theme="none">
+  {% render '../app/app', appearance: appearance, shell: shell %}
+</div>

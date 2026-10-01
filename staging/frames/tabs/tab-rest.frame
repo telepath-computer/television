@@ -1,0 +1,16 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: var(--space-8);
+    /* Flex, so the lone tab shrink-wraps to its label as it would in a strip. */
+    display: flex;
+    align-items: flex-start;
+    /* The app's ground, not white: the tab is judged against it. */
+    background: var(--color-background);
+  }
+script: |
+  import { mountTab } from "./tab.ts";
+
+  mountTab("rest");
+---

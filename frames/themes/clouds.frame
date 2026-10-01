@@ -1,0 +1,10 @@
+---
+title: Clouds
+description: The application prototype with Clouds, using the shared app frame and theme stylesheet.
+params:
+  appearance: { enum: [light, dark], default: light }
+  shell: { enum: [desktop, web], default: desktop }
+---
+<div data-staging-theme="clouds">
+  {% render '../app/app', appearance: appearance, shell: shell %}
+</div>

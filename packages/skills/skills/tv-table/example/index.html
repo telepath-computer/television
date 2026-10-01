@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tasks</title>
+    <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=<version>" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+      }
+
+      header.lead {
+        padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-16, 16px);
+      }
+
+      header.lead h1 {
+        margin: 0 0 var(--space-8, 8px);
+      }
+
+      header.lead .lede {
+        color: var(--color-text-muted);
+        font-size: var(--text-lg);
+        line-height: 1.4;
+        margin: 0;
+      }
+
+      /* Section header between groups — substantial enough to do the
+         visual chunking on its own (no background separation). */
+      section.group h2 {
+        margin: 0;
+        padding: var(--space-16, 16px) var(--space-32, 32px) var(--space-8, 8px);
+        font-size: var(--text-lg);
+        font-weight: 600;
+        color: var(--color-text);
+      }
+
+      table.records {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      table.records thead th {
+        font-weight: var(--font-weight-normal);
+        font-size: var(--text-sm);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--color-text-muted);
+        text-align: left;
+        padding: var(--space-6, 6px) var(--space-12, 12px);
+        border-top: 0.5px solid var(--color-border);
+        border-bottom: 0.5px solid var(--color-border);
+      }
+
+      /* Edge cells get the page gutter so content lines up with the title
+         section, even though the table itself runs full-width. */
+      table.records thead th:first-child,
+      table.records tbody td:first-child {
+        padding-left: var(--space-32, 32px);
+      }
+      table.records thead th:last-child,
+      table.records tbody td:last-child {
+        padding-right: var(--space-32, 32px);
+      }
+
+      table.records tbody td {
+        padding: var(--space-8, 8px) var(--space-12, 12px);
+        border-bottom: 0.5px solid var(--color-border);
+        vertical-align: baseline;
+      }
+
+      table.records tbody tr:last-child td {
+        border-bottom: 0.5px solid var(--color-border);
+      }
+
+      table.records .num,
+      table.records .date {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      table.records .title {
+        font-weight: 500;
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 1px var(--space-8, 8px);
+        border-radius: var(--radius-pill);
+        font-size: var(--text-sm);
+        line-height: 1.4;
+      }
+
+      .pill.done {
+        background: color-mix(in srgb, var(--color-text-muted) 14%, transparent);
+        color: var(--color-text-muted);
+      }
+      .pill.in-progress {
+        background: color-mix(in srgb, royalblue 16%, transparent);
+        color: color-mix(in srgb, royalblue 80%, var(--color-text));
+      }
+      .pill.blocked {
+        background: color-mix(in srgb, crimson 14%, transparent);
+        color: color-mix(in srgb, crimson 80%, var(--color-text));
+      }
+      .pill.todo {
+        background: var(--color-surface-muted);
+        color: var(--color-text);
+      }
+      .pill.shipped {
+        background: color-mix(in srgb, seagreen 16%, transparent);
+        color: color-mix(in srgb, seagreen 80%, var(--color-text));
+      }
+
+      .person {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-6, 6px);
+      }
+
+      .person .avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: var(--radius-pill);
+        background: var(--color-surface-muted);
+        display: inline-block;
+        font-size: 10px;
+        line-height: 18px;
+        text-align: center;
+        color: var(--color-text-muted);
+      }
+
+      .tag {
+        display: inline-block;
+        padding: 0 var(--space-6, 6px);
+        border-radius: 4px;
+        font-size: var(--text-sm);
+        background: var(--color-surface-muted);
+        color: var(--color-text-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="lead">
+      <h1>Tasks</h1>
+      <p class="lede">12 in-flight items across the Television workstream this sprint, grouped by status.</p>
+    </header>
+
+    <section class="group">
+      <h2>In progress</h2>
+      <table class="records">
+        <colgroup>
+          <col />
+          <col style="width: 9rem" />
+          <col style="width: 9rem" />
+          <col style="width: 7rem" />
+          <col style="width: 5rem" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Area</th>
+            <th class="date">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="title">Wire <code>/canonical/v2/</code> stylesheet</td>
+            <td><span class="pill in-progress">In progress</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">skills</span></td>
+            <td class="date">Apr 30</td>
+          </tr>
+          <tr>
+            <td class="title">Land artifacts skill</td>
+            <td><span class="pill in-progress">In progress</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">skills</span></td>
+            <td class="date">Apr 30</td>
+          </tr>
+          <tr>
+            <td class="title">Hermes ACP regression suite</td>
+            <td><span class="pill in-progress">In progress</span></td>
+            <td><span class="person"><span class="avatar">J</span>Josh</span></td>
+            <td><span class="tag">acp</span></td>
+            <td class="date">May 5</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="group">
+      <h2>To do</h2>
+      <table class="records">
+        <colgroup>
+          <col />
+          <col style="width: 9rem" />
+          <col style="width: 9rem" />
+          <col style="width: 7rem" />
+          <col style="width: 5rem" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Area</th>
+            <th class="date">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="title">Promote canonical bundle to production server</td>
+            <td><span class="pill todo">To do</span></td>
+            <td><span class="person"><span class="avatar">S</span>Stephen</span></td>
+            <td><span class="tag">server</span></td>
+            <td class="date">May 7</td>
+          </tr>
+          <tr>
+            <td class="title">CLI distribution for skills</td>
+            <td><span class="pill todo">To do</span></td>
+            <td><span class="person"><span class="avatar">J</span>Josh</span></td>
+            <td><span class="tag">cli</span></td>
+            <td class="date">May 12</td>
+          </tr>
+          <tr>
+            <td class="title">Token curation pass for v2</td>
+            <td><span class="pill todo">To do</span></td>
+            <td><span class="person"><span class="avatar">S</span>Stephen</span></td>
+            <td><span class="tag">design</span></td>
+            <td class="date">May 21</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="group">
+      <h2>Blocked</h2>
+      <table class="records">
+        <colgroup>
+          <col />
+          <col style="width: 9rem" />
+          <col style="width: 9rem" />
+          <col style="width: 7rem" />
+          <col style="width: 5rem" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Area</th>
+            <th class="date">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="title">Bundle-on-export for downloadable artifacts</td>
+            <td><span class="pill blocked">Blocked</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">spec</span></td>
+            <td class="date">May 14</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="group">
+      <h2>Done</h2>
+      <table class="records">
+        <colgroup>
+          <col />
+          <col style="width: 9rem" />
+          <col style="width: 9rem" />
+          <col style="width: 7rem" />
+          <col style="width: 5rem" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Area</th>
+            <th class="date">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="title">Migrate tasks template to a table</td>
+            <td><span class="pill done">Done</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">skills</span></td>
+            <td class="date">Apr 30</td>
+          </tr>
+          <tr>
+            <td class="title">Fix iframe blob base href resolution</td>
+            <td><span class="pill done">Done</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">web</span></td>
+            <td class="date">Apr 30</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="group">
+      <h2>Shipped</h2>
+      <table class="records">
+        <colgroup>
+          <col />
+          <col style="width: 9rem" />
+          <col style="width: 9rem" />
+          <col style="width: 7rem" />
+          <col style="width: 5rem" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Owner</th>
+            <th>Area</th>
+            <th class="date">Due</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="title">v0.1 spec — runtime manifest</td>
+            <td><span class="pill shipped">Shipped</span></td>
+            <td><span class="person"><span class="avatar">R</span>Rupert</span></td>
+            <td><span class="tag">spec</span></td>
+            <td class="date">Apr 28</td>
+          </tr>
+          <tr>
+            <td class="title">Drag controller refactor</td>
+            <td><span class="pill shipped">Shipped</span></td>
+            <td><span class="person"><span class="avatar">S</span>Stephen</span></td>
+            <td><span class="tag">layout</span></td>
+            <td class="date">Apr 22</td>
+          </tr>
+          <tr>
+            <td class="title">Markdown view scroll bridge</td>
+            <td><span class="pill shipped">Shipped</span></td>
+            <td><span class="person"><span class="avatar">J</span>Josh</span></td>
+            <td><span class="tag">views</span></td>
+            <td class="date">Apr 18</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </body>
+</html>

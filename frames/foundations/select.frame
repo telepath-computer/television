@@ -1,0 +1,26 @@
+---
+title: Select
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  open: { type: boolean, default: true, description: stage the select open }
+  options:
+    description: "the choices, in order, each with a value and a label"
+    default:
+      - { value: "none", label: "None" }
+      - { value: "clouds", label: "Clouds" }
+      - { value: "nord", label: "Nord" }
+      - { value: "swiss", label: "Swiss" }
+      - { value: "tokyo-night", label: "Tokyo Night" }
+  selected: { enum: [none, clouds, nord, swiss, tokyo-night], default: nord, description: the chosen option — exactly one is }
+  highlighted: { enum: [none, clouds, nord, swiss, tokyo-night], default: tokyo-night, description: the highlighted option while the panel is open }
+style: |
+  /* staging pose: the pair on its own ground, seated mid-viewport so the
+     selected-over-trigger placement has room to seat itself. */
+  body { margin: 0; min-height: 100vh; padding: 48px; box-sizing: border-box; background: var(--app-wallpaper); color: var(--color-text); display: flex; align-items: center; align-content: center; }
+---
+{% assign chosen = options | where: 'value', selected | first %}
+<button id="select-trigger" role="combobox" aria-haspopup="listbox"{% if open %} aria-expanded="true"{% endif %}>{{ chosen.label }} {% render '../../specs/ui/foundation/icons/icon', name: 'select' %}</button>
+<tv-select trigger="select-trigger"{% if open %} open{% endif %}>
+{% for option in options %}  <tv-option value="{{ option.value }}"{% if option.value == selected %} selected{% endif %}{% if open and option.value == highlighted %} highlighted{% endif %}>{{ option.label }}</tv-option>
+{% endfor %}</tv-select>

@@ -1,0 +1,233 @@
+---
+title: Settings
+params:
+  appearance:
+    enum: [system, light, dark]
+    default: system
+    description: the appearance preference
+  active_theme:
+    default: clouds
+    description: exact active theme ID; absent means the null theme
+  themes:
+    description: valid installed-theme registry entries in display order, including enableMainJS when declared
+    default:
+      - { id: "clouds", name: "Clouds" }
+      - { id: "nord", name: "Nord" }
+      - { id: "swiss", name: "Swiss" }
+      - { id: "tokyo-night", name: "Tokyo Night" }
+  theme_javascript_consent_ids:
+    description: exact theme IDs with confirmed JavaScript consent
+    default: []
+  errors:
+    description: registry errors with folder and error fields
+    default: []
+  loading:
+    type: boolean
+    default: false
+    description: whether a registry request is active
+  failure:
+    type: string
+    description: latest readable registry or write failure
+  open:
+    type: boolean
+    default: false
+    description: stage the panel open
+style: |
+  /* The foundation owns panel chrome and button treatment. These styles own
+     the panel's interior. */
+  .settings-popover {
+    width: 320px;
+    padding: var(--space-16);
+  }
+
+  .settings-heading {
+    padding: 0 var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .settings-field {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-12);
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .settings-theme-control {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-8);
+    align-items: center;
+  }
+
+  /* The selects' triggers take the field's width, the caret pinned at the
+     trailing edge — the choice reads like a field value. */
+  .settings-field button[aria-haspopup="listbox"] {
+    width: 100%;
+    min-width: 0;
+    color: var(--color-text);
+  }
+
+  .settings-javascript-consent {
+    display: grid;
+    gap: var(--space-8);
+    margin-top: var(--space-12);
+    font-size: var(--text-sm);
+  }
+
+  .settings-javascript-disclosure {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .settings-javascript-toggle {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: center;
+    color: var(--color-text);
+  }
+
+  .settings-javascript-toggle input {
+    appearance: none;
+    box-sizing: border-box;
+    width: 32px;
+    height: 18px;
+    margin: 0;
+    padding: 2px;
+    border: var(--control-border);
+    border-radius: var(--radius-pill);
+    background: var(--control-background);
+  }
+
+  .settings-javascript-toggle input::before {
+    content: "";
+    display: block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+    transition: transform 120ms ease;
+  }
+
+  .settings-javascript-toggle input:checked {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+
+  .settings-javascript-toggle input:checked::before {
+    background: var(--color-text-reversed);
+    transform: translateX(14px);
+  }
+
+  .settings-javascript-toggle input:focus-visible {
+    outline: var(--outline-focus);
+    outline-offset: 2px;
+  }
+
+  .settings-status,
+  .settings-failure,
+  .settings-errors {
+    margin: var(--space-12) 0 0;
+    font-size: var(--text-sm);
+  }
+
+  .settings-status {
+    color: var(--color-text-muted);
+  }
+
+  .settings-failure {
+    color: var(--color-danger);
+  }
+
+  .settings-errors {
+    display: grid;
+    gap: var(--space-8);
+    color: var(--color-text-muted);
+  }
+
+  .settings-errors p {
+    margin: 0;
+  }
+
+  .settings-errors strong {
+    color: var(--color-text);
+  }
+---
+<button
+  class="settings-trigger"
+  id="settings-trigger"
+  icon
+  variant="ghost"
+  aria-label="Settings"
+  title="Settings"
+>
+  {% render '../../foundation/icons/icon', name: 'settings', size: 'sm' %}
+</button>
+
+<tv-popover class="settings-popover" trigger="settings-trigger"{% if open %} open{% endif %}>
+  <div class="settings-heading">Settings</div>
+
+  <div class="settings-field">
+    <label id="settings-appearance-label">Light/dark mode</label>
+    {% assign appearance_label = 'Adapt to system' %}
+    {% if appearance == 'light' %}{% assign appearance_label = 'Light' %}{% endif %}
+    {% if appearance == 'dark' %}{% assign appearance_label = 'Dark' %}{% endif %}
+    <button id="settings-appearance" role="combobox" aria-haspopup="listbox" aria-labelledby="settings-appearance-label">{{ appearance_label }} {% render '../../foundation/icons/icon', name: 'select' %}</button>
+    <tv-select trigger="settings-appearance">
+      <tv-option value="system"{% if appearance == 'system' %} selected{% endif %}>Adapt to system</tv-option>
+      <tv-option value="light"{% if appearance == 'light' %} selected{% endif %}>Light</tv-option>
+      <tv-option value="dark"{% if appearance == 'dark' %} selected{% endif %}>Dark</tv-option>
+    </tv-select>
+  </div>
+
+  <div class="settings-field">
+    <label id="settings-theme-label">Theme</label>
+    <div class="settings-theme-control">
+      {% assign active = themes | where: 'id', active_theme | first %}
+      <button id="settings-theme" role="combobox" aria-haspopup="listbox" aria-labelledby="settings-theme-label">{% if active %}{{ active.name }}{% else %}None{% endif %} {% render '../../foundation/icons/icon', name: 'select' %}</button>
+      <tv-select trigger="settings-theme">
+        <tv-option value=""{% unless active %} selected{% endunless %}>None</tv-option>
+        {% for theme in themes %}
+        <tv-option value="{{ theme.id }}"{% if theme.id == active_theme %} selected{% endif %}>{{ theme.name }}</tv-option>
+        {% endfor %}
+      </tv-select>
+      <button type="button" icon variant="ghost" aria-label="Refresh themes" title="Refresh themes">
+        {% render '../../foundation/icons/icon', name: 'reload', size: 'sm' %}
+      </button>
+    </div>
+  </div>
+
+  {% for theme in themes %}
+  {% if theme.id == active_theme and theme.enableMainJS == true %}
+  <section class="settings-javascript-consent" aria-label="Experimental main-page JavaScript">
+    <p class="settings-javascript-disclosure">This theme uses experimental JavaScript. JavaScript can access your Television content, so only enable for themes you trust or have had your agent inspect.</p>
+    <label class="settings-javascript-toggle">
+      <input
+        type="checkbox"
+        role="switch"
+        name="theme-javascript-consent"
+        value="{{ active_theme }}"
+        {% if theme_javascript_consent_ids contains active_theme %}checked{% endif %}
+      >
+      <span>Enable experimental javascript for this theme</span>
+    </label>
+  </section>
+  {% endif %}
+  {% endfor %}
+
+  {% if loading %}<p class="settings-status" role="status">Loading themes…</p>{% endif %}
+  {% if failure %}<p class="settings-failure" role="alert">{{ failure }}</p>{% endif %}
+
+  {% if errors.size > 0 %}
+  <div class="settings-errors" aria-label="Theme validation errors">
+    {% for item in errors %}
+    <p><strong>{% if item.folder %}{{ item.folder }}{% else %}Themes directory{% endif %}</strong>: {{ item.error }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+</tv-popover>

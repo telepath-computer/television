@@ -1,0 +1,15 @@
+---
+title: Dialog
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  title: { type: string, default: "Discard this draft?", description: the question the dialog asks }
+  message: { type: string, default: "The draft is deleted immediately; nothing is saved.", description: the consequence, in one line }
+  action: { type: string, default: "Discard", description: the label of the action beside Cancel }
+  destructive: { type: boolean, default: true, description: the action is destructive, so it wears the danger intent }
+style: |
+  /* The board is the screen the dialog interrupts; the overlay dims it. */
+  body { min-height: 100vh; }
+---
+{% capture body %}<div class="dialog-alert" role="alertdialog"><h2>{{ title }}</h2><p>{{ message }}</p><div class="dialog-actions"><button>Cancel</button><button{% if destructive %} intent="danger"{% endif %}>{{ action }}</button></div></div>{% endcapture %}
+{% render '../../specs/ui/app/dialog/dialog', content: body %}

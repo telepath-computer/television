@@ -1,0 +1,8 @@
+/* Gesture-state scaffolding for the JS-driven tab drag choreography. The
+   behavioral contract remains specs/ui/app/tab-strip/index.md. */
+.tab-strip > .tab[dragging] {
+  position: fixed;
+  z-index: calc(var(--layer-ground) + 2);
+  flex: none;
+  margin: 0;
+}

@@ -1,0 +1,7 @@
+---
+title: Research channel
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+---
+{% render './channel', slug: 'research' %}

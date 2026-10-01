@@ -1,0 +1,197 @@
+/* The stage: the ground below the top bar that artifacts are shown on, with
+   a margin of it on every side. The margin is what separates an artifact
+   from the window — without it the frame surface would meet the window's
+   edge and the artifact would read as the window's own content rather than
+   as something the app is holding, the same boundary the frame draws with
+   its own border ([[ui/app/artifact-frame/artifact-frame.frame]]), one
+   level out.
+
+   Two measures. The inset is an artifact's margin from the window; the
+   stage gap is the space between pages. */
+
+/* The frame fills the box it is given when it stands alone — an embed's
+   box, or the whole viewport. Composed in the shell, the stage is never
+   the body's child and the region's flex sizes it instead; size
+   containment below means it takes no height from its contents. */
+body > .stage {
+  height: 100%;
+}
+
+/* The stage's dials — the gap, the inset, the background-page presence,
+   and the snap outline — are root tokens ([[ui/foundation/tokens/app.css]]),
+   so themes override them at the root; this frame only consumes them. */
+.stage {
+  position: relative;
+  flex: 1;
+  /* Pages must not make this flex region refuse to shrink within the shell. */
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  container-type: size;
+  /* The inset and the gaps between pages show the app's ground ([[ui/app/index.md]]). */
+  background: transparent;
+  overflow: hidden;
+}
+
+/* The filmstrip: a programmatically moved viewport around the channel's
+   pages. Its inner row provides enough leading and trailing ground for every
+   ordinary or full-screen page to reach the centre. How it moves — and that
+   only selection moves it — is the spec document's
+   ([[ui/app/stage/index.md#^st-selection-only]]). */
+.filmstrip {
+  flex: 1;
+  /* Arbitrary artifact contents must not establish the viewport's minimum. */
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
+.filmstrip-inner {
+  height: 100%;
+  min-width: max-content;
+  display: flex;
+  align-items: center;
+  gap: var(--page-gap);
+  padding-bottom: var(--page-inset);
+}
+
+.filmstrip-inner::before,
+.filmstrip-inner::after {
+  content: "";
+  flex: none;
+  width: 50cqw;
+}
+
+/* A page's width and height are its own state, the size it was left at
+   ([[ui/app/stage/index.md]], Page sizing); the frame authors no box. What it does state
+   is the ceiling — a page never exceeds the stage's page box, both side insets
+   and the bottom inset staying visible — which full-screen then takes whole.
+   Container units keep both true even when an implementation wraps all pages
+   to apply the reorder draw-back. The frame fills whichever box results. */
+.page {
+  flex: none;
+  max-width: calc(100cqw - var(--page-inset) - var(--page-inset));
+  max-height: calc(100cqh - var(--page-inset));
+}
+
+.page[full-screen] {
+  width: calc(100cqw - var(--page-inset) - var(--page-inset));
+  height: calc(100cqh - var(--page-inset));
+}
+
+.page > .artifact-frame {
+  width: 100%;
+}
+
+/* A page recedes while it is not the one being looked at — smaller and
+   dimmer, so the selected page reads as the subject and its neighbours as
+   context. Selection moves the state between pages; entering and leaving
+   full-screen morph width and height on the same curve. Keep the duration
+   in step with measures.yml#crossing.duration_ms. */
+.page {
+  position: relative;
+  transition: backdrop-filter 280ms ease, scale 280ms ease, width 280ms ease, height 280ms ease;
+}
+
+.page:not([selected]) {
+  backdrop-filter: blur(var(--page-inactive-backdrop-blur));
+  border-radius: var(--frame-radius);
+  scale: var(--page-inactive-scale);
+}
+
+.page > .artifact-frame {
+  transition: filter 280ms ease, opacity 280ms ease;
+}
+
+.page:not([selected]) > .artifact-frame {
+  filter: blur(var(--page-inactive-blur));
+  opacity: var(--page-inactive-opacity);
+}
+
+/* A receded page sheds away from the selection: the edge facing it stays
+   put, so the stated gap is the visual gap beside a receded neighbour
+   rather than growing by the scale's slack. */
+.page:has(~ .page[selected]) {
+  transform-origin: right center;
+}
+
+.page[selected] ~ .page {
+  transform-origin: left center;
+}
+
+/* The selected page holds the foreground ([[ui/app/stage/index.md]],
+   Reordering): a page sliding past in a reorder — a dragged background
+   page included — passes beneath it. */
+.page[selected] {
+  z-index: calc(var(--layer-ground) + 1);
+}
+
+/* A background page's artifact is inert ([[ui/app/stage/index.md]],
+   Filmstrip): its frame and everything on it take no pointer, so the one
+   thing a press can mean there is selection. */
+.page:not([selected]) .artifact-frame {
+  box-shadow: none;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page,
+  .page > .artifact-frame {
+    transition: none;
+  }
+}
+
+/* The armed snap ([[ui/app/stage/index.md]], Full-screen snapping): the page
+   box drawn in the shared tint — the placeholder vocabulary, like the tab
+   drag's slot — while a corner drag holds the page at the stage's extents.
+   It arrives with the jump rather than before it, so the outline and the
+   movement say the same thing at the same moment; the page it outlines is
+   already there, so it is a statement of where release leaves the page, not
+   a preview of somewhere else. It takes no pointer — the drag is still live. */
+.snap-outline {
+  position: absolute;
+  top: 0;
+  left: var(--page-inset);
+  right: var(--page-inset);
+  bottom: var(--page-inset);
+  border: var(--page-snap-preview-border);
+  border-radius: var(--page-snap-preview-radius);
+  background: var(--page-snap-preview-background);
+  pointer-events: none;
+  /* Above the lift on the selected page: the armed page fills the very box
+     the outline draws, and would otherwise paint over it. */
+  z-index: calc(var(--layer-ground) + 2);
+}
+
+/* The empty channel uses a compact wallpaper overlay, centered in the
+   stage. Its background and border remain transparent unless themed. */
+.stage-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+  width: max-content;
+  min-height: 160px;
+  max-width: calc(100% - var(--page-inset) - var(--page-inset));
+  padding: var(--space-24);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  text-align: center;
+  color: var(--wallpaper-overlay-text-color);
+  background: var(--wallpaper-overlay-background);
+  border: var(--wallpaper-overlay-border);
+  outline: var(--wallpaper-overlay-outline);
+  outline-offset: 0;
+  border-radius: var(--panel-radius);
+  backdrop-filter: blur(var(--wallpaper-overlay-blur));
+}
+
+.stage-empty p {
+  margin: 0;
+}

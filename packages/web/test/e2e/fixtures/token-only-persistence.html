@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Token-only persistence fixture</title>
+  </head>
+  <body>
+    <dl>
+      <dt>Connection</dt>
+      <dd id="connection-status">connecting</dd>
+      <dt>Focused channel</dt>
+      <dd id="focused-channel"></dd>
+      <dt>First page</dt>
+      <dd id="first-page"></dd>
+    </dl>
+    <ol id="channels"></ol>
+    <output id="persisted-state"></output>
+
+    <script type="module">
+      import {
+        LocalStore,
+        createDefaultLocalState,
+      } from "/packages/web/src/store.ts";
+      import { ServerConnectionOwner } from "/packages/web/src/services/server-connection-owner.ts";
+      import { ApplicationService } from "/packages/web/src/services/application-service.ts";
+
+      const serverURL = new URL(window.location.href).searchParams.get("serverURL");
+      if (!serverURL) throw new Error("serverURL is required");
+
+      const localStore = new LocalStore("television-browser", createDefaultLocalState());
+      const connectionOwner = new ServerConnectionOwner({
+        localStore,
+        serverURL,
+        acpStorage: null,
+      });
+      const applicationService = new ApplicationService({ connectionOwner });
+
+      const status = document.querySelector("#connection-status");
+      const focused = document.querySelector("#focused-channel");
+      const firstPage = document.querySelector("#first-page");
+      const channels = document.querySelector("#channels");
+      const persistedState = document.querySelector("#persisted-state");
+
+      function render() {
+        const snapshot = applicationService.snapshot;
+        const activeChannel = snapshot.focusedChannel;
+        status.textContent = snapshot.connection.status;
+        focused.textContent = activeChannel?.id ?? "";
+        firstPage.textContent = activeChannel?.pages[0]?.artifactIds[0] ?? "";
+        channels.replaceChildren(
+          ...snapshot.channels.map((channel) => {
+            const item = document.createElement("li");
+            item.textContent = channel.id;
+            return item;
+          }),
+        );
+        persistedState.textContent = JSON.stringify(localStore.get());
+      }
+
+      applicationService.addEventListener("change", render);
+      render();
+      void connectionOwner.connect();
+    </script>
+  </body>
+</html>

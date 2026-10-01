@@ -1,0 +1,48 @@
+---
+style: |
+  body {
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    background: var(--color-background);
+    font-family: var(--font-sans);
+    font-size: var(--text-md);
+    color: var(--color-text);
+  }
+  
+  .sidebar {
+    width: 240px;
+  }
+script: |
+  import "../../lib/foundation.ts";
+  import sidebarTpl from "../../../specs/ui/app/sidebar/template.liquid";
+  import { pairChannelRowMenus } from "../../lib/sidebar.ts";
+  import { wireMenu } from "./wire.ts";
+
+  const sidebar = sidebarTpl({
+    pinned: [
+      { id: "brief", name: "Daily brief", selected: true },
+      { id: "calendar", name: "Calendar" },
+      { id: "todo", name: "To-do list" },
+    ],
+    unpinned: [
+      { id: "q3", name: "Q3 launch plan" },
+      { id: "prep", name: "Meeting prep" },
+      { id: "long", name: "An artifact with a rather longer name than usual" },
+      { id: "report", name: "Report" },
+    ],
+  });
+  document.head.insertAdjacentHTML("beforeend", `<style>${sidebar.styles.join("\n")}</style>`);
+  document.body.insertAdjacentHTML("afterbegin", sidebar.markup);
+  pairChannelRowMenus(document.body);
+  
+  document.querySelectorAll(".menu").forEach(wireMenu);
+---
+<!--
+  The channel menu in the sidebar's context — the spec's own markup: each row
+  carries its trigger (revealed on the row's hover, held while its menu is
+  open) and its own menu, adjacent to the trigger — pinned rows read Unpin
+  where unpinned rows read Pin, stated in the markup. Staging supplies sample
+  channels and the keyboard wiring; open, anchor, toggle, dismissal and the
+  held states are all the platform's.
+-->

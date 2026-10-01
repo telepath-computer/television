@@ -1,0 +1,12 @@
+---
+params:
+  state: { enum: [connected, connecting, disconnected, unauthorized, error, needs-upgrade, no-channels], default: connected }
+script: |
+  import { mountApp } from "./mount.ts";
+
+  mountApp({ settings: { loading: true } });
+  window.addEventListener("frameset:rendered", () => location.reload());
+---
+<!-- The app settings panel while its registry request is active (staging). -->
+
+<div class="window"></div>

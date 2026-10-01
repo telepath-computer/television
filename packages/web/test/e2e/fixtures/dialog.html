@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Native dialog behavior fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <style>
+      #background-action {
+        position: fixed;
+        inset: 16px auto auto 16px;
+      }
+
+      /* A surface may override the zero-specificity foundation panel styles.
+         Keep a real dialog-target panel region in this behavior fixture. */
+      #dialog-host dialog {
+        padding: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="popover-trigger" type="button">Open popover</button>
+    <tv-popover id="floating-panel" trigger="popover-trigger" manual>Floating panel</tv-popover>
+    <button id="normal-trigger">Normal</button><tv-popover id="floating-normal" trigger="normal-trigger">Normal panel</tv-popover>
+    <button id="menu-trigger">Menu</button><tv-menu id="floating-menu" trigger="menu-trigger"><tv-menu-item>Action</tv-menu-item></tv-menu>
+    <button id="select-trigger"></button><tv-select id="floating-select" trigger="select-trigger"><tv-option value="a">Alpha</tv-option></tv-select>
+    <button id="background-action" type="button">Background action</button>
+    <main id="dialog-host"></main>
+
+    <script type="module">
+      import "/packages/web/src/elements/popover.ts";
+      import "/packages/web/src/elements/menu.ts";
+      import "/packages/web/src/elements/select.ts";
+      import { html, render } from "lit-html";
+      import {
+        dialogTemplate,
+        presentDialog,
+      } from "/packages/web/src/views/dialog.ts";
+
+      const host = document.querySelector("#dialog-host");
+      const popover = document.querySelector("#floating-panel");
+      const background = document.querySelector("#background-action");
+      let presentation;
+
+      render(
+        dialogTemplate(
+          html`
+            <section class="dialog-alert" role="alertdialog" aria-labelledby="alert-title">
+              <h2 id="alert-title">Delete artifact?</h2>
+              <p>The file remains on disk.</p>
+              <div class="dialog-actions">
+                <button id="cancel" type="button" autofocus>Cancel</button>
+                <button id="inside-action" type="button">Inspect details</button>
+                <button type="button" intent="danger">Delete</button>
+              </div>
+            </section>
+          `,
+        ),
+        host,
+      );
+
+      const dialog = host.querySelector("dialog");
+      const record = {
+        animationEvents: [],
+        backgroundClicks: 0,
+        backgroundPointerDowns: 0,
+        closeEvents: 0,
+        dismissals: [],
+        focus: [],
+        insideClicks: 0,
+        panelPaddingClicks: 0,
+        phases: [],
+        popoverToggles: [],
+        transitionEvents: [],
+      };
+
+      const state = (label) => ({
+        animationCount: document.getAnimations({ subtree: true }).length,
+        label,
+        modal: dialog.matches(":modal"),
+        open: dialog.open,
+      });
+      const frames = async (label) => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+        record.phases.push(state(`${label}:frame-1`));
+        await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+        record.phases.push(state(`${label}:frame-2`));
+      };
+      for (const name of ["animationstart", "animationiteration", "animationend", "animationcancel"]) {
+        document.addEventListener(name, (event) => record.animationEvents.push(event.type), true);
+      }
+      for (const name of ["transitionrun", "transitionstart", "transitionend", "transitioncancel"]) {
+        document.addEventListener(name, (event) => record.transitionEvents.push(event.type), true);
+      }
+      document.addEventListener("focusin", (event) => {
+        record.focus.push(event.target instanceof HTMLElement ? event.target.id : "");
+      });
+      new MutationObserver(() => record.popoverToggles.push(popover.hasAttribute("open") ? "open" : "closed"))
+        .observe(popover, { attributes: true, attributeFilter: ["open"] });
+      background.addEventListener("click", () => {
+        record.backgroundClicks += 1;
+      });
+      background.addEventListener("pointerdown", () => {
+        record.backgroundPointerDowns += 1;
+      });
+      dialog.addEventListener("close", () => {
+        record.closeEvents += 1;
+      });
+      dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) record.panelPaddingClicks += 1;
+      });
+      dialog.querySelector("#inside-action").addEventListener("click", () => {
+        record.insideClicks += 1;
+      });
+
+      window.__dialogFixture = {
+        async openPopoverAndPresent(panelID = "floating-panel") {
+          const floating = document.getElementById(panelID);
+          floating.setAttribute("open", "");
+          if (!floating.hasAttribute("open")) throw new Error("Entry requires an open floating panel");
+          record.phases.push(state("entry:before"));
+          presentation = presentDialog(dialog, (reason) => {
+            record.phases.push(state(`${reason}:before-withdraw`));
+            record.dismissals.push(reason);
+            presentation.withdraw();
+            record.phases.push(state(`${reason}:after-withdraw`));
+          });
+          record.phases.push(state("entry:after-present"));
+          await frames("entry");
+          if ((panelID === "floating-panel" && !record.popoverToggles.includes("closed")) || !record.focus.includes("cancel")) {
+            throw new Error("Dialog entry did not produce popover-close and Cancel-focus signals");
+          }
+        },
+        async presentAgain() {
+          record.phases.push(state("reentry:before"));
+          presentation = presentDialog(dialog, (reason) => {
+            record.phases.push(state(`${reason}:before-withdraw`));
+            record.dismissals.push(reason);
+            presentation.withdraw();
+            record.phases.push(state(`${reason}:after-withdraw`));
+          });
+          record.phases.push(state("reentry:after-present"));
+          await frames("reentry");
+          if (document.activeElement !== dialog.querySelector("#cancel")) {
+            throw new Error("Dialog re-entry did not focus Cancel");
+          }
+        },
+        async settle(label) {
+          await frames(label);
+        },
+        snapshot() {
+          return {
+            ...structuredClone(record),
+            activeId: document.activeElement instanceof HTMLElement ? document.activeElement.id : "",
+            backgroundContainsFocus:
+              background === document.activeElement ||
+              document.querySelector("#popover-trigger") === document.activeElement ||
+              popover.contains(document.activeElement),
+            dialogContainsFocus: dialog.contains(document.activeElement),
+            dialogRect: dialog.getBoundingClientRect().toJSON(),
+            modal: dialog.matches(":modal"),
+            open: dialog.open,
+            popoverOpen: document.querySelectorAll("tv-popover[open], tv-menu[open], tv-select[open]").length > 0,
+          };
+        },
+      };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

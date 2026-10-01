@@ -1,0 +1,29 @@
+:where(:root) {
+  /* Reusable elevations, from a close contact to a broad floating shadow. */
+  --shadow-sm: 0 1px 4px oklch(from var(--neutral-950) l c h / var(--alpha-15));
+  --shadow-md: 0 4px 12px oklch(from var(--neutral-950) l c h / var(--alpha-15));
+  --shadow-lg:
+    0 8px 24px oklch(from var(--neutral-950) l c h / var(--alpha-10)),
+    0 2px 8px oklch(from var(--neutral-950) l c h / var(--alpha-5));
+
+  /* Broad window elevation for artifact frames. */
+  --shadow-xl:
+    0 24px 48px oklch(from var(--neutral-950) l c h / var(--alpha-15)),
+    0 4px 12px oklch(from var(--neutral-950) l c h / 7.5%);
+
+  /* Popovers, including menus and selects, sit closer than dialogs. */
+  --popover-shadow: var(--shadow-md);
+  --dialog-shadow: var(--shadow-lg);
+}
+
+/* Dark surfaces need stronger shadows with the same neutral pigment. */
+:where([data-theme="dark"]) {
+  --shadow-sm: 0 1px 4px oklch(from var(--neutral-950) l c h / var(--alpha-40));
+  --shadow-md: 0 4px 12px oklch(from var(--neutral-950) l c h / var(--alpha-40));
+  --shadow-lg:
+    0 8px 24px oklch(from var(--neutral-950) l c h / var(--alpha-40)),
+    0 2px 8px oklch(from var(--neutral-950) l c h / var(--alpha-25));
+  --shadow-xl:
+    0 24px 48px oklch(from var(--neutral-950) l c h / 30%),
+    0 4px 12px oklch(from var(--neutral-950) l c h / 18.75%);
+}

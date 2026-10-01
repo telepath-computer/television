@@ -1,0 +1,48 @@
+---
+title: Shadows
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main {
+    /* self-grounded: the theme control must paint its own world */
+    padding: 32px 40px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    background: var(--app-wallpaper);
+    color: var(--color-text);
+  }
+  h2 {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-text-muted);
+    margin: 0 0 24px;
+  }
+  .samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-48);
+  }
+  .panel {
+    width: 320px;
+    padding: var(--space-20);
+    background: var(--color-surface);
+    border-radius: var(--panel-radius);
+
+  }
+  .panel small {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--color-text-muted);
+  }
+---
+<main>
+  <h2>Shadows</h2>
+  <div class="samples">
+    <div class="panel" style="box-shadow: var(--shadow-sm)"><strong>Small</strong><br><small>--shadow-sm</small></div>
+    <div class="panel" style="box-shadow: var(--shadow-md)"><strong>Medium</strong><br><small>--shadow-md · sidebar, popovers</small></div>
+    <div class="panel" style="box-shadow: var(--shadow-lg)"><strong>Large</strong><br><small>--shadow-lg · dialogs</small></div>
+    <div class="panel" style="box-shadow: var(--shadow-xl)"><strong>Extra large</strong><br><small>--shadow-xl · artifact frames</small></div>
+  </div>
+</main>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appearance frame fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css">
+    <style>
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+      }
+
+      iframe {
+        display: block;
+        width: 320px;
+        height: 180px;
+        border: 0;
+      }
+    </style>
+    <script type="module" src="./appearance-frame.ts"></script>
+  </head>
+  <body>
+    <iframe id="appearance-child" title="Cross-origin appearance probe"></iframe>
+  </body>
+</html>

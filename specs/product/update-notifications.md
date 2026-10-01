@@ -1,0 +1,139 @@
+*How users learn about important Television updates and how clients stay current: the shared update notice and persistent bell, the deprecated desktop upgrade recommendation for apps installed from npm, silent client auto-reload, the desktop app's own updates, and the desktop upgrade gate.*
+
+**Plain english:** the Television server doesn't update itself, so users need to find out when a server update worth installing exists. The downloaded desktop app does update itself, and running apps need to cope when the server behind them gets updated. This spec describes what users see: a small in-app notice (with a bell icon to bring it back after dismissing) for an important server release, for a desktop app update that has downloaded and installs on a restart, or, in a desktop app installed from npm, the move to the downloaded app; browser tabs quietly refreshing themselves so they match their server, and the desktop app blocking itself with upgrade instructions only when it is too old to be used safely.
+
+# Update notifications
+
+## What this owns
+
+This spec owns the **user-facing update experience**: the silent auto-reload that keeps a browser or desktop client current with its server; the desktop app's own updates and the notice and restart they offer; the shared notice and persistent bell used for important server releases, downloaded desktop updates and the desktop upgrade recommendation; each notice kind's dismissal behavior; and the *desktop upgrade gate* that stops an incompatible desktop app until it is upgraded.
+
+It is implementation-agnostic. The version surfaces, update-channel format and polling, reload mechanics, desktop self-update notice, recommendation and gate decisions, notice delivery, and clipboard fallback are architecture, in [arch/updates/index.md](../arch/updates/index.md). How desktop releases are made is architecture in [arch/desktop/distribution.md](../arch/desktop/distribution.md), and how the app runs its updater and restarts into an update is architecture in [arch/desktop/updates.md](../arch/desktop/updates.md).
+
+## Five mechanisms, one goal
+
+Five mechanisms keep a Television server and its clients up to date:
+
+- An **update toast and bell icon** tells the user that an important Television server release exists ([The update toast](#the-update-toast)).
+- A **desktop upgrade recommendation**, which is deprecated, uses the same notice and bell to tell the user of a desktop app installed from npm that the downloaded app is available and how to install it ([The desktop upgrade recommendation](#the-desktop-upgrade-recommendation)).
+- The downloaded **desktop app updates itself** from the desktop releases Television ships, and the same notice and bell offer a restart that installs a downloaded update ([Desktop app updates](#desktop-app-updates)).
+- Client **auto-reload** keeps a running client matched to its server, invisibly ([Auto-reload](#auto-reload-stale-clients-self-heal)).
+- The **desktop upgrade gate** stops a desktop app whose shell has fallen too far behind — the blocking path for the one client piece auto-reload cannot refresh ([The desktop upgrade gate](#the-desktop-upgrade-gate)).
+
+Television never upgrades a server on its own: the user's agent upgrades it. The downloaded desktop app installs its own updates when the user restarts it from the notice or the gate, or quits it. That restart is the only update control on any of these surfaces.
+
+**One notice at a time.** The update toast, the desktop self-update notice and the desktop upgrade recommendation share one notice and bell ([ui/app/update-notification/index.md](../ui/app/update-notification/index.md)), which show one notice at a time, in that order. A notice that applies keeps the notice and bell whether or not the user has dismissed it, and dismissing it never reveals a later one. When it ceases to apply, a later notice that applies and has not been dismissed presents automatically in the same session; dismissal alone is not such a change. The desktop self-update notice and the recommendation never apply to the same app ([^desktop-rec-first-release](#^desktop-rec-first-release)), and the gate supersedes all three ([^gate-supersedes-toast](#^gate-supersedes-toast)). ^notice-precedence
+
+## The update toast
+
+The television.run website publishes a public *update channel*: a single manually-deployed JSON notice naming the latest release worth announcing. Most releases never appear on it — Television ships continuously, and a toast for every version would train users to ignore it. A channel entry is a deliberate, human decision that a release matters. ^channel-curated
+
+The channel lives at `https://television.run/update-channel.json`. The URL is part of the product: it is what every shipped Television install watches, and what a release manager deploys to ([update-channel.md](../arch/updates/update-channel.md) owns the document format and deploy procedure). ^channel-url
+
+When the channel names a release newer than the server the user is connected to, the interface shows a persistent bell icon and presents a notice — the *update toast* (placement and presentation are the surface's, [ui/app/update-notification/index.md](../ui/app/update-notification/index.md)): ^toast-behavior
+
+- **Body.** A short markdown message written for that release, rendered with the same markdown treatment as the rest of the interface — the channel is Television's own published content, and the toast shows it as is. Release details identify the available release with its exact [release version](./versioning.md#^pv-exact-version), matching the channel's `version`; a heading may use the ordinary **Television `major.minor`** release name. Links in it open outside the Television interface (a new browser tab, or the system browser from the desktop app). ^toast-markdown
+- **Copy-prompt button.** When the notice includes an upgrade prompt, the toast shows a button that copies the prompt text to the clipboard. The user pastes it to their agent, which performs the upgrade following the hosted admin guide at `https://television.run/install.md`. Copying works in every context Television runs in, including plain-HTTP LAN and Tailscale setups. ^toast-copy-prompt
+- **Identical everywhere.** Browser and desktop show the same server-update toast. Its body has no desktop-specific variant and no "quit and relaunch" instruction — post-upgrade server steps are the agent's job, reached through the copied prompt. The shared surface can separately carry the desktop self-update notice and the desktop-only recommendation below. ^toast-identical
+- **It stays until dismissed.** The toast never auto-hides; an important, rare notice should not disappear before the user acts on it. (The closing grammar itself is the surface's, [ui/app/update-notification/index.md#^un-closing](../ui/app/update-notification/index.md#^un-closing).)
+- **Dismiss forever, per release.** Dismissing the toast means it never auto-pops again for that release, for that browser or desktop app, across reloads and restarts. A newer channel notice pops again. The bell (below) remains the way back to a dismissed notice. ^toast-dismiss
+- **Persistent bell.** The bell icon is shown — in browser and desktop alike — whenever the update channel indicates an available update, dismissed or not; it is the way back to a dismissed notice ([ui/app/update-notification/index.md#^un-bell-represents](../ui/app/update-notification/index.md#^un-bell-represents) owns its interaction). The bell disappears only when no update applies anymore — the server now matches or exceeds the announced release, or no channel data is available. ^toast-bell
+
+The toast degrades to silence. If the channel is unreachable, malformed, or empty, or the server cannot check it, the user sees no server-update toast and no channel error. A desktop app may still show its desktop self-update notice or its bundle-owned recommendation below. ^channel-silent-failure
+
+## The desktop upgrade recommendation
+
+The *desktop upgrade recommendation* is deprecated. It exists only for desktop apps installed from npm, which are safe to use once they pass the gate but receive no more updates: it tells their users that the downloaded app is available and how to install it themselves. Downloaded apps receive [their own updates](#^desktop-self-update) and never the recommendation. When the shell is older than the web bundle's recommended desktop version, the desktop app presents the recommendation through the existing update bell and notice ([ui/app/update-notification/index.md](../ui/app/update-notification/index.md)). The recommendation is soft: the normal interface remains fully usable, and the user may keep the current desktop version. ^desktop-rec-behavior
+
+- **Desktop only, after the gate.** Browser clients never receive it. The recommendation is considered only after the desktop upgrade gate allows normal boot ([^gate-supersedes-toast](#^gate-supersedes-toast)). Development shells reporting `0.0.0` are exempt. ^desktop-rec-scope
+- **Fixed markdown body.** The recommendation body is bundled with the interface and rendered through the same markdown pipeline and external-link behavior as the server update toast. It says that the Television desktop app is now a downloaded Mac app that updates itself and that this copy was installed with npm and receives no more updates. It then gives the download link and the [installation steps](./desktop-app.md#^desktop-install-download), with one more step: quit this app before opening the downloaded one, which keeps the saved server connection. The link and steps are the ones the [administrator guide](../arch/cli/admin-guide.md) gives. The exact words are the update-notification surface's copy ([content.yml#desktop_upgrade_recommendation](../ui/app/update-notification/content.yml#desktop_upgrade_recommendation)). ^desktop-rec-markdown
+- **No agent prompt.** The recommendation carries no prompt for the user's agent, so the notice shows no copy-prompt button: the user follows the steps in its body. ^desktop-rec-copy-prompt
+- **Last in the shared order.** The recommendation comes after the server notice and the desktop self-update notice ([^notice-precedence](#^notice-precedence)).
+- **Dismiss forever.** Dismissing the recommendation keeps it from auto-popping again across reloads and restarts. Its persistence is independent from server-notice dismissal. ^desktop-rec-dismiss
+- **Persistent bell.** The bell remains after recommendation dismissal and re-presents it when clicked. It disappears when the recommendation no longer applies. ^desktop-rec-bell
+
+From Television 1.4.0, the recommended desktop version is `1.4.0`, and the [required desktop version](#^gate-themes-release) stays `1.3.1`. Version 1.4.0 is the [boundary between apps installed from npm and downloaded apps](./desktop-app.md#^desktop-npm-package), even though the first downloaded release carries a later version. The recommendation therefore reaches every npm-installed app that passes the gate, on every platform, and no downloaded app. Apps installed from npm below 1.3.1 are gated instead. The recommended version stays `1.4.0`, so a server that requires 1.4.0 or later gates every app installed from npm, and the recommendation reaches none of its clients. ^desktop-rec-first-release
+
+## Auto-reload: stale clients self-heal
+
+A client whose loaded interface was built from a different Television release than the server it is connected to reloads itself to pick up the server's current interface. ^reload-behavior
+
+- **It is silent.** The user sees an ordinary page reload and nothing else — no toast, no error, no explanation. A reload is only triggered when the client is already known-stale, so the reload restores correctness rather than interrupting anything.
+- **It happens when staleness can appear.** A version mismatch can only arise when the server restarts on a new release, which always drops the client's live connection — so the client checks when its connection (re)establishes and reloads immediately on mismatch, without deferral. A reload at that moment can in principle lose a sub-second window of unsaved keystrokes (the markdown editor saves on a short debounce). Accepted: in practice the reload follows an upgrade the user just initiated through their agent — they are engaging their agent with an upgrade prompt, not typing in a markdown view — so the loss window is negligible, and machinery to eliminate it is not worth its complexity. ^reload-immediate
+- **It never loops.** If a reload does not clear the mismatch (for example, a misconfigured proxy serving a cached interface), the client does not retry and shows nothing; at most one reload attempt is made per server release per tab session. The next server release naturally retries. ^reload-once
+- **Development builds never reload.** An interface built outside the release pipeline reports a development version and is treated as always matching, so developers running local builds against arbitrary servers are never reload-interrupted. ^reload-dev-exempt
+
+The desktop app gets identical behavior for free: it renders the interface served by the server, so the same reload brings it current. The desktop shell's own version is unrelated to this mechanism and is never compared to the server's own release version; the shell is separately governed by [its own updates](#^desktop-self-update), [the gate](#the-desktop-upgrade-gate) and, for apps installed from npm, [the recommendation](#the-desktop-upgrade-recommendation).
+
+### Developer hosts
+
+The `~/.tv-developer` developer-host marker ([telemetry.md#^developer-host-project-guard](./telemetry.md#^developer-host-project-guard)) has no effect on update notifications. A release-build server on a marked host checks the update channel, and its clients see toasts and bells like any other install — developers' real, npm-installed personal servers must hear about releases too. What keeps server-update development nag-free is the build, not the host: a development-build server (no release version stamped) never polls the channel ([arch/updates/index.md#^updates-dev-version](../arch/updates/index.md#^updates-dev-version)), never triggers a reload, and advertises no desktop requirement, so it never gates ([desktop-upgrade-gate.md](../arch/updates/desktop-upgrade-gate.md)). A desktop shell reporting `0.0.0` is independently exempt from the recommendation. ^toast-dev-host
+
+## Desktop app updates
+
+The desktop app installed from Television's [download link](./desktop-app.md#^desktop-install-download) updates itself from the desktop releases Television ships ([versioning](./versioning.md#^pv-desktop-release-version)): ^desktop-self-update
+
+- **Checking and downloading.** The app checks for a released update when it starts and every ten minutes while it runs. A check that finds an update downloads it in the background.
+- **The desktop self-update notice.** From Television 1.4.2, when the download finishes, the app presents the *desktop self-update notice* through the shared bell and notice ([ui/app/update-notification/index.md](../ui/app/update-notification/index.md)). It says that Television updates its desktop app automatically and that the downloaded version installs when the user restarts the app, and it offers a **Restart to update** button.
+- **Restart to update.** Pressing the button quits the app, installs the update and opens the app again on the new release, with its saved server connection. The user does nothing else.
+- **Dismiss per version.** Dismissing the notice keeps it from presenting by itself again for that downloaded version, across reloads and restarts; a different downloaded version presents again. The bell stays while the update waits to install, and clicking it presents the notice again.
+- **After the server notice.** The desktop self-update notice takes its place in the [shared order](#^notice-precedence).
+- **Desktop only, after the gate.** Browsers never show the notice. A gated app shows the downloaded update on the [gate screen](#^gate-instructions-fallback) instead. An app connected to a server whose interface predates the notice shows nothing about a downloaded update, which still installs on quit.
+- **Installing on quit.** An update the user does not restart into installs after the user quits the app, and the app runs the new release when it is next opened after the installation finishes. The installation finishes a short time after the app quits, so an app opened again straight away can still run the earlier release. An app that still runs the earlier release finds the update again, offers it again and installs it when it next restarts or quits.
+- **Only desktop releases.** The app downloads only [desktop releases](./versioning.md#^pv-desktop-release-version). Between them, it finds nothing to download and shows nothing.
+
+[Apps installed from the npm package](./desktop-app.md#^desktop-npm-package) do not update themselves.
+
+## The desktop upgrade gate
+
+The desktop app has one part auto-reload cannot refresh: the installed application itself, called the *shell* below. Each Television server release knows the minimum desktop release it is meant to be used with. A desktop app running an older shell than its connected server requires is *gated*: the normal interface **never starts** — startup stops at a blocking gate screen saying the desktop app is out of date, rendering upgrade instructions (markdown, with the same treatment and external-link behavior as the toast). ^gate-behavior
+
+- **Blocking, not dismissible.** A gated desktop app cannot be used until it is upgraded and relaunched. The gate exists precisely because the shell has fallen behind what the connected server needs; letting the user wave it away would defeat it.
+- **Nothing runs behind it.** A gated app is halted, not covered: it loads no channels and no artifacts. The point of the gate is that an old shell and a new server may no longer speak the same internal language, so a gated app must not try — a notice floating over a working app would defeat that. ^gate-halted
+- **Desktop only.** Browser clients are never gated — a browser has no shell to fall behind; auto-reload keeps it fully current. ^gate-desktop-only
+- **The gate supersedes every notice.** A gated desktop app shows no server-update toast, desktop self-update notice or desktop recommendation, and no bell; the gate screen owns the whole upgrade story for that user, including a downloaded desktop update. ^gate-supersedes-toast
+- **Curated, like the toast.** Routine releases never gate anyone: a server's required desktop release is raised deliberately, by a human, only when a shell change genuinely requires users to upgrade — not on every release. ^gate-curated
+- **Driven by the server, not the channel.** The gate compares the shell against the *connected server's* requirement, so it fires only after that server has actually been upgraded to a release needing the newer shell — never preemptively for upgrades the user's own server hasn't received. It works even when the update channel is unreachable. ^gate-server-driven
+- **Never a dead end.** When the app has downloaded an update, the gate says that this version of the desktop app does not work with the server and needs updating, and that the new version has already downloaded and installs on a restart, and it shows the **Restart to update** button, which works as the notice's does. When the app reports no downloaded update — it may still be downloading, its update may have failed, or it cannot report one, like an app released before apps could report downloads or an app installed from npm — the gate prefers upgrade instructions published on the update channel, and when none are available (channel down or nothing published) it gives the user the desktop app's [download link](../arch/desktop/distribution.md#^desktop-dist-links) and tells them to install the latest version. A download reported while the gate is shown changes it to the first message. Both built-in messages are written for the user, not their agent, because the desktop app typically doesn't share a host with the agent and the administrator guide is agent-facing. Their words are the gate surface's copy ([ui/app/desktop-upgrade-gate/index.md](../ui/app/desktop-upgrade-gate/index.md)). ^gate-instructions-fallback
+
+The theming release requires desktop `1.3.1`. Earlier shells cannot carry the server's selected light or dark appearance into artifact views. In the default Clouds theme, choosing an appearance that differs from the device can leave artifact text and its enclosing background in opposite appearances, making content unreadable. The requirement applies regardless of the current theme or appearance selection. ^gate-themes-release
+
+When an important release needs both a server and a desktop upgrade, the desktop release that meets the new requirement comes out before the server release is published, and the update channel announces the server release after that ([desktop-upgrade-gate.md](../arch/updates/desktop-upgrade-gate.md#^ops-bump)). A server that requires the newer desktop release can therefore never be installed before that release can be downloaded, and a server and desktop app installed for the first time always work together. Downloaded desktop apps download the release [as they download any update](#^desktop-self-update) and install it when the user restarts or quits. The user then sees the toast; the gate does not fire, because their server is not upgraded yet. Their agent upgrades the server, which now requires the newer desktop release. An app that has installed that release boots normally. An app that has not is gated; it keeps checking for updates while gated, the gate offers the restart once it has downloaded the release, and the restarted app passes the gate. Users of apps installed from npm follow the gate's instructions. Instructions published on the channel should assume that order. ^gate-sequencing
+
+## Non-goals
+
+- No self-upgrade of the Television server, and no control that upgrades the server or starts a desktop download ([Five mechanisms, one goal](#five-mechanisms-one-goal)).
+- No per-release server notification for routine releases; the channel is reserved for important ones.
+- No update badge, menu entry, system notification, or other notification surface beyond the shared notice and bell and the gate.
+- No comparison between the desktop shell's version and the server's own version. The hard gate compares the shell with the server's separately maintained desktop requirement ([desktop-upgrade-gate.md](../arch/updates/desktop-upgrade-gate.md)); the recommendation compares it with the web bundle's separately maintained recommendation ([desktop-upgrade-recommendation.md](../arch/updates/desktop-upgrade-recommendation.md)).
+
+## Telemetry
+
+Four content-free telemetry events cover the server-update, reload, and gate mechanisms, under all guarantees of [telemetry.md#Privacy guarantees](./telemetry.md#Privacy guarantees). Version numbers are the only payload — never the toast text, prompt, or instructions. The events are members of the closed telemetry vocabulary ([arch/telemetry/index.md](../arch/telemetry/index.md)); when each fires is owned by the arch specs under [arch/updates/index.md](../arch/updates/index.md). Neither the desktop self-update notice nor the desktop recommendation adds an event or reuses the channel-toast events ([desktop-self-update-notice.md#^desktop-self-update-notice-no-telemetry](../arch/updates/desktop-self-update-notice.md#^desktop-self-update-notice-no-telemetry); [desktop-upgrade-recommendation.md#^desktop-rec-no-telemetry](../arch/updates/desktop-upgrade-recommendation.md#^desktop-rec-no-telemetry)). ^telemetry-events
+
+- *client autoreloaded* — the from- and to-versions.
+- *update toast shown* — the installed and channel versions.
+- *update prompt copy clicked* — the installed and channel versions.
+- *desktop upgrade gate shown* — the shell and required desktop versions.
+
+## Testing
+
+Desktop upgrade gate acceptance must exercise the real Electron app against a running Television server. While gated, the gate must be the sole application presentation. No display, channel, or artifact loading may begin. No update notice or bell may appear ([^gate-supersedes-toast](#^gate-supersedes-toast)).
+
+Gate acceptance must also cover a normal boot in the real Electron app against a running Television server. Browser gate acceptance must run in a real browser against a server that advertises a desktop requirement.
+
+Auto-reload acceptance must run in a real browser against a Television server that serves interfaces built for named releases. It must cover both an initial connection with a stale interface and a connected client whose server restarts on a new release.
+
+The browser journey from update notice through server restart and reload must run without authentication and with a real bearer token.
+
+Update-notification acceptance must run in a real browser. Desktop self-update notice acceptance must run in the real Electron app, with the update runtime reporting a downloaded update and no network or ToDesktop build. It must show the notice with the reported version and that pressing **Restart to update** sends the restart request to the main process. Gate acceptance must include a gated real Electron app whose runtime reports a downloaded update and show the downloaded-update message and its restart request. Marked-host acceptance must run a release-build server on a host carrying `~/.tv-developer`. Electron notification acceptance must run in the real Electron app and cross the system handler for external links.
+
+Under [Compositional coverage across clean seams](../arch/testing-policy.md#Compositional coverage across clean seams), product acceptance covers the complete update sequence by composing three real paths: the notice, a reload after a real server restart, and the desktop gate followed by a real app relaunch. It does not claim that Television installs the server upgrade. The desktop app's own update is left to the desktop application's [real-host checks](./desktop-app.md#Testing).
+
+Telemetry acceptance for the integrated browser and Electron journeys may stop at the telemetry sink; under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), [telemetry sink architecture](../arch/telemetry/sink.md#Real PostHog integration test surface) owns delivery from the sink to PostHog. Each serialized update event may contain only its stated version fields. No notice message, prompt, or gate instruction may enter a serialized event.
+
+Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), the specs under [update architecture](../arch/updates/index.md) own coverage of input variations and failure cases for version comparison, channel polling, reload decisions, the desktop recommendation, and the desktop gate. The architecture proofs do not repeat the product journeys.
+
+[Desktop upgrade architecture](../arch/updates/desktop-upgrade-gate.md#^pre-gate-handshake) owns proof that installed shells can connect far enough to receive a gate from a current server. This spec does not require a separate full gate journey in a previously published desktop package.
+
+The [update notification UI](../ui/app/update-notification/index.md#Interaction), [copy button UI](../ui/app/copy-button/index.md), and [desktop upgrade gate UI](../ui/app/desktop-upgrade-gate/index.md#Interaction) own their surface mechanics. The update notification UI proof covers closing and reopening the notice. The copy button UI proof covers both the modern and plain-HTTP clipboard paths. The desktop upgrade gate UI proof covers non-dismissal and scrolling.

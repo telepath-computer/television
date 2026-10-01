@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Artifact bridge lifecycle host</title>
+  </head>
+  <body>
+    <script>
+      window.__bridgeLifecycle = [];
+      window.addEventListener("message", (event) => {
+        const message = event.data;
+        if (
+          (message?.type !== "bridge-ready" && message?.type !== "leaving") ||
+          typeof message.guid !== "string"
+        ) {
+          return;
+        }
+        let installed = null;
+        try {
+          installed = event.source.__televisionArtifactBridgeInstalled === true;
+        } catch {}
+        window.__bridgeLifecycle.push({ type: message.type, guid: message.guid, installed });
+      });
+    </script>
+    <script type="module">
+      import { ArtifactTrustedChannel } from "/packages/web/src/components/artifact-trusted-channel.ts";
+
+      const channel = new ArtifactTrustedChannel((message) => {
+        if (message.type === "bridge-ready" || message.type === "leaving") {
+          console.log("TV_BRIDGE_TRUST " + JSON.stringify({
+            type: message.type,
+            guid: message.guid,
+            trustedGuid: channel.currentGuid,
+            lifecycle: window.__bridgeLifecycle,
+          }));
+        }
+      });
+      channel.connect();
+
+      const iframe = document.createElement("iframe");
+      iframe.id = "lifecycle-frame";
+      iframe.title = "Lifecycle";
+      iframe.src = "/packages/web/test/e2e/fixtures/artifact-bridge-lifecycle-first.html";
+      document.body.append(iframe);
+      channel.setCurrentFrame(iframe);
+
+      window.__bridgeTrustGuid = () => channel.currentGuid;
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

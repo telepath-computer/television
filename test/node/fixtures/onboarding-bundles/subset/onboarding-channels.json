@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "focusChannel": "alpha-screen",
+  "channels": [
+    {
+      "slug": "alpha-screen",
+      "name": "Alpha Screen",
+      "artifacts": [
+        {
+          "slug": "alpha",
+          "title": "Alpha"
+        }
+      ]
+    }
+  ]
+}

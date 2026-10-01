@@ -1,0 +1,70 @@
+/* The select interior ([[ui/foundation/select/index.md]]): the panel is
+   the popover's box ([[ui/foundation/popover/styles.css]]); these rules state
+   what a select holds inside it. The row sits as the menu's does
+   ([[ui/foundation/menu/styles.css]]), with a leading gutter carrying the
+   selected mark. */
+/* The trigger: the choice reads from the leading edge and the caret sits
+   pinned at the trailing edge — the native pop-up arrangement, visible
+   whenever the widest-option width leaves room. The hook is the combobox
+   semantics the element writes on the trigger ([[arch/ui/elements.md]]);
+   the button's own inline-flex row ([[ui/foundation/button/button.css]])
+   supplies the rest. */
+:where(button[aria-haspopup="listbox"]) {
+  justify-content: space-between;
+  text-align: left;
+  /* Tighter than the standalone button's inset: the panel opens over this
+     control at its width, so the trigger sits closer to its list rows than
+     to freestanding buttons. Tighter still on the trailing side — the caret
+     hugs the right edge, since the label holds the left. */
+  padding-inline: var(--space-8) var(--space-4);
+}
+
+/* No minimum of its own: the panel is at least as wide as its trigger
+   ([[ui/foundation/select/index.md]], Placement), and no wider than its
+   options ask. */
+:where(tv-select) {
+  padding: var(--space-4);
+}
+
+:where(tv-option) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  /* The control line, stated as the button states it — an option row is a
+     control, not prose, and inherits prose leading without this. */
+  font-size: var(--text-md);
+  line-height: var(--line-control);
+  /* A near-even inset: the leading edge holds the mark's gutter, and the
+     trailing edge carries enough of it back that the row reads balanced. */
+  padding: var(--space-3) var(--space-12) var(--space-3) var(--space-20);
+  /* The panel's radius less its padding, so the two curves sit concentric. */
+  border-radius: calc(var(--panel-radius) - var(--space-4));
+  cursor: default;
+}
+
+/* One highlight, element-managed ([[ui/foundation/select/index.md]],
+   Keyboard) — pointer and keyboard share the tint by construction, so no
+   hover rule exists to fight it. */
+:where(tv-option[highlighted]) {
+  background: var(--option-background-highlighted);
+}
+
+:where(tv-option:active) {
+  background: var(--option-background-active);
+}
+
+/* The selected mark: a check in the leading gutter, drawn as a mask (the
+   checklist's technique, [[ui/foundation/checkbox-list/styles.css]]) so the
+   authored option carries no icon markup. currentColor keeps it true on the
+   highlight tint. */
+:where(tv-option[selected])::before {
+  content: "";
+  position: absolute;
+  left: var(--space-4);
+  top: 50%;
+  translate: 0 -50%;
+  width: 1em;
+  height: 1em;
+  background: currentColor;
+  mask: var(--icon-check) center / 80% no-repeat;
+}

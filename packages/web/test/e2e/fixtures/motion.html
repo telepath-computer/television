@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared browser-motion fixture</title>
+    <style>
+      .motion-root {
+        width: 320px;
+      }
+
+      .transition-probe {
+        width: 20px;
+        height: 20px;
+        background: black;
+        transition: translate 280ms ease;
+      }
+
+      .transition-probe[running] {
+        translate: 120px 0;
+      }
+
+      .animation-probe {
+        width: 20px;
+        height: 20px;
+        background: gray;
+      }
+
+      .animation-probe[running] {
+        animation: motion-probe-pulse 280ms linear;
+      }
+
+      .scroll-probe {
+        width: 100px;
+        overflow: hidden;
+      }
+
+      .scroll-content {
+        width: 300px;
+        height: 1px;
+      }
+
+      @keyframes motion-probe-pulse {
+        from { opacity: 1; }
+        to { opacity: 0.25; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="motion-root">
+      <div class="transition-probe"></div>
+      <div class="animation-probe"></div>
+      <div class="waapi-probe"></div>
+      <div class="scroll-probe"><div class="scroll-content"></div></div>
+    </div>
+    <script>
+      const transitionProbe = document.querySelector(".transition-probe");
+      const animationProbe = document.querySelector(".animation-probe");
+      const waapiProbe = document.querySelector(".waapi-probe");
+      const scrollProbe = document.querySelector(".scroll-probe");
+
+      window.__triggerMotion = () => {
+        transitionProbe.toggleAttribute("running", true);
+        animationProbe.toggleAttribute("running", true);
+        const animation = waapiProbe.animate([{}, {}], {
+          duration: 280,
+          easing: "linear",
+        });
+        const moveScroll = () => {
+          const progress = animation.playState === "finished"
+            ? 1
+            : animation.effect?.getComputedTiming().progress ?? 0;
+          scrollProbe.scrollLeft = 120 * progress;
+          if (animation.playState !== "finished") requestAnimationFrame(moveScroll);
+        };
+        requestAnimationFrame(moveScroll);
+      };
+
+      window.__motionFixtureReport = () => ({
+        animationName: getComputedStyle(animationProbe).animationName,
+        scrollLeft: scrollProbe.scrollLeft,
+        transitionProperty: getComputedStyle(transitionProbe).transitionProperty,
+      });
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+---
+style: |
+  body {
+    margin: 0;
+    padding: 36px var(--space-8) var(--space-8);
+  }
+script: |
+  import { mountChannel } from "./channel.ts";
+
+  mountChannel("unpinning");
+---

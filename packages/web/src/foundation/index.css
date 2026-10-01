@@ -1,0 +1,19 @@
+/* The complete foundation in one stylesheet ([[ui/foundation/index.md]],
+   Delivery): reset before anything that overrides native styling, tokens
+   before anything that consumes them, then prose and the elements. The
+   shared layer only: the application document adds [[ui/foundation/tokens/app.css]]
+   on top; an artifact document never receives it. */
+@import "./reset.css";
+@import "./tokens/fonts.css";
+@import "./colors.css";
+@import "./text.css";
+@import "./spacing.css";
+@import "./shadows.css";
+@import "./layers.css";
+@import "./prose.css";
+@import "./button.css";
+@import "./input.css";
+@import "./popover.css";
+@import "./menu.css";
+@import "./select.css";
+@import "./checkbox-list.css";

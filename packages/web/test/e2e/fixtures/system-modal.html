@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application system modal fixture</title>
+    <link rel="stylesheet" href="/packages/web/src/foundation/index.css" />
+    <link rel="stylesheet" href="/packages/web/src/foundation/app.css" />
+    <link rel="stylesheet" href="/packages/web/src/global.css" />
+  </head>
+  <body>
+    <main id="fixture"></main>
+    <script type="module">
+      import { render } from "lit-html";
+      import { SystemModalView } from "/packages/web/src/views/system-modal.ts";
+
+      const host = document.querySelector("#fixture");
+      const authenticationCalls = [];
+      const application = {
+        async authenticate(token) {
+          authenticationCalls.push(token);
+        },
+      };
+
+      window.__authenticationCalls = authenticationCalls;
+      window.__poseSystemModal = async (state) => {
+        render(SystemModalView(state, application), host);
+        await Promise.resolve();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      };
+
+      await customElements.whenDefined("tv-icon");
+      await window.__poseSystemModal({ kind: "unauthorized", invalid: false });
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

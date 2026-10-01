@@ -1,0 +1,34 @@
+{
+  "jobs": [
+    {
+      "name": "Project browser",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a task review surface. Top of the sidebar: one ungrouped item 'All tasks', selected initially. Below it a 'Projects' group with three projects: a zine launch, a studio move, a bike repair. Each view shows a plausible little task list for its scope; the All tasks view aggregates them. Write index.html into the current directory. The skill's runtime assets (sidebar.css, sidebar.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-sidebar-view/browser",
+      "before_command": "rm -rf out/tv-sidebar-view/browser && mkdir -p out/tv-sidebar-view/browser && cp ../../packages/skills/dist/tv-sidebar-view/SKILL.md ../../packages/skills/dist/tv-sidebar-view/sidebar.css ../../packages/skills/dist/tv-sidebar-view/sidebar.js out/tv-sidebar-view/browser/"
+    },
+    {
+      "name": "Flat list",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a simple notes switcher: four items \u2014 Inbox, Ideas, Reading, Archive \u2014 no group titles. Each view is a short paragraph or two of plausible notes. Write index.html into the current directory. The skill's runtime assets (sidebar.css, sidebar.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-sidebar-view/flat",
+      "before_command": "rm -rf out/tv-sidebar-view/flat && mkdir -p out/tv-sidebar-view/flat && cp ../../packages/skills/dist/tv-sidebar-view/SKILL.md ../../packages/skills/dist/tv-sidebar-view/sidebar.css ../../packages/skills/dist/tv-sidebar-view/sidebar.js out/tv-sidebar-view/flat/"
+    },
+    {
+      "name": "Long labels",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a report browser whose sidebar items have deliberately long names (e.g. 'Quarterly infrastructure cost breakdown by region and provider', and three more like it, one short one too). Views hold a heading and a sentence each. Write index.html into the current directory. The skill's runtime assets (sidebar.css, sidebar.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-sidebar-view/long-labels",
+      "before_command": "rm -rf out/tv-sidebar-view/long-labels && mkdir -p out/tv-sidebar-view/long-labels && cp ../../packages/skills/dist/tv-sidebar-view/SKILL.md ../../packages/skills/dist/tv-sidebar-view/sidebar.css ../../packages/skills/dist/tv-sidebar-view/sidebar.js out/tv-sidebar-view/long-labels/"
+    },
+    {
+      "name": "Three sections",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a household dashboard with three titled groups \u2014 Rooms, People, Chores \u2014 a few items each. Views hold a short list or paragraph each. Write index.html into the current directory. The skill's runtime assets (sidebar.css, sidebar.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-sidebar-view/sections",
+      "before_command": "rm -rf out/tv-sidebar-view/sections && mkdir -p out/tv-sidebar-view/sections && cp ../../packages/skills/dist/tv-sidebar-view/SKILL.md ../../packages/skills/dist/tv-sidebar-view/sidebar.css ../../packages/skills/dist/tv-sidebar-view/sidebar.js out/tv-sidebar-view/sections/"
+    },
+    {
+      "name": "Recipe box",
+      "prompt": "Read the SKILL.md staged in the current directory and follow it. Author this artifact: a recipe box: an ungrouped 'This week' item first (selected), then a 'Recipes' group with four dishes. Each recipe view has the dish name, a short ingredient list, and numbered steps. Make the views feel like real content, not lorem. Write index.html into the current directory. The skill's runtime assets (sidebar.css, sidebar.js) are staged beside it \u2014 link them per the SKILL.md boilerplate; don't fetch or reconstruct anything from elsewhere.",
+      "cwd": "out/tv-sidebar-view/recipes",
+      "before_command": "rm -rf out/tv-sidebar-view/recipes && mkdir -p out/tv-sidebar-view/recipes && cp ../../packages/skills/dist/tv-sidebar-view/SKILL.md ../../packages/skills/dist/tv-sidebar-view/sidebar.css ../../packages/skills/dist/tv-sidebar-view/sidebar.js out/tv-sidebar-view/recipes/"
+    }
+  ]
+}

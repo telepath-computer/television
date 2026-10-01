@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "lib": [
+      "ES2022",
+      "ESNext.Disposable",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    ".storybook/**/*.ts",
+    "stories/**/*.ts",
+    "lib/**/*.ts",
+    "types.d.ts",
+    "../packages/web/src/dom-popover-source.d.ts"
+  ]
+}

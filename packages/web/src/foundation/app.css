@@ -1,0 +1,152 @@
+/* Application vocabulary — the component tokens of the application chrome,
+   as distinct from the materials the other token sheets state. The
+   application document loads this sheet on top of the foundation; an
+   artifact document never receives it ([[ui/foundation/index.md]],
+   Delivery). */
+/* Resolve relative image URLs where the theme declares them, before the
+   application stylesheet consumes the value through --app-wallpaper. */
+@property --app-wallpaper-image {
+  syntax: "<url> | none";
+  inherits: true;
+  initial-value: none;
+}
+
+:where(:root) {
+  /* Sidebar shell. */
+  --sidebar-background: var(--color-surface-muted);
+  --sidebar-text-color: var(--color-text);
+  --sidebar-shadow: none;
+  --sidebar-border-color: var(--color-border);
+  --sidebar-border: var(--panel-border);
+  --sidebar-heading-text-color: var(--color-text-muted);
+  --sidebar-heading-font-size: var(--text-md);
+
+  /* Channel rows and selection. */
+  --channel-background: transparent;
+  --channel-text-color: var(--sidebar-text-color);
+  --channel-background-hover: color-mix(in oklch, var(--channel-background), var(--channel-background-active) var(--hover-mix));
+  --channel-background-active: color-mix(in oklch, var(--channel-background), oklch(from currentColor l c h / 1) var(--alpha-active));
+  --channel-background-selected: var(--color-primary);
+  --channel-text-color-selected: var(--color-primary-text);
+  --channel-radius: var(--control-radius);
+
+  /* Tab labels. */
+  --tab-text-color: oklch(from var(--navbar-text-color) l c h / var(--alpha-75));
+  --tab-text-color-selected: var(--color-text);
+  --tab-font-size: var(--text-md);
+
+  /* Artifact frame and title bar. */
+  --artifact-frame-shadow: var(--shadow-xl);
+  --frame-background: var(--color-surface);
+  --frame-border-color: var(--color-border);
+  --frame-border: var(--panel-border);
+  --frame-titlebar-background: var(--color-surface-muted);
+  --frame-titlebar-text-color: var(--color-text);
+  --frame-titlebar-border-color: transparent;
+  --frame-titlebar-border-width: 1px;
+  --frame-titlebar-border: var(--frame-titlebar-border-width) solid var(--frame-titlebar-border-color);
+  --frame-titlebar-padding: var(--space-4) var(--space-10) var(--space-6);
+  --frame-titlebar-divider-color: var(--color-border);
+
+  /* Controls displayed over wallpaper. Blur is a backdrop radius: content
+     stays sharp. Background and border default to transparent. */
+  --wallpaper-overlay-text-color: var(--color-text);
+  --wallpaper-overlay-background: transparent;
+  /* Wallpaper controls retain the ghost text-color reaction by default.
+     Themes can set the complete active background; hover follows it. */
+  --wallpaper-overlay-background-hover: color-mix(in oklch, var(--wallpaper-overlay-background), var(--wallpaper-overlay-background-active) var(--hover-mix));
+  --wallpaper-overlay-background-active: color-mix(in oklch, var(--wallpaper-overlay-background), oklch(from currentColor l c h / 1) var(--alpha-active));
+  --wallpaper-overlay-border: 1px solid transparent;
+  --wallpaper-overlay-outline: none;
+  --wallpaper-overlay-blur: 0px;
+
+  /* Navbar and empty stage. */
+  /* The one height of the app's top bars — the navbar and the sidebar
+     titlebar — so controls across the boundary share a band. The value
+     centres the macOS traffic lights (15px top inset, 14px buttons) with even
+     air above and below the cluster. */
+  --app-bar-height: 44px;
+  /* Match the top inset of the standard 24px navbar controls. */
+  --app-bar-padding-inline: 10px;
+  /* The horizontal room an app bar reserves for the traffic-light cluster
+     when it holds the window's top-left corner. Only the desktop shell has
+     the cluster, and it marks the document root; in a browser the
+     reservation is zero. */
+  --traffic-light-x-reserve: 0px;
+  --navbar-background: transparent;
+  --navbar-text-color: var(--wallpaper-overlay-text-color);
+  --navbar-border-color: transparent;
+  --navbar-border-width: 1px;
+  --navbar-border: var(--navbar-border-width) solid var(--navbar-border-color);
+
+  /* The ground behind the stage: one background value, composed from an
+     optional image URL over the light or dark neutral ground. The image token
+     accepts url(...) or none; use the full wallpaper token for gradients or
+     other complete background treatments. */
+  --app-wallpaper-image: none;
+  --app-wallpaper: var(--app-wallpaper-image) center / cover no-repeat, var(--neutral-200);
+
+  /* The stage's dials ([[ui/app/stage/stage.frame]] consumes them): the gap
+     between pages, the inward inset from the stage edges, a background page's
+     presence, and the armed snap's outline. Declared here, at the root, so
+     a theme's root override wins — a declaration on the component would
+     shadow it. */
+  --page-gap: var(--space-24);
+  --page-inset: var(--space-8);
+  --page-inactive-blur: 0px;
+  --page-inactive-backdrop-blur: var(--wallpaper-overlay-blur);
+  --page-inactive-opacity: 0.55;
+  --page-inactive-scale: 0.94;
+  --page-snap-preview-border-color: oklch(from currentColor l c h / var(--alpha-25));
+  --page-snap-preview-background: transparent;
+  --page-snap-preview-border-width: 3px;
+  --page-snap-preview-border: var(--page-snap-preview-border-width) solid var(--page-snap-preview-border-color);
+  --page-snap-preview-radius: 12px;
+
+  /* The tab pill's own dials ([[ui/app/tab-strip/tab.frame]] and the strip
+     consume them). */
+  --tab-radius: var(--control-radius);
+  --tab-gap: var(--space-3); /* between tabs in the strip */
+  --tab-border: var(--wallpaper-overlay-border);
+  /* Transparent at rest; pointer states use the shared control tints. */
+  --tab-background: var(--wallpaper-overlay-background);
+  --tab-background-hover: color-mix(in oklch, var(--tab-background), var(--tab-background-active) var(--hover-mix));
+  --tab-background-active: var(--wallpaper-overlay-background-active);
+  --tab-background-selected: var(--color-surface-muted);
+  /* Reserve the edge in every state so theme borders do not shift tabs. */
+  --tab-border-selected: 1px solid transparent;
+  --tab-outline: var(--wallpaper-overlay-outline);
+  --tab-outline-selected: none;
+
+  /* The drag placeholder's ghost fill — the "a carried thing could land
+     here" mark the tab strip and the sidebar share
+     ([[ui/app/tab-strip/tab-placeholder.frame]],
+     [[ui/app/sidebar/channel-placeholder.frame]]). */
+  --drag-placeholder-background: oklch(from var(--color-text) l c h / var(--alpha-10));
+
+  /* Dragged items lift above the smaller action pill. */
+  --drag-item-shadow: var(--shadow-md);
+  --drag-action-shadow: var(--shadow-sm);
+
+
+  /* The shared top band supplies equal air above and below the tabs. */
+  --navbar-gap: 0px;
+
+  /* The artifact frame's radius ([[ui/app/artifact-frame/artifact-frame.frame]]);
+     artifact documents also apply it by reference
+     ([[ui/app/artifact-frame/index.md#^af-document-corners]]). */
+  --frame-radius: 12px;
+}
+
+:where([data-theme="dark"]) {
+  --app-wallpaper: var(--app-wallpaper-image) center / cover no-repeat, var(--neutral-950);
+}
+
+/* The desktop shell marks the document root; the traffic-light reservation
+   exists only there. */
+:root[data-platform="electron"] {
+  /* The cluster ends at 73px (15px inset, three 14px buttons, two 8px gaps);
+     the bar adds its outer padding to this reservation, leaving air
+     before its first control. */
+  --traffic-light-x-reserve: 72px;
+}

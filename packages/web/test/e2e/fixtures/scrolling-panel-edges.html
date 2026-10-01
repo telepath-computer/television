@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/packages/canonical/styles/canonical/v2/index.css">
+<style>
+  :root { --popover-shadow: none; --dialog-shadow: none; }
+  body { background: white; padding: 40px; }
+  body > button { width: 100px; box-sizing: border-box; }
+  tv-popover, tv-menu, tv-select, dialog { width: 240px; }
+  dialog { margin: auto; }
+  .row { height: 32px; }
+</style>
+</head>
+<body>
+<button id="open-popover">Popover</button><button id="open-menu">Menu</button><button id="open-select">Select</button><button id="open-dialog">Dialog</button>
+<tv-popover id="popover" trigger="open-popover"></tv-popover>
+<tv-menu id="menu" trigger="open-menu"></tv-menu>
+<tv-select id="select" trigger="open-select"></tv-select>
+<dialog id="dialog"><div class="dialog-content"></div></dialog>
+<script type="module">
+  import '/packages/canonical/canonical-components.ts';
+  for (let index = 0; index < 40; index++) {
+    const button = document.createElement('button'); button.className = 'row'; button.textContent = `Action ${index}`;
+    const row = document.createElement('div'); row.append(button); document.querySelector('#popover').append(row);
+    const item = document.createElement('tv-menu-item'); item.textContent = `Item ${index}`; document.querySelector('#menu').append(item);
+    const option = document.createElement('tv-option'); option.textContent = `Option ${index}`; option.setAttribute('value', String(index)); document.querySelector('#select').append(option);
+    document.querySelector('.dialog-content').append(row.cloneNode(true));
+  }
+  document.querySelector('#open-dialog').onclick = () => document.querySelector('dialog').showModal();
+</script>
+</body>
+</html>

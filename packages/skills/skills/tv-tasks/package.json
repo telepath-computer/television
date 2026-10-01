@@ -1,0 +1,21 @@
+{
+  "name": "@telepath-computer/skill-tv-tasks",
+  "version": "1.4.11",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "files": [
+    "SKILL.md",
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build --config vite.config.ts",
+    "type-check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@rupertsworld/event-target": "*"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3"
+  }
+}

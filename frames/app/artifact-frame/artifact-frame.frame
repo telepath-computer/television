@@ -1,0 +1,60 @@
+---
+title: Artifact frame
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+  position: { enum: [center, right, bottom-right], default: center, description: "preview the shared below/left placement, then move the frame to the window edges to try flipping" }
+style: |
+  /* Staging geometry: place the same artifact near different window edges
+     to exercise the shared menu placement without changing the spec frame. */
+  main { height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+  main.right, main.bottom-right { justify-content: flex-end; }
+  main.bottom-right { align-items: flex-end; }
+  .specimen { width: min(640px, 100%); height: min(480px, calc(100vh - 64px)); }
+script: |
+  import menuFrame from "../../../specs/ui/app/artifact-frame/artifact-menu.frame";
+  import { closeMenus, openMenu, placePanel } from "../../lib/menu.ts";
+
+  let cleanup: (() => void) | undefined;
+  const wire = () => {
+    cleanup?.();
+    const trigger = document.querySelector<HTMLButtonElement>(".artifact-menu-trigger");
+    if (!trigger) return;
+    let menu: HTMLElement | null = null;
+    const close = () => {
+      menu?.remove();
+      menu = null;
+      trigger.setAttribute("aria-expanded", "false");
+    };
+    const click = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (trigger.contains(target)) {
+        if (menu) close();
+        else {
+          closeMenus();
+          menu = openMenu(trigger, menuFrame.render({ open: true }));
+          // Staging only: seat the trial menu outside the frame clip. The
+          // eventual production mounting contract is a separate decision.
+          document.body.append(menu);
+          placePanel(menu, trigger);
+          trigger.setAttribute("aria-expanded", "true");
+        }
+      } else if (!menu?.contains(target) || target.closest("tv-menu-item")) close();
+    };
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    document.addEventListener("click", click);
+    document.addEventListener("keydown", key);
+    cleanup = () => {
+      close();
+      document.removeEventListener("click", click);
+      document.removeEventListener("keydown", key);
+    };
+  };
+  wire();
+  window.addEventListener("frameset:rendered", wire);
+---
+<main class="{{ position }}">
+  <div class="specimen">
+    {% render '../../../specs/ui/app/artifact-frame/artifact-frame', src: '/frames/app/example-artifact', title: 'Roadmap', can_back: true %}
+  </div>
+</main>

@@ -1,0 +1,304 @@
+{
+  "root": ".",
+  "imports": {
+    "specs/ui/{app,foundation}/**/*.frame": [
+      "specs/ui/foundation/index.css",
+      "specs/ui/foundation/tokens/app.css",
+      "frames/lib/foundation.ts"
+    ],
+    "frames/{app,foundations,themes,prototypes,archived}/**/*.frame": [
+      "specs/ui/foundation/index.css",
+      "specs/ui/foundation/tokens/app.css",
+      "frames/lib/foundation.ts"
+    ],
+    "frames/onboarding/!(draft-blog-post).frame": [
+      "specs/ui/foundation/index.css",
+      "specs/ui/foundation/tokens/app.css",
+      "frames/lib/foundation.ts"
+    ],
+    "specs/ui/onboarding-artifacts/**/*.frame": [
+      "specs/ui/foundation/index.css",
+      "frames/lib/onboarding-artifact.ts"
+    ],
+    "frames/onboarding/draft-blog-post.frame": [
+      "specs/ui/foundation/index.css",
+      "frames/lib/onboarding-artifact.ts"
+    ]
+  },
+  "sidebar": [
+    {
+      "type": "section",
+      "title": "App",
+      "children": [
+        {
+          "type": "frame",
+          "path": "frames/app/app.frame",
+          "title": "App"
+        },
+        {
+          "type": "folder",
+          "title": "Onboarding",
+          "children": [
+            {
+              "type": "frame",
+              "path": "frames/onboarding/tv-guide.frame",
+              "title": "TV Guide"
+            },
+            {
+              "type": "frame",
+              "path": "frames/onboarding/productivity.frame",
+              "title": "Productivity"
+            },
+            {
+              "type": "frame",
+              "path": "frames/onboarding/business-ops.frame",
+              "title": "Business ops"
+            },
+            {
+              "type": "frame",
+              "path": "frames/onboarding/research.frame",
+              "title": "Research"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "title": "Sidebar",
+          "children": [
+            {
+              "type": "frame",
+              "path": "frames/app/sidebar/animation.frame",
+              "title": "Animation"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/sidebar/prototype.frame",
+              "title": "Prototype"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/sidebar/sidebar.frame",
+              "title": "Sidebar"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/sidebar/channels.frame",
+              "title": "Channels"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/top-bar.frame",
+          "title": "Navbar"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/channel-popover.frame",
+          "title": "Channel popover"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/tab-strip.frame",
+          "title": "Tab strip"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/stage.frame",
+          "title": "Stage"
+        },
+        {
+          "type": "folder",
+          "title": "Artifact frame",
+          "children": [
+            {
+              "type": "frame",
+              "path": "frames/app/artifact-frame/artifact-frame.frame",
+              "title": "Frame"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/artifact-frame/missing.frame",
+              "title": "Missing artifact"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/artifact-frame/unsupported-url.frame",
+              "title": "Unsupported URL"
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "title": "Toolbar buttons",
+          "children": [
+            {
+              "type": "frame",
+              "path": "frames/app/toolbar-buttons/skill-selector.frame",
+              "title": "Skill selector"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/toolbar-buttons/settings.frame",
+              "title": "Settings"
+            },
+            {
+              "type": "frame",
+              "path": "frames/app/toolbar-buttons/update-notification.frame",
+              "title": "Update notification"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/copy-button.frame",
+          "title": "Copy button"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/system-modal.frame",
+          "title": "System modal"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/upgrade-gate.frame",
+          "title": "Upgrade gate"
+        },
+        {
+          "type": "frame",
+          "path": "frames/app/dialog.frame",
+          "title": "Dialog"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Foundation",
+      "children": [
+        {
+          "type": "frame",
+          "path": "frames/foundations/colors.frame",
+          "title": "Colors"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/text.frame",
+          "title": "Text"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/spacing.frame",
+          "title": "Spacing"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/application.frame",
+          "title": "Application"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/shadows.frame",
+          "title": "Shadows"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/prose.frame",
+          "title": "Prose"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/button.frame",
+          "title": "Button"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/input.frame",
+          "title": "Input"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/icons.frame",
+          "title": "Icons"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/popover.frame",
+          "title": "Popover"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/menu.frame",
+          "title": "Menu"
+        },
+        {
+          "type": "frame",
+          "path": "frames/foundations/select.frame",
+          "title": "Select"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Themes",
+      "children": [
+        {
+          "type": "frame",
+          "path": "frames/themes/none.frame",
+          "title": "None"
+        },
+        {
+          "type": "frame",
+          "path": "frames/themes/clouds.frame",
+          "title": "Clouds"
+        },
+        {
+          "type": "frame",
+          "path": "frames/themes/nord.frame",
+          "title": "Nord"
+        },
+        {
+          "type": "frame",
+          "path": "frames/themes/swiss.frame",
+          "title": "Swiss"
+        },
+        {
+          "type": "frame",
+          "path": "frames/themes/tokyo-night.frame",
+          "title": "Tokyo Night"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Prototypes",
+      "children": [
+        {
+          "type": "frame",
+          "path": "frames/prototypes/ribbon/ribbon.frame",
+          "title": "Ribbon"
+        },
+        {
+          "type": "frame",
+          "path": "frames/prototypes/collapse-transition.frame",
+          "title": "Collapse transition"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Archived",
+      "children": [
+        {
+          "type": "frame",
+          "path": "frames/archived/collapsed-rail.frame",
+          "title": "Collapsed rail"
+        },
+        {
+          "type": "frame",
+          "path": "frames/archived/overlay-bar.frame",
+          "title": "Overlay bar"
+        }
+      ]
+    }
+  ]
+}

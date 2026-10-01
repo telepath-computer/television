@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>webview bridge embed (inner scroll)</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; }
+      #scroller { width: 100%; height: 100%; overflow: auto; }
+      #tall { height: 4000px; }
+    </style>
+  </head>
+  <body>
+    <div id="scroller">
+      <div id="tall">scroll target (lives inside an inner overflow:auto container)</div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>ui frame</title>
+<!--
+  A document with the production foundation/global sheets and tv-icon live,
+  and nothing else. Surface implementations are never loaded here, so staged
+  spec markup cannot be hijacked by the real component.
+
+  What it loads is a module under the Storybook workspace rather than an import
+  written here, because this directory is served verbatim — see
+  lib/imports/ui.ts.
+-->
+<style>
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+</style>
+<script type="module" src="/lib/imports/ui.ts"></script>

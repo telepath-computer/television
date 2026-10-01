@@ -1,0 +1,77 @@
+*Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
+
+# The desktop app
+
+Television's desktop app is a native Mac application that shows a Television server's interface in its own window. Most of what a user sees is the web interface that the connected server serves; the installed application adds a way to connect, a native window, embedded web pages for artifacts, and its own updates. The rules for these parts are spread across many specs, so this explainer walks through the whole app once and points to the spec that owns each part.
+
+## How to read this
+
+This is a derived *explainer* under [spec policy](../spec-policy.md#^explainer-type). It summarizes and routes rather than restating each rule. The linked specs are authoritative and win if this account conflicts with them. The [desktop architecture root](./desktop/index.md) keeps the module map of the desktop package itself; this explainer also covers the product, update, UI, licensing, telemetry and testing specs that involve the app.
+
+## Two parts: the installed app and the served interface
+
+The desktop app is an Electron application. After it connects, its window loads the connected server's web interface: the same web client a browser receives, told through its page URL that it runs inside Electron. The specs call the installed application the *shell* ([update notifications](../product/update-notifications.md#the-desktop-upgrade-gate)). The shell's own code handles connection entry, the native window and menus, the preload that runs inside embedded artifact pages, native appearance, the app's identity and its own updates. The served interface does everything else.
+
+The two parts can come from different Television releases. The served interface comes from the server, and a client whose interface was built from another release reloads itself when it reconnects. The shell changes only when the app installs a desktop release. Three rules follow from that split:
+
+- the served interface, not the shell, decides whether a shell is too old to use (the upgrade gate) and whether an app installed from npm is told to move to the downloaded app (the deprecated upgrade recommendation), because the shell is the part that may be out of date ([gate seam](./updates/desktop-upgrade-gate.md#^gate-seam)). Desktop updates themselves are the shell's own work, which continues while the gate holds the app; the served interface only shows them and asks for the restart ([desktop updates](./desktop/updates.md); [intended sequencing](../product/update-notifications.md#^gate-sequencing));
+- a server release can require a minimum desktop release, and an older shell stops at the upgrade gate ([Keeping the app current](#keeping-the-app-current));
+- a desktop release keeps working with servers older than itself ([desktop releases](./desktop/distribution.md#^desktop-dist-release)).
+
+## What users install
+
+- **Product promises.** [product/desktop-app.md](../product/desktop-app.md) owns installation from Television's download link, the platforms the app supports, the app's name and saved data, its About version, and the status of the npm package that distributed desktop releases through 1.3.x.
+- **Build and release.** [desktop/distribution.md](./desktop/distribution.md) owns how ToDesktop builds, signs, notarizes and hosts the app from Television's bundled code: the private desktop workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate builds, desktop releases, the download link and the account setup.
+- **Versions.** A desktop release carries the version of the Television release it was built from, and some Television releases have no desktop release ([product versioning](../product/versioning.md#^pv-desktop-release-version)). [Update architecture](./updates/index.md#^updates-publication-order) places the desktop release in the release order.
+- **Licensing.** The app is one of Television's shipped surfaces ([product licensing](../product/licensing.md#^licensing-surface-list)). Licensing architecture checks the license files in the upload directory ([upload checks](./licensing.md#^licensing-upload-assertions)) and says where Electron's license files sit in the built app ([Electron's files](./licensing.md#^licensing-electron-built-app)).
+- **Node.** The installed app runs on the Node that Electron embeds. [Node versions](./node-versions.md) owns the toolchain that builds it.
+- **Installation steps.** The administrator guide gives the user the download link and the steps to install the app themselves. [Its spec](./cli/admin-guide.md) owns the guide's authority and publication.
+
+## Connecting to a server
+
+The app starts on a local connect page packaged with it. [Desktop connection flow](./desktop/connect-flow.md) owns that page, the saved connection in the app's data directory, how an entered address is normalized, the page URL the app loads, and the return to the connect page when the server's page fails to load.
+
+Before loading the server's page, the app checks that the address belongs to a reachable Television server that accepts its token. That *desktop connect check* is owned by the [upgrade gate spec](./updates/desktop-upgrade-gate.md#^pre-gate-handshake), because shells from older releases must still get through it to reach the gate.
+
+The app keeps its data under the Television name because it names itself before any data path is resolved ([application and data name](./desktop/index.md#^desktop-user-data-order)). Once the served interface runs, its live connection to the server is ordinary web-client behavior that code governs ([channel state](./channel-state/index.md#^cs-connection-carve-out)).
+
+## Inside the window
+
+- **Identity.** The window title and icon and the macOS About panel's version: [main-process identity](./desktop/index.md#main-process-identity). The application-bundle name and identifier: the ToDesktop [configuration](./desktop/distribution.md#^desktop-dist-config). The user-visible promises: [Television identity](../product/desktop-app.md#^desktop-product-identity).
+- **Window chrome.** The app's minimum window size ([app shell](../ui/app/index.md#^ap-window-minimum)); the channel sidebar's titlebar, which is the window's drag handle and leaves room for the macOS window buttons ([sidebar](../ui/app/sidebar/index.md#^sb-titlebar)); and the `electron-draggable` convention behind it ([Electron drag regions](./ui/foundation.md#electron-drag-regions)).
+- **Artifacts.** The desktop app shows an artifact's document in a webview, a separate browser context, where a browser uses an iframe ([artifact frame](../ui/app/artifact-frame/index.md)). The [artifact bridge](./artifact-frame/artifact-bridge.md#electron-webview-preload-behavior) owns the webview preload, which reports the document's readiness and pointer input to the app. The app learns of navigation from the webview's own events, and [reload and navigation](./artifact-frame/reload-navigation.md) owns how those become artifact history. Only the desktop app can show an artifact that is an external web page; a browser shows an [error page](../ui/app/artifact-frame/index.md#error-page) instead.
+- **Links out of the app.** The app opens no second window. It passes external web links to the operating system ([external links](./desktop/index.md#external-links)), and a link to a registered application scheme opens only after the checks in [link handling](./artifact-frame/artifact-bridge.md#^ab-application-link-electron). [Artifact navigation](../product/artifact-navigation.md) owns what the user sees.
+- **Keyboard.** The navigation chord, which steps between tab pages and channels, reaches the app from inside a webview through Electron's native interception ([keyboard navigation architecture](./ui/keyboard-navigation.md)).
+- **Appearance.** The served interface sends its resolved light, dark or system choice to Electron, which applies it to webviews, native menus and dialogs ([desktop appearance](./desktop/appearance.md)). The [appearance explainer](./explainer-appearance.md) follows that path next to the browser's.
+- **Telemetry.** The app reports as the `desktop` client, and the shell passes its version to the served interface in the page URL ([telemetry client](./telemetry/client.md#^desktop-version-param); [product telemetry](../product/telemetry.md)).
+
+## Keeping the app current
+
+A desktop user sees the same server-update notice as a browser user. Four more mechanisms concern the desktop app, and [product update notifications](../product/update-notifications.md) owns what users see from each:
+
+- **Auto-reload** keeps the served interface matched to its server: a client whose interface was built from a different release reloads when it reconnects ([auto-reload](../product/update-notifications.md#auto-reload-stale-clients-self-heal); [version advertisement](./updates/version-advertisement.md)).
+- **Self-update** replaces the shell: a downloaded app downloads desktop releases itself, and the desktop self-update notice offers the restart that installs one ([desktop app updates](../product/update-notifications.md#^desktop-self-update); [notice architecture](./updates/desktop-self-update-notice.md)). The main process runs ToDesktop's update runtime and reports a downloaded update to the served interface over the native preload bridge ([desktop updates](./desktop/updates.md)).
+- **The upgrade gate** stops a shell older than the connected server's required desktop version before the interface starts. What it shows is set by the [product rules](../product/update-notifications.md#the-desktop-upgrade-gate), the [gate architecture](./updates/desktop-upgrade-gate.md) and the [gate screen](../ui/app/desktop-upgrade-gate/index.md); published upgrade instructions come from the `desktop` block of the [update channel](./updates/update-channel.md#the-channel-file). The gate's restart uses the same bridge operations as the notice, which is why they stay fixed across releases ([desktop updates](./desktop/updates.md#^desktop-updates-frozen)).
+- **The upgrade recommendation** is the deprecated notice for apps installed from npm, which do not update themselves ([product rules](../product/update-notifications.md#the-desktop-upgrade-recommendation); [recommendation architecture](./updates/desktop-upgrade-recommendation.md); [notice surface](../ui/app/update-notification/index.md)).
+
+The gate and the recommendation compare the shell's version with thresholds set by hand. When a server release raises the required desktop version, the desktop release that meets it comes first ([release order](./updates/desktop-upgrade-gate.md#^ops-release-order)).
+
+## Releasing and operating
+
+- **Candidate builds.** A maintainer can build any commit on a branch of the repository as a signed, unreleased [candidate build](./desktop/distribution.md#^desktop-dist-candidate-builds), so that its code can be tested before it reaches `main`, as every change to the app's behavior is ([the product rule](../product/desktop-app.md#^desktop-checks-before-main)).
+- **Desktop releases.** When a desktop change is worth shipping, a maintainer starts the build workflow, which builds a Television release in ToDesktop, and then releases the build from the dashboard with a tap of their security key. The build workflow's access token can start builds but not release them; the dashboard setting that would allow releases without the security key stays off ([desktop releases](./desktop/distribution.md#^desktop-dist-release)).
+- **Raising the required desktop version.** The [gate's operations](./updates/desktop-upgrade-gate.md#operations) and the [channel-deploy runbook](./updates/runbook-channel-deploy.md) give the procedure: pause publishing, make the desktop release, publish, then announce.
+- **Reviewing the update screens.** The [UX staging runbook](./updates/runbook-ux-staging.md) stages each update screen on demand.
+- **Accounts and credentials.** Apple signing, the ToDesktop account and the build workflows' secrets: [distribution setup](./desktop/distribution.md#setup).
+- **Upgrading Electron or its packager.** An Electron major upgrade follows [runtime operations](./desktop/runtime.md#operations), and a change to the pinned electron-builder release follows [distribution operations](./desktop/distribution.md#operations). Both need the real-host checks described below.
+
+## How the desktop app is tested
+
+- **Electron for development and tests.** Development runs and the desktop tests use Electron from npm, at the exact version the ToDesktop build also uses ([Electron runtime](./desktop/runtime.md)). The [e2e harness](./desktop/e2e-harness.md) launches the real app for tests through Playwright, and uses Electron only when a claim depends on it.
+- **Where those tests run.** The `e2e:desktop` surface is declared in the [test registry](./test-runner/test-registry.md). [GitHub CI](./test-runner/github-ci.md#desktop-runtime-preparation), [Blaxel shards](./test-runner/blaxel-testshards.md) and [preflight](./test-runner/preflight.md#^preflight-electron-runtime) own the provider setup and checks around the harness.
+- **Acceptance in both clients.** Several product specs require acceptance in a real browser and in the real Electron app, among them [artifacts](../product/artifacts.md#testing), [artifact navigation](../product/artifact-navigation.md#testing), [keyboard navigation](../product/keyboard-navigation.md#testing), [themes and appearance](../product/themes-and-appearance.md#testing) and [telemetry](../product/telemetry.md#testing).
+- **The installed app.** No automated test runs the ToDesktop build. Checks on an unreleased candidate build show what only the built app can show, such as signing, identity, saved connections and the update notice's restart. Before a change to the app's behavior reaches `main`, it passes the checks the change needs; agents run the ones they can, and a person on a real Mac runs the rest. Releasing a build ships it to users, so a released build is never what is tested. The product spec states these checks as an exception to the testing policy ([real-host acceptance](../product/desktop-app.md#testing)).
+
+## What stays with code
+
+Some desktop behavior is deliberately left to code: the connect page's copy, timing and presentation ([connection flow](./desktop/connect-flow.md#what-this-owns)), how an artifact is routed to an iframe or a webview ([frame core](./artifact-frame/index.md#^frame-core-carve-out)), and the served interface's connection lifecycle ([channel state](./channel-state/index.md#^cs-connection-carve-out)). The [migration map](../spec-migration.md) records these boundaries.

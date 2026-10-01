@@ -1,0 +1,102 @@
+---
+title: Application
+params:
+  channels:
+    description: the channels with their pinned marks, passed to the sidebar; each carries its tabs, and the open channel's feed the top bar and the stage as its pages
+  no_channel:
+    description: "no channel exists at all, passed to the stage: the ground stays blank"
+  selected:
+    description: the one open channel, passed to the sidebar
+  selected_tab:
+    description: the id of the open channel's selected tab, passed to the top bar
+  full_screen:
+    description: the id of the page shown at the stage's extents, passed to the stage
+  show_notice:
+    description: an update notice applies, passed to the top bar
+  collapsed:
+    type: boolean
+    default: false
+    description: "the channel sidebar is collapsed: the shell renders without it, and the navbar opens with the expand control and, while a channel is open, the channel switcher"
+  sidebar_transition:
+    type: boolean
+    default: false
+    description: compose both resting controls and the travelling control for a pose from sidebar-transition.ts
+  switcher_open:
+    type: boolean
+    default: false
+    description: the collapsed navbar's channel-switcher menu rendered open
+imports:
+  - ./styles.css
+style: |
+  .sidebar-motion-toggle { display: none; }
+  #app[data-sidebar-motion] { overflow: clip; }
+  #app[data-sidebar-motion] * { transition: none !important; animation: none !important; }
+  #app[data-sidebar-motion] > .app-sidebar {
+    margin-left: calc(var(--motion-boundary) - var(--sidebar-width));
+  }
+  #app[data-sidebar-motion] :is(.sidebar-collapse, .sidebar-expand) { visibility: hidden; }
+  #app[data-sidebar-motion] .sidebar-titlebar > :not(.sidebar-collapse) { opacity: var(--motion-titlebar-opacity); }
+  #app[data-sidebar-motion] .top-bar { position: relative; }
+  #app[data-sidebar-motion] .top-bar-lead {
+    width: var(--motion-lead-reservation);
+    padding-left: 0;
+  }
+  #app[data-sidebar-motion] .channel-switcher {
+    position: absolute;
+    left: var(--motion-switcher-left);
+    opacity: var(--motion-switcher-opacity);
+    pointer-events: none;
+  }
+  #app[data-sidebar-motion] .sidebar-motion-toggle {
+    display: inline-grid;
+    place-items: center;
+    position: absolute;
+    z-index: 3;
+    top: var(--motion-toggle-top);
+    left: var(--motion-toggle-left);
+    width: var(--motion-toggle-width);
+    height: var(--motion-toggle-height);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--sidebar-text-color);
+    -webkit-app-region: no-drag;
+  }
+  .sidebar-motion-toggle > span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--control-radius);
+  }
+  .sidebar-motion-toggle > .expanded-paint {
+    clip-path: inset(0 calc(100% - var(--motion-toggle-wipe)) 0 0);
+  }
+  .sidebar-motion-toggle > .collapsed-paint {
+    color: var(--navbar-text-color);
+    background: var(--wallpaper-overlay-background);
+    border: var(--wallpaper-overlay-border);
+    outline: var(--wallpaper-overlay-outline);
+    outline-offset: 0;
+    backdrop-filter: blur(var(--wallpaper-overlay-blur));
+    clip-path: inset(0 0 0 var(--motion-toggle-wipe));
+  }
+---
+<div id="app" tabindex="-1">
+  {% if sidebar_transition or collapsed == false %}<aside class="app-sidebar">{% render './sidebar/sidebar', channels: channels, selected: selected %}</aside>{% endif %}
+  <main class="app-main">
+    {% assign open_channels = channels | where: "id", selected %}
+    {% assign open_channel = open_channels | first %}
+    {% assign lead_visible = collapsed %}
+    {% if sidebar_transition %}{% assign lead_visible = true %}{% endif %}
+    {% render './top-bar/top-bar', tabs: open_channel.tabs, selected: selected_tab, show_notice: show_notice, collapsed: lead_visible, channel: open_channel.name, switcher_open: switcher_open, channels: channels, selected_channel: selected %}
+    {% render './stage/stage', pages: open_channel.tabs, selected: selected_tab, full_screen: full_screen, no_channel: no_channel %}
+  </main>
+  {% if sidebar_transition %}
+  <button class="sidebar-motion-toggle" variant="ghost" icon aria-label="Collapse sidebar">
+    <span class="expanded-paint" aria-hidden="true">{% render '../foundation/icons/icon', name: 'sidebar', size: 'sm' %}</span>
+    <span class="collapsed-paint" aria-hidden="true">{% render '../foundation/icons/icon', name: 'sidebar', size: 'sm' %}</span>
+  </button>
+  {% endif %}
+</div>
+<div id="foreground-overlay" inert aria-hidden="true"></div>

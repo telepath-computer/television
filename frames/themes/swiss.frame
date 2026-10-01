@@ -1,0 +1,10 @@
+---
+title: Swiss
+description: The application prototype with Swiss, using the shared app frame and theme stylesheet.
+params:
+  appearance: { enum: [light, dark], default: light }
+  shell: { enum: [desktop, web], default: desktop }
+---
+<div data-staging-theme="swiss">
+  {% render '../app/app', appearance: appearance, shell: shell %}
+</div>
