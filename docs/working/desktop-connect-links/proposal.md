@@ -8,13 +8,14 @@ Reference material: Rupert's pull request #387 in `telepath-computer/television-
 
 People connect to Television with one thing: a *connect link*. A connect link is the address of their Television server with the access token in it, such as `http://100.101.102.103:32848/?token=…`. On a server that runs without a token, the connect link is the plain address. The same link works in a browser and in the Mac desktop app. Nobody types or pastes a bare token anywhere in the product.
 
-The change has five parts:
+The change has six parts:
 
 1. The Mac desktop app opens on a setup screen with one field for a connect link, in place of the two-field form for an address and a token.
 2. The desktop app reconnects a saved connection by itself, and offers **Disconnect from Server** to forget it.
 3. The browser and desktop connection dialogs stop asking for a token, and say what to do instead.
-4. A new command, `tv links`, prints the running server's connect links.
-5. The administrator guide gives users connect links only. It treats Mac users as already having the desktop app and never mentions the app to anyone else.
+4. A browser's placeholder for an external web page says the desktop app is currently Mac-only.
+5. A new command, `tv links`, prints the running server's connect links.
+6. The administrator guide gives users connect links only. A Mac user who starts from the app's connect screen already has the app; another Mac user is recommended it; users on other computers are not told about it.
 
 ## Connect links
 
@@ -35,15 +36,15 @@ What the user sees:
 - A heading, **Let's connect your [Television logo] Television**, with the logo inline at text height, and under it: "Television runs alongside your AI agent. Ask your agent to help you get connected, then paste the link it gives you."
 - Two numbered steps, joined by a line down the left:
   1. **Give your agent this prompt**, with the prompt in monospace on a slightly tilted card and a **Copy** button beside it.
-  2. **Paste the connect link from your agent**, with a link field ("Paste link here") and a **Connect** button. Under the field, a hint shows the shape of a connect link.
+  2. **Paste the link from your agent**, with a link field ("Paste link here") and a **Connect** button. Under the field, a hint shows the shape of the link: "The link looks like `http://…:32848/?token=…`". The screen says "link" rather than "connect link"; on a screen that is only about connecting, the shorter word is clear.
 
 Both steps are always shown equally, at full strength, with plain numbered markers. Neither step is highlighted as current, neither is faded, and no step turns into a check mark. The numbering tells the user the usual order; nothing enforces it or tracks it. The user can paste into the field and connect without pressing Copy, so someone who already has a connect link goes straight to step 2.
 
 This is the main departure from Rupert's design. His screen tracked the current step: it faded step 2 until the user pressed Copy or moved into step 2, then highlighted step 2 and checked off step 1. The faded field still worked, but it looked unusable, implying that copying the prompt was the only way forward. Showing both steps at full strength makes clear that the field is ready, and it removes the step tracking and the tests it would need.
 
-The prompt tells the agent that it comes from the Mac desktop app's setup screen, so the agent knows the user is on a Mac with the app installed and waiting for a connect link. Draft wording:
+The prompt tells the agent that the user is on the desktop app's connect screen, so the agent knows the user is on a Mac with the app installed and waiting for a connect link. The prompt is:
 
-> Curl https://television.run/install.md and follow the steps to connect the Television desktop app on my Mac. This request comes from the Television Mac app's setup screen.
+> Read the Television admin guide at https://television.run/install.md and help me get Television installed. I'm on the desktop app connect screen.
 
 Behavior:
 
@@ -80,6 +81,14 @@ These dialogs keep their present layout: centred, 400px wide, an icon above the 
 - None of these dialogs closes on Escape or a click on the backdrop. Each closes only when the connection state changes.
 - Desktop apps installed before this change keep their "Connect to server…" menu item; on those apps, the desktop text above names a command the app lacks. This is accepted so current apps get the exact instruction.
 
+## External web pages in a browser
+
+A browser cannot show an external web page (a URL artifact), so it shows a placeholder in the artifact's place. The placeholder says that the Television desktop app shows external web pages right inside Television, and that the app is currently available only for Macs. It keeps its pointer to asking an agent to follow the admin guide to install the app. Draft wording:
+
+> Television can't display external web pages directly inside a web browser. The Television desktop app can show them right inside Television; it is currently available only for Macs.
+>
+> To install the desktop app on a Mac, ask your agent to follow the Television admin guide: https://television.run/install.md
+
 ## Shared controls
 
 Buttons and text fields gain a large size, 40px tall with 16px text, used by the setup screen. It becomes available to artifact authors through the shared Television stylesheet, and the copy button gains the ability to use the standard button size.
@@ -108,19 +117,13 @@ The agent still reads the token file for its own checks (for example a `curl` he
 
 ### Mac and other platforms
 
-The guide stops recommending the desktop app. A user either has it, because they are on a Mac and started with it, or there is none for their computer.
+The guide recommends the desktop app only to Mac users who do not already have it. A Mac user who starts from the app's connect screen already has it, and there is no app for any other computer.
 
 - "Mac" means an Apple Silicon Mac running macOS 12 or later, the computers the desktop app supports. Intel Macs, Linux and Windows are other platforms.
-- **Request from the setup screen.** When the request says it comes from the Mac app's setup screen, the user is on a Mac with the app installed and waiting for a connect link. The agent works out how that Mac reaches the server, installs or reconfigures Television to match, and gives the connect link with a short instruction to paste it into the app. It does not tell the user how to download the app.
-- **Any other request.** The agent finds out which computer the user will view Television on, as part of the existing conversation about how they reach the server. If it is a Mac, the agent gives the connect link and also says where to download the desktop app and how to install it, in case they have not yet. This covers a Mac user who went to their agent before installing the app. *(Open question 1.)*
-- **Other platforms.** The agent gives a connect link to open in a browser and does not mention a desktop app at all, including in its notes about external web pages (URL artifacts).
+- **Request from the connect screen.** When the request says the user is on the desktop app connect screen, as the setup screen's prompt does, the user is on a Mac with the app installed and waiting for a connect link. The agent works out how that Mac reaches the server, installs or reconfigures Television to match, and gives the connect link with a short instruction to paste it into the app. It does not tell the user how to download the app.
+- **Any other request.** The agent finds out which computer the user will view Television on, as part of the existing conversation about how they reach the server. If it is a Mac, the agent gives the connect link and recommends the desktop app, with where to download it and how to install it; the connect link works in the app and in a browser. This covers a Mac user who went to their agent before installing the app.
+- **Other platforms.** The agent gives a connect link to open in a browser and does not bring up a desktop app, including in its notes about external web pages (URL artifacts). If the user asks about the desktop app, for example after seeing the browser's placeholder for an external web page, the agent says it is available only for Macs and that the browser is how they use Television.
 - Upgrades keep their present guidance about how the desktop app updates itself, for users who have it.
-
-## Open questions
-
-1. **Requests that do not come from the setup screen.** Confirm the rule above: the agent finds out which computer the user views Television on, and a Mac user gets the download pointer with the connect link.
-2. **The browser placeholder for external web pages.** A browser showing a URL artifact says "You can view external web pages right inside Television with the desktop app" and points to the admin guide, on every computer. That conflicts with never mentioning the app to users on other platforms. Options: leave it (and have the guide tell a non-Mac user who asks that the app is Mac-only), or make the placeholder say the app is for Macs.
-3. **Setup screen wording.** The draft prompt above, and using "connect link" on the screen itself (step 2's heading and the hint).
 
 ## Out of scope
 
