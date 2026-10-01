@@ -19,4 +19,33 @@ Run IDs refer to `.test-runs/<id>/` in the contribution worktree, containing nat
 
 The opt-in `experiment:guidance-vitest` and `experiment:guidance-playwright` surfaces are excluded from `all`. They contain tiny native tests, including an adversarial sibling and an intentional first-attempt failure. Local tests copy these inputs into temporary checkouts with the production CLI, real Git inventories and private mutex paths reserved for slice 2. They launch no browser, repository-wide gate or destructive lifecycle fixture.
 
-Remote validation and live handoff evidence are pending the first pushed slice revision. Mutex/wait, native-entrypoint enforcement and the complete instruction-layer changes remain assigned to slices 2 and 3. Shared help and option-independence proof markers remain open until their whole assertions are covered.
+Mutex/wait, native-entrypoint enforcement and the complete instruction-layer changes remain assigned to slices 2 and 3. Shared help and option-independence proof markers remain open until their whole assertions are covered.
+
+
+### Live Blaxel evidence at `26e67c2b1a59f38978a4bc22dd0c4676e113968e`
+
+The branch was clean, committed and pushed before these commands. The ordinary validation command used default retries:
+
+```bash
+npm test -- blaxel --surface unit:root --commit 26e67c2b
+```
+
+Run `2026-10-01T23-16-20-537Z-p2923525-rfd479cbbc11c9159` reached all repository tests and reported four failures: two Vitest collection assertions compared normalized paths inside a nested checkout against ordinary repository-relative paths, and two provider assertions referenced the target-command implementation that moved. The file-collection assertions now inspect the actual native file identities; the provider tests exercise a real wrapper invocation carrying selectors, numeric zero and the absolute reporter path. Focused local checks passed in `2026-10-01T23-20-22-607Z-p2924705-r1e2b821b311364bc` and `2026-10-01T23-21-04-926Z-p2925253-ra14ab52d9bdc4df9`. Broader revalidation follows the pushed test corrections.
+
+These three deliberate zero-budget probes validated remote handoffs:
+
+```bash
+npm test -- blaxel --file test/runner-fixtures/guidance/vitest/one.test.ts --grep 'deliberate first-attempt failure|sibling' --retries 0 --commit 26e67c2b
+npm test -- blaxel --file test/runner-fixtures/guidance/playwright/one.test.ts --grep 'deliberate first-attempt failure|sibling' --retries 0 --commit 26e67c2b
+npm test -- blaxel --tag runner-guidance --runner playwright --against-test-guidance-turn-flakes-into-failures-on-broad-runs --shards 2 --allow-shard-count-override 1 --commit 26e67c2b
+```
+
+| Probe | Retained run | Observed evidence |
+| --- | --- | --- |
+| Targeted Vitest | `2026-10-01T23-16-58-170Z-p2923764-r0c2e288d8a84cd72` | One actual file; sibling absent. Deliberate case failed at attempt index 0 with no second attempt; three other titles skipped. |
+| Targeted Playwright | `2026-10-01T23-17-40-954Z-p2923923-r56b120209810d077` | One actual file and one test; sibling absent. Deliberate case failed at attempt index 0 with no second attempt. |
+| Planned Playwright, two shards | `2026-10-01T23-18-22-967Z-p2924200-rc11f3d9ecadd7578` | Both worker tasks report `retryBudget: 0`; each collected exactly its assigned file. The deliberate blanket-budget case failed after one attempt. The separately annotated case recovered on attempt index 1, proving that blanket zero leaves per-test retries intact. |
+
+All three exited 1 with completed infrastructure and the expected deliberate fixture failure. Their canonical `request.json` delegated `--test-retries 0`; targeted provider requests retained `retries: "0"` and the exact file list. Every provider request retained `retryInfra: 2`. Reports, native JSON, attempt sidecars and generated configs are retained below each run's `provider/blaxel/` directory. These are successful behavioral probes, not passing repository validations.
+
+The pool skipped workers 21, 22 and 29 because their provisioned nvm entrypoint was absent, then acquired other workers successfully. No pool provisioning or repair was performed. Native-context evidence remains assigned to slice 3; these runs establish collection and retry transport.

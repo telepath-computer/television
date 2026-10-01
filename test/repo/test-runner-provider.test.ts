@@ -8,6 +8,7 @@ import { classifyBlaxelCoordinatorFailure, classifyBlaxelShardStatus, classifyDo
 import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards } from "../../scripts/test/blaxel-lease-acquisition.mjs";
 import { normalizeBlaxelSurfaces, normalizeProviderShardSurfaces, normalizeProviderTimingShards, resolveProviderRunGit } from "../../scripts/test/provider-normalization.mjs";
 import { loadTestConfig, selectSurfaces } from "../../scripts/test/config.mjs";
+import { targetCommand } from "../../scripts/test/target-command.mjs";
 import { normalizeProcessLeak } from "../../scripts/test/timing-events.mjs";
 import { transferShardInputs } from "../../scripts/test/blaxel-shard-dispatch.mjs";
 import { buildInterruptedAttemptReport, finishInterruptedRun } from "../../scripts/test/blaxel-interruption.mjs";
@@ -430,7 +431,7 @@ describe("provider result normalization", () => {
     expect(cliSource).toContain('--target-services-json", JSON.stringify(surface.services)');
     expect(cliSource).toContain('"--target-surface-id", surface.id');
     expect(source).toContain('command: parseTargetCommand(options["target-command-json"])');
-    expect(source).toContain('...target.command.map(shellQuote)');
+    expect(source).toContain("targetCommand(targetOptions())");
     expect(source).toContain('preCommand: parseTargetPreCommand(options["target-pre-command-json"])');
     expect(source).toContain('services: parseTargetServices(options["target-services-json"])');
     expect(source).toContain('--services-json ${shellQuote(JSON.stringify(targetOptions().services))}');
@@ -440,11 +441,30 @@ describe("provider result normalization", () => {
     expect(workerSource).toContain("services: surface.services ?? []");
     expect(workerSource).toContain("startSurfaceServices(task.services");
   });
-  test("writes targeted native reports to the supervisor-declared absolute path", () => {
-    const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
-    expect(source).toContain('PLAYWRIGHT_JSON_OUTPUT_NAME="$TV_TARGET_NATIVE_RESULT"');
-    expect(source).toContain('--outputFile "$TV_TARGET_NATIVE_RESULT"');
-    expect(source).not.toContain("nativePathFromCwd");
+  test("forwards the target wrapper, selectors, zero budget and absolute reporter path", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "tv-target-wrapper-"));
+    try {
+      const cwd = path.join(root, "wrapper-cwd");
+      mkdirSync(cwd);
+      const output = path.join(root, "native.json");
+      const wrapper = path.join(root, "wrapper.mjs");
+      // A declared downstream wrapper records its invocation. Real native
+      // collection is covered by test-runner-file-selection.test.ts.
+      writeFileSync(wrapper, `import fs from "node:fs";
+        fs.writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME, JSON.stringify({ args: process.argv.slice(2), cwd: process.cwd(), reporter: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME }));`);
+      const grep = "title 'quoted'; $(false)";
+      const command = targetCommand({ runner: "playwright", cwd, retries: "0", command: [process.execPath, wrapper], files: ["test/file[x].test.ts"], grep });
+      const result = spawnSync("bash", ["-c", command], { encoding: "utf8", env: { ...process.env, TV_TARGET_NATIVE_RESULT: output }, timeout: 10_000 });
+      expect(result.status, result.stderr).toBe(0);
+      const recorded = JSON.parse(readFileSync(output, "utf8"));
+      expect(recorded.cwd).toBe(cwd);
+      expect(recorded.reporter).toBe(output);
+      expect(recorded.args.slice(1)).toEqual(["-g", grep, "--retries=0", "--reporter=json"]);
+      expect(recorded.args[0]).toContain(String.raw`file\[x\]\.test\.ts$`);
+      const nativeSource = readFileSync("scripts/test/target-native.mjs", "utf8");
+      expect(nativeSource).toContain('"--outputFile", native');
+      expect(nativeSource).toContain("path.resolve(process.env.TV_TARGET_NATIVE_RESULT)");
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
   test("reports only tasks that actually failed", () => {

@@ -71,7 +71,14 @@ describe.each(["vitest", "playwright"] as const)("%s native selection and retrie
       expect(result.status, result.stdout + result.stderr).toBe(0);
       const surface = summary(f, result).surfaces[0];
       expect(surface.counts.testsPassed).toBe(1);
-      expect(surface.files.map((file: { path: string }) => file.path)).toEqual([`${f.testsRoot}/${name}`]);
+      if (runner === "vitest") {
+        // Native collection is the boundary here. The remote report normalizer
+        // strips /workspace/television even from an authored checkout below it.
+        const native = JSON.parse(readFileSync(path.resolve(f.root, surface.nativeResultPath), "utf8"));
+        expect(native.testResults.map((file: { name: string }) => file.name)).toEqual([path.join(f.root, f.testsRoot, name)]);
+      } else {
+        expect(surface.files.map((file: { path: string }) => file.path)).toEqual([`${f.testsRoot}/${name}`]);
+      }
     } finally { f.cleanup(); }
   });
 
