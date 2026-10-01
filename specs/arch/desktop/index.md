@@ -12,7 +12,7 @@ This root owns the desktop domain's module map, terms, cross-module coverage mod
 
 | Module | Spec | Owns |
 | --- | --- | --- |
-| Desktop connection flow | [connect-flow.md](./connect-flow.md) | local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge |
+| Desktop connection flow | [connect-flow.md](./connect-flow.md) | the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge |
 | Desktop appearance | [appearance.md](./appearance.md) | confirmed appearance state across renderer, preload, main, app-wide native theme, disconnect, and reconnect |
 | ToDesktop build | [distribution.md](./distribution.md) | the private desktop workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link |
 | Desktop updates | [updates.md](./updates.md) | the update runtime's start and options, the record of a downloaded update, the update operations on the native preload bridge, and the restart that installs an update |

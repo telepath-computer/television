@@ -2,7 +2,7 @@
 
 # Desktop appearance
 
-Electron owns one application-wide appearance source. The *appearance input* is the `system`, `light`, or `dark` value that the [shell appearance rule](../themes/delivery.md#^theme-delivery-shell-appearance) produces from confirmed `activeThemeColorScheme` and `appearanceMode`. The source starts at `system`, remains unchanged while the shell shows its connect screen or is disconnected, and takes the next connected server's appearance input after the renderer receives its confirmed display state. The [appearance explainer](../explainer-appearance.md) places this native path alongside the browser and theme paths.
+Electron owns one application-wide appearance source. The *appearance input* is the `system`, `light`, or `dark` value that the [shell appearance rule](../themes/delivery.md#^theme-delivery-shell-appearance) produces from confirmed `activeThemeColorScheme` and `appearanceMode`. The source starts at `system`, remains unchanged while the shell shows its [local page](./connect-flow.md#^desktop-local-page) or is disconnected, and takes the next connected server's appearance input after the renderer receives its confirmed display state. The [appearance explainer](../explainer-appearance.md) places this native path alongside the browser and theme paths.
 
 ## IPC path
 
@@ -18,7 +18,7 @@ The preload validates before `ipcRenderer.send`. Main validates again in its `ip
 
 ## Lifecycle
 
-Main's default is Electron's `system`. A disconnect or navigation to the connect screen does not reset the last appearance input. When another server's display state is ready, its appearance input replaces the retained value before connected content or its first artifact webview attaches. Existing webviews stay loaded when the appearance input changes. Changing the stored preference under a fixed theme leaves the appearance input and loaded presentation unchanged. ^desktop-appearance-lifecycle
+Main's default is Electron's `system`. A disconnect or navigation to the local page does not reset the last appearance input. When another server's display state is ready, its appearance input replaces the retained value before connected content or its first artifact webview attaches. Existing webviews stay loaded when the appearance input changes. Changing the stored preference under a fixed theme leaves the appearance input and loaded presentation unchanged. ^desktop-appearance-lifecycle
 
 ## Testing
 
