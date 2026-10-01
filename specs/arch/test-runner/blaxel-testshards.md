@@ -101,7 +101,7 @@ brew install blaxel
 bl login
 ```
 
-The GitHub token the workers use is obtained from the corporate 1Password item **“Television Blaxel sharded test runner github PAT”** and made available either by exporting `BLAXEL_TV_GH_TOKEN` (which works across all worktrees) or by writing it to a `.blaxel-gh-token` file in the repository root; the runner's read precedence is in [#GitHub token](#GitHub token). Creating `~/.tvdev-use-blaxel` opts into Blaxel-preferred broad verification ([test-runner.md](./test-runner.md)).
+The GitHub token the workers use is obtained from the corporate 1Password item **“Television Blaxel sharded test runner github PAT”** and made available either by exporting `BLAXEL_TV_GH_TOKEN` (which works across all worktrees) or by writing it to a `.blaxel-gh-token` file in the repository root; the runner's read precedence is in [#GitHub token](#GitHub token). Creating `~/.tvdev-use-blaxel` selects Blaxel for automatic verification and enables the [one-file local limit](./test-runner.md#^local-one-file).
 
 ### Pool provisioning
 

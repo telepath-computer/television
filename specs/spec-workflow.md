@@ -223,9 +223,9 @@ Television does not currently accept external pull requests. Forking, building a
 
 ## Pull requests and human revisions
 
-This section owns pull-request timing and the shared-branch workflow. Shared branches are `main` and every branch under `integration/`, at any depth; `integration/desktop/refresh` is inside the namespace, while `feature/integration/desktop` is outside it. ^shared-branch-workflow
+This section owns development-branch commits and pushes, their coordination, pull-request timing, and the shared-branch workflow. Shared branches are `main` and every branch under `integration/`, at any depth; `integration/desktop/refresh` is inside the namespace, while `feature/integration/desktop` is outside it. ^shared-branch-workflow
 
-Contributors and agents work on their own development branches and commit and push regularly in safe, coherent commits. A commit captures a meaningful unit of work that is safe to publish; unfinished work or failing tests may be pushed as a development checkpoint while review and implementation proceed. Publishing a checkpoint does not establish readiness to merge. Draft pull request CI starts only when the pull request is marked ready for review.
+Contributors and agents work on their own development branches and commit and push regularly in safe, coherent commits. A commit captures a meaningful unit of work that is safe to publish; unfinished work or failing tests may be pushed as a development checkpoint while review and implementation proceed. Draft pull requests may also serve as checkpoints. Publishing a checkpoint does not establish readiness to merge. Draft pull request CI starts only when the pull request is marked ready for review.
 
 Pushing makes a revision available for [Blaxel validation](arch/test-runner/preflight.md#contributor-branches-and-remote-revisions). Withholding pushes prevents remote workers from testing current work and pressures agents into broad local runs that can drive a shared host into swap and make it unusable for everyone. Prepare and push coherent development checkpoints before broader remote checks, following the [testing policy](arch/testing-policy.md#test-iteration-discipline).
 

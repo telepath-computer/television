@@ -103,6 +103,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## Testing
 
 - *provider* — where tests run: `local` or `blaxel`. Owned by `arch/test-runner/test-runner.md`.
+- *marked host* / *unmarked host* — a host with / without the invoking user's `.tvdev-use-blaxel` marker. Owned by [the runner's host-marker contract](arch/test-runner/test-runner.md#^blaxel-host-marker).
 - *attestation* — a bare `refs/testpass/<version>/<tree-hash>` ref recording that an exact tree passed full validation under an attestation version. Owned by `arch/test-runner/attestation.md`.
 - *selector* — a flag that narrows which tests run (suite, surface, package, file, grep, runner, tag). Owned by `arch/test-runner/test-runner.md`.
 - *broad run* — an unnarrowed run of everything, gated by the broad-run guardrail. Owned by `arch/test-runner/test-runner.md`.

@@ -12,7 +12,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
 - `spec-workflow.md` (252 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (46 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
-- `terms.md` (172 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- `terms.md` (173 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (109 lines) — *What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
@@ -37,7 +37,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
   - `skillbench.md` (55 lines) — *Arch spec: the skillbench package — the skill-eval tool: the CLI that runs eval configs and the read-only page for reviewing what agents produced.*
-  - `testing-policy.md` (246 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - `testing-policy.md` (246 lines) — *How Television is tested: test authoring and coverage, focused iteration, verification, and agent permissions.*
   - **artifact-frame/**
     - `artifact-bridge.md` (352 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
     - `index.md` (49 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
@@ -53,7 +53,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
     - `connect-flow.md` (34 lines) — *The desktop main-process connection flow: local connection entry, URL normalization, saved connections, server-page loading and recovery, and the local-only IPC bridge.*
     - `distribution.md` (100 lines) — *The ToDesktop build of the desktop app: the private workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link.*
-    - `e2e-harness.md` (101 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
+    - `e2e-harness.md` (103 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
     - `index.md` (59 lines) — *The desktop architecture root: server connection, appearance, the ToDesktop build, the app's updates, the Electron runtime for development and tests, the test harness, and main-process identity.*
     - `runtime.md` (86 lines) — *The Electron runtime for development runs and tests: its exact version and declarations, installed-file validity on development and test hosts, how those hosts obtain it, and the recurring major-upgrade procedure.*
     - `updates.md` (47 lines) — *Desktop updates: how the main process starts ToDesktop's update runtime, records a downloaded update, tells the served interface about it, and restarts the app to install it.*

@@ -1,4 +1,4 @@
-*How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+*How Television is tested: test authoring and coverage, focused iteration, verification, and agent permissions.*
 
 # Testing policy
 
@@ -45,7 +45,7 @@ Keeping the shared host usable comes first. Concurrent test runs compete for CPU
 
 On hosts with `~/.tvdev-use-blaxel`, local iteration selects one file with optional grep; anything broader goes to Blaxel after the intended revision is committed and pushed. For a known multi-file check, use that remote selection instead of splitting it into serial local commands to evade the file limit. Even a Blaxel selection running on one worker removes its test load from the shared host. Distribution across files improves speed where available; lack of fan-out for a targeted surface is never a reason for broader local work. Unmarked public-contributor and fork hosts retain local selections and need no Blaxel access.
 
-Keep the default retry budget for validation, including focused checks. Use `--against-test-guidance-turn-flakes-into-failures-to-check-new-test-determinism` only when deliberately checking a newly written test's determinism, then return to the default for validation. Habitually disabling retries turns recoverable flakes into failed runs. The runner refuses `--retries 0` and names the deliberate option. Recovered flakes remain reported, and flaky new tests still require investigation and repair under [Timing, observable status, cleanup, and flakiness](#timing-observable-status-cleanup-and-flakiness). The runner owns [budget mechanics](test-runner/test-runner.md#retries), including the separate per-test and infrastructure layers.
+Keep the default retry budget for validation, including focused checks. Use `--against-test-guidance-turn-flakes-into-failures-to-check-new-test-determinism` only when deliberately checking a newly written test's determinism, then return to the default for validation. That choice is the caller's judgment, including for agents, without human permission. Habitually disabling retries turns recoverable flakes into failed runs. The runner refuses `--retries 0` and names the deliberate option. Recovered flakes remain reported, and flaky new tests still require investigation and repair under [Timing, observable status, cleanup, and flakiness](#timing-observable-status-cleanup-and-flakiness). The runner owns [budget mechanics](test-runner/test-runner.md#retries), including the separate per-test and infrastructure layers.
 
 Broad runs are a **discovery tool, not your inner loop.** Use them to find what is failing somewhere else as a result of the change. The moment a broad run surfaces a failure, scope back down to a narrow test that reproduces it, get it green there, and only then re-run the broad verification. Don't iterate against the broad gate to chase a single failing test — each cycle is many minutes long, you stop seeing cause from effect, and you waste time the narrow test would have saved.
 
@@ -57,7 +57,7 @@ Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, veri
 
 On hosts with `~/.tvdev-use-blaxel`, Blaxel is the verification default. Agents must obtain explicit human permission before using `--against-test-guidance-broad-local-run` to lift the [one-file local limit](test-runner/test-runner.md#^local-one-file), including for local verify; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify broader local execution. Fix a reported remote preflight problem unless the broader local run is authorized. Local-only suites follow their runner-owned placement and invocation guidance. GitHub CI retains its specified execution path.
 
-The independent `--against-test-guidance-major-host-contention-and-oom-killed-processes` bypass is the caller's judgment, including for agents, and requires no human permission. It lifts only the mutex, as defined by the [runner](test-runner/test-runner.md#host-wide-mutex-for-one-operating-system-user).
+The independent `--against-test-guidance-major-host-contention-and-oom-killed-processes` bypass is the caller's judgment, including for agents, and requires no human permission. It lifts only the mutex, as defined by the [runner](test-runner/test-runner.md#^local-test-mutex).
 
 Deliberate lower-level tool use through the [native-entrypoint override](test-runner/test-runner.md#native-test-entrypoints) is also the caller's judgment, without human permission. It enables native capabilities needed for the task outside the runner's protections; the default workflow remains canonical local iteration and broader remote validation on marked hosts.
 
