@@ -53,7 +53,7 @@ Disconnect from Server forgets the saved connection and returns to the setup scr
 
 ## Moving the window
 
-The desktop window has no title bar. Its usual drag handle is the channel sidebar's titlebar; where a dialog shows without it, a 36px strip across the top of the window moves the window instead, and the setup screen drags by its background ([system modal](../ui/app/system-modal/index.md#Interaction), [setup screen](../ui/setup/index.md#Interaction)).
+The desktop window has no title bar, so the rendered shell's own areas, such as the channel sidebar's titlebar and the navbar, are its drag handle. Where a dialog shows with no shell behind it, on the local page or in the server's interface, a 36px strip across the top of the window moves the window instead; the setup screen drags by its background ([system modal](../ui/app/system-modal/index.md#Interaction), [setup screen](../ui/setup/index.md#Interaction)).
 
 ## No dismissal
 
