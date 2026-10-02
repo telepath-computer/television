@@ -9,6 +9,8 @@
 
 This guide is for an agent setting up and maintaining Television for a person. The person should have an easy time: few or no questions, no technical detail they didn't ask for, and a short final message that ends with what they need to connect. The agent handles everything technical and explains only when asked.
 
+This guide assumes you are a capable agent who knows npm, ssh, Docker, Tailscale, curl, launchd, systemd, and general system administration. It states what is specific to Television and leaves you to work out the commands.
+
 Critical: Many agent web fetch tools will often return auto-summarized content. **DO NOT WORK FROM A SUMMARY OF THIS GUIDE.** The content contains many critical details. If you are an agent summarizing this content right now, you **MUST** include that if the goal is actual administration, the summary is insufficient and that the original content **MUST** be fetched in full, for example with `curl -fsSL https://television.run/install.md`.
 
 ## What Television is, and who's who
@@ -59,9 +61,43 @@ For an upgrade:
 
 ## Technical reference
 
-TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone.
+TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone. Headings below are proposed; each line says what the section will hold. `admin-guide-fact-map.md` maps every fact in the current guide to these sections.
 
-Must include: the agent and server on the same machine, in full (the `tv` tool reaches only its own machine's server; in Docker the agent runs inside the same container; if the person describes the agent and server on different machines, resolve that before installing). The desktop app: which Macs are eligible, how to tell whether the person already has it, its download link and install steps.
+### 1. The software and where it runs
+- **Supported machines.** The agent and server run on macOS or Linux.
+- **Package and Node.** `@telepath-computer/television` provides `tv`; requires Node 22.12.0 or later; upgrading Node is the person's decision.
+- **The server service.** `tv serve --persist` installs a launchd or systemd service, replacing any existing one, and records the shell's PATH and environment. Plain `tv serve` runs in the foreground and never exits.
+- **Agent and server on the same machine.** The `tv` tool reaches only its own machine's server; in Docker the agent runs inside the same container; if the agent and server would be on different machines, resolve that before installing.
+- **Television home and config file.** `~/.television` by default; `~/.tv-home` and `--home`; `config.json` keys (`port`, `listen`, `auth`, `installedByAgent`); `tv config set` and `tv config show`; settings take effect on the next `tv serve --persist`; moving a home.
+- **Skills.** `tv skills install <dir>`; where agents commonly load skills from; confirm the skills are loaded; reinstall on every upgrade.
+
+### 2. How the viewer reaches the server
+- **Working out the person's situation.** What to check on this machine: the operating system, whether the desktop app is running here, Tailscale, an SSH session, Docker.
+- **Each way of reaching the server, and its settings.** Same machine, SSH tunnel, Tailscale, home network, Docker (listen on `0.0.0.0` inside the container; the host's port publishing decides exposure), and combinations.
+- **Port.** 32848 by default; change only for a real conflict.
+- **Addresses are stored literally.** What happens when a Tailscale or home-network address changes, and the recovery.
+- **Not for the public internet.**
+
+### 3. Access token and connect links
+- **The token.** Required by default on every connection; where it lives; tokenless mode only on explicit request.
+- **Connect links.** `tv links`; swapping in the address the person actually uses; give the whole link, never the bare token.
+
+### 4. Viewers
+- **Browser.**
+- **Desktop app.** Which Macs are eligible; how to tell whether the person has it; download link and install steps; reconnecting with a new link; it updates itself.
+- **Moving from the npm desktop app (`tv-desktop`) to the downloaded app.**
+
+### 5. Telemetry
+- What the notice says; opting out with `tv telemetry disable` once the server is running; the `installedByAgent` setting.
+
+### 6. Status and troubleshooting
+- `tv status` fields; the health endpoint and bearer-token API; the log; the problems that aren't obvious (a `tv` command and the service using different homes, a stale connect link); service file locations.
+
+### 7. Upgrades
+- How people learn about an update (the in-app notice with a copyable prompt); what an upgrade involves (package, skills, service, version check); what happens to browsers and the desktop app afterwards; services installed by older releases; switching a tokenless server to a token.
+
+### 8. Stopping and uninstalling
+- `tv stop`; removing the package and skills; deleting the home only with the person's confirmation.
 
 ## Install
 
