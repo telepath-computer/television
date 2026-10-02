@@ -41,7 +41,7 @@ There are two roles for this guide:
   - the telemetry notice, on first install;
   - the desktop app recommendation, unless you know they already have the app. Say why it's worth having: it shows web pages inside Television, which a browser can't, and it gives Television its own window and Dock icon. If you know or suspect they use a Mac, recommend it directly; it is most likely eligible. Otherwise, mention that it's available in case they use a Mac. Don't ask about their computer just to decide this;
   - on a first install on a Mac, a heads-up that macOS will show a notification about a new background item;
-  - anything that changes what they need to do, such as needing a new link after an upgrade, or moving off the npm desktop app;
+  - anything that changes what they need to do to keep using Television;
   - anything that blocks the work and needs their decision, such as an outdated Node version.
 - Whenever you give them a connect link, tell them how to get it again: ask you, or run `tv links` on the machine Television runs on. `tv links` is the one `tv` command meant for the person.
 - Everything else waits until they ask: troubleshooting, changing the setup.
@@ -63,7 +63,7 @@ For an install:
 For an upgrade:
 
 - The confirm message says which version you'll upgrade to. No telemetry notice.
-- The report says it's done and on which version, and anything the person has to do, such as reconnecting.
+- The report says it's done and on which version, and anything the person has to do.
 
 ## Technical reference
 
@@ -287,7 +287,7 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 
 - **The home.** Releases before the Television home kept data in `~/.television`, or in a directory given with `--storage-path` or `TELEVISION_STORAGE_PATH`. That directory already has the home's layout. If it isn't `~/.television`, write its path into `~/.tv-home` so the reinstalled service and every `tv` command use it in place. `TELEVISION_PORT` and `TELEVISION_STORAGE_PATH` are now ignored; a warning appears while either is set.
 - **Settings from an older service.** Older releases took settings as command options, which the service definition still holds. A service from an older release keeps running after the package upgrade, and the first time it starts with no config file in its home, it writes its old options into one. If `tv config show` reports `configFileExists` as false, set `port` and `listen` from the old service definition yourself. Reinstalling then replaces the old definition.
-- **The access token.** Older releases ran without a token by default, so an upgraded home can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. This changes how the person connects, so tell them in the confirm message that they'll need a new link, and give it to them in the report: in a browser they open it, and in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
+- **The access token (rare).** A home from a much older release can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. The person then needs a new link: tell them in the confirm message, and give it to them in the report. In a browser they open it; in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
 - **Listen addresses.** If `listen` holds a Tailscale or LAN address, check it is still this machine's address (section 2). If the set of addresses changes, the person may lose a way of reaching Television; tell them.
 - **`installedByAgent`.** If it is unset, set it (section 5).
 
@@ -411,7 +411,7 @@ Work out, without involving the person:
 Send one message, in plain words:
 
 - what you're about to do: upgrade Television from the installed version to the new one, and update its skills; Television will be unavailable for a few seconds and open windows reconnect by themselves;
-- anything that will change for the person, such as Television starting to require a token, which means they'll need a new link;
+- in the rare cases where section 7 says the person's connection changes, that they'll need a new link;
 - anything that needs their decision, such as an outdated Node version;
 - if you found the npm desktop app on this machine, an offer to move them to the downloaded app.
 
@@ -423,12 +423,12 @@ No telemetry notice. Then wait for their go-ahead.
 2. Reinstall the skills into the same directory.
 3. Fix the settings you found in the check (section 7), then run `tv serve --persist`.
 4. Verify the running version matches the installed one (section 7).
-5. If the person needs a new link, because the token was switched on or an address changed, get it from `tv links` and verify it exactly as section 3 requires.
+5. In the rare case that the person needs a new link (section 7), get it from `tv links` and verify it exactly as section 3 requires.
 
 ### 4. Report
 
 One short message: Television is upgraded, and to which version. Add only what the person needs to act on:
 
-- a new connect link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine;
-- the steps to move off the npm desktop app, if that applies (section 7).
+- the steps to move off the npm desktop app, if that applies (section 7);
+- in the rare case they need a new connect link (section 7), the link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine.
 
