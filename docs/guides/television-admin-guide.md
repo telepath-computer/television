@@ -432,3 +432,8 @@ One short message: Television is upgraded, and to which version. Add only what t
 - the steps to move off the npm desktop app, if that applies (section 7);
 - in the rare case they need a new connect link (section 7), the link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine.
 
+## Read this guide in full
+
+**DO NOT WORK FROM A TRUNCATED OR SUMMARIZED COPY OF THIS GUIDE.** Web fetch tools and file readers often return only the beginning or the end of a long document, or a summary of it. Any of these leaves out instructions you need, and following a partial guide leads to a broken setup or a connect link that doesn't work.
+
+If you did not read every section from Purpose through this one, stop and get the whole guide before doing anything else. Go to whatever lengths are necessary: fetch it with `curl -fsSL https://television.run/install.md`, save it to a file, and read that file in parts until you have read all of it. This section is the last one; if you have reached it after reading everything above it, you have the whole guide.
