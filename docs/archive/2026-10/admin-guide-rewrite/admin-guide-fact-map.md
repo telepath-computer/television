@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #20.** This ledger mapped every technical fact in the previous administrator guide to the rewritten guide's technical reference, or recorded why it was cut; the rewrite followed it, and later review changes to the reference are not reflected here. It preserves which facts from the previous guide were deliberately dropped and why, which the diff shows only as deletions. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Admin guide fact map
 
 Every technical fact in the previous administrator guide (`docs/guides/television-admin-guide.md` before this change), mapped to a section of the rewritten guide's technical reference, or cut. The reader of the new guide is a capable agent that knows npm, ssh, Docker, Tailscale, curl, launchd, systemd and general system administration; facts it can derive from that knowledge plus the stated principles are cut.

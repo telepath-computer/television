@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #20.** This records the rulings Josh made while the administrator guide was rewritten and the principles drawn from them; the guide follows them as written. It preserves why the guide is structured as it is, which choices were deliberate, and which review suggestions were declined, none of which the guide itself states. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Administrator guide rewrite: principles and rulings
 
 This records why the administrator guide (`docs/guides/television-admin-guide.md`, published at `https://television.run/install.md`) has its current structure and content. It collects the rulings Josh made while the guide was rewritten, and the principles that follow from them, so a later editor can tell which choices were deliberate.
