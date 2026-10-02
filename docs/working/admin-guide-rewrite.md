@@ -312,9 +312,11 @@ The new app opens with the saved server connection. If it shows the connect scre
 
 ### 8. Stopping and uninstalling
 
-PLANNED (not guide text yet). This section will cover:
+`tv stop` removes the service and stops the server. It is not a pause: Television won't start again, at login or otherwise, until `tv serve --persist` runs again. It leaves the package, the skills, and the Television home in place, so reinstalling the service brings everything back as it was.
 
-- `tv stop`; removing the package and skills; deleting the home only with the person's confirmation.
+To uninstall completely, also remove the npm package and the Television skills, the `television` and `tv-*` skills, from every skills directory where they were installed. If the person uses the desktop app, they remove it from their Mac themselves, like any Mac app.
+
+Deleting the Television home, and `~/.tv-home` if it exists, permanently deletes the person's channels, artifacts, and token. Always get the person's explicit confirmation first, and say plainly that it can't be undone unless they have a backup.
 
 ## Install
 
