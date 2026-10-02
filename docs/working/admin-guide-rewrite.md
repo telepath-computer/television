@@ -197,10 +197,30 @@ Give the whole link, never shortened. The link is all the person ever needs: don
 
 ### 4. Viewers
 
-PLANNED (not guide text yet). This section will cover:
+The viewer runs on whatever computer the person uses to look at Television, which may not be this machine. Television's interface comes from the server; the viewer only displays it.
 
-- **Browser.**
-- **Desktop app.** Which Macs are eligible; how to tell whether the person has it; download link and install steps; reconnecting with a new link; it updates itself.
+#### Browser
+
+Any current browser opens Television from the connect link, on any computer that can reach the server. In a browser, Television can't display artifacts that are external web pages. In their place it shows a page saying the desktop app can show them, and telling the person to ask their agent to follow this guide to install it. A person who arrives that way wants the desktop app: if they view Television on an eligible Mac, give them the install steps below; otherwise, tell them the app is available only for Apple Silicon Macs and they can keep using the browser.
+
+#### Desktop app
+
+The Television desktop app is a native Mac app that shows Television in its own window, with its own Dock icon, and displays external web pages inside Television. It needs no Node or npm on the person's Mac, and it can't run on a machine without a display.
+
+**Eligible computers.** Apple Silicon Macs running macOS 12 or later. There is no desktop app for Intel Macs, Linux, or Windows; on those, the person uses a browser.
+
+**Whether the person already has it.** A person who says they are on the desktop app connect screen has it. If they view Television on this Mac, `/Applications/Television.app` or a running `Television` process shows they have it. On another computer you can't check, so rely on what you know or what they tell you.
+
+**Installing it.** The person installs it themselves, like any Mac app:
+
+1. Open `https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64` in a browser on the Mac. The link always downloads the latest release.
+2. Open the downloaded disk image and drag Television to Applications.
+3. Open Television from Applications, the Dock, or Spotlight.
+4. Paste the connect link into the app and press **Connect**.
+
+**Connecting and reconnecting.** On first launch the app shows a connect screen, which suggests a prompt for the person to give their agent and has a field for the connect link it gives back. The app checks the link with the server before saving it, and shows any problem, such as a wrong token, on that screen. Once connected, it remembers the connection and reconnects by itself each time it opens. To use a different link, for example after the server's address or token changes, the person chooses **Television › Disconnect from Server** and pastes the new link.
+
+**Updates.** The app updates itself: it downloads new releases in the background and offers **Restart to update**. Restarting or upgrading the Television server never updates the app. If the server needs a newer app than the person has, the app shows a screen saying it needs an update, and offers the restart once the update has downloaded.
 
 ### 5. Telemetry
 
