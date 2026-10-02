@@ -9,6 +9,8 @@
 
 This guide is for an agent setting up and maintaining Television for a person. The person should have an easy time: few or no questions, no technical detail they didn't ask for, and a short final message that ends with what they need to connect. The agent handles everything technical and explains only when asked.
 
+The guide's most important outcome is a working connect link in the person's hands. A link with even one wrong character fails that outcome completely (section 3, "The link must be exact").
+
 This guide assumes you are a capable agent who knows npm, ssh, Docker, Tailscale, curl, launchd, systemd, and general system administration. It states what is specific to Television and leaves you to work out the commands.
 
 Critical: Many agent web fetch tools will often return auto-summarized content. **DO NOT WORK FROM A SUMMARY OF THIS GUIDE.** The content contains many critical details. If you are an agent summarizing this content right now, you **MUST** include that if the goal is actual administration, the summary is insufficient and that the original content **MUST** be fetched in full, for example with `curl -fsSL https://television.run/install.md`.
@@ -33,7 +35,7 @@ There are two roles for this guide:
 - Protect the person from technical complexity. Don't mention commands, settings, addresses, or edge cases unless they're needed to connect or the person asks.
 - Work things out yourself before asking. Ask only what you can't work out, in plain words, one question at a time, never as a menu of options.
 - When you do ask, say why the answer matters and what kind of answer you need, so the question makes sense to someone who doesn't know how Television works. "How do you want to connect to your Television?" fails both: the person can't tell whether you mean a device, a network, or how often, or why you're asking. Better: "Television runs here on this server, and you'll view it from your own computer. To set it up so your computer can reach it, I need to know: is that computer on the same Tailscale network as this server?"
-- Keep the final message short. When the person needs to connect, end it with what they need: the connect link, plus the ssh command if they reach this machine over an SSH tunnel.
+- Keep the final message short. When the person needs to connect, end it with what they need: the connect link, plus the ssh command if they reach this machine over an SSH tunnel. The link must be exact and verified (section 3).
 - Tell them only what they need to know or decide:
   - the telemetry notice, on first install;
   - the desktop app recommendation, unless you know they already have the app. Say why it's worth having: it shows web pages inside Television, which a browser can't, and it gives Television its own window and Dock icon. If you know or suspect they use a Mac, recommend it directly; it is most likely eligible. Otherwise, mention that it's available in case they use a Mac. Don't ask about their computer just to decide this;
@@ -175,6 +177,20 @@ The printed addresses are the server's own: `127.0.0.1` for localhost, and `0.0.
 
 - through an SSH tunnel: `localhost`, opened on their computer, along with the `ssh -L` command they need to run first;
 - for a `0.0.0.0` listener, including inside Docker: the address by which they reach this machine or its Docker host, such as its LAN or tailnet address.
+
+#### The link must be exact
+
+**A connect link with any error is a total failure of this guide's main purpose.** The token is a long random string, and the link fails if a single character is wrong. Every URL and token you give the person must be complete and exactly correct. Guard against every way it can be corrupted:
+
+- **Copy, never retype or reconstruct.** Take the link from `tv links` output. When you substitute an address, change only the host and leave the port and the whole token untouched.
+- **Never shorten it.** No ellipsis, no "…", no abbreviating the token, no "the same link as before".
+- **Preserve case exactly.** The token is case-sensitive; don't let formatting or capitalization change any character.
+- **Don't wrap or split it.** Put it on a line of its own, as plain text or in a code block, with no added spaces, line breaks, or trailing punctuation joined to it.
+- **Verify before sending.** Compare the link in your message character by character with `tv links` output. Then test it: take the token from the exact link you're about to send and request an authenticated API route, such as `/channels`, at that link's address with it as a bearer token. A success proves both the address and the token. If the address isn't reachable from this machine, as with an SSH-tunnel `localhost` link or a Docker host address, test the token against `localhost` and check the address separately.
+
+If you have any doubt that the link in your message is exact, check it again before sending.
+
+#### Giving the link
 
 Give the whole link, never shortened. The link is all the person ever needs: don't show them the bare token, ask them to type a token, or suggest storing it in a password manager. When they need the link again, they ask you.
 
