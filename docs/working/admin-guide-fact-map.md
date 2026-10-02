@@ -1,6 +1,6 @@
 # Admin guide fact map
 
-Every technical fact in `docs/guides/television-admin-guide.md`, mapped to a section of the technical reference in `admin-guide-rewrite.md`, or cut. The reader of the new guide is a capable agent that knows npm, ssh, Docker, Tailscale, curl, launchd, systemd and general system administration; facts it can derive from that knowledge plus the stated principles are cut.
+Every technical fact in the previous administrator guide (`docs/guides/television-admin-guide.md` before this change), mapped to a section of the rewritten guide's technical reference, or cut. The reader of the new guide is a capable agent that knows npm, ssh, Docker, Tailscale, curl, launchd, systemd and general system administration; facts it can derive from that knowledge plus the stated principles are cut.
 
 Verdicts: **keep** (Television-specific, state it), **short** (keep the fact, drop the recipe or elaboration), **cut** (derivable, history, or owned elsewhere).
 
