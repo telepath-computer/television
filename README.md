@@ -17,9 +17,9 @@ To use Television, you must have an agent harness installed. Television works wi
 
 ## Installation
 
-Simply *[download and install our macOS app](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64)*. When you launch the app it will walk you through connecting it to your agent.
+Simply **[download and install our macOS app](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64)**. When you launch the app it will walk you through connecting it to your agent.
 
-If you aren't on a Mac, you can use our experimental browser-based interface from any platform, but you'll still need an agent that's running on Linux. Just paste the following prompt into your agent:
+If you aren't on a Mac, you can use our experimental browser-based interface from any platform, but you'll still need an agent that's running on Linux or macOS. Just paste the following prompt into your agent:
 
 ```text
 Use "curl -fsSl https://television.run/install.md" to fetch the television admin guide directly without summarization and then help me get Television installed.
@@ -56,7 +56,7 @@ tv serve --persist
 
 ## Community
 
-Join us on [Discord](https://discord.gg/8MfpZ48jD8) for questions, feedback, and announcements.
+Join us on [Discord](https://discord.gg/8MfpZ48jD8) for questions, feedback, and announcements!
 
 ## Contributing
 
