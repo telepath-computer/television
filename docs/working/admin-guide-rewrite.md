@@ -224,9 +224,21 @@ The Television desktop app is a native Mac app that shows Television in its own 
 
 ### 5. Telemetry
 
-PLANNED (not guide text yet). This section will cover:
+Television sends anonymous, content-free usage telemetry by default. It is used to understand early usage and improve Television, and never includes the person's content. The privacy notice is at `https://github.com/telepath-computer/television/blob/main/PRIVACY.md`.
 
-- What the notice says; opting out with `tv telemetry disable` once the server is running; the `installedByAgent` setting.
+#### The notice
+
+On a first install, tell the person, in the confirm message: telemetry is on by default; it is anonymous and content-free; it helps the Television team understand early usage and improve Television; and if they would like it off, they can tell you and you'll turn it off. Their choice is stored in the Television home and survives upgrades, so don't repeat the notice when upgrading.
+
+#### Turning it off
+
+`tv telemetry disable` turns telemetry off and records that the person opted out, so the Television team can tell an opt-out from someone who stopped using it; `tv telemetry enable` turns it back on. Both need a running server, so if the person opts out during the confirm step, run `tv telemetry disable` as soon as the server is up. `tv status` shows the current state.
+
+`DO_NOT_TRACK=1` in the environment also suppresses all telemetry, and a service installed with it set keeps it (section 1). Prefer `tv telemetry disable`, which the person can reverse by asking you and which records the opt-out.
+
+#### Recording the installing agent
+
+Before installing the service, record which agent harness is installing Television: `tv config set installedByAgent <name>`. The name is the software running you, such as Claude Code, Codex, Hermes, OpenClaw, or Pi. Not a nickname or persona name, not a model name, and no version numbers or qualifiers.
 
 ### 6. Status and troubleshooting
 
