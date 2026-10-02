@@ -27,7 +27,8 @@ NeonBank, Mallory Health), and the same threads (the Acme pilot, eval
 ownership, the seed deck, open-model research) recur across channels, so a
 user exploring the set sees one plausible life, not disconnected lorem
 ipsum. The fiction is deliberately fictional — invented companies, invented
-model names, a pinned date — and internally consistent. ^one-fiction
+model names, and a fixed story day in the design sources — and internally
+consistent. ^one-fiction
 
 Channels and artifacts, in design order:
 
@@ -80,9 +81,15 @@ only what the source files cannot show.
 - **Example-artifact headings size down for card density.** Document-scale
   headings are oversized inside a TV card, so the example documents use smaller
   headings.
-- **The fiction is pinned** to Wednesday, July 8, 2026. Relative freshness
-  lines ("Generated 1 hour ago") are part of the fiction and never
-  computed.
+- **The story day is Wednesday, July 8, 2026.** The Company To-dos and Today's
+  Calendar frames retain their authored dates. When either installed document
+  opens, its displayed dates shift by the whole number of
+  calendar days from July 8, 2026 to the viewer's current local day. Company
+  To-dos shifts its heading date and every task `date` attribute. Today's
+  Calendar shifts `start-date` and every event's `start` and `end` attributes,
+  preserving each event's clock times. The gaps between all authored dates
+  stay the same. Other story content and relative freshness lines such as
+  "Generated 1 hour ago" keep their authored wording. ^productivity-relative-dates
 - **Frames write public artifact elements directly.** These frames specify the
   HTML an agent authors inside an artifact, so literal public tags such as
   `<tv-icon>`, `<tv-task-list>`, and `<calendar-week>` are the required
@@ -207,6 +214,10 @@ Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests ar
 The bake also owns validation of these manifests. It owns the configuration output that records their artifact order. This surface requires no duplicate test of manifest validation or configuration output.
 
 Real-browser coverage must load the baked Company To-dos and Today's Calendar documents using assets from the production skill and canonical builds. Every authored task checkbox must upgrade with a real input whose accessible name is taken from the adjacent task title. Every authored due date must render without the component reporting it as invalid. The calendar must upgrade and render every authored event. Neither document may report a JavaScript module loading error or an error from a custom element.
+
+With the browser on a known local day after July 8, 2026 that differs from its
+UTC day, that coverage also checks the task heading and due-date labels, the
+calendar header, and the shifted `start-date`, `start`, and `end` attributes.
 
 Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [product onboarding acceptance](../../product/onboarding/onboarding-channels.md#Testing) owns proof of installation through the built `tv` process and of serving the packaged bytes, including the markdown source. [Installer testing](../../arch/onboarding/installer.md#Testing) owns proof that each page is created with the values configured for it or the shared defaults. [Artifact product testing](../../product/artifacts.md#Testing), [artifact-frame lifecycle testing](../../arch/artifact-frame/index.md#Testing), and [reload and navigation architecture](../../arch/artifact-frame/reload-navigation.md) own proof that artifact documents load, remain isolated, are interactive, and reload when the theme changes. Because those specs own these behaviors, the real-browser coverage here starts with baked documents. It does not repeat installation, page order, artifact-frame behavior, or theme changes. The bundled task and calendar skill suites retain ownership of their components' complete behavior and motion. This surface proves only that the authored task and calendar documents produce the browser outcomes above when loaded with the assets declared in their manifests.
 

@@ -18,6 +18,7 @@ import { test, expect } from "../../../../test/helpers/playwright.ts";
 import { configureTestMotion } from "./helpers.ts";
 
 // proofs/ui/onboarding-artifacts/index.md#^oa-ac-skill-assets
+// proofs/ui/onboarding-artifacts/index.md#^oa-ac-relative-dates
 //
 // One focused fixture crosses the authored Productivity documents through the
 // real bake into really built tv-tasks, tv-calendar, and canonical assets. The
@@ -90,11 +91,14 @@ test.afterAll(async () => {
   if (workRoot) rmSync(workRoot, { recursive: true, force: true });
 });
 
-test("authored task and calendar documents upgrade through their built skill assets without browser errors", async ({
+test.use({ locale: "en-US", timezoneId: "Australia/Sydney" });
+
+test("authored task and calendar documents show their story dates relative to the viewer's local day", async ({
   page,
 }) => {
   test.setTimeout(60_000);
   if (!fixture) throw new Error("Onboarding skill-asset fixture did not start");
+  await page.clock.setFixedTime(new Date("2026-10-02T08:00:00+10:00"));
 
   // Parse the authored HTML in an inert document, independent of the bake
   // output. The design frames have no parameters, imports, or data bindings.
@@ -110,11 +114,20 @@ test("authored task and calendar documents upgrade through their built skill ass
         title: task.querySelector("tv-task-title")!.textContent!.trim(),
       })),
       authoredDueDates: [...taskDocument.querySelectorAll("tv-task-meta-due")].map((due) => due.getAttribute("date")),
-      authoredEvents: [...calendarDocument.querySelectorAll("calendar-event")].map((event) => event.getAttribute("title")),
+      authoredEvents: [...calendarDocument.querySelectorAll("calendar-event")].map((event) => ({
+        title: event.getAttribute("title"),
+        start: event.getAttribute("start"),
+        end: event.getAttribute("end"),
+      })),
     };
   }, { tasks: readBody("company-todos"), calendar: readBody("todays-calendar") });
   expect(authoredTasks.length).toBeGreaterThan(0);
   expect(authoredEvents.length).toBeGreaterThan(0);
+  expect(authoredDueDates).toEqual([
+    "2026-07-04", "2026-07-08", "2026-07-08", "2026-07-08", "2026-07-10", "2026-07-14",
+  ]);
+  expect(authoredEvents.every(({ start, end }) =>
+    start?.startsWith("2026-07-08T") && end?.startsWith("2026-07-08T"))).toBe(true);
 
   const pageErrors: string[] = [];
   const consoleErrors: string[] = [];
@@ -135,6 +148,7 @@ test("authored task and calendar documents upgrade through their built skill ass
     expectedGeneratedCount: authoredTasks.length + authoredDueDates.length,
   }) as {
     generatedCount: number;
+    heading: string | null;
     tasks: Array<{ title: string; inputName: string | null }>;
     dueDates: Array<{ date: string | null; label: string | null }>;
   };
@@ -142,7 +156,15 @@ test("authored task and calendar documents upgrade through their built skill ass
   expect(taskReport.tasks).toEqual(
     authoredTasks.map(({ title }) => ({ title, inputName: title })),
   );
-  expect(taskReport.dueDates.map(({ date }) => date)).toEqual(authoredDueDates);
+  expect(taskReport.heading).toBe("Friday, October 2");
+  expect(taskReport.dueDates).toEqual([
+    { date: "2026-09-28", label: "Sep 28" },
+    { date: "2026-10-02", label: "Today" },
+    { date: "2026-10-02", label: "Today" },
+    { date: "2026-10-02", label: "Today" },
+    { date: "2026-10-04", label: "Oct 4" },
+    { date: "2026-10-08", label: "Oct 8" },
+  ]);
   expect(taskReport.dueDates.every(({ label }) => label !== null && label !== "Invalid date")).toBe(true);
 
   await page.goto(`${fixture.url}/productivity/todays-calendar/`);
@@ -153,17 +175,33 @@ test("authored task and calendar documents upgrade through their built skill ass
     expectedGeneratedCount: authoredEvents.length,
   }) as {
     generatedCount: number;
-    events: Array<{ title: string | null; renderedTitle: string | null }>;
+    startDate: string | null;
+    header: { weekday: string | null; date: string | null };
+    events: Array<{
+      title: string | null;
+      renderedTitle: string | null;
+      start: string | null;
+      end: string | null;
+    }>;
   };
 
+  expect(calendarReport.startDate).toBe("2026-10-02");
+  expect(calendarReport.header).toEqual({ weekday: "Fri", date: "2" });
   expect(calendarReport.events).toEqual(
-    authoredEvents.map((title) => ({ title, renderedTitle: title })),
+    authoredEvents.map(({ title, start, end }) => ({
+      title,
+      renderedTitle: title,
+      start: start?.replace("2026-07-08", "2026-10-02"),
+      end: end?.replace("2026-07-08", "2026-10-02"),
+    })),
   );
 
   const moduleRequests = fixture.requests.filter(({ pathname }) => pathname.endsWith(".js"));
   expect(moduleRequests).toEqual(expect.arrayContaining([
     { pathname: "/canonical/v2/components.js", status: 200 },
+    { pathname: "/productivity/company-todos/onboarding-relative-dates.js", status: 200 },
     { pathname: "/productivity/company-todos/task.js", status: 200 },
+    { pathname: "/productivity/todays-calendar/onboarding-relative-dates.js", status: 200 },
     { pathname: "/productivity/todays-calendar/calendar.js", status: 200 },
   ]));
   expect(moduleRequests.every(({ status }) => status === 200)).toBe(true);
@@ -201,16 +239,25 @@ async function waitForAuthoredUpgrade(
         return {
           generatedCount: tasks.filter(({ inputName }) => inputName !== null).length +
             dueDates.filter(({ label }) => label !== null).length,
+          heading: document.querySelector("header p")?.textContent ?? null,
           tasks,
           dueDates,
         };
       }
+      const day = document.querySelector("calendar-headers > calendar-day");
       const events = [...document.querySelectorAll("calendar-event")].map((event) => ({
         title: event.getAttribute("title"),
         renderedTitle: event.querySelector(":scope > .event-block h3")?.textContent ?? null,
+        start: event.getAttribute("start"),
+        end: event.getAttribute("end"),
       }));
       return {
         generatedCount: events.filter(({ renderedTitle }) => renderedTitle !== null).length,
+        startDate: document.querySelector("calendar-week")?.getAttribute("start-date") ?? null,
+        header: {
+          weekday: day?.querySelector(".weekday")?.textContent ?? null,
+          date: day?.querySelector(".date-num")?.textContent ?? null,
+        },
         events,
       };
     };
