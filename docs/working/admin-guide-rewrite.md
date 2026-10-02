@@ -3,7 +3,7 @@
 <!-- WORKING DRAFT. Built top-down: each section is filled in once the layer above is agreed.
      Text marked TODO or PLANNED is not guide text: it describes what a section will contain. The current guide at
      docs/guides/television-admin-guide.md is a fact source only; at the end, check it for
-     anything this draft dropped. -->
+     anything this draft dropped; admin-guide-fact-map.md maps its facts to the reference sections. -->
 
 ## Purpose
 
@@ -61,7 +61,7 @@ For an upgrade:
 
 ## Technical reference
 
-TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone. Sections 1 and 2 are written; sections 3 to 8 are marked PLANNED. `admin-guide-fact-map.md` maps every fact in the current guide to these sections.
+The facts about Television that you need to install, upgrade, and look after it. The Install and Upgrade sections below put them in order for the common cases; come back here for anything they don't cover.
 
 ### 1. The software and where it runs
 
