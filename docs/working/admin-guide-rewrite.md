@@ -1,7 +1,7 @@
 # Television administration guide
 
 <!-- WORKING DRAFT. Built top-down: each section is filled in once the layer above is agreed.
-     Sections marked TODO are placeholders stating their intent. The current guide at
+     Text marked TODO or PLANNED is not guide text: it describes what a section will contain. The current guide at
      docs/guides/television-admin-guide.md is a fact source only; at the end, check it for
      anything this draft dropped. -->
 
@@ -61,7 +61,7 @@ For an upgrade:
 
 ## Technical reference
 
-TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone. Headings below are proposed; each line says what the section will hold. `admin-guide-fact-map.md` maps every fact in the current guide to these sections.
+TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone. Sections 1 and 2 are written; sections 3 to 8 are marked PLANNED. `admin-guide-fact-map.md` maps every fact in the current guide to these sections.
 
 ### 1. The software and where it runs
 
@@ -156,33 +156,51 @@ The default port is `32848`. Change it only for a real conflict, with `tv config
 Television serves plain HTTP and is designed for local or private networks. Don't expose it on a public address, or suggest doing so. If the person explicitly insists after hearing that, treat it as a separately confirmed exception, with the access token on.
 
 ### 3. Access token and connect links
+
+PLANNED (not guide text yet). This section will cover:
+
 - **The token.** Required by default on every connection; where it lives; tokenless mode only on explicit request.
 - **Connect links.** `tv links`; swapping in the address the person actually uses; give the whole link, never the bare token.
 
 ### 4. Viewers
+
+PLANNED (not guide text yet). This section will cover:
+
 - **Browser.**
 - **Desktop app.** Which Macs are eligible; how to tell whether the person has it; download link and install steps; reconnecting with a new link; it updates itself.
 
 ### 5. Telemetry
+
+PLANNED (not guide text yet). This section will cover:
+
 - What the notice says; opting out with `tv telemetry disable` once the server is running; the `installedByAgent` setting.
 
 ### 6. Status and troubleshooting
+
+PLANNED (not guide text yet). This section will cover:
+
 - `tv status` fields; the health endpoint and bearer-token API; the log; the problems that aren't obvious (a `tv` command and the service using different homes, a stale connect link); service file locations.
 
 ### 7. Upgrades
+
+PLANNED (not guide text yet). This section will cover:
+
 - **How people learn about an update.** The in-app notice with a copyable prompt.
 - **What an upgrade involves.** Package, skills, service, version check; what happens to browsers and the desktop app afterwards.
 - **Services installed by older releases.** Settings carried into a config file; switching a tokenless server to a token.
 - **Moving from the npm desktop app to the downloaded app.** Some people still use the desktop app installed with npm (`@telepath-computer/television-desktop`, started with `tv-desktop`), which gets no more updates. How to recognize it, including when the old app is on the person's Mac rather than this machine; what the old app shows the person; the steps for the person; removing the npm package; what carries over (the saved connection) and what may not (macOS camera, microphone and screen-recording permissions).
 
 ### 8. Stopping and uninstalling
+
+PLANNED (not guide text yet). This section will cover:
+
 - `tv stop`; removing the package and skills; deleting the home only with the person's confirmation.
 
 ## Install
 
 TODO: the install workflow, combining the user experience guide with the technical reference at medium detail. It must cover the common case fully on its own.
 
-Must include: do not install the server until you know which computer the person will view Television from and how it reaches this machine, whether you worked that out yourself or asked. A server set up for the wrong network still reports healthy, but the person can't reach it.
+TODO, must include: do not install the server until you know which computer the person will view Television from and how it reaches this machine, whether you worked that out yourself or asked. A server set up for the wrong network still reports healthy, but the person can't reach it.
 
 ## Upgrade
 
