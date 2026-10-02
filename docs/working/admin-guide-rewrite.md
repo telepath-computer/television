@@ -40,8 +40,10 @@ There are two roles for this guide:
 - Tell them only what they need to know or decide:
   - the telemetry notice, on first install;
   - the desktop app recommendation, unless you know they already have the app. Say why it's worth having: it shows web pages inside Television, which a browser can't, and it gives Television its own window and Dock icon. If you know or suspect they use a Mac, recommend it directly; it is most likely eligible. Otherwise, mention that it's available in case they use a Mac. Don't ask about their computer just to decide this;
+  - on a first install on a Mac, a heads-up that macOS will show a notification about a new background item;
+  - anything that changes what they need to do, such as needing a new link after an upgrade, or moving off the npm desktop app;
   - anything that blocks the work and needs their decision, such as an outdated Node version.
-- Whenever you give them a connect link, tell them how to get it again: ask you, or run `tv links` on the machine Television runs on. `tv links` is the one command meant for the person.
+- Whenever you give them a connect link, tell them how to get it again: ask you, or run `tv links` on the machine Television runs on. `tv links` is the one `tv` command meant for the person.
 - Everything else waits until they ask: troubleshooting, changing the setup.
 
 ### The shape of the work
@@ -50,7 +52,7 @@ Every task, whether installing, upgrading, or changing or fixing a setup, has fo
 
 1. **Check.** Inspect this machine and the person's request to work out as much as you can. The person sees nothing.
 2. **Confirm.** Tell the person, in plain words, what you're about to do, even when it seems obvious, and ask anything you couldn't work out. Continue until everything is clear, then wait for their go-ahead.
-3. **Do it.** The person sees nothing unless something goes wrong.
+3. **Do it.** The person sees nothing. If something goes wrong, fix it if you can, and tell them only if it needs their decision or changes what they'll get.
 4. **Report.** One short message with the key results.
 
 For an install:
@@ -270,9 +272,9 @@ When a release worth taking comes out, Television shows the person a notice with
 
 #### What an upgrade involves
 
-1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release.
+1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release. Compare the installed version with the latest on the npm registry first; if they match, there is nothing to upgrade.
 2. **Reinstall the skills** into the directory where they are already installed. Find it by looking for the installed `television` and `tv-*` skills where this agent loads skills from.
-3. **Reinstall the service** with `tv serve --persist`, so it runs the new code. Check the settings first, as the next subsection describes.
+3. **Reinstall the service** with `tv serve --persist`, so it runs the new code. Check the settings first, as the next subsection describes. The restart makes Television unavailable for a few seconds; open browser tabs and the desktop app reconnect by themselves.
 4. **Verify.** In `tv status`, `healthy`, `daemon.installed`, and `daemon.running` are true, and `version` equals the `major.minor.patch` that `tv --version` reports; ignore a `(commit …)` suffix on development builds. A different version means the service didn't restart onto the new code.
 
 Keep the Television home: it holds the person's channels, artifacts, and token, and the token is unchanged, so their connect link keeps working. Don't repeat the telemetry notice.
@@ -285,7 +287,7 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 
 - **The home.** Releases before the Television home kept data in `~/.television`, or in a directory given with `--storage-path` or `TELEVISION_STORAGE_PATH`. That directory already has the home's layout. If it isn't `~/.television`, write its path into `~/.tv-home` so the reinstalled service and every `tv` command use it in place. `TELEVISION_PORT` and `TELEVISION_STORAGE_PATH` are now ignored; a warning appears while either is set.
 - **Settings from an older service.** Older releases took settings as command options, which the service definition still holds. A service from an older release keeps running after the package upgrade, and the first time it starts with no config file in its home, it writes its old options into one. If `tv config show` reports `configFileExists` as false, set `port` and `listen` from the old service definition yourself. Reinstalling then replaces the old definition.
-- **The access token.** Older releases ran without a token by default, so an upgraded home can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. This changes how the person connects, so tell them in the report and give them their connect link: in a browser they open it, and in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
+- **The access token.** Older releases ran without a token by default, so an upgraded home can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. This changes how the person connects, so tell them in the confirm message that they'll need a new link, and give it to them in the report: in a browser they open it, and in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
 - **Listen addresses.** If `listen` holds a Tailscale or LAN address, check it is still this machine's address (section 2). If the set of addresses changes, the person may lose a way of reaching Television; tell them.
 - **`installedByAgent`.** If it is unset, set it (section 5).
 
@@ -329,7 +331,7 @@ This workflow adds no new rules. It puts the user experience guide and the techn
 
 Work out, without involving the person:
 
-- **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below.
+- **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below. If it is installed but not healthy, fix it first (section 6).
 - **This machine.** It must be macOS or Linux, with Node 22.12.0 or later (section 1).
 - **Which computer the person will view Television on, and how it reaches this machine** (section 2). This decides the `listen` setting.
 - **Whether they have the desktop app** (section 4).
