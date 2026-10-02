@@ -6,11 +6,11 @@ The onboarding designs live under `specs/ui/onboarding-artifacts/`. The release
 bundle lives under `packages/server/assets/onboarding-channels/`. The bake is
 a manual repository script that renders each HTML artifact's reference frame,
 writes the production document around it, copies Markdown and declared skill
-assets, and updates the bundled channel configuration.
+assets, places the production date module beside two Productivity documents,
+and updates the bundled channel configuration.
 
 The frame remains the authority for the artifact markup and CSS. The bake adds
-only the document structure and dependencies that the production artifact
-server provides.
+the document shell and asset links around that rendering.
 
 The bake is an author-run port. Production builds, CI, and tests never run it
 against the committed production content tree. Its output becomes release
@@ -94,6 +94,7 @@ The bake writes this document: ^baked-shell
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{artifact title}</title>
 <link rel="stylesheet" href="/canonical/v2/styles.css">
+<script type="module" src="./onboarding-relative-dates.js"></script>
 <script type="module" src="/canonical/v2/components.js"></script>
 <link rel="stylesheet" href="./{skill stylesheet}">
 <script type="module" src="./{skill module}"></script>
@@ -107,10 +108,12 @@ The bake writes this document: ^baked-shell
 </html>
 ```
 
-The canonical components line is omitted when the manifest says
-`components: false`. CSS files from the declared bundled skill come next in
-filename order, followed by its JavaScript files in filename order. Both groups
-are absent without a declared skill. The title is the manifest title with `&`,
+The relative-dates line appears only for Productivity's `company-todos` and
+`todays-calendar` artifacts. The canonical components line is omitted when
+the manifest says `components: false`. CSS files from the declared bundled
+skill come next in filename order, followed by its JavaScript files in filename
+order. Both groups are absent without a declared skill. The title is the
+manifest title with `&`,
 `<`, `>`, `"`, and `'`
 escaped for HTML. A frame without a style block omits the `style` element.
 The document uses single newlines and ends with a newline.
@@ -124,6 +127,14 @@ For each manifest card, the bake writes one packaged artifact:
 - `<slug>.frame` with a declared skill becomes
   `<channel>/<slug>/index.html`. Every regular top-level file from
   `<skills-dist>/<skill>/`, except `SKILL.md`, is copied beside it.
+
+The two Productivity date artifacts also receive a copy of
+`packages/server/assets/onboarding-relative-dates.js` beside `index.html`.
+Its module tag precedes the task or calendar skill module in the document
+head. The bake reads the module before replacing any channel folder and copies
+its bytes without transforming them. The [onboarding UI design](../../ui/onboarding-artifacts/index.md#^productivity-relative-dates)
+owns its displayed-date behavior.
+^relative-dates-module
 
 The named channel folder is replaced as a unit, so removing a design source
 also removes its old packaged output. Channels not named by the invocation are
@@ -160,15 +171,17 @@ inspection.
 
 ## Determinism
 
-The same frames, Markdown, skill files, starting config, and channel arguments
-produce the same bytes. A second bake with no input change has no diff.
+The same frames, Markdown, skill files, relative-dates module, starting config,
+and channel arguments produce the same bytes. A second bake with no input change
+has no diff.
 ^determinism
 
 ## Testing
 
 Tests run the real script against disposable roots. They cover every input
 rejection above, frame rendering and shell serialization, Markdown copying,
-skill-file copying, config updates, post-write validation, untouched channels,
+skill-file copying, relative-dates module copying and linking, config updates,
+post-write validation, untouched channels,
 and repeatable output. Tests do not bake the committed production tree or
 compare it to a golden copy; the reviewed commit is what makes generated output
 part of a release.

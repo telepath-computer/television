@@ -12,9 +12,9 @@ render with its own source would establish no implementation boundary. The
 of every flat frame into its complete HTML document, the unchanged Markdown
 copy, and the packaged skill files.
 
-One real-browser seam loads the baked task and calendar documents with freshly
-built skill and canonical assets. A fixture HTTP server replaces Television
-installation and serving. Those crossings are covered by
+One real-browser seam loads freshly baked task and calendar documents with
+freshly built skill and canonical assets. A fixture HTTP server replaces
+Television installation and serving. Those crossings are covered by
 [product acceptance](../../product/onboarding/onboarding-channels.md#^ac-fresh-install).
 Module loading and custom-element upgrades remain real.
 
@@ -40,6 +40,10 @@ including optional styles, canonical components, and declared skill assets.
 cover manifest validity and artifact order. These assertions remain owned by
 the bake proof; this proof adds no second comparison of those outputs.
 
+### Local-day arithmetic
+
+- **Date shift.** The production module maps July 8, 2026 to the viewer's local date and preserves day gaps and event clock times across month, year, and daylight-saving boundaries. The Sydney case uses a local day that differs from UTC. This proves the arithmetic in the [Productivity date behavior](../../../specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates); the browser assertion below proves that the module executes in the documents — *(policy-grade test: `packages/server/test/onboarding-relative-dates.test.ts`, “shifts authored dates by whole local calendar days”)*. ^oa-ac-date-arithmetic
+
 ### Built skill assets
 
 **Seam** — the handoff from baked Company To-dos and Today's Calendar documents
@@ -57,7 +61,13 @@ mocked. Readiness uses custom-element definitions, generated-node observation,
 and stable counts across animation frames. Error observation remains active
 through readiness.
 
-- Every authored task checkbox upgrades with a real input named from the adjacent task title. Every authored due date renders without the invalid-date result. The calendar upgrades and renders every authored event. Both documents complete without module-load or custom-element errors. These are the browser outcomes required by [the UI testing directives](../../../specs/ui/onboarding-artifacts/index.md#Testing) for the declared [skill dependencies](../../../specs/ui/onboarding-artifacts/index.md#Per-artifact-notes) — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, “authored task and calendar documents upgrade through their built skill assets without browser errors”)*. ^oa-ac-skill-assets
+The browser clock is fixed to October 2, 2026 at 08:00 in Sydney, when the UTC
+date is October 1, 2026. The test asserts the source frame's authored dates,
+then checks concrete shifted dates, task labels, and the calendar header after
+upgrade.
+
+- Every authored task checkbox upgrades with a real input named from the adjacent task title. Every authored due date renders without the invalid-date result. The calendar upgrades and renders every authored event. Both documents complete without module-load or custom-element errors. These are the browser outcomes required by [the UI testing directives](../../../specs/ui/onboarding-artifacts/index.md#Testing) for the declared [skill dependencies](../../../specs/ui/onboarding-artifacts/index.md#Per-artifact-notes) — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, “authored task and calendar documents show their story dates relative to the viewer's local day”)*. ^oa-ac-skill-assets
+- On that known local day, the task heading reads `Friday, October 2` for October 2, 2026, authored July 8, 2026 due dates render as Today, and the other due dates retain their authored day offsets. The calendar starts on October 2, 2026, its rendered header names that day, and every event retains its authored time on that date. These browser results prove the [Productivity date behavior](../../../specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates) — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, “authored task and calendar documents show their story dates relative to the viewer's local day”)*. ^oa-ac-relative-dates
 
 The installer proof owns configured-or-default page creation. The artifact
 product and architecture proofs own document loading, isolation, interaction,

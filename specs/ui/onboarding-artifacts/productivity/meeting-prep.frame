@@ -380,7 +380,7 @@ style: |
     <div class="ref-list">
       <div class="ref-item">
         <div class="ref-head">
-          <h3>1:1 — June 24</h3>
+          <h3>Previous 1:1</h3>
           <span class="ref-date">2 weeks ago</span>
         </div>
         <p>
@@ -402,7 +402,7 @@ style: |
       <div class="ref-item">
         <div class="ref-head">
           <h3>Engineering review with Marcus</h3>
-          <span class="ref-date">July 3</span>
+          <span class="ref-date">Last Friday</span>
         </div>
         <p>
           Marcus (senior engineer) raised that the team is spending roughly 30%

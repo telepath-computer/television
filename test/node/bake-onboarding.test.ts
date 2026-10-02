@@ -35,6 +35,7 @@ const SCRIPT = path.join(REPO_ROOT, "scripts", "bake-onboarding.mjs");
 const PRODUCTION_ASSETS = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-channels");
 const DESIGN_ROOT = path.join(REPO_ROOT, "specs", "ui", "onboarding-artifacts");
 const SKILLS_DIST = path.join(REPO_ROOT, "packages", "skills", "dist");
+const DATE_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-relative-dates.js");
 const VALIDATOR = path.join(REPO_ROOT, "packages", "server", "scripts", "validate-onboarding.mjs");
 
 // The real design channels, derived from the design root at runtime: every
@@ -116,7 +117,7 @@ function escapeTitle(title: string): string {
 
 function shellDoc(
   title: string,
-  opts: { components?: boolean; skillCss?: string[]; skillJs?: string[] },
+  opts: { components?: boolean; skillCss?: string[]; skillJs?: string[]; relativeDates?: boolean },
   rendering: { markup: string; style?: string },
 ): string {
   const lines = [
@@ -127,6 +128,7 @@ function shellDoc(
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeTitle(title)}</title>`,
     '<link rel="stylesheet" href="/canonical/v2/styles.css">',
+    ...(opts.relativeDates ? ['<script type="module" src="./onboarding-relative-dates.js"></script>'] : []),
     ...(opts.components !== false ? ['<script type="module" src="/canonical/v2/components.js"></script>'] : []),
     ...(opts.skillCss ?? []).map((f) => `<link rel="stylesheet" href="./${f}">`),
     ...(opts.skillJs ?? []).map((f) => `<script type="module" src="./${f}"></script>`),
@@ -412,13 +414,22 @@ describe("baked artifact content (^t-baked-content)", () => {
             .filter((f) => f !== "SKILL.md")
             .sort();
           const bakedDir = path.join(root, channel, card.slug);
+          const relativeDates = channel === "productivity" &&
+            (card.slug === "company-todos" || card.slug === "todays-calendar");
           expect(readdirSync(bakedDir).sort(), `${channel}/${card.slug}`).toEqual(
-            ["index.html", ...distFiles].sort(),
+            ["index.html", ...distFiles, ...(relativeDates ? ["onboarding-relative-dates.js"] : [])].sort(),
           );
           for (const file of distFiles) {
             expect(
               readFileSync(path.join(bakedDir, file)).equals(readFileSync(path.join(distDir, file))),
               `${channel}/${card.slug}/${file}`,
+            ).toBe(true);
+          }
+          // proofs/arch/onboarding/bake.md#^t-relative-dates-module
+          if (relativeDates) {
+            expect(
+              readFileSync(path.join(bakedDir, "onboarding-relative-dates.js")).equals(readFileSync(DATE_MODULE)),
+              `${channel}/${card.slug}/onboarding-relative-dates.js`,
             ).toBe(true);
           }
           const expected = shellDoc(
@@ -427,6 +438,7 @@ describe("baked artifact content (^t-baked-content)", () => {
               components: card.components,
               skillCss: distFiles.filter((f) => f.endsWith(".css")),
               skillJs: distFiles.filter((f) => f.endsWith(".js")),
+              relativeDates,
             },
             rendering,
           );

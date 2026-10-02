@@ -55,6 +55,8 @@ const [
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "..");
 const VALIDATOR = path.join(REPO_ROOT, "packages", "server", "scripts", "validate-onboarding.mjs");
+const DATE_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-relative-dates.js");
+const DATE_ARTIFACTS = new Set(["productivity/company-todos", "productivity/todays-calendar"]);
 
 const USAGE =
   "usage: node scripts/bake-onboarding.mjs <design-channel>... " +
@@ -624,7 +626,7 @@ function escapeTitle(title) {
     .replaceAll("'", "&#39;");
 }
 
-function shellDocument(card, skillFiles) {
+function shellDocument(card, skillFiles, relativeDates) {
   const skillCss = skillFiles.filter((f) => f.endsWith(".css"));
   const skillJs = skillFiles.filter((f) => f.endsWith(".js"));
   const lines = [
@@ -635,6 +637,7 @@ function shellDocument(card, skillFiles) {
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeTitle(card.title)}</title>`,
     '<link rel="stylesheet" href="/canonical/v2/styles.css">',
+    ...(relativeDates ? ['<script type="module" src="./onboarding-relative-dates.js"></script>'] : []),
     ...(card.components !== false ? ['<script type="module" src="/canonical/v2/components.js"></script>'] : []),
     ...skillCss.map((f) => `<link rel="stylesheet" href="./${f}">`),
     ...skillJs.map((f) => `<script type="module" src="./${f}"></script>`),
@@ -648,6 +651,9 @@ function shellDocument(card, skillFiles) {
   return lines.join("\n") + "\n";
 }
 
+// Read the production module before replacing any channel folder.
+const dateModuleBytes = readFileSync(DATE_MODULE);
+
 // --- write phase --------------------------------------------------------------
 
 for (const baked of bakedChannels) {
@@ -656,18 +662,22 @@ for (const baked of bakedChannels) {
   rmSync(channelDir, { recursive: true, force: true });
   mkdirSync(channelDir, { recursive: true });
   for (const card of baked.cards) {
+    const relativeDates = DATE_ARTIFACTS.has(`${baked.channel}/${card.slug}`);
     if (card.kind === "markdown") {
       writeFileSync(path.join(channelDir, `${card.slug}.md`), readFileSync(card.sourcePath));
     } else if (card.skill !== undefined) {
       const artifactDir = path.join(channelDir, card.slug);
       mkdirSync(artifactDir);
       const skillFiles = usedSkills.get(card.skill);
-      writeFileSync(path.join(artifactDir, "index.html"), shellDocument(card, skillFiles));
+      writeFileSync(path.join(artifactDir, "index.html"), shellDocument(card, skillFiles, relativeDates));
       for (const file of skillFiles) {
         writeFileSync(path.join(artifactDir, file), readFileSync(path.join(skillsDistRoot, card.skill, file)));
       }
+      if (relativeDates) {
+        writeFileSync(path.join(artifactDir, "onboarding-relative-dates.js"), dateModuleBytes);
+      }
     } else {
-      writeFileSync(path.join(channelDir, `${card.slug}.html`), shellDocument(card, []));
+      writeFileSync(path.join(channelDir, `${card.slug}.html`), shellDocument(card, [], false));
     }
   }
 }
