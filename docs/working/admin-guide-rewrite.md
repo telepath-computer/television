@@ -261,12 +261,54 @@ Before installing the service, record which agent harness is installing Televisi
 
 ### 7. Upgrades
 
-PLANNED (not guide text yet). This section will cover:
+The Television server never upgrades itself; the person's agent upgrades it. The downloaded desktop app updates itself (section 4).
 
-- **How people learn about an update.** The in-app notice with a copyable prompt.
-- **What an upgrade involves.** Package, skills, service, version check; what happens to browsers and the desktop app afterwards.
-- **Services installed by older releases.** Settings carried into a config file; switching a tokenless server to a token.
-- **Moving from the npm desktop app to the downloaded app.** Some people still use the desktop app installed with npm (`@telepath-computer/television-desktop`, started with `tv-desktop`), which gets no more updates. How to recognize it, including when the old app is on the person's Mac rather than this machine; what the old app shows the person; the steps for the person; removing the npm package; what carries over (the saved connection) and what may not (macOS camera, microphone and screen-recording permissions).
+#### How people learn about an update
+
+When a release worth taking comes out, Television shows the person a notice with a bell icon and a **Copy upgrade prompt** button. The prompt asks their agent to fetch this guide and upgrade Television, so an upgrade request usually arrives in that form. People can also arrive from an older install's log or error message, which points to this guide when it meets settings from an earlier release.
+
+#### What an upgrade involves
+
+1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release.
+2. **Reinstall the skills** into the directory where they are already installed. Find it by looking for the installed `television` and `tv-*` skills where this agent loads skills from.
+3. **Reinstall the service** with `tv serve --persist`, so it runs the new code. Check the settings first, as the next subsection describes.
+4. **Verify.** In `tv status`, `healthy`, `daemon.installed`, and `daemon.running` are true, and `version` equals the `major.minor.patch` that `tv --version` reports; ignore a `(commit …)` suffix on development builds. A different version means the service didn't restart onto the new code.
+
+Keep the Television home: it holds the person's channels, artifacts, and token, and the token is unchanged, so their connect link keeps working. Don't repeat the telemetry notice.
+
+After the upgrade, open browser tabs reload themselves once when they reconnect; the person does nothing. A desktop app keeps working unless the new server needs a newer app, in which case it shows a screen saying it needs an update (section 4).
+
+#### Settings before reinstalling the service
+
+`tv config show` shows the settings the service will use. Before rerunning `tv serve --persist`, check:
+
+- **The home.** Releases before the Television home kept data in `~/.television`, or in a directory given with `--storage-path` or `TELEVISION_STORAGE_PATH`. That directory already has the home's layout. If it isn't `~/.television`, write its path into `~/.tv-home` so the reinstalled service and every `tv` command use it in place. `TELEVISION_PORT` and `TELEVISION_STORAGE_PATH` are now ignored; a warning appears while either is set.
+- **Settings from an older service.** Older releases took settings as command options, which the service definition still holds. A service from an older release keeps running after the package upgrade, and the first time it starts with no config file in its home, it writes its old options into one. If `tv config show` reports `configFileExists` as false, set `port` and `listen` from the old service definition yourself. Reinstalling then replaces the old definition.
+- **The access token.** Older releases ran without a token by default, so an upgraded home can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. This changes how the person connects, so tell them in the report and give them their connect link: in a browser they open it, and in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
+- **Listen addresses.** If `listen` holds a Tailscale or LAN address, check it is still this machine's address (section 2). If the set of addresses changes, the person may lose a way of reaching Television; tell them.
+- **`installedByAgent`.** If it is unset, set it (section 5).
+
+#### Moving from the npm desktop app to the downloaded app
+
+Desktop apps up to Television 1.3 were installed with the npm package `@telepath-computer/television-desktop` and started with `tv-desktop`. That package gets no more updates. A small number of people still use it. The downloaded app replaces it and keeps its saved server connection, so the person doesn't need to reconnect.
+
+**Recognizing it.** The npm app may be on this machine or on the person's own Mac. On this machine, the npm package is installed globally. On their Mac you can't check, so recognize it from what they tell you:
+
+- they start the app with `tv-desktop`;
+- the app shows a notice saying that the desktop app is now a downloaded Mac app that updates itself, and that this copy was installed with npm and receives no more updates. The notice gives the download link and steps but no prompt for an agent, so the person may simply ask you about it;
+- an npm app older than the server requires shows a screen saying the desktop app needs to be updated, with a download link.
+
+When you find the npm package on this machine during an upgrade, tell the person and offer the move.
+
+**The person's steps.** They make the move themselves, like installing any Mac app:
+
+1. Download the app and drag it to Applications (section 4, steps 1 and 2).
+2. Quit the npm app, then open Television from Applications. While the npm app is running, macOS may bring it forward instead of the new app.
+3. From then on, open Television from Applications, the Dock, or Spotlight, not with `tv-desktop`.
+
+The new app opens with the saved server connection. If it shows the connect screen instead, give them their connect link. macOS may ask again for camera, microphone, or screen-recording permission, because the downloaded app is signed differently.
+
+**Afterwards,** remove the npm package wherever you can see it installed. Saved connections and settings belong to the app's data, not the package, and stay. A copy left on a machine you can't reach does no harm once the person stops using `tv-desktop`.
 
 ### 8. Stopping and uninstalling
 
