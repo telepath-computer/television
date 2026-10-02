@@ -132,14 +132,14 @@ Common conclusions:
 
 Localhost (`127.0.0.1`) is always listened on. The `listen` setting adds more addresses: one comma-separated list of IPv4 addresses, which replaces the stored list; `tv config set listen ""` clears it.
 
-| How the person reaches this machine | `listen` setting | Address in the connect link |
-| --- | --- | --- |
-| Same machine | not set | `localhost` |
-| SSH tunnel | not set; the person runs `ssh -L 32848:localhost:32848 <host>` | `localhost`, on their computer |
-| Tailscale | this machine's tailnet IPv4 (`tailscale ip -4`) | that tailnet address |
-| Home or office network | this machine's LAN IPv4, or `0.0.0.0` for every interface | the LAN address |
-| Docker | `0.0.0.0` inside the container; the host's port publishing decides who can reach it | the host's address, as the person reaches the host |
-| More than one of these | one list, such as `100.64.0.7,192.168.1.42` | one link per address |
+| How the person reaches this machine | `listen` setting                                                                    | Address in the connect link                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------- |
+| Same machine                        | not set                                                                             | `localhost`                                        |
+| SSH tunnel                          | not set; the person runs `ssh -L 32848:localhost:32848 <host>`                      | `localhost`, on their computer                     |
+| Tailscale                           | this machine's tailnet IPv4 (`tailscale ip -4`)                                     | that tailnet address                               |
+| Home or office network              | this machine's LAN IPv4, or `0.0.0.0` for every interface                           | the LAN address                                    |
+| Docker                              | `0.0.0.0` inside the container; the host's port publishing decides who can reach it | the host's address, as the person reaches the host |
+| More than one of these              | one list, such as `100.64.0.7,192.168.1.42`                                         | one link per address                               |
 
 Prefer Tailscale over a LAN listener when both would work: a LAN listener relies more on the local network and the access token for protection.
 
@@ -162,7 +162,6 @@ Television serves plain HTTP and is designed for local or private networks. Don'
 ### 4. Viewers
 - **Browser.**
 - **Desktop app.** Which Macs are eligible; how to tell whether the person has it; download link and install steps; reconnecting with a new link; it updates itself.
-- **Moving from the npm desktop app (`tv-desktop`) to the downloaded app.**
 
 ### 5. Telemetry
 - What the notice says; opting out with `tv telemetry disable` once the server is running; the `installedByAgent` setting.
@@ -171,7 +170,10 @@ Television serves plain HTTP and is designed for local or private networks. Don'
 - `tv status` fields; the health endpoint and bearer-token API; the log; the problems that aren't obvious (a `tv` command and the service using different homes, a stale connect link); service file locations.
 
 ### 7. Upgrades
-- How people learn about an update (the in-app notice with a copyable prompt); what an upgrade involves (package, skills, service, version check); what happens to browsers and the desktop app afterwards; services installed by older releases; switching a tokenless server to a token.
+- **How people learn about an update.** The in-app notice with a copyable prompt.
+- **What an upgrade involves.** Package, skills, service, version check; what happens to browsers and the desktop app afterwards.
+- **Services installed by older releases.** Settings carried into a config file; switching a tokenless server to a token.
+- **Moving from the npm desktop app to the downloaded app.** Some people still use the desktop app installed with npm (`@telepath-computer/television-desktop`, started with `tv-desktop`), which gets no more updates. How to recognize it, including when the old app is on the person's Mac rather than this machine; what the old app shows the person; the steps for the person; removing the npm package; what carries over (the saved connection) and what may not (macOS camera, microphone and screen-recording permissions).
 
 ### 8. Stopping and uninstalling
 - `tv stop`; removing the package and skills; deleting the home only with the person's confirmation.
