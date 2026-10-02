@@ -64,12 +64,45 @@ For an upgrade:
 TODO: an organized hierarchy of technical facts and concerns, complete enough that an agent could work out install and upgrade from it alone. Headings below are proposed; each line says what the section will hold. `admin-guide-fact-map.md` maps every fact in the current guide to these sections.
 
 ### 1. The software and where it runs
-- **Supported machines.** The agent and server run on macOS or Linux.
-- **Package and Node.** `@telepath-computer/television` provides `tv`; requires Node 22.12.0 or later; upgrading Node is the person's decision.
-- **The server service.** `tv serve --persist` installs a launchd or systemd service, replacing any existing one, and records the shell's PATH and environment. Plain `tv serve` runs in the foreground and never exits.
-- **Agent and server on the same machine.** The `tv` tool reaches only its own machine's server; in Docker the agent runs inside the same container; if the agent and server would be on different machines, resolve that before installing.
-- **Television home and config file.** `~/.television` by default; `~/.tv-home` and `--home`; `config.json` keys (`port`, `listen`, `auth`, `installedByAgent`); `tv config set` and `tv config show`; settings take effect on the next `tv serve --persist`; moving a home.
-- **Skills.** `tv skills install <dir>`; where agents commonly load skills from; confirm the skills are loaded; reinstall on every upgrade.
+
+#### Supported machines
+
+The agent and the Television server run on macOS or Linux. The viewer can be any computer with a browser, or a Mac with the desktop app (section 4).
+
+#### Package and Node
+
+The npm package `@telepath-computer/television` provides the `tv` command. It requires Node 22.12.0 or later. npm only warns about an unsupported Node version, so check `node --version` yourself before installing. Upgrading Node changes the person's system, so it is their decision: tell them, and continue only once Node is new enough.
+
+#### Agent and server on the same machine
+
+The `tv` command talks only to the server on `localhost`, and has no option to reach a server elsewhere. So the agent and the server run on the same machine: the same computer, VM, or VPS, or inside the same Docker container. Only the viewer reaches across the network. If the person describes a setup with the agent and server on different machines, resolve that before installing; otherwise the install appears to succeed and every later `tv` command fails to reach the server.
+
+#### The server service
+
+`tv serve --persist` installs the server as a per-user launchd service on macOS or systemd user service on Linux, named `com.television.server`, and starts it. It replaces any existing Television service, so rerunning it is how you apply changed settings or run upgraded code. It records the installing shell's `PATH` and Television's environment controls, such as `DO_NOT_TRACK`, so run it from a shell where those are as the service should have them, and where `tv` resolves to the intended install.
+
+The first install on macOS makes macOS show a notification about a new background or login item. It may name "node", "Node.js Foundation", or an unidentified developer, because macOS names the Node binary rather than Television. It is the Television service and is expected.
+
+Plain `tv serve` runs the server in the foreground and never exits, so don't use it as a test from an agent session.
+
+#### Television home and config file
+
+The *Television home* holds all of the server's state: its config file `config.json`, the access token at `state/token`, the log at `logs/tv.log`, and the person's channels and artifacts. It is `~/.television` unless `~/.tv-home` exists, in which case that file holds the path to use. Each `tv` command resolves the home separately; `--home <path>` overrides it for that one command only. So if the person wants their data somewhere else, write the path into `~/.tv-home` before installing, rather than relying on `--home`. The service records its own home when installed, and keeps it until `tv serve --persist` is rerun.
+
+Settings live in the config file and are written with `tv config set <key> <value> [<key> <value> ...]`; `tv config show` prints the home, the config file path, and the effective settings. The keys are:
+
+- `port`: default `32848`.
+- `listen`: extra IPv4 addresses to listen on, besides localhost, which is always on (section 2). Default none.
+- `auth`: whether the access token is required. Default `true` (section 3).
+- `installedByAgent`: the name of the agent harness that installed Television, recorded in telemetry (section 5).
+
+With no config file, every key has its default, so an ordinary install needs none. The server reads the file only when it starts; rerun `tv serve --persist` after changing it.
+
+To move a home, stop the service, move the directory, point `~/.tv-home` at it, and rerun `tv serve --persist`. Artifacts whose files were inside the home still point at the old location; find them with `tv list-artifacts` and repoint each with `tv update-artifact --id <id> --path <new-path>`.
+
+#### Skills
+
+Television ships skills that teach agents to use it: the main `television` skill and several `tv-*` skills. `tv skills install <directory>` installs them into a skills directory, replacing any earlier copies. Install them where this agent actually loads skills from, respecting any location the person has set up. Locations vary by agent; common ones are `~/.agents/skills`, `~/.openclaw/workspace/skills` (OpenClaw), and `~/.hermes/skills` (Hermes). After installing, make sure the skills are available to you, refreshing if your harness requires it. On a first install, load the `television` skill right away, because the person will likely want to try Television straight after. Skill content changes between releases, so reinstall the skills on every upgrade.
 
 ### 2. How the viewer reaches the server
 - **Working out the person's situation.** What to check on this machine: the operating system, whether the desktop app is running here, Tailscale, an SSH session, Docker.
