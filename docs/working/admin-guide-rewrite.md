@@ -33,6 +33,7 @@ There are two roles for this guide:
 ## User experience guide
 
 - Protect the person from technical complexity. Don't mention commands, settings, addresses, or edge cases unless they're needed to connect or the person asks.
+- Use Television's defaults. A setting changes from its default only when the situation requires it, such as listening on a Tailscale address so the person's computer can reach Television, or when the person asks. Don't offer optional settings as choices, such as where Television keeps its data, the port, or running without a token; the person doesn't need to know they exist.
 - Work things out yourself before asking. Ask only what you can't work out, in plain words, one question at a time, never as a menu of options.
 - When you do ask, say why the answer matters and what kind of answer you need, so the question makes sense to someone who doesn't know how Television works. "How do you want to connect to your Television?" fails both: the person can't tell whether you mean a device, a network, or how often, or why you're asking. Better: "Television runs here on this server, and you'll view it from your own computer. To set it up so your computer can reach it, I need to know: is that computer on the same Tailscale network as this server?"
 - Keep the final message short. When the person needs to connect, end it with what they need: the connect link, plus the ssh command if they reach this machine over an SSH tunnel. The link must be exact and verified (section 3).
@@ -90,7 +91,7 @@ Plain `tv serve` runs the server in the foreground and never exits, so don't use
 
 #### Television home and config file
 
-The *Television home* holds all of the server's state: its config file `config.json`, the access token at `state/token`, the log at `logs/tv.log`, and the person's channels and artifacts. It is `~/.television` unless `~/.tv-home` exists, in which case that file holds the path to use. Each `tv` command resolves the home separately; `--home <path>` overrides it for that one command only. So if the person wants their data somewhere else, write the path into `~/.tv-home` before installing, rather than relying on `--home`. The service records its own home when installed, and keeps it until `tv serve --persist` is rerun.
+The *Television home* holds all of the server's state: its config file `config.json`, the access token at `state/token`, the log at `logs/tv.log`, and the person's channels and artifacts. It is `~/.television` unless `~/.tv-home` exists, in which case that file holds the path to use. Each `tv` command resolves the home separately; `--home <path>` overrides it for that one command only. So if the person asks to keep their data somewhere else, write the path into `~/.tv-home` before installing, rather than relying on `--home`. The service records its own home when installed, and keeps it until `tv serve --persist` is rerun.
 
 Settings live in the config file and are written with `tv config set <key> <value> [<key> <value> ...]`; `tv config show` prints the home, the config file path, and the effective settings. The keys are:
 
@@ -352,7 +353,7 @@ Then wait for their go-ahead. For a person on the desktop app connect screen wit
 
 1. Install the package, if it isn't installed (section 1).
 2. Install the skills, make sure they're available to you, and load the `television` skill (section 1).
-3. Set `installedByAgent`, and `listen` if the person reaches this machine other than from the machine itself (sections 2 and 5). If the person wants their data outside `~/.television`, write that path into `~/.tv-home` first.
+3. Set `installedByAgent`, and `listen` if the person reaches this machine other than from the machine itself (sections 2 and 5). If the person has asked to keep their data outside `~/.television`, write that path into `~/.tv-home` first.
 4. Run `tv serve --persist`.
 5. Check `tv status` (section 6). If the person asked to turn telemetry off, run `tv telemetry disable` now.
 6. Get the connect link from `tv links`, adjust its address if needed, and verify it exactly as section 3 requires.
