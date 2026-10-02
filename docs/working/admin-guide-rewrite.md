@@ -323,6 +323,8 @@ Deleting the Television home, and `~/.tv-home` if it exists, permanently deletes
 
 Use this when the person wants Television set up, including when it is already installed and they just need to connect, as from the desktop app's connect screen. It follows the four beats in the user experience guide.
 
+This workflow adds no new rules. It puts the user experience guide and the technical reference in order for the common cases. Follow it, and if your situation isn't covered here or seems to differ, those two sections govern.
+
 ### 1. Check
 
 Work out, without involving the person:
@@ -389,6 +391,8 @@ A person can arrive asking only for the desktop app, for example from the browse
 ## Upgrade
 
 Use this when the person asks to upgrade Television, usually by pasting the prompt from Television's update notice. It follows the four beats in the user experience guide; section 7 holds the details.
+
+Like Install, this workflow adds no new rules. It puts the user experience guide and the technical reference in order for the common cases. Follow it, and if your situation isn't covered here or seems to differ, those two sections govern.
 
 ### 1. Check
 
