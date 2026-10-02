@@ -163,7 +163,7 @@ The server requires an access token on every request, on every address it listen
 
 `tv config set auth false` turns the token off on every address; there is no per-address setting. Do this only when the person explicitly asks to run without a token. The server then prints a warning at every start and records it in the log.
 
-Treat the token, and every connect link containing it, like a password.
+Showing the person their full connect link is expected and correct: it is how they open Television. Don't put the token or links anywhere else, such as shared documents, issue reports, or Television artifacts.
 
 #### Connect links
 
