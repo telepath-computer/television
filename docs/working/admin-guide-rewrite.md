@@ -320,9 +320,70 @@ Deleting the Television home, and `~/.tv-home` if it exists, permanently deletes
 
 ## Install
 
-TODO: the install workflow, combining the user experience guide with the technical reference at medium detail. It must cover the common case fully on its own.
+Use this when the person wants Television set up, including when it is already installed and they just need to connect, as from the desktop app's connect screen. It follows the four beats in the user experience guide.
 
-TODO, must include: do not install the server until you know which computer the person will view Television from and how it reaches this machine, whether you worked that out yourself or asked. A server set up for the wrong network still reports healthy, but the person can't reach it.
+### 1. Check
+
+Work out, without involving the person:
+
+- **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below.
+- **This machine.** It must be macOS or Linux, with Node 22.12.0 or later (section 1).
+- **Which computer the person will view Television on, and how it reaches this machine** (section 2). This decides the `listen` setting.
+- **Whether they have the desktop app** (section 4).
+- **This agent's skills directory** (section 1).
+
+Don't install anything until you know which computer the person will view Television on and how it reaches this machine, whether you worked that out or asked. A server set up for the wrong network still reports healthy, but the person can't reach it.
+
+### 2. Confirm
+
+Send one message, in plain words:
+
+- what you're about to do: install Television on this machine, set it to start automatically, and add the Television skills so you can use it;
+- anything you couldn't work out, asked with why it matters;
+- anything that blocks the install and needs their decision, such as an outdated Node version;
+- the telemetry notice (section 5);
+- on a Mac, a heads-up that macOS will show a notification about a new background item, which is expected.
+
+Then wait for their go-ahead. For a person on the desktop app connect screen with the app on this Mac, the whole message can be:
+
+> I'll set up Television here on this Mac: install it, set it to start automatically, and add the Television skills so I can put things on it. When it's ready, I'll give you a link to paste into the app. macOS will show a notice about a new background item; that's Television, and it's expected. Television sends anonymous, content-free usage data to help improve it; tell me anytime if you'd like that off. OK to go ahead?
+
+### 3. Do it
+
+1. Install the package, if it isn't installed (section 1).
+2. Install the skills, make sure they're available to you, and load the `television` skill (section 1).
+3. Set `installedByAgent`, and `listen` if the person reaches this machine other than from the machine itself (sections 2 and 5). If the person wants their data outside `~/.television`, write that path into `~/.tv-home` first.
+4. Run `tv serve --persist`.
+5. Check `tv status` (section 6). If the person asked to turn telemetry off, run `tv telemetry disable` now.
+6. Get the connect link from `tv links`, adjust its address if needed, and verify it exactly as section 3 requires.
+
+If something fails, fix it if you can. Tell the person only if it needs their decision or changes what they'll get.
+
+### 4. Report
+
+One short message. It ends with what they need to connect:
+
+- the connect link, complete and verified, on a line of its own;
+- for an SSH tunnel, the `ssh -L` command to run first, and that it must stay running while they use Television;
+- how to open it: paste it into the desktop app and press **Connect**, or open it in a browser;
+- the desktop app recommendation, when it applies (user experience guide), with the download link and steps from section 4;
+- that they can get the link again by asking you, or by running `tv links` on this machine.
+
+For the person on the connect screen above:
+
+> Television is ready. Paste this link into the app and press Connect:
+>
+> `<the connect link, complete>`
+>
+> If you ever need it again, ask me, or run `tv links` on this Mac.
+
+### When Television is already installed
+
+If the person needs to connect to a working install, check whether the current `listen` setting lets their computer reach it (section 2). If it does, give them the verified link, with the report's other parts that apply. If it doesn't, confirm the change with them, update `listen`, rerun `tv serve --persist`, and then give them the link. Don't repeat the telemetry notice.
+
+### When the person wants the desktop app
+
+A person can arrive asking only for the desktop app, for example from the browser's page about external web pages (section 4). If Television is installed and they view it on an eligible Mac, give them the download link and steps, and their verified connect link to paste into the app. If their computer isn't eligible, say the app is available only for Apple Silicon Macs and they can keep using the browser.
 
 ## Upgrade
 
