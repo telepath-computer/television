@@ -236,6 +236,8 @@ On a first install, tell the person, in the confirm message: telemetry is on by 
 
 `DO_NOT_TRACK=1` in the environment also suppresses all telemetry, and a service installed with it set keeps it (section 1). Prefer `tv telemetry disable`, which the person can reverse by asking you and which records the opt-out.
 
+The notice doesn't mention these controls. If the person asks how to control telemetry themselves, explain them: `tv telemetry disable` and `tv telemetry enable` on the machine Television runs on, `tv status` to see the current state, and `DO_NOT_TRACK=1`, which only takes effect for the service if it is set when the service is installed.
+
 #### Recording the installing agent
 
 Before installing the service, record which agent harness is installing Television: `tv config set installedByAgent <name>`. The name is the software running you, such as Claude Code, Codex, Hermes, OpenClaw, or Pi. Not a nickname or persona name, not a model name, and no version numbers or qualifiers.
