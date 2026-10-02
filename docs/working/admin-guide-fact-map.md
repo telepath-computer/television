@@ -6,34 +6,34 @@ Verdicts: **keep** (Television-specific, state it), **short** (keep the fact, dr
 
 ## 1. The software and where it runs
 
-| Fact | Verdict |
-| --- | --- |
-| The agent must run on macOS or Linux (README and desktop setup screen) | keep (missing from the current guide) |
-| `@telepath-computer/television` provides `tv` | keep |
-| Node 22.12.0 or later; npm's engine warning is advisory only, so check `node --version` yourself; upgrading Node is the person's decision | short |
-| `npm install -g`, verify with `tv --help` / `tv --version`; use the person's preferred Node setup if global installs don't fit | cut (derivable) |
-| Make sure the `tv` on PATH is the intended install before installing the service | short (matters because the service records PATH) |
-| `tv serve --persist` installs a launchd/systemd service and replaces any existing one | keep |
-| It records the installing shell's PATH and Television's environment controls (such as `DO_NOT_TRACK`) for the service | keep |
-| Plain `tv serve` runs in the foreground and never exits, so it hangs an agent session | short |
-| Service names: `com.television.server` plist in `~/Library/LaunchAgents`, systemd user unit of the same name | keep |
-| The `tv` tool talks only to `localhost:<port>`; there is no flag to point it at another machine | keep |
-| "The previous `--server` flag was removed" | cut (history) |
-| Docker: the agent runs inside the same container as the server | keep |
-| If the agent and server would be on different machines, resolve that before installing; otherwise `tv` commands silently fail | keep |
-| Home resolution: `--home`, then the path in `~/.tv-home`, then `~/.television`; `--home` applies to one command only, so use `~/.tv-home` for a lasting install | keep |
-| Dropbox example for a custom home | cut |
-| The home holds `config.json`, the token at `state/token`, and the log at `logs/tv.log` | keep |
-| Config keys `port`, `listen`, `auth`, `installedByAgent`; defaults; `tv config set k v [k v ...]`; `tv config show` | keep |
-| The server reads config only at start; rerun `tv serve --persist` after a change | keep |
-| Moving a home: stop, move, update `~/.tv-home`, serve | short (derivable from the above) |
-| Moving a home: artifacts whose files are inside the home still point at the old path; repoint with `tv update-artifact --id <id> --path <new>` | keep (not derivable) |
-| Skills: `tv skills install <dir>` | keep |
-| Common skill directories: `~/.agents/skills`, `~/.openclaw/workspace/skills`, `~/.hermes/skills`; respect the person's stated preference | keep |
-| Confirm the skills are loaded afterwards, refreshing if needed | short |
-| On first install, load the `television` skill so you can handle the person's first requests | keep |
-| Skills are named `television` and `tv-*` | keep (needed for upgrade and uninstall) |
-| macOS shows a background/login-item notification naming "node", "Node.js Foundation" or an unidentified developer; it is the Television service | keep |
+| Fact                                                                                                                                                            | Verdict                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| The agent must run on macOS or Linux (README and desktop setup screen)                                                                                          | keep (missing from the current guide)            |
+| `@telepath-computer/television` provides `tv`                                                                                                                   | keep                                             |
+| Node 22.12.0 or later; npm's engine warning is advisory only, so check `node --version` yourself; upgrading Node is the person's decision                       | short                                            |
+| `npm install -g`, verify with `tv --help` / `tv --version`; use the person's preferred Node setup if global installs don't fit                                  | cut (derivable)                                  |
+| Make sure the `tv` on PATH is the intended install before installing the service                                                                                | short (matters because the service records PATH) |
+| `tv serve --persist` installs a launchd/systemd service and replaces any existing one                                                                           | keep                                             |
+| It records the installing shell's PATH and Television's environment controls (such as `DO_NOT_TRACK`) for the service                                           | keep                                             |
+| Plain `tv serve` runs in the foreground and never exits, so it hangs an agent session                                                                           | short                                            |
+| Service names: `com.television.server` plist in `~/Library/LaunchAgents`, systemd user unit of the same name                                                    | keep                                             |
+| The `tv` tool talks only to `localhost:<port>`; there is no flag to point it at another machine                                                                 | keep                                             |
+| "The previous `--server` flag was removed"                                                                                                                      | cut (history)                                    |
+| Docker: the agent runs inside the same container as the server                                                                                                  | keep                                             |
+| If the agent and server would be on different machines, resolve that before installing; otherwise `tv` commands silently fail                                   | keep                                             |
+| Home resolution: `--home`, then the path in `~/.tv-home`, then `~/.television`; `--home` applies to one command only, so use `~/.tv-home` for a lasting install | keep                                             |
+| Dropbox example for a custom home                                                                                                                               | cut                                              |
+| The home holds `config.json`, the token at `state/token`, and the log at `logs/tv.log`                                                                          | keep                                             |
+| Config keys `port`, `listen`, `auth`, `installedByAgent`; defaults; `tv config set k v [k v ...]`; `tv config show`                                             | keep                                             |
+| The server reads config only at start; rerun `tv serve --persist` after a change                                                                                | keep                                             |
+| Moving a home: stop, move, update `~/.tv-home`, serve                                                                                                           | short (derivable from the above)                 |
+| Moving a home: artifacts whose files are inside the home still point at the old path; repoint with `tv update-artifact --id <id> --path <new>`                  | keep (not derivable)                             |
+| Skills: `tv skills install <dir>`                                                                                                                               | keep                                             |
+| Common skill directories: `~/.agents/skills`, `~/.openclaw/workspace/skills`, `~/.hermes/skills`; respect the person's stated preference                        | keep                                             |
+| Confirm the skills are loaded afterwards, refreshing if needed                                                                                                  | short                                            |
+| On first install, load the `television` skill so you can handle the person's first requests                                                                     | keep                                             |
+| Skills are named `television` and `tv-*`                                                                                                                        | keep (needed for upgrade and uninstall)          |
+| macOS shows a background/login-item notification naming "node", "Node.js Foundation" or an unidentified developer; it is the Television service                 | keep                                             |
 
 ## 2. How the viewer reaches the server
 
