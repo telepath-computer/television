@@ -244,9 +244,20 @@ Before installing the service, record which agent harness is installing Televisi
 
 ### 6. Status and troubleshooting
 
-PLANNED (not guide text yet). This section will cover:
+#### Where to look
 
-- `tv status` fields; the health endpoint and bearer-token API; the log; the problems that aren't obvious (a `tv` command and the service using different homes, a stale connect link); service file locations.
+- **`tv status`** prints JSON: `home` (the home this command resolved), `healthy`, and, when the server answers, `version`, `port`, `bindAddresses`, and the telemetry state; plus `daemon.installed` and `daemon.running` for the service. A healthy install shows `healthy`, `daemon.installed`, and `daemon.running` all true.
+- **The server's HTTP endpoints.** `/health` needs no token. API routes, such as `/channels`, take the token as a bearer token.
+- **The log** at `<home>/logs/tv.log`, which records startups, failures, and listener problems.
+- **The service definition.** On macOS, `~/Library/LaunchAgents/com.television.server.plist`; on Linux, `~/.config/systemd/user/com.television.server.service`. It records the home, environment, and command the service runs with.
+
+#### Problems that aren't obvious
+
+- **`tv` commands and the service use different homes.** `tv status` reports the home the command resolved, which the server doesn't know. If it differs from the home in the service definition, commands may report an unhealthy or unauthorized server while the service is fine. Point `~/.tv-home` at the service's home, or reinstall the service from the intended home.
+- **The server won't stay up after a network change.** A `listen` address that no longer exists on the machine stops the server from starting; the log names the address. Update `listen` and rerun `tv serve --persist` (section 2).
+- **The person sees "Access token required".** Their link's token doesn't match the server's. Check the server's token works locally; if it does, their link is stale or was corrupted. Give them their current link. In a browser, they open it; in the desktop app, they choose **Television › Disconnect from Server** and paste it.
+- **The person can't reach the server from another computer.** Check that the address they use is in `bindAddresses`, that it is still this machine's address, and, for an SSH tunnel, that their tunnel is running and they're opening the `localhost` link. Then check what lies between: Tailscale connectivity, a firewall, or Docker port publishing.
+- **The desktop app shows "Can't connect with server".** The server can't be reached from the person's Mac. The app keeps retrying and reconnects by itself once the server is reachable.
 
 ### 7. Upgrades
 
