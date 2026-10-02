@@ -152,7 +152,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **menu/**
       - `index.md` (25 lines) — *UI spec: the menu — a popover whose contents are actions, and the vocabulary its interior is built from.*
     - **popover/**
-      - `index.md` (75 lines) — *UI spec: the popover — the panel that floats over the page while the page stays live, anchored to the trigger that opened it.*
+      - `index.md` (79 lines) — *UI spec: the popover — the panel that floats over the page while the page stays live, anchored to the trigger that opened it.*
     - **select/**
       - `index.md` (42 lines) — *UI spec: the select — the control that chooses one option from a list; its trigger, selection, interior, and keyboard.*
   - **markdown-editor/**
@@ -160,7 +160,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **onboarding-artifacts/**
     - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
-    - `index.md` (25 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
+    - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **skillbench/**
     - `index.md` (26 lines) — *UI spec: skillbench — the eval review page's interaction, markup, and styling.*
   - **skills/**

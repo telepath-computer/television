@@ -138,7 +138,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **menu/**
       - `index.md` (19 lines) — *How the production menu's semantics and keyboard/pointer interaction are proven in Chromium.*
     - **popover/**
-      - `index.md` (30 lines) — *How the production popover's interaction, placement, and lifecycle are proven in Chromium.*
+      - `index.md` (36 lines) — *How the production popover's interaction, placement, and lifecycle are proven in Chromium, and presses over window drag regions in the real Electron app.*
     - **select/**
       - `index.md` (24 lines) — *How the production select's value, semantics, interaction, and placement are proven in Chromium.*
   - **markdown-editor/**
@@ -146,7 +146,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **onboarding-artifacts/**
     - `index.md` (99 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
-    - `index.md` (25 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, and window dragging.*
+    - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **skillbench/**
     - `index.md` (13 lines) — *How the promises in Skillbench (UI) are proven.*
   - **skills/**
