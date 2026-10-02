@@ -40,7 +40,8 @@ There are two roles for this guide:
   - the telemetry notice, on first install;
   - the desktop app recommendation, unless you know they already have the app. Say why it's worth having: it shows web pages inside Television, which a browser can't, and it gives Television its own window and Dock icon. If you know or suspect they use a Mac, recommend it directly; it is most likely eligible. Otherwise, mention that it's available in case they use a Mac. Don't ask about their computer just to decide this;
   - anything that blocks the work and needs their decision, such as an outdated Node version.
-- Everything else waits until they ask: getting the link again, troubleshooting, changing the setup.
+- Whenever you give them a connect link, tell them how to get it again: ask you, or run `tv links` on the machine Television runs on. `tv links` is the one command meant for the person.
+- Everything else waits until they ask: troubleshooting, changing the setup.
 
 ### The shape of the work
 
@@ -54,7 +55,7 @@ Every task, whether installing, upgrading, or changing or fixing a setup, has fo
 For an install:
 
 - The confirm message says you'll install Television on this machine, set it to start automatically, and add the Television skills so you can use it. It also carries the telemetry notice and, on a Mac, a heads-up that macOS will show a notification about a new background item, which is expected.
-- The report ends with what the person needs to connect. When the desktop app recommendation applies, the report includes it with the download link and short install steps, and says the connect link can be pasted into the app or opened in a browser.
+- The report ends with what the person needs to connect. When the desktop app recommendation applies, the report includes it with the download link and short install steps, and says the connect link can be pasted into the app or opened in a browser. It also says how to get the link again.
 
 For an upgrade:
 
@@ -192,7 +193,7 @@ If you have any doubt that the link in your message is exact, check it again bef
 
 #### Giving the link
 
-Give the whole link, never shortened. The link is all the person ever needs: don't show them the bare token, ask them to type a token, or suggest storing it in a password manager. When they need the link again, they ask you.
+Give the whole link, never shortened. The link is all the person ever needs: don't show them the bare token, ask them to type a token, or suggest storing it in a password manager. Tell them they can get it again by asking you, or by running `tv links` on the machine Television runs on; it is the one `tv` command meant for the person.
 
 ### 4. Viewers
 
