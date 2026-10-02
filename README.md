@@ -9,7 +9,7 @@
 
 **Television is the missing GUI for your personal agent.** It gives you a visual space for creating and working with artifacts in collaboration with your agent. It works with any agent and any model.
 
-To use Television, you talk to your agent like you normally do, using whatever interface you prefer to use. But instead of just producing textual chat responses, your agent can now create visual artifacts, put them on your Television, and modify them over time. Artifacts are persistent, malleable, and can even be interactive. They can display documents, data, visualizations, live web pages, even your vibe-coded apps and interfaces.
+To use Television, you talk to your agent like you normally do. But instead of just producing textual chat responses, your agent can now create visual artifacts, put them on your Television, and modify them over time. Artifacts are persistent, malleable, and can even be interactive. They can display documents, data, visualizations, live web pages, even your vibe-coded apps and interfaces.
 
 ## Prerequisites
 
@@ -19,10 +19,10 @@ To use Television, you must have an agent harness installed. Television works wi
 
 Simply **[download and install our macOS app](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64)**. When you launch the app it will walk you through connecting it to your agent.
 
-If you aren't on a Mac, you can use our experimental browser-based interface from any platform, but you'll still need an agent that's running on Linux or macOS. Just paste the following prompt into your agent:
+If you aren't on a Mac, you can use our experimental browser-based interface, but you'll still need an agent that's running on Linux or macOS. Just paste the following prompt into your agent:
 
 ```text
-Use "curl -fsSl https://television.run/install.md" to fetch the television admin guide directly without summarization and then help me get Television installed.
+Read the entire Television admin guide at https://television.run/install.md and help me get Television installed.
 ```
 
 Your agent will ask you a series of questions and then will set everything up. When it's done, it will give you an URL you can use to access your TV from any platform using your browser.
@@ -61,6 +61,9 @@ Join us on [Discord](https://discord.gg/8MfpZ48jD8) for questions, feedback, and
 ## Contributing
 
 This project is open source, but uses a spec-driven development process that we haven't opened to outside contributors yet. For now, bug reports and feedback are welcome here on GitHub. If you're interested in contributing, please join our Discord; we'd love to chat.
+
+## About Telepath
+We're a software company working on interfaces for the next era of personal computers. We believe fundamental changes in personal computing have always been accompanied by new interface metaphors that help bring those changes to the masses. Television is just the beginning. [Learn more about us](https://telepath.computer).
 
 ## License
 
