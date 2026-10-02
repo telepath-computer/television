@@ -46,7 +46,7 @@ There are two roles for this guide:
 Every task, whether installing, upgrading, or changing or fixing a setup, has four beats. Work out what goes in each from the situation and the technical reference.
 
 1. **Check.** Inspect this machine and the person's request to work out as much as you can. The person sees nothing.
-2. **Confirm.** Tell the person, in plain words, what you're about to do, even when it seems obvious, and ask anything you couldn't work out. Continue until everything is clear, then wait for their go-ahead.
+2. **Confirm.** Before anything that changes this machine, such as installing, fixing, reconfiguring, or restarting, tell the person in plain words what you're about to do, even when it seems obvious, and ask anything you couldn't work out. Continue until everything is clear, then wait for their go-ahead. When you are only giving the person information, such as their connect link for a setup that already works, there is nothing to confirm.
 3. **Do it.** The person sees nothing. If something goes wrong, fix it if you can, and tell them only if it needs their decision or changes what they'll get.
 4. **Report.** One short message with the key results.
 
@@ -230,7 +230,7 @@ On a first install, tell the person, in the confirm message: telemetry is on by 
 
 #### Turning it off
 
-`tv telemetry disable` turns telemetry off and records that the person opted out, so the Television team can tell an opt-out from someone who stopped using it; `tv telemetry enable` turns it back on. Both need a running server, so if the person opts out during the confirm step, run `tv telemetry disable` as soon as the server is up. `tv status` shows the current state.
+`tv telemetry disable` turns telemetry off and records that the person opted out, so the Television team can tell an opt-out from someone who stopped using it; `tv telemetry enable` turns it back on. Both need a running server, so if the person opts out during the confirm step, run `tv telemetry disable` as soon as the server is up. `tv status` shows the current state. Telemetry stays off regardless of `tv telemetry enable` when `DO_NOT_TRACK` or `CI` was set for the service, or on a Television developer's machine, so check the status the command returns before telling the person the result.
 
 `DO_NOT_TRACK=1` in the environment also suppresses all telemetry, and a service installed with it set keeps it (section 1). Prefer `tv telemetry disable`, which the person can reverse by asking you and which records the opt-out.
 
@@ -267,7 +267,7 @@ When a release worth taking comes out, Television shows the person a notice with
 
 #### What an upgrade involves
 
-1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release. Compare the installed version with the latest on the npm registry first; if they match, there is nothing to upgrade.
+1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release. Compare the latest version on the npm registry with both the installed version and the running version from `tv status` first; if all three match, there is nothing to upgrade.
 2. **Reinstall the skills** into the directory where they are already installed. Find it by looking for the installed `television` and `tv-*` skills where this agent loads skills from.
 3. **Reinstall the service** with `tv serve --persist`, so it runs the new code. Check the settings first, as the next subsection describes. The restart makes Television unavailable for a few seconds; open browser tabs and the desktop app reconnect by themselves.
 4. **Verify.** In `tv status`, `healthy`, `daemon.installed`, and `daemon.running` are true, and `version` equals the `major.minor.patch` that `tv --version` reports; ignore a `(commit …)` suffix on development builds. A different version means the service didn't restart onto the new code.
@@ -281,7 +281,7 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 `tv config show` shows the settings the service will use. Before rerunning `tv serve --persist`, check:
 
 - **The home.** Releases before the Television home kept data in `~/.television`, or in a directory given with `--storage-path` or `TELEVISION_STORAGE_PATH`. That directory already has the home's layout. If it isn't `~/.television`, write its path into `~/.tv-home` so the reinstalled service and every `tv` command use it in place. `TELEVISION_PORT` and `TELEVISION_STORAGE_PATH` are now ignored; a warning appears while either is set.
-- **Settings from an older service.** Older releases took settings as command options, which the service definition still holds. A service from an older release keeps running after the package upgrade, and the first time it starts with no config file in its home, it writes its old options into one. If `tv config show` reports `configFileExists` as false, set `port` and `listen` from the old service definition yourself. Reinstalling then replaces the old definition.
+- **Settings from an older service.** Older releases took settings as command options, which the service definition still holds. A service from an older release keeps running after the package upgrade, and the first time it starts with no config file in its home, it writes its old options into one. If `tv config show` reports `configFileExists` as false, set `port` and `listen` from the old service definition yourself; if that definition has no `--auth` option, the service ran without a token, and the access token item below applies. Reinstalling then replaces the old definition. Releases from before the config file have no `tv config` commands, so on those, read the old service definition before upgrading the package and run `tv config show` after.
 - **The access token (rare).** A home from a much older release can have `auth` set to `false`. Television expects the token: set `auth` to `true` unless the person has explicitly asked to run without one. The person then needs a new link: tell them in the confirm message, and give it to them in the report. In a browser they open it; in the desktop app they choose **Television › Disconnect from Server** and paste it. If they then ask to go back to no token, set it back.
 - **Listen addresses.** If `listen` holds a Tailscale or LAN address, check it is still this machine's address (section 2). If the set of addresses changes, the person may lose a way of reaching Television; tell them.
 - **`installedByAgent`.** If it is unset, set it (section 5).
@@ -310,7 +310,7 @@ The new app opens with the saved server connection. If it shows the connect scre
 
 ### 8. Stopping and uninstalling
 
-`tv stop` removes the service and stops the server. It is not a pause: Television won't start again, at login or otherwise, until `tv serve --persist` runs again. It leaves the package, the skills, and the Television home in place, so reinstalling the service brings everything back as it was.
+`tv stop` removes the service and stops the server that the service runs. A server started by hand with plain `tv serve` is not affected. It is not a pause: Television won't start again, at login or otherwise, until `tv serve --persist` runs again. It leaves the package, the skills, and the Television home in place, so reinstalling the service brings everything back as it was.
 
 To uninstall completely, also remove the npm package and the Television skills, the `television` and `tv-*` skills, from every skills directory where they were installed. If the person uses the desktop app, they remove it from their Mac themselves, like any Mac app.
 
@@ -326,7 +326,7 @@ This workflow adds no new rules. It puts the user experience guide and the techn
 
 Work out, without involving the person:
 
-- **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below. If it is installed but not healthy, fix it first (section 6).
+- **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below. If it is installed but not healthy, work out what's wrong (section 6), and include the fix in the confirm message.
 - **This machine.** It must be macOS or Linux, with Node 22.12.0 or later (section 1).
 - **Which computer the person will view Television on, and how it reaches this machine** (section 2). This decides the `listen` setting.
 - **Whether they have the desktop app** (section 4).
@@ -352,7 +352,7 @@ Then wait for their go-ahead. For a person on the desktop app connect screen wit
 
 1. Install the package, if it isn't installed (section 1).
 2. Install the skills, make sure they're available to you, and load the `television` skill (section 1).
-3. Set `installedByAgent`, and `listen` if the person reaches this machine other than from the machine itself (sections 2 and 5). If the person has asked to keep their data outside `~/.television`, write that path into `~/.tv-home` first.
+3. Set `installedByAgent` (section 5), and apply the `listen` setting that section 2 gives for how the person reaches this machine. If the person has asked to keep their data outside `~/.television`, write that path into `~/.tv-home` first.
 4. Run `tv serve --persist`.
 5. Check `tv status` (section 6). If the person asked to turn telemetry off, run `tv telemetry disable` now.
 6. Get the connect link from `tv links`, adjust its address if needed, and verify it exactly as section 3 requires.
@@ -361,21 +361,19 @@ If something fails, fix it if you can. Tell the person only if it needs their de
 
 ### 4. Report
 
-One short message. It ends with what they need to connect:
+One short message, in this order, ending with the link:
 
-- the connect link, complete and verified, on a line of its own;
-- for an SSH tunnel, the `ssh -L` command to run first, and that it must stay running while they use Television;
-- how to open it: paste it into the desktop app and press **Connect**, or open it in a browser;
 - the desktop app recommendation, when it applies (user experience guide), with the download link and steps from section 4;
-- that they can get the link again by asking you, or by running `tv links` on this machine.
+- for an SSH tunnel, the `ssh -L` command to run first, and that it must stay running while they use Television;
+- how to open the link: paste it into the desktop app and press **Connect**, or open it in a browser;
+- that they can get the link again by asking you, or by running `tv links` on this machine;
+- last, the connect link, complete and verified, on a line of its own.
 
 For the person on the connect screen above:
 
-> Television is ready. Paste this link into the app and press Connect:
+> Television is ready. Paste this link into the app and press Connect. If you ever need it again, ask me, or run `tv links` on this Mac.
 >
 > `<the connect link, complete>`
->
-> If you ever need it again, ask me, or run `tv links` on this Mac.
 
 ### When Television is already installed
 
@@ -395,10 +393,10 @@ Like Install, this workflow adds no new rules. It puts the user experience guide
 
 Work out, without involving the person:
 
-- **The installed and latest versions.** `tv --version` and `tv status` for what's installed and running; the npm registry for the latest release. If Television is already on the latest release, tell the person and stop.
+- **The installed and latest versions.** `tv --version` and `tv status` for what's installed and running; the npm registry for the latest release. If both the installed and the running versions are the latest release, tell the person and stop.
 - **Node** is still 22.12.0 or later (section 1).
 - **Where the skills are installed** (section 7).
-- **The settings the service will use**, with `tv config show`: the home, a missing config file, `auth` set to `false`, `listen` addresses that are no longer current, and an unset `installedByAgent` (section 7).
+- **The settings the service will use**: work through the settings checks in section 7.
 - **An npm desktop app** installed on this machine (section 7).
 
 ### 2. Confirm
