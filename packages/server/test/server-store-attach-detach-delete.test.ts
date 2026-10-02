@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { NotFoundError } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, NotFoundError } from "@telepath-computer/television-shared";
 import type { PathArtifact } from "@telepath-computer/television-artifact";
 import { ServerStore } from "../src/server-store.ts";
 import { createServingStore } from "../../../test/helpers/serving-store.ts";
@@ -104,7 +104,7 @@ describe("ServerStore.deleteArtifact", () => {
     expect(store.getChannel(channelB.id)!.channel.layout).toEqual([{
       artifactIds: [artifactB.id],
       geometry: { kind: "single", full_screen: false },
-      size: { width: 560, height: 740 },
+      size: DEFAULT_PAGE_SIZE,
     }]);
     expect(readFileSync(target, "utf8")).toBe("# shared");
   });

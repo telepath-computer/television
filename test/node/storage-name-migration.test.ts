@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Readable } from "node:stream";
 import WebSocket from "ws";
-import { parseConnectURL } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, parseConnectURL } from "@telepath-computer/television-shared";
 import { spawnOwnedProcess, type OwnedProcess } from "../helpers/owned-process.ts";
 import { writeHomeConfig } from "../helpers/television-home.ts";
 
@@ -189,7 +189,7 @@ describe("redesign storage upgrade acceptance", () => {
     const currentLayout = artifactIDs.map((artifactID) => ({
       artifactIds: [artifactID],
       geometry: { kind: "single", full_screen: false },
-      size: { width: 560, height: 740 },
+      size: DEFAULT_PAGE_SIZE,
     }));
     const currentChannel = {
       id: channelID,

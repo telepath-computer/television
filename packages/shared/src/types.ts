@@ -198,10 +198,10 @@ export const DEFAULT_PAGE_GEOMETRY = {
 } as const satisfies SinglePageGeometry;
 
 // Mirrors specs/ui/app/stage/measures.yml page.initial_* in reference pixels;
-// conformance keeps the authored stage values and this shared default equal.
+// test/repo/ui-measure-crossings.test.ts keeps the two equal.
 export const DEFAULT_PAGE_SIZE = {
-  width: 560,
-  height: 740,
+  width: 760,
+  height: 770,
 } as const satisfies PageSize;
 
 // Version-1 layout types survive only as the server migration's input model.

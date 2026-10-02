@@ -116,7 +116,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **skill-selector/**
       - `index.md` (26 lines) — *How the promises in Skill selector (UI) are proven.*
     - **stage/**
-      - `index.md` (39 lines) — *How the promises in Stage (UI) are proven.*
+      - `index.md` (45 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
@@ -146,7 +146,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **onboarding-artifacts/**
     - `index.md` (99 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
-    - `index.md` (25 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, and window dragging.*
+    - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **skillbench/**
     - `index.md` (13 lines) — *How the promises in Skillbench (UI) are proven.*
   - **skills/**

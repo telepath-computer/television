@@ -24,7 +24,7 @@ describe("page layout validation", () => {
       kind: "single",
       full_screen: false,
     });
-    expect(DEFAULT_PAGE_SIZE).toEqual({ width: 560, height: 740 });
+    expect(DEFAULT_PAGE_SIZE).toEqual({ width: 760, height: 770 });
   });
 
   it("accepts empty layouts and ordered multi-artifact page membership", () => {

@@ -11,7 +11,7 @@
           "title": "About this channel",
           "size": {
             "width": 300,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -37,7 +37,7 @@
           "title": "About this channel",
           "size": {
             "width": 300,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -45,7 +45,7 @@
           "title": "Revenue vs. goals",
           "size": {
             "width": 650,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -53,7 +53,7 @@
           "title": "Retention vs. recent releases",
           "size": {
             "width": 650,
-            "height": 740
+            "height": 770
           }
         }
       ]
@@ -67,7 +67,7 @@
           "title": "About this channel",
           "size": {
             "width": 300,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -79,7 +79,7 @@
           "title": "Company To-dos",
           "size": {
             "width": 400,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -87,7 +87,7 @@
           "title": "Today's Calendar",
           "size": {
             "width": 300,
-            "height": 740
+            "height": 770
           }
         },
         {
@@ -105,7 +105,7 @@
           "title": "Welcome to Television",
           "size": {
             "width": 800,
-            "height": 740
+            "height": 770
           }
         }
       ]

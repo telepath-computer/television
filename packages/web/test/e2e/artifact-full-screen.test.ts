@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
-import { TelevisionClient } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, TelevisionClient } from "@telepath-computer/television-shared";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import {
   configureTestMotion,
@@ -57,13 +57,13 @@ async function expectPageGeometry(page: Page, fullScreen: boolean): Promise<void
     ? pageBox.width
     : Math.min(pageBox.width, Math.max(
       Math.min(230, pageBox.width),
-      560 * (1 - 0.4 + 0.4 * pageBox.width / 1_280),
+      DEFAULT_PAGE_SIZE.width * (1 - 0.4 + 0.4 * pageBox.width / 1_280),
     ));
   const expectedHeight = fullScreen
     ? pageBox.height
     : Math.min(pageBox.height, Math.max(
       Math.min(230, pageBox.height),
-      740 * (1 - 0.4 + 0.4 * pageBox.height / 800),
+      DEFAULT_PAGE_SIZE.height * (1 - 0.4 + 0.4 * pageBox.height / 800),
     ));
   expect(Math.abs(geometry.page.width - expectedWidth)).toBeLessThan(1);
   expect(Math.abs(geometry.page.height - expectedHeight)).toBeLessThan(1);

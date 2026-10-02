@@ -8,6 +8,7 @@ import {
   APPLICATION_SHELL_STATES,
   waitForApplicationRender,
 } from "../../../../test/helpers/application-readiness.ts";
+import { DEFAULT_PAGE_SIZE } from "@telepath-computer/television-shared";
 import { configureTestMotion } from "./helpers.ts";
 
 function html(body: string, head = ""): string {
@@ -346,12 +347,12 @@ test.describe("path artifact real-stack coverage", () => {
             {
               artifactIds: [fileArtifactID],
               geometry: { kind: "single", full_screen: false },
-              size: { width: 560, height: 740 },
+              size: DEFAULT_PAGE_SIZE,
             },
             {
               artifactIds: [dirArtifactID],
               geometry: { kind: "single", full_screen: false },
-              size: { width: 560, height: 740 },
+              size: DEFAULT_PAGE_SIZE,
             },
           ],
         });

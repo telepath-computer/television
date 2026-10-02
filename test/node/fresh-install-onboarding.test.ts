@@ -534,7 +534,7 @@ describe("onboarding channels (built CLI e2e)", () => {
     expect(guides[0].layout).toEqual([{
       artifactIds: ["television-onboarding"],
       geometry: { kind: "single", full_screen: false },
-      size: { width: 560, height: 740 },
+      size: DEFAULT_PAGE_SIZE,
     }]);
     expect(JSON.parse(readFileSync(path.join(storagePath, "state", "channels", `${legacyChannelID}.json`), "utf8"))).toMatchObject({
       id: legacyChannelID,

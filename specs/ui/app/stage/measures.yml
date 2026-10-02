@@ -2,8 +2,8 @@
 # at, the sizing reference and shares, the bands its resize handles occupy,
 # the snap's arming distance, and the selection crossing.
 page:
-  initial_width_px: 560 # the width a new page renders at on the reference page box
-  initial_height_px: 740 # the height a new page renders at on the reference page box
+  initial_width_px: 760 # the width a new page renders at on the reference page box
+  initial_height_px: 770 # the height a new page renders at on the reference page box
 sizing:
   reference_width_px: 1280 # the page box whose sizing factor is 1
   reference_height_px: 800

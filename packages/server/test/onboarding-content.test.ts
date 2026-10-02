@@ -313,7 +313,7 @@ describe("Onboarding content validation", () => {
         {
           slug: "welcome",
           title: "Welcome to Television",
-          size: { width: 800, height: 740 },
+          size: { width: 800, height: 770 },
         },
       ]);
       const source = resolveOnboardingArtifactSource(productionRoot, "tv-guide", "welcome");

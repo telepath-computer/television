@@ -7,16 +7,16 @@ cards:
     title: About this channel
     size:
       width: 300
-      height: 740
+      height: 770
   - id: revenue
     slug: revenue-vs-goals
     title: Revenue vs. goals
     size:
       width: 650
-      height: 740
+      height: 770
   - id: retention
     slug: retention-vs-releases
     title: Retention vs. recent releases
     size:
       width: 650
-      height: 740
+      height: 770

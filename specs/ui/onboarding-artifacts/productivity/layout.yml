@@ -7,7 +7,7 @@ cards:
     title: About this channel
     size:
       width: 300
-      height: 740
+      height: 770
   - id: priorities
     slug: priorities-today
     title: Priorities for Today
@@ -17,7 +17,7 @@ cards:
     skill: tv-tasks
     size:
       width: 400
-      height: 740
+      height: 770
   - id: calendar
     slug: todays-calendar
     title: Today's Calendar
@@ -25,7 +25,7 @@ cards:
     components: false
     size:
       width: 300
-      height: 740
+      height: 770
   - id: meeting
     slug: meeting-prep
     title: Meeting prep
