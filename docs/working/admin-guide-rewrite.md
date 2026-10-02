@@ -105,11 +105,55 @@ To move a home, stop the service, move the directory, point `~/.tv-home` at it, 
 Television ships skills that teach agents to use it: the main `television` skill and several `tv-*` skills. `tv skills install <directory>` installs them into a skills directory, replacing any earlier copies. Install them where this agent actually loads skills from, respecting any location the person has set up. Locations vary by agent; common ones are `~/.agents/skills`, `~/.openclaw/workspace/skills` (OpenClaw), and `~/.hermes/skills` (Hermes). After installing, make sure the skills are available to you, refreshing if your harness requires it. On a first install, load the `television` skill right away, because the person will likely want to try Television straight after. Skill content changes between releases, so reinstall the skills on every upgrade.
 
 ### 2. How the viewer reaches the server
-- **Working out the person's situation.** What to check on this machine: the operating system, whether the desktop app is running here, Tailscale, an SSH session, Docker.
-- **Each way of reaching the server, and its settings.** Same machine, SSH tunnel, Tailscale, home network, Docker (listen on `0.0.0.0` inside the container; the host's port publishing decides exposure), and combinations.
-- **Port.** 32848 by default; change only for a real conflict.
-- **Addresses are stored literally.** What happens when a Tailscale or home-network address changes, and the recovery.
-- **Not for the public internet.**
+
+The server runs on this machine. The person views it from a browser or the desktop app on whatever computer they use, which may be this machine or another one. The server must listen on an address that computer can reach. Working that out is the main technical decision of an install.
+
+#### Working out the person's situation
+
+Gather evidence before asking. The useful sources:
+
+- **The request.** A person who says they are on the desktop app connect screen is on a Mac with the app open.
+- **What you know about the person**, from memory or earlier conversation: which computers they use, how they usually reach this machine.
+- **This machine's operating system, and whether it has a desktop session.** A Mac or a Linux machine with a graphical session may be the computer the person sits at. A Linux server with no display, a VPS, or a container is not; the person views from somewhere else.
+- **Whether the desktop app is running here.** On a Mac, a running `Television` process (the app's process name) means the person is at this Mac with the app open.
+- **Tailscale.** If this machine is on a tailnet, `tailscale status` lists the person's other devices and their operating systems, which can show that their Mac or laptop is on the same tailnet.
+- **Docker.** Whether you are running inside a container.
+
+How you talk to the person says little about where they sit. Many agents are reached through a chat app or messaging service, so a person can be talking to you from a phone while the server is a machine in a closet. An SSH session in your environment suggests they reach this machine over SSH, but a long-lived terminal session can outlast the connection that started it.
+
+Common conclusions:
+
+- **This is a Mac and the desktop app is running here:** the person is at this machine. Same machine; nothing to ask.
+- **This is the person's own desktop computer and they intend to view Television on it:** same machine.
+- **The person views from another computer and this machine is on Tailscale, with their computer on the same tailnet:** Tailscale. Confirm it in the confirm message rather than asking an open question.
+- **The person views from another computer and you can't tell how it reaches this machine:** ask, explaining why (see the user experience guide). If their only way in is SSH, an SSH tunnel works, but they have to keep a terminal running it whenever they use Television; if that sounds unwelcome, Tailscale is the better path, and setting it up is a reasonable thing to offer.
+
+#### Each way of reaching the server, and its settings
+
+Localhost (`127.0.0.1`) is always listened on. The `listen` setting adds more addresses: one comma-separated list of IPv4 addresses, which replaces the stored list; `tv config set listen ""` clears it.
+
+| How the person reaches this machine | `listen` setting | Address in the connect link |
+| --- | --- | --- |
+| Same machine | not set | `localhost` |
+| SSH tunnel | not set; the person runs `ssh -L 32848:localhost:32848 <host>` | `localhost`, on their computer |
+| Tailscale | this machine's tailnet IPv4 (`tailscale ip -4`) | that tailnet address |
+| Home or office network | this machine's LAN IPv4, or `0.0.0.0` for every interface | the LAN address |
+| Docker | `0.0.0.0` inside the container; the host's port publishing decides who can reach it | the host's address, as the person reaches the host |
+| More than one of these | one list, such as `100.64.0.7,192.168.1.42` | one link per address |
+
+Prefer Tailscale over a LAN listener when both would work: a LAN listener relies more on the local network and the access token for protection.
+
+#### Port
+
+The default port is `32848`. Change it only for a real conflict, with `tv config set port <n>`; port `0` is refused. With an SSH tunnel or Docker port publishing, use the same port on both ends so the link keeps the port the server reports.
+
+#### Addresses are stored literally
+
+`listen` holds the literal addresses, evaluated when you set them. Every address must exist on the machine when the server starts: if any can't be bound, the server logs the failure, exits with status 69, and the service manager keeps retrying. So a Tailscale address that changes, or a LAN address reassigned by DHCP, stops the server until `listen` is updated and `tv serve --persist` rerun. `0.0.0.0` avoids this, at the cost of also listening on any interface added later.
+
+#### Not for the public internet
+
+Television serves plain HTTP and is designed for local or private networks. Don't expose it on a public address, or suggest doing so. If the person explicitly insists after hearing that, treat it as a separately confirmed exception, with the access token on.
 
 ### 3. Access token and connect links
 - **The token.** Required by default on every connection; where it lives; tokenless mode only on explicit request.
