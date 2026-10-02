@@ -10,7 +10,7 @@ The guide caused both failures. It required a conversation about how the person 
 
 ## The guide's purpose
 
-- **The main outcome is a working connect link in the person's hands.** An install ends with a short message whose last part is the link. Everything else in the guide serves that.
+- **The main outcome is a working connect link in the person's hands.** An install ends with a short message whose last line is the link; everything else in the message, including how to get the link again, comes before it. Everything else in the guide serves that.
 - **A link with any error fails the guide completely.** The agent copies the link from `tv links`, never retypes or shortens it, preserves case, keeps it on its own line, and verifies it before sending: it compares the link with `tv links` output and tests the link's token against an authenticated API route at the link's address.
 - **Don't describe the link as "like a password".** An agent told that may refuse to show it or may shorten it. The guide says plainly that showing the person their full link is expected and correct, and that the token and links go nowhere else.
 
@@ -22,7 +22,7 @@ The guide caused both failures. It required a conversation about how the person 
 - **Defaults are the answer.** A setting changes from its default only when the situation requires it or the person asks. Optional settings, such as where data is kept, the port, or running without a token, are never offered as choices. A rule that only says "the person may want X" invites an agent to ask about X; the guide says "if the person asks".
 - **Work things out before asking.** The agent inspects the machine and uses what it knows about the person. For the test above: a Mac running the desktop app means the person is sitting at that Mac, so there is nothing to ask.
 - **Every question says why it matters and what kind of answer is wanted.** "How do you want to connect to your Television?" fails: the person can't tell whether it asks about a device, a network, or how often, or why it is being asked.
-- **Always confirm before acting, even when the plan seems obvious.** The agent tells the person what it is about to do, such as installing Television, setting it to start automatically, and adding skills, and waits for a go-ahead.
+- **Confirm before changing the machine, even when the plan seems obvious.** Before installing, fixing, reconfiguring, or restarting, the agent tells the person what it is about to do, such as installing Television, setting it to start automatically, and adding skills, and waits for a go-ahead. Only giving information, such as the connect link for a setup that already works, needs no confirmation.
 
 ## The shape of every task
 
@@ -69,6 +69,10 @@ The first-install notice says that telemetry is on by default, anonymous and con
 
 - **Why a browser can't show external web pages** (sites refusing to be embedded, keyboard shortcuts that can't be captured inside them, unreliable navigation tracking). The agent only needs the behavior and the fix, the desktop app. If people ask why, the answer belongs in the `television` skill.
 - **Onboarding channels.** The `television` skill covers them; they concern managing channels, not administration.
+
+## Review
+
+A Codex reviewer (gpt-6-astra) compared the rewrite with the previous guide and the specs; its findings were treated as advice. Adopted: checking the running version as well as the installed one before declaring an upgrade unnecessary; handling very old services (no config file, no `tv config` commands, possibly no token) in the upgrade reference only, leaving the normal upgrade path unchanged; applying the `listen` setting from the reference rather than a separate rule in the workflow; describing `tv stop` precisely; checking telemetry status after changing it; confirming only before changes; and putting the link last. Declined: weakening the evidence that a running desktop app means the person is at this Mac, because the confirm message already names the machine and more caveats would add exceptions; and restoring desktop update timing details.
 
 ## Related
 
