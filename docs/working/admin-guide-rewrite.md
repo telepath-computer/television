@@ -388,4 +388,42 @@ A person can arrive asking only for the desktop app, for example from the browse
 
 ## Upgrade
 
-TODO: the upgrade workflow, same approach as Install.
+Use this when the person asks to upgrade Television, usually by pasting the prompt from Television's update notice. It follows the four beats in the user experience guide; section 7 holds the details.
+
+### 1. Check
+
+Work out, without involving the person:
+
+- **The installed and latest versions.** `tv --version` and `tv status` for what's installed and running; the npm registry for the latest release. If Television is already on the latest release, tell the person and stop.
+- **Node** is still 22.12.0 or later (section 1).
+- **Where the skills are installed** (section 7).
+- **The settings the service will use**, with `tv config show`: the home, a missing config file, `auth` set to `false`, `listen` addresses that are no longer current, and an unset `installedByAgent` (section 7).
+- **An npm desktop app** installed on this machine (section 7).
+
+### 2. Confirm
+
+Send one message, in plain words:
+
+- what you're about to do: upgrade Television from the installed version to the new one, and update its skills; Television will be unavailable for a few seconds and open windows reconnect by themselves;
+- anything that will change for the person, such as Television starting to require a token, which means they'll need a new link;
+- anything that needs their decision, such as an outdated Node version;
+- if you found the npm desktop app on this machine, an offer to move them to the downloaded app.
+
+No telemetry notice. Then wait for their go-ahead.
+
+### 3. Do it
+
+1. Upgrade the package and confirm the new version (section 7).
+2. Reinstall the skills into the same directory.
+3. Fix the settings you found in the check (section 7), then run `tv serve --persist`.
+4. Verify the running version matches the installed one (section 7).
+5. If the person needs a new link, because the token was switched on or an address changed, get it from `tv links` and verify it exactly as section 3 requires.
+
+### 4. Report
+
+One short message: Television is upgraded, and to which version. Add only what the person needs to act on:
+
+- a new connect link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine;
+- if the new release needs a newer desktop app than they have, that the app will ask to update and they should choose **Restart to update**;
+- the steps to move off the npm desktop app, if that applies (section 7).
+
