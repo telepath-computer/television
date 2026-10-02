@@ -53,6 +53,8 @@ The guide was built top-down, with each layer agreed before the next was written
 
 The reader is assumed to know npm, ssh, Docker, Tailscale, curl, launchd, systemd, and general system administration. The guide states what is specific to Television and leaves the agent to work out commands. Recipes the agent can derive from stated facts are left out: npm install and uninstall commands, curl and tail checks once the guide has said that `/health` needs no token, that the API takes a bearer token, and where the log is, and Docker deployment patterns beyond the one Television-specific fact (listen on `0.0.0.0` inside the container).
 
+The guide also assumes the agent's commands run without a sandbox, and says so. A sandboxed agent plans for what the sandbox blocks and may need permission to install. One non-obvious consequence is called out: a sandbox that blocks requests to `localhost` makes a running server look down.
+
 Strong wording is kept where it prevents a known failure. The instruction not to work from a summary of the guide keeps the original guide's emphatic wording, because web fetch tools often summarize.
 
 ## Rare cases stay in the reference
