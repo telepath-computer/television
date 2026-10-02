@@ -11,6 +11,9 @@
 
 To use Television, you talk to your agent like you normally do. But instead of just producing textual chat responses, your agent can now create visual artifacts, put them on your Television, and modify them over time. Artifacts are persistent, malleable, and can even be interactive. They can display documents, data, visualizations, live web pages, even your vibe-coded apps and interfaces.
 
+<img src="television-demo.webp"
+     alt="[Television in use: artifacts made by an agent, including a to-do list, a calendar, a retention chart and a draft blog post, arranged across several channels]">
+
 ## Prerequisites
 
 To use Television, you must have an agent harness installed. Television works with any harness that supports skills and file access, but we specifically recommend [Hermes](https://hermes-agent.nousresearch.com/), [OpenClaw](https://openclaw.ai/), [Pi](https://pi.dev/), [Claude Code](https://claude.com/product/claude-code), or [Codex](https://chatgpt.com/codex/). Your agent should be installed on a machine that is running either Linux or macOS. Agents running on Windows are not currently supported.
