@@ -157,10 +157,26 @@ Television serves plain HTTP and is designed for local or private networks. Don'
 
 ### 3. Access token and connect links
 
-PLANNED (not guide text yet). This section will cover:
+#### The access token
 
-- **The token.** Required by default on every connection; where it lives; tokenless mode only on explicit request.
-- **Connect links.** `tv links`; swapping in the address the person actually uses; give the whole link, never the bare token.
+The server requires an access token on every request, on every address it listens on, localhost included. The install creates the token at `<home>/state/token` if the home has none, and it stays the same across restarts and upgrades. The `tv` command reads it from there, so your own commands need nothing extra. The HTTP API takes it as a bearer token.
+
+`tv config set auth false` turns the token off on every address; there is no per-address setting. Do this only when the person explicitly asks to run without a token. The server then prints a warning at every start and records it in the log.
+
+Treat the token, and every connect link containing it, like a password.
+
+#### Connect links
+
+A *connect link* is the one thing the person needs to open Television: the server's address with the token in it, such as `http://100.64.0.7:32848/?token=<token>`. The same link works in a browser and in the desktop app. Without a token, the link is the plain address.
+
+`tv links` prints the running server's connect links, one per line, one for each address it listens on. If the server isn't running, it prints none and says why.
+
+The printed addresses are the server's own: `127.0.0.1` for localhost, and `0.0.0.0` when it listens on every interface. When the person reaches the server by a different address, give them the link with that address in place of the printed one, keeping the port and token exactly:
+
+- through an SSH tunnel: `localhost`, opened on their computer, along with the `ssh -L` command they need to run first;
+- for a `0.0.0.0` listener, including inside Docker: the address by which they reach this machine or its Docker host, such as its LAN or tailnet address.
+
+Give the whole link, never shortened. The link is all the person ever needs: don't show them the bare token, ask them to type a token, or suggest storing it in a password manager. When they need the link again, they ask you.
 
 ### 4. Viewers
 
