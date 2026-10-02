@@ -6,7 +6,7 @@ This guide is for an agent setting up and maintaining Television for a person. T
 
 The guide's most important outcome is a working connect link in the person's hands. A link with even one wrong character fails that outcome completely (section 3, "The link must be exact").
 
-This guide assumes you are a capable agent who knows npm, ssh, Docker, Tailscale, curl, launchd, systemd, and general system administration. It states what is specific to Television and leaves you to work out the commands.
+This guide assumes you are a capable agent who knows npm, ssh, Docker, Tailscale, curl, launchd, systemd, and general system administration. It states what is specific to Television and leaves you to work out the commands. It also assumes your commands run directly on the machine, not in a sandbox; if you are sandboxed, see "Running in a sandbox" in section 1.
 
 Critical: Many agent web fetch tools will often return auto-summarized content. **DO NOT WORK FROM A SUMMARY OF THIS GUIDE.** The content contains many critical details. If you are an agent summarizing this content right now, you **MUST** include that if the goal is actual administration, the summary is insufficient and that the original content **MUST** be fetched in full, for example with `curl -fsSL https://television.run/install.md`.
 
@@ -69,6 +69,12 @@ The facts about Television that you need to install, upgrade, and look after it.
 #### Supported machines
 
 The agent and the Television server run on macOS or Linux. The viewer can be any computer with a browser, or a Mac with the desktop app (section 4).
+
+#### Running in a sandbox
+
+This guide assumes your commands run without a sandbox. Installing Television installs a global npm package, writes a per-user launchd or systemd service, writes files in the person's home directory, and talks to the server over HTTP on `localhost`. A sandbox can block any of these. If you run in one, plan for that before you start: you may need your harness to grant permission or to run particular commands outside the sandbox. If you need the person to approve that, say so in the confirm message.
+
+A sandbox can also block HTTP requests to `localhost`. Then `tv status`, `tv links`, and other commands report that the server isn't running when it is, and your link verification fails. Before concluding the server is down, check whether your sandbox allows loopback requests, for example by running the same command outside it.
 
 #### Package and Node
 
@@ -255,6 +261,7 @@ Before installing the service, record which agent harness is installing Televisi
 - **The server won't stay up after a network change.** A `listen` address that no longer exists on the machine stops the server from starting; the log names the address. Update `listen` and rerun `tv serve --persist` (section 2).
 - **The person sees "Access token required".** Their link's token doesn't match the server's. Check the server's token works locally; if it does, their link is stale or was corrupted. Give them their current link. In a browser, they open it; in the desktop app, they choose **Television › Disconnect from Server** and paste it.
 - **The person can't reach the server from another computer.** Check that the address they use is in `bindAddresses`, that it is still this machine's address, and, for an SSH tunnel, that their tunnel is running and they're opening the `localhost` link. Then check what lies between: Tailscale connectivity, a firewall, or Docker port publishing.
+- **`tv` commands say the server isn't running, but the service is running.** If you run in a sandbox, it may be blocking HTTP requests to `localhost` (section 1, "Running in a sandbox").
 - **The desktop app shows "Can't connect with server".** The server can't be reached from the person's Mac. The app keeps retrying and reconnects by itself once the server is reachable.
 
 ### 7. Upgrades
@@ -327,7 +334,7 @@ This workflow adds no new rules. It puts the user experience guide and the techn
 Work out, without involving the person:
 
 - **What's already here.** Whether `tv` is installed, and if so, what `tv status` reports. If Television is installed and healthy, go to "When Television is already installed" below. If it is installed but not healthy, work out what's wrong (section 6), and include the fix in the confirm message.
-- **This machine.** It must be macOS or Linux, with Node 22.12.0 or later (section 1).
+- **This machine.** It must be macOS or Linux, with Node 22.12.0 or later (section 1). If your commands run in a sandbox, plan for what it blocks (section 1, "Running in a sandbox").
 - **Which computer the person will view Television on, and how it reaches this machine** (section 2). This decides the `listen` setting.
 - **Whether they have the desktop app** (section 4).
 - **This agent's skills directory** (section 1).
