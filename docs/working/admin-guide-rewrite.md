@@ -424,6 +424,5 @@ No telemetry notice. Then wait for their go-ahead.
 One short message: Television is upgraded, and to which version. Add only what the person needs to act on:
 
 - a new connect link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine;
-- if the new release needs a newer desktop app than they have, that the app will ask to update and they should choose **Restart to update**;
 - the steps to move off the npm desktop app, if that applies (section 7).
 
