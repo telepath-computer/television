@@ -572,15 +572,11 @@ function La(e) {
 }
 const Oa = new RegExp(new RegExp("(?<!\\\\)(\\\\\\\\)*\\|", "g")), Da = [
   new RegExp(/^(\s|<br>)+/g),
-  // eslint-disable-next-line no-control-regex -- Uses null control characters as markers
   new RegExp(new RegExp("(?<=^\\u0000)(\\s|<br>)+", "g")),
-  // eslint-disable-next-line no-control-regex -- Uses null control characters as markers
   new RegExp(new RegExp("(?<=^\\u0000\\u0000)(\\s|<br>)+", "g"))
 ], Ia = [
   new RegExp(/(\s|<br>)+$/g),
-  // eslint-disable-next-line no-control-regex -- Uses null control characters as markers
   new RegExp(/(\s|<br>)+(?=\u0000$)/g),
-  // eslint-disable-next-line no-control-regex -- Uses null control characters as markers
   new RegExp(/(\s|<br>)+(?=\u0000\u0000$)/g)
 ], Pa = new RegExp(/\r\n|\n|\r/g);
 function Go(e, t) {
@@ -4331,7 +4327,6 @@ class $e {
   _asInternal() {
     return this;
   }
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- JSON.stringify calls this
   toJSON() {
     return {
       text: this.text.toString(),
@@ -4579,7 +4574,6 @@ class mi {
   equals(t) {
     return ho(this.value, t.value);
   }
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- JSON.stringify calls this
   toJSON() {
     return this.isCell() ? { value: { cell: this.cell, section: this.cellSection } } : { value: this.value };
   }
@@ -7510,7 +7504,6 @@ class Ti extends gs {
   /**
    * Called shortly after creation and after destroy() if the widget is later recreated.
    */
-  // eslint-disable-next-line @typescript-eslint/naming-convention -- WidgetType method
   toDOM(t) {
     if (b(this.widgetElement)) return this.widgetElement;
     const { widgetElement: n, destroyWidgetElement: o } = this.create(t);

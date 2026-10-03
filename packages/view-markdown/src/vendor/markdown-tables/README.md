@@ -11,6 +11,7 @@ The upstream distribution embeds Svelte and Runed implementations. Their exact p
 The localized changes in `index.js` are:
 
 - Import the readable, typed raw-source position mapper in `../../source-table.ts`.
+- Omit seven upstream lint suppression comments that are obsolete or refer to rules unavailable in Television; this does not change runtime behavior.
 - `pi` (table description): retain raw cell spans alongside the normalized display model, use them for source selections, preserve explicit active-cell identity when missing cells share a source offset, and reset structural history dimensions before rebuilding mapping/selection, and reset synchronization to the normalized in-memory baseline after undo. Explicit cell intent takes precedence over the hidden-selection sentinel.
 - `Ti` (widget): map coordinates and selection-only synchronization through raw spans; write only actual model changes into the exact table span. Cell edits with unchanged dimensions replace changed raw cell spans, retaining overflow cells, edge breaks and other cells; alignment edits replace the separator. Structural changes retain upstream canonical serialization.
 - `as` (table discovery): render noncanonical source directly. The automatic `If` formatter and `Pf` boundary-correction filter are no longer installed.
