@@ -16,11 +16,13 @@
     "@codemirror/language": "6.12.3",
     "@codemirror/state": "6.6.0",
     "@codemirror/view": "6.43.0",
+    "@floating-ui/dom": "1.8.0",
     "@lezer/common": "1.5.2",
     "@lezer/highlight": "1.2.3",
     "@lezer/markdown": "1.6.3",
-    "codemirror-markdown-tables": "1.0.0",
-    "@telepath-computer/television-artifact": "*"
+    "@mobily/ts-belt": "3.13.1",
+    "@telepath-computer/television-artifact": "*",
+    "clsx": "2.1.1"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",
