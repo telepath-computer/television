@@ -88,6 +88,7 @@ describe("licensing configuration", () => {
       "clouds-theme",
       "tailwind-foundation",
       "tailwind-token-demo",
+      "markdown-table-editor",
     ]);
 
     const hind = assets[0];
