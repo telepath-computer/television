@@ -15,7 +15,7 @@ const REMOTE_TABLE_DOC = [
   "",
   "| Name  | Status    |",
   "| ----- | --------- |",
-  "| Grace | Reviewing |",
+  "| [Grace](https://example.com/grace) | Reviewing |",
   "",
   "Remote after",
 ].join("\n");
@@ -391,6 +391,7 @@ test.describe("markdown tables", () => {
     await expect.poll(() => documentText(page)).toContain("Grace");
     await expect(page.locator(".tbl-table-widget")).toHaveCount(1);
     await expect(page.locator(".tbl-cell", { hasText: "Grace" })).toBeVisible();
+    await expect(page.locator('.tbl-cell-view a.cm-md-link[data-href="https://example.com/grace"]')).toHaveText("Grace");
     await expect(page.locator(".tbl-cell", { hasText: "Ada" })).toHaveCount(0);
     await expect(page.locator(".tbl-table-widget .cm-editor")).toHaveCount(0);
   });

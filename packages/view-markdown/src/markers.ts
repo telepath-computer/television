@@ -1117,8 +1117,8 @@ function activatePendingLink(event: MouseEvent): boolean {
   return true;
 }
 
-const linkActivation = EditorView.domEventHandlers({
-  mousedown(event) {
+export const linkActivationHandlers = {
+  mousedown(event: MouseEvent) {
     const anchor = findAnchor(event.target);
     pendingLinkClick = null;
     if (!anchor) return false;
@@ -1143,15 +1143,17 @@ const linkActivation = EditorView.domEventHandlers({
     event.preventDefault();
     return true;
   },
-  click(event) {
+  click(event: MouseEvent) {
     if (event.button !== 0) return false;
     return activatePendingLink(event);
   },
-  auxclick(event) {
+  auxclick(event: MouseEvent) {
     if (event.button !== 1) return false;
     return activatePendingLink(event);
   },
-});
+};
+
+const linkActivation = EditorView.domEventHandlers(linkActivationHandlers);
 
 // Renumber every contiguous run of ordered-list lines so they count
 // `1, 2, 3, …`. Out-of-sequence numbers appear after the user deletes

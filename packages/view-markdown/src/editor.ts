@@ -8,6 +8,7 @@ import { Table, TaskList } from "@lezer/markdown";
 import { tags } from "@lezer/highlight";
 import { markdownTables, TableStyle, TableTheme } from "codemirror-markdown-tables";
 import { disappearingMarkers } from "./markers.ts";
+import { tableLinks } from "./table-links.ts";
 
 const DEFAULT_DEBOUNCE_MS = 500;
 
@@ -121,6 +122,7 @@ export const editorExtensions: Extension = [
   EditorView.lineWrapping,
   disappearingMarkers,
   markdownTablesExtension,
+  tableLinks,
 ];
 
 export interface EditorHooks {
