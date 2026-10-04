@@ -1,0 +1,28 @@
+# Resource-cleanup proposal: round 1 response
+
+Reviewed proposal: `1652787e`. Independent reviewer: Claude Fable (Nina), arranged by the supervisor. [Full review](test-harness-resource-cleanup-review-r1.md): FAIL on two blockers. This response changes proposal documents only; no spec, proof, or implementation work has started.
+
+## Blockers
+
+| Finding | Assessment and disposition |
+| --- | --- |
+| B1: lease redesign is unnecessary for safe scratch cleanup and leaves availability/mixed-version consequences unresolved | Accepted. Remove the lease redesign, indefinite unavailability rule, and report-root migration. Keep the current TTL and release behavior. Private attempt directories and process-identity checks govern disposal independently of leases. Unknown ownership means retain that directory, not permanently quarantine the worker. Record the real result-download race as a separate follow-up, including the current timeout/TTL bounds and consequences a future proposal must address. No decision to replace TTL is being made for Josh. |
+| B2: old branches continue leaking outside the new directory | Accepted. Restrict cleanup claims to runs carrying the change. Explicitly describe continuing old-branch residue and why an initial cleanup may need repetition. Recommend tolerating residue during migration, then a coordinated drained-pool recreation using existing provisioning. Present alternatives and leave the shared-pool option and timing to Josh. That operation is neither performed nor silently authorized by accepting the code proposal. |
+
+## Refinements
+
+| Finding | Assessment and disposition |
+| --- | --- |
+| R1: quantify relative benefit | Accepted. Add the roughly 3.2 GB test-induced shared-memory increase and low headroom from the passing experiment, versus 1.16 GB / 0.079 GB of the two leaked prefixes on inspected workers. Keep the expected saving from built loading distinct from a measured post-fix saving. Intentional checkout/browser/cache occupancy remains outside cleanup. |
+| R2: compare pool recreation with legacy deletion | Accepted. Prefer existing drain/delete/ensure over bespoke legacy-deletion code. The alternative prefix removal would be an operator procedure on explicitly drained workers, not routine pre-run behavior. Josh owns the shared-pool disruption and timing. |
+| R3: commit only to minimum diagnostics | Accepted. Require parent start/end RAM, shared-memory, temporary-free-space and OOM-counter observations plus bounded kernel OOM lines on failure, linked to existing native attempt reports. Retain failures recovered by retry. Continuous sampling, descriptor inventories and other detailed probes are optional investigation tools. Fixed-size snapshots and a bounded excerpt satisfy retention without a monitoring framework. Reduce derivation to the relevant existing spec owners. |
+| R4: name validation infrastructure and account for capacity | Accepted. Plan two private `rose-cleanup` workers for cleanup/interruption experiments and `tv-cleanup-coordinator-rose` for the final gate's invoking-machine phases. They are not yet provisioned or reserved. At most three additional slots fit the documented 72+3=75 bound only if no other work consumes that headroom; check usage first. Remove the private workers before a standard final verify on the shared pool. No fallback to this host or substitution of GitHub execution: the user's Blaxel-only instruction takes precedence over the suggested CI alternative. |
+| R5: disclose remaining unbundled exposure | Accepted. Add a named inventory and concrete reload/multiple-page cases: telemetry, navigation setup, authentication reconnect, and Electron theme resets. Source inspection found 38 test files with a literal app-entry reference plus two indirect helper consumers; 41 includes their shared helper. This minor counting distinction does not change the finding: roughly two dozen test files remain exposed. Explain the in-process server and Electron boundaries without declaring them inherently dependent on Vite or claiming adequate headroom. |
+| R6: justify helper fixes in addition to scratch | Accepted. Helper teardown frees within-shard worker outputs and protects runners with no Blaxel wrapper. Attribute this host's directory counts to the independent review; no local cleanup is part of this work. |
+| R7: sequence PR #9 | Accepted with current-head qualification. Recommend #9 lands first, then integrate its final changes before affected-file validation and ready review. Keep its theme-reset ownership. The inspected #9 head `4e85e733` changes theme/auth files but does not list `stable-front-proxy.ts`; do not assume an unmerged proxy hook exists. Reconcile the final helper API if it changes. The supervisor coordinates merge order. |
+
+## Decision still needed from Josh
+
+Choose the shared-pool migration option and timing. Recommendation: tolerate old-branch residue temporarily, have active branches take the cleanup change, then drain and recreate the pool. This buys simplicity at the cost of temporary reduced headroom, a coordinated interruption, and cold caches. An earlier recreation may be justified by capacity but can be contaminated again by old branches. Proposal convergence and code work can proceed without performing this operation; pool-wide cleanliness cannot be claimed until it happens and leaking old runs stop.
+
+Validation of this revision consists of read-only code/policy/PR inspection and document consistency/whitespace checks. No tests, builds, browsers, or servers were run on this host, and no remote experiments or cleanup were performed during remediation. The supervisor will receive the pushed revision for independent re-review.

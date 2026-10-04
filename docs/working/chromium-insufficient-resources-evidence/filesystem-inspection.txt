@@ -1,0 +1,32 @@
+Read-only inspection of tv-testshard-x64-poc-131, 2026-10-01.
+This is later state, not a snapshot at the original failed run's instant.
+
+find /tmp -maxdepth 1 -type d -name 'television-source-cli-e2e-*' | wc -l
+267
+
+du -h -d 1 /tmp /workspace/television /cache /home/playwright/.cache /home/playwright/.nvm
+Selected output:
+13M  /tmp/node-compile-cache
+17M  /tmp/playwright-transform-cache-0
+1.2G /tmp
+167M /cache/npm
+241M /cache/electron
+407M /cache
+243M /workspace/television/.git
+1.1G /workspace/television/node_modules
+1.4G /workspace/television
+234M /home/playwright/.nvm
+915M /home/playwright/.cache/ms-playwright
+1.1G /home/playwright/.cache
+
+Source CLI runtime directories in the largest listed entries were approximately
+4.1M each. getSourceCLIEntry() has no cleanup of their shared build/runtime tree.
+
+df -h /tmp /dev/shm
+Filesystem Size Used Avail Use% Mounted on
+overlay    6.3G 4.3G  2.0G  68% /
+tmpfs      3.9G 512K  3.9G   1% /dev/shm
+
+/proc/mounts, relevant rows:
+overlay / overlay rw,relatime,lowerdir=/mnt/erofs,upperdir=/mnt/tmp/upper,workdir=/mnt/tmp/work,uuid=on 0 0
+tmpfs /dev/shm tmpfs rw,nosuid,noexec,relatime 0 0
