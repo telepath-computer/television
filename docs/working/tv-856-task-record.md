@@ -29,7 +29,8 @@ One slice: spec deltas → proofs → tests + code → PR.
 - [x] spec review round 1 FAIL (one blocker): the product spec and guide promised the service's server was up, while the check accepts any server answering on the port. Fixed by stating success as an answer on the configured port and naming the foreground-server case in the product spec and guide. The PR description must call out this port-conflict limit for human review.
 - [x] spec review round 2 PASS (c56cf00e)
 - [x] proofs drafted: product/cli.md (immediate `tv status` after install and reinstall; new ^cli-ac-persist-unanswered), arch/cli/index.md (two daemon-block contracts; HTTP crossing; fake timers declared), product/telemetry.md ^t-disclosure-persist (notice before the timeout error; stand-in health client). startup-bind-failure and test-runner proofs need no change: their specs gained no testable promise. Awaiting proof review.
-- [ ] proof review
+- [x] proof review round 1 FAIL: new obligations were cited as covered by existing tests. Now marked test to be written, with existing coverage named separately; timing coverage described precisely (fake-clock contract owns the exact deadline; acceptance shows the real process waits and keeps the service).
+- [ ] proof review round 2
 - [ ] tests + code
 - [ ] verification
 - [ ] PR
