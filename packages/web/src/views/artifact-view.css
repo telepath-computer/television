@@ -5,7 +5,6 @@
    corners ([[ui/app/artifact-frame/index.md#^af-document-corners]]). */
 .artifact-frame {
   position: relative;
-  isolation: isolate;
   display: flex;
   flex-direction: column;
   padding: 0;

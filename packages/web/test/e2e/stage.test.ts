@@ -426,7 +426,7 @@ test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
 });
 
 test.describe("stage page sizing", () => {
-  test("artifact menu owns handle overlap and closing restores the inner band (^st-ac-menu-over-handles)", async ({ page }) => {
+  test("artifact menu owns both handle halves without blocking the uncovered strip (^st-ac-menu-over-handles)", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 700 });
     await page.goto(FIXTURE);
     await waitForStage(page);
@@ -440,47 +440,58 @@ test.describe("stage page sizing", () => {
     await expect(menu).toBeVisible();
     await settleStage(page);
 
-    const point = await selectedPage.evaluate((selected) => {
-      const item = selected.querySelector("tv-menu[open] tv-menu-item");
+    const points = await selectedPage.evaluate((selected) => {
+      const menu = selected.querySelector("tv-menu[open]");
+      const item = menu?.querySelector("tv-menu-item");
       const handle = selected.querySelector(".page-handle.right");
-      if (!item || !handle) throw new Error("Expected an open menu item and right resize handle");
+      if (!menu || !item || !handle) throw new Error("Expected an open menu item and right resize handle");
+      const menuBox = menu.getBoundingClientRect();
       const itemBox = item.getBoundingClientRect();
       const handleBox = handle.getBoundingClientRect();
       const pageBox = selected.getBoundingClientRect();
-      // Intersect with the page to sample the inner half of the handle band.
-      const left = Math.max(itemBox.left, handleBox.left, pageBox.left);
-      const right = Math.min(itemBox.right, handleBox.right, pageBox.right);
+      const innerLeft = Math.max(itemBox.left, handleBox.left, pageBox.left);
+      const innerRight = Math.min(itemBox.right, handleBox.right, pageBox.right);
+      const outerLeft = Math.max(itemBox.left, handleBox.left, pageBox.right);
+      const outerRight = Math.min(itemBox.right, handleBox.right);
       const top = Math.max(itemBox.top, handleBox.top);
       const bottom = Math.min(itemBox.bottom, handleBox.bottom);
-      if (right <= left || bottom <= top) {
-        throw new Error("Expected the menu item to overlap the inner half of the right handle band");
+      if (innerRight <= innerLeft || outerRight <= outerLeft || bottom <= top) {
+        throw new Error("Expected the menu item to overlap both halves of the right handle band");
       }
-      return { x: (left + right) / 2, y: (top + bottom) / 2 };
+      const away = { x: (handleBox.left + pageBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
+      if (away.x >= menuBox.left && away.x <= menuBox.right && away.y >= menuBox.top && away.y <= menuBox.bottom) {
+        throw new Error("Expected the inner-band point to be away from the open menu");
+      }
+      return {
+        inner: { x: (innerLeft + innerRight) / 2, y: (top + bottom) / 2 },
+        outer: { x: (outerLeft + outerRight) / 2, y: (top + bottom) / 2 },
+        away,
+      };
     });
 
-    await page.mouse.move(point.x, point.y);
-    const hit = await item.evaluate((item, { x, y }) => {
-      const target = document.elementFromPoint(x, y);
-      return {
-        target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
-        cursor: target ? getComputedStyle(target).cursor : null,
-        menuCursor: getComputedStyle(item).cursor,
-      };
-    }, point);
-    expect(hit.target).toBe("tv-menu-item");
-    expect(hit.cursor).toBe(hit.menuCursor);
+    for (const point of [points.outer, points.inner]) {
+      await page.mouse.move(point.x, point.y);
+      const hit = await item.evaluate((item, { x, y }) => {
+        const target = document.elementFromPoint(x, y);
+        return {
+          target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
+          cursor: target ? getComputedStyle(target).cursor : null,
+          menuCursor: getComputedStyle(item).cursor,
+        };
+      }, point);
+      expect(hit.target).toBe("tv-menu-item");
+      expect(hit.cursor).toBe(hit.menuCursor);
+    }
 
-    // Escape keeps page geometry unchanged, so this checks the same point.
-    await page.keyboard.press("Escape");
-    await expect(menu).toBeHidden();
-    expect(await page.evaluate(({ x, y }) =>
-      Boolean(document.elementFromPoint(x, y)?.closest(".page-handle")),
-    point)).toBe(true);
-
-    await trigger.click();
+    await page.mouse.move(points.away.x, points.away.y);
     await expect(menu).toBeVisible();
-    await settleStage(page);
-    await page.mouse.move(point.x, point.y);
+    const awayHit = await selectedPage.evaluate((selected, { x, y }) => {
+      const target = document.elementFromPoint(x, y);
+      return target === selected.querySelector(".page-handle.right") ? "page-handle right" : target?.tagName;
+    }, points.away);
+    expect(awayHit).toBe("page-handle right");
+
+    await page.mouse.move(points.inner.x, points.inner.y);
     await page.mouse.down();
     await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
     await page.mouse.up();

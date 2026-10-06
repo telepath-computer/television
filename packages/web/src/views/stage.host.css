@@ -8,13 +8,6 @@
   pointer-events: none;
 }
 
-/* The frame isolates its panels. Lift it above the resize handles while a
-   panel is open so the panel takes input across the page edge. The outer
-   halves of the handle bands remain available. */
-.page[selected] > .artifact-frame:has(:is(tv-popover, tv-menu, tv-select)[open]) {
-  z-index: calc(var(--layer-ground) + 4);
-}
-
 /* Pointer mechanics are implementation-owned. The authoritative stage sheet
    owns the page and snap appearance; these transparent hit regions realize
    its edge bands and L-shaped corners without taking artifact interior. */
