@@ -20,7 +20,7 @@ This is a proposal, written to be read side by side with the current `specs/spec
 - Test coverage is judged by agent reviewers, because proofs are agent-owned.
 - The review section says that reviewers apply this policy in both directions.
 - "Rationale" says only that rationale is optional and written where it helps, and adds answers to expected objections and accepted limitations.
-- "Limitations with teeth" uses a different example.
+- "Limitations with teeth" refers to the complexity-inoculation guidance for why hard rules are costly, uses a different example, and says that documenting accepted limitations is normal and is not a prohibition.
 - "TypeScript in arch specs" pins a type when something outside the product's own running code depends on its shape, not because the type crosses a module or package boundary.
 - Exceptions use generic examples instead of naming a particular spec.
 
@@ -181,9 +181,11 @@ Two kinds of explanation are especially worth their place. One answers an object
 
 ### Limitations with teeth are the exception
 
-A spec describes what a thing has and does. It does not, by default, define everything it does not cover and does not allow; that space is where an implementer's judgment lives. A positive statement is not a negative rule. A spec saying that an authentication token lives in browser storage does not forbid a cached copy of it elsewhere, and does not require every reader to fetch it from storage.
+A limitation with teeth is a prohibition: a rule that something must not be done. It removes judgment wherever it applies, so a spec states one only when that cost is being paid on purpose, after careful consideration. The [complexity-inoculation](../developer-skills/complexity-inoculation/SKILL.md) guidance covers why hard rules cost more than they appear to, and how to judge when one is warranted.
 
-A limitation with teeth — a rule that something must not be done — is a deliberate choice for the rare case where strict procedure or extreme emphasis is worth its cost. A rule that the token must always be read directly from storage could be justified, for example by a security concern, but only after careful consideration. The cost is real: every hard line removes a case from judgment, and a hard line volunteered because a statement seemed to leave a gap turns every later small change into a request for permission. Write one when that cost is being paid on purpose; otherwise state what is true and stop. ^limitations-are-the-exception
+For example, a spec saying that an authentication token lives in browser storage does not forbid a cached copy elsewhere. A rule that the token must always be read directly from storage could be justified, for example by a security concern, but only after careful consideration. ^limitations-are-the-exception
+
+Documenting accepted limitations is normal, not rare. An accepted limitation describes something the product does not do today. It is not a prohibition, and changing it is an ordinary spec change.
 
 ## Inputs to proof derivation that the spec does not otherwise show
 
