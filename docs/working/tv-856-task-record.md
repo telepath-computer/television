@@ -25,7 +25,9 @@ One slice: spec deltas → proofs → tests + code → PR.
 
 ## Status
 
-- [x] spec deltas drafted (product/cli.md, arch/cli/index.md, arch/cli/startup-bind-failure.md, arch/test-runner/test-runner.md; admin guide) — awaiting spec-gate review
+- [x] spec deltas drafted (product/cli.md, arch/cli/index.md, arch/cli/startup-bind-failure.md, arch/test-runner/test-runner.md; admin guide)
+- [x] spec review round 1 FAIL (one blocker): the product spec and guide promised the service's server was up, while the check accepts any server answering on the port. Fixed by stating success as an answer on the configured port and naming the foreground-server case in the product spec and guide. The PR description must call out this port-conflict limit for human review.
+- [ ] spec review round 2
 - [ ] proofs
 - [ ] tests + code
 - [ ] verification
