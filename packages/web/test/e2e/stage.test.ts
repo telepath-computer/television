@@ -426,6 +426,73 @@ test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
 });
 
 test.describe("stage page sizing", () => {
+  test("artifact menu owns handle overlap and closing restores the inner band (^st-ac-menu-over-handles)", async ({ page }) => {
+    await page.setViewportSize({ width: 1_200, height: 700 });
+    await page.goto(FIXTURE);
+    await waitForStage(page);
+    await settleStage(page);
+
+    const selectedPage = page.locator(".page[selected]");
+    const trigger = selectedPage.locator(".artifact-menu-trigger");
+    const menu = selectedPage.locator("tv-menu");
+    const item = menu.locator("tv-menu-item").first();
+    await trigger.click();
+    await expect(menu).toBeVisible();
+    await settleStage(page);
+
+    const point = await selectedPage.evaluate((selected) => {
+      const item = selected.querySelector("tv-menu[open] tv-menu-item");
+      const handle = selected.querySelector(".page-handle.right");
+      if (!item || !handle) throw new Error("Expected an open menu item and right resize handle");
+      const itemBox = item.getBoundingClientRect();
+      const handleBox = handle.getBoundingClientRect();
+      const pageBox = selected.getBoundingClientRect();
+      // Intersect with the page to sample the inner half of the handle band.
+      const left = Math.max(itemBox.left, handleBox.left, pageBox.left);
+      const right = Math.min(itemBox.right, handleBox.right, pageBox.right);
+      const top = Math.max(itemBox.top, handleBox.top);
+      const bottom = Math.min(itemBox.bottom, handleBox.bottom);
+      if (right <= left || bottom <= top) {
+        throw new Error("Expected the menu item to overlap the inner half of the right handle band");
+      }
+      return { x: (left + right) / 2, y: (top + bottom) / 2 };
+    });
+
+    await page.mouse.move(point.x, point.y);
+    const hit = await item.evaluate((item, { x, y }) => {
+      const target = document.elementFromPoint(x, y);
+      return {
+        target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
+        cursor: target ? getComputedStyle(target).cursor : null,
+        menuCursor: getComputedStyle(item).cursor,
+      };
+    }, point);
+    expect(hit.target).toBe("tv-menu-item");
+    expect(hit.cursor).toBe(hit.menuCursor);
+
+    // Escape keeps page geometry unchanged, so this checks the same point.
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    expect(await page.evaluate(({ x, y }) =>
+      Boolean(document.elementFromPoint(x, y)?.closest(".page-handle")),
+    point)).toBe(true);
+
+    await trigger.click();
+    await expect(menu).toBeVisible();
+    await settleStage(page);
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+    await page.mouse.up();
+    await expect(menu).toBeHidden();
+    await expect(selectedPage).toHaveAttribute("full-screen", "");
+    expect((await report(page)).pageUpdateCalls).toEqual([{
+      channelID: "channel-stage",
+      fullScreen: true,
+      sizes: AUTHORED_PAGE_SIZES,
+    }]);
+  });
+
   test("renders fractional stored sizes through the shared factor without animating window tracking", async ({ page }) => {
     await page.setViewportSize({ width: 1_201, height: 821 });
     await page.emulateMedia({ reducedMotion: "no-preference" });
