@@ -1,6 +1,12 @@
 # Companion changes for the sharper spec policy
 
-The draft in `sharper-spec-policy.md` needs edits to other documents. This file lists them so the proposal can be reviewed as one change. Nothing here has been applied.
+The draft in `sharper-spec-policy.md` needs edits to other documents. This file lists them so the proposal can be reviewed as one change.
+
+**Status: applied on `thopter/spec-tightening`,** together with installing the draft as `specs/spec-policy.md`. Points where the applied edits go beyond what is listed below:
+- `specs/reviewer-checklist.md` also cited the testing-directives anchor and the `## Testing` heading, and is updated.
+- `spec-proofs.md` names the section's contents *proof-derivation inputs*, with anchors `^proof-derivation-inputs` and `^proof-derivation-input-standing` in place of `^testing-directives` and `^testing-directive-standing`.
+- `spec-proofs.md` says that a regression case orders the coverage that keeps its failure from returning, unlike other proof-derivation inputs, which order no assertion of their own.
+- `spec-policy.md` keeps a `## Proofs` heading, because `test/repo/spec-links.test.ts` enables its proof checks only when the policy contains that heading.
 
 ## 1. `specs/spec-workflow.md`: take over the review rules
 
