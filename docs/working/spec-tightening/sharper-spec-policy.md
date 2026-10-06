@@ -9,6 +9,7 @@ This is a proposal, written to be read side by side with the current `specs/spec
 **Moved to the workflow.** The spec policy keeps only the principle that specs are slop-free and backed by human review. It no longer covers when review happens, pull requests, merging, or the human scan of code and test changes. `companion-changes.md` moves that text into `spec-workflow.md`.
 
 **New:**
+- A one-sentence definition of a spec, at the top: a spec holds what agent-owned derivation can't be trusted to get acceptably right, written so a human can understand it, review it and stand behind it. "What belongs in a spec" and "Writing a spec" each open by unpacking one half of it.
 - "What belongs in a spec", which holds most of the substance of the proposal. It opens with "Specs guide derivation": what can be derived correctly from what a spec already says does not need saying, and where derivation could go wrong, more is needed. That one consideration settles how much to say, whether to state what something does not do, and whether an example helps.
 - "How a spec opens", in place of "Plain-english intros".
 - "Inputs to proof derivation that the spec does not otherwise show", in place of the `## Testing` section a spec may carry.
@@ -59,6 +60,8 @@ Both would hold for any web or desktop product built on this stack. One passage 
 
 Specs are the source of truth. They are **authority documents**. Everything else defers to and should follow from specs. Where specs say nothing, the code governs.
 
+**A spec holds what agent-owned derivation can't be trusted to get acceptably right, written so a human can understand it, review it and stand behind it.** Proofs, tests and code are derived from specs and owned by agents. Specs are owned by humans. The rest of this policy unpacks the two halves of that sentence: [What belongs in a spec](#what-belongs-in-a-spec) covers what derivation can't be trusted with, and [Writing a spec](#writing-a-spec) covers the form a human owner needs.
+
 ## Slop-free zone
 
 Specs are a slop-free zone — one of the most important reasons they exist.
@@ -101,11 +104,11 @@ Each product, architecture and UI spec has a *proof*: the document under `proofs
 
 ## What belongs in a spec
 
-A spec holds what a human needs to own. Every statement in a spec costs something: a human reviews it and stands behind it, a proof derives assertions from it, tests carry those assertions, and every later change has to respect it. A statement earns that cost when there is a reason for a human to own it. This section describes those reasons. It is guidance for judgment.
+A spec holds what agent-owned derivation can't be trusted to get acceptably right. Every statement in a spec costs something: a human reviews it and stands behind it, a proof derives assertions from it, tests carry those assertions, and every later change has to respect it. A statement earns that cost when derivation without it could not be trusted. This section is guidance for that judgment.
 
 ### Specs guide derivation
 
-Proofs, tests and code are derived from a spec, by agents and by people. What can be derived correctly from what a spec already says does not need to be said. Where derivation could plausibly go wrong, more is likely needed. This one consideration decides whether to state something, how much detail to give it, whether to say what something does not do, and whether an example helps.
+What can be derived acceptably from what a spec already says does not need to be said. Where derivation could plausibly go wrong, more is likely needed. "Acceptably" carries the weight: a statement nobody could derive, such as the name of an internal constant, still does not belong if any reasonable choice would do. This one consideration decides whether to state something, how much detail to give it, whether to say what something does not do, and whether an example helps.
 
 ### Why a statement belongs
 
@@ -127,7 +130,7 @@ Changing a contract is allowed, but the change has consequences someone has to t
 
 Some contracts are kept by people rather than by code. When a product promise depends on how an outside service is configured, such as an analytics service's privacy settings or a distribution service's release-signing setting, that configuration belongs in the spec. No product code carries it out; a person keeps it in place by administering the other service.
 
-Two questions help decide whether something belongs:
+Derivation can go unacceptably wrong in two ways, and each gives a question:
 
 - Would changing it have consequences outside the product's own running code? If so, it is a contract.
 - Would derivation plausibly go wrong without it, or would getting it different be something the team should discuss? If so, it is a decision.
@@ -151,6 +154,8 @@ A spec describes the product as it is and what it requires now. Mechanisms and c
 When a product builds something itself that lies outside its purpose, such as classifying browser user agents for an application that is not about browsers, the spec tends to inherit that work's detail. A well-chosen library keeps the spec on the outcome wanted. Where the product does the work itself, the spec states what is wanted, not every case of how.
 
 ## Writing a spec
+
+A spec is written for the human who owns it: someone who has to understand it, review it and stand behind every statement. The guidance in this section is style for that reader. An agent deriving from a spec does not need an introduction or plain English; the human owner does.
 
 ### How a spec opens
 
