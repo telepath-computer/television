@@ -31,7 +31,7 @@ Test coverage is a network that can't always be represented per-proof. When one 
 
 Implemented tests never hollow out the intent of a test. Implementers must make a best-effort interpretation of the specified assertion's intent and be faithful to it, informed by the surrounding spec context. Interpretation should be pessimistic in terms of labor: assume the more inclusive test when in doubt. (If the spec is high-level product language, test assertions are likely to imply full unmocked e2e *acceptance tests* that walk the deliverable's spine (see the *Acceptance tests prove the spine; composition covers the breadth* section below). If the spec focuses on a specific contract-oriented module, tests typically focus on the logic of that module and warrant injected mock dependencies, but with detailed coverage of the module logic. Mock policy is described below — but if a module mocks dependencies, there must also be integration tests that cross those seams.)
 
-Coverage and test honesty are judged by reviewers (human and agent) who read the production code path for an assertion, find the interactions with boundary seams, and confirm that at least one test runs over any given real path. There is no coverage threshold or automated coverage gates. The discipline lives in review, like the rest of the spec system.
+Coverage and test honesty are judged by agent reviewers who read the production code path for an assertion, find the interactions with boundary seams, and confirm that at least one test runs over any given real path. There is no coverage threshold or automated coverage gates. The discipline lives in review, like the rest of the spec system.
 
 If full test coverage would require extremely complex or numerous tests, that is a code smell that warrants refactoring toward the clean, minimal seams that make coverage composable rather than combinatorial (see *Compositional coverage across clean seams* below).
 
@@ -180,8 +180,6 @@ The suite does not assert styling adherence; conformance does ([arch/ui/conforma
 
 
 The DOM is the instrument, not the subject. Reading the DOM is how a browser test observes anything at all, so it can be neither ruled in nor ruled out: whether a test touches the DOM says nothing about what the test is for. Sometimes the DOM is part of a test; sometimes it is not. A spec never states blanket coverage of it. ^ui-dom-instrument
-
-Specs and proofs carry no manual QA checklists, in any form — not as authority, not as implementation notes. A run-book of things a human must eyeball does not belong in the spec tree. This removes the instruction to look, never the states worth looking at: authored states — an empty group renders nothing, a placeholder appears at the beginning, middle, or end of a list, a carried row shows the Unpin pill — are spec content and stay. What a spec does not do is enumerate them as a review procedure; the states themselves are exactly what the markup smoke checks above exercise. ^ui-no-manual-checklists
 
 ## Assertions are cheap to write and expensive to carry
 
