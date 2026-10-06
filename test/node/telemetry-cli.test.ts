@@ -281,12 +281,16 @@ describe("telemetry CLI node integration", () => {
     };
     // Stands in for the client of the parent's post-install health check: it
     // answers exactly while the stand-in daemon's server is running.
-    const createClient = () => ({
-      health: async () => {
-        if (!active) throw new Error("connect ECONNREFUSED");
-        return { status: "ok", bindAddresses: ["127.0.0.1"], port: Number(new URL(active.getBaseURL()).port) };
-      },
-    }) as unknown as TelevisionClient;
+    const healthServerURLs: string[] = [];
+    const createClient = (serverURL: string) => {
+      healthServerURLs.push(serverURL);
+      return {
+        health: async () => {
+          if (!active) throw new Error("connect ECONNREFUSED");
+          return { status: "ok", bindAddresses: ["127.0.0.1"], port: Number(new URL(active.getBaseURL()).port) };
+        },
+      } as unknown as TelevisionClient;
+    };
     const runPersist = async ({ fail = false, serve = true, targetHome = home } = {}) => {
       const output: string[] = [];
       const stdout = new BufferOutput((chunk) => output.push(chunk));
@@ -330,9 +334,12 @@ describe("telemetry CLI node integration", () => {
       const unanswered = await pending;
       expect(unanswered.code).toBe(1);
       expect(unanswered.stdout).toBe("");
+      // The default home's config port, as the CLI built it for the check.
+      const unansweredURL = healthServerURLs.at(-1)!;
+      expect(new URL(unansweredURL).hostname).toBe("localhost");
       expect(unanswered.stderr).toBe(
         notice +
-          `Television service installed, but the server did not respond at http://localhost:32848 within 15 seconds. The service remains installed. See ${path.join(unansweredHome, "logs", "tv.log")} for the cause.\n`,
+          `Television service installed, but the server did not respond at ${unansweredURL} within 15 seconds. The service remains installed. See ${path.join(unansweredHome, "logs", "tv.log")} for the cause.\n`,
       );
     } finally {
       vi.useRealTimers();
