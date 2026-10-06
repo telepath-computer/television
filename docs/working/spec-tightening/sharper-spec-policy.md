@@ -183,7 +183,7 @@ Two kinds of explanation are especially worth their place. One answers an object
 
 A limitation with teeth is a prohibition: a rule that something must not be done. It removes judgment wherever it applies, so a spec states one only when that cost is being paid on purpose, after careful consideration. The [complexity-inoculation](../developer-skills/complexity-inoculation/SKILL.md) guidance covers why hard rules cost more than they appear to, and how to judge when one is warranted.
 
-For example, a spec saying that an authentication token lives in browser storage does not forbid a cached copy elsewhere. A rule that the token must always be read directly from storage could be justified, for example by a security concern, but only after careful consideration. ^limitations-are-the-exception
+For example, a spec saying that an authentication token lives in browser storage does not forbid a cached copy elsewhere. A rule that the token must always be read directly from storage could be justified by a security concern, but only after careful consideration. ^limitations-are-the-exception
 
 Documenting accepted limitations is normal, not rare. An accepted limitation describes something the product does not do today. It is not a prohibition, and changing it is an ordinary spec change.
 
