@@ -32,5 +32,6 @@ One slice: spec deltas → proofs → tests + code → PR.
 - [x] proof review round 1 FAIL: new obligations were cited as covered by existing tests. Now marked test to be written, with existing coverage named separately; timing coverage described precisely (fake-clock contract owns the exact deadline; acceptance shows the real process waits and keeps the service).
 - [x] proof review round 2 PASS (e82696df)
 - [x] tests + code: red confirmed for the three new cli.test.ts contracts and the telemetry never-answering run (against the original CLI source); green after `waitForHealth` in `installPersistedService`. Daemon-acceptance: immediate `tv status` after install and reinstall, new unanswered phase, persist-uninstall installs over it. Daemon-acceptance NOT run: the human has not cleared it for this host. telemetry-posthog-roundtrip (real uniquely named service via the source driver; crosses the check too) not run either: opt-in, needs the PostHog test key, and installs a user service.
-- [ ] verification
+- [x] verification: Blaxel `npm run verify` on e60e2088 failed only `test/repo/test-infrastructure-addresses.test.ts` (literal `http://localhost:32848` in the telemetry test; now derived from the URL the CLI gives its client). On 18458053: passed, 23/23 surfaces, 0 recovered flakes, attestation refs/testpass/1/71055d65…. Daemon-acceptance and telemetry-posthog-roundtrip not run (need clearance).
+- [ ] implementation review
 - [ ] PR
