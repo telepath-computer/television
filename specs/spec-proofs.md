@@ -62,11 +62,15 @@ The one thing a proof never does is decide what an ambiguous spec means. When th
 
 Coverage of a feature usually spans several specs, and so several proofs: a product proof proves the spine end to end, and the architecture proofs behind it carry the breadth and forfeit the real crossing to that walk. Proofs cite each other, and specs, with the ordinary reference conventions ([spec-policy.md](spec-policy.md), References). A proof that forfeits a crossing names the proof that carries it.
 
-## Testing directives
+## Proof-derivation inputs
 
-A spec may use a `## Testing` section for human-owned guidance about how its promises should be tested, at whatever level of detail the author finds useful. These *testing directives* add decisions or context that the proof would not reliably derive from the promises alone. Restating conclusions already derivable from the spec's promises in the Testing section is an anti-pattern: it creates duplicate content that must be maintained alongside the spec and proof. Converting promises into assertions remains the proof's job; the Testing section contributes the author's additional guidance, keeping each promise in its single authoritative statement. The proof honors every directive and says where in its coverage model; one it cannot honor goes back to the spec as a finding. ^testing-directives
+A spec may carry a section headed `## Inputs to proof derivation that the spec does not otherwise show`, defined by [spec policy](spec-policy.md#Inputs to proof derivation that the spec does not otherwise show). Its contents are the spec's *proof-derivation inputs*: human-owned guidance that the proof would not reliably derive from the spec's promises alone. Converting promises into assertions remains the proof's job. The proof honors every input and says where in its coverage model; one it cannot honor goes back to the spec as a finding. ^proof-derivation-inputs
 
-A testing directive is guidance for proof derivation. It is not itself a spec promise, and it is not subject to the coverage discipline that applies to the promises in the body of the spec. A directive is honored by the design of the tests, and the proof’s coverage model says where; it orders no assertion of its own. If a Testing section says the tests use Playwright, the proof designs its tests to run in Playwright. It does not order an additional test proving that the tests use Playwright. The Testing section is a rider on the spec that shapes how the promises above it are proven; the authority the proof and its reviewers derive assertions from is the rest of the spec. ^testing-directive-standing
+A proof-derivation input is not itself a spec promise, and it is not subject to the coverage discipline that applies to the promises in the body of the spec. An input is honored by the design of the tests, and the proof’s coverage model says where; it orders no assertion of its own, except that a regression case orders the coverage that keeps its failure from returning. If the section says the tests use Playwright, the proof designs its tests to run in Playwright. It does not order an additional test proving that the tests use Playwright. The authority the proof and its reviewers derive assertions from is the rest of the spec. ^proof-derivation-input-standing
+
+## What each kind of proof carries
+
+A product spec's proof carries the acceptance assertions that establish its measures of acceptance. An architecture spec's proof carries contract, seam and acceptance assertions, in whatever form fits: end-to-end, integration or unit-level. Acceptance-style behaviour tests generally run as full, non-mocked end-to-end tests, but no kind of spec is bound to a particular test tier.
 
 ## Ownership and review
 
