@@ -181,7 +181,9 @@ Two kinds of explanation are especially worth their place. One answers an object
 
 ### Limitations with teeth are the exception
 
-A spec describes what a thing has and does. A limitation with teeth is a prohibition: a rule that something must not be done. It removes judgment wherever it applies, so a spec states one only when that cost is being paid on purpose, after careful consideration. The [complexity-inoculation](../developer-skills/complexity-inoculation/SKILL.md) guidance covers why hard rules cost more than they appear to, and how to judge when one is warranted.
+A spec describes what a thing has and does. It does not, by default, define everything it does not cover and does not allow; that space is where an implementer's judgment lives. A positive statement is not a negative rule.
+
+A limitation with teeth is a prohibition: a rule that something must not be done. It removes judgment wherever it applies, so a spec states one only when that cost is being paid on purpose, after careful consideration. The [complexity-inoculation](../developer-skills/complexity-inoculation/SKILL.md) guidance covers why hard rules cost more than they appear to, and how to judge when one is warranted.
 
 For example, a spec saying that an authentication token lives in browser storage does not forbid a cached copy elsewhere. A rule that the token must always be read directly from storage could be justified by a security concern, but only after careful consideration. ^limitations-are-the-exception
 
