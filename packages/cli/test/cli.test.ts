@@ -2126,6 +2126,7 @@ describe("CLI Slice 1 artifact command surface", () => {
       const home = temporaryHome({ port: 43123, listen: ["100.64.0.7"] });
       writeToken(home, " token-123\n");
       const daemon = fakeDaemon();
+      daemon.install.mockImplementation(() => new Promise<void>((resolve) => setTimeout(resolve, 1_000)));
       const stdoutAtEachHealthCall: string[] = [];
       let healthCalls = 0;
       // The third call answers with fields that match nothing about the
@@ -2139,13 +2140,15 @@ describe("CLI Slice 1 artifact command surface", () => {
       const createClient = vi.fn(() => ({ ...(fakeEnvironment().createClient!("", "") as any), health }));
 
       const run = runCLI(["--home", home, "serve", "--persist"], fakeEnvironment({ stdout, stderr, createDaemon: daemon.createDaemon, createClient }));
+      await vi.advanceTimersByTimeAsync(999);
+      expect(daemon.install).toHaveBeenCalledTimes(1);
+      expect(health).not.toHaveBeenCalled();
       await vi.advanceTimersByTimeAsync(5_000);
 
       expect(await run).toBe(0);
       expect(createClient).toHaveBeenCalledTimes(1);
       expect(createClient).toHaveBeenCalledWith("http://localhost:43123", "token-123");
       expect(health).toHaveBeenCalledTimes(3);
-      expect(daemon.install.mock.invocationCallOrder[0]).toBeLessThan(health.mock.invocationCallOrder[0]!);
       expect(stdoutAtEachHealthCall).toEqual(["", "", ""]);
       expect(stdout.toString()).toBe(
         "Television service installed.\nOpen Television:\n  http://127.0.0.1:43123/?token=token-123\n  http://100.64.0.7:43123/?token=token-123\n",
@@ -2182,14 +2185,22 @@ describe("CLI Slice 1 artifact command surface", () => {
       const home = temporaryHome({ port: 43123 });
       const daemon = fakeDaemon();
       let installedAt: number | undefined;
-      daemon.install.mockImplementation(async () => { installedAt = Date.now(); });
+      daemon.install.mockImplementation(() => new Promise<void>((resolve) => setTimeout(() => {
+        installedAt = Date.now();
+        resolve();
+      }, 1_000)));
       const health = vi.fn(answer);
       const createClient = vi.fn(() => ({ ...(fakeEnvironment().createClient!("", "") as any), health }));
       let settled = false;
 
       const run = runCLI(["--home", home, "serve", "--persist"], fakeEnvironment({ stdout, stderr, createDaemon: daemon.createDaemon, createClient }));
       void run.then(() => { settled = true; });
-      await vi.advanceTimersByTimeAsync(14_999);
+      await vi.advanceTimersByTimeAsync(999);
+      expect(daemon.install).toHaveBeenCalledTimes(1);
+      expect(installedAt).toBeUndefined();
+      expect(health).not.toHaveBeenCalled();
+      // The install resolves at 1,000 ms; the deadline counts from there.
+      await vi.advanceTimersByTimeAsync(1 + 14_999);
       expect(installedAt).toBeDefined();
       expect(Date.now() - installedAt!).toBe(14_999);
       expect(settled).toBe(false);
