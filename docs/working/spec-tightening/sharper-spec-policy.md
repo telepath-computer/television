@@ -88,7 +88,7 @@ Test coverage is judged by agent reviewers reading the specs, the proofs and the
 
 ## Ownership is exclusive and DRY
 
-Each requirement, type, term and contract has one owning spec. Specs are kept DRY with high discipline: a spec refers to the owner rather than restating what it owns.
+Each requirement, type, term and contract has one owning spec. Outside the [explainer](#explainers) exception, specs are kept DRY with high discipline: a spec refers to the owner rather than restating what it owns.
 
 This trickles down to the things specs define: **types** are defined once and live in the most relevant arch spec, **terms** are defined by the spec authoritative for the concept, **contracts** are defined in modular arch specs.
 
@@ -282,7 +282,7 @@ Authority is a hierarchical cascade. A general policy — this document, the tes
 
 *Examples.*
 - The testing policy requires that every principal user path be proven by an acceptance test. A spec for a system with many branching paths may judge that several carry diminishing return, and choose to prove the principal ones and leave the rest unproven. That choice goes in the spec's "Directives from the designer or architect" subsection.
-- An architect may decide that a particular spec is governed by agent review instead of human review, for instance where its subject is dense enough that adversarial review between capable models maintains it better than a human line review. The exempt spec declares that decision in its own header and names the review model that applies.
+- An exemption from human review exists only by explicit architect decision for an individual spec. An architect may decide that a particular spec is governed by agent review instead, for instance where its subject is dense enough that adversarial review between capable models maintains it better than a human line review. The exempt spec declares that decision in its own header and names the review model that applies.
 
 ### Documents without authority
 

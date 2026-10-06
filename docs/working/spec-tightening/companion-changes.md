@@ -44,13 +44,19 @@ The sharper spec policy keeps these anchors and headings, so their citations nee
 
 "Testing directives" (anchors `^testing-directives` and `^testing-directive-standing`) defines the `## Testing` section a spec may carry. It changes to name the heading `## Inputs to proof derivation that the spec does not otherwise show` and its subsections, as stated in the sharper spec policy. The rule that a directive shapes test design and orders no assertion of its own (`^testing-directive-standing`) stays.
 
+Add what kinds of assertion each kind of spec's proof carries, which the current `spec-policy.md` states and the sharper spec policy leaves to `spec-proofs.md`:
+- A product spec's proof carries the acceptance assertions that establish its measures of acceptance.
+- An architecture spec's proof carries contract, seam and acceptance assertions, in whatever form fits: end-to-end, integration or unit-level.
+- Acceptance-style behaviour tests generally run as full, non-mocked end-to-end tests, but no kind of spec is bound to a particular test tier.
+
 The same rename reaches the developer skills that use the phrase "testing directives":
 - `developer-skills/tvdev-contribute/SKILL.md:34`
 - `developer-skills/tvdev-review/SKILL.md:18`
 
-## 4. `specs/arch/testing-policy.md`: remove the manual QA ban
+## 4. `specs/arch/testing-policy.md`
 
-Remove the paragraph anchored `^ui-no-manual-checklists`, with nothing in its place (hard case 26). Nothing cites that anchor.
+- Remove the paragraph anchored `^ui-no-manual-checklists`, with nothing in its place (hard case 26). Nothing cites that anchor.
+- Line 34 says coverage and test honesty "are judged by reviewers (human and agent)". Proofs are agent-owned, so this becomes judged by agent reviewers, matching the sharper spec policy's authority cascade.
 
 ## 5. Existing specs
 
