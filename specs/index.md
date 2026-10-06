@@ -17,7 +17,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (109 lines) — *What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
   - `channels.md` (65 lines) — *What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
-  - `cli.md` (574 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+  - `cli.md` (582 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
   - `desktop-app.md` (60 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
   - `keyboard-navigation.md` (51 lines) — *How the keyboard moves through the app: the navigation chord that steps between tab pages and between channels, where it always works, and the one place it can't.*
   - `licensing.md` (109 lines) — *Television's licensing promises: the project is MIT and every published package and the desktop application say so, every shipped artifact carries the licenses and attributions of the third-party code and assets it redistributes, and the standard test suites block unacceptably-licensed dependencies from shipping.*
@@ -48,8 +48,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (167 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
   - **cli/**
     - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
-    - `index.md` (465 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
-    - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
+    - `index.md` (472 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+    - `startup-bind-failure.md` (89 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
     - `connect-flow.md` (50 lines) — *The desktop main-process connection flow: the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge.*
@@ -62,7 +62,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (91 lines) — *The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](arch/layout/migration.md)'s.*
     - `migration.md` (101 lines) — *The server migration: the one boot-time migration that carries a stored data directory across everything the redesign changes on disk — the screen-to-channel names, the version-1 card-tree layouts flattened into version-2 tab pages, the onboarding marker slimmed to its slug, the redesigned display record, the page-size backfill, and the required appearance preference.*
   - **onboarding/**
-    - `bake.md` (174 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
+    - `bake.md` (187 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
     - `content.md` (142 lines) — *Onboarding content and server packaging: the bundled content tree under `packages/server/assets/onboarding-channels/`, the onboarding config schema that orders channels and artifacts, slug rules, and server build-time validation.*
     - `index.md` (38 lines) — *The onboarding architecture root: bundled content and build validation, the design bake, the per-data-directory installer, and the contracts this feature imposes on architecture modules that do not yet have their own specs.*
     - `installer.md` (168 lines) — *The onboarding installer: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with deterministic IDs and crash-safe idempotency, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, and the default-channel invariant.*
@@ -158,7 +158,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **markdown-editor/**
     - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
   - **onboarding-artifacts/**
-    - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
+    - `index.md` (238 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **skillbench/**

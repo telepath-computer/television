@@ -50,7 +50,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (28 lines) — *How the promises in Layout (architecture) are proven.*
     - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
-    - `bake.md` (82 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
+    - `bake.md` (83 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
     - `content.md` (25 lines) — *How onboarding package validation, runtime source resolution, and the committed welcome document are proven.*
     - `index.md` (23 lines) — *How the promises in Onboarding architecture are proven.*
     - `installer.md` (50 lines) — *How the promises in Onboarding installer are proven.*
@@ -144,7 +144,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **markdown-editor/**
     - `index.md` (19 lines) — *How the Markdown editor’s authoritative color sheet reaches production, and where its exact appearance is judged.*
   - **onboarding-artifacts/**
-    - `index.md` (99 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
+    - `index.md` (109 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **skillbench/**
