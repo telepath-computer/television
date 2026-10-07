@@ -6,7 +6,7 @@ Television's desktop application opens the Television interface in a native wind
 
 ## What this owns
 
-This spec owns the user-visible installation, platform support, connection to a server, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built, signed and hosted, the Electron runtime used for development and tests, and the main-process identity rules are architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
+This spec owns the user-visible installation, platform support, connection to a server, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built and run is architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
 
 The *desktop application* is the Television app that ToDesktop builds and that users install from Television's download link.
 
@@ -14,7 +14,7 @@ The *desktop application* is the Television app that ToDesktop builds and that u
 
 Users download and install the desktop application themselves, with no Node or npm. A signed and notarized disk image holds `Television.app`; the user drags it to Applications and opens it from Applications, the Dock or Spotlight. ^desktop-install-download
 
-The download link stays the same across releases and serves the most recent desktop release. The [administrator guide](../arch/cli/admin-guide.md) gives the user the link and these steps; the link and its hosting belong to [the ToDesktop build](../arch/desktop/distribution.md#^desktop-dist-links).
+The download link stays the same across releases and serves the most recent desktop release. The [administrator guide](../arch/cli/admin-guide.md) gives the user the link and these steps; the link itself is [the ToDesktop build's](../arch/desktop/distribution.md#^desktop-dist-links).
 
 The desktop application supports Apple Silicon Macs running macOS 12 or later. On every other computer, including Intel Macs, Linux and Windows, Television is used through the web client in a browser. ^desktop-product-support
 
@@ -56,5 +56,3 @@ The pull request that takes a change to `main` runs the checks its changes need.
 - **Electron's license files** (agent-run). Needed for changes to the Electron or electron-builder version, or to how license files reach the built app. The built app's `Contents/Resources` folder must contain Electron's `LICENSE.electron.txt` and `LICENSES.chromium.html`, the files that [licensing](./licensing.md#^licensing-electron-aggregate) requires to reach users. The agent reads them from the Mac zip that ToDesktop builds beside the DMG, which unzips on Linux.
 - **Updates** (manual). Needed for changes to the update runtime or where the app starts it, the Electron or electron-builder version, the [desktop self-update notice](./update-notifications.md#^desktop-self-update) and its restart, or the upgrade gate, including its screen. The installed build is opened with ToDesktop's simulated update, `--runtime-simulate-updates=update-available`, and connected to a server run from the same code. It must present the desktop self-update notice with the simulated version, and pressing **Restart to update** must quit the app and open it again. For a change to the gate, the app connected to a server that gates it must show the downloaded update and **Restart to update** on the gate screen.
 - **Bridge and IPC** (manual). Needed for changes to the native bridge, or to the messages between the app and the page or its artifact views. Connected to a server run from the same code, the installed build must do what each changed operation provides, used through the part of the interface that calls it.
-
-The pull request that moves the app to ToDesktop must also record a run of the complete local verification gate, `npm run verify -- local`, on a supported Mac. This run provides the evidence that [preflight testing](../arch/test-runner/preflight.md#Testing) requires from a real macOS host.
