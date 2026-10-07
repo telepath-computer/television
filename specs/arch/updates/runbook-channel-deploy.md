@@ -1,14 +1,12 @@
 *Runbook: announcing a curated release on the update channel — authoring and deploying `update-channel.json`, bumping the required desktop version when the release needs it, and verifying the deploy.*
 
-**Plain english:** this is the step-by-step process a release manager (human or agent) follows when a Television release is worth announcing to users: write the small JSON notice in the Television repository, copy it to television.run, and — for the rare release that requires a desktop-app upgrade — bump the server's required desktop version so outdated desktop apps show the upgrade gate.
-
 # Runbook: deploying an update-channel notice
 
-This is a *runbook* ([spec-policy.md#^runbook-type](../../spec-policy.md#^runbook-type)): authoritative for the procedure, derived from the mechanism specs it cites — [update-channel.md](./update-channel.md) (the channel file, validation, polling, operations), [desktop-upgrade-gate.md](./desktop-upgrade-gate.md) (the requirement and the gate), [product/update-notifications.md](../../product/update-notifications.md) (what users experience), and [product/versioning.md](../../product/versioning.md) (how a release number is communicated). On conflict, those specs win.
+This *runbook* ([spec-policy.md#^runbook-type](../../spec-policy.md#^runbook-type)) is the step-by-step process a release manager, human or agent, follows when a Television release is worth announcing: write the channel notice in the Television repository, copy it to television.run and, for the rare release that requires a desktop-app upgrade, raise the server's required desktop version. It derives from [update-channel.md](./update-channel.md), [desktop-upgrade-gate.md](./desktop-upgrade-gate.md), [product/update-notifications.md](../../product/update-notifications.md) and [product/versioning.md](../../product/versioning.md), which win on any conflict.
 
 ## When to run this
 
-A channel deploy is a deliberate human decision, per release worth announcing — most releases never appear on the channel ([product/update-notifications.md#^channel-curated](../../product/update-notifications.md#^channel-curated)). Run this when a release matters enough that users should hear about it, and additionally follow the [required-desktop-version steps](#3-if-the-release-requires-a-desktop-upgrade-bump-the-requirement) when the release includes a desktop shell change users must take. To publish a merged change to the master copy that users should see before the next announcement, such as updated desktop instructions, follow steps [4](#4-publish) and [5](#5-verify-the-deploy).
+Run this when a release matters enough that users should hear about it ([product/update-notifications.md#^channel-curated](../../product/update-notifications.md#^channel-curated)), and additionally follow the [required-desktop-version steps](#3-if-the-release-requires-a-desktop-upgrade-bump-the-requirement) when the release includes a desktop shell change users must take. To publish a merged change to the master copy that users should see before the next announcement, such as updated desktop instructions, follow steps [4](#4-publish) and [5](#5-verify-the-deploy).
 
 ## 1. Author the document
 
@@ -32,7 +30,7 @@ The pull request's CI checks the master copy against [update-channel.md#^channel
 
 ## 2. Dry-run against a staging URL
 
-`TV_UPDATE_CHANNEL_URL` is an operational override honored in every build, exactly for dry-running a deploy ([update-channel.md#^channel-url-override](./update-channel.md#^channel-url-override)). Serve the authored document locally and point a real server at it:
+Serve the authored document locally and point a real server at it with the `TV_UPDATE_CHANNEL_URL` override ([update-channel.md#^channel-url-override](./update-channel.md#^channel-url-override)):
 
 ```bash
 # from specs/arch/updates in the Television checkout, which holds the master copy:
@@ -43,9 +41,9 @@ TV_UPDATE_CHANNEL_URL=http://127.0.0.1:8399/update-channel.json tv serve ...
 
 Open the server in a browser and confirm the toast renders as intended (markdown, links, copy button). [runbook-ux-staging.md](./runbook-ux-staging.md) has fuller staging recipes, including the gate.
 
-On a developer host, keep `~/.tv-developer` in place while dry-running: it has no effect on channel polling ([update-channel.md#^dev-marker-no-bypass](./update-channel.md#^dev-marker-no-bypass)), and telemetry follows the [authoritative rules](../../product/telemetry.md#^telemetry-rules).
+On a developer host, keep `~/.tv-developer` in place while dry-running: it has no effect on channel polling ([update-channel.md#^dev-marker-no-bypass](./update-channel.md#^dev-marker-no-bypass)).
 
-The dry-run works for persisted daemons too: `tv serve --persist` captures `TV_UPDATE_CHANNEL_URL` and `TV_UPDATE_CHANNEL_POLL_INTERVAL_MS` from the installing shell into the daemon's environment ([update-channel.md#^hook-persist-capture](./update-channel.md#^hook-persist-capture)), so installing with the override set stages the daemon against the local channel; rerun `tv serve --persist` without it to return to production polling.
+For a persisted daemon, install it with `tv serve --persist` while the override is set, which stages the daemon against the local channel ([update-channel.md#^hook-persist-capture](./update-channel.md#^hook-persist-capture)); rerun `tv serve --persist` without it to return to production polling.
 
 ## 3. If the release requires a desktop upgrade: bump the requirement
 
@@ -76,7 +74,7 @@ curl -s https://television.run/update-channel.json | cmp - <(git show <commit>:s
 ```
 
 - Confirm the plain channel URL, with no query string, serves the master copy at the published commit byte for byte. Each site deployment invalidates the CDN's cached copy, so a match shows the new document reached the edge. A cache-busting query does not check the cached response at the plain channel URL, so it does not verify the deploy.
-- Expect propagation within one poll interval, as [update-channel.md's operations](./update-channel.md#Operations) describe; there is no push and no fleet-wide force-refresh.
+- Expect propagation within one poll interval, as [update-channel.md's operations](./update-channel.md#Operations) describe.
 - Optionally confirm end-to-end with a real server pointed at the **production** URL on a non-developer host, or via the dry-run hook against the now-live document.
 
 ## Retracting
