@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-structural-source
+
 const TABLE_DOC = [
   "Before table",
   "",
@@ -351,6 +353,8 @@ test.describe("markdown tables", () => {
     let updates = await capturedUpdates(page);
     expect(updates).toHaveLength(1);
     expect(updates[0]).toContain("| Name |   | Status |");
+    expect(updates[0].startsWith("Before table\n\n")).toBe(true);
+    expect(updates[0].endsWith("\n\nAfter table")).toBe(true);
     expect(updates[0]).toContain("| ---- | - | ------ |");
 
     await clearCapturedUpdates(page);
@@ -363,6 +367,8 @@ test.describe("markdown tables", () => {
     expect(updates).toHaveLength(1);
     expect(updates[0]).not.toContain("Ada");
     expect(updates[0]).toContain("| Name |   | Status |");
+    expect(updates[0].startsWith("Before table\n\n")).toBe(true);
+    expect(updates[0].endsWith("\n\nAfter table")).toBe(true);
   });
 
   test("pasting markdown table source renders a table widget", async ({ page, context }) => {

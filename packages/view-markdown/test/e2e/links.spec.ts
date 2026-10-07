@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-link-routing
+// proofs/ui/markdown-editor/index.md#^md-table-t-interactions
+
 // Link activation Playwright suite.
 //
 // Markdown link syntax `[label](url)` renders the label as an `<a
@@ -175,7 +178,9 @@ test.describe("markdown link activation", () => {
     await page.mouse.up();
     expect(await navigationRequests(page)).toHaveLength(1);
     expect(await windowOpenCalls(page)).toHaveLength(1);
+    expect(await page.evaluate(() => (window as Window & { __cmView?: { state: { doc: { toString(): string } } } }).__cmView?.state.doc.toString())).toBe(source);
     await anchor.click({ modifiers: ["Alt"] });
+    expect(await page.evaluate(() => (window as Window & { __cmView?: { state: { doc: { toString(): string } } } }).__cmView?.state.doc.toString())).toBe(source);
     await expect(table.locator(".tbl-cell-editor .cm-content")).toContainText("[Table link](https://example.com/table)");
     await page.keyboard.press("End");
     await page.keyboard.type(" edited");

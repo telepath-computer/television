@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-passive-source
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-intentional-source
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-structural-source
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-discovery
+// proofs/ui/markdown-editor/index.md#^md-table-t-interactions
+
 const RAW = "8. Before\n\n|A|B|\n|---|---|\n|1|two|\n \n12. After";
 interface HostView { state: { doc: { toString(): string }; selection: { main: { head: number } } }; dispatch(spec: unknown): void; focus(): void }
 interface Host extends Window {
@@ -169,6 +175,8 @@ test("structural undo and redo restore source mapping before editing the restore
   await page.locator(".tbl-menu-item", { hasText: "Add column after" }).click({ force: true });
   await expect(page.locator(".tbl-cell")).toHaveCount(6);
   const expanded = await source(page);
+  expect(expanded.startsWith("Before\n\n")).toBe(true);
+  expect(expanded.endsWith("\n\nAfter")).toBe(true);
   await expect.poll(() => saves(page)).toHaveLength(1);
   await page.keyboard.press(process.platform === "darwin" ? "Meta+z" : "Control+z");
   await expect.poll(() => source(page)).toBe(raw);
@@ -265,6 +273,7 @@ test("navigating beyond table edges leaves source and saves untouched", async ({
     await cell.click();
     await expect(page.locator(".tbl-cell-editor .cm-content")).toBeFocused();
     await page.keyboard.press(gesture.key);
+    await expect(page.locator(".cm-content").first()).toBeFocused();
     await expect.poll(() => source(page)).toBe(raw);
   }
   await page.waitForTimeout(650);
