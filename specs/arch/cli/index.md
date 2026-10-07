@@ -4,7 +4,7 @@
 
 The CLI turns `tv` arguments into requests to a Television server and packages the files that a standalone installation needs. It finds the folder that holds an installation's settings and data, and reads the same settings whether it starts the server or talks to one. This document defines the code boundaries that keep command parsing, settings, server startup, service installation, and packaged assets connected correctly.
 
-This spec owns the architecture of `packages/cli`: the source-module surface used by tests and development tooling, dependency-injection boundary used by tests, packaged binary layout, command-to-client contracts, server and daemon integration, path resolution for bundled assets, and setup procedures. It also owns the contract of the [Television home](../../product/cli.md#^cli-home) resolver and config-file reader and writer that the CLI imports from the server package, and one buffer on the otherwise code-authoritative ACP bridge and web chat: the [home context](#^cli-acp-home-context) a server gives the ACP agents it launches. User-facing behavior is owned by [product/cli.md](../../product/cli.md).
+This spec owns the architecture of `packages/cli`: the source-module surface used by tests and development tooling, dependency-injection boundary used by tests, packaged binary layout, server and daemon integration, path resolution for bundled assets, and setup procedures. It also owns the contract of the [Television home](../../product/cli.md#^cli-home) resolver and config-file reader and writer that the CLI imports from the server package, and one buffer on the otherwise code-authoritative ACP bridge and web chat: the [home context](#^cli-acp-home-context) a server gives the ACP agents it launches. User-facing behavior is owned by [product/cli.md](../../product/cli.md).
 
 This spec does not own the shared HTTP client, server REST API, the storage layout inside a home beyond the config file, daemon library behavior, artifact model, or renderer internals. It references those boundaries only where the CLI constructs or calls them.
 
@@ -171,26 +171,21 @@ export function updateTelevisionConfig(
 ): TelevisionConfig;
 ```
 
-`resolveTelevisionHome` applies the product's [selection order](../../product/cli.md#^cli-home-selection): `homeOption`, then the default home. Only when `homeOption` is absent does it read `.tv-home` in `operatingSystemHomeDir`. A missing file selects `.television` in `operatingSystemHomeDir`. Otherwise it trims the file's contents and applies the product's [pointer-file rules](../../product/cli.md#^cli-home-pointer): it replaces a leading `~` or `~/` with `operatingSystemHomeDir` and resolves any other relative path against `operatingSystemHomeDir`. It resolves a relative `homeOption` against `cwd`, and returns an absolute path without resolving symbolic links. An empty or whitespace-only `homeOption` throws an `Error` that names `--home`. A `.tv-home` read failure other than a missing file, or contents the product rules reject, throw an `Error` that names the file's path and the problem. The CLI supplies `CLIEnvironment.resolveHomeDir()` as `operatingSystemHomeDir`, so tests can exercise the default home and `.tv-home` without touching the real ones.
+`resolveTelevisionHome` applies the product's [selection order](../../product/cli.md#^cli-home-selection) and [pointer-file rules](../../product/cli.md#^cli-home-pointer), reading `.tv-home` and placing the built-in `.television` in `operatingSystemHomeDir`. It resolves a relative `homeOption` against `cwd`, and returns an absolute path without resolving symbolic links. It throws an `Error` naming `--home` for an empty `homeOption`, and one naming the file's path and the problem for a `.tv-home` the product rules reject. The CLI supplies `CLIEnvironment.resolveHomeDir()` as `operatingSystemHomeDir`, so tests can exercise the default home and `.tv-home` without touching the real ones.
 
-`readTelevisionConfig` reads `<home>/config.json`. A missing file yields `configFileExists: false` and the default settings. Any other read failure, malformed JSON, a top level that is not an object, an unknown key, or an invalid value throws `TelevisionConfigError` with a message that names `configPath` and the problem. `port` is valid when it is an integer from `0` through `65535`, and each `listen` item when it is a string holding one IPv4 address as Node's `net.isIPv4` defines it. The reader returns no partial result and consults no environment variable. ^cli-config-reader
+`readTelevisionConfig` reads `<home>/config.json` under the product's [config-file rules](../../product/cli.md#^cli-config-file). A missing file yields `configFileExists: false` and the default settings. A file the product rules reject throws `TelevisionConfigError` with a message that names `configPath` and the problem. Each `listen` item is valid when it is a string holding one IPv4 address as Node's `net.isIPv4` defines it. ^cli-config-reader
 
-`updateTelevisionConfig` implements `tv config set`. It reads the stored object without validating its values, treating a missing file as `{}`; an unreadable file, malformed JSON, or a top level that is not an object throws `TelevisionConfigError`. It replaces the keys present in `changes` and validates the complete result by the reader's rules. It then creates `home` and its parents when missing, writes the result as JSON with two-space indentation and a trailing newline to a temporary file in `home`, and renames that file over `config.json`. A failure before the rename removes the temporary file and leaves `config.json` unchanged. It returns the new config as `readTelevisionConfig` would read it. ^cli-config-writer
+`updateTelevisionConfig` implements `tv config set`. It reads the stored object without validating its values, treating a missing file as `{}`; an unreadable file, malformed JSON, or a top level that is not an object throws `TelevisionConfigError`. It replaces the keys present in `changes` and validates the complete result by the reader's rules. It then creates `home` and its parents when missing, writes the result to a temporary file in `home`, and renames that file over `config.json`. A failure before the rename removes the temporary file and leaves `config.json` unchanged. It returns the new config as `readTelevisionConfig` would read it. ^cli-config-writer
 
-The CLI parses each `tv config set` value from its string form before calling `updateTelevisionConfig`: `port` with the whole-decimal parser in `0..65535`, `auth` from exactly `true` or `false`, `listen` by splitting on commas, trimming, and dropping empty entries, and `installedByAgent` unchanged. An invocation with no pairs, an odd number of arguments, an unknown or repeated key, or a value that does not parse is a directive error raised before the call.
+The CLI parses each `tv config set` value from its string form under the product's [`tv config set` rules](../../product/cli.md#^cli-config-set) before calling `updateTelevisionConfig`. An invocation with no pairs, an odd number of arguments, an unknown or repeated key, or a value that does not parse is a directive error raised before the call.
 
-The server package reads no port or storage-path environment variable. `TELEVISION_RENDERER_URL`, ACP profile resolution, developer-home handling, telemetry controls, and update-channel overrides remain process environment and are unrelated to the home.
+`TELEVISION_RENDERER_URL`, ACP profile resolution, developer-home handling, telemetry controls, and update-channel overrides remain process environment and are unrelated to the home.
 
 ## Command parser and error normalization
 
-The command tree is built with Commander. `runCLI` creates a fresh program for each invocation, configures stdout/stderr to use `CLIEnvironment`, disables Commander suggestions, registers `-v`, `-V`, and `--version` for version output, registers the global `--home <path>` program option, adds the help notes defined by the product spec, and calls `program.parseAsync(argv, { from: "user" })`. A command that uses the home resolves it once, by calling `resolveTelevisionHome` with the parsed `--home` value, `CLIEnvironment.resolveHomeDir()`, and `process.cwd()`. No environment variable selects the home. Help and version output resolve no home. Version output starts with the CLI package's exact release version and follows the conditional developer-commit format defined in [the product CLI](../../product/cli.md#^cli-developer-version). Runtime [developer-host marker](../../product/telemetry.md#^developer-host-project-guard) detection checks for `.tv-developer` under `CLIEnvironment.resolveHomeDir()`; it does not invoke Git.
+The command tree is built with Commander. `runCLI` creates a fresh program for each invocation, writes through `CLIEnvironment`'s stdout and stderr, and disables Commander's suggestions. A command that uses the home resolves it once, by calling `resolveTelevisionHome` with the parsed `--home` value, `CLIEnvironment.resolveHomeDir()`, and `process.cwd()`. Runtime [developer-host marker](../../product/telemetry.md#^developer-host-project-guard) detection for the version output checks for `.tv-developer` under `CLIEnvironment.resolveHomeDir()`; it does not invoke Git.
 
-`runCLI` returns an exit code instead of throwing or calling `process.exit`:
-
-- `0` when help/version output or a command action succeeds;
-- `1` when Commander rejects arguments/options or any action throws, unless the thrown error carries a valid process exit status (an integer `exitStatus` from `1` through `255`), in which case `runCLI` returns that status.
-
-There is no distinct usage-error exit code in `tv`. The only current carrier of a distinct status is listener-bind failure, which exits `69`; that contract is owned by [the startup bind-failure spec](./startup-bind-failure.md#^exit-69).
+`runCLI` returns an exit code instead of throwing or calling `process.exit`: `0` on success, and `1` when Commander rejects arguments or options or an action throws, unless the thrown error carries a valid process exit status (an integer `exitStatus` from `1` through `255`), in which case `runCLI` returns that status. Listener-bind failure is the one error that carries one ([startup bind failure](./startup-bind-failure.md#^exit-69)).
 
 Argument and option errors are converted into Television's CLI error wording when Commander throws an error carrying `exitCode`:
 
@@ -203,13 +198,11 @@ Argument and option errors are converted into Television's CLI error wording whe
 | `commander.missingArgument` | `tv <entered argv tokens> requires <argument>.` plus the help pointer. |
 | `commander.invalidArgument` | `tv <entered argv tokens> received an invalid argument: <commander message without error prefix>` plus the help pointer. |
 
-`<entered argv tokens>` preserves every argv token the CLI received after `tv`, in order, including option names and option values. The formatter may quote a token only to keep whitespace or shell-significant characters readable. It must not drop option values or rebuild the command name from only non-option tokens.
+`<entered argv tokens>` follows the product's [directive-error rule](../../product/cli.md#Command model, help, version, and recovery text) for repeating the invocation.
 
-`runCLI` checks the argument tokens for the [retired options](../../product/cli.md#^cli-retired-options) before Commander parses them, so their refusal comes before help, version, every other argument error, and home resolution. The check matches each retired option alone and in `--option=value` form: `--storage-path` in any invocation, and `--port`, `--listen`, `--auth`, `--no-auth`, and `--installed-by-agent` when the command is `serve`. Tokens after a `--` terminator are operands, not options. A match writes the product's guidance and the help pointer to stderr and returns `1`. `serve` registers none of its retired options and no command registers `--storage-path`, so their help does not list them, and the check neither validates nor uses the values given with them. Client commands keep their `--port`, and `tv skills install` keeps `--installed-by-agent`.
+`runCLI` checks the argument tokens for the [retired options](../../product/cli.md#^cli-retired-options) before Commander parses them. The check matches each retired option alone and in `--option=value` form: `--storage-path` in any invocation, and `--port`, `--listen`, `--auth`, `--no-auth`, and `--installed-by-agent` when the command is `serve`. Tokens after a `--` terminator are operands, not options. `serve` registers none of its retired options and no command registers `--storage-path`, so their help does not list them, and the check neither validates nor uses the values given with them. Client commands keep their `--port`, and `tv skills install` keeps `--installed-by-agent`.
 
-The check does not refuse on the [transitional path for services installed by earlier releases](../../product/cli.md#^cli-retired-service-compat): when `TELEVISION_LAUNCH_MODE=daemon`, the command is `serve` with neither `--persist` nor `--persist-uninstall`, and no `--home` is given. The CLI then selects the home from the `--storage-path` value, when there is one, as it would from `--home`. When `<home>/config.json` does not exist, it writes the settings with `updateTelevisionConfig`, so they are validated and the file is replaced atomically. `TELEVISION_PORT` is parsed as a `tv config set port` value and ignored when it does not parse, and each `--listen` value is split on commas as `tv config set listen` values are. The CLI then records the log entry and serves as foreground `tv serve` does for that home. Linear TV-871 tracks removing this path.
-
-When the check does not refuse, and `TELEVISION_LAUNCH_MODE` is not `daemon`, `runCLI` writes the product's [legacy-variable warning](../../product/cli.md#^cli-legacy-selectors) to stderr if `TELEVISION_PORT` or `TELEVISION_STORAGE_PATH` is non-empty, before Commander parses the arguments.
+On the [transitional path for services installed by earlier releases](../../product/cli.md#^cli-retired-service-compat), the CLI writes the settings with `updateTelevisionConfig`, so they are validated and the file is replaced atomically. `TELEVISION_PORT` is parsed as a `tv config set port` value, and each `--listen` value is split on commas as `tv config set listen` values are.
 
 Errors thrown by command actions are formatted by shape:
 
@@ -223,50 +216,14 @@ Errors thrown by command actions are formatted by shape:
 
 The shared client uses a local validation error, not a no-status request error, when `get-channel` cannot auto-select a channel. The CLI therefore reports the channel-selection problem directly instead of formatting it as a reachability failure.
 
-Client `--port` values are parsed as whole decimal integer strings and range-checked against `1..65535`; `tv config set port` values use the same parser against `0..65535`. Values with trailing text, no digits, signs, decimals, or values outside the range are rejected. When a client command accepts `--port` is owned by [the product's client-port rule](../../product/cli.md#^cli-client-port).
+Client `--port` values and `tv config set port` values share one whole-decimal parser, which rejects trailing text, missing digits, signs, and decimals as well as values outside the range.
 
 ## Client boundary
 
-Commands that contact the server construct clients with:
+Commands that contact the server construct a `TelevisionClient` for `http://localhost:<port>` under the product's [client-port rule](../../product/cli.md#^cli-client-port), with the home's token, after reading the config, so an invalid config or a refused `--port` fails before any request. Each command makes the shared-client calls its product behavior needs. Where the product behavior leaves the call sequence open, it is:
 
-```ts
-const { settings, configPath } = readTelevisionConfig(home);
-// port is settings.port, or the required --port value when settings.port is 0
-const client = env.createClient(buildServerURL("localhost", port), readAuthToken(home));
-```
-
-The config is read before the client is constructed, so an invalid config fails before any request. When `settings.port` is `0`, a missing `--port` is a directive error naming `configPath`; when `settings.port` is nonzero, a supplied `--port` is a directive error naming `configPath` and the configured port ([product client-port rule](../../product/cli.md#^cli-client-port)). Token lookup reads `<home>/state/token`, trims it, and passes `undefined` when the file is missing or trims to an empty string.
-
-The CLI contract with `TelevisionClient` is the exact set of client calls each command makes:
-
-| Command | Client call(s) |
-|---|---|
-| `create-path-artifact` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID })`; if focused, `client.display.focus({ artifactID })`. |
-| `create-url-artifact` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID })`; if focused, `client.display.focus({ artifactID })`. |
-| `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim() })`. |
-| `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
-| `get-artifact` | `client.artifacts.get({ artifactID })`. |
-| `list-artifacts` | `client.artifacts.list({})` or `client.artifacts.list({ channelID })`. |
-| `create-channel` | `client.channels.create({ name })`; if focused, `client.display.patch({ focusedChannelId: channel.id })`. |
-| `update-channel` | `client.channels.update({ channelID, name })`. The command passes both values unchanged and formats the returned channel's id and name in its success output. |
-| `remove-channel` | `client.channels.remove({ channelID })`. |
-| `list-channels` | `client.channels.list()`. |
-| `get-channel` | `client.channels.get({ channelID: opts.channel })`. |
-| `focus-status` | `client.display.get()`, projected to the public `activeChannelID`, `activeThemeName`, and `acpEnabled` fields. |
-| `focus-channel` | `client.display.patch({ focusedChannelId: channelID })`. |
-| `set-theme` | First attempt `client.display.get()` to capture the selection in effect when the command began; a failure marks the previous selection unavailable and does not abort. For any case-insensitive spelling of `none`, call `client.display.patch({ activeThemeName: null })` without refreshing. Otherwise preserve the theme ID argument exactly, call `client.themes.refresh()`, report an error when the refreshed registry contains one for that exact theme ID, then call `client.display.patch({ activeThemeName: themeID })`. After a successful patch, print the applicable success form below. |
-| `focus-artifact` | `client.display.focus({ artifactID })`. |
-| `status` | `client.health()`, then `client.telemetry.status()`, inside a health check that catches all errors. Health fields are assigned before the telemetry call, so a telemetry failure preserves `healthy: true`, `version`, `bindAddresses`, and `port` while omitting `telemetry`. `home` comes from the invocation's resolved home, and the config read and client-port rule run before the health check, so their failures are command errors rather than `healthy: false`. |
-| `links` | `client.health()`, then an authenticated request through the client to learn whether the running server accepts the home's token, and an unauthenticated one to learn whether it requires a token at all. Each address in the health response's `bindAddresses` with its `port` becomes `buildConnectURL(buildServerURL(address, port), token)`, where `token` is the `readAuthToken(home)` value when the server requires a token and `null` otherwise. A failed health request, or a `401` for the home's token, is a command error. The config file's `auth` setting does not decide token inclusion, because the server reads it only at startup. |
-| `serve --persist` | After `daemon.install()` resolves, `client.health()` until a call resolves or the [health-check deadline](#^cli-persist-health-check) passes. |
-| `telemetry enable` | `client.telemetry.enable()`. |
-| `telemetry disable` | `client.telemetry.disable()`. |
-
-Every link the CLI prints — `tv serve` and `tv serve --persist` startup URLs and `tv links` output — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
-
-The health response may supply an exact release version. `tv status` copies that value unchanged, including the `0.0.0` development sentinel, and omits `version` when the health response does not supply the field. Other health fields pass through unchanged.
-
-Help and user-facing command documentation describe `none` as using no theme, without the internal term `null theme`. Successful `set-theme` output renders non-null selections as exact theme IDs and `null` as the product's user-facing `None` label. A known changed selection prints exactly `Active theme changed from '<previous>' to '<new>'.`; a known unchanged selection prints exactly `Active theme unchanged: '<selection>'.`; and an unavailable previous selection prints only `Active theme: '<new>'.`. The opening display read's failure is suppressed. A refresh, registry error, or display write failure produces no success output.
+- `tv links` learns whether the running server requires a token from the server itself: after `client.health()`, it makes one request with the home's token, where a `401` is a command error, and one without a token, where a `401` means the server requires one. Each address in the health response's `bindAddresses`, with its `port`, becomes a connect link.
+- `tv set-theme` with a theme ID other than `none` patches the display only after its theme-registry refresh succeeds and reports no validation error for that exact theme ID. `none` patches without refreshing. A refresh, registry error, or display write failure produces no success output.
 
 ## Server process boundary
 
@@ -281,7 +238,7 @@ Help and user-facing command documentation describe `none` as using no theme, wi
 
 Foreground `tv serve` calls `env.createServer` with a `CLIServerOptions` value: `home`; the settings' `listen`, `port`, `auth`, and `installedByAgent`; the resolved static, canonical, bundled-view, onboarding, and bundled-theme paths; the optional ACP profile; and `launchMode`. `launchMode` is `"daemon"` only when `TELEVISION_LAUNCH_MODE=daemon`; every other value resolves to `"cli"`. The production `createServer` constructs a `ServerStore` whose `storagePath` is `home`, passes bundled view, onboarding, and bundled-theme paths when present, and always sets `installOnboardingChannels: true`. It passes `auth` to `Server` explicitly, including the config default `true`, because the `Server` constructor's own default is tokenless. It passes the launch mode and optional installed-by agent value into the server's telemetry options. `Server` and `ServerStore` keep their constructor options, so package tests and embedders construct isolated servers directly without a home or config file. ^cli-serve-adapter
 
-After `server.start()` succeeds, `tv serve` prints startup URLs from `server.getBaseURLs()` when available, otherwise `[server.getBaseURL()]`. Under config port `0`, `Server.start()` binds the first listener to an operating-system-chosen port and reuses that port for every other listener, so these URLs carry the acquired port. The printed token is `server.getAuthToken()` only when `auth === true`; starts that do not require auth print no token. The command then registers `SIGINT` and `SIGTERM` handlers via `env.onSignal`; the first signal calls `server.dispose(signal)`, and later signals during shutdown are ignored.
+After `server.start()` succeeds and the startup URLs are printed, the command registers `SIGINT` and `SIGTERM` handlers through `env.onSignal`; the first signal calls `server.dispose(signal)`, and later signals during shutdown are ignored.
 
 If `TELEVISION_ACP_AGENT` resolves to `openclaw` or `hermes`, the CLI requires the selected command to be executable on `PATH` before constructing the server. Unsupported `TELEVISION_ACP_AGENT` values throw from the server config helper before binding. The ACP bridge itself is outside this CLI spec.
 
@@ -291,7 +248,7 @@ If `TELEVISION_ACP_AGENT` resolves to `openclaw` or `hermes`, the CLI requires t
 
 The daemon name is `com.television.server`; the daemon description is `Television server — virtual display for agents`.
 
-Persisted service creation passes a `CLIDaemonOptions` value: the absolute home and the persisted environment. Before calling `env.createDaemon`, `tv serve --persist` reads the config, refuses an effective port `0`, builds the persisted environment, and runs the ACP command check below, so none of those failures inspects, uninstalls, or replaces an existing service ([product persisted validation](../../product/cli.md#^cli-persist-config-validation)). The daemon command is `process.execPath`, and daemon args are built as:
+Persisted service creation passes a `CLIDaemonOptions` value: the absolute home and the persisted environment. `tv serve --persist` reads the config, refuses an effective port `0`, builds the persisted environment, and runs the ACP command check before calling `env.createDaemon`, so none of those failures touches an existing service ([product persisted validation](../../product/cli.md#^cli-persist-config-validation)). The daemon command is `process.execPath`, and daemon args are built as:
 
 ```ts
 [process.argv[1] ?? "tv", "--home", home, "serve"]
@@ -299,85 +256,50 @@ Persisted service creation passes a `CLIDaemonOptions` value: the absolute home 
 
 `home` is the absolute path from `resolveTelevisionHome`, so a service whose working directory differs from the installing shell's still reads the same home. The arguments carry no settings; each boot reads the home's config file. ^cli-daemon-home-args
 
-`tv serve --persist` calls `buildPersistedACPEnvironment(process.env, { developerHome: env.resolveHomeDir() })`, then adds `TELEVISION_LAUNCH_MODE=daemon`. The persisted environment contains:
-
-- the exact `PATH`, which is required;
-- non-empty telemetry-control values `DO_NOT_TRACK`, `CI`, and `TV_TELEMETRY_TEST` ([product/telemetry.md](../../product/telemetry.md));
-- non-empty update-channel values `TV_UPDATE_CHANNEL_URL` and `TV_UPDATE_CHANNEL_POLL_INTERVAL_MS` ([update-channel capture](../updates/update-channel.md#^hook-persist-capture));
-- `TELEVISION_DEVELOPER_HOME`, set from `env.resolveHomeDir()` so daemon boots resolve the installing user's `.tv-developer` marker;
-- `TELEVISION_LAUNCH_MODE=daemon`;
-- `TELEVISION_ACP_AGENT` and matching `OPENCLAW_*` or `HERMES_*` variables when an ACP agent is configured.
-
-Exact empty telemetry-control and update-channel values are omitted. `HOME` is not captured; the service's home is an argument. Sensitive env values are redacted in logs when their keys start with `OPENCLAW_` or `HERMES_`, or end with `_API_KEY`, `_TOKEN`, `_SECRET`, or `_PASSWORD`. ^ac-persist-telemetry-env
-
-When an ACP agent is configured for persistence, `tv serve --persist` checks the agent command against the environment that will be stored for the service before creating a daemon. If the command is not resolvable, install aborts before touching an existing service.
+The persisted environment is the one the [product spec](../../product/cli.md#Server lifecycle commands) lists, captured from the installing process at install time, with `TELEVISION_DEVELOPER_HOME` taken from `env.resolveHomeDir()`. When an ACP agent is configured, its agent variables are `TELEVISION_ACP_AGENT` and every variable whose name starts with the selected agent's prefix, `OPENCLAW_` or `HERMES_`. Sensitive values are redacted in logs when their keys start with `OPENCLAW_` or `HERMES_`, or end with `_API_KEY`, `_TOKEN`, `_SECRET`, or `_PASSWORD`. ^ac-persist-telemetry-env
 
 Install refresh is deliberately simple: `daemon.status()` runs first; if `installed` or `running` is true, the CLI calls `daemon.uninstall()`; then it calls `daemon.install()`. Install success and failure are logged with the command, arguments, and redacted environment. If uninstall succeeds and install fails, the service remains down.
 
-After `daemon.install()` resolves, the CLI performs the [product health wait](../../product/cli.md#^cli-persist-health-wait). It constructs a client as the [client boundary](#Client boundary) describes, with `settings.port`, and calls its `health()` until a call resolves, pausing briefly after each rejected call. The 15-second deadline starts when `install()` resolves and bounds every call: a call still pending at the deadline counts as no answer, so a peer that accepts the connection and never responds cannot hold the command open. A resolved `health()` is the whole test. The CLI does not compare the response with the installation, so any server that answers the health request on that port, such as a foreground `tv serve` already using it, satisfies it. ^cli-persist-health-check
+After `daemon.install()` resolves, the CLI performs the [product health wait](../../product/cli.md#^cli-persist-health-wait). It constructs a client as the [client boundary](#Client boundary) describes, with `settings.port`, and calls its `health()` until a call resolves, pausing briefly after each rejected call. The 15-second deadline starts when `install()` resolves and bounds every call: a call still pending at the deadline counts as no answer, so a peer that accepts the connection and never responds cannot hold the command open. ^cli-persist-health-check
 
 The deadline allows for one restart by the service manager. A startup that fails for a reason that clears on its own, such as the reinstall race against a terminating prior instance or a listener address that appears moments later, makes the server exit; the service manager relaunches it after its [restart cadence](./startup-bind-failure.md#Generated service definitions), at most about 10 seconds on macOS, and the relaunched server still has time to answer before the deadline.
 
 When the deadline passes without an answer, the CLI writes a `persisted service did not respond` record to `<home>/logs/tv.log` with the daemon name, the health URL, and the deadline in milliseconds. It then writes the telemetry notice when [the notice rule](../../product/telemetry.md#^disclose-cli) calls for one, because the service is installed, and throws the [product error](../../product/cli.md#^cli-persist-health-timeout), which `runCLI` writes to stderr with exit status `1`. It does not call the daemon again. When the server answers, the CLI writes the connect URLs and then the notice.
 
-`tv serve --persist` derives output addresses with `resolveBindAddresses(settings.listen)` and prints one connect URL for every resolved bind address with `settings.port`; it does not use the addresses in the health response. A specific listener therefore appears beside `127.0.0.1`, while `0.0.0.0` collapses the output to the all-interfaces URL. When `settings.auth` is true, the URLs carry the token from a [token-only `ServerStore` construction](../onboarding/installer.md#^token-only-boot) for `home`, which creates `<home>/state/token` when it is missing and does not create `config.json`.
+`tv serve --persist` derives output addresses with `resolveBindAddresses(settings.listen)` and prints one connect URL for every resolved bind address with `settings.port`; it does not use the addresses in the health response. When `settings.auth` is true, the URLs carry the token from a [token-only `ServerStore` construction](../onboarding/installer.md#^token-only-boot) for `home`, which creates `<home>/state/token` when it is missing and does not create `config.json`.
 
-`tv stop` and `tv serve --persist-uninstall` both call `env.createDaemon()` with no options, call `daemon.uninstall()`, log to `<home>/logs/tv.log` for the resolved home, and print `{ "status": "stopped" }`. Neither reads the config file.
-
-## Commands that do not contact the server
-
-`tv themes-path` resolves the home and prints `{ "themesPath": path.join(home, "themes") }`. `tv config show` prints the `readTelevisionConfig(home)` result with an absent `installedByAgent` rendered as `null`. `tv config set` parses its pairs and calls `updateTelevisionConfig(home, changes)`, then prints the product's confirmation with the returned `configPath`. None of these commands, `tv stop`, `tv serve --persist-uninstall`, or `tv skills install` constructs a client or accepts a client `--port`; of them, only `tv config show` and `tv config set` read the config file. ^cli-home-only-commands
+`tv stop` and `tv serve --persist-uninstall` call `daemon.uninstall()` and log the removal to `<home>/logs/tv.log` for the resolved home.
 
 ## Bundled skills boundary
 
-`resolveBundledSkillsRoot()` finds Television's bundled skill collection, not the external installer covered by the product spec's [interactive external installer exception](../../product/cli.md#^cli-installer-exception). In a built CLI, it resolves `./skills` relative to the real path of `process.argv[1]`. In development, it resolves `packages/skills/dist` relative to the CLI package.
+`tv skills install <path>` copies the child directories of the bundled skill root, sorted by directory name, replacing any existing destination directory of the same name and removing `<path>/tv-theme` as the product's [bundled-skill install contract](../../product/cli.md#bundled-skill-commands) requires. If the destination root exists and is not a directory, the command throws.
 
-`tv skills install <path>` copies only child directories of the bundled skill root, sorted by directory name. It creates the destination root, removes any existing destination directory for each skill with `rmSync(..., { recursive: true, force: true })`, and copies the bundled directory recursively. Before reporting success it also removes `<path>/tv-theme` recursively when present, as required by the product's [bundled-skill install contract](../../product/cli.md#bundled-skill-commands); that path is the migration target for the standalone theming bundle, not a member of the current skills manifest. If the destination root exists and is not a directory, the command throws.
+`tv skills install -i` runs the external installer through `CLIEnvironment.runSkillsInstaller`, whose production form spawns the external Vercel `skills` package binary (`skills/bin/cli.mjs`) with the current Node executable and stdio inherited. A non-zero child status throws `skills add <bundled-root> failed (exit <status-or-signal>)`.
 
-`tv skills install -i` resolves the external Vercel `skills` package binary (`skills/bin/cli.mjs`) and spawns:
+After a successful install, the CLI emits the *skill installed* event through `env.emitSkillInstalledTelemetry`, passing the resolved home as `storagePath`; the [CLI emitter](../telemetry/emitters.md) owns what it sends, and the telemetry product spec's [event list](../../product/telemetry.md#What we measure) and [property definitions](../../product/telemetry.md#What we record about each event) own the event's meaning and content.
 
-```ts
-process.execPath, [skillsInstallerBin, "add", bundledSkillsRoot]
-```
-
-with stdio inherited. A non-zero child status throws `skills add <bundled-root> failed (exit <status-or-signal>)`.
-
-`tv skills install` rejects unknown options with the normal Commander unknown-option path, which the CLI formats as a directive error with the bundled-skills recovery pointer.
-
-After a successful direct copy, the CLI derives `agentType` with `deriveAgentTypeFromPath(destinationRoot)`; interactive mode uses `"interactive-install"`. It calls `env.emitSkillInstalledTelemetry` with the resolved home as `storagePath`, CLI version, agent type, optional installed-by agent value, and current environment. The call is best-effort and bounded to one second: rejection or timeout prints nothing and cannot fail the completed install. Failed copy or installer paths do not emit. Event meaning and content constraints are owned by the telemetry product spec's [event list](../../product/telemetry.md#What we measure) and [property definitions](../../product/telemetry.md#What we record about each event).
-
-The skills workspace build reads the explicit manifest `packages/skills/skills.json`, builds or copies only the listed skills into `packages/skills/dist/<name>/`, validates each emitted `SKILL.md`, and reports but ignores unlisted source directories. The CLI package build copies that manifest-produced `dist/` tree, so packaged skill membership is controlled by the manifest rather than directory discovery.
+The CLI package build copies the skills workspace's built `dist/` tree, whose membership [arch/making-skills.md](../making-skills.md) owns, so packaged skill membership comes from the manifest rather than from directory discovery.
 
 ## Experimental ACP agent wiring
 
 The ACP bridge is development-facing, opt-in behavior, not part of the public CLI product surface. The CLI owns the startup and persisted-service wiring needed to pass an ACP profile into the server, and the [home-context buffer](#^cli-acp-home-context). Apart from that buffer, the `/acp` WebSocket endpoint and chat UI behavior are server and web concerns outside this CLI architecture spec.
 
-The foreground startup mechanics are defined in [#Server process boundary](#Server process boundary). The persisted-service environment and command-resolution mechanics are defined in [#Daemon boundary](#Daemon boundary). Keep ACP behavior changes in those boundary sections so this unsupported-feature note does not become a separate source of truth.
+The foreground startup mechanics are defined in [#Server process boundary](#Server process boundary), and the persisted-service mechanics in [#Daemon boundary](#Daemon boundary).
 
 ## Build and packaged asset layout
 
-`packages/cli/package.json` publishes package `@telepath-computer/television`, with `bin.tv: "dist/cli.cjs"` and `files: ["dist/**"]`. It intentionally does not declare `main` or `exports`, because the published package surface is the `tv` executable rather than an importable module. The package root also carries the canonical Television `LICENSE`, which npm includes automatically, while `dist/THIRD-PARTY-NOTICES.txt` covers redistributed dependencies; their generation and packed-artifact enforcement are owned by [arch/licensing.md](../licensing.md).
+`packages/cli/package.json` publishes package `@telepath-computer/television`, with `bin.tv: "dist/cli.cjs"` and `files: ["dist/**"]`, and no `main` or `exports` ([published surface](#Module boundary and published surface)). The package root also carries the canonical Television `LICENSE`, which npm includes automatically, while `dist/THIRD-PARTY-NOTICES.txt` covers redistributed dependencies; their generation and packed-artifact enforcement are owned by [arch/licensing.md](../licensing.md).
 
-`packages/cli/build.mjs` builds the publishable CLI. A full build:
+`packages/cli/build.mjs` builds the publishable CLI. A full build starts from an empty `packages/cli/dist/`, builds the web, server, and skills workspaces and the bundled views, and bundles `packages/cli/src/index.ts` with esbuild into the executable Node CJS file `dist/cli.cjs`. It then copies the packaged assets beside it:
 
-1. removes `packages/cli/dist/`;
-2. builds `@telepath-computer/television-web`;
-3. builds `@telepath-computer/television-server`;
-4. builds `@telepath-computer/television-skills`;
-5. runs `packages/cli/build-views.mjs`;
-6. bundles `packages/cli/src/index.ts` with esbuild into `packages/cli/dist/cli.cjs` as a Node CJS executable with a shebang and requests its licensing metafile;
-7. marks `dist/cli.cjs` executable;
-8. persists the CLI surface inventory and writes the preliminary CLI-only `dist/THIRD-PARTY-NOTICES.txt`;
-9. copies renderer output to `dist/web/`;
-10. copies the missing-artifact view to `dist/views/artifact-missing/`;
-11. copies every canonical artifact version to `dist/canonical/`;
-12. verifies that `packages/server/dist/onboarding/onboarding-channels.json` exists, then copies the whole server onboarding content tree to `dist/onboarding/`;
-13. copies the validated server bundled-theme tree to `dist/themes/`;
-14. copies the manifest-produced skill bundles to `dist/skills/`;
-15. replaces the preliminary notices with the aggregate generated from the CLI, web, bundled-view, and skill inventories while preserving the per-directory notices inside copied outputs;
-16. copies the repository-root `LICENSE` to `packages/cli/LICENSE`, byte-identically.
+- renderer output to `dist/web/`;
+- the bundled views, and the missing-artifact view as `dist/views/artifact-missing/`, to `dist/views/`;
+- every canonical artifact version to `dist/canonical/`;
+- the server onboarding content tree to `dist/onboarding/`, after verifying that `packages/server/dist/onboarding/onboarding-channels.json` exists;
+- the validated server bundled-theme tree to `dist/themes/`;
+- the skill bundles to `dist/skills/`.
 
-The licensing inventory, notice aggregation, and license propagation mechanics are owned by [arch/licensing.md](../licensing.md). This section records their placement in the CLI build so the package-layout contract remains complete.
+The build also writes the package's third-party notices and copies the repository-root `LICENSE` to `packages/cli/LICENSE`; [arch/licensing.md](../licensing.md) owns those mechanics.
 
 The esbuild define values are part of the contract for the packaged runtime:
 
@@ -394,7 +316,7 @@ __TV_DEVELOPER_COMMIT__ = developerCommitSha;
 
 Every `build.mjs` mode, including `--outfile`, determines `developerCommitSha` before bundling. The build checks for `.tv-developer` under `os.homedir()`. Without the marker, `developerCommitSha` is `undefined` and the build does not require Git commit provenance. With the marker, the build resolves the repository's full `HEAD` commit SHA from Git and bakes it as a string; failure to resolve a commit fails the build rather than producing an unstamped executable. The stamp records the checked-out commit and does not claim that the worktree has no uncommitted changes. ^cli-developer-build-stamp
 
-The version flags append the baked commit only when it is a non-empty string and `.tv-developer` exists under `CLIEnvironment.resolveHomeDir()` at invocation time. Direct source execution has no baked commit. This annotation changes only the version flags' display: `__TV_VERSION__`, package metadata, server construction, health advertisement, and status output continue to use the exact release version. Telemetry applies its [privacy-preserving version classification](../telemetry/derivation.md#Behavior).
+Direct source execution has no baked commit. Only the version flags' display uses the commit ([developer version](../../product/cli.md#^cli-developer-version)). Telemetry applies its [privacy-preserving version classification](../telemetry/derivation.md#Behavior).
 
 `inspectTelemetryBuildConfig(env, options)` exposes the baked telemetry-build marker, the current environment suppression reason, and the selected PostHog project as a build diagnostic. Build-marker selection follows [telemetry release build configuration](../telemetry/sink.md#Behavior and operations); direct source execution has no baked telemetry marker and reports `null`.
 
