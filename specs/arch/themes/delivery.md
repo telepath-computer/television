@@ -30,9 +30,9 @@ A `README.md` at the package root is never served, even though it stays in the p
 
 The server applies each script entry's gate itself, whatever the client requests. `main.js` is delivered only when the active theme's registered manifest has `enableMainJS: true` and the active theme's ID is in the consent set. The two frame entries are delivered when their own flags, `enableIframeBackgroundJS` and `enableIframeOverlayJS`, are `true`. The frame entries do not depend on consent.
 
-The four entry paths always succeed. When there is nothing to deliver, because no theme is active, a gate is closed, or the package folder or entry file is missing, `theme.css` returns an empty stylesheet and each script entry returns an empty script. Any other path that cannot be served returns `404`. ^theme-delivery-script-route
+When there is nothing to deliver, because no theme is active, a gate is closed, or the package folder or entry file is missing, the entry still answers successfully: `theme.css` with an empty stylesheet and each script entry with an empty script. Any other path that cannot be served, including an entry whose file resolves outside the package, returns `404`. ^theme-delivery-script-route
 
-Every response must be revalidated before a browser reuses it, and its validator changes whenever the active package or the bytes served change. That way, selecting another theme or editing the package is never hidden by a cached copy at the same URL. A query string on a request does not affect what is served. Appearance is not an input either: one stylesheet serves both light and dark, switching on the root marker described under [Appearance resolver](#appearance-resolver).
+Every response must be revalidated before a browser reuses it. A delivered file or empty entry carries a validator that changes whenever the active package or the bytes served change. That way, selecting another theme or editing the package is never hidden by a cached copy at the same URL. A query string on a request does not affect what is served. Appearance is not an input either: one stylesheet serves both light and dark, switching on the root marker described under [Appearance resolver](#appearance-resolver).
 
 ## Canonical composition
 
@@ -42,15 +42,15 @@ The wrapper copies the query string it was requested with, unchanged, onto both 
 
 ## Stylesheet order
 
-In the application document and in a live canonical artifact document, the theme stylesheet comes after every stylesheet Television provides: the complete foundation, and in the application every surface stylesheet. No Television stylesheet loads after it. Because the foundation's tokens have zero specificity ([foundation overriding](../../ui/foundation/index.md#overriding)), a theme's declarations win in both kinds of document.
+In the application document, the theme stylesheet comes after every stylesheet Television provides: the complete foundation and every surface stylesheet. No Television stylesheet loads after it, so a theme declaration beats Television's at equal specificity. In an artifact document, the live canonical wrapper imports the theme after the canonical base. Styles of the artifact's own, including those of Television's markdown editor and built-in error pages, may follow the wrapper. In both kinds of document the foundation's tokens have zero specificity ([foundation overriding](../../ui/foundation/index.md#overriding)), so a theme can always override the foundation's defaults. Load order does not let it beat a more specific selector.
 
 ## App-document selector
 
-The application document's root element carries `data-television-document="app"`. The desktop app's local connection page is an application document in this sense and carries it too. Because the same theme stylesheet also loads in artifact documents, a rule meant only for the application starts with `:root[data-television-document="app"]`. A rule without that prefix applies wherever the theme loads. ^theme-delivery-app-document
+The [app UI spec](../../ui/app/index.md) puts `data-television-document="app"` on the application document's root element. The desktop app's local connection page is an application document in this sense and carries it too. Because the same theme stylesheet also loads in artifact documents, a rule meant only for the application starts with `:root[data-television-document="app"]`. A rule without that prefix applies wherever the theme loads. ^theme-delivery-app-document
 
 ## Appearance resolver
 
-Every document Television manages has `data-theme="light"` or `data-theme="dark"` on its root element. That value is the document's effective appearance, and the foundation and theme CSS select their light or dark values on it. A shared resolver script sets it from an input of `system`, `light` or `dark`. `light` and `dark` are used directly, and `system` follows the document's `prefers-color-scheme`, including when the operating system changes.
+A shared resolver script gives a document `data-theme="light"` or `data-theme="dark"` on its root element. That value is the document's effective appearance, and the foundation and theme CSS select their light or dark values on it. The resolver sets it from an input of `system`, `light` or `dark`. `light` and `dark` are used directly, and `system` follows the document's `prefers-color-scheme`, including when the operating system changes.
 
 ## Shell first paint and confirmed state
 
@@ -68,7 +68,7 @@ The application document has one link to the theme stylesheet. It points to `/th
 
 The link is added as soon as the connection is established, without waiting for display state. It is refreshed on every `theme-changed` event except one that only changes consent, and removed on disconnect. Each new link is placed after every other stylesheet in the document, and the previous link is removed so its late load cannot take effect.
 
-When the current link finishes loading, fails, or is removed, the application announces on `document` that theme styles have changed. Code that measures layout listens for this, because a `theme-changed` event arrives before the new styles apply. A link that has already been replaced does not announce. ^theme-delivery-style-notification
+When the current link finishes loading or fails, or is removed on disconnect, the application announces on `document` that theme styles have changed. Code that measures layout listens for this, because a `theme-changed` event arrives before the new styles apply. A link that has already been replaced does not announce. ^theme-delivery-style-notification
 
 ## Application theme JavaScript
 
@@ -115,7 +115,7 @@ Messages are sent with target origin `"*"`, because an opaque origin cannot be n
 
 ## Artifact documents
 
-Television-managed artifact documents are local HTML and markdown served through the artifact proxy, the markdown editor, and the built-in "artifact missing" and "URL unsupported" pages. They install the same resolver before their styles, always with input `system`. No message tells them the server's preference. Instead, their `prefers-color-scheme` already reflects the application's effective appearance. In Chrome and Firefox, an iframe's `prefers-color-scheme` follows the `color-scheme` it inherits from the application. In Electron, the application sets the native theme for the whole app, including webviews, under the [desktop appearance contract](../desktop/appearance.md). Safari does not pass the inherited scheme into iframes, so there an artifact follows the device. The [product spec](../../product/themes-and-appearance.md#appearance-preference) records this as a known gap. Theme frames do not rely on this inheritance, because each receives its appearance when it is created.
+Television-managed artifact documents are local HTML and markdown served through the artifact proxy, the markdown editor, and the built-in "artifact missing" and "URL unsupported" pages. They use the same resolver, always with input `system`. The markdown editor and the built-in pages run it before their styles. Proxied artifacts get it through the artifact bridge's injection, subject to that spec's placement and CSP limits: authored CSP metadata can push the resolver after earlier styles, or block it altogether. No message tells them the server's preference. Instead, their `prefers-color-scheme` already reflects the application's effective appearance. In Chrome and Firefox, an iframe's `prefers-color-scheme` follows the `color-scheme` it inherits from the application. In Electron, the application sets the native theme for the whole app, including webviews, under the [desktop appearance contract](../desktop/appearance.md). Safari does not pass the inherited scheme into iframes, so there an artifact follows the device. The [product spec](../../product/themes-and-appearance.md#appearance-preference) records this as a known gap. Theme frames do not rely on this inheritance, because each receives its appearance when it is created.
 
 ## Inputs to proof derivation that the spec does not otherwise show
 

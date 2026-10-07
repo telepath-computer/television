@@ -12,8 +12,8 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 4. **The route is unauthenticated and open to any origin, because cross-origin stylesheet requests cannot carry the bearer token; anyone who can reach the server can read the active package.** An implementer would expect a route on an authenticated server to need authentication. This answers that objection and records the exposure as accepted.
 5. **A package-root `README.md` is never served.** The authoring spec promises theme authors this (it cites `^theme-delivery-readme`). Nothing in the route's purpose would lead derivation to exclude one file.
 6. **The server enforces the script gates: `main.js` needs `enableMainJS: true` and consent for the active ID; frame entries need only their flag.** This is where consent is actually enforced, since main-page script runs with the application's privileges. Derivation could plausibly gate only in the client, and could easily apply consent to the frame entries.
-7. **The four entries always succeed and return an empty body when there is nothing to deliver; other unservable paths return 404.** Product and theme architecture rely on empty entries during missing-package recovery, and the product spec and theme architecture cite `^theme-delivery-script-route`. A 404 is the plausible alternative, and it would raise load errors in every document and frame.
-8. **Every response must be revalidated; the validator changes with package and bytes; the query string and appearance do not affect what is served.** A contract with browser caches: the URL is stable while its content changes live, so ordinary `max-age` caching would show stale themes. Appearance not being an input is an architectural decision: one stylesheet covers both appearances.
+7. **When there is nothing to deliver (no theme, closed gate, missing folder or entry), the four entries answer successfully with an empty body; other unservable paths, including an entry resolving outside the package, return 404.** Product and theme architecture rely on empty entries during missing-package recovery, and the product spec and theme architecture cite `^theme-delivery-script-route`. A 404 is the plausible alternative, and it would raise load errors in every document and frame.
+8. **Every response must be revalidated; delivered files and empty entries carry a validator that changes with package and bytes; the query string and appearance do not affect what is served.** A contract with browser caches: the URL is stable while its content changes live, so ordinary `max-age` caching would show stale themes. Appearance not being an input is an architectural decision: one stylesheet covers both appearances.
 
 ### Canonical composition
 
@@ -22,15 +22,15 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 
 ### Stylesheet order
 
-11. **In the application and live canonical documents, the theme loads after every Television stylesheet, and nothing Television provides loads after it.** A contract with theme authors, whose overrides depend on winning the cascade. Someone adding a stylesheet later in either document could silently override every theme.
+11. **In the application, the theme loads after every Television stylesheet and nothing Television provides follows it. In artifacts, the wrapper imports the theme after the canonical base, and artifact-specific styles (including the editor's and error pages') may follow. Zero-specificity foundation tokens mean a theme can always override foundation defaults, but load order does not beat more specific selectors.** A contract with theme authors, whose overrides depend on the cascade. Someone adding a stylesheet later in the application could silently override every theme. Stating how far the guarantee reaches keeps it from contradicting the built-in documents.
 
 ### App-document selector
 
-12. **The application root carries `data-television-document="app"`, the desktop local page counts as an application document, and app-only theme rules use the `:root[data-television-document="app"]` prefix.** A contract with theme authors, including the bundled Clouds theme, because one stylesheet loads in both kinds of document. The desktop connect-flow spec cites `^theme-delivery-app-document` for the local page.
+12. **The app UI spec's `data-television-document="app"` root marker (linked to its owner), the desktop local page counts as an application document, and app-only theme rules use the `:root[data-television-document="app"]` prefix.** A contract with theme authors, including the bundled Clouds theme, because one stylesheet loads in both kinds of document. The desktop connect-flow spec cites `^theme-delivery-app-document` for the local page.
 
 ### Appearance
 
-13. **Every Television-managed document's root carries `data-theme="light"` or `"dark"`, set by one resolver from `system`, `light` or `dark`, with `system` following `prefers-color-scheme` live.** Theme CSS and the foundation select on this attribute and its two values, so it is a contract with theme authors.
+13. **Where it runs, one shared resolver sets the root's `data-theme="light"` or `"dark"` from `system`, `light` or `dark`, with `system` following `prefers-color-scheme` live.** Theme CSS and the foundation select on this attribute and its two values, so it is a contract with theme authors.
 14. **The application's appearance input comes only from confirmed `activeThemeColorScheme` and `appearanceMode`, a fixed theme's value winning, and is applied before connected content mounts and recomputed on both events.** The desktop appearance spec takes this input as its own (it cites `^theme-delivery-shell-appearance`). Applying it before mount is a decision: otherwise the first frame or webview paints with the wrong appearance.
 15. **First paint uses an inline script ahead of all stylesheets, reading `television-appearance-mode` from local storage; the cache holds the resolved input, falls back to `system`, and is overwritten by confirmed state. One key per origin is an accepted limitation.** The key and its values are stored browser data that later versions read. Caching the input rather than the raw preference is a choice derivation could get wrong, since a fixed theme would then flash. The limitation is recorded so it reads as a decision.
 16. **An appearance change never requests or replaces the theme stylesheet or main script; it only changes the marker and recreates the frames.** Derivation would plausibly refresh all theme resources on any theme-related change. Rerunning a consented main script on an appearance switch would be a visible defect.
@@ -40,7 +40,7 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 
 18. **One link to the connected server's `/theme/theme.css` gets a fresh query on each refresh, because Firefox can otherwise reuse the old sheet.** This preserves knowledge that would otherwise be lost: a stable URL looks sufficient given revalidation, and it is not.
 19. **The link is added on connect without waiting for display state, refreshed on every `theme-changed` except consent-only ones, kept last, and the old one removed first.** Consent-only changes also arrive as `theme-changed`, so derivation would refresh on them. Keeping the link last carries statement 11 into the application's lifecycle. Removing the old link first prevents a late load from becoming current.
-20. **The application announces when the current theme stylesheet loads, fails or is removed; `theme-changed` is not that signal; replaced links do not announce.** The overflow-fade spec depends on this (it cites `^theme-delivery-style-notification`). Derivation would plausibly remeasure on `theme-changed`, before the new styles apply.
+20. **The application announces when the current theme stylesheet loads or fails, or is removed on disconnect; `theme-changed` is not that signal; replaced links do not announce.** The overflow-fade spec depends on this (it cites `^theme-delivery-style-notification`). Derivation would plausibly remeasure on `theme-changed`, before the new styles apply.
 
 ### Main script
 
@@ -61,7 +61,7 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 
 ### Artifact documents
 
-29. **Television-managed artifact documents install the resolver fixed at `system` and get their appearance from the browser (inherited `color-scheme`) or Electron's app-wide native theme, never from a message; Safari is a known gap; theme frames do not rely on this.** This is an architectural decision derivation would plausibly make differently, by posting the preference into each frame. The Safari gap is owned by the product spec and is only pointed to here.
+29. **Television-managed artifact documents use the resolver fixed at `system` (the editor and built-in pages before their styles; proxied artifacts subject to the artifact bridge's placement and CSP limits, which can push it after earlier styles or block it) and get their appearance from the browser (inherited `color-scheme`) or Electron's app-wide native theme, never from a message; Safari is a known gap; theme frames do not rely on this.** This is an architectural decision derivation would plausibly make differently, by posting the preference into each frame. The Safari gap is owned by the product spec and is only pointed to here.
 
 ### Inputs to proof derivation
 
@@ -89,8 +89,8 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 - Block refs cited from other specs are all kept on the statements that carry their meaning: `^theme-delivery-script-route`, `^theme-delivery-script-reset`, `^theme-delivery-style-notification`, `^theme-delivery-readme`, `^theme-delivery-app-document`, `^theme-delivery-shell-appearance`.
 - Block refs that nothing outside the old spec cited were dropped: `^theme-delivery-route`, `-wrapper-query`, `-canonical`, `-resolver`, `-app-link`, `-script`, `-embedded`, `-artifact-documents`, `^theme-frame-pointer-contract`, `^theme-frame-pointer-one-way`, `^theme-settings-reopen`.
 - Heading anchors that other specs cite are kept, except two:
-  - `#testing` is now the policy heading `#inputs-to-proof-derivation-that-the-spec-does-not-otherwise-show`. Old links from `specs/ui/app/index.md` and `proofs/arch/themes/delivery.md` now point at a missing heading. The link test does not check heading anchors.
-  - `#embedded-document-platform-behavior` (cited by the appearance explainer) is folded into `#artifact-documents`.
+  - `#testing` is now the policy heading `#inputs-to-proof-derivation-that-the-spec-does-not-otherwise-show`. The link in `specs/ui/app/index.md` cited it for frame sandbox, pointer, focus, lifecycle, appearance and transparency behavior, so it now points at `#sandboxed-frames`, the section that owns that behavior. The proof's links are left for re-derivation.
+  - `#embedded-document-platform-behavior` is folded into `#artifact-documents`, and the appearance explainer's link now points there.
 - `#main-script` is still a heading, but only the old spec used it.
 - The proof `proofs/arch/themes/delivery.md` needs re-deriving against the new spec; this task did not touch it.
 
@@ -98,3 +98,14 @@ Working document; no authority. The spec was rebuilt from an empty file. Each en
 
 - The README exclusion in code compares case-insensitively (`readme.md` is also refused). The spec names `README.md` only, and either behavior is acceptable.
 - The route validator in code hashes theme ID, manifest version and bytes. The spec states only the property that matters: it changes whenever the active package or the bytes served change.
+
+## Response to the second opinion
+
+The second opinion is `themes-delivery-second-opinion.md`. I checked each finding against the code and the neighbouring specs.
+
+1. **Artifact appearance promised unconditionally. Agreed, changed.** `injectAppearance` in `packages/server/src/artifact-proxy.ts` inserts after the last CSP meta, which can come after earlier styles, and the artifact bridge spec says CSP can block the resolver. The resolver section now describes what the resolver does where it runs. Artifact documents now say the editor and built-in pages run it before their styles, while proxied artifacts are subject to the bridge's placement and CSP limits.
+2. **Stylesheet order conflicts with built-in artifact documents. Agreed, changed.** `artifact-missing/index.html` and the markdown editor put their own styles after `/canonical/v2/styles.css`. The rule now covers the whole application, but in artifacts it covers only the wrapper's base-then-theme order. The "theme wins" claim is narrowed to overriding foundation defaults, and to Television's styles at equal specificity in the application.
+3. **HTTP wording overpromises. Agreed, changed.** In `serveActiveTheme`, an entry whose real path escapes the package gets a plain `404`, and `404`s carry no validator, although `no-cache` applies to all of them. I removed "always succeed", kept the listed empty-response conditions, named the escape case as a `404`, and scoped the validator to delivered files and empty entries.
+4. **Extra notification trigger. Agreed, changed.** `refreshThemeLink` removes the old link without dispatching, and only `clearThemeLink` (disconnect) dispatches on removal. The text now says "removed on disconnect".
+5. **App marker ownership. Agreed, changed.** The selector section now attributes the marker to the app UI spec, with a link, and keeps the theme-author usage.
+6. **References to removed sections. Agreed, changed (link-only).** The explainer now points to `#artifact-documents`. The app UI spec's link now points to `#sandboxed-frames`, where that behavior is specified, and the coverage follows from this spec's proof. The proof is left for re-derivation, as instructed.
