@@ -41,7 +41,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `testing-policy.md` (236 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (352 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
-    - `index.md` (49 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `index.md` (50 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
     - `reload-navigation.md` (138 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
   - **channel-state/**
@@ -62,7 +63,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (91 lines) — *The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](arch/layout/migration.md)'s.*
     - `migration.md` (101 lines) — *The server migration: the one boot-time migration that carries a stored data directory across everything the redesign changes on disk — the screen-to-channel names, the version-1 card-tree layouts flattened into version-2 tab pages, the onboarding marker slimmed to its slug, the redesigned display record, the page-size backfill, and the required appearance preference.*
   - **onboarding/**
-    - `bake.md` (174 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
+    - `bake.md` (187 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
     - `content.md` (142 lines) — *Onboarding content and server packaging: the bundled content tree under `packages/server/assets/onboarding-channels/`, the onboarding config schema that orders channels and artifacts, slug rules, and server build-time validation.*
     - `index.md` (38 lines) — *The onboarding architecture root: bundled content and build validation, the design bake, the per-data-directory installer, and the contracts this feature imposes on architecture modules that do not yet have their own specs.*
     - `installer.md` (168 lines) — *The onboarding installer: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with deterministic IDs and crash-safe idempotency, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, and the default-channel invariant.*
@@ -156,9 +157,9 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **select/**
       - `index.md` (42 lines) — *UI spec: the select — the control that chooses one option from a list; its trigger, selection, interior, and keyboard.*
   - **markdown-editor/**
-    - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
+    - `index.md` (35 lines) — *UI spec: the Markdown editor’s color treatment and a narrow buffer for table-link gestures and table-edge navigation.*
   - **onboarding-artifacts/**
-    - `index.md` (227 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
+    - `index.md` (238 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **skillbench/**
