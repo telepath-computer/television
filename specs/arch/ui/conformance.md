@@ -2,7 +2,7 @@
 
 # UI conformance
 
-This spec governs the machinery that verifies production UI against `specs/ui/`. It exists so that "the built surface matches the specified surface" is an automated check rather than a review judgment. The requirement it enforces: **structure and style must conform to maintain visual identity.** [spec-ui.md](../../spec-ui.md) states the requirement; this page owns the mechanism.
+This spec governs the machinery that verifies production UI against `specs/ui/`, so that "the built surface matches the specified surface" is an automated check rather than a review judgment. [spec-ui.md](../../spec-ui.md) states the requirement it enforces; this page owns the mechanism.
 
 ## What conformance means
 
@@ -11,8 +11,7 @@ A surface's states are the named template-argument sets its spec defines; produc
 - **Structure.** The production render equals the spec template's render, normalized to remove what cannot affect the rendered result — comments, insignificant whitespace, attribute order, and what HTML parsing canonicalizes; nothing else. Any other difference is a conformance failure unless it is a declared exemption.
 - **Style.** The spec's stylesheets are the styles production carries (byte identity), each through the delivery route the surface's architecture specifies, and every selector in the surface's spec stylesheet matches the production render in at least one posed state.
 
-Exemptions are per-surface declarations. An exempted difference must not change visual identity, and may affect behavior only to conform to the spec. Silent divergence is forbidden: deviate only by declaring.
-
+Exemptions are per-surface declarations. An exempted difference must not change visual identity, and may affect behavior only to conform to the spec. Any other divergence is a failure.
 
 ## Release exception for TV-649
 
@@ -25,11 +24,11 @@ Production markup and styling must still match their specifications. Existing be
 
 Three checks, all in the standard test lanes:
 
-1. **Byte identity and delivery checks** — file-level tests asserting spec stylesheets and their production copies are byte-equal, and that each stylesheet reaches the production tree by the route its architecture specifies. Document delivery is found by walking imports from the web entry; a surface-specific route is checked at that surface's boundary. Divergence exists only as an explicitly listed entry, and each entry is itself asserted — a listed file must still differ, a listed route must still be reachable — so resolving a divergence forces removing its entry in the same change. These checks are required by [index.md](./index.md) and, for a surface-specific delivery route, by the spec that owns that route.
+1. **Byte identity and delivery checks** — file-level tests asserting spec stylesheets and their production copies are byte-equal, and that each stylesheet reaches the production tree by the route its architecture specifies. Document delivery is found by walking imports from the web entry; a surface-specific route is checked at that surface's boundary. Divergence exists only as an explicitly listed entry, and each entry is itself asserted — a listed file must still differ, a listed route must still be reachable — so resolving a divergence forces removing its entry in the same change. These checks are required by [foundation.md](./foundation.md) and, for a surface-specific delivery route, by the spec that owns that route.
 2. **Structural comparison** — per surface × state, render the spec template (via the liquid plugin) and mount the production view in jsdom with the same pose data; normalize both; compare. Differences must each match a declared exemption.
 3. **Selector check** — every selector in the surface's spec stylesheet must match at least one node in the relevant rendered tree in at least one posed production state. Selectors that cannot match in posed states (e.g. real `:hover` where only the attribute twin is posable) are exempted like any other difference.
 
-Style application is not computed at runtime: with sheets byte-identical and delivery pinned, application is identical by construction, and the selector check covers styling defeated by structural difference. Browser-based computed-style or screenshot comparison is a deliberate non-goal at this level; if these checks prove insufficient, the same tests support that escalation without redesign.
+Style application is not computed at runtime: with sheets byte-identical and delivery pinned, application is identical by construction, and the selector check covers styling defeated by structural difference. Browser-based computed-style or screenshot comparison is a deliberate non-goal at this level.
 
 ## The conformance tests
 
