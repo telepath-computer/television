@@ -10,15 +10,15 @@ This product spec owns what a person or agent invokes as `tv`, what it prints, t
 
 The standalone [administrator guide](../arch/cli/admin-guide.md) governs administration procedures and agent guidance; this spec governs command behavior.
 
-The `tv` CLI is designed to be invoked on the same host as the Television server it controls. Commands that contact a server use a local port and do not accept a remote server URL. The home, its config file, and the connection they determine are defined in [#Television home and configuration](#Television home and configuration).
+The `tv` CLI is designed to be invoked on the same host as the Television server it controls. Commands that contact a server use a local port and do not accept a remote server URL.
 
 This spec defines the CLI spelling of focus requests; product channels and tab pages own their effects.
 
 A *focus directive* is one of the mutually exclusive flags that tells a creation command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation.
 
-*Channel focus* is the persisted active channel owned by [channels.md](./channels.md). *Artifact focus* is a transient one-shot signal: clients select the artifact's tab page and switch to its channel when needed, without scrolling-to-card or highlight/glow behavior ([tab-pages.md#^tp-focus-selects](./tab-pages.md#^tp-focus-selects)). It is not persisted.
+*Channel focus* is the persisted active channel owned by [channels.md](./channels.md). *Artifact focus* is the transient, unpersisted nudge owned by [tab-pages.md](./tab-pages.md#^tp-focus-selects).
 
-The *bundled skill collection* is the set of Television agent skills shipped beside the built CLI under `dist/skills/<name>/`.
+The *bundled skill collection* is the set of Television agent skills shipped with the CLI.
 
 ## CLI as agent teacher and guardrails
 
@@ -60,7 +60,7 @@ Bare `tv`, `tv help`, and `tv --help` print the same top-level help and exit `0`
 
 `tv --version` reports the package's exact [release version](./versioning.md#^pv-exact-version). It normally prints that version unchanged — for example, package version `1.3.1` prints `1.3.1`. It prints `1.3.1 (commit <full-commit-sha>)` when the [`~/.tv-developer` developer-host marker](./telemetry.md#^developer-host-project-guard) existed in the build user's operating-system home directory when the executable was built, the build captured its Git `HEAD` commit, and the marker also exists in the runtime user's operating-system home directory when the version command runs. If either marker check is false or the executable has no captured commit, the annotation is absent. `-V` and `-v` produce the same output as `--version`. Version output goes to stdout and exits `0`. ^cli-developer-version
 
-`tv help <command>` and `tv <command> --help` print command-local help and exit `0`. Top-level help carries the full agent routing note. Subcommands do not need to repeat that note on every help page because the agent is expected to read top-level help first. Artifact creation help ends with an `Agent note:` for artifact workflow and skill installation. `tv skills` help and `tv set-theme` help append command-specific notes. Many other subcommands have only usage, description, arguments, and options.
+`tv help <command>` and `tv <command> --help` print command-local help and exit `0`. Top-level help carries the full agent routing note. Subcommand help need not repeat it, because the agent is expected to read top-level help first. Artifact creation help ends with an `Agent note:` for artifact workflow and skill installation. `tv skills` help and `tv set-theme` help append the command-specific notes described with those commands.
 
 A *directive error* is a usage error that the CLI itself detects while parsing arguments or validating whether a command and its options can be dispatched. Directive errors print to stderr and return exit code `1`. When one repeats the invocation that failed, it preserves the argument tokens the CLI received after `tv`, in order, including option values. The CLI may quote a token only to keep whitespace or shell-significant characters readable. This makes the error point back to what the user or agent actually entered, not to a reconstructed command name.
 
@@ -92,7 +92,7 @@ Connection failures do not append the recovery pointer. They print:
 Could not reach Television server at http://localhost:<port>: <message>
 ```
 
-Detailed error wording and recovery-pointer placement are not yet normalized across every argument and validation path. This spec pins only the cases its prose states explicitly; making the remaining paths consistent is known future work.
+Accepted limitation: detailed error wording and recovery-pointer placement are not consistent across every argument and validation path. This spec pins only the cases its prose states explicitly.
 
 ## Output conventions
 
@@ -111,7 +111,7 @@ Output formatting is currently inconsistent and depends on the command. Successf
 | `tv telemetry enable` and `tv telemetry disable` | `{ "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }` |
 | `tv stop` and `tv serve --persist-uninstall` | `{ "status": "stopped" }` |
 
-Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text, and `tv links` prints one connect link per line. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
+Successful commands that change state or run against the server usually print human-readable text, given with each command below. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
 When a command's stdout is an interactive terminal, each link it prints is a terminal hyperlink using OSC-8 escape sequences, with the visible URL as the link text; a terminal that does not render OSC-8 hyperlinks still shows the URL text. When stdout is anything else, such as a pipe, a file, or an agent's shell tool, each link is the plain URL with no escape sequences, because some tools that capture output strip escape sequences in a way that removes the URL with them. This applies to the startup URLs of `tv serve` and `tv serve --persist` and to `tv links`. ^cli-link-output
 
@@ -133,7 +133,7 @@ Each invocation selects one home: the global `--home <path>` option when it is s
 
 No shell reads this file, so `tv` expands its leading `~` itself, as Git and OpenSSH do for their configuration files. A trailing `/` is optional, and whitespace around the path, including a final newline, is ignored. The file is an error when it cannot be read, holds no path, or holds more than one line. A path that begins with `~` followed by anything other than `/`, such as `~otheruser/television`, names another user's home directory and is also an error; its message says that `~` followed by a user name is not supported and suggests an absolute path instead. A command reads `~/.tv-home` only when it is given no `--home`, and an error in the file stops only those commands; its message names the file and the problem. Television never writes `~/.tv-home`. A user creates it with any editor, or with a shell command such as `echo Dropbox/television > ~/.tv-home`.
 
-Each command resolves its home separately. A later command, including one an agent runs in a new session, reaches the same installation only when its selection resolves to the same directory, whether through `--home`, `~/.tv-home`, or the built-in default. A `--home` value applies only to the command that receives it, so later commands must pass it again. A default home chosen with `~/.tv-home` applies to every later command the same user runs without `--home`. A persisted service records its own absolute home ([Server lifecycle commands](#Server lifecycle commands)); that record does not select the home for other commands, and the service keeps it when `~/.tv-home` changes until `tv serve --persist` is rerun.
+Each command resolves its home separately, so a `--home` value applies only to the command that receives it. A persisted service records its own absolute home ([Server lifecycle commands](#Server lifecycle commands)); that record does not select the home for other commands, and the service keeps it when `~/.tv-home` changes until `tv serve --persist` is rerun.
 
 The Television home is separate from the operating-system home directory. `~/.tv-home` and the [`~/.tv-developer` developer-host marker](./telemetry.md#^developer-host-project-guard) stay in the operating-system home directory whichever Television home is selected.
 
@@ -271,7 +271,7 @@ A *connect link* is the URL a person opens to use Television, in a browser or in
 tv [--home <path>] links [--port <number>]
 ```
 
-The links cover every address the server reports it is listening on, with the port it bound. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
+The links cover every address the server reports it is listening on, with the port it bound. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. When the server rejects that token or cannot be reached, the command prints the matching error under [Connecting to the server](#Connecting to the server) or [Command model, help, version, and recovery text](#Command model, help, version, and recovery text), prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
 
 ## Server lifecycle commands
 
@@ -295,7 +295,7 @@ When tokenless mode includes a non-loopback listener, stderr also prints:
 Non-loopback listeners without auth: <address-list>
 ```
 
-The config file's `listen` values are IPv4 addresses. The server resolves the bind list so local loopback is satisfied. `127.0.0.1` satisfies loopback. `0.0.0.0` also satisfies loopback because it binds all IPv4 interfaces, so a list containing `0.0.0.0` resolves to only `0.0.0.0`. Other IPv4 addresses do not satisfy loopback, so `127.0.0.1` is added alongside them. A repeated address is bound once. Listener startup is all-or-nothing: every resolved address must bind, and if any bind fails the server records the failure, closes every listener it opened, and exits with status `69` instead of running on a subset. The detailed bind-failure contract — the fatal log record, the exit status, and the persisted service's restart-until-bound behavior — is owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
+The server resolves the bind list so local loopback is satisfied. `127.0.0.1` satisfies loopback. `0.0.0.0` also satisfies loopback because it binds all IPv4 interfaces, so a list containing `0.0.0.0` resolves to only `0.0.0.0`. Other IPv4 addresses do not satisfy loopback, so `127.0.0.1` is added alongside them. A repeated address is bound once. Listener startup is all-or-nothing: every resolved address must bind, and if any bind fails the server records the failure, closes every listener it opened, and exits with status `69` instead of running on a subset. The detailed bind-failure contract — the fatal log record, the exit status, and the persisted service's restart-until-bound behavior — is owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
 When the effective config port is `0`, foreground `tv serve` prints this warning to stderr before it starts the server:
 
@@ -311,7 +311,7 @@ Open Television:
   <startup URL>
 ```
 
-One startup URL is printed per bound listener, using the port the server actually bound; under config port `0` that is the port the operating system chose. Authenticated startup URLs include `?token=<token>`; tokenless startup URLs are plain origins. The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
+The startup URLs are the [connect links](#^cli-connect-link) of the bound listeners, one per listener, using the port the server actually bound; under config port `0` that is the port the operating system chose. The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
 
 `tv serve --persist` installs Television as a user system service instead of running a foreground server:
 
@@ -336,7 +336,7 @@ If a service already exists, `--persist` uninstalls it and then installs the new
 
 After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. Linear TV-938 tracks this limitation. ^cli-persist-health-wait
 
-Once a server answers, the command prints one startup URL for each configured bind address after listener resolution, using the config port. `127.0.0.1` appears alongside specific additional listeners, while a `listen` value containing `0.0.0.0` resolves to the all-interfaces URL alone. With authentication on, the URLs include the bearer token; the install creates the home's token first when the home has none yet.
+Once a server answers, the command prints the connect link for each configured bind address after listener resolution, using the config port. With authentication on, the install creates the home's token first when the home has none yet.
 
 ```text
 Television service installed.
@@ -358,7 +358,7 @@ Television service installed, but the server did not respond at http://localhost
 
 They remove the user's one Television service whichever home is selected; the selected home determines only where they log the removal. They are idempotent from the caller's perspective: a successful uninstall path prints the same JSON whether or not a service was already installed.
 
-`tv status` prints the selected home, server health, and service status. It always includes `home`, `serverURL`, and `healthy`. `home` is the absolute home this invocation resolved; the server's unauthenticated health response carries no home or other filesystem path. If the health request succeeds, the output includes `bindAddresses` and `port`, and copies the server's exact `version` unchanged when `/health` supplies one. A CLI and server from the same release therefore report the same release version. The developer commit annotation belongs only to the CLI's version-flag output and does not change the server version or `tv status`; an unstamped development server's `0.0.0` sentinel also passes through unchanged. The command then asks the server for the telemetry status defined by [the telemetry spec](./telemetry.md#^status-visible). If that follow-up request fails, the command keeps `healthy: true` and the health fields but omits `telemetry`. If service status is supported on the platform, it includes `daemon`; if the service-status check is unsupported, `daemon` is omitted. A failed health request is not a command failure; `healthy` is `false` and the command still exits `0`.
+`tv status` prints the selected home, server health, and service status. It always includes `home`, `serverURL`, and `healthy`. `home` is the absolute home this invocation resolved; the server's unauthenticated health response carries no home or other filesystem path. If the health request succeeds, the output includes `bindAddresses` and `port`, and copies the server's exact `version` unchanged when `/health` supplies one. The developer commit annotation belongs only to the CLI's version-flag output and does not change the server version or `tv status`; an unstamped development server's `0.0.0` sentinel also passes through unchanged. The command then asks the server for the telemetry status defined by [the telemetry spec](./telemetry.md#^status-visible). If that follow-up request fails, the command keeps `healthy: true` and the health fields but omits `telemetry`. If service status is supported on the platform, it includes `daemon`; if the service-status check is unsupported, `daemon` is omitted. A failed health request is not a command failure; `healthy` is `false` and the command still exits `0`.
 
 ### Telemetry controls
 
@@ -378,7 +378,7 @@ The first-initialization notice and its eligibility are owned by [the telemetry 
 Channel created: <channel-id> (<name>)
 ```
 
-`tv update-channel --channel <id> --name <name>` renames a channel in place. Both `--channel` and `--name` are required. The supplied name is sent unchanged, with no trimming or normalization by the CLI. The resulting state change follows [the channel rename contract](./channels.md#^ch-rename), which owns its cross-client effects and preserved state. Command-local help describes the rename and identifies both required options. Success prints: ^cli-update-channel
+`tv update-channel --channel <id> --name <name>` renames a channel in place. Both `--channel` and `--name` are required. The supplied name is sent unchanged, with no trimming or normalization by the CLI. The resulting state change follows [the channel rename contract](./channels.md#^ch-rename), which owns its cross-client effects and preserved state. Success prints: ^cli-update-channel
 
 ```text
 Channel updated: <channel-id> (<name>)
@@ -462,8 +462,6 @@ Artifact <artifact-id> updated.
 
 `tv list-artifacts [--channel <id>]` prints `{ "artifacts": [...] }`. With no `--channel`, it lists every artifact. With `--channel`, it filters to artifacts on that channel.
 
-The CLI does not have a command that reorders an artifact's tab page on its current channel. Reordering is a layout change made through the UI or the channel PATCH API. To show the same file, directory, or URL on another channel, create a second artifact on that channel with the same `--path` or `--url`.
-
 `tv delete-artifact --id <id>` deletes an artifact registry record and removes its tab page from its channel. A path artifact deletion prints:
 
 ```text
@@ -482,7 +480,7 @@ url artifact <artifact-id> deleted from the registry.
 
 ## Display focus and themes
 
-`tv focus-status` prints display state as compact JSON with `activeChannelID`, `activeThemeName`, and `acpEnabled` fields.
+`tv focus-status` prints display state in the JSON envelope under [Output conventions](#Output conventions).
 
 `tv focus-channel --channel <id>` sets persistent channel focus and prints:
 
@@ -516,7 +514,7 @@ When the opening read failed and activation of `bar` succeeded, it prints only:
 Active theme: 'bar'.
 ```
 
-The opening read failure itself produces no error. When available, the transition supplies the prior-selection context used by [the theme-authoring workflow](../arch/themes/authoring.md#theme-selection).
+When available, the transition supplies the prior-selection context used by [the theme-authoring workflow](../arch/themes/authoring.md#theme-selection).
 
 The selected theme applies to connected clients under [themes and appearance](themes-and-appearance.md); [theme delivery](../arch/themes/delivery.md) owns how its resources reach their documents.
 
@@ -541,7 +539,7 @@ Copied <N> bundled Television skill(s):
   to:   <destination-path>
 ```
 
-The bundled skill collection is defined by the skills build manifest at `packages/skills/skills.json`. The CLI ships and installs exactly the skill directories listed there. The manifest always includes `television`, the primary skill named by the CLI's recovery guidance.
+The CLI ships and installs exactly the skills in the bundle, whose membership [arch/making-skills.md](../arch/making-skills.md) owns. The collection always includes `television`, the primary skill named by the CLI's recovery guidance.
 
 The *external skills installer* is Vercel's third-party `skills` package, whose terminal interface Television neither designs nor controls. Television uses it only as a convenience for browsing and installing the bundled collection interactively. `tv skills install -i [--installed-by-agent <agent-runtime-harness-name>]` launches the current Node executable with `skills/bin/cli.mjs add <bundled-skills-root>`. Passing both `-i` and a destination path is refused with:
 
@@ -561,15 +559,13 @@ After a direct or interactive install succeeds, the CLI makes a content-free, be
 
 ## Non-goals and unsupported surfaces
 
-`tv` does not run repository tests. Use the canonical runner from [test-runner.md](../arch/test-runner/test-runner.md) for test execution.
-
 The CLI does not expose these historical command names: `create-artifact`, `create-markdown-artifact`, `create-web-bundle-artifact`, `edit-artifact`, `commit-artifact`, `abandon-artifact`, `attach-artifact`, `detach-artifact`, `restore-artifact`, `list-pending-artifacts`, `make-attestation-nonce`, `data-dir`, or `storage-path`. These are retired or legacy names from earlier implementations and documentation; pinning their absence prevents them from silently returning. Each fails with `Unknown tv command: <name>.`
 
-Commands that contact the server do not accept `--server`. `list-artifacts` does not accept `--unplaced`. `focus-channel`, `update-channel`, and `remove-channel` use `--channel`, not `--id`. `focus-artifact` uses `--id` and does not accept `--channel`.
+`list-artifacts` does not accept `--unplaced`.
 
 ## Packaged startup behavior
 
-A built CLI ships the onboarding content tree and passes it into every serving store when the tree can be resolved. The user-visible installation behavior, including fresh installs, upgrades, and a missing bundle, is owned and acceptance-tested by [product/onboarding/onboarding-channels.md](./onboarding/onboarding-channels.md). The CLI packaging and resolver contract is owned by [arch/cli/index.md#Build and packaged asset layout](../arch/cli/index.md#Build and packaged asset layout).
+A built CLI ships the onboarding content that a server installs on startup. The user-visible installation behavior, including fresh installs, upgrades, and a missing bundle, is owned and acceptance-tested by [product/onboarding/onboarding-channels.md](./onboarding/onboarding-channels.md). The CLI packaging and resolver contract is owned by [arch/cli/index.md#Build and packaged asset layout](../arch/cli/index.md#Build and packaged asset layout).
 
 ## Testing
 
