@@ -19,7 +19,7 @@ declare function mountItemEdgeFade(
 ): { refresh(): void; dispose(): void };
 ```
 
-`items` selects descendants of the scrollport; `distance` is a nonnegative fade distance in CSS pixels. The helper manages geometry only. It does not own scrolling, selection, focus, or item content. The caller mounts it after the scrollport exists and calls `dispose()` when that surface disconnects.
+`items` selects descendants of the scrollport; `distance` is a nonnegative fade distance in CSS pixels. The helper manages mask geometry only. The caller mounts it after the scrollport exists and calls `dispose()` when that surface disconnects.
 
 ## Geometry and styling
 
@@ -44,11 +44,11 @@ The caller invokes `refresh()` after external styling moves items without resizi
 
 Updates are coalesced into one animation-frame callback. Each callback reads the required geometry before writing mask properties. Removed items lose their marker and properties and are no longer observed.
 
-Disposal cancels any pending callback, removes listeners, disconnects observers, and clears the helper-owned marker and properties from managed items. Subsequent `refresh()` or `dispose()` calls have no effect.
+Disposal stops all updates and clears the helper-owned marker and properties from managed items. Subsequent `refresh()` or `dispose()` calls have no effect.
 
 ## Tab-strip integration
 
-The tab strip mounts the helper with both edges enabled and the distance from its UI measures. Each tab, including a selected tab, receives its own mask so backdrop blur remains available. The strip carries `data-overflow` while its contents exceed its visible width. The caller owns this marker, clipping and scrolling; the helper owns item mask geometry.
+The tab strip mounts the helper with both edges enabled and the distance from its UI measures. Each tab, including a selected tab, receives its own mask so backdrop blur remains available. The strip carries `data-overflow` while its contents exceed its visible width; the strip, not the helper, owns that marker, clipping and scrolling.
 
 After the application [theme stylesheet settles or is removed](../themes/delivery.md#^theme-delivery-style-notification), or the effective root appearance changes, the tab strip updates its layout and refreshes mask geometry. This includes position-only changes and operating-system appearance changes while following the system. Updates preserve the existing selection, drag and scroll rules. Disconnecting removes these subscriptions. Workshop tab strips perform the same refresh after their environment applies theme or appearance changes. ^of-style-refresh
 
