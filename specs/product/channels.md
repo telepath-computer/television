@@ -1,14 +1,14 @@
 *What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
 
-**Status:** implemented redesign product authority. TV-549 tracks the caller-supplied-id gap stated below.
+**Status:** implemented redesign product authority, with the caller-supplied-id gap stated under Identity.
 
 # Channels
 
-A channel is the workspace a person keeps related work in: a named collection of open artifacts, listed in the channel sidebar, shown one at a time. This spec describes what a person can do with channels and what the app promises about them — not how the channel sidebar draws them, which is that surface's own spec.
+A channel is the workspace a person keeps related work in: a named collection of open artifacts, listed in the channel sidebar, shown one at a time. This spec describes what a person can do with channels and what the app promises about them.
 
 ## What this owns
 
-This spec owns the user-facing behavior of channels. It deliberately does not own:
+This spec owns the user-facing behavior of channels. It does not own:
 
 - The channel sidebar's interaction, markup, and styling — [ui/app/sidebar/index.md](../ui/app/sidebar/index.md) (UI), exclusively.
 - The layout a channel holds — its ordered tab pages — [arch/layout/index.md](../arch/layout/index.md); their user-facing behavior is [tab-pages.md](./tab-pages.md).
@@ -20,7 +20,7 @@ A *channel* is the unit a person keeps their work in: it has a name, an ordered 
 
 The client connects to exactly one server, so the channel sidebar lists one server's channels and a channel never needs to say which server it belongs to. ^ch-single-server
 
-**Identity.** A channel's id is minted by the server and never changes. Ids are ULIDs, whose leading bits encode creation time — so sorting channels by id is sorting them by creation, and the model carries no separate creation-time field. One deliberate gap: the API still accepts a caller-supplied id verbatim, so id sortability is not yet an owned contract; today only Television's own code creates ids, so they are reliably sortable. Closing the gap is tracked as [TV-549](https://linear.app/telepath-computer/issue/TV-549). ^ch-identity
+**Identity.** A channel's id is minted by the server and never changes. Ids are ULIDs, whose leading bits encode creation time, so sorting channels by id is sorting them by creation. One deliberate gap: the API still accepts a caller-supplied id verbatim, so id sortability is not yet an owned contract; today only Television's own code creates ids, so they are reliably sortable. ^ch-identity
 
 ## Creating
 
@@ -28,7 +28,7 @@ Anyone can create a channel at any time, from the UI or from the CLI ([cli.md](.
 
 ## Renaming
 
-A channel's name is the user's to change at any time. The name is server state: renaming a channel renames it for every client. Renaming changes nothing else — not the channel's id, its ordering position, or its contents. (The in-place rename interaction is [ui/app/sidebar/index.md](../ui/app/sidebar/index.md)'s.) ^ch-rename
+A channel's name is the user's to change at any time. The name is server state: renaming a channel renames it for every client. Renaming changes nothing else — not the channel's id, its ordering position, or its contents. ^ch-rename
 
 ## Deleting
 
@@ -40,8 +40,8 @@ When the focused channel is deleted, the app lands on the first remaining pinned
 
 - **Pinning is shared.** Pinning or unpinning a channel updates every connected client. ^ch-pin-shared
 - **Pinned channels are ordered by hand.** The user arranges the pinned channels, and every connected client sees the same order. ^ch-pin-order
-- **Pinning moves a channel between the groups.** Pinning places a channel in the pinned group; unpinning returns it to the unpinned group, where its position is simply its creation-ordered slot ([below](#^ch-unpinned-order)). The channel row menu's Pin action places the channel at the end of the pinned list, and its Unpin action returns it to its creation-ordered slot. Dragging a channel into the pinned region places it at the dropped position; dragging it out returns it to its creation-ordered slot. ^ch-pin-placement
-- **Unpinned channels are ordered by created date, newest first.** Creation time derives from the channel id ([Identity](#^ch-identity)) and never changes when a channel is focused — so the list never re-sorts under the user, and new channels surface at the top. Users who care about a channel's position pin it and place it. ^ch-unpinned-order
+- **Pinning moves a channel between the groups.** Pinning places a channel in the pinned group: at the end of the pinned list when pinned from the channel's menu, or at the position where it is dropped when dragged there. Unpinning, by menu or by dragging out, returns it to its creation-ordered slot in the unpinned group ([below](#^ch-unpinned-order)). ^ch-pin-placement
+- **Unpinned channels are ordered by created date, newest first.** Creation time derives from the channel id ([Identity](#^ch-identity)) and does not change when a channel is focused, so the list never re-sorts under the user and new channels appear at the top. A user who cares about a channel's position pins it and places it. ^ch-unpinned-order
 
 ## Focus
 
@@ -62,4 +62,3 @@ Deletion acceptance must use the real confirmation and inspect the real server s
 Every shared-state acceptance case must use two connected clients, with the change reaching the second client without a reload.
 
 Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), the [channel-state architecture spec](../arch/channel-state/index.md) owns real HTTP and websocket evidence that artifact removals precede channel removal and that the resulting pin and focus changes arrive in order. The [app shell](../ui/app/index.md#connection-states) owns the disconnected state across the whole shell. The [channel-sidebar UI](../ui/app/sidebar/index.md) owns its controls, drag behavior, and motion. This spec does not require duplicate tests for event ordering, disconnection, or sidebar interaction.
-
