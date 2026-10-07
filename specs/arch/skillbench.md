@@ -4,7 +4,7 @@
 
 `packages/skillbench` is the eval tool, whole: point its CLI at an eval config to generate outputs, point its page at the same config to review them. The two halves share nothing but the config and the folders beside it — the CLI writes, the page reads. How skills get made and where eval configs live is [arch/making-skills.md](./making-skills.md); this spec owns the package.
 
-**Status:** CLI and read-only page live (v1). Later phases may migrate editing, running, and job creation into the page, one contract at a time; v1 opens no write paths from the browser.
+The page is read-only: it opens no write paths from the browser.
 
 ## The CLI
 
@@ -12,7 +12,7 @@
 npm run skillbench -- path/to/eval.json [--command "<agent command>"]
 ```
 
-Runs a batch of prompts through an agent command — one fresh process per job, in parallel; the prompt is piped to the agent's **stdin**. `--command` defaults to `claude -p --permission-mode acceptEdits`. The CLI knows nothing about what jobs produce: no output checking, no log capture. Source under `src/` (TypeScript, built to `dist/` by the package build).
+Runs a batch of prompts through an agent command — one fresh process per job, in parallel; the prompt is piped to the agent's **stdin**. `--command` defaults to `claude -p --permission-mode acceptEdits`. The CLI knows nothing about what jobs produce: no output checking, no log capture.
 
 ### Config
 
@@ -41,15 +41,4 @@ Served by the Storybook dev server via this package's `middleware.mjs` (mounted 
 
 The server resolves the path (containment: inside the repo; escapes refuse), loads the config, and the page displays based on the job outputs present beside it — a job folder with no `index.html` reads as not-yet-run, not an error. Routes: the page assets, `GET /skillbench/api/eval?path=…` (config + per-job output presence), and `GET /skillbench/files/<repo-rel>` (artifact serving, path-shaped so artifacts' relative asset links resolve).
 
-The interface — central artifact view, single right rail with the job list and inspector — is owned by its ui spec, [ui/skillbench/index.md](../ui/skillbench/index.md). Sizes for the artifact viewport load from `sizes.json` in this package (not hard-coded; the preserved review viewport dimensions are declared there).
-
-## Package layout
-
-```text
-packages/skillbench/
-  src/            # CLI source (built to dist/)
-  test/           # CLI unit tests (surface unit:skillbench)
-  middleware.mjs  # page + API + file serving, mounted by Storybook
-  public/         # the page (index.html, app.js, style.css)
-  sizes.json      # artifact review sizes
-```
+The interface — central artifact view, single right rail with the job list and inspector — is owned by its ui spec, [ui/skillbench/index.md](../ui/skillbench/index.md). The artifact viewport sizes load from `sizes.json` in this package.
