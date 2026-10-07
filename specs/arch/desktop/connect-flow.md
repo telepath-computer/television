@@ -1,8 +1,8 @@
 *The desktop main-process connection flow: the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge.*
 
-**Plain english:** this governs how the desktop app connects to a Television server from a link, remembers it, reconnects to it when the app starts, forgets it when the person disconnects, and opens the server's interface.
-
 # Desktop connection flow
+
+This spec governs how the desktop app connects to a Television server from a link, remembers it, reconnects to it when the app starts, forgets it when the person disconnects, and opens the server's interface.
 
 ## What this owns
 
