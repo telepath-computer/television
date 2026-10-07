@@ -6,9 +6,7 @@ Television uses one Node/npm toolchain to develop, test, build, and publish the 
 
 ## Authority
 
-This spec is authoritative for the three version contracts, their current values, their declarations, the developer checks, and the procedure for changing them.
-
-It does not own build mechanics, TypeScript configuration, test-runner mechanics, CI job mechanics, Blaxel provisioning, or release mechanics; those remain with their existing authorities. [preflight.md](./test-runner/preflight.md), [github-ci.md](./test-runner/github-ci.md), [blaxel-testshards.md](./test-runner/blaxel-testshards.md), [arch/cli/index.md](./cli/index.md), [arch/onboarding/bake.md](./onboarding/bake.md), and [the ToDesktop build](./desktop/distribution.md) consume this policy and link here for values instead of restating them.
+This spec is authoritative for the three version contracts, their current values, their declarations, the developer checks, and the procedure for changing them. Build, TypeScript, test-runner, CI, Blaxel and release mechanics stay with their own specs. [preflight.md](./test-runner/preflight.md), [github-ci.md](./test-runner/github-ci.md), [blaxel-testshards.md](./test-runner/blaxel-testshards.md), [arch/cli/index.md](./cli/index.md), [arch/onboarding/bake.md](./onboarding/bake.md), and [the ToDesktop build](./desktop/distribution.md) consume this policy and link here for values instead of restating them.
 
 ## Version contracts
 
@@ -28,7 +26,7 @@ Related compile-time declarations are defined once here:
 
 The three runtime contracts are independent. Changing the development or automation toolchain does not change the published consumer floor, and changing the consumer floor does not choose the repository's npm version. The published consumer floor is a maintenance-support boundary, not the bundle's technical minimum.
 
-`.nvmrc` is the single Node selector for developer setup and repository-controlled automation. Workflows and provisioning consume it instead of carrying independent Node-version values.
+`.nvmrc` is the single Node selector for developer setup and repository-controlled automation; no workflow or provisioning step carries its own Node version.
 
 The selected Node's bundled npm is the only npm selector; repository automation does not bootstrap a second npm. The declared npm lower bound is required for npm Trusted Publishing, while its upper bound keeps lockfile creation and consumption on one npm generation. Different npm majors can materialize incompatible dependency records even at the same `lockfileVersion`, so every repository process that creates, rewrites, or consumes `package-lock.json` uses that selected npm generation.
 
