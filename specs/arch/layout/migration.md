@@ -49,13 +49,13 @@ The migration flattens the tree: ^ly-migration
 
 - **One one-artifact tab page per artifact.** Every artifact in the version-1 layout becomes its own page with `geometry: { kind: "single", full_screen: false }`.
 - **Only spatial traversal order is preserved:** left to right, with vertical containers read top to bottom. No old sizes, composition, or scroll positions carry over — the migration is allowed to lose information, deliberately.
-- **No channel creation-time field is introduced or backfilled.** Ordering derives from the channel id itself ([channels.md](../../product/channels.md)). (The migration does write the versioned record — that is the format change itself, not a backfill.)
-- **The onboarding marker slims to its slug.** A record carrying an onboarding channel marker keeps it, but the marker's `order` field is dropped in the same rewrite: nothing reads it because the redesign has no browser tab-promotion pass, and the version-2 record stores the marker as slug only ([arch/onboarding/installer.md](../onboarding/installer.md), Onboarding channel marker).
-- **The change is silent in-product.** No migration notice or announcement surface exists; the redesign is described in the Discord announcement instead.
+- **No channel creation-time field is introduced or backfilled.** Ordering derives from the channel id itself ([channels.md](../../product/channels.md)).
+- **The onboarding marker slims to its slug.** A record carrying an onboarding channel marker keeps it, but the marker's `order` field is dropped in the same rewrite: nothing reads it, and the version-2 record stores the marker as slug only ([arch/onboarding/installer.md](../onboarding/installer.md), Onboarding channel marker).
+- **The change is silent in-product.** The product shows no migration notice.
 
 ## The server runs the migration, at boot
 
-Server internals are outside spec authority, but the migration imposes one obligation on the server, recorded here as a buffer (the pattern telemetry and onboarding use). The obligation is explicit: **the server performs the one migration ([#^one-migration](#^one-migration)), during boot, as part of loading stored state — before it serves.** A server that loads a version-1 channel record migrates it to version 2 and persists the result; a record already at version 2 loads as-is. The migration is idempotent, and no other component performs it — clients never see a version-1 layout. Downgrade is not supported ([arch/layout/index.md#^ly-stored-record](./index.md#^ly-stored-record)). ^ly-boot-migration
+Server internals are outside spec authority, but the migration imposes one obligation on the server, recorded here as a buffer: **the server performs the one migration ([#^one-migration](#^one-migration)), during boot, as part of loading stored state — before it serves.** A server that loads a version-1 channel record migrates it to version 2 and persists the result. No other component performs the migration — clients never see a version-1 layout. ^ly-boot-migration
 
 ## Testing
 
@@ -65,7 +65,7 @@ Atomic record writes and retry after failure are verified by making file replace
 
 ## Screen-to-channel storage-name migration
 
-This section is the name step — step 1 of the one migration ([#^one-migration](#^one-migration)): the server metadata directory and the display-active field. The step changes names only — no record value, layout, ordering, focus behavior, or generated identity. The old spellings below name migration inputs; current writes use only channel spellings. (The browser's local-state field spellings changed alongside this step historically, but the finished client does not need that transformation: it reads the auth token — whose key never changed — and ignores every retired field under either spelling; the client's migration is [arch/channel-state/index.md](../channel-state/index.md)'s.) ^rn-storage-scope
+This section is the name step — step 1 of the one migration ([#^one-migration](#^one-migration)): the server metadata directory and the display-active field. The step changes names only — no record value, layout, ordering, focus behavior, or generated identity. The old spellings below name migration inputs; current writes use only channel spellings. Browser-local state needs no rename step: the client reads only the auth token, whose key is unchanged, and ignores every retired field under either spelling ([arch/channel-state/index.md#^cs-token-carry](../channel-state/index.md#^cs-token-carry)). ^rn-storage-scope
 
 ### Server metadata directory
 
@@ -82,7 +82,7 @@ The cases are exhaustive:
 
 A directory is non-empty when it contains any entry, including an unrecognized or dot-prefixed entry; migration never interprets entries to decide whether one may be discarded. Same-filesystem rename is the commit point for a directory move. In case 6, removal of the confirmed-empty legacy directory is the commit point; if removal fails, boot stops before any current-state write. A process interrupted before the applicable commit point leaves the legacy path for the next boot to retry; one interrupted after it leaves only the current path, which is already complete. No copy/delete fallback for a populated directory is permitted. ^rn-directory-cases
 
-Channel metadata filenames, file bytes, opaque IDs, names, onboarding markers, and card-tree layouts are unchanged by the directory move. In particular, this migration does not add `layoutVersion`, flatten a tree, or perform any part of the version-1-to-2 mapping. `dataDirCreated` detection treats a populated legacy directory as prior serving evidence before the move, so an upgrade is never misclassified as a fresh installation. After migration, every metadata read and write selects `state/channels/`; `state/screens/` is recognized only by this boot migration. ^rn-directory-preservation
+Channel metadata filenames, file bytes, opaque IDs, names, onboarding markers, and card-tree layouts are unchanged by the directory move; the version-1-to-2 mapping is step 2's. `dataDirCreated` detection treats a populated legacy directory as prior serving evidence before the move, so an upgrade is never misclassified as a fresh installation. After migration, every metadata read and write selects `state/channels/`; `state/screens/` is recognized only by this boot migration. ^rn-directory-preservation
 
 ### Display state field
 
@@ -95,7 +95,7 @@ On boot, before display state is loaded or initialized:
 - a record carrying both keys with equal values is normalized to the current key only;
 - a record carrying both keys with different values is a conflict: boot stops and the file is unchanged rather than guessing which focus value wins.
 
-The rewrite constructs the complete next JSON value first, writes it to a temporary file beside `display.json`, and atomically renames the temporary file into place. A failure before rename leaves the previous complete file authoritative and retryable; a failure after rename leaves the complete current file. A stale migration temporary file is never treated as display state and may be replaced on retry. Applying migration to current state is a byte-stable no-op. Current code never writes `activeScreenID`. ^rn-display-field
+The rewrite is atomic ([#^mig-record-atomic](#^mig-record-atomic)): the complete next JSON value is written to a temporary file beside `display.json` and renamed into place. A stale migration temporary file is never treated as display state and may be replaced on retry. Applying the migration to current state is a byte-stable no-op. ^rn-display-field
 
-This is a field-name migration, not focus repair. A string value is preserved even when it does not name loaded metadata, because the shipping loader already owns how such a value behaves; the rename does not introduce channel-existence validation or a new successor rule. Invalid JSON and invalid sibling-field shapes retain the shipping loader's existing handling rather than becoming a new migration format. ^rn-display-behavior
+This is a field-name migration, not focus repair. A string value is preserved even when it does not name loaded metadata, because the display loader and the later display step ([arch/channel-state/index.md#^cs-display-migration](../channel-state/index.md#^cs-display-migration)) own how such a value behaves; the rename adds no channel-existence validation or successor rule. Invalid JSON and invalid sibling-field shapes are left to the display loader's handling rather than becoming a new migration format. ^rn-display-behavior
 
