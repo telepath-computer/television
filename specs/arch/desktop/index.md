@@ -19,19 +19,15 @@ This root owns the desktop domain's module map, terms, cross-module coverage mod
 | Electron runtime | [runtime.md](./runtime.md) | Electron's exact version and declarations, runtime validity on development and test hosts, how those hosts obtain the runtime, and major-upgrade operations |
 | Electron e2e harness | [e2e-harness.md](./e2e-harness.md) | runtime preparation for desktop tests, executable handoff to Playwright, Linux environment planning, and real-Electron harness seams |
 
-The domain terms *Electron runtime* and *valid Electron runtime* are defined by [runtime.md](./runtime.md), and *upload directory* and *candidate build* by [distribution.md](./distribution.md).
-
 ## Boundaries with other architecture
 
-Desktop modules consume these authorities without restating them:
+Desktop modules rely on these specs, which own the named concerns:
 
 - [Node versions](../node-versions.md) owns the repository toolchain, including the Node version the ToDesktop build installs dependencies with. The installed app runs on the Node that Electron embeds.
 - [Artifact bridge architecture](../artifact-frame/artifact-bridge.md) owns communication and input behavior across the Electron `<webview>` boundary. Desktop keeps `<webview>` as that embedded-document mechanism.
 - [Desktop upgrade gate](../updates/desktop-upgrade-gate.md) owns cross-release compatibility gating between an installed desktop release and the server-served interface. [Desktop connection flow](./connect-flow.md) owns the surrounding main-process connection lifecycle.
 - [Licensing architecture](../licensing.md) owns the desktop build's third-party notices, the license gate's check of the workspace's `dependencies`, the license checks on the upload directory, and where Electron's license files sit in the built app.
 - [GitHub CI](../test-runner/github-ci.md), [Blaxel shards](../test-runner/blaxel-testshards.md), and [preflight](../test-runner/preflight.md) own the provider setup and checks around the desktop test harness.
-
-ToDesktop builds, signs and notarizes the app users install under [distribution.md](./distribution.md), and the app updates itself from ToDesktop releases under [updates.md](./updates.md). A different embedded-document mechanism is outside this architecture.
 
 ## External links
 
@@ -45,15 +41,13 @@ The desktop app installs a window-open handler on every Electron `webContents`. 
 
 ### Window title, icon, and About version
 
-Every `BrowserWindow` the production main process creates is configured with the title `Television` and the package's `assets/icon.png`. This baseline window identity applies across the [product-supported platforms](../../product/desktop-app.md#^desktop-product-support). [The ToDesktop configuration](./distribution.md#^desktop-dist-config) sets the application-bundle identity around that window. ^desktop-window-identity
+Every `BrowserWindow` the production main process creates is configured with the title `Television` and the package's `assets/icon.png`. [The ToDesktop configuration](./distribution.md#^desktop-dist-config) sets the application-bundle identity around that window. ^desktop-window-identity
 
-Before installing the macOS application menu, the main process passes `app.getVersion()` unchanged to Electron's About panel as `applicationVersion` and sets the build-version field `version` to an empty string. The native panel therefore has one exact [release version](../../product/versioning.md#^pv-exact-version) and no independent build number. Package and bundle metadata carry the same release version. ^desktop-about-version-config
-
-This root owns these identity rules until a desktop main-process module spec exists. Such a spec must absorb the rules and their assertions intact rather than duplicate them.
+Before installing the macOS application menu, the main process passes `app.getVersion()` unchanged to Electron's About panel as `applicationVersion` and sets the build-version field `version` to an empty string. The native panel therefore has one exact [release version](../../product/versioning.md#^pv-exact-version) and no independent build number. ^desktop-about-version-config
 
 ## Testing
 
-A contract test may replace Electron's `BrowserWindow` for the sole purpose of recording the title and icon that Television supplies. The test does not prove how a window manager displays them. A contract test may likewise record the About-panel options supplied to Electron; the desktop product spec's real-Mac acceptance owns the native panel outcome. The desktop product spec's [Television identity](../../product/desktop-app.md#Television identity) section promises visible identity. Its [support rule](../../product/desktop-app.md#^desktop-product-support) says which platforms have evidence from launching the real application.
+Contract tests may record the window title, icon and About-panel options that Television supplies to Electron. They do not prove what the operating system shows; the product spec's real-host [Mac install check](../../product/desktop-app.md#Testing) covers that.
 
 Tests verify the [application-name ordering](#^desktop-user-data-order) in the real Electron application without passing `--user-data-dir` or replacing Electron's `app` or path resolution.
 
