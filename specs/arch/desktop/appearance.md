@@ -6,13 +6,13 @@ Electron owns one application-wide appearance source. The *appearance input* is 
 
 ## IPC path
 
-`packages/desktop/src/appearance-mode.ts` owns the one-way channel name and the runtime predicate for `system`, `light`, and `dark`. The remote renderer can access only this operation through the existing context-isolated native preload bridge:
+The served renderer sets the appearance input through one one-way operation on the context-isolated native preload bridge:
 
 ```ts
 setAppearanceMode(mode: "system" | "light" | "dark"): void
 ```
 
-The renderer calls it only when Electron mode, the native bridge, and this operation are present. If the operation is absent on a boot allowed by the gate, the application document still receives confirmed appearance; the missing native operation neither throws nor interrupts independent renderer startup work, though native and webview appearance remains unchanged. This defensive guard does not make such a release shell compatible: the theming release enforces the [required desktop floor](../updates/desktop-upgrade-gate.md#^ops-first-gate) before connected content can mount. With the operation available, the renderer sends the initial appearance input before mounting connected content. It recomputes the appearance input from confirmed theme or preference events and sends a changed value. The browser build never invokes a native bridge method.
+The renderer calls it only when Electron mode, the native bridge, and this operation are present. If the operation is absent on a boot allowed by the gate, the application document still receives confirmed appearance; the missing native operation neither throws nor interrupts independent renderer startup work, though native and webview appearance remains unchanged. This defensive guard does not make such a release shell compatible: the theming release enforces the [required desktop floor](../updates/desktop-upgrade-gate.md#^ops-first-gate) before connected content can mount. With the operation available, the renderer sends the initial appearance input before mounting connected content. It recomputes the appearance input from confirmed theme or preference events and sends a changed value.
 
 The preload validates before `ipcRenderer.send`. Main validates again in its `ipcMain.on` listener before assigning `nativeTheme.themeSource`. Unknown values are ignored at both boundaries. Electron resolves `system` against the device; `nativeTheme` applies to application renderers, webviews, native menus, and dialogs. The main process does not derive this source from the renderer's computed `color-scheme`: assigning `nativeTheme.themeSource` also controls the system-preference query used by adaptive appearance, so feeding that query's result back into the source would prevent reliable system adaptation. ^desktop-appearance-ipc
 
