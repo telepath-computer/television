@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+// proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-link-routing
+// proofs/ui/markdown-editor/index.md#^md-table-t-interactions
+
 // Link activation Playwright suite.
 //
 // Markdown link syntax `[label](url)` renders the label as an `<a
@@ -148,6 +151,91 @@ test.describe("markdown link activation", () => {
       page.locator(`a.cm-md-link[data-href="${SEED_HTTPS_HREF}"]`).first(),
     ).toBeVisible();
     await installCapture(page);
+  });
+
+  test("table links render and use the same navigation and editing gestures", async ({ page }) => {
+    const source = "Before\n\n| [Header](https://example.com/header) | Notes |\n| --- | --- |\n| [Table link](https://example.com/table) | `[Literal](https://example.com/code)` |\n\nAfter";
+    await replaceDocument(page, source);
+    await setCaret(page, 0);
+    const table = page.locator(".tbl-table-widget");
+    const anchor = table.locator('a.cm-md-link[data-href="https://example.com/table"]');
+    await expect(anchor).toHaveText("Table link");
+    await expect(table.locator('a.cm-md-link[data-href="https://example.com/header"]')).toHaveText("Header");
+    await expect(table.locator('a.cm-md-link[data-href="https://example.com/code"]')).toHaveCount(0);
+    expect(await anchor.getAttribute("href")).toBeNull();
+    await anchor.click();
+    expect(await navigationRequests(page)).toEqual([{ type: "navigation-request", url: "https://example.com/table" }]);
+    expect(await caretHead(page)).toBe(0);
+    await expect(table.locator(".tbl-cell-editor")).toHaveCount(0);
+    await anchor.click({ modifiers: [process.platform === "darwin" ? "Meta" : "Control"] });
+    expect(await windowOpenCalls(page)).toEqual([{ url: "https://example.com/table", target: "_blank", features: "noopener,noreferrer" }]);
+    await anchor.click({ button: "middle" });
+    const box = await anchor.boundingBox();
+    if (!box) throw new Error("Expected table link bounding box");
+    await page.mouse.move(box.x + 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 12, box.y + box.height / 2, { steps: 2 });
+    await page.mouse.up();
+    expect(await navigationRequests(page)).toHaveLength(1);
+    expect(await windowOpenCalls(page)).toHaveLength(1);
+    expect(await page.evaluate(() => (window as Window & { __cmView?: { state: { doc: { toString(): string } } } }).__cmView?.state.doc.toString())).toBe(source);
+    await anchor.click({ modifiers: ["Alt"] });
+    expect(await page.evaluate(() => (window as Window & { __cmView?: { state: { doc: { toString(): string } } } }).__cmView?.state.doc.toString())).toBe(source);
+    await expect(table.locator(".tbl-cell-editor .cm-content")).toContainText("[Table link](https://example.com/table)");
+    await page.keyboard.press("End");
+    await page.keyboard.type(" edited");
+    await setCaret(page, 0);
+    await expect(table.locator(".tbl-cell-view:visible", { hasText: "edited" })).toContainText("Table link edited", { useInnerText: true });
+    await expect(anchor).toHaveText("Table link");
+    expect(await navigationRequests(page)).toHaveLength(1);
+  });
+
+  test("table links refresh after document replacement and preserve surrounding text", async ({ page }) => {
+    await replaceDocument(page, "Before\n\n| Links |\n| --- |\n| Start [One](https://example.com/one) and [Two](https://example.com/two) end |");
+    const cell = page.locator("td .tbl-cell-view:visible");
+    await expect(cell).toHaveText("Start One and Two end", { useInnerText: true });
+    await expect(cell.locator("a.cm-md-link")).toHaveCount(2);
+    await replaceDocument(page, "Remote before\n\n| Links |\n| --- |\n| [Replacement](https://example.com/replacement) |");
+    await expect(cell).toHaveText("Replacement", { useInnerText: true });
+    await expect(cell.locator("a.cm-md-link")).toHaveCount(1);
+    await expect(cell.locator("a.cm-md-link")).toHaveAttribute("data-href", "https://example.com/replacement");
+  });
+
+  test("clicking after rendered table links edits the corresponding source position", async ({ page }) => {
+    const source = "Before\n\n| Links |\n| --- |\n| Start [One](https://example.com/one) and [Two](https://example.com/two) end |";
+    await replaceDocument(page, source);
+    const cell = page.locator("td.tbl-cell");
+    await expect(cell.locator("a.cm-md-link")).toHaveCount(2);
+    const box = await cell.boundingBox();
+    if (!box) throw new Error("Expected table cell bounding box");
+    await page.mouse.click(box.x + box.width - 8, box.y + box.height / 2);
+    await expect(cell.locator(".tbl-cell-editor .cm-content")).toBeFocused();
+    await page.keyboard.type("X");
+    await expect.poll(() => page.evaluate(() => (window as Window & { __cmView?: { state: { doc: { toString(): string } } } }).__cmView?.state.doc.toString())).toContain("[One](https://example.com/one) and [Two](https://example.com/two) endX");
+  });
+
+  test("mixed table text stays current through repeated source edits", async ({ page }) => {
+    await replaceDocument(page, "Before\n\n| Links |\n| --- |\n| Start [One](https://example.com/one) and [Two](https://example.com/two) end |");
+    const cell = page.locator("td.tbl-cell");
+    for (const suffix of ["X", "Y"]) {
+      await cell.locator("a.cm-md-link").first().click({ modifiers: ["Alt"] });
+      await expect(cell.locator(".tbl-cell-editor .cm-content")).toBeFocused();
+      await page.keyboard.press("End");
+      await page.keyboard.type(suffix);
+      await setCaret(page, 0);
+      await expect(cell.locator(".tbl-cell-view:visible")).toHaveText(suffix === "X" ? "Start One and Two endX" : "Start One and Two endXY", { useInnerText: true });
+      await expect(cell.locator("a.cm-md-link")).toHaveCount(2);
+    }
+  });
+
+  test("table links keep browser-local URLs inert", async ({ page }) => {
+    await replaceDocument(page, "Before\n\n| Link |\n| --- |\n| [Do not run](javascript:document.body.dataset.owned='true') |");
+    const anchor = page.locator(".tbl-cell-view a.cm-md-link");
+    await expect(anchor).toHaveText("Do not run");
+    await anchor.click();
+    expect(await navigationRequests(page)).toEqual([]);
+    expect(await windowOpenCalls(page)).toEqual([]);
+    expect(await page.locator("body").getAttribute("data-owned")).toBeNull();
   });
 
   test("https links render as data-href anchors without real href", async ({

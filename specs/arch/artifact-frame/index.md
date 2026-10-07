@@ -16,14 +16,15 @@ This spec owns the artifact-frame domain's **authority boundary** and its **fram
 |---|---|
 | [artifact-bridge.md](./artifact-bridge.md) | the bridge: the in-document script and Electron preload, the message protocol, readiness tracking, keyboard forwarding, and the shared-artifact content poll |
 | [reload-navigation.md](./reload-navigation.md) | local path-content watching and notification, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
+| [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the bundled Markdown view |
 | [proxy-caching.md](./proxy-caching.md) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
 
 ## The frame core is code-authoritative, deliberately
 
-Everything in the frame's implementation *not* claimed by the module specs above or the narrow Markdown-editor color exception below is the **frame core**, and it remains governed by code — reviewed and evolved as code, with no spec to conform to. The core includes: ^frame-core-carve-out
+Everything in the frame's implementation *not* claimed by the module specs above or the narrow Markdown-editor color and table exceptions below is the **frame core**, and it remains governed by code — reviewed and evolved as code, with no spec to conform to. The core includes: ^frame-core-carve-out
 
 - **Renderer routing** — deciding how an artifact renders (the markdown host, a proxied iframe, an Electron webview) and constructing the frame element around it.
-- **The markdown host** — the bundled markdown view and its content protocol, except for the editor's color treatment owned by [ui/markdown-editor](../../ui/markdown-editor/index.md). Server-rendered read-only Markdown remains part of the code-authoritative core.
+- **The markdown host** — the bundled markdown view and its content protocol, except for the editor's color treatment owned by [ui/markdown-editor](../../ui/markdown-editor/index.md) and the contracts in [the Markdown table buffer](markdown-tables-buffer.md) and [the table-interaction UI buffer](../../ui/markdown-editor/index.md#^md-table-interaction-buffer). Server-rendered read-only Markdown remains part of the code-authoritative core.
 - **The status-view mechanism** — how the artifact-missing and url-unsupported documents are produced and served stays code's; their bridge participation is the bridge spec's, their contents the frame's error page ([ui/app/artifact-frame/index.md](../../ui/app/artifact-frame/index.md), Error page).
 - **Navigation-state and reload internals** beyond the contracts [reload-navigation.md](./reload-navigation.md) states.
 - **Frame element composition** — the DOM the implementation builds around the document, beyond what the UI spec's template binds.

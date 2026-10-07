@@ -6,8 +6,9 @@ import { HighlightStyle, indentUnit, syntaxHighlighting } from "@codemirror/lang
 import { insertNewlineContinueMarkupCommand, markdown } from "@codemirror/lang-markdown";
 import { Table, TaskList } from "@lezer/markdown";
 import { tags } from "@lezer/highlight";
-import { markdownTables, TableStyle, TableTheme } from "codemirror-markdown-tables";
+import { markdownTables, TableStyle, TableTheme } from "./vendor/markdown-tables/index.js";
 import { disappearingMarkers } from "./markers.ts";
+import { tableLinks } from "./table-links.ts";
 
 const DEFAULT_DEBOUNCE_MS = 500;
 
@@ -121,6 +122,7 @@ export const editorExtensions: Extension = [
   EditorView.lineWrapping,
   disappearingMarkers,
   markdownTablesExtension,
+  tableLinks,
 ];
 
 export interface EditorHooks {
