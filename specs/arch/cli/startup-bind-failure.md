@@ -1,31 +1,20 @@
 *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
 
-**Plain english:** when Television is asked to listen on a set of addresses and any one of them can't be bound — most commonly a Tailscale IP that isn't up yet at boot, or one that no longer exists — the server refuses to run at all rather than quietly serving only localhost. It writes one log entry explaining exactly which addresses failed and why, shuts any sockets it did open, and exits with a recognizable error code. The installed system service then simply tries again every few seconds, forever, so the moment the address appears the server comes up whole. If the address never appears, the server never launches — and the log says why.
-
 # Startup bind failure
 
-## Status: provisional holding spec
-
-This provisional spec lives in `specs/arch/cli/` until a `specs/arch/server/` spec tree exists. It is the authority for the complete behavior set during that interval. The [CLI product spec's server lifecycle section](../../product/cli.md#Server lifecycle commands) owns the user-facing all-or-nothing rule, while [arch/cli/index.md](./index.md) and this spec own the CLI and cross-boundary architecture.
-
-When the server spec tree is created, this document splits along the package boundary. The `Server.start()` transaction, fatal record, and bind-error classes move into that tree. CLI handling remains in `specs/arch/cli/`: bind-error exit propagation, foreground `tv serve` semantics, and the persisted service's restart posture.
+When Television is asked to listen on a set of addresses and any one of them cannot be bound, most commonly a Tailscale IP that is not up yet at boot or one that no longer exists, the server refuses to run at all rather than serving only some of them. It writes one log entry saying which addresses failed and why, closes any sockets it did open, and exits with a recognizable status. The installed system service then tries again every few seconds, indefinitely, so the server comes up whole once the address appears. If the address never appears, the server never runs, and the log says why.
 
 ## What this owns
 
-The behavior of `Server.start()` when any resolved listener fails to bind; the fatal log record; the bind-failure exit status and its propagation through `runCLI`; the restart-related content of the generated service definitions (systemd user unit, launchd plist); and the foreground `tv serve` semantics of the same contract. It does **not** own listener resolution (`resolveBindAddresses` — localhost prepending, dedupe, `0.0.0.0` wildcard collapse — is unchanged, `packages/server/src/bind-addresses.ts`), auth resolution, or the install/uninstall flow itself.
+This spec owns the behavior of `Server.start()` when any resolved listener fails to bind; the fatal log record; the bind-failure exit status and its propagation through `runCLI`; the restart-related content of the generated service definitions (systemd user unit, launchd plist); and the foreground `tv serve` semantics of the same contract. It lives in `specs/arch/cli/` because no server architecture spec tree exists yet, and it is the authority for that server behavior until one does. The [CLI product spec's server lifecycle section](../../product/cli.md#Server lifecycle commands) owns the user-facing all-or-nothing rule.
 
-## Non-goals
-
-Explicitly out of scope for this spec, tracked elsewhere:
-
-- **`tv status` enhancements** — surfacing the fatal record when the server is unreachable.
-- **Semantic tailscale listeners / Tailscale Serve** — interface names, `tailscale ip` evaluation at boot, or delegating the tailnet listener to Tailscale.
+Listener resolution (`resolveBindAddresses` in `packages/server/src/bind-addresses.ts`: adding loopback, removing duplicates, and collapsing to the `0.0.0.0` wildcard), auth resolution, and the install and uninstall flow are owned elsewhere.
 
 ## The contract: all-or-nothing startup
 
 The **effective resolved listener set** — everything `resolveBindAddresses` returns, including the implicit `127.0.0.1` and after wildcard collapse — is *required*. There is no partial service: a Television server is either listening on every resolved address or it is not running.
 
-**Why: exiting is what makes a late address eventually get bound.** The primary reason for all-or-nothing is the daemon case with a late-available interface, and the canonical case is **system boot**: at boot the service manager launches the persisted Television service and tailscaled in parallel, with no ordering between them (the user unit cannot order against the system-level tailscaled, and launchd has no inter-job ordering at all), and tailscale initialization takes time — the tailnet IP is routinely assigned *after* our service has already launched and attempted its binds. That launch-ordering race is why the boot-time bind failure exists at all. The service manager's restart loop ([#Generated service definitions](#Generated service definitions)) is this design's only retry mechanism, and it can only act on a process that *exits*: a server that tolerated the partial bind would stay alive, look healthy to systemd/launchd, never be restarted, and never retry — the requested listener would simply never appear. By exiting on the failed bind, the server hands the retry to the manager, which relaunches it on a fixed cadence until the address exists and the bind succeeds: the late listener is *eventually bound*, whole. Secondarily, all-or-nothing keeps the process honest about its runtime ability given its configuration: an address in the config file's `listen` setting is principal functionality, not an optional extra, and a process serving a subset while reporting itself healthy is a silent failure no machinery can see. It also makes `/health`'s `bindAddresses` field truthful by construction — whenever the server answers, requested equals bound. ^all-or-nothing
+**Why: exiting is what makes a late address eventually get bound.** The main case is **system boot**. The service manager launches the persisted Television service and tailscaled in parallel, with no ordering between them: the user unit cannot order itself against the system-level tailscaled, and launchd has no ordering between jobs. The tailnet IP is routinely assigned after Television has already tried to bind. The service manager's restart loop ([#Generated service definitions](#Generated service definitions)) is the only retry mechanism, and it acts only on a process that exits. A server that tolerated a partial bind would stay alive, look healthy to systemd or launchd, never be restarted, and never get the missing listener. By exiting, the server hands the retry to the service manager, which relaunches it on a fixed cadence until the bind succeeds. Secondarily, an address in the config file's `listen` setting is principal functionality, not an optional extra, and a process serving a subset while reporting itself healthy is a failure nothing would detect. All-or-nothing also makes the `bindAddresses` field of `/health` accurate: whenever the server answers, every requested address is bound. ^all-or-nothing
 
 On startup, `start()`:
 
@@ -38,11 +27,11 @@ On startup, `start()`:
 
 **Every bind-error class is fatal.** `EADDRNOTAVAIL` (address not on any interface — the Tailscale boot race, or a stale tailnet IP), `EADDRINUSE` (port conflict, including the transient reinstall race against a terminating prior instance), `EACCES`/`EPERM` (privileged port, sandbox), and anything else: same behavior. Error classes differ only in *prognosis*, and prognosis lives in the fatal record's hint text, never in differing behavior — permanence is not knowable from inside one attempt, and the outer restart loop is cheap and unconditional. ^all-errors-fatal
 
-The multi-listener port-resolution rule is unchanged: the first listener binds the configured port (which may be `0`), and the resolved port is reused for the remaining listeners (`packages/server/src/server.ts`). All-or-nothing applies identically under config port `0`: if a later listener fails, the earlier ephemeral-port listener is closed with the rest. ^port-zero
+Under the multi-listener port rule, the first listener binds the configured port (which may be `0`), and the resolved port is reused for the remaining listeners (`packages/server/src/server.ts`). All-or-nothing applies identically under config port `0`: if a later listener fails, the earlier ephemeral-port listener is closed with the rest. ^port-zero
 
 ## The fatal record
 
-One structured record per failed startup attempt, written through the existing `log()` mechanism (`packages/server/src/logger.ts` — synchronous append, daily rotation, 14-day retention), which supplies the timestamp and pid. The record carries:
+One structured record per failed startup attempt, written through the server's `log()` mechanism (`packages/server/src/logger.ts`: synchronous append, daily rotation, 14-day retention), which supplies the timestamp and process ID. The record carries:
 
 - **Every resolved address, the port used in its bind attempt, and its outcome.** The outcome is `bound` or `failed`. A failure also records the errno `code` and `syscall`, as `serializeError` already preserves them. An address that bound and was then closed is recorded as `bound`, so the record shows the result for every address in that startup attempt. ^record-outcomes
 - **The exit status** the process will exit with (`69`).
@@ -54,7 +43,7 @@ First-failure visibility relies on repeated records: each restart cycle appends 
 
 ## Exit status
 
-Bind failure exits with **69** (`EX_UNAVAILABLE`). The status is carried on the error thrown from `start()` and honored structurally by `runCLI` (`packages/cli/src/index.ts`); bind failure is the distinguishable exception to the ordinary exit-1 error path. The value is stable and documented here: service managers record it (`status=69` in `systemctl --user status`; `LastExitStatus` in `launchctl list`), giving an agent a bind-failure diagnosis without opening tv.log. ^exit-69
+Bind failure exits with **69** (`EX_UNAVAILABLE`). The status is carried on the error thrown from `start()` and honored by `runCLI` ([exit codes](./index.md#Command parser and error normalization)). The value is stable: service managers record it (`status=69` in `systemctl --user status`; `LastExitStatus` in `launchctl list`), giving an agent a bind-failure diagnosis without opening tv.log. ^exit-69
 
 ## Generated service definitions
 
@@ -66,7 +55,7 @@ The persisted service installed by `tv serve --persist` is rendered by `@ruperts
 - `WantedBy=default.target`.
 - **No backoff**: `RestartSteps=`/`RestartMaxDelaySec=` are not used. Backoff trades recovery latency for a log-volume saving that rotation already bounds, and has no macOS analogue. ^no-backoff
 
-The package does not render an explicit systemd start-limit setting. The user-manager default allows five starts per 10-second window; exceeding it parks the unit in a permanent `start-limit-hit` failed state that does not retry automatically. The current retry-forever behavior holds because `RestartSec=5` permits at most about three starts in any 10-second window, below that limit. Until explicit start-limit hardening lands, `RestartSec` must remain at least approximately three seconds so a fast bind-failure loop cannot exhaust the default burst. **Required future work (Linear TV-507):** `@rupertsworld/daemon` will gain an option that lets Television render `StartLimitIntervalSec=0`, making retry-forever explicit rather than dependent on the restart cadence. ^unit-start-limit
+The package does not render an explicit systemd start-limit setting. The user-manager default allows five starts per 10-second window; exceeding it parks the unit in a permanent `start-limit-hit` failed state that does not retry automatically. The current retry-forever behavior holds because `RestartSec=5` permits at most about three starts in any 10-second window, below that limit. While the unit carries no explicit start-limit setting, `RestartSec` must remain at least approximately three seconds so a fast bind-failure loop cannot exhaust the default burst. Linear TV-507 tracks making retry-forever explicit. ^unit-start-limit
 
 **macOS LaunchAgent** (`~/Library/LaunchAgents/com.television.server.plist`):
 
@@ -77,7 +66,7 @@ Resulting recovery cadence once a missing address appears: bounded by `RestartSe
 
 ## Foreground semantics
 
-Foreground `tv serve` uses the same `start()` contract — all-or-nothing, the same fatal record apart from the [Tailscale hint](#^record-hint), same exit 69. There is no retry loop in the foreground: the process exits and the operator (or wrapping script) reruns it. This is the intended semantics, not an accident of code sharing: a foreground serve that silently dropped a requested listener would be the same silent failure in a more visible seat. ^foreground
+Foreground `tv serve` uses the same `start()` contract — all-or-nothing, the same fatal record apart from the [Tailscale hint](#^record-hint), same exit 69. There is no retry loop in the foreground: the process exits and the operator (or wrapping script) reruns it. This is intended: a foreground serve that silently dropped a requested listener would be the same undetected failure. ^foreground
 
 ## Testing
 
