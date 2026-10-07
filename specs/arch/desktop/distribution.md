@@ -12,7 +12,7 @@ Development runs and the desktop tests start Electron on `packages/desktop` dire
 
 ## The desktop workspace
 
-`packages/desktop` is a private workspace: its manifest sets `"private": true` and declares no `bin`, `files` or `engines`, so npm refuses to publish it. It carries the Television release version like every workspace ([arch/updates/index.md](../updates/index.md)). Its `dependencies` list exactly the packages the ToDesktop build installs into the app, each at an exact version. Electron is a development dependency under [runtime.md](./runtime.md#^desktop-runtime-version).
+`packages/desktop` is a private workspace: its manifest sets `"private": true`, so npm refuses to publish it. It carries the Television release version like every workspace ([arch/updates/index.md](../updates/index.md)). Its `dependencies` list exactly the packages the ToDesktop build installs into the app, each at an exact version. Electron is a development dependency under [runtime.md](./runtime.md#^desktop-runtime-version).
 
 ## Configuration
 
@@ -57,7 +57,7 @@ One npm script in `packages/desktop` builds the bundle with `build.mjs`, generat
 
 **Test builds.** A developer with build access can instead run the build script from their own checkout, signed in to their own ToDesktop account. A test build carries the version in the developer's checkout and stays unreleased, like a candidate build. `--code-sign=false` skips signing and notarization for a faster build, which the real-host checks cannot use. ^desktop-dist-test-builds
 
-**Dry runs.** With `--dry-run`, the script runs ToDesktop's dry run in place of a build. The CLI checks the configuration and the generated manifest against its rules and packs the upload directory as it would for a build, but it signs in to nothing and uploads nothing, so the dry run needs no ToDesktop account. The script leaves out the option that follows the build log, which the CLI does not accept with `--dry-run`.
+**Dry runs.** With `--dry-run`, the script runs ToDesktop's dry run in place of a build. The CLI checks the configuration and the generated manifest against its rules and packs the upload directory as it would for a build, but it signs in to nothing and uploads nothing, so the dry run needs no ToDesktop account.
 
 **Workflow access.** Both GitHub desktop build jobs run only in `telepath-computer/television`; other repositories, including forks, skip them before checking out code or accessing company credentials. External actions in these jobs are pinned to full commit SHAs. Outside these workflows, `npm run build:desktop` bundles the app without ToDesktop credentials. ^desktop-dist-workflow-origin
 
@@ -65,7 +65,6 @@ One npm script in `packages/desktop` builds the bundle with `build.mjs`, generat
 
 A maintainer releases the desktop app when a desktop change is worth shipping, such as a fix or feature in `packages/desktop`, an Electron upgrade, or a release that raises the [required desktop version](../updates/desktop-upgrade-gate.md#^ops-bump). Other Television releases get no desktop build or release. ^desktop-dist-release
 
-- **Tested before `main`.** Each change to the app's behavior that a release carries passed its checks on a candidate build before it reached `main` ([the product rule](../../product/desktop-app.md#^desktop-checks-before-main)).
 - **Build.** Every desktop release is built by a GitHub Actions workflow, started by hand, which runs the build script on the commit at the tip of `main`. A maintainer starts it when that commit carries the Television release the desktop release is made from. Usually that is the most recent published release, with nothing merged since its publish. For a release that raises the required desktop version, [the gate's operations](../updates/desktop-upgrade-gate.md#^ops-bump) say which commit and when. The build therefore contains exactly that release's code and carries its version ([versioning](../../product/versioning.md#^pv-desktop-release-version)).
 - **Release.** The maintainer releases the build from the ToDesktop dashboard as a full release. Before releasing, ToDesktop checks that the build succeeded, that its version differs from the latest release's and that the signing certificates are valid, and it runs smoke tests that launch the app and update to and from it. The smoke tests need the app to open without waiting for user input. The maintainer confirms the release with a tap of their security key. Releasing makes the build the one the [download link](#^desktop-dist-links) serves and the update that installed apps download.
 
@@ -73,7 +72,7 @@ The app's **Allow releases without a security token** setting in the ToDesktop d
 
 A desktop release reaches every running downloaded app at its next update check ([desktop app updates](../../product/update-notifications.md#^desktop-self-update)), whatever release its server runs. A desktop change therefore keeps working with servers older than the release that ships it.
 
-For its checks, the pull request that moves the desktop app to ToDesktop released two builds in Television's own app, 1.4.0 and 1.4.1, before any published guide gave the [download link](#^desktop-dist-links). An app that installed the 1.4.1 build would treat a lower version as a downgrade, so the first desktop release for users, and the Television release it is built from ([versioning](../../product/versioning.md#^pv-desktop-release-version)), carry a version above 1.4.1. ^desktop-dist-first-release
+Television's ToDesktop app holds two releases, 1.4.0 and 1.4.1, that were made for testing before any published guide gave the [download link](#^desktop-dist-links). An app that installed the 1.4.1 build would treat a lower version as a downgrade, so the first desktop release for users, and the Television release it is built from ([versioning](../../product/versioning.md#^pv-desktop-release-version)), carry a version above 1.4.1. ^desktop-dist-first-release
 
 ## Updates
 
