@@ -16,25 +16,13 @@ An *absent Electron runtime* has no `path.txt`, no `dist/version`, and either no
 
 Television's Electron target is exactly **`43.7.6`**. The root development dependency and the desktop workspace's development dependency both declare that target without a range, and the ToDesktop build's generated manifest carries the same exact version, keeping development runs, tests, and the installed app on one Chromium/runtime version. ^desktop-runtime-version
 
-Development and test hosts run Linux or macOS, and the runtime provides the layouts below for them. The desktop package's browser-side esbuild target remains `es2022`, while Node-side bundles remain under [the Node-version build contract](../node-versions.md).
+Development and test hosts run Linux or macOS, and the runtime provides the layouts below for them.
 
 ## Runtime location and validation
 
 The Electron package root is found by resolving `electron/package.json`; validation never loads `electron`'s main entry. Loading that entry is installation-capable in Electron 43 and is reserved for [obtaining the runtime](#obtaining-the-runtime). Every existing runtime is classified from files under that resolved package root first. ^desktop-runtime-before-resolver
 
-A successful validation produces this logical contract for [the e2e harness](./e2e-harness.md) and [preflight](../test-runner/preflight.md):
-
-```ts
-type ValidElectronRuntime =
-  | { layout: "native"; executablePath: string }
-  | { layout: "upstream-macos"; executablePath: string };
-
-type RuntimeValidation =
-  | { valid: true; runtime: ValidElectronRuntime }
-  | { valid: false };
-```
-
-The executable path is absolute and constructed from the resolved package root. It is never accepted from an earlier resolver call or an unchecked external path.
+Validation classifies a runtime as absent, valid or invalid for [the e2e harness](./e2e-harness.md) and [preflight](../test-runner/preflight.md), and gives a valid runtime's executable path. That path is absolute and constructed from the resolved package root, never accepted from an earlier resolver call or an unchecked external path.
 
 ### Common exact-version predicate
 
@@ -78,8 +66,6 @@ An Electron major upgrade changes the runtime for development, tests, and the in
 4. Run the tests for runtime declarations, environment planning, the complete desktop e2e surface, and licensing.
 5. Confirm that the build's pinned electron-builder release ([distribution.md](./distribution.md#^desktop-dist-config)) packages the new Electron release; if it does not, change the pin under that spec's operations.
 6. Run the product spec's [real-host checks](../../product/desktop-app.md#Testing) that an Electron version change needs.
-
-The product spec owns those checks, their supported host and their evidence exception.
 
 ## Testing
 
