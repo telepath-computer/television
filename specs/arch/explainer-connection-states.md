@@ -33,7 +33,7 @@ With no saved connection, the local page shows the setup screen. The person past
 
 ## Starting the desktop app with a saved connection
 
-The local page never shows the setup screen while a connection is saved. It shows Connecting and checks the connection. If the server answers that the token is wrong, it shows Access token required and stops trying. If the server can't be reached, it shows Can't connect with server and keeps trying until it can. On the local page both dialogs carry a Disconnect from Server button ([connection flow](./desktop/connect-flow.md#^desktop-connect-entry)).
+The local page never shows the setup screen while a connection is saved. It shows Connecting and checks the connection. If the server wants a token or rejects the one given, it shows Access token required and stops trying. If the server can't be reached, it shows Can't connect with server and keeps trying until it can. On the local page both dialogs carry a Disconnect from Server button ([connection flow](./desktop/connect-flow.md#^desktop-connect-entry)).
 
 ## Inside the server's interface
 
