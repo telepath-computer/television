@@ -97,6 +97,10 @@ const DAEMON_NAME = "com.television.server";
 const TELEMETRY_LAUNCH_MODE_ENV = "TELEVISION_LAUNCH_MODE";
 const DEVELOPER_MARKER = ".tv-developer";
 const SKILL_INSTALL_TELEMETRY_TIMEOUT_MS = 1_000;
+// Long enough for one service-manager restart after a startup failure that
+// clears on its own (specs/arch/cli/index.md#^cli-persist-health-check).
+const PERSISTED_HEALTH_TIMEOUT_MS = 15_000;
+const PERSISTED_HEALTH_RETRY_MS = 250;
 const MIN_CLIENT_PORT = 1;
 const MAX_PORT = 65_535;
 const MAX_PROCESS_EXIT_STATUS = 255;
@@ -164,6 +168,32 @@ function writeConnectURLs(output: Writable, urls: string[], options: { token?: s
   writeLine(output, "Open Television:");
   for (const url of urls) {
     writeLine(output, `  ${formatConnectURL(output, url, options.token)}`);
+  }
+}
+
+/**
+ * Calls `health()` until a call resolves or the deadline passes, and reports
+ * whether one resolved. The deadline also ends a call that never settles.
+ */
+async function waitForHealth(client: TelevisionClient, timeoutMs: number): Promise<boolean> {
+  let expired = false;
+  let deadlineTimer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<false>((resolve) => {
+    deadlineTimer = setTimeout(() => {
+      expired = true;
+      resolve(false);
+    }, timeoutMs);
+  });
+  try {
+    while (!expired) {
+      const answered = await Promise.race([client.health().then(() => true, () => false), deadline]);
+      if (answered) return true;
+      if (expired) break;
+      await Promise.race([new Promise<void>((resolve) => setTimeout(resolve, PERSISTED_HEALTH_RETRY_MS)), deadline]);
+    }
+    return false;
+  } finally {
+    clearTimeout(deadlineTimer);
   }
 }
 
@@ -1002,6 +1032,20 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
         error,
       });
       throw error;
+    }
+    const healthServerURL = buildServerURL(DEFAULT_SERVER_HOST, settings.port);
+    if (!(await waitForHealth(env.createClient(healthServerURL, readAuthToken(home)), PERSISTED_HEALTH_TIMEOUT_MS))) {
+      log(home, "persisted service did not respond", {
+        daemonName: DAEMON_NAME,
+        healthURL: `${healthServerURL}/health`,
+        timeoutMs: PERSISTED_HEALTH_TIMEOUT_MS,
+      });
+      // The service is installed, so the notice rule still applies.
+      if (disclose) writeLine(env.stderr, TELEMETRY_NOTICE);
+      throw new Error(
+        `Television service installed, but the server did not respond at ${healthServerURL} within ${PERSISTED_HEALTH_TIMEOUT_MS / 1_000} seconds. ` +
+          `The service remains installed. See ${path.join(home, "logs", "tv.log")} for the cause.`,
+      );
     }
     const serverURLs = resolveBindAddresses(settings.listen).map((address) => buildServerURL(address, settings.port));
     writeConnectURLs(env.stdout, serverURLs, { installed: true, token });

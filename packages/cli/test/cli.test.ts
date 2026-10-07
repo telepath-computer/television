@@ -2117,6 +2117,112 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
+  // Spec: [[arch/cli/index.md#^cli-persist-health-check-contract|persist health check]].
+  it("serve --persist prints startup output only after a health call resolves", async () => {
+    vi.useFakeTimers();
+    try {
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const home = temporaryHome({ port: 43123, listen: ["100.64.0.7"] });
+      writeToken(home, " token-123\n");
+      const daemon = fakeDaemon();
+      daemon.install.mockImplementation(() => new Promise<void>((resolve) => setTimeout(resolve, 1_000)));
+      const stdoutAtEachHealthCall: string[] = [];
+      let healthCalls = 0;
+      // The third call answers with fields that match nothing about the
+      // installation: any resolved call is the whole test.
+      const health = vi.fn(async () => {
+        stdoutAtEachHealthCall.push(stdout.toString());
+        healthCalls += 1;
+        if (healthCalls < 3) throw new Error("connect ECONNREFUSED");
+        return { status: "ok", version: "9.9.9", bindAddresses: ["10.0.0.9"], port: 1 };
+      });
+      const createClient = vi.fn(() => ({ ...(fakeEnvironment().createClient!("", "") as any), health }));
+
+      const run = runCLI(["--home", home, "serve", "--persist"], fakeEnvironment({ stdout, stderr, createDaemon: daemon.createDaemon, createClient }));
+      await vi.advanceTimersByTimeAsync(999);
+      expect(daemon.install).toHaveBeenCalledTimes(1);
+      expect(health).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      expect(await run).toBe(0);
+      expect(createClient).toHaveBeenCalledTimes(1);
+      expect(createClient).toHaveBeenCalledWith("http://localhost:43123", "token-123");
+      expect(health).toHaveBeenCalledTimes(3);
+      expect(stdoutAtEachHealthCall).toEqual(["", "", ""]);
+      expect(stdout.toString()).toBe(
+        "Television service installed.\nOpen Television:\n  http://127.0.0.1:43123/?token=token-123\n  http://100.64.0.7:43123/?token=token-123\n",
+      );
+      expect(stderr.toString()).toBe("");
+      expect(readLogRecords(home).filter((record) => record.msg === "persisted service did not respond")).toEqual([]);
+
+      const failedInstall = fakeDaemon();
+      failedInstall.install.mockRejectedValue(new Error("launchctl load failed"));
+      const failedHealth = vi.fn(async () => ({ status: "ok", bindAddresses: ["127.0.0.1"], port: 43123 }));
+      const failedStdout = new BufferOutput();
+      expect(await runCLI(["--home", home, "serve", "--persist"], fakeEnvironment({
+        stdout: failedStdout,
+        stderr: new BufferOutput(),
+        createDaemon: failedInstall.createDaemon,
+        createClient: vi.fn(() => ({ ...(fakeEnvironment().createClient!("", "") as any), health: failedHealth })),
+      }))).toBe(1);
+      expect(failedHealth).not.toHaveBeenCalled();
+      expect(failedStdout.toString()).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // Spec: [[arch/cli/index.md#^cli-persist-health-timeout-contract|persist health timeout]].
+  it.each([
+    { label: "rejects on every call", health: async () => { throw new Error("connect ECONNREFUSED"); } },
+    { label: "never settles", health: () => new Promise<never>(() => {}) },
+  ])("serve --persist fails at the 15-second deadline when health $label", async ({ health: answer }) => {
+    vi.useFakeTimers();
+    try {
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const home = temporaryHome({ port: 43123 });
+      const daemon = fakeDaemon();
+      let installedAt: number | undefined;
+      daemon.install.mockImplementation(() => new Promise<void>((resolve) => setTimeout(() => {
+        installedAt = Date.now();
+        resolve();
+      }, 1_000)));
+      const health = vi.fn(answer);
+      const createClient = vi.fn(() => ({ ...(fakeEnvironment().createClient!("", "") as any), health }));
+      let settled = false;
+
+      const run = runCLI(["--home", home, "serve", "--persist"], fakeEnvironment({ stdout, stderr, createDaemon: daemon.createDaemon, createClient }));
+      void run.then(() => { settled = true; });
+      await vi.advanceTimersByTimeAsync(999);
+      expect(daemon.install).toHaveBeenCalledTimes(1);
+      expect(installedAt).toBeUndefined();
+      expect(health).not.toHaveBeenCalled();
+      // The install resolves at 1,000 ms; the deadline counts from there.
+      await vi.advanceTimersByTimeAsync(1 + 14_999);
+      expect(installedAt).toBeDefined();
+      expect(Date.now() - installedAt!).toBe(14_999);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
+
+      expect(settled).toBe(true);
+      expect(await run).toBe(1);
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toBe(
+        `Television service installed, but the server did not respond at http://localhost:43123 within 15 seconds. The service remains installed. See ${path.join(home, "logs", "tv.log")} for the cause.\n`,
+      );
+      expect(readLogRecords(home).filter((record) => record.msg === "persisted service did not respond")).toEqual([
+        expect.objectContaining({ daemonName: "com.television.server", healthURL: "http://localhost:43123/health", timeoutMs: 15_000 }),
+      ]);
+      expect(daemon.install).toHaveBeenCalledTimes(1);
+      expect(daemon.uninstall).not.toHaveBeenCalled();
+      expect(health).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("serve --persist refreshes an installed daemon before installing", async () => {
     const stdout = new BufferOutput();
     const stderr = new BufferOutput();

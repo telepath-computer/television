@@ -245,7 +245,7 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 
 <!-- Authority freshness: review this authored reference whenever a listed source changes. -->
 <!-- app-reference-source: specs/ui/app/app.frame sha256: d3f547b23c22507ffc38b4741c5b9fa5c66ddc83e845f999fc09a6259986aa0b -->
-<!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: 4e1527531a1b3af78e971d9a59234c161dbc4636be2f44b8967781cb35acf668 -->
+<!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: f336de141ff397e1e282f89a35ceb4e449e70ed3d85e92852c854ca7f61acce3 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-menu.frame sha256: e01464499f195ec8d44d9d0f899069e78661944131f23aca74459e1dca283111 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/delete-confirm/delete-confirm.frame sha256: 42dea00eb14ddc11756cf012d53c1ae63c8a6f0409110ff3b30b8c0833532fb6 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/error-page/error-page.frame sha256: 2dd87a846ebe9a9365444930cf05a4c46ce894573ce3ac58078586d34611f0c6 -->

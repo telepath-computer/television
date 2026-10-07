@@ -8,7 +8,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `artifact-navigation.md` (34 lines) — *How the promises in Artifact navigation are proven.*
   - `artifacts.md` (46 lines) — *How the promises in Artifacts are proven.*
   - `channels.md` (29 lines) — *How the promises in Channels are proven.*
-  - `cli.md` (97 lines) — *How the promises in CLI are proven.*
+  - `cli.md` (100 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
   - `licensing.md` (30 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
@@ -36,7 +36,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (53 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
-    - `index.md` (253 lines) — *How the promises in CLI architecture are proven.*
+    - `index.md` (256 lines) — *How the promises in CLI architecture are proven.*
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
@@ -50,7 +50,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (28 lines) — *How the promises in Layout (architecture) are proven.*
     - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
-    - `bake.md` (82 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
+    - `bake.md` (83 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
     - `content.md` (25 lines) — *How onboarding package validation, runtime source resolution, and the committed welcome document are proven.*
     - `index.md` (23 lines) — *How the promises in Onboarding architecture are proven.*
     - `installer.md` (50 lines) — *How the promises in Onboarding installer are proven.*
@@ -144,7 +144,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **markdown-editor/**
     - `index.md` (19 lines) — *How the Markdown editor’s authoritative color sheet reaches production, and where its exact appearance is judged.*
   - **onboarding-artifacts/**
-    - `index.md` (99 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
+    - `index.md` (109 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **skillbench/**

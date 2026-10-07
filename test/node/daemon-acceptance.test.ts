@@ -17,6 +17,7 @@
  * Specs: [[product/cli.md#^cli-ac-persist-install]],
  * [[product/cli.md#^cli-ac-persist-reinstall]],
  * [[product/cli.md#^cli-ac-persist-stop]],
+ * [[product/cli.md#^cli-ac-persist-unanswered]],
  * [[arch/cli/index.md#^cli-daemon-service-seam]], and
  * [[arch/cli/index.md#^cli-daemon-uninstall-service-seam]].
  */
@@ -37,6 +38,11 @@ const CLI_PACKAGE_DIR = path.join(REPO_ROOT, "packages", "cli");
 const CLI_PACKAGE_NAME = "@telepath-computer/television";
 const PACKAGE_VERSION = JSON.parse(readFileSync(path.join(CLI_PACKAGE_DIR, "package.json"), "utf8")).version as string;
 const COMMAND_TIMEOUT_MS = 120_000;
+// The post-install health check's deadline
+// (specs/product/cli.md#^cli-persist-health-timeout).
+const HEALTH_DEADLINE_MS = 15_000;
+// TEST-NET-1: assigned to no interface, so every bind of it fails.
+const UNBINDABLE_ADDRESS = "192.0.2.1";
 const STATE_TIMEOUT_MS = 45_000;
 
 if (process.env[DAEMON_TEST_HOST_ENV] !== "1") {
@@ -134,6 +140,11 @@ describe("production-installed persisted daemon acceptance", () => {
       });
       await expectServiceGone(observer, "tv stop");
 
+      const unansweredHome = path.join(workRoot, "unanswered-home");
+      const unansweredPort = await allocateReleasedLoopbackPort();
+      await installAndProveUnanswered(installedCLI, observer, unansweredHome, unansweredPort);
+
+      // Replaces the unanswered service, whose server keeps failing to start.
       const persistUninstallHome = path.join(workRoot, "persist-uninstall-home");
       const persistUninstallPort = await allocateReleasedLoopbackPort();
       await installAndProveBoot(installedCLI, observer, persistUninstallHome, persistUninstallPort);
@@ -233,6 +244,10 @@ async function installAndProveBoot(
   expect(JSON.parse(readFileSync(path.join(home, "config.json"), "utf8"))).toEqual({ port });
 
   const install = await runCommand(installedCLI.binaryPath, ["--home", home, "serve", "--persist"], { env: installedCLI.env });
+  // As soon as the install exits, with no wait or retry: the command reports
+  // success only once a server answers. A client also finds the service
+  // through its home's config port, with no --port.
+  const immediateStatus = await runCommand(installedCLI.binaryPath, ["--home", home, "status"], { env: installedCLI.env });
 
   const serverURL = `http://127.0.0.1:${port}`;
   const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
@@ -244,6 +259,8 @@ async function installAndProveBoot(
     stdout: `Television service installed.\nOpen Television:\n  ${connectURL}\n`,
     stderr: "",
   });
+  expect(immediateStatus.exitCode, immediateStatus.stderr).toBe(0);
+  expect(JSON.parse(immediateStatus.stdout)).toMatchObject({ home, serverURL: `http://localhost:${port}`, healthy: true, port });
 
   await pollUntil(`service ${DAEMON_NAME} to become installed and running`, async () => {
     const status = await observer.status();
@@ -269,11 +286,50 @@ async function installAndProveBoot(
     port,
   }));
 
-  // A client finds the service through its home's config port, with no --port.
-  const status = await runCommand(installedCLI.binaryPath, ["--home", home, "status"], { env: installedCLI.env });
-  expect(status.exitCode, status.stderr).toBe(0);
-  expect(JSON.parse(status.stdout)).toMatchObject({ home, serverURL: `http://localhost:${port}`, healthy: true, port });
   return { definition, health };
+}
+
+// Installs from a new temporary home whose `listen` cannot bind, so the
+// service's server never answers and the command fails at its deadline while
+// the service stays installed.
+async function installAndProveUnanswered(
+  installedCLI: InstalledCLI,
+  observer: Daemon,
+  home: string,
+  port: number,
+): Promise<void> {
+  const configSet = await runCommand(installedCLI.binaryPath, [
+    "--home", home, "config", "set", "port", String(port), "listen", UNBINDABLE_ADDRESS,
+  ], { env: installedCLI.env });
+  expect(configSet.exitCode, configSet.stderr).toBe(0);
+
+  const startedAt = Date.now();
+  const install = await runCommand(installedCLI.binaryPath, ["--home", home, "serve", "--persist"], { env: installedCLI.env });
+  const elapsedMs = Date.now() - startedAt;
+
+  const logPath = path.join(home, "logs", "tv.log");
+  expect(install).toEqual({
+    exitCode: 1,
+    signal: null,
+    stdout: "",
+    stderr: `Television service installed, but the server did not respond at http://localhost:${port} within 15 seconds. The service remains installed. See ${logPath} for the cause.\n`,
+  });
+  expect(elapsedMs).toBeGreaterThanOrEqual(HEALTH_DEADLINE_MS);
+  expect((await observer.status()).installed).toBe(true);
+  expect(existsSync(serviceDefinitionPath())).toBe(true);
+
+  const records = readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
+  const bindFailures = records.filter((record) => record.msg === "server startup failed");
+  expect(bindFailures.length).toBeGreaterThan(0);
+  for (const record of bindFailures) {
+    expect(record.outcomes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ address: UNBINDABLE_ADDRESS, outcome: "failed" }),
+    ]));
+  }
+  expect(records.filter((record) => record.msg === "persisted service did not respond")).toEqual([
+    expect.objectContaining({ healthURL: `http://localhost:${port}/health`, timeoutMs: HEALTH_DEADLINE_MS }),
+  ]);
+  logHarness(`unanswered install left ${DAEMON_NAME} installed after ${elapsedMs} ms with ${bindFailures.length} bind-failure records`);
 }
 
 // The service carries home-only arguments: no port, listener,
