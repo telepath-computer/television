@@ -1,0 +1,11 @@
+Reviewed the diff from `f6cdd91e`, all ten area specs, and relevant owning specs, proofs and code. No files changed or tests run.
+
+1. **Blocking — [e2e-harness.md, “Launch contract”](/home/user/workspace/wt/television/trim-desktop/specs/arch/desktop/e2e-harness.md:36): the accepted fixture-service URL loses its contract.** The trim removes the requirement that `TV_DESKTOP_E2E_URL` be HTTP on `127.0.0.1`. The test-runner spec requires HTTP on loopback, but that also permits `localhost` or IPv6 loopback. The desktop helper explicitly rejects those alternatives in `requiredDesktopE2EURL()`. An implementer following the retained specs could therefore change the runner’s published address and break desktop test startup. Preserve the accepted URL shape here, or link to an owner that states it.
+
+2. **Non-blocking — [distribution.md, “Releases”](/home/user/workspace/wt/television/trim-desktop/specs/arch/desktop/distribution.md:75): migration history remains.** The paragraph recounting the migration PR’s 1.4.0 and 1.4.1 test releases retains the historical narrative that the trim removes elsewhere. Preserve any still-needed version constraint in present-tense contract language and remove the PR account. If the first-release requirement is complete, remove it and update the citations from the upgrade-recommendation spec and versioning/distribution proofs.
+
+3. **Non-blocking — [distribution.md, “The desktop workspace”](/home/user/workspace/wt/television/trim-desktop/specs/arch/desktop/distribution.md:15): a citation still attributes deleted requirements to this section.** The [distribution proof’s workspace assertion](/home/user/workspace/wt/television/trim-desktop/proofs/arch/desktop/distribution.md:27) still says the manifest has no `bin`, `files` or `engines`, citing this section as authority. The cut is reasonable, but this dependency should be recorded and its attribution corrected. Keeping the target heading does not preserve support for the deleted statement.
+
+No block refs were removed, and I found no incoming citation to the deleted “Provider integration” heading.
+
+Converged: no
