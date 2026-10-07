@@ -8,7 +8,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `artifact-navigation.md` (34 lines) — *How the promises in Artifact navigation are proven.*
   - `artifacts.md` (46 lines) — *How the promises in Artifacts are proven.*
   - `channels.md` (29 lines) — *How the promises in Channels are proven.*
-  - `cli.md` (97 lines) — *How the promises in CLI are proven.*
+  - `cli.md` (100 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
   - `licensing.md` (30 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
@@ -37,7 +37,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (53 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
-    - `index.md` (253 lines) — *How the promises in CLI architecture are proven.*
+    - `index.md` (256 lines) — *How the promises in CLI architecture are proven.*
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
@@ -117,7 +117,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **skill-selector/**
       - `index.md` (26 lines) — *How the promises in Skill selector (UI) are proven.*
     - **stage/**
-      - `index.md` (45 lines) — *How the promises in Stage (UI) are proven.*
+      - `index.md` (46 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**

@@ -334,12 +334,20 @@ The persisted environment sets `TELEVISION_DEVELOPER_HOME` to the installing use
 
 If a service already exists, `--persist` uninstalls it and then installs the new definition. That refresh is not atomic: if uninstall succeeds and install fails, the service is left down until `tv serve --persist` succeeds.
 
-Successful persisted install prints one startup URL for each configured bind address after listener resolution, using the config port. `127.0.0.1` appears alongside specific additional listeners, while a `listen` value containing `0.0.0.0` resolves to the all-interfaces URL alone. With authentication on, the URLs include the bearer token; the install creates the home's token first when the home has none yet.
+After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. Linear TV-938 tracks this limitation. ^cli-persist-health-wait
+
+Once a server answers, the command prints one startup URL for each configured bind address after listener resolution, using the config port. `127.0.0.1` appears alongside specific additional listeners, while a `listen` value containing `0.0.0.0` resolves to the all-interfaces URL alone. With authentication on, the URLs include the bearer token; the install creates the home's token first when the home has none yet.
 
 ```text
 Television service installed.
 Open Television:
   <startup URL for each configured bind address>
+```
+
+If no server has answered within 15 seconds, the command prints nothing to stdout, writes this error to stderr, and exits `1`. `<home>` is the absolute home. The service stays installed, so a server that starts late still runs without another install. ^cli-persist-health-timeout
+
+```text
+Television service installed, but the server did not respond at http://localhost:<port> within 15 seconds. The service remains installed. See <home>/logs/tv.log for the cause.
 ```
 
 `tv serve --persist-uninstall` and `tv stop` uninstall the persisted service and print:

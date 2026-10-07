@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import type { TelevisionClient } from "@telepath-computer/television-shared";
 import { PORT_ZERO_WARNING, runCLI } from "../../packages/cli/src/index.ts";
 import { Server } from "../../packages/server/src/server.ts";
 import { ServerStore } from "../../packages/server/src/server-store.ts";
@@ -278,16 +279,31 @@ describe("telemetry CLI node integration", () => {
       standaloneServers.push(active);
       await active.start();
     };
-    const runPersist = async (fail = false, targetHome = home) => {
+    // Stands in for the client of the parent's post-install health check: it
+    // answers exactly while the stand-in daemon's server is running.
+    const healthServerURLs: string[] = [];
+    const createClient = (serverURL: string) => {
+      healthServerURLs.push(serverURL);
+      return {
+        health: async () => {
+          if (!active) throw new Error("connect ECONNREFUSED");
+          return { status: "ok", bindAddresses: ["127.0.0.1"], port: Number(new URL(active.getBaseURL()).port) };
+        },
+      } as unknown as TelevisionClient;
+    };
+    const runPersist = async ({ fail = false, serve = true, targetHome = home } = {}) => {
       const output: string[] = [];
       const stdout = new BufferOutput((chunk) => output.push(chunk));
       const stderr = new BufferOutput((chunk) => output.push(chunk));
       const code = await runCLI(["--home", targetHome, "serve", "--persist"], {
-        stdout, stderr, resolveHomeDir: () => host,
+        stdout, stderr, resolveHomeDir: () => host, createClient,
         createDaemon: () => ({
           status: async () => ({ installed: Boolean(active), running: Boolean(active) }),
           uninstall: async () => { await active?.dispose(); active = undefined; },
-          install: async () => { if (fail) throw new Error("fixture install failure"); await install(); },
+          install: async () => {
+            if (fail) throw new Error("fixture install failure");
+            if (serve) await install();
+          },
         }),
       });
       return { code, stdout: stdout.toString(), stderr: stderr.toString(), output: output.join("") };
@@ -302,9 +318,32 @@ describe("telemetry CLI node integration", () => {
     const state = (await readTelemetryState(home))!;
     writeFileSync(path.join(home, "state/telemetry.json"), JSON.stringify({ ...state, optedOut: true }));
     expect((await runPersist()).stderr).toBe("");
-    const failed = await runPersist(true, path.join(host, "failed"));
+    const failed = await runPersist({ fail: true, targetHome: path.join(host, "failed") });
     expect(failed.code).toBe(1);
     expect(failed.stderr).not.toContain(notice.trim());
+
+    // An installed service whose server never answers still gets the notice,
+    // before the timeout error ([[arch/cli/index.md#^cli-persist-health-check]]).
+    await active?.dispose();
+    active = undefined;
+    const unansweredHome = path.join(host, "unanswered");
+    vi.useFakeTimers();
+    try {
+      const pending = runPersist({ serve: false, targetHome: unansweredHome });
+      await vi.advanceTimersByTimeAsync(15_000);
+      const unanswered = await pending;
+      expect(unanswered.code).toBe(1);
+      expect(unanswered.stdout).toBe("");
+      // The default home's config port, as the CLI built it for the check.
+      const unansweredURL = healthServerURLs.at(-1)!;
+      expect(new URL(unansweredURL).hostname).toBe("localhost");
+      expect(unanswered.stderr).toBe(
+        notice +
+          `Television service installed, but the server did not respond at ${unansweredURL} within 15 seconds. The service remains installed. See ${path.join(unansweredHome, "logs", "tv.log")} for the cause.\n`,
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("telemetry control commands fail clearly when no server is running", async () => {

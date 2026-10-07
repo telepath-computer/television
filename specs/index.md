@@ -17,7 +17,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (109 lines) — *What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
   - `channels.md` (65 lines) — *What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
-  - `cli.md` (574 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+  - `cli.md` (582 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
   - `desktop-app.md` (60 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
   - `keyboard-navigation.md` (51 lines) — *How the keyboard moves through the app: the navigation chord that steps between tab pages and between channels, where it always works, and the one place it can't.*
   - `licensing.md` (109 lines) — *Television's licensing promises: the project is MIT and every published package and the desktop application say so, every shipped artifact carries the licenses and attributions of the third-party code and assets it redistributes, and the standard test suites block unacceptably-licensed dependencies from shipping.*
@@ -49,8 +49,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (167 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
   - **cli/**
     - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
-    - `index.md` (465 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
-    - `startup-bind-failure.md` (90 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
+    - `index.md` (472 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+    - `startup-bind-failure.md` (89 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
     - `connect-flow.md` (50 lines) — *The desktop main-process connection flow: the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge.*
