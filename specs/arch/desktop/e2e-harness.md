@@ -12,23 +12,7 @@ Electron e2e is used only when the claim depends on Electron. Browser e2e remain
 
 ## Shared environment plan
 
-The runner preflight and Playwright global setup use one environment planner. Its logical result is: ^desktop-e2e-environment-plan
-
-```ts
-type ElectronRuntimePresence =
-  | { state: "absent" }
-  | { state: "valid"; executablePath: string }
-  | { state: "invalid"; reason: string };
-
-interface ElectronE2EEnvironmentPlan {
-  platform: string;
-  runtime: ElectronRuntimePresence;
-  useXvfb: boolean;
-  disableSandbox: boolean;
-  failures: string[][];
-  notes: string[];
-}
-```
+The runner preflight and Playwright global setup use one environment planner. It reports the runtime's state, whether to run under `xvfb-run`, whether to disable the Chromium sandbox, and any failures. ^desktop-e2e-environment-plan
 
 The planner first requires a resolvable `electron/package.json` at the declared exact version. Native runtime presence is then classified with [runtime.md](./runtime.md):
 
@@ -38,43 +22,24 @@ The planner first requires a resolvable `electron/package.json` at the declared 
 
 On headless Linux the plan uses `xvfb-run -a` when neither `DISPLAY` nor `WAYLAND_DISPLAY` exists and fails with installation guidance when `xvfb-run` is unavailable. For a valid Linux runtime, its `chrome-sandbox` runs enabled only when root-owned with setuid mode; otherwise the documented test-only path sets `ELECTRON_DISABLE_SANDBOX=1`. An explicit incoming `ELECTRON_DISABLE_SANDBOX=1` is preserved. This sandbox decision is repeated after a fresh runtime installation, so an absent pre-setup helper can never be misreported as a malformed installed helper. ^desktop-e2e-linux-plan
 
-The planner consumes the [test runner's shared Cursor environment rule](../test-runner/test-runner.md) rather than defining a second contamination policy.
-
+The planner applies the [test runner's shared Cursor environment rule](../test-runner/test-runner.md).
 
 ## Global setup
 
-Playwright global setup is the native-runtime installation site for local and GitHub `e2e:desktop` runs. Before any test launches Electron, it: ^desktop-e2e-global-setup
-
-1. resolves the installed Electron package and confirms its package version matches the exact declaration;
-2. reuses a valid runtime, or, when the runtime is absent, invokes Electron's own `node_modules/electron/install.js` once and validates the resulting runtime;
-3. fails on invalid existing state or on an installer result that does not satisfy [runtime validity](./runtime.md), without deleting or repairing files;
-4. runs the shared environment planner over the installed runtime and applies its Linux sandbox decision to the test process;
-5. builds the web bundle and desktop package bundles required by the suite;
-6. publishes the validated absolute executable path to the Playwright workers.
+Playwright global setup is the native-runtime installation site for local and GitHub `e2e:desktop` runs. Before any test launches Electron, it reuses a valid runtime, or, when the runtime is absent, invokes Electron's own `node_modules/electron/install.js` once. It fails on invalid existing state, or on an installer result that does not satisfy [runtime validity](./runtime.md), without deleting or repairing files. It then runs the shared environment planner over the installed runtime, applies its Linux sandbox decision to the test process, builds the web and desktop bundles the suite needs, and publishes the validated absolute executable path to the Playwright workers. ^desktop-e2e-global-setup
 
 Download and extraction belong entirely to setup. The helper refuses to launch without the published validated executable path and passes it as `_electron.launch({ executablePath, ... })`, so Playwright does not load Electron's resolver inside the launch timeout. ^desktop-e2e-executable-handoff
-
-When [Blaxel's owned setup](../test-runner/blaxel-testshards.md) supplies a valid runtime before Playwright begins, global setup follows its ordinary validation and environment-plan path and makes no second install. [GitHub CI](../test-runner/github-ci.md) owns how its workflow reaches this setup.
 
 
 ## Launch contract
 
-`launchDesktop()` starts the installed package directory, not a bare main-process bundle. Electron therefore resolves `packages/desktop/package.json` and production `app.getVersion()` behavior remains represented. The argument list is:
+`launchDesktop()` starts the installed package directory, not a bare main-process bundle, so Electron resolves `packages/desktop/package.json` and production `app.getVersion()` behavior is represented. A launch either passes a test fixture through the [fixture hook](#^desktop-e2e-fixture-hook), optionally with an isolated profile, or passes an isolated profile for the real connect flow; either may add arguments the test needs, such as the update runtime's simulation flag ([desktop updates](./updates.md#Testing)). A fixture given as a path resolves against the origin that the `e2e:desktop` [registry service](../test-runner/test-registry.md#Surface services) publishes as `TV_DESKTOP_E2E_URL`. Fixture helpers require that value to be an HTTP URL on `127.0.0.1`. The helper's inherited environment carries `TV_TEST_MODE=true`, with per-test overrides applied explicitly. ^desktop-e2e-launch-contract
 
-```text
-<desktop-package-directory>
-[--user-data-dir=<isolated-path>]
---test-fixture <fixture-url>
-[<extra-arguments>]
-```
+Each launch phase has its own timeout: `_electron.launch`, the first `BrowserWindow`, and its `domcontentloaded` state. The timeout covers only launching: runtime installation and bundle builds finish in global setup, a later product-readiness wait carries its own timeout, and provider setup does not lengthen it. If a phase after process creation fails, the helper closes the Electron application before rethrowing the named phase error. ^desktop-e2e-launch-timeout
 
-or the package directory plus an isolated profile for the real connect flow, followed by any extra arguments the test passes, such as the update runtime's simulation flag ([desktop updates](./updates.md#Testing)). A fixture beginning with `/` resolves against the runner-published desktop Vite origin; an absolute URL passes through unchanged. The `e2e:desktop` [registry service](../test-runner/test-registry.md#Surface services) publishes its bound fixture URL as `TV_DESKTOP_E2E_URL`. The desktop Playwright configuration requires this variable. Fixture helpers require the value to be an HTTP URL on `127.0.0.1` and use its origin. The helper's inherited environment carries `TV_TEST_MODE=true`, with per-test overrides applied explicitly. ^desktop-e2e-launch-contract
+The main process's `--test-fixture <url>` hook loads the supplied URL directly, bypassing saved-connection lookup and the connect screen. It is active only when explicitly passed and has no user-facing help or menu surface. Connect-flow tests instead use an isolated `--user-data-dir` and real connection state. Each `launchDesktop()` invocation returns Playwright's `ElectronApplication` and first `Page`, and supports one BrowserWindow. ^desktop-e2e-fixture-hook
 
-Each launch phase has an **eight-second timeout**: `_electron.launch`, first `BrowserWindow`, and its `domcontentloaded` state. Runtime installation and bundle builds finish in global setup and are excluded. A later product-readiness wait can carry its own owning timeout; it does not extend a launch phase. If a phase after process creation fails, the helper closes the Electron application before rethrowing the named phase error. ^desktop-e2e-launch-timeout
-
-The main process's `--test-fixture <url>` hook loads the supplied URL directly, bypassing saved-connection lookup and the connect screen. It is active only when explicitly passed and has no user-facing help or menu surface. Connect-flow tests instead use an isolated `--user-data-dir` and real connection state. Each `launchDesktop()` invocation returns Playwright's `ElectronApplication` and first `Page`; tests close the app in `finally` or teardown and remove profiles they create. One BrowserWindow per invocation is the supported helper contract. ^desktop-e2e-fixture-hook
-
-Tests that exercise native input inside a `<webview>` use the real Electron boundary and assertions owned by [artifact-bridge](../artifact-frame/artifact-bridge.md); this harness does not define a second input or message contract.
+Tests that exercise native input inside a `<webview>` use the assertions owned by [artifact-bridge](../artifact-frame/artifact-bridge.md).
 
 ## Operations
 
@@ -89,11 +54,7 @@ On macOS, `packages/desktop/test/e2e/user-data-identity.test.ts` uses Electron's
 
 On a fresh Linux host, install Playwright's Chromium browser and shared system dependencies once with `npx playwright install --with-deps chromium`. The Electron preflight names a missing display or sandbox prerequisite; global setup owns Electron runtime preparation and desktop bundle builds, so neither is a manual prerequisite.
 
-An Electron-only scenario belongs under `packages/desktop/test/e2e/`. Add authored static pages under `packages/desktop/test/e2e/fixtures/` when the scenario needs one, launch them through `launchDesktop()`, drive renderer behavior through its returned Playwright `Page`, and use the returned `ElectronApplication` only for a real main-process boundary. Every test closes the application in teardown or `finally` and removes any profile directory it creates.
-
-## Provider integration
-
-The canonical command surface and surface selection are owned by [the test runner](../test-runner/test-runner.md) and [registry](../test-runner/test-registry.md). Whenever a provider selects `e2e:desktop`, this harness applies its shared environment plan, global setup, and launch contract. Provider setup does not change the [launch-phase timeout](#^desktop-e2e-launch-timeout).
+A desktop test drives renderer behavior through the `Page` that `launchDesktop()` returns, and uses its `ElectronApplication` only for a real main-process boundary. Every test closes the application in teardown or `finally` and removes any profile directory it creates.
 
 ## Testing
 
