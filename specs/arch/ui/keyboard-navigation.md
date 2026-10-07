@@ -1,14 +1,10 @@
 *The keyboard-navigation architecture: the shell's single navigation handler, the three paths that deliver the chord into it, and the delegation map across the specs that own each piece.*
 
-**Status:** implemented stage-one keyboard-navigation architecture. The production policy handler is `packages/web/src/services/application-navigation.ts`; `packages/web/src/views/television-app.ts` owns the shell door, and `packages/web/src/main.ts` supplies the handler through the application-service construction seam.
-
 # Keyboard navigation (architecture)
 
-Pressing the navigation chord has to work the same whether your focus is on the app's own chrome, inside an artifact document in the browser, or inside one in the desktop app — three very different places for a keystroke to start. This spec pins the shape that makes that true: one handler owns what the chord means, and every delivery path feeds it. It is the central collector for keyboard-navigation implementation authority; the pieces it does not own, it names the owner of.
+Pressing the navigation chord has to work the same whether your focus is on the app's own chrome, inside an artifact document in the browser, or inside one in the desktop app — three very different places for a keystroke to start. This spec pins the shape that makes that true: one handler owns what the chord means, and every delivery path feeds it.
 
-## What this owns
-
-This spec owns the **shell navigation handler** — the app's single policy point for the navigation chord — the shell's own key listener and its application of the bridge-owned chord predicate, and the **delegation map** below. The user-facing behavior it realizes is [product/keyboard-navigation.md](../../product/keyboard-navigation.md)'s.
+This spec owns the **shell navigation handler**, the shell's own key listener and its application of the bridge-owned chord predicate. The [delegation map](#Delegation map) names the owner of every other piece, including the user-facing behavior, which is [product/keyboard-navigation.md](../../product/keyboard-navigation.md)'s.
 
 ## The shell navigation handler
 
@@ -22,7 +18,7 @@ The doors are mutually exclusive by focus — a keystroke starts in exactly one 
 
 Whichever door delivers, the handler applies the product policy ([product/keyboard-navigation.md#^tp-chord](../../product/keyboard-navigation.md#^tp-chord)): it computes the move — horizontally over the channel's page order, vertically over the channel sidebar's order — applies the end-stops, blurs DOM focus, and effects the result through the state layer: the per-channel selection memory for horizontal moves ([arch/channel-state/index.md#^cs-selection-memory](../channel-state/index.md#^cs-selection-memory)), the shared focused-channel write for vertical ones ([arch/channel-state/index.md#^cs-focus](../channel-state/index.md#^cs-focus)). How the handler decomposes into views and services below this contract is the implementer's, per the standing carve-out ([arch/channel-state/index.md](../channel-state/index.md), Code-governed carve-out). ^kbn-policy-point
 
-**The doors differ; the operation is one.** Once the handler decides a chord is a navigation event, it effects the change through the same operation the pointer path uses — the same call site that clicking a channel row fires for channel focus, and that clicking a tab fires for page selection. There is no keyboard-only code path for mutating navigation state; a keyboard-only mutation would be a second implementation of the same move, free to drift from the clicked one. ^kbn-one-operation
+**The doors differ; the operation is one.** Once the handler decides a chord is a navigation event, it effects the change through the same operation the pointer path uses — the same call site that clicking a channel row fires for channel focus, and that clicking a tab fires for page selection. There is no keyboard-only code path for mutating navigation state, so the keyboard move cannot drift from the clicked one. ^kbn-one-operation
 
 ## Delegation map
 
@@ -37,7 +33,7 @@ Whichever door delivers, the handler applies the product policy ([product/keyboa
 
 ## Testing
 
-Coverage for this architecture follows the [delegation map](#Delegation map). The testing policy says to name coverage provided by other specs rather than duplicate it ([testing-policy.md#Tests are the validation mechanism](../testing-policy.md#Tests are the validation mechanism)). This spec requires tests of the shell listener. It also requires tests at the points where keyboard and pointer input enter the same navigation operations. It does not require duplicate tests of movement or delivery.
+Coverage for this architecture follows the [delegation map](#Delegation map): movement and delivery are proven by their owners. This spec requires tests of the shell listener. It also requires tests at the points where keyboard and pointer input enter the same navigation operations.
 
 Coverage of the shell listener must run in a browser with its real platform identity and use DOM key delivery to reach the navigation handler. Pointer and keyboard input must each be observed entering the same production operation for page selection. They must also each be observed entering the same production operation for channel focus. Because this spec requires keyboard and pointer input to enter the same production operations, it does not require a screenshot, transition, or DOM comparison between keyboard and pointer navigation.
 
