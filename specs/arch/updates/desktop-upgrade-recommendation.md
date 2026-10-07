@@ -1,18 +1,16 @@
 *The deprecated desktop upgrade recommendation: how the web bundle uses a release threshold and the update notice to tell users of desktop apps installed from npm that they can move to the downloaded app, without blocking startup.*
 
-Desktop apps installed from npm remain safe to use once they pass the gate, but they receive no more updates. The recommendation tells their users, through the ordinary update bell and notice, that the downloaded app is available and how to install it, while the user keeps working. It is deprecated: it exists only for that move, and downloaded apps, which [update themselves](../../product/update-notifications.md#^desktop-self-update), never receive it.
-
 # Desktop upgrade recommendation
 
-## What this owns
+Desktop apps installed from npm remain safe to use once they pass the gate, but they receive no more updates. The recommendation tells their users, through the ordinary update bell and notice, that the downloaded app is available and how to install it, while the user keeps working. It is deprecated: it exists only for that move, and downloaded apps, which [update themselves](../../product/update-notifications.md#^desktop-self-update), never receive it.
 
-This module owns the web client's *desktop upgrade recommendation*: the recommended desktop version, the decision about eligibility and notice precedence after the [desktop upgrade gate](./desktop-upgrade-gate.md), delivery of the recommendation body to the shared [update-notification surface](../../ui/app/update-notification/index.md), and storage of recommendation dismissals independently from server-notice dismissals. The user-facing behavior is owned by [product/update-notifications.md](../../product/update-notifications.md); release-version validation and ordering are [arch/updates/index.md](./index.md)'s.
+This spec owns the recommended desktop version, the decision about eligibility and notice precedence after the [desktop upgrade gate](./desktop-upgrade-gate.md), delivery of the recommendation body to the shared [update-notification surface](../../ui/app/update-notification/index.md), and storage of recommendation dismissals. The user-facing behavior is [product/update-notifications.md](../../product/update-notifications.md)'s.
 
 ## The recommended desktop version
 
-`packages/web` carries a source constant named `RECOMMENDED_DESKTOP_VERSION`. It is the release version below which the web bundle presents the recommendation. It holds the [recommended desktop version](../../product/update-notifications.md#^desktop-rec-first-release), `1.4.0`, and is never derived from the repository's release version, a server version, the update channel, or `REQUIRED_DESKTOP_VERSION`. ^desktop-rec-version
+The web bundle carries the recommended desktop version as a source constant: the release version below which it presents the recommendation. It holds the [recommended desktop version](../../product/update-notifications.md#^desktop-rec-first-release), `1.4.0`, and is never derived from the repository's release version, a server version, the update channel or the required desktop version. ^desktop-rec-version
 
-That version is the boundary between apps installed from npm and downloaded apps ([product/desktop-app.md](../../product/desktop-app.md#^desktop-npm-package)), even though the first downloaded release carries a later version ([the first desktop release](../desktop/distribution.md#^desktop-dist-first-release)), so the version alone selects the apps installed from npm, with no platform condition. Which apps it reaches, given the required floor, is [the product's](../../product/update-notifications.md#^desktop-rec-first-release). ^desktop-rec-first-version
+Because that version is the [boundary between apps installed from npm and downloaded apps](../../product/desktop-app.md#^desktop-npm-package), the version alone selects the apps installed from npm, with no platform condition. Which apps it reaches, given the required desktop version, is [the product's](../../product/update-notifications.md#^desktop-rec-first-release). ^desktop-rec-first-version
 
 ## Web-bundle decision
 
@@ -22,7 +20,7 @@ The recommendation applies exactly when all of these are true:
 
 - the client is in Electron context;
 - the desktop upgrade gate has allowed normal application boot;
-- `?desktopAppVersion=` is a valid release-version triple other than `0.0.0` and is numerically less than `RECOMMENDED_DESKTOP_VERSION`; and
+- `?desktopAppVersion=` is a valid release-version triple other than `0.0.0` and is numerically less than the recommended desktop version; and
 - the connected server's retained update state is null or has no applying server update toast (`UpdateState.toast === null`).
 
 A browser, a development shell reporting `0.0.0`, a missing or malformed shell version, and a shell at or above the threshold receive no recommendation. Missing or malformed versions do not trigger a recommendation because the hard gate separately owns its conservative unknown-version rule. ^desktop-rec-condition
@@ -33,10 +31,10 @@ The surface evaluates eligibility when it mounts after the gate allows normal bo
 
 ## Shared notice presentation
 
-When eligible, the recommendation uses the existing update bell and manual notice popover. Its fixed Markdown body is authored in the surface's [`desktop_upgrade_recommendation`](../../ui/app/update-notification/content.yml#desktop_upgrade_recommendation) copy. Production never imports or reads that spec artifact: `packages/web` carries a source constant named `DESKTOP_UPGRADE_RECOMMENDATION_MARKDOWN` whose value conforms to the authored YAML string verbatim. The client renders the body constant through the same standard `renderMarkdown` pipeline as channel notice bodies and hands the result to the surface with no prompt, so the recommendation shows no copy-prompt button. The body's download link follows standard external-link behavior. ^desktop-rec-render
+When eligible, the recommendation uses the update bell and notice. Its fixed markdown body is authored in the surface's [`desktop_upgrade_recommendation`](../../ui/app/update-notification/content.yml#desktop_upgrade_recommendation) copy. Production does not read that spec file: the web client carries a source constant whose value matches the authored string verbatim. The client renders it through the standard markdown pipeline, as it does channel notice bodies, and hands the result to the surface with no prompt, so the recommendation shows no copy-prompt button. ^desktop-rec-render
 
 The recommendation's dismissal is independent from the server notice's. Closing it stores the current recommended version in `localStorage` under `tv-desktop-upgrade-recommendation-dismissed`. A valid stored value equal to or newer than the current recommendation suppresses automatic presentation. Missing or malformed storage does not suppress presentation. Neither this key nor `tv-update-dismissed` affects the other notice kind. ^desktop-rec-dismissal
 
-Dismissal suppresses automatic presentation only. The bell remains visible for as long as the recommendation applies, and clicking it re-presents the recommendation. The bell is not shown for the recommendation when the shell reaches the threshold or the desktop upgrade gate takes precedence. ^desktop-rec-bell-lifetime
+Dismissal suppresses automatic presentation only. The bell remains visible for as long as the recommendation applies, and clicking it presents the recommendation again. ^desktop-rec-bell-lifetime
 
 The recommendation emits neither `update_toast_shown` nor `update_prompt_copy_clicked`: those events describe channel content and carry a channel version. No recommendation-specific telemetry event is defined. ^desktop-rec-no-telemetry
