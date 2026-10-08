@@ -1,16 +1,10 @@
 # JSON stores: data every viewer and the agent share
 
-A *JSON store* is a small database that Television keeps on its server, inspired by Firebase's Realtime Database. It provides what localStorage cannot: data synchronized live across every client viewing the artifact, which you can also read and write through the `tv` CLI. Use one for data that the person and you work on together, such as a to-do list the person checks off in the page while you add tasks and read what is done.
+A *JSON store* is a small database that Television keeps on its server, inspired by Firebase's Realtime Database. It keeps an artifact's data durably, shares it live with every client viewing the artifact, and lets you read and write it through the `tv` CLI while the person uses the page.
 
-Keeping state that must persist across clients, or that you need to read or write, in localStorage is fundamentally broken: each browser keeps its own copy, no other viewer sees it, and you cannot reach it at all. Something like a to-do list almost certainly belongs in a JSON store, not in localStorage. localStorage remains the right tool for state that belongs to one client, such as the active tab, or unsaved text in a text area that the person expects to survive a change of channel.
+An artifact's state can live elsewhere too. localStorage is also available to an artifact's page, but it is highly discouraged, because a future version of Television may remove it. A Markdown artifact can also act as shared, synchronized, editable state, which the person edits in Television and you edit on disk, though it lacks the presentational flexibility and interactivity of an HTML page. State can also live in a third-party API or another external service the artifact integrates with. Which fits depends on the artifact's design, its use and the person, so you decide; for a to-do list, the standard choice is a JSON store.
 
 A JSON store is Television's first type of *resource*: data the server keeps for artifacts. Every HTML artifact has its own JSON store, which its page uses from the resource SDK and you use from the shell with `tv resource json`.
-
-## When to use a JSON store
-
-Use a JSON store when an artifact's data must be the same in every browser that shows it, surviving reloads, or when a page and an agent share it: the person checks off tasks that you read later, or you add entries that the page shows live.
-
-Keep state in the page itself, or in localStorage, when it belongs to one client, such as an open section, a filter, a sort order or the active tab, or when the page can rebuild it from the artifact's own files. Content that you write and the person only reads belongs in the artifact's files, which you edit as usual. Data that comes from somewhere else, such as a third-party API, stays there; read it from its source.
 
 ## Every artifact has its own store
 
