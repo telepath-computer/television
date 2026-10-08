@@ -207,8 +207,32 @@ describe("server listeners", () => {
       status: "ok",
       version: "0.0.0",
       bindAddresses: ["0.0.0.0"],
+      origins: expect.any(Array),
       port,
     });
+  });
+
+  // [[arch/cli/index.md#^cli-server-origins-contract]]
+  it("reports its origins, one for each interface address under a wildcard listener, each of which answers", async () => {
+    const loopback = createServer({ port: 0 });
+    await loopback.start();
+    const loopbackOrigin = `http://127.0.0.1:${loopback.getListeningPort()}`;
+    expect(loopback.getOrigins()).toEqual([loopbackOrigin]);
+    expect((await (await fetch(`${loopbackOrigin}/health`)).json()).origins).toEqual([loopbackOrigin]);
+
+    const wildcard = createServer({ listen: ["0.0.0.0"], port: 0 });
+    await wildcard.start();
+    const port = wildcard.getListeningPort();
+    const interfaceAddresses = Object.values(os.networkInterfaces())
+      .flatMap((entries) => entries ?? [])
+      .filter((entry) => entry.family === "IPv4")
+      .map((entry) => entry.address);
+    const expected = [...new Set(interfaceAddresses)].map((address) => `http://${address}:${port}`);
+    expect(expected).toContain(`http://127.0.0.1:${port}`);
+    expect(expected.filter((origin) => origin.startsWith("http://0.0.0.0"))).toEqual([]);
+    expect(wildcard.getOrigins()).toEqual(expected);
+    expect(await (await fetch(`http://127.0.0.1:${port}/health`)).json()).toMatchObject({ bindAddresses: ["0.0.0.0"], origins: expected, port });
+    for (const origin of expected) expect((await fetch(`${origin}/health`)).status, origin).toBe(200);
   });
 
   // ^t-all-or-nothing ^t-port-zero

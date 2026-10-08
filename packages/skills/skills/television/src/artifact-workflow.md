@@ -223,28 +223,29 @@ Rules:
 - Browser clients render Television artifact proxy URLs (`http://<host>:<port>/artifact/<id>/...`) inline and live-reload them when the producer's ETag changes.
 - Television does not fetch or watch ordinary remote pages from the consumer server.
 
-### Sharing Television artifacts by URL
+### Sharing Television artifacts
 
-To share a path artifact from one Television server to another, build a producer artifact proxy URL:
+To share a path artifact from one Television server with someone else, create its share link on the producer:
 
-```text
-http://<producer-host>:<port>/artifact/<artifact-id>/<basename>
+```bash
+tv share-artifact --id <artifact-id>
 ```
 
-**CRITICAL — the share URL carries NO token.** Do not append the server's main `tv` bearer token (or any `?token=`/`Authorization` value) to a share URL, and never include it when telling the recipient how to reach the artifact. The `/artifact/<id>/*` proxy is bearerless: the unguessable artifact id in the path *is* the capability. The recipient is authorized by holding the artifact-id URL, not by holding the producer's main token. Leaking the main token would hand over full read/write control of the entire producer server; the artifact id only grants read access to that one artifact's rendered content. A correct share URL is exactly the form above — host, port, `/artifact/<artifact-id>/`, basename — and nothing else.
+It prints the link once for each address the server can be reached at, in the form `http://<host>:<port>/artifact/<share-id>/`. A server listening on every interface (`0.0.0.0`) gives each of the machine's addresses, never `0.0.0.0` itself. Never share the artifact's own address, `/artifact/<artifact-id>/`: anyone who can load it can read and write the artifact's store. The share link reaches the artifact without revealing its ID, at `read` unless you give `--access read-write`. Run the command again with `--access` and the other level to change the link's level, and revoke the link with `tv unshare-artifact --id <artifact-id>`.
 
-First run `tv status` on the producer. Its JSON reports the server `bindAddresses` and `port`. Choose the host that the recipient can actually reach:
+**CRITICAL — the share link carries NO token.** Do not append the server's main `tv` bearer token (or any `?token=`/`Authorization` value) to a share link, and never include it when telling the recipient how to reach the artifact. The `/artifact/<id>/*` proxy is bearerless: the unguessable share ID in the path *is* the capability. Leaking the main token would hand over full read/write control of the entire producer server. A correct share link is exactly the form above and nothing else.
+
+Choose the line whose host the recipient can actually reach:
 
 - Prefer a Tailscale CGNAT address (`100.64.0.0/10`) when one is present.
 - Otherwise use a non-loopback bind address.
 - Never emit a loopback host (`127.0.0.1` or `localhost`) for sharing; that points at the recipient's own machine.
-- If the server is bound to `0.0.0.0`, determine the host's reachable IP by other means, then use that IP with the reported port.
-- If you cannot determine an externally reachable IP, tell the user and explain that the server is only reporting loopback or wildcard bind information instead of inventing a localhost share URL.
+- If no line has a host the recipient can reach, tell the user so instead of inventing a share link.
 
-For directory artifacts, use the directory proxy URL ending in `/artifact/<artifact-id>/`. For file artifacts, include the encoded basename. The recipient adds that URL with `tv create-url-artifact`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
+The recipient adds the link with `tv create-url-artifact`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
 
-Markdown artifacts shared this way render as read-only HTML. Anyone with the artifact proxy URL can read the rendered artifact content, matching the HTML artifact capability model — and that read works with no token at all, because the artifact id alone authorizes the read.
+Markdown artifacts shared this way render as read-only HTML. Anyone with the share link can read the artifact's content with no token at all, because the share ID alone authorizes the read.
 
-There is no separate `share-artifact` command. To "share" a URL artifact, pass along the underlying URL and let the recipient create their own URL artifact.
+A URL artifact has no share link. To "share" one, pass along the underlying URL and let the recipient create their own URL artifact.
 
 If the browser placeholder for an ordinary non-Television URL is not sufficient, create a markdown or HTML path artifact that links to the page and summarizes what the user needs from it.

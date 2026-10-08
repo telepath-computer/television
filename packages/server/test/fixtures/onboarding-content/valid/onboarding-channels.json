@@ -26,7 +26,20 @@
       "artifacts": [
         {
           "slug": "notes",
-          "title": "Notes"
+          "title": "Notes",
+          "store": {
+            "value": {
+              "list": [
+                1,
+                "two",
+                null,
+                true
+              ],
+              "nested": {
+                "empty": {}
+              }
+            }
+          }
         },
         {
           "slug": "readme",

@@ -47,16 +47,20 @@ if (process.features.typescript !== "strip") {
 const [
   { validatePageLayout },
   { DEFAULT_PAGE_GEOMETRY, DEFAULT_PAGE_SIZE },
+  { checkJsonLimits, validateJsonValue },
 ] = await Promise.all([
   import("../packages/shared/src/layout.ts"),
   import("../packages/shared/src/types.ts"),
+  import("../packages/shared/src/resources/index.ts"),
 ]);
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "..");
 const VALIDATOR = path.join(REPO_ROOT, "packages", "server", "scripts", "validate-onboarding.mjs");
 const DATE_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-relative-dates.js");
-const DATE_ARTIFACTS = new Set(["productivity/company-todos", "productivity/todays-calendar"]);
+const DATE_ARTIFACTS = new Set(["productivity/todays-calendar"]);
+const TODO_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-company-todos.js");
+const TODO_ARTIFACT = "productivity/company-todos";
 
 const USAGE =
   "usage: node scripts/bake-onboarding.mjs <design-channel>... " +
@@ -72,8 +76,20 @@ const CARD_FIELDS = new Set([
   "components",
   "size",
   "geometry",
+  "store",
 ]);
 const REQUIRED_CARD_FIELDS = ["id", "slug", "title"];
+// A card's store declaration, in the onboarding config schema's key order
+// (specs/arch/onboarding/content.md#^onboarding-store-config).
+const STORE_FIELDS = ["value", "shiftDatesFrom"];
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Whether `value` is a real calendar date written as YYYY-MM-DD. */
+function isCalendarDate(value) {
+  if (typeof value !== "string" || !CALENDAR_DATE.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
 
 function fail(message) {
   console.error(message);
@@ -234,12 +250,38 @@ function loadManifest(channel) {
         fail(validation.errors.map((error) => error.replace(/^Page 0\b/, label)).join("\n"));
       }
     }
+    if (card.store !== undefined) checkStore(card, `${channel}/layout.yml`);
     if (ids.has(card.id)) fail(`duplicate card id '${card.id}' in ${channel}/layout.yml`);
     ids.add(card.id);
     if (slugs.has(card.slug)) fail(`duplicate card slug '${card.slug}' in ${channel}/layout.yml`);
     slugs.add(card.slug);
   }
   return manifest;
+}
+
+// A store declaration has only the schema's fields, a starting value that
+// obeys the JSON store's value rules and limits and, when it moves its dates,
+// a calendar date to move them from. That only an HTML artifact declares one
+// is the content validator's rule.
+function checkStore(card, manifestLabel) {
+  const label = `card '${card.slug}' in ${manifestLabel}`;
+  const { store } = card;
+  if (typeof store !== "object" || store === null || Array.isArray(store)) {
+    fail(`${label} 'store' must be a mapping with the store's starting value`);
+  }
+  for (const key of Object.keys(store)) {
+    if (!STORE_FIELDS.includes(key)) fail(`unknown field '${key}' on the store of ${label}`);
+  }
+  if (!("value" in store)) fail(`the store of ${label} is missing 'value'`);
+  try {
+    validateJsonValue(store.value);
+    checkJsonLimits(store.value);
+  } catch (error) {
+    fail(`the store of ${label} has a starting value the JSON store refuses: ${error.message}`);
+  }
+  if ("shiftDatesFrom" in store && !isCalendarDate(store.shiftDatesFrom)) {
+    fail(`the store of ${label} has shiftDatesFrom ${JSON.stringify(store.shiftDatesFrom)}; it must be a calendar date written as YYYY-MM-DD`);
+  }
 }
 
 function resolveSources(channel, manifest) {
@@ -626,7 +668,7 @@ function escapeTitle(title) {
     .replaceAll("'", "&#39;");
 }
 
-function shellDocument(card, skillFiles, relativeDates) {
+function shellDocument(card, skillFiles, relativeDates, todoStore) {
   const skillCss = skillFiles.filter((f) => f.endsWith(".css"));
   const skillJs = skillFiles.filter((f) => f.endsWith(".js"));
   const lines = [
@@ -638,6 +680,8 @@ function shellDocument(card, skillFiles, relativeDates) {
     `<title>${escapeTitle(card.title)}</title>`,
     '<link rel="stylesheet" href="/canonical/v2/styles.css">',
     ...(relativeDates ? ['<script type="module" src="./onboarding-relative-dates.js"></script>'] : []),
+    // The first script, before the canonical components and the task skill's JavaScript (^todo-store-module).
+    ...(todoStore ? ['<script type="module" src="./onboarding-company-todos.js"></script>'] : []),
     ...(card.components !== false ? ['<script type="module" src="/canonical/v2/components.js"></script>'] : []),
     ...skillCss.map((f) => `<link rel="stylesheet" href="./${f}">`),
     ...skillJs.map((f) => `<script type="module" src="./${f}"></script>`),
@@ -651,8 +695,9 @@ function shellDocument(card, skillFiles, relativeDates) {
   return lines.join("\n") + "\n";
 }
 
-// Read the production module before replacing any channel folder.
+// Read the production modules before replacing any channel folder.
 const dateModuleBytes = readFileSync(DATE_MODULE);
+const todoModuleBytes = readFileSync(TODO_MODULE);
 
 // --- write phase --------------------------------------------------------------
 
@@ -663,21 +708,25 @@ for (const baked of bakedChannels) {
   mkdirSync(channelDir, { recursive: true });
   for (const card of baked.cards) {
     const relativeDates = DATE_ARTIFACTS.has(`${baked.channel}/${card.slug}`);
+    const todoStore = `${baked.channel}/${card.slug}` === TODO_ARTIFACT;
     if (card.kind === "markdown") {
       writeFileSync(path.join(channelDir, `${card.slug}.md`), readFileSync(card.sourcePath));
     } else if (card.skill !== undefined) {
       const artifactDir = path.join(channelDir, card.slug);
       mkdirSync(artifactDir);
       const skillFiles = usedSkills.get(card.skill);
-      writeFileSync(path.join(artifactDir, "index.html"), shellDocument(card, skillFiles, relativeDates));
+      writeFileSync(path.join(artifactDir, "index.html"), shellDocument(card, skillFiles, relativeDates, todoStore));
       for (const file of skillFiles) {
         writeFileSync(path.join(artifactDir, file), readFileSync(path.join(skillsDistRoot, card.skill, file)));
       }
       if (relativeDates) {
         writeFileSync(path.join(artifactDir, "onboarding-relative-dates.js"), dateModuleBytes);
       }
+      if (todoStore) {
+        writeFileSync(path.join(artifactDir, "onboarding-company-todos.js"), todoModuleBytes);
+      }
     } else {
-      writeFileSync(path.join(channelDir, `${card.slug}.html`), shellDocument(card, [], false));
+      writeFileSync(path.join(channelDir, `${card.slug}.html`), shellDocument(card, [], false, false));
     }
   }
 }
@@ -690,6 +739,7 @@ for (const baked of bakedChannels) {
     title: card.title,
     ...("size" in card ? { size: card.size } : {}),
     ...("geometry" in card ? { geometry: card.geometry } : {}),
+    ...("store" in card ? { store: card.store } : {}),
   }));
   const existing = config.channels.find((entry) => entry && entry.slug === baked.channel);
   if (existing) {
@@ -706,9 +756,10 @@ for (const baked of bakedChannels) {
 const KEY_ORDERS = {
   config: ["version", "focusChannel", "channels"],
   channel: ["slug", "name", "artifacts"],
-  artifact: ["slug", "title", "size", "geometry"],
+  artifact: ["slug", "title", "size", "geometry", "store"],
   size: ["width", "height"],
   geometry: ["kind", "full_screen"],
+  store: STORE_FIELDS,
 };
 
 function ordered(value, kind) {
@@ -717,9 +768,10 @@ function ordered(value, kind) {
   for (const key of keys) {
     const field = value[key];
     if (field === undefined) continue;
+    // A store's starting value is data: its own key order is kept.
     out[key] =
       kind === "artifact" &&
-      (key === "size" || key === "geometry") &&
+      (key === "size" || key === "geometry" || key === "store") &&
       typeof field === "object" &&
       field !== null &&
       !Array.isArray(field)

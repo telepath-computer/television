@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,6 +49,60 @@ function loadConfigWithArtifact(
   }
 }
 
+const VALID_STORE = {
+  value: { list: [1, "two", null, true], nested: { empty: {} } },
+};
+
+/** Store declarations by artifact: `notes` is an HTML file, `intro` a directory, `readme` Markdown. */
+type Declarations = { notes?: unknown; intro?: unknown; readme?: unknown };
+
+/**
+ * A copy of the valid tree in which each artifact `declarations` names
+ * declares the store given, and `second/notes` declares none unless given;
+ * checked by full validation and by the runtime loader.
+ */
+function validateWithDeclarations(declarations: Declarations): {
+  full: ReturnType<typeof validateOnboardingContentTree>;
+  runtime: ReturnType<typeof loadOnboardingConfig>;
+} {
+  const root = mkdtempSync(path.join(os.tmpdir(), "television-onboarding-stores-"));
+  try {
+    cpSync(fixture("valid"), root, { recursive: true });
+    const config = JSON.parse(readFileSync(path.join(root, "onboarding-channels.json"), "utf8")) as {
+      channels: Array<{ artifacts: Array<Record<string, unknown>> }>;
+    };
+    const artifacts = { intro: config.channels[0]!.artifacts[0]!, notes: config.channels[1]!.artifacts[0]!, readme: config.channels[1]!.artifacts[1]! };
+    delete artifacts.notes.store;
+    for (const [slug, store] of Object.entries(declarations)) artifacts[slug as keyof typeof artifacts].store = store;
+    // JSON cannot carry a non-finite number, so the placeholder is written as one.
+    const serialized = JSON.stringify(config, null, 2).replace('"NON_FINITE_NUMBER"', "1e400");
+    writeFileSync(path.join(root, "onboarding-channels.json"), serialized + "\n");
+    return { full: validateOnboardingContentTree(root), runtime: loadOnboardingConfig(root) };
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+function nested(depth: number): unknown {
+  let value: unknown = 1;
+  for (let level = 0; level < depth; level += 1) value = { a: value };
+  return value;
+}
+
+// Store declarations in the config
+// (specs/arch/onboarding/content.md#^onboarding-store-config), each paired
+// with a fragment its error message must contain.
+const storeDefects: Array<{ name: string; store: unknown; match: RegExp }> = [
+  { name: "a store that is not an object", store: [VALID_STORE], match: /store must be an object/ },
+  { name: "an unknown key", store: { ...VALID_STORE, access: "read" }, match: /store has unknown field: access/ },
+  { name: "a missing value", store: { shiftDatesFrom: "2026-07-08" }, match: /store is missing value/ },
+  { name: "a shiftDatesFrom that is not a calendar date", store: { ...VALID_STORE, shiftDatesFrom: "2026-02-30" }, match: /shiftDatesFrom.*calendar date/ },
+  { name: "a shiftDatesFrom that is not a string", store: { ...VALID_STORE, shiftDatesFrom: 20260708 }, match: /shiftDatesFrom.*calendar date/ },
+  { name: "a starting value with a non-finite number", store: { value: { n: "NON_FINITE_NUMBER" } }, match: /finite/ },
+  { name: "a starting value nested deeper than the depth limit", store: { value: nested(33) }, match: /32 keys below/ },
+  { name: "a starting value over the size limit", store: { value: "x".repeat(1024 * 1024) }, match: /at most \d+ bytes/ },
+];
+
 // One fixture tree per defect class of the validation matrix
 // (proofs/arch/onboarding/content.md#^t-validation-matrix), each paired with a
 // fragment its error message must contain to count as a useful error.
@@ -97,6 +151,33 @@ describe("Onboarding content validation", () => {
         size: { width: 901.5, height: 677.25 },
         geometry: { kind: "single", full_screen: true },
       });
+      expect(loaded.config?.channels[1]?.artifacts[0]?.store).toEqual(VALID_STORE);
+    });
+
+    it("passes a store declaration on an HTML file artifact and on a directory artifact, with and without shiftDatesFrom, and one whose starting value is at the depth limit", () => {
+      const declared = validateWithDeclarations({ notes: { ...VALID_STORE, shiftDatesFrom: "2026-07-08" }, intro: VALID_STORE });
+      expect(declared.full.errors).toEqual([]);
+      expect(declared.runtime.errors).toEqual([]);
+      expect(declared.runtime.config?.channels[1]?.artifacts[0]?.store).toEqual({ ...VALID_STORE, shiftDatesFrom: "2026-07-08" });
+      expect(declared.runtime.config?.channels[0]?.artifacts[0]?.store).toEqual(VALID_STORE);
+      const { full, runtime } = validateWithDeclarations({ notes: { value: nested(32) } });
+      expect(full.errors).toEqual([]);
+      expect(runtime.errors).toEqual([]);
+    });
+
+    it.each(storeDefects)("rejects $name, in full validation and at runtime", ({ store, match }) => {
+      const { full, runtime } = validateWithDeclarations({ notes: store });
+      expect(full.valid).toBe(false);
+      expect(full.errors.join("\n")).toMatch(match);
+      expect(runtime.config).toBeUndefined();
+      expect(runtime.errors.join("\n")).toMatch(match);
+    });
+
+    it("accepts a store declared on a Markdown artifact in full validation", () => {
+      // No rule restricts stores to a kind of artifact; a Markdown artifact's starting value is useless but allowed.
+      const { full } = validateWithDeclarations({ readme: VALID_STORE });
+      expect(full.errors).toEqual([]);
+      expect(full.valid).toBe(true);
     });
 
     it.each(defectMatrix)("fails %s with a useful error", (fixtureName, errorMatch) => {
@@ -339,6 +420,22 @@ describe("Onboarding content validation", () => {
           const resolved = resolveOnboardingArtifactSource(productionRoot, channel.slug, artifact.slug);
           expect(resolved.ok, `${channel.slug}/${artifact.slug}`).toBe(true);
         }
+      }
+    });
+
+    it("declares a store only for Company To-dos, holding tasks due around the story day", () => {
+      const config = loadOnboardingConfig(productionRoot).config!;
+      // Company To-dos' starting tasks (specs/ui/onboarding-artifacts/index.md#^productivity-todo-store).
+      const declared = config.channels.flatMap((channel) =>
+        channel.artifacts.flatMap((artifact) => (artifact.store === undefined ? [] : [{ artifact: `${channel.slug}/${artifact.slug}`, store: artifact.store }])),
+      );
+      expect(declared).toEqual([
+        { artifact: "productivity/company-todos", store: { value: { tasks: expect.any(Object) }, shiftDatesFrom: "2026-07-08" } },
+      ]);
+      const tasks = Object.entries((declared[0]!.store.value as { tasks: Record<string, unknown> }).tasks);
+      expect(tasks.length).toBeGreaterThan(0);
+      for (const [key, task] of tasks) {
+        expect(task, key).toMatchObject({ title: expect.stringMatching(/\S/), due: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
       }
     });
   });

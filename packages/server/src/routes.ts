@@ -10,6 +10,7 @@ import {
   validatePageLayout,
   type TabPage,
 } from "@telepath-computer/television-shared";
+import { isResourceRefusal } from "@telepath-computer/television-shared/resources";
 import { ServerStore } from "./server-store.ts";
 import { parseClientTelemetryMetaHeader, TELEVISION_CLIENT_META_HEADER, type TelemetryClientContext } from "./telemetry/client-meta.ts";
 import type { TelemetryStatus } from "./telemetry/index.ts";
@@ -103,6 +104,7 @@ const HTTP_NO_CONTENT = 204;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
+const HTTP_SERVICE_UNAVAILABLE = 503;
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
@@ -144,6 +146,11 @@ function handleStoreError(res: Response, error: unknown, fallback: string): void
   }
   if (error instanceof ConflictError) {
     sendError(res, HTTP_CONFLICT, error.message);
+    return;
+  }
+  if (isResourceRefusal(error) && error.code === "unavailable") {
+    // A record save whose outcome is unknown (specs/product/artifacts.md#^af-record-saved).
+    sendError(res, HTTP_SERVICE_UNAVAILABLE, error.message);
     return;
   }
   throw error instanceof Error ? error : new Error(fallback);

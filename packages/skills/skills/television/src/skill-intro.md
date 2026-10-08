@@ -10,6 +10,8 @@ Load this skill when you need to create, update, inspect, focus, delete, or othe
 
 Read the [theming guidance](./theming.md) when creating, revising, or bringing an installed theme up to date.
 
+An artifact can keep data in a *JSON store*, a small database that Television keeps on its server, inspired by Firebase's Realtime Database. It provides what localStorage cannot: data synchronized live across every client viewing the artifact, which you can also read and write through the `tv` CLI, as for a to-do list that the person and you work on together. Keeping state that must persist across clients, or that you need to read or write, in localStorage is fundamentally broken; something like a to-do list almost certainly belongs in a JSON store. localStorage remains the right tool for state that belongs to one client, such as the active tab or unsaved text in a text area. Read the [resource guidance](./resources.md) when an artifact's data must be shared by every client viewing it or read or written by you, or when the person mentions JSON stores or resources.
+
 Re-read this skill only if it is not already in your context or you know it changed.
 
 ## When to use Television

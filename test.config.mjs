@@ -29,7 +29,7 @@ export default {
       surface("unit:staging", "vitest", "staging/vitest.config.ts", { kind: "unit", roots: ["staging/test"] }),
     ]),
     executionGroup("e2e:node", "e2e: node", 3, [
-      surface("e2e:node", "vitest", "test/node/vitest.config.ts", { kind: "e2e", roots: ["test/node"], excludeRoots: ["test/node/daemon-acceptance.test.ts"], tags: ["node"], preflight: ["node", "playwright-chromium"], preCommand: ["node", "scripts/licenses/build-suite.mjs"] }),
+      surface("e2e:node", "vitest", "test/node/vitest.config.ts", { kind: "e2e", roots: ["test/node"], excludeRoots: ["test/node/daemon-acceptance.test.ts"], tags: ["node"], preflight: ["node", "playwright-chromium", "playwright-firefox"], preCommand: ["node", "scripts/licenses/build-suite.mjs"] }),
     ]),
     executionGroup("e2e:browser-app", "e2e: web", 5, [
       surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),

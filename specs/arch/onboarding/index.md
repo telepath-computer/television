@@ -12,10 +12,10 @@ The architecture that delivers [onboarding-channels.md](../../product/onboarding
 
 | Module | Spec | Owns |
 |---|---|---|
-| Content and server packaging | [arch/onboarding/content.md](./content.md) | Content tree, version-3 config, slugs, artifact order, and server build validation |
+| Content and server packaging | [arch/onboarding/content.md](./content.md) | Content tree, version-3 config, slugs, artifact order, declared store data, and server build validation |
 | CLI packaging and resolution | [arch/cli/index.md#Build and packaged asset layout](../cli/index.md#Build and packaged asset layout) | Copying validated output into the CLI package and resolving it when `tv serve` starts |
 | Design bake | [arch/onboarding/bake.md](./bake.md) | The manually run script that renders onboarding frames into the content tree and config |
-| Installer | [installer.md](./installer.md) | State-file schema and migration, install algorithm, initial pages, idempotency, marker, focus, and default-channel invariant |
+| Installer | [installer.md](./installer.md) | State-file schema and migration, install algorithm, declared store data, initial pages, retry after a crash, marker, focus, and default-channel invariant |
 
 Terms defined by this domain: *onboarding channel* is defined by [onboarding-channels.md](../../product/onboarding/onboarding-channels.md); *channel slug*, *artifact slug*, and *onboarding config* by [arch/onboarding/content.md](./content.md); *the bake* by [arch/onboarding/bake.md](./bake.md); *onboarding state file* and *onboarding channel marker* by [installer.md](./installer.md). The redesign has no onboarding tab-promotion behavior or browser promotion record.
 

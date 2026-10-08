@@ -15,6 +15,47 @@ cards:
     slug: company-todos
     title: Company To-dos
     skill: tv-tasks
+    store:
+      value:
+        tasks:
+          acme-success-metric:
+            title: Define pilot success metric for Acme
+            note: '"Accepted autonomous actions per analyst hour" plus rollback rate.'
+            due: "2026-07-04"
+            project: Acme Pilot
+            tags: [urgent]
+            done: false
+          customer-story:
+            title: Synthesize NeonBank and Mallory Health calls into a customer story
+            note: Painful workflow, before/after demo, measurable outcome — for the seed deck.
+            due: "2026-07-08"
+            project: Seed Deck
+            done: false
+          investor-metrics:
+            title: Send rough metrics to Jake for investor update
+            note: Pipeline and burn numbers — defer visual polish.
+            due: "2026-07-08"
+            project: Investor Update
+            done: false
+          priya-one-on-one:
+            title: Prep for 1:1 with Priya
+            note: Review two solutions for unblocking the dev team.
+            due: "2026-07-08"
+            project: Platform Reliability
+            done: false
+          neonbank-procurement:
+            title: Follow up with NeonBank on procurement map
+            note: Confirm whether their security team needs the audit trail before next week.
+            due: "2026-07-10"
+            project: Acme Pilot
+            done: false
+          investor-deck:
+            title: Redesign investor deck
+            note: Visual polish — wait until the customer story and metrics spine are locked.
+            due: "2026-07-14"
+            project: Seed Deck
+            done: false
+      shiftDatesFrom: "2026-07-08"
     size:
       width: 400
       height: 770

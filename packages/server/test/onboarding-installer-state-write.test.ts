@@ -90,35 +90,43 @@ describe("Per-channel state writes stay consistent under transient failure", () 
   it("attempts a slug's completion mark only after all artifact metadata and pages are persisted", () => {
     const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-onboarding-mark-last-"));
     dirs.push(storagePath);
-    const artifactIDs = ["main", "side", "left", "right"].map(
-      (slug) => `television-onboarding--studio--${slug}`,
-    );
+    // An interrupted attempt's artifacts, which the retry creates again with
+    // generated IDs (specs/arch/onboarding/installer.md#^artifact-create).
+    const interruptedIDs = ["main", "side", "left", "right"].map((slug) => `interrupted-${slug}`);
+    const copyNames = ["main", "side", "left", "right"].map((slug) => `television-onboarding--studio--${slug}`);
+    const generatedID = expect.stringMatching(/^[0-9A-HJKMNP-TV-Z]{26}$/) as unknown as string;
     const expectedPages = [
       {
-        artifactIds: [artifactIDs[0]!],
+        artifactIds: [generatedID],
         geometry: { ...DEFAULT_PAGE_GEOMETRY },
         size: { width: 960.5, height: 640.25 },
       },
       {
-        artifactIds: [artifactIDs[1]!],
+        artifactIds: [generatedID],
         geometry: { kind: "single" as const, full_screen: true },
         size: { ...DEFAULT_PAGE_SIZE },
       },
       {
-        artifactIds: [artifactIDs[2]!],
+        artifactIds: [generatedID],
         geometry: { kind: "single" as const, full_screen: true },
         size: { width: 720, height: 480 },
       },
       {
-        artifactIds: [artifactIDs[3]!],
+        artifactIds: [generatedID],
         geometry: { ...DEFAULT_PAGE_GEOMETRY },
         size: { ...DEFAULT_PAGE_SIZE },
       },
     ];
+    const interruptedPage = (artifactID: string) => ({
+      artifactIds: [artifactID],
+      geometry: { ...DEFAULT_PAGE_GEOMETRY },
+      size: { ...DEFAULT_PAGE_SIZE },
+    });
 
-    // Make the whole-page write observable: all artifact metadata already
-    // exists, while the marker-matched channel has only a partial, misordered
-    // page list. createArtifact therefore cannot repair pages as a side effect.
+    // Make the whole-page write observable: the marker-matched channel has a
+    // partial, misordered page list over the interrupted attempt's artifacts,
+    // and createArtifact appends a page per new artifact, so only a whole
+    // write leaves exactly the configured pages.
     mkdirSync(getChannelsDir(storagePath), { recursive: true });
     writeFileSync(
       path.join(getChannelsDir(storagePath), "crashed.json"),
@@ -126,14 +134,14 @@ describe("Per-channel state writes stay consistent under transient failure", () 
         id: "crashed",
         name: "Studio",
         layoutVersion: 2,
-        layout: [expectedPages[3], expectedPages[1]],
+        layout: [interruptedPage(interruptedIDs[3]!), interruptedPage(interruptedIDs[1]!)],
         onboarding: { slug: "studio" },
       }),
     );
-    mkdirSync(path.dirname(getArtifactLiveMetadataPath(storagePath, artifactIDs[0]!)), { recursive: true });
+    mkdirSync(path.dirname(getArtifactLiveMetadataPath(storagePath, interruptedIDs[0]!)), { recursive: true });
     mkdirSync(getAgentArtifactsDir(storagePath), { recursive: true });
-    for (const artifactID of artifactIDs) {
-      const copied = path.join(getAgentArtifactsDir(storagePath), `${artifactID}.html`);
+    for (const [index, artifactID] of interruptedIDs.entries()) {
+      const copied = path.join(getAgentArtifactsDir(storagePath), `${copyNames[index]!}.html`);
       writeFileSync(copied, "<!doctype html>partial");
       writeFileSync(
         getArtifactLiveMetadataPath(storagePath, artifactID),
@@ -152,11 +160,12 @@ describe("Per-channel state writes stay consistent under transient failure", () 
         .filter((entry) => entry.endsWith(".json"))
         .map((entry) => JSON.parse(readFileSync(path.join(getChannelsDir(storagePath), entry), "utf8")));
       const studio = channelRecords.find((channel) => channel.onboarding?.slug === "studio");
+      const pageArtifactIDs: string[] = (studio?.layout ?? []).flatMap((tabPage: { artifactIds: string[] }) => tabPage.artifactIds);
       observation = {
         storagePath: writtenStoragePath,
         state: structuredClone(state),
         layout: structuredClone(studio?.layout),
-        artifactMetadataExists: artifactIDs.map(
+        artifactMetadataExists: pageArtifactIDs.map(
           (artifactID) => existsSync(getArtifactLiveMetadataPath(storagePath, artifactID)),
         ),
       };
@@ -244,11 +253,19 @@ describe("Per-channel state writes stay consistent under transient failure", () 
       if (persisted.status === "ok") {
         expect(Object.keys(persisted.state.channels).sort()).toEqual(["first", "second"]);
       }
-      // Crash-retry reuse: no duplicate channels or cards.
+      // Crash retry: no duplicate channels or pages. The marked channel is
+      // untouched; the retried one keeps its identity and writes its one page
+      // over the artifact it created again, leaving the earlier artifact
+      // without a page (specs/arch/onboarding/installer.md#^artifact-ids).
       expect(secondBoot.listChannels()).toHaveLength(2);
-      for (const before of channelsBefore) {
-        expect(secondBoot.listChannels().find((channel) => channel.id === before.id)).toEqual(before);
-      }
+      const firstBefore = channelsBefore.find((channel) => channel.onboarding?.slug === "first")!;
+      const secondBefore = channelsBefore.find((channel) => channel.onboarding?.slug === "second")!;
+      expect(secondBoot.listChannels().find((channel) => channel.id === secondBefore.id)).toEqual(secondBefore);
+      const firstAfter = secondBoot.listChannels().find((channel) => channel.id === firstBefore.id)!;
+      expect({ ...firstAfter, layout: [] }).toEqual({ ...firstBefore, layout: [] });
+      expect(firstAfter.layout).toHaveLength(1);
+      expect(firstAfter.layout[0]!.artifactIds).toHaveLength(1);
+      expect(firstAfter.layout[0]!.artifactIds[0]).not.toBe(firstBefore.layout[0]!.artifactIds[0]);
     } finally {
       warn.mockRestore();
     }

@@ -84,7 +84,7 @@ async function buildStandaloneCLI(outfile: string, env: NodeJS.ProcessEnv): Prom
  */
 async function startBuiltCLI(home: string, auth = true): Promise<RunningCLI> {
   writeHomeConfig(home, auth ? { port: 0 } : { port: 0, auth: false });
-  return startBuiltServer(["--home", home, "serve"], cliEnvironment());
+  return startBuiltServer(["--home", home, "serve", "--print-links"], cliEnvironment());
 }
 
 /** Spawns the built CLI with `args`, which start a foreground server, and waits until it serves `/health`. */
@@ -217,8 +217,8 @@ describe("CLI product spine acceptance", () => {
     const home = makeTempDir("television-cli-links-", dirs);
     const running = await startBuiltCLI(home);
     const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
-    const health = await (await fetch(new URL("/health", running.startupURL))).json() as { bindAddresses: string[]; port: number };
-    const expected = health.bindAddresses.map((address) => `http://${address}:${health.port}/?token=${token}\n`).join("");
+    const health = await (await fetch(new URL("/health", running.startupURL))).json() as { origins: string[] };
+    const expected = health.origins.map((origin) => `${origin}/?token=${token}\n`).join("");
     const links = () => runBuiltCLI(["--home", home, "links", "--port", String(running.port)]);
     expect(await links()).toEqual({ exitCode: 0, signal: null, stdout: expected, stderr: "" });
 
@@ -233,14 +233,14 @@ describe("CLI product spine acceptance", () => {
     }
     await running.process.dispose();
 
-    const authless = await startBuiltServer(["--home", home, "serve"], cliEnvironment());
+    const authless = await startBuiltServer(["--home", home, "serve", "--print-links"], cliEnvironment());
     expect(readFileSync(path.join(home, "state", "token"), "utf8").trim()).toBe(token);
     const restored = await runBuiltCLI(["--home", home, "config", "set", "auth", "true"]);
     expect(restored.exitCode, restored.stderr).toBe(0);
-    const authlessHealth = await (await fetch(new URL("/health", authless.startupURL))).json() as { bindAddresses: string[]; port: number };
+    const authlessHealth = await (await fetch(new URL("/health", authless.startupURL))).json() as { origins: string[] };
     expect(await runBuiltCLI(["--home", home, "links", "--port", String(authless.port)])).toEqual({
       exitCode: 0, signal: null, stderr: "",
-      stdout: authlessHealth.bindAddresses.map((address) => `http://${address}:${authlessHealth.port}\n`).join(""),
+      stdout: authlessHealth.origins.map((origin) => `${origin}\n`).join(""),
     });
   });
 
@@ -390,6 +390,40 @@ describe("CLI product spine acceptance", () => {
     expect(build.exitCode).not.toBe(0);
     expect(build.signal).toBeNull();
     expect(existsSync(outfile)).toBe(false);
+  });
+
+  // Spec: [[arch/cli/index.md#^cli-sdk-served|the packaged SDK served by tv serve]].
+  it("serves the packaged resource SDK's bytes from a full-build tv serve", async () => {
+    const running = await startBuiltCLI(makeTempDir("television-cli-acceptance-sdk-", dirs));
+    const response = await fetch(new URL("/sdk/v1/resources.js", running.startupURL));
+    expect(response.status).toBe(200);
+    const served = Buffer.from(await response.arrayBuffer());
+    expect(served.equals(readFileSync(path.join(REPO_ROOT, "packages", "cli", "dist", "sdk", "v1", "resources.js")))).toBe(true);
+  });
+
+  // [[product/cli.md#^cli-ac-startup-links]]: piped output holds no token, only the command that prints the links.
+  it("prints no link on piped startup output, only the tv links command that prints them", async () => {
+    const home = makeTempDir("television-cli-startup-links-", dirs);
+    writeHomeConfig(home, { port: 0 });
+    const owned = spawnOwnedProcess(process.execPath, [BUILT_CLI, "--home", home, "serve"], { cwd: REPO_ROOT, env: cliEnvironment(), stdio: ["ignore", "pipe", "pipe"] });
+    let stdout = "";
+    let stderr = "";
+    owned.child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
+    owned.child.stderr?.on("data", (chunk: Buffer | string) => { stderr += chunk.toString(); });
+    await vi.waitFor(() => { expect(stdout).toContain("to print the links that open Television."); }, { timeout: PROCESS_TIMEOUT_MS, interval: 50 });
+    const command = /^Run `(.+)` to print the links that open Television\.$/m.exec(stdout)?.[1] ?? "";
+    const port = Number(/ --port (\d+)$/.exec(command)?.[1]);
+    expect(stdout).toBe(`Television server running.\nRun \`tv --home ${home} links --port ${port}\` to print the links that open Television.\n`);
+    const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
+    expect(token.length).toBeGreaterThan(0);
+    expect(`${stdout}${stderr}`).not.toContain(token);
+
+    // The command, run as printed, prints the server's token-bearing links.
+    const links = await runBuiltCLI(command.split(" ").slice(1));
+    expect(links.exitCode, links.stderr).toBe(0);
+    const printed = links.stdout.trim().split("\n");
+    expect(printed).toContain(`http://127.0.0.1:${port}/?token=${token}`);
+    for (const link of printed) expect(new URL(link).searchParams.get("token")).toBe(token);
   });
 
   // Specs: [[product/cli.md#^cli-ac-workflow-success|workflow success acceptance]],
@@ -551,7 +585,8 @@ describe("CLI product spine acceptance", () => {
     // stores, with port 0 in place of its stable port so that the server binds
     // a port the operating system assigns.
     const running = await startBuiltServer(
-      ["serve", "--port", "0", "--storage-path", home, "--installed-by-agent", "Claude Code"],
+      // The hidden --print-links flag lets the test read the port the server bound.
+      ["serve", "--port", "0", "--storage-path", home, "--installed-by-agent", "Claude Code", "--print-links"],
       cliEnvironment({ TELEVISION_LAUNCH_MODE: "daemon" }),
     );
     try {

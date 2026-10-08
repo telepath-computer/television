@@ -16,14 +16,20 @@ Their display `name` values, channel order, and `focusChannel` in
 entry may also carry optional initial-page `size` and `geometry`; for baked
 channels author those fields in the design channel's `layout.yml` so a
 re-bake carries them into the config. Missing fields use the shared page
-defaults. The bake renders flat `.frame` sources into complete HTML documents
+defaults. The starting value of an HTML artifact's store is declared the
+same way, as `store` on its card, and the bake carries it into its artifact
+entry. The bake renders flat `.frame` sources into complete HTML documents
 and copies flat `.md` sources unchanged. Declared skill assets are copied beside
 the task and calendar entry documents; the welcome is a single HTML file with
-an inline logo.
+an inline logo. Company To-dos also receives the to-do store module
+(`packages/server/assets/onboarding-company-todos.js`) beside its document.
 
 **All non-tv-guide content is swap-free**: tests derive their expectations
 from this config and these files at runtime, so content edits need zero test
-changes.
+changes. The one exception is the declared store: the production-tree
+contract in `packages/server/test/onboarding-content.test.ts` pins Company
+To-dos as the only artifact that declares one, because its live list depends
+on it.
 
 **`tv-guide` content is deliberately test-pinned** (it is released copy) and
 is covered by `packages/server/test/onboarding-content.test.ts`, which pins

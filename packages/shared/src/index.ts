@@ -20,6 +20,7 @@ export {
   type LayoutNode,
   type OnboardingChannelMarker,
   type PageSize,
+  type ResourceEventMessage,
   type ServerEvent,
   type ServerStatusMessage,
   type SinglePageGeometry,

@@ -19,4 +19,5 @@ acceptance suites** through the production sibling-directory resolution.
 | `ordered-artifacts/` | single channel with size-only, full-screen-only, both-authored, and default pages in authored order (`^t-layout-install`, `^t-crash-retry`) |
 | `second-broken/` | first channel installs, second fails on a missing source (`^t-per-channel-persistence`) |
 | `first-broken/` | first channel fails, later channel still installs (`^failure-containment`); focus channel fails to install (`^t-focus-matrix`) |
+| `declared-stores/` | one channel whose HTML file artifact declares a store with `shiftDatesFrom`, whose directory artifact declares none, and whose last HTML file artifact declares one without `shiftDatesFrom` (`^t-onboarding-stores`, `^t-crash-retry`, `^t-fire-forget`) |
 | `tv-guide-plus/` | bundle containing `tv-guide` plus a newer channel, for migration cases (`^t-migrate-v1`, `^t-migrate-legacy-v2`, `^t-migrate-artifact`) |

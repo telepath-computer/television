@@ -84,6 +84,16 @@ export interface PathArtifact {
   readonly kind: "path";
   readonly title: string;
   readonly path: string;
+  /** The resource ID of the artifact's own store, from its first write (specs/arch/resources/index.md#^rs-artifact-record). */
+  readonly store?: string;
+  /** The artifact's share link (specs/arch/resources/index.md#^rs-artifact-record). */
+  readonly share?: ArtifactShareLink;
+}
+
+/** A share link: its share ID and the level it gives. */
+export interface ArtifactShareLink {
+  readonly id: string;
+  readonly access: "read" | "read-write";
 }
 
 export interface UrlArtifact {
@@ -100,6 +110,11 @@ export const PathArtifactSchema = z.object({
   kind: z.literal("path"),
   title: z.string(),
   path: z.string(),
+  store: z.string().optional(),
+  share: z.object({
+    id: z.string().min(1),
+    access: z.enum(["read", "read-write"]),
+  }).strict().optional(),
 }).strict();
 
 export const UrlArtifactSchema = z.object({
@@ -118,6 +133,14 @@ type _ArtifactSchemaMatchesArtifact = Assert<
     : false
 >;
 
+/**
+ * A new artifact ID: a ULID, whose 80 random bits come from the platform's
+ * cryptographic random source (specs/product/artifacts.md#^af-artifact-id).
+ */
+export function generateArtifactID(): string {
+  return ulid();
+}
+
 export function createArtifact(input: {
   id?: string;
   kind: "path";
@@ -129,5 +152,5 @@ export function createArtifact(input: {
   title: string;
   url: string;
 }): Artifact {
-  return ArtifactSchema.parse({ id: input.id ?? ulid(), ...input });
+  return ArtifactSchema.parse({ id: input.id ?? generateArtifactID(), ...input });
 }

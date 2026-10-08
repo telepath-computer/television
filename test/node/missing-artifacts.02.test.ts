@@ -54,7 +54,7 @@ async function startServer(storagePath = mkdtempSync(path.join(os.tmpdir(), "tel
   if (!existsSync(BUILT_CLI)) throw new Error(`Built CLI not found at ${BUILT_CLI}`);
   const { TELEVISION_ACP_AGENT: _ignoredAgent, NODE_OPTIONS: _ignoredNodeOptions, VITEST: _ignoredVitest, ...env } = process.env;
   writeHomeConfig(storagePath, { port: 0 });
-  const processHandle = spawnOwnedProcess(BUILT_CLI, ["--home", storagePath, "serve"], {
+  const processHandle = spawnOwnedProcess(BUILT_CLI, ["--home", storagePath, "serve", "--print-links"], {
     cwd: REPO_ROOT,
     env,
     stdio: ["ignore", "pipe", "pipe"],

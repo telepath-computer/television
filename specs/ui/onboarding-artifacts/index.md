@@ -81,15 +81,18 @@ only what the source files cannot show.
 - **Example-artifact headings size down for card density.** Document-scale
   headings are oversized inside a TV card, so the example documents use smaller
   headings.
-- **The story day is Wednesday, July 8, 2026.** The Company To-dos and Today's
-  Calendar frames retain their authored dates. When either installed document
-  opens, its displayed dates shift by the whole number of
-  calendar days from July 8, 2026 to the viewer's current local day. Company
-  To-dos shifts its heading date and every task `date` attribute. Today's
-  Calendar shifts `start-date` and every event's `start` and `end` attributes,
-  preserving each event's clock times. The gaps between all authored dates
-  stay the same. Other story content and relative freshness lines such as
-  "Generated 1 hour ago" keep their authored wording. ^productivity-relative-dates
+- **The story day is Wednesday, July 8, 2026.** The Today's Calendar frame
+  retains its authored dates. When its installed document opens, its
+  displayed dates shift by the whole number of calendar days from July 8,
+  2026 to the viewer's current local day: `start-date` and every event's
+  `start` and `end` attributes, preserving each event's clock times. The gaps
+  between all authored dates stay the same. Company To-dos' starting tasks are
+  authored on the story day too, but its due dates are real dates in its
+  store, which installation moves once to the installation day
+  ([its store](#^productivity-todo-store)), and its date line shows the
+  viewer's current local day. Other story content and relative freshness
+  lines such as "Generated 1 hour ago" keep their authored wording.
+  ^productivity-relative-dates
 - **Frames write public artifact elements directly.** These frames specify the
   HTML an agent authors inside an artifact, so literal public tags such as
   `<tv-icon>`, `<tv-task-list>`, and `<calendar-week>` are the required
@@ -123,7 +126,14 @@ each with:
   browser files beside the generated HTML and link them from its document
   head;
 - `components: false`, when the baked document omits the canonical components
-  module. It defaults to `true`. ^channel-layout
+  module. It defaults to `true`;
+- `store`, when the artifact's
+  [store](../../product/resources/resources.md#^rs-artifact-store) starts
+  with data: its starting `value`, and, when that value's dates are authored
+  on a story day and must fall relative to the installation day, that day as
+  `shiftDatesFrom`. The bake carries it into the onboarding config, and the
+  installer writes it to the artifact's store
+  ([arch/onboarding/content.md#^onboarding-store-config](../../arch/onboarding/content.md#^onboarding-store-config)). ^channel-layout
 
 Each manifest entry becomes one tab page in that order, containing its one
 artifact and carrying its configured-or-default initial page fields. The
@@ -168,9 +178,87 @@ dependencies, fiction constraints, and deliberate deviations.
   tv-tasks skill (manifest: `skill: tv-tasks`): `task.css`/`task.js` are
   sibling dependencies of
   `index.html`, alongside the canonical components module for `<tv-icon>`.
-  It owns no CSS: the tv-tasks component supplies the whole surface at zero
-  body padding. Uses
+  The tv-tasks component supplies the whole surface at zero body padding; the
+  frame's styles only space its message. Uses
   `<tv-icon>` (current name, post the `ui-icon`→`tv-icon` rename).
+- **Company To-dos is the JSON store's showcase**: a live to-do list whose
+  tasks live in its own
+  [store](../../product/resources/resources.md#^rs-artifact-store), which
+  the person and their agent work on together. Its manifest declares the
+  starting tasks as the store's starting value. The starting tasks are
+  authored on the story day, and the declaration's `shiftDatesFrom` names
+  that day, so installation moves their due dates to fall the same number of
+  days from the installation day
+  ([declared starting values](../../arch/onboarding/installer.md#^onboarding-store-dates)).
+  The store holds `{ "tasks": { <key>: <task> } }`. A task is an object with
+  `title`, a non-empty string, and optionally `note`, a string; `due`, a
+  calendar date in `YYYY-MM-DD` form; `project`, a string; `tags`, an array
+  of strings; and `done`, a boolean, a task without it being not done. The
+  starting tasks have readable keys; a task an agent adds with
+  `tv resource json push` is stored under the key that `push` generates. A
+  comment next to the module's `getStore()` call describes this content, as
+  [the resource guidance](../../arch/resources/guidance.md#^rg-teaches) asks:
+  each field's type and whether it is required, and who writes what, the
+  page only a task's `done` and agents everything else.
+  ^productivity-todo-store
+- **Company To-dos renders the store, live.** The frame is the page's shell:
+  a page header holding the title, a date line and one message paragraph,
+  then an empty `<tv-task-list>`. The production module
+  `onboarding-company-todos.js`, placed beside the document by the bake,
+  writes the viewer's current local day into the date line in the frame's
+  `Wednesday, July 8` form. It renders the tasks into the list from the
+  store's first value, and again whenever the store changes, so a task an
+  agent adds, changes, completes or removes appears without a reload. Tasks
+  are grouped by due date, relative to the viewer's local day, into the
+  sections *Earlier*, *Today*, *Upcoming* and *Someday*: due before today,
+  due today, due after today, and without a due date. The sections come in
+  that order, and a section with no task is omitted. Within a section, tasks
+  are ordered by due date, then by the store's key order. Each task is a
+  `<tv-task>` whose checkbox is checked when the task is done, holding its
+  `title` as `<tv-task-title>`, its `note` as `<tv-task-note>`, and, only when
+  it has any of them, a `<tv-task-meta>` line with its `due` as
+  `<tv-task-meta-due>`, its `project` as a `<tv-task-meta-item>` with the
+  `hash` icon, and each tag as a `<tv-task-meta-tag>`. A done task stays in
+  its section, checked, and a task that is not done and past its due date
+  shows as overdue through `<tv-task-meta-due>`. An entry that is not an
+  object with a non-empty string `title` is not shown, and a field of the
+  wrong type, or a `due` that is not a calendar date, is treated as absent.
+  When the store holds no task to show, the list shows a
+  `<tv-task-placeholder>` saying that there are no tasks. Checking or
+  unchecking a task's checkbox sets that task's `done` in the store. The
+  checkboxes are enabled only while the page has the store's value and can
+  use the store, and its
+  [connection status](../../arch/resources/sdk.md#^sdk-connection-status) is
+  `connected`. ^productivity-todo-live
+- **Company To-dos has no local-only mode.** Until the store's first value
+  arrives, the list shows no task. While the connection status is
+  `disconnected`, the page says that it is disconnected and that changes
+  cannot be saved, and every checkbox is disabled; when the connection
+  returns, the message goes and the checkboxes are enabled and follow the
+  store again. When the page cannot use the store, as it loads or later — the
+  store is unavailable, the page's address reaches no store, as after the
+  share link it was opened through is revoked, the SDK does not load, or the
+  page is not served as artifact content — the page shows an error that says
+  it cannot use its store and gives the reason: the SDK's message, or that
+  the resource SDK could not be loaded. Every checkbox is
+  then disabled until the page reloads, and the list keeps what it last
+  showed, which need not match the store: the page no longer hears the store,
+  so a save still outstanding when it lost the store changes no checkbox,
+  whether the server applies it or refuses it. When a save is refused while
+  the page can use the store, the toggled checkbox returns to what the SDK
+  shows once it has
+  [rolled the save back](../../product/resources/json-store.md#The page sees its own writes immediately),
+  and the page shows the error in the same way, but disables no checkbox for
+  it; the error goes when a later toggle is saved. A save that fails because
+  the connection was lost returns the same way and shows as the disconnected
+  state, not as an error. ^productivity-todo-store-problems
+- **Company To-dos' message sits in its header.** The page shows its error,
+  or otherwise its disconnected notice, in the message paragraph the frame
+  places in the page header after the date line, in the house error-message
+  style (`.tv-error`), and hides that paragraph when there is neither. The
+  frame's styles space the message below the date line. The tv-tasks page
+  styles align the header with the list and space it from the list by the
+  same gap whether or not a message shows. ^productivity-todo-layout
 
 ### Business ops
 
@@ -213,11 +301,27 @@ Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests ar
 
 The bake also owns validation of these manifests. It owns the configuration output that records their artifact order. This surface requires no duplicate test of manifest validation or configuration output.
 
-Real-browser coverage must load the baked Company To-dos and Today's Calendar documents using assets from the production skill and canonical builds. Every authored task checkbox must upgrade with a real input whose accessible name is taken from the adjacent task title. Every authored due date must render without the component reporting it as invalid. The calendar must upgrade and render every authored event. Neither document may report a JavaScript module loading error or an error from a custom element.
+Real-browser coverage must load the baked Company To-dos and Today's Calendar documents using assets from the production skill and canonical builds. The calendar must upgrade and render every authored event. Neither document may report a JavaScript module loading error or an error from a custom element.
 
 With the browser on a known local day after July 8, 2026 that differs from its
-UTC day, that coverage also checks the task heading and due-date labels, the
-calendar header, and the shifted `start-date`, `start`, and `end` attributes.
+UTC day, that coverage also checks the calendar header and the shifted
+`start-date`, `start`, and `end` attributes.
+
+Live-list coverage loads Company To-dos as an installed artifact of a running
+server, with its store as installation left it, with the browser on a
+known local day. It shows the starting tasks rendered from the store in their
+sections, each checkbox upgraded with a real input whose accessible name is
+taken from its task's title and each due date rendered without the component
+reporting it as invalid, and the page header directly before the list. It
+shows that tasks added, changed, completed and removed through the store's
+administrative routes, as `tv resource json` makes such changes, appear
+without a reload, and that a toggled task's `done` is stored and shows after a
+reload. It also shows that the page has no local-only mode: the list shows no
+task until the store's first value arrives; one load whose store is
+unavailable, and one in which the SDK fails to load, show the error, with no
+task shown; a save refused while the page can use the store returns its
+checkbox and shows the error; and a lost connection shows the page as
+disconnected, with every checkbox disabled, until the connection returns.
 
 Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [product onboarding acceptance](../../product/onboarding/onboarding-channels.md#Testing) owns proof of installation through the built `tv` process and of serving the packaged bytes, including the markdown source. [Installer testing](../../arch/onboarding/installer.md#Testing) owns proof that each page is created with the values configured for it or the shared defaults. [Artifact product testing](../../product/artifacts.md#Testing), [artifact-frame lifecycle testing](../../arch/artifact-frame/index.md#Testing), and [reload and navigation architecture](../../arch/artifact-frame/reload-navigation.md) own proof that artifact documents load, remain isolated, are interactive, and reload when the theme changes. Because those specs own these behaviors, the real-browser coverage here starts with baked documents. It does not repeat installation, page order, artifact-frame behavior, or theme changes. The bundled task and calendar skill suites retain ownership of their components' complete behavior and motion. This surface proves only that the authored task and calendar documents produce the browser outcomes above when loaded with the assets declared in their manifests.
 
@@ -229,7 +333,9 @@ The permanent Frameset workshop poses each of the thirteen authored documents
 and each of the four whole channels in manifest order through the stage and
 artifact frame, one artifact per configured-or-default page. Static artifacts
 have one state each. For `company-todos.frame`, the workshop configuration
-loads the tv-tasks source CSS and JavaScript. For `todays-calendar.frame`, it
+loads the tv-tasks source CSS and JavaScript; the frame is Company To-dos'
+shell, whose tasks render only from its store, so the workshop shows its
+header and empty list. For `todays-calendar.frame`, it
 loads the tv-calendar source CSS and JavaScript. The Markdown document goes
 through Television's Markdown pipeline.
 

@@ -27,13 +27,16 @@ A *shipped surface* is a part of Television through which the project delivers c
 - the markdown view;
 - the `tv-calendar` skill;
 - the `tv-tasks` skill;
+- the resource SDK, which the server serves to artifact pages;
 - the public source repository. ^licensing-source-surface
 
 The implementation mapping — surface identifiers, build inventories, and CLI aggregation — is owned by [the architecture spec](../arch/licensing.md#^licensing-declared-surfaces) and must follow this list. The list is a reviewed product decision: adding or removing a product area that redistributes third-party material starts with a change here.
 
-Only `tv-calendar` and `tv-tasks` among Television's four bundled skills ship JavaScript. The `television` bundle — including its `SKILL.md` and `theming.md` guidance — and `tv-table` carry only first-party instructions, so they need no licensing-framework surface. This distinction is explicit because a directory or package count cannot determine which skills require licensing attention.
+Only `tv-calendar` and `tv-tasks` among Television's four bundled skills ship JavaScript. The `television` bundle — including its `SKILL.md`, `theming.md` and `resources.md` guidance — and `tv-table` carry only first-party instructions, so they need no licensing-framework surface. This distinction is explicit because a directory or package count cannot determine which skills require licensing attention.
 
-Across the listed areas, third-party material arrives through bundled executables and browser code, prebuilt onboarding artifacts, installed skill files, bundled themes, and *vendored assets* tracked in Television's source tree rather than consumed as package dependencies. A clone of the public repository delivers vendored assets before any build runs, which is why the repository is a surface in its own right. The vendored-asset manifest and its contents are owned by [arch/licensing.md](../arch/licensing.md).
+The [resource SDK](../arch/resources/sdk.md) is on the list because its push-key generator is adapted from the Firebase JavaScript SDK ([adapted code](#^licensing-adapted-code)); the rest of the module is Television's own code.
+
+Across the listed areas, third-party material arrives through bundled executables and browser code, prebuilt onboarding artifacts, installed skill files, bundled themes, and *vendored assets*: material tracked in Television's source tree rather than consumed as package dependencies, whether copied in unchanged or adapted into Television's own files. A clone of the public repository delivers vendored assets before any build runs, which is why the repository is a surface in its own right. The vendored-asset manifest and its contents are owned by [arch/licensing.md](../arch/licensing.md).
 
 The promise: **every shipped surface that redistributes third-party material carries that material's license and attribution**, as its license requires (for the permissive licenses we accept, that means the real upstream copyright and permission notices — never placeholder boilerplate — and, for licenses that require it, the license text). A user who receives a Television artifact has received, with it, the notices for the third-party packages inside it — including a skill or a bundled theme after Television has copied it out of the package. ^licensing-notices-promise
 
@@ -45,7 +48,14 @@ The promise: **every shipped surface that redistributes third-party material car
 
 The theme's README links each upstream license at a fixed revision whose terms are the ones declared. For a photo licensed through a website without versioned terms, it records the photo URL, photographer, license URL, and date the retained terms were retrieved. Attribution never invents an upstream copyright holder or year.
 
-**The notices are written for their reader.** Every notices file Television generates — wherever one exists ([it exists where there is something to declare](#^licensing-notices-when)): the repository root, the published CLI package, the desktop application, the browser bundle, bundled views, installed skills, bundled themes — is read by people outside this project: users, downstream distributors, license reviewers. Its content is plain language about what the file is and whose terms it carries. It refers to none of Television's internal processes, workflows, tooling, vocabulary, or spec documents, and it gives the reader no instructions about a file that is rebuilt on every release. Internal explanation belongs in code comments and specs — never in an artifact we hand to someone else. ^licensing-notices-audience
+**Source code adapted from a third-party project redistributes third-party material.** A Television source file that adapts another project's code, rather than using it as a package, is attributed in two places: ^licensing-adapted-code
+
+- the file opens with a comment that names the upstream project and its address, reproduces the copyright line and license notice that the upstream code carries, and states that Television modified it, because the public repository redistributes the file itself, and licenses such as Apache 2.0 require a modified file to say so;
+- the notices of every surface that ships the code, the public source repository among them, list the upstream project with its copyright line and complete license terms.
+
+The copyright line is the one the adapted upstream file carries; attribution never invents one.
+
+**The notices are written for their reader.** Every notices file Television generates — wherever one exists ([it exists where there is something to declare](#^licensing-notices-when)): the repository root, the published CLI package, the desktop application, the browser bundle, the resource SDK, bundled views, installed skills, bundled themes — is read by people outside this project: users, downstream distributors, license reviewers. Its content is plain language about what the file is and whose terms it carries. It refers to none of Television's internal processes, workflows, tooling, vocabulary, or spec documents, and it gives the reader no instructions about a file that is rebuilt on every release. Internal explanation belongs in code comments and specs — never in an artifact we hand to someone else. ^licensing-notices-audience
 
 A notices file accompanies material that needs declaring. Where an artifact carries none, there is no file: absence means there was nothing to declare, not that something was lost. ^licensing-notices-when
 
@@ -103,7 +113,7 @@ Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are t
 
 Published-package acceptance must build and inspect the real npm tarball for the CLI package. Desktop acceptance must inspect an [upload directory](../arch/desktop/distribution.md#^desktop-dist-upload) generated by the real desktop build script, the directory ToDesktop builds the app from.
 
-Browser-surface acceptance must fetch the [stable notices URL](../arch/licensing.md#^licensing-vite-intermediate) from a running Television server. Acceptance of Electron as an [upstream aggregate](#^licensing-electron-aggregate) is the desktop application's [license-file check](./desktop-app.md#Testing), which finds Electron's license files in the built app.
+Browser-surface acceptance must fetch the [stable notices URL](../arch/licensing.md#^licensing-vite-intermediate) from a running Television server, and resource-SDK acceptance must fetch [the SDK's notices](../arch/licensing.md#^licensing-sdk-notices) from one the same way. Acceptance of Electron as an [upstream aggregate](#^licensing-electron-aggregate) is the desktop application's [license-file check](./desktop-app.md#Testing), which finds Electron's license files in the built app.
 
 Acceptance of the [reader](#^licensing-notices-audience), [existence](#^licensing-notices-when), and [ignored-package](#^licensing-ignored-silent-routes) promises must inspect all real generated outputs together: the committed repository-root notices, the packed CLI tarball, the desktop upload directory, every built view and skill directory, every bundled theme folder that owes a notices file, and the notices served with the browser client.
 

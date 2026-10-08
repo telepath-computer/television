@@ -35,6 +35,7 @@ const CANONICAL_BUILD = path.join(
   "packages/canonical/scripts/build-canonical.mjs",
 );
 const BAKE = path.join(REPO_ROOT, "scripts/bake-onboarding.mjs");
+const SDK_BUILD = path.join(REPO_ROOT, "packages/server/scripts/build-sdk.mjs");
 const CANONICAL_WRAPPER = `@import url("/canonical/v2/base.css");
 @import url("/theme/theme.css");
 `;
@@ -60,6 +61,7 @@ test.beforeAll(async () => {
   const skillsDist = path.join(workRoot, "skills-dist");
   const canonicalOutputRoot = path.join(workRoot, "canonical");
   const canonicalRoot = path.join(canonicalOutputRoot, "v2");
+  const sdkRoot = path.join(workRoot, "sdk");
   cpSync(PRODUCTION_ASSETS, contentRoot, { recursive: true });
 
   execFileSync(process.execPath, [SKILLS_BUILD], {
@@ -77,13 +79,20 @@ test.beforeAll(async () => {
     ],
     { cwd: REPO_ROOT, stdio: "pipe" },
   );
+  // Company To-dos' to-do store module loads the resource SDK, which
+  // Television serves beside every artifact.
+  execFileSync(process.execPath, [SDK_BUILD], {
+    cwd: REPO_ROOT,
+    env: { ...process.env, TV_SDK_DIST_DIR: sdkRoot },
+    stdio: "pipe",
+  });
   execFileSync(
     process.execPath,
     [BAKE, "productivity", "--root", contentRoot, "--skills-dist", skillsDist],
     { cwd: REPO_ROOT, stdio: "pipe" },
   );
 
-  fixture = await startArtifactFixture(contentRoot, canonicalRoot);
+  fixture = await startArtifactFixture(contentRoot, canonicalRoot, sdkRoot);
 });
 
 test.afterAll(async () => {
@@ -93,39 +102,27 @@ test.afterAll(async () => {
 
 test.use({ locale: "en-US", timezoneId: "Australia/Sydney" });
 
-test("authored task and calendar documents show their story dates relative to the viewer's local day", async ({
+test("authored task and calendar documents load their built assets, and the calendar shows its story dates relative to the viewer's local day", async ({
   page,
 }) => {
   test.setTimeout(60_000);
   if (!fixture) throw new Error("Onboarding skill-asset fixture did not start");
   await page.clock.setFixedTime(new Date("2026-10-02T08:00:00+10:00"));
 
-  // Parse the authored HTML in an inert document, independent of the bake
+  // Parse the authored calendar in an inert document, independent of the bake
   // output. The design frames have no parameters, imports, or data bindings.
   const readBody = (slug: string): string => readFileSync(
     path.join(DESIGN_ROOT, "productivity", `${slug}.frame`), "utf8",
   ).replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, "");
-  const { authoredTasks, authoredDueDates, authoredEvents } = await page.evaluate(({ tasks, calendar }) => {
-    const parser = new DOMParser();
-    const taskDocument = parser.parseFromString(tasks, "text/html");
-    const calendarDocument = parser.parseFromString(calendar, "text/html");
-    return {
-      authoredTasks: [...taskDocument.querySelectorAll("tv-task:has(tv-task-checkbox)")].map((task) => ({
-        title: task.querySelector("tv-task-title")!.textContent!.trim(),
-      })),
-      authoredDueDates: [...taskDocument.querySelectorAll("tv-task-meta-due")].map((due) => due.getAttribute("date")),
-      authoredEvents: [...calendarDocument.querySelectorAll("calendar-event")].map((event) => ({
-        title: event.getAttribute("title"),
-        start: event.getAttribute("start"),
-        end: event.getAttribute("end"),
-      })),
-    };
-  }, { tasks: readBody("company-todos"), calendar: readBody("todays-calendar") });
-  expect(authoredTasks.length).toBeGreaterThan(0);
+  const authoredEvents = await page.evaluate((calendar) => {
+    const calendarDocument = new DOMParser().parseFromString(calendar, "text/html");
+    return [...calendarDocument.querySelectorAll("calendar-event")].map((event) => ({
+      title: event.getAttribute("title"),
+      start: event.getAttribute("start"),
+      end: event.getAttribute("end"),
+    }));
+  }, readBody("todays-calendar"));
   expect(authoredEvents.length).toBeGreaterThan(0);
-  expect(authoredDueDates).toEqual([
-    "2026-07-04", "2026-07-08", "2026-07-08", "2026-07-08", "2026-07-10", "2026-07-14",
-  ]);
   expect(authoredEvents.every(({ start, end }) =>
     start?.startsWith("2026-07-08T") && end?.startsWith("2026-07-08T"))).toBe(true);
 
@@ -140,32 +137,26 @@ test("authored task and calendar documents show their story dates relative to th
     if (new URL(request.url()).pathname.endsWith(".js")) failedModules.push(request.url());
   });
 
+  // Outside artifact content Company To-dos cannot use its store, whose tasks
+  // it renders: the message in its page header says so and gives the SDK's
+  // reason, and the list shows no task.
   await page.goto(`${fixture.url}/productivity/company-todos/`);
   await configureTestMotion(page);
-  const taskReport = await waitForAuthoredUpgrade(page, {
-    kind: "tasks",
-    definitions: ["tv-task-checkbox", "tv-task-meta-due", "tv-icon"],
-    expectedGeneratedCount: authoredTasks.length + authoredDueDates.length,
-  }) as {
-    generatedCount: number;
-    heading: string | null;
-    tasks: Array<{ title: string; inputName: string | null }>;
-    dueDates: Array<{ date: string | null; label: string | null }>;
-  };
-
-  expect(taskReport.tasks).toEqual(
-    authoredTasks.map(({ title }) => ({ title, inputName: title })),
-  );
-  expect(taskReport.heading).toBe("Friday, October 2");
-  expect(taskReport.dueDates).toEqual([
-    { date: "2026-09-28", label: "Sep 28" },
-    { date: "2026-10-02", label: "Today" },
-    { date: "2026-10-02", label: "Today" },
-    { date: "2026-10-02", label: "Today" },
-    { date: "2026-10-04", label: "Oct 4" },
-    { date: "2026-10-08", label: "Oct 8" },
-  ]);
-  expect(taskReport.dueDates.every(({ label }) => label !== null && label !== "Invalid date")).toBe(true);
+  await page.evaluate(() => Promise.all(["tv-task-checkbox", "tv-task-meta-due", "tv-icon"].map((name) => customElements.whenDefined(name))));
+  const refusal = await page.evaluate(async (sdkPath) => {
+    const sdk = await import(sdkPath);
+    try {
+      sdk.getStore();
+    } catch (error) {
+      return { code: (error as { code?: unknown }).code, message: (error as Error).message };
+    }
+    return null;
+  }, "/sdk/v1/resources.js");
+  expect(refusal).toEqual({ code: "not-artifact-page", message: expect.any(String) });
+  const storeError = page.locator("header > p.tv-error", { hasText: "cannot use its store" });
+  await expect(storeError).toBeVisible();
+  await expect(storeError).toContainText(refusal!.message as string);
+  await expect(page.locator("tv-task")).toHaveCount(0);
 
   await page.goto(`${fixture.url}/productivity/todays-calendar/`);
   await configureTestMotion(page);
@@ -199,8 +190,9 @@ test("authored task and calendar documents show their story dates relative to th
   const moduleRequests = fixture.requests.filter(({ pathname }) => pathname.endsWith(".js"));
   expect(moduleRequests).toEqual(expect.arrayContaining([
     { pathname: "/canonical/v2/components.js", status: 200 },
-    { pathname: "/productivity/company-todos/onboarding-relative-dates.js", status: 200 },
     { pathname: "/productivity/company-todos/task.js", status: 200 },
+    { pathname: "/productivity/company-todos/onboarding-company-todos.js", status: 200 },
+    { pathname: "/sdk/v1/resources.js", status: 200 },
     { pathname: "/productivity/todays-calendar/onboarding-relative-dates.js", status: 200 },
     { pathname: "/productivity/todays-calendar/calendar.js", status: 200 },
   ]));
@@ -218,7 +210,7 @@ test("authored task and calendar documents show their story dates relative to th
 async function waitForAuthoredUpgrade(
   page: Page,
   input: {
-    kind: "tasks" | "calendar";
+    kind: "calendar";
     definitions: string[];
     expectedGeneratedCount: number;
   },
@@ -226,24 +218,6 @@ async function waitForAuthoredUpgrade(
   return page.evaluate(async ({ kind, definitions, expectedGeneratedCount }) => {
     await Promise.all(definitions.map((name) => customElements.whenDefined(name)));
     const readReport = (): { generatedCount: number; [key: string]: unknown } => {
-      if (kind === "tasks") {
-        const tasks = [...document.querySelectorAll("tv-task")].map((task) => {
-          const title = task.querySelector("tv-task-title")?.textContent?.trim() ?? "";
-          const input = task.querySelector("tv-task-checkbox")?.shadowRoot?.querySelector("input");
-          return { title, inputName: input?.getAttribute("aria-label") ?? null };
-        });
-        const dueDates = [...document.querySelectorAll("tv-task-meta-due")].map((due) => ({
-          date: due.getAttribute("date"),
-          label: due.shadowRoot?.querySelector(".label")?.textContent ?? null,
-        }));
-        return {
-          generatedCount: tasks.filter(({ inputName }) => inputName !== null).length +
-            dueDates.filter(({ label }) => label !== null).length,
-          heading: document.querySelector("header p")?.textContent ?? null,
-          tasks,
-          dueDates,
-        };
-      }
       const day = document.querySelector("calendar-headers > calendar-day");
       const events = [...document.querySelectorAll("calendar-event")].map((event) => ({
         title: event.getAttribute("title"),
@@ -320,6 +294,7 @@ async function waitForAuthoredUpgrade(
 async function startArtifactFixture(
   contentRoot: string,
   canonicalRoot: string,
+  sdkRoot: string,
 ): Promise<ArtifactFixture> {
   const requests: ServedRequest[] = [];
   const sockets = new Set<Socket>();
@@ -343,7 +318,9 @@ async function startArtifactFixture(
       ? resolveFixturePath(canonicalRoot, "styles.css")
       : pathname.startsWith("/canonical/v2/")
         ? resolveFixturePath(canonicalRoot, pathname.slice("/canonical/v2/".length))
-        : resolveFixturePath(contentRoot, pathname.slice(1));
+        : pathname.startsWith("/sdk/")
+          ? resolveFixturePath(sdkRoot, pathname.slice("/sdk/".length))
+          : resolveFixturePath(contentRoot, pathname.slice(1));
     if (!source) {
       requests.push({ pathname, status: 404 });
       response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });

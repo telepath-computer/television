@@ -50,6 +50,7 @@ Metafiles and bundle-module lists live in build-process memory, so neither survi
 type LicenseSurfaceDeclaration =
   | { surface: "cli"; producesInventory: true; packageDirectory: "packages/cli" }
   | { surface: "desktop"; producesInventory: true; packageDirectory: "packages/desktop" }
+  | { surface: "sdk:resources"; producesInventory: true; parentSurface: "cli" }
   | { surface: "skill:tv-calendar"; producesInventory: true; parentSurface: "cli" }
   | { surface: "skill:tv-tasks"; producesInventory: true; parentSurface: "cli" }
   | { surface: "source"; producesInventory: false }
@@ -113,7 +114,7 @@ This spec pins what the file says, not its exact bytes. ^licensing-notices-heade
 3. folds in the [vendored assets](#vendored-asset-provenance) declared for the surface;
 4. writes `THIRD-PARTY-NOTICES.txt` into the package's `dist/` when there is at least one entry to write: a header, then one entry per item of third-party material, in the shape the [content rule](#notices-content) fixes. ^licensing-generator-behavior
 
-The CLI package ships `dist/**` through its `files` glob, and the desktop [upload directory](./desktop/distribution.md#^desktop-dist-upload) carries the desktop workspace's `dist/`, so a notices file that is written reaches the tarball and the built app with no further step. The CLI build also copies the web, view, and skill dists into `dist/web/`, `dist/views/`, and `dist/skills/` — their surface inventories, read from the [inventory root](#^licensing-inventory-root), are folded into the CLI's notices file at that point, so one umbrella file covers everything in the tarball, alongside whichever per-directory files exist. ^licensing-notices-placement
+The CLI package ships `dist/**` through its `files` glob, and the desktop [upload directory](./desktop/distribution.md#^desktop-dist-upload) carries the desktop workspace's `dist/`, so a notices file that is written reaches the tarball and the built app with no further step. The CLI build also copies the web, view, and skill dists into `dist/web/`, `dist/views/`, and `dist/skills/`, and the [resource SDK](#^licensing-sdk-notices) into `dist/sdk/` — their surface inventories, read from the [inventory root](#^licensing-inventory-root), are folded into the CLI's notices file at that point, so one umbrella file covers everything in the tarball, alongside whichever per-directory files exist. ^licensing-notices-placement
 
 ### Vite bundles (web client, bundled views, skill bundles)
 
@@ -125,6 +126,10 @@ The plugin writes **no in-dist inventory file**: it persists the surface's inven
 - a `THIRD-PARTY-NOTICES.txt` in each built view or skill dist **that has entries** ([existence rule](#^licensing-notices-existence)). The per-skill file matters because `tv skills install` copies a skill's directory out of our package into the user's agent directory — where a skill carries third-party material, its notices must live inside the copied directory to travel with it. ^licensing-skill-notices
 
 Vite's default preservation of `/*! ... */` and `@license` legal comments in minified output is left in place. Those inline banners are how some packages (DOMPurify, lit-html) expect to be attributed, but only packages that author such banners get them — the generated notices are the complete record, the banners a courtesy left intact. ^licensing-legal-comments
+
+### The resource SDK
+
+`packages/server/scripts/build-sdk.mjs` bundles the [resource SDK](./resources/sdk.md#^sdk-build) with esbuild and passes its metafile to the generator as the `sdk:resources` surface, as the CLI and desktop builds pass theirs: the generator persists the surface's inventory and writes `THIRD-PARTY-NOTICES.txt` beside the module, in `dist/sdk/v1/`, when the surface has entries. The SDK's inputs are first-party source alone, so its inventory lists no packages, and its entries come from the asset manifest: the push-key generator [adapted from the Firebase JavaScript SDK](#^licensing-adapted-records). The CLI build copies `dist/sdk/` into its package with the file in it and folds the surface into its umbrella notices ([placement](#^licensing-notices-placement)), and the server serves the file next to the module, at `/sdk/v1/THIRD-PARTY-NOTICES.txt` ([serving](./resources/sdk.md#^sdk-serving)), so a page's browser can reach the notices for the code it loads. ^licensing-sdk-notices
 
 ### The source-repository surface
 
@@ -240,6 +245,15 @@ A release tag or registry package is a valid source only when its own license fi
 
 The prebuilt onboarding calendar bundle now contains only first-party code, so it needs no vendored-asset entry. A tracked file whose only embedded third-party code is an ignored package gets no entry at all — there is nothing for the system to carry, and declaring one is rejected. Adding any other vendored third-party material without an `assets.json` entry is a review defect — the checklist question is "did third-party bytes enter the tree outside `node_modules`?"; no tooling can catch this class.
 
+### Code adapted into Television's source
+
+The [product rule](../product/licensing.md#^licensing-adapted-code) for code adapted from a third-party project is met by one asset record per upstream project and an attribution comment in each adapted file: ^licensing-adapted-records
+
+- the record's paths are the adapted source files; its component names the upstream project, and its notice text is the copyright line the adapted upstream code carries followed by the complete license terms, copied verbatim from the upstream license file at a fixed revision whose terms are the ones declared, with the upstream `NOTICE` file's contents when an Apache-2.0 project has one; its surfaces are `source` and every surface whose build compiles an adapted file;
+- each adapted file opens with the comment the product rule requires: the upstream project and its address, its copyright line and license notice as the upstream file carries them, and a statement that Television modified the file.
+
+The one such record is the Firebase JavaScript SDK's. `packages/shared/src/resources/push-keys.ts` adapts its push-ID generator under the Apache License 2.0. The CLI bundle compiles it, since `tv resource json push` generates its key with it ([push keys](./resources/json-store.md#^js-arch-push-keys)), and so does the resource SDK, so the record's surfaces are `cli`, `sdk:resources` and `source`. Which surfaces compile an adapted file is decided in review, like every other vendored-asset question; no tool traces it.
+
 ## LICENSE propagation and manifest lint
 
 The root `LICENSE` is the single source ([policy](../product/licensing.md#^licensing-mit); its copyright line is [product authority](../product/licensing.md#^licensing-copyright-line)). The CLI build copies it into the CLI package root, and the desktop build script copies it into the [upload directory](./desktop/distribution.md#^desktop-dist-upload), so the copies are regenerated — byte-identical by construction — on every build rather than maintained by hand. The manifest lint in `scripts/check-publishable.mjs --manifest-only` (already run by `npm run verify`) additionally requires `"license": "MIT"` in every workspace manifest. ^licensing-license-propagation
@@ -274,7 +288,7 @@ The generators and gate are plain Node scripts with no network access — licens
 
 ## Testing
 
-Real builds verify the licensing integration for the CLI and desktop esbuild products and for every declared Vite surface that produces an inventory. Real builds also verify that the full CLI build aggregates inventories and that the inventories from the suite's product builds reach the license gate. The upload-directory assertions inspect a directory generated by the real desktop build script. Fixture bundler output is not used for this evidence.
+Real builds verify the licensing integration for the CLI and desktop esbuild products, for the resource SDK's esbuild build, and for every declared Vite surface that produces an inventory. Real builds also verify that the full CLI build aggregates inventories and that the inventories from the suite's product builds reach the license gate. The upload-directory assertions inspect a directory generated by the real desktop build script. Fixture bundler output is not used for this evidence.
 
 The committed `scripts/licenses/assets.json` manifest is read directly, with no substitute, to verify that each record for a vendored asset reaches every surface listed in that record. [Electron's license files](#^licensing-electron-built-app) are checked in the built Mac app, which ToDesktop packages with its own copy of Electron, by the desktop product spec's [real-host acceptance](../product/desktop-app.md#Testing).
 

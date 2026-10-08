@@ -36,6 +36,7 @@ const PRODUCTION_ASSETS = path.join(REPO_ROOT, "packages", "server", "assets", "
 const DESIGN_ROOT = path.join(REPO_ROOT, "specs", "ui", "onboarding-artifacts");
 const SKILLS_DIST = path.join(REPO_ROOT, "packages", "skills", "dist");
 const DATE_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-relative-dates.js");
+const TODO_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-company-todos.js");
 const VALIDATOR = path.join(REPO_ROOT, "packages", "server", "scripts", "validate-onboarding.mjs");
 
 // The real design channels, derived from the design root at runtime: every
@@ -53,6 +54,7 @@ type ManifestCard = {
   components?: boolean;
   size?: TabPage["size"];
   geometry?: TabPage["geometry"];
+  store?: unknown;
 };
 type Manifest = { name: string; cards: ManifestCard[] };
 
@@ -117,7 +119,7 @@ function escapeTitle(title: string): string {
 
 function shellDoc(
   title: string,
-  opts: { components?: boolean; skillCss?: string[]; skillJs?: string[]; relativeDates?: boolean },
+  opts: { components?: boolean; skillCss?: string[]; skillJs?: string[]; relativeDates?: boolean; todoStore?: boolean },
   rendering: { markup: string; style?: string },
 ): string {
   const lines = [
@@ -129,6 +131,7 @@ function shellDoc(
     `<title>${escapeTitle(title)}</title>`,
     '<link rel="stylesheet" href="/canonical/v2/styles.css">',
     ...(opts.relativeDates ? ['<script type="module" src="./onboarding-relative-dates.js"></script>'] : []),
+    ...(opts.todoStore ? ['<script type="module" src="./onboarding-company-todos.js"></script>'] : []),
     ...(opts.components !== false ? ['<script type="module" src="/canonical/v2/components.js"></script>'] : []),
     ...(opts.skillCss ?? []).map((f) => `<link rel="stylesheet" href="./${f}">`),
     ...(opts.skillJs ?? []).map((f) => `<script type="module" src="./${f}"></script>`),
@@ -148,9 +151,10 @@ function shellDoc(
 const KEY_ORDERS: Record<string, string[]> = {
   config: ["version", "focusChannel", "channels"],
   channel: ["slug", "name", "artifacts"],
-  artifact: ["slug", "title", "size", "geometry"],
+  artifact: ["slug", "title", "size", "geometry", "store"],
   size: ["width", "height"],
   geometry: ["kind", "full_screen"],
+  store: ["value", "shiftDatesFrom"],
 };
 
 function ordered(value: unknown, kind: string): unknown {
@@ -163,7 +167,7 @@ function ordered(value: unknown, kind: string): unknown {
     if (field === undefined) continue;
     out[key] =
       kind === "artifact" &&
-      (key === "size" || key === "geometry") &&
+      (key === "size" || key === "geometry" || key === "store") &&
       typeof field === "object" &&
       field !== null &&
       !Array.isArray(field)
@@ -336,16 +340,17 @@ describe("bake acceptance", () => {
     const config = JSON.parse(readFileSync(path.join(root, "onboarding-channels.json"), "utf8")) as {
       channels: Array<{
         slug: string;
-        artifacts: Array<Pick<ManifestCard, "slug" | "title" | "size" | "geometry">>;
+        artifacts: Array<Pick<ManifestCard, "slug" | "title" | "size" | "geometry" | "store">>;
       }>;
     };
     for (const channel of designChannels) {
       const manifest = readManifest(DESIGN_ROOT, channel);
-      const expectedArtifacts = manifest.cards.map(({ slug, title, size, geometry }) => ({
+      const expectedArtifacts = manifest.cards.map(({ slug, title, size, geometry, store }) => ({
         slug,
         title,
         ...(size === undefined ? {} : { size }),
         ...(geometry === undefined ? {} : { geometry }),
+        ...(store === undefined ? {} : { store }),
       }));
       expect(config.channels.find((entry) => entry.slug === channel)?.artifacts, channel).toEqual(
         expectedArtifacts,
@@ -414,10 +419,15 @@ describe("baked artifact content (^t-baked-content)", () => {
             .filter((f) => f !== "SKILL.md")
             .sort();
           const bakedDir = path.join(root, channel, card.slug);
-          const relativeDates = channel === "productivity" &&
-            (card.slug === "company-todos" || card.slug === "todays-calendar");
+          const relativeDates = channel === "productivity" && card.slug === "todays-calendar";
+          const todoStore = channel === "productivity" && card.slug === "company-todos";
           expect(readdirSync(bakedDir).sort(), `${channel}/${card.slug}`).toEqual(
-            ["index.html", ...distFiles, ...(relativeDates ? ["onboarding-relative-dates.js"] : [])].sort(),
+            [
+              "index.html",
+              ...distFiles,
+              ...(relativeDates ? ["onboarding-relative-dates.js"] : []),
+              ...(todoStore ? ["onboarding-company-todos.js"] : []),
+            ].sort(),
           );
           for (const file of distFiles) {
             expect(
@@ -432,6 +442,13 @@ describe("baked artifact content (^t-baked-content)", () => {
               `${channel}/${card.slug}/onboarding-relative-dates.js`,
             ).toBe(true);
           }
+          // proofs/arch/onboarding/bake.md#^t-todo-store-module
+          if (todoStore) {
+            expect(
+              readFileSync(path.join(bakedDir, "onboarding-company-todos.js")).equals(readFileSync(TODO_MODULE)),
+              `${channel}/${card.slug}/onboarding-company-todos.js`,
+            ).toBe(true);
+          }
           const expected = shellDoc(
             card.title,
             {
@@ -439,6 +456,7 @@ describe("baked artifact content (^t-baked-content)", () => {
               skillCss: distFiles.filter((f) => f.endsWith(".css")),
               skillJs: distFiles.filter((f) => f.endsWith(".js")),
               relativeDates,
+              todoStore,
             },
             rendering,
           );
@@ -664,6 +682,8 @@ describe("config update (^t-config-update)", () => {
             slug: "two-a",
             title: "Two A",
             geometry: { kind: "single", full_screen: true },
+            // Authored out of the schema's key order, with a value whose own key order is its data.
+            store: { shiftDatesFrom: "2026-07-08", value: { b: 1, a: [2, { d: null, c: true }] } },
           }),
         ],
       },
@@ -698,6 +718,7 @@ describe("config update (^t-config-update)", () => {
               slug: "two-a",
               title: "Two A",
               geometry: { kind: "single", full_screen: true },
+              store: { value: { b: 1, a: [2, { d: null, c: true }] }, shiftDatesFrom: "2026-07-08" },
             },
           ],
         },
@@ -774,6 +795,13 @@ describe("determinism (^t-bake-deterministic)", () => {
     const second = runBake([...designChannels, "--root", rootB]);
     expect(second.status, second.stderr).toBe(0);
     expect(snapshot(rootA)).toEqual(snapshot(rootB));
+    // The compared bytes include both production modules.
+    expect(Object.keys(snapshot(rootA))).toEqual(
+      expect.arrayContaining([
+        "productivity/company-todos/onboarding-company-todos.js",
+        "productivity/todays-calendar/onboarding-relative-dates.js",
+      ]),
+    );
     const again = runBake([...designChannels, "--root", rootA]);
     expect(again.status, again.stderr).toBe(0);
     expect(snapshot(rootA)).toEqual(snapshot(rootB));
@@ -791,6 +819,41 @@ describe("input contract rejections (^t-input-contract)", () => {
     // fixture skills dist; setup mutates it and picks the invocation.
     setup: (env: { root: string; designs: string; skillsDist: string; base: string }) => string[];
   };
+
+  const withStore = (env: { designs: string }, store: unknown): string[] => {
+    writeDesign(env.designs, "s", validManifest([validCard({ store })]), { "main-card.frame": FRAME });
+    return ["s"];
+  };
+  // Store declarations on cards (specs/ui/onboarding-artifacts/index.md#^channel-layout).
+  function storeCases(): Case[] {
+    const declarationCases: Array<{ name: string; store: unknown; match: RegExp }> = [
+      { name: "a store that is not a mapping", store: [{ value: {} }], match: /'store' must be a mapping/ },
+      { name: "a store with an unknown field", store: { value: {}, access: "read" }, match: /unknown field 'access' on the store/ },
+      { name: "a store without value", store: { shiftDatesFrom: "2026-07-08" }, match: /store .*is missing 'value'/ },
+      { name: "a store whose shiftDatesFrom is not a calendar date", store: { value: {}, shiftDatesFrom: "2026-02-30" }, match: /shiftDatesFrom.*calendar date/ },
+    ];
+    return [
+      ...declarationCases.map(({ name, store, match }): Case => ({
+        name,
+        match,
+        setup: (env) => [...withStore(env, store), "--root", env.root, "--designs", env.designs],
+      })),
+      {
+        // YAML reads 1e400 as an infinity, which no JSON store holds.
+        name: "a store whose starting value breaks the JSON store's value rules",
+        match: /finite/,
+        setup: (env) => {
+          writeDesign(
+            env.designs,
+            "s",
+            '{"name":"Fixture","cards":[{"id":"main","slug":"main-card","title":"Main Card","store":{"value":{"n":1e400}}}]}\n',
+            { "main-card.frame": FRAME },
+          );
+          return ["s", "--root", env.root, "--designs", env.designs];
+        },
+      },
+    ];
+  }
 
   const withSkill = (env: { designs: string }, skill: unknown): void =>
     writeDesign(env.designs, "skill-screen", validManifest([validCard({ id: "s", slug: "s-card", title: "S", skill })]), {
@@ -861,6 +924,7 @@ describe("input contract rejections (^t-input-contract)", () => {
     { name: "non-string title", match: /title/i, setup: (env) => { writeDesign(env.designs, "s", validManifest([validCard({ title: 7 })]), { "main-card.frame": FRAME }); return ["s", "--root", env.root, "--designs", env.designs]; } },
     { name: "empty title", match: /title/i, setup: (env) => { writeDesign(env.designs, "s", validManifest([validCard({ title: "  " })]), { "main-card.frame": FRAME }); return ["s", "--root", env.root, "--designs", env.designs]; } },
     { name: "non-boolean components", match: /components/i, setup: (env) => { writeDesign(env.designs, "s", validManifest([validCard({ components: "false" })]), { "main-card.frame": FRAME }); return ["s", "--root", env.root, "--designs", env.designs]; } },
+    ...storeCases(),
     { name: "malformed skill name", match: /skill/i, setup: (env) => { writeDesign(env.designs, "s", validManifest([validCard({ skill: "Bad_Skill" })]), { "main-card.frame": FRAME }); return ["s", "--root", env.root, "--designs", env.designs]; } },
     // flat sources
     { name: "neither flat source file exists", match: /source|missing/i, setup: (env) => { writeDesign(env.designs, "s", validManifest(), {}); return ["s", "--root", env.root, "--designs", env.designs]; } },

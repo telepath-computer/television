@@ -34,9 +34,12 @@ For a single-file artifact, inline `task.css`/`task.js` into `<style>` and
 `<script type="module">` tags instead. `components.js` gives you `<tv-icon>`;
 `task.js` registers `<tv-task-checkbox>` and `<tv-task-meta-due>`.
 
-A task list is not a prose document: don't add `body` padding (the house
-style doc suggests it for prose) — `tv-task-list` and the page header supply
-their own gutters. Leave the body at zero.
+A task list is not a prose document, and `task.css` lays out its page: one
+inset around the whole page, shared by the page header, the list and anything
+you place between them, such as an add form or a toolbar, and one gap between
+each of them. Don't add `body` padding (the house style doc suggests it for
+prose), and don't give those blocks side padding or margins of their own to
+line them up: they already line up.
 
 Television manages light and dark appearance. Live canonical v2 supplies the
 selected theme and shared defaults; the task kit inherits its surface, text,
@@ -89,8 +92,8 @@ a bare list is fine. Add one when the list benefits from its own masthead: a
 date line ("Today" lists usually carry the date), a person, or context the
 frame title doesn't say. When you do, use the house header idiom *above*
 `<tv-task-list>` (not inside it): a `<header>` with an `<h1>` and optionally
-a `<p>` subtitle. House styles own its look; the skill only aligns it with
-the list. Title each section with an `<h2>` inside the section's own
+a `<p>` subtitle. House styles own its look; the skill's page layout aligns it
+with the list and spaces it from what follows. Title each section with an `<h2>` inside the section's own
 `<header>`. Keep these as real HTML headings, not `tv-task-*`, so the
 document outline stays navigable.
 
@@ -182,8 +185,9 @@ it, or an interactive list empties itself and the space must not collapse.
   the attribute (completes/uncompletes the row) but emits nothing.
 - Listen once on the list and delegate. Give each `<tv-task>` a plain `id` and
   identify the toggled task with `e.target.closest("tv-task").id`.
-- Nothing is persisted — wire the handler to whatever you want (localStorage, a
-  `fetch` to your own API, …). On load, restore state by setting `el.checked`.
+- Nothing is persisted for you — wire the handler to where the list's data
+  lives ([below](#where-the-tasks-come-from)). On load, restore state by
+  setting `el.checked`.
 
 ```js
 const list = document.querySelector("tv-task-list");
@@ -192,6 +196,23 @@ list.addEventListener("toggle", (e) => {
   save(id, e.checked); // your persistence; nothing is stored for you
 });
 ```
+
+## Where the tasks come from
+
+This skill renders tasks once you have them; where they come from, and where
+their state lives, is up to the artifact's author and depends on context. Data
+can come from a JSON store, from a third-party API such as the person's
+productivity app when it has an HTTP API, or from the HTML itself, written into
+the artifact. For a to-do list that the person and you keep together, a JSON
+store is a good place for its data: read the `television` skill's
+`resources.md`. Do not keep a to-do list in localStorage: each browser keeps
+its own copy, and you cannot read or change it.
+
+When the tasks arrive or change while the page is open, as when you render
+them from a JSON store, put the list's status or error message in the page
+header, after its title and any subtitle, as a `<p class="tv-error">`. A list
+that shows such a message has a page header to hold it, even when the artifact
+frame's title would otherwise do.
 
 ## Example variations
 

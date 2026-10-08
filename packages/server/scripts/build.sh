@@ -39,6 +39,9 @@ rm -rf "$themes_dist"
 mkdir -p "$themes_dist"
 cp -R "$package_root/assets/themes/." "$themes_dist/"
 
+# The resource SDK (specs/arch/resources/sdk.md#^sdk-build).
+node "$here/build-sdk.mjs"
+
 rm -rf "$onboarding_dist"
 mkdir -p "$onboarding_dist"
 cp -R "$package_root/assets/onboarding-channels/." "$onboarding_dist/"

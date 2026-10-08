@@ -1,4 +1,5 @@
 import type { Artifact } from "@telepath-computer/television-artifact";
+import type { ResourceEvent } from "./resources/types.ts";
 
 export const TELEVISION_CLIENT_META_HEADER = "X-Television-Client-Meta";
 export const TELEMETRY_ACTIVITY_MESSAGE_TYPE = "telemetry-activity";
@@ -308,6 +309,17 @@ export type ServerEvent =
       channelID: string;
       artifactID: string;
     };
+
+/**
+ * A resource event on the `/events` stream (specs/arch/resources/index.md
+ * ^rs-events-stream). Deliberately not a member of the ServerEvent union: the
+ * web client has no use for it yet and drops it under the unknown-message
+ * rule (specs/arch/updates/version-advertisement.md ^unknown-messages).
+ */
+export interface ResourceEventMessage {
+  type: "resource-event";
+  event: ResourceEvent;
+}
 
 // --- Update-notifications lockstep contracts -------------------------------
 // Server → client shapes riding the /events websocket alongside the

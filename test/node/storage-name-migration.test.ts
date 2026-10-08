@@ -55,7 +55,7 @@ function makeBareCLI(): string {
 async function startServer(cliPath: string, storagePath: string): Promise<RunningServer> {
   const { TELEVISION_ACP_AGENT: _ignoredAgent, NODE_OPTIONS: _ignoredNodeOptions, VITEST: _ignoredVitest, ...env } = process.env;
   writeHomeConfig(storagePath, { port: 0 });
-  const processHandle = spawnOwnedProcess(process.execPath, [cliPath, "--home", storagePath, "serve"], {
+  const processHandle = spawnOwnedProcess(process.execPath, [cliPath, "--home", storagePath, "serve", "--print-links"], {
     cwd: REPO_ROOT,
     env,
     stdio: ["ignore", "pipe", "pipe"],

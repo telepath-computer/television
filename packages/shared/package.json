@@ -5,7 +5,8 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./resources": "./src/resources/index.ts"
   },
   "scripts": {
     "type-check": "tsc -p tsconfig.json --noEmit"

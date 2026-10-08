@@ -237,11 +237,11 @@ async function installAndProveBoot(
   const serverURL = `http://127.0.0.1:${port}`;
   const token = readFileSync(path.join(home, "state", "token"), "utf8").trim();
   expect(token).not.toBe("");
-  const connectURL = `${serverURL}/?token=${token}`;
+  // Piped output carries no link and no token, only the command that prints the links (^cli-persist-links).
   expect(install).toEqual({
     exitCode: 0,
     signal: null,
-    stdout: `Television service installed.\nOpen Television:\n  ${connectURL}\n`,
+    stdout: `Television service installed.\nRun \`tv --home ${home} links\` to print the links that open Television.\n`,
     stderr: "",
   });
 

@@ -6,6 +6,7 @@ import { classifyBlaxelCoordinatorFailure, classifyDownloadedShardStatus, valida
 import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards } from "./test/blaxel-lease-acquisition.mjs";
 import { buildInterruptedAttemptReport, finishInterruptedRun } from "./test/blaxel-interruption.mjs";
 import { BLAXEL_GITHUB_TOKEN_ENV, BLAXEL_GITHUB_TOKEN_FILE, readBlaxelGithubToken } from "./test/blaxel-github-token.mjs";
+import { blaxelCheckoutScript, blaxelDependencyScript, resolveBlaxelRepositoryUrl } from "./test/blaxel-repository.mjs";
 import { transferShardInputs } from "./test/blaxel-shard-dispatch.mjs";
 import { buildLinuxStaleOwnerAuditInvocation, parseLinuxStaleOwnerAuditOutput } from "./test/blaxel-stale-owner-audit.mjs";
 import { normalizeSetupTimingStatus, normalizeTimingPhase } from "./test/phase-metrics.mjs";
@@ -35,7 +36,6 @@ const allowDirty = Boolean(options["allow-dirty"]);
 const retryInfra = Number.parseInt(options["retry-infra"] ?? "0", 10);
 const timeoutProfile = options["timeout-profile"] ?? "normal";
 const timeouts = resolveTimeouts(timeoutProfile, options);
-const repoUrl = options["repo-url"] ?? "https://github.com/telepath-computer/television.git";
 const playwrightBrowsersPath = options["playwright-browsers-path"] ?? "/home/playwright/.cache/ms-playwright";
 const runId = `${new Date().toISOString().replace(/[:.]/g, "-")}-${process.pid}`;
 const activeLeases = new Map();
@@ -63,6 +63,7 @@ if (suite !== "target" && shardTotal !== RECOMMENDED_TEST_SHARD_COUNT && options
 if (!Number.isInteger(retryInfra) || retryInfra < 0) fail("--retry-infra must be a non-negative integer");
 if (!["normal", "cold", "repair"].includes(timeoutProfile)) fail("--timeout-profile must be one of: normal, cold, repair");
 if (!blaxelGithubToken) fail(`${BLAXEL_GITHUB_TOKEN_FILE} or ${BLAXEL_GITHUB_TOKEN_ENV} must contain a GitHub token so Blaxel workers can fetch the repository without persisting credentials.`);
+const repoUrl = selectedRepositoryUrl();
 
 if (!allowDirty) {
   const status = git(["status", "--short"]);
@@ -868,39 +869,11 @@ ASKPASS
 chmod 700 /tmp/tv-git-askpass.sh
 export GIT_ASKPASS=/tmp/tv-git-askpass.sh
 export GIT_TERMINAL_PROMPT=0
-run_step checkout bash -lc ${shellQuote(`
-set -euo pipefail
-if [ ! -d /workspace/television/.git ]; then
-  rm -rf /workspace/television
-  git clone --no-checkout ${repoUrl} /workspace/television
-fi
-cd /workspace/television
-git remote set-url origin ${repoUrl}
-rm -rf .testshards/logs .testshards/results
-git fetch --no-tags --prune origin ${commit}
-git reset --hard ${commit}
-git clean -ffd
-rm -rf .testshards/logs .testshards/results
-`)}
+run_step checkout bash -lc ${shellQuote(blaxelCheckoutScript({ repoUrl, commit }))}
 cd /workspace/television
 run_step runtime-activation activate_runtime
 run_step runtime-versions runtime_versions
-run_step deps bash -c ${shellQuote(`
-set -euo pipefail
-deps_hash=$(git ls-files '.nvmrc' 'package-lock.json' 'package.json' '*/package.json' ':!:node_modules/*' | sort | xargs sha256sum | sha256sum | awk '{print $1}')
-deps_marker="/cache/blaxel-testshards/deps-\${deps_hash}.ok"
-if [ -d node_modules ] && [ -f "$deps_marker" ]; then
-  echo hit > "$TV_TEST_DEPS_CACHE_STATUS_FILE"
-  echo "dependency cache hit: \${deps_hash}"
-else
-  echo miss > "$TV_TEST_DEPS_CACHE_STATUS_FILE"
-  echo "dependency cache miss: \${deps_hash}; running npm ci"
-  npm ci --prefer-offline --no-audit --fund=false
-  mkdir -p /cache/blaxel-testshards
-  rm -f /cache/blaxel-testshards/deps-*.ok
-  printf '%s\n' "$deps_hash" > "$deps_marker"
-fi
-`)}
+run_step deps bash -c ${shellQuote(blaxelDependencyScript())}
 run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand())}
 if run_step owner-lifecycle node scripts/test/stale-owner-reaper-cli.mjs --output "$owner_report"; then
   owner_status=0
@@ -1285,6 +1258,14 @@ function formatDuration(ms) {
   const seconds = ms / 1000;
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
   return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+}
+
+function selectedRepositoryUrl() {
+  try {
+    return resolveBlaxelRepositoryUrl({ repoUrl: options["repo-url"] });
+  } catch (error) {
+    fail(error.message);
+  }
 }
 
 function fail(message) {

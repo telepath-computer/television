@@ -27,6 +27,8 @@ const PRODUCTION_BUNDLE = path.join(REPO_ROOT, "packages", "cli", "dist", "onboa
 const FIXTURE_BUNDLES = path.join(REPO_ROOT, "test", "node", "fixtures", "onboarding-bundles");
 const PREINIT_FIXTURE = path.join(REPO_ROOT, "test", "node", "fixtures", "preinit-storage");
 const START_TIMEOUT_MS = 30_000;
+/** An artifact ID in the generated form: a ULID, 26 Crockford base-32 characters. */
+const GENERATED_ID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 
 type ServeChild = ChildProcessByStdio<null, Readable, Readable>;
 
@@ -76,7 +78,7 @@ describe("onboarding channels (built CLI e2e)", () => {
   // before the first boot, so a config file never counts as served data.
   async function startServe(cliEntry: string, storagePath: string): Promise<{ port: number; stop: () => Promise<void> }> {
     writeHomeConfig(storagePath, { port: 0 });
-    const owned = spawnOwnedProcess(process.execPath, [cliEntry, "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [cliEntry, "--home", storagePath, "serve", "--print-links"], {
       cwd: path.dirname(cliEntry),
       env: serveEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -162,8 +164,8 @@ describe("onboarding channels (built CLI e2e)", () => {
     storagePath: string,
     channelSlug: string,
     artifactSlug: string,
+    artifactID: string,
   ): Promise<void> {
-    const artifactID = onboardingID(channelSlug, artifactSlug);
     const base = path.join(PRODUCTION_BUNDLE, channelSlug, artifactSlug);
     if (existsSync(`${base}.md`)) {
       const response = await fetchMarkdown(port, storagePath, artifactID);
@@ -208,7 +210,10 @@ describe("onboarding channels (built CLI e2e)", () => {
     const storagePath = tempDir("television-onboarding-e2e-storage-");
     writeHomeConfig(storagePath, { port: 0 });
     expect(readdirSync(storagePath)).toEqual(["config.json"]);
+    // The installation day is the server's local day as it installs, between these two.
+    const dayBefore = localDay(new Date());
     const { port } = await startServe(BUILT_CLI, storagePath);
+    const dayAfter = localDay(new Date());
 
     const config = JSON.parse(readFileSync(path.join(PRODUCTION_BUNDLE, "onboarding-channels.json"), "utf8"));
     const { channels } = runCLIJSON(BUILT_CLI, ["list-channels"], storagePath, port);
@@ -219,8 +224,14 @@ describe("onboarding channels (built CLI e2e)", () => {
       expect(channel.name).toBe(channelConfig.name);
       expect(channel.onboarding).toEqual({ slug: channelConfig.slug });
       // Installed pages follow authored artifact order and carry each
-      // configured-or-default page layout.
-      expect(channel.layout, channelConfig.slug).toEqual(expectedInstalledPages(channelConfig));
+      // configured-or-default page layout, over artifacts with generated IDs.
+      const ids = pageArtifactIDs(channel);
+      expect(ids, channelConfig.slug).toHaveLength(channelConfig.artifacts.length);
+      for (const [index, id] of ids.entries()) {
+        expect(id).toMatch(GENERATED_ID);
+        expect(id).not.toBe(predictableID(channelConfig.slug, channelConfig.artifacts[index].slug));
+      }
+      expect(channel.layout, channelConfig.slug).toEqual(expectedInstalledPages(channelConfig, ids));
     }
 
     // The shipped bundle's designated channel is active.
@@ -233,16 +244,35 @@ describe("onboarding channels (built CLI e2e)", () => {
     });
 
     // Every configured artifact exists with its configured title and serves
-    // its packaged source content, per source shape.
+    // its packaged source content, per source shape. The store of each one
+    // that declares a starting value holds it, with its dates moved to the
+    // installation day.
     const { artifacts } = runCLIJSON(BUILT_CLI, ["list-artifacts"], storagePath, port);
+    let declared = 0;
     for (const channelConfig of config.channels) {
-      for (const artifactConfig of channelConfig.artifacts) {
-        const artifactID = onboardingID(channelConfig.slug, artifactConfig.slug);
+      const ids = pageArtifactIDs(channels.find((candidate: any) => candidate.onboarding?.slug === channelConfig.slug));
+      for (const [index, artifactConfig] of channelConfig.artifacts.entries()) {
+        const artifactID = ids[index]!;
         const record = artifacts.find((candidate: any) => candidate.id === artifactID);
         expect(record, artifactID).toMatchObject({ kind: "path", title: artifactConfig.title });
-        await expectServesPackagedSource(port, storagePath, channelConfig.slug, artifactConfig.slug);
+        await expectServesPackagedSource(port, storagePath, channelConfig.slug, artifactConfig.slug, artifactID);
+        const { store } = artifactConfig;
+        if (store === undefined) continue;
+        declared += 1;
+        const installed = runCLIJSON(BUILT_CLI, ["resource", "json", "get", "--artifact", artifactID], storagePath, port);
+        const moved = (day: string) => ({
+          exists: true,
+          value: store.shiftDatesFrom === undefined ? store.value : shiftCalendarDates(store.value, daysBetween(store.shiftDatesFrom, day)),
+        });
+        expect([moved(dayBefore), moved(dayAfter)], artifactConfig.slug).toContainEqual(installed);
+        if (store.shiftDatesFrom !== undefined) {
+          // The starting tasks fall due around the day of the walk, not the story day.
+          expect(JSON.stringify(installed.value), artifactConfig.slug).toContain(`"${dayAfter}"`);
+        }
       }
     }
+    expect(artifacts).toHaveLength(config.channels.flatMap((channelConfig: any) => channelConfig.artifacts).length);
+    expect(declared).toBeGreaterThan(0);
   }, START_TIMEOUT_MS * 2);
 
   // proofs/product/onboarding/onboarding-channels.md#^ac-markdown-artifact
@@ -251,7 +281,9 @@ describe("onboarding channels (built CLI e2e)", () => {
     const cliEntry = installedCLI("markdown");
     const storagePath = tempDir("television-onboarding-e2e-storage-");
     const { port } = await startServe(cliEntry, storagePath);
-    const guideID = "television-onboarding--md-notes--guide";
+    const { channels } = runCLIJSON(cliEntry, ["list-channels"], storagePath, port);
+    const [guideID] = pageArtifactIDs(channels.find((channel: any) => channel.onboarding?.slug === "md-notes"));
+    expect(guideID).toMatch(GENERATED_ID);
 
     // The CLI-reported record points at a .md file.
     const { artifacts } = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, port);
@@ -285,12 +317,12 @@ describe("onboarding channels (built CLI e2e)", () => {
 
     const { channels } = runCLIJSON(cliEntry, ["list-channels"], storagePath, port);
     const studio = channels.find((channel: any) => channel.onboarding?.slug === "studio");
-    expect(studio.layout).toEqual(expectedInstalledPages(studioConfig));
+    const ids = pageArtifactIDs(studio);
+    expect(studio.layout).toEqual(expectedInstalledPages(studioConfig, ids));
     const { artifacts } = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, port);
-    expect(artifacts.map((artifact: any) => artifact.id).sort()).toEqual(
-      studioConfig.artifacts
-        .map((artifact: any) => onboardingID(studioConfig.slug, artifact.slug))
-        .sort(),
+    expect(artifacts).toHaveLength(ids.length);
+    expect(ids.map((id) => artifacts.find((artifact: any) => artifact.id === id)?.title)).toEqual(
+      studioConfig.artifacts.map((artifact: any) => artifact.title),
     );
   }, START_TIMEOUT_MS * 2);
 
@@ -306,7 +338,7 @@ describe("onboarding channels (built CLI e2e)", () => {
     dirs.push(storagePath);
     writeHomeConfig(storagePath, { port: 0 });
 
-    const child = spawnOwnedProcess(process.execPath, [cliEntry, "--home", "./home", "serve"], {
+    const child = spawnOwnedProcess(process.execPath, [cliEntry, "--home", "./home", "serve", "--print-links"], {
       cwd,
       env: serveEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -319,7 +351,8 @@ describe("onboarding channels (built CLI e2e)", () => {
     const { artifacts } = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, port);
     expect(artifacts).toHaveLength(1);
     const alpha = artifacts[0];
-    expect(alpha.id).toBe("television-onboarding--alpha-screen--alpha");
+    expect(alpha.id).toMatch(GENERATED_ID);
+    expect(pageArtifactIDs(channels[0])).toEqual([alpha.id]);
     expect(path.isAbsolute(alpha.path)).toBe(true);
     expect(alpha.path.startsWith(`${realpathSync(storagePath)}${path.sep}`)).toBe(true);
     const served = await fetchArtifactPath(port, storagePath, alpha.id);
@@ -360,7 +393,7 @@ describe("onboarding channels (built CLI e2e)", () => {
     const statePath = path.join(storagePath, "state", "onboarding.json");
     const stateBefore = JSON.parse(readFileSync(statePath, "utf8"));
 
-    const alphaArtifactID = onboardingID("alpha-screen", "alpha");
+    const [alphaArtifactID] = pageArtifactIDs(alphaBefore);
     runCLI(cliEntry, ["update-artifact", "--id", alphaArtifactID, "--title", "User-edited Alpha"], storagePath, firstBoot.port);
     const alphaEdited = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, firstBoot.port).artifacts.find(
       (artifact: any) => artifact.id === alphaArtifactID,
@@ -376,10 +409,12 @@ describe("onboarding channels (built CLI e2e)", () => {
     const alphaAfter = after.channels.find((channel: any) => channel.onboarding?.slug === "alpha-screen");
     expect(alphaAfter).toEqual(alphaBefore);
     const beta = after.channels.find((channel: any) => channel.onboarding?.slug === "beta-screen");
+    const [betaArtifactID] = pageArtifactIDs(beta);
+    expect(betaArtifactID).toMatch(GENERATED_ID);
     expect(beta).toMatchObject({
       name: "Beta Screen",
       onboarding: { slug: "beta-screen" },
-      layout: [targetPage(onboardingID("beta-screen", "beta"))],
+      layout: [targetPage(betaArtifactID!)],
     });
 
     const artifactsAfter = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, secondBoot.port).artifacts;
@@ -401,6 +436,7 @@ describe("onboarding channels (built CLI e2e)", () => {
       const firstBoot = await startServe(cliEntry, storagePath);
       const { channels } = runCLIJSON(cliEntry, ["list-channels"], storagePath, firstBoot.port);
       const beta = channels.find((channel: any) => channel.onboarding?.slug === "beta-screen");
+      const [alphaID] = pageArtifactIDs(channels.find((channel: any) => channel.onboarding?.slug === "alpha-screen"));
       runCLI(cliEntry, ["remove-channel", "--channel", beta.id], storagePath, firstBoot.port);
       await firstBoot.stop();
 
@@ -408,16 +444,17 @@ describe("onboarding channels (built CLI e2e)", () => {
       const after = runCLIJSON(cliEntry, ["list-channels"], storagePath, secondBoot.port);
       expect(after.channels.map((channel: any) => channel.name)).toEqual(["Alpha Screen"]);
       const { artifacts } = runCLIJSON(cliEntry, ["list-artifacts"], storagePath, secondBoot.port);
-      expect(artifacts.some((artifact: any) => artifact.id.includes("beta"))).toBe(false);
+      expect(artifacts.map((artifact: any) => artifact.id)).toEqual([alphaID]);
     }, START_TIMEOUT_MS * 3);
 
     it("a deleted onboarding artifact is not re-created after restart", async () => {
       const cliEntry = installedCLI("superset");
       const storagePath = tempDir("television-onboarding-e2e-storage-");
-      const alphaID = "television-onboarding--alpha-screen--alpha";
 
       const firstBoot = await startServe(cliEntry, storagePath);
-      runCLI(cliEntry, ["delete-artifact", "--id", alphaID], storagePath, firstBoot.port);
+      const { channels: installed } = runCLIJSON(cliEntry, ["list-channels"], storagePath, firstBoot.port);
+      const [alphaID] = pageArtifactIDs(installed.find((channel: any) => channel.onboarding?.slug === "alpha-screen"));
+      runCLI(cliEntry, ["delete-artifact", "--id", alphaID!], storagePath, firstBoot.port);
       await firstBoot.stop();
 
       const secondBoot = await startServe(cliEntry, storagePath);
@@ -426,6 +463,30 @@ describe("onboarding channels (built CLI e2e)", () => {
       const { channels } = runCLIJSON(cliEntry, ["list-channels"], storagePath, secondBoot.port);
       const alphaChannel = channels.find((channel: any) => channel.onboarding?.slug === "alpha-screen");
       expect(alphaChannel.layout).toEqual([]);
+    }, START_TIMEOUT_MS * 3);
+
+    // Fixture: the shipped production bundle, in which Company To-dos is
+    // found from its config at runtime.
+    it.each([
+      { change: "replaced", args: ["set", "tasks", '{"mine":{"title":"The walk\'s own task"}}'], left: { exists: true, value: { tasks: { mine: { title: "The walk's own task" } } } } },
+      { change: "removed", args: ["remove", "/"], left: { exists: false } },
+    ])("Company To-dos' store, with its value $change, gains nothing from the starting value after restart", async ({ args, left }) => {
+      const storagePath = tempDir("television-onboarding-e2e-storage-");
+      const config = JSON.parse(readFileSync(path.join(PRODUCTION_BUNDLE, "onboarding-channels.json"), "utf8"));
+      const productivity = config.channels.find((channelConfig: any) => channelConfig.slug === "productivity");
+      const index = productivity.artifacts.findIndex((artifactConfig: any) => artifactConfig.slug === "company-todos");
+      expect(productivity.artifacts[index].store).toBeDefined();
+
+      const firstBoot = await startServe(BUILT_CLI, storagePath);
+      const { channels } = runCLIJSON(BUILT_CLI, ["list-channels"], storagePath, firstBoot.port);
+      const artifactID = pageArtifactIDs(channels.find((channel: any) => channel.onboarding?.slug === "productivity"))[index]!;
+      const [verb, ...rest] = args;
+      runCLI(BUILT_CLI, ["resource", "json", verb!, "--artifact", artifactID, ...rest], storagePath, firstBoot.port);
+      expect(runCLIJSON(BUILT_CLI, ["resource", "json", "get", "--artifact", artifactID], storagePath, firstBoot.port)).toEqual(left);
+      await firstBoot.stop();
+
+      const secondBoot = await startServe(BUILT_CLI, storagePath);
+      expect(runCLIJSON(BUILT_CLI, ["resource", "json", "get", "--artifact", artifactID], storagePath, secondBoot.port)).toEqual(left);
     }, START_TIMEOUT_MS * 3);
   });
 
@@ -599,8 +660,39 @@ describe("onboarding channels (built CLI e2e)", () => {
   }, START_TIMEOUT_MS * 4);
 });
 
-function onboardingID(channelSlug: string, artifactSlug: string): string {
+/** The ID earlier releases gave an installed artifact; it is now only its content's copy name. */
+/** The local calendar day of `date`, as YYYY-MM-DD. */
+function localDay(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** Whole calendar days from one YYYY-MM-DD day to another. */
+function daysBetween(from: string, to: string): number {
+  return (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000;
+}
+
+/** `value` with every string that is a calendar date moved by `days`, as the installer moves a declared starting value. */
+function shiftCalendarDates(value: unknown, days: number): unknown {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const date = new Date(`${value}T00:00:00Z`);
+    if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value) return value;
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  if (Array.isArray(value)) return value.map((item) => shiftCalendarDates(item, days));
+  if (typeof value === "object" && value !== null) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, shiftCalendarDates(item, days)]));
+  }
+  return value;
+}
+
+function predictableID(channelSlug: string, artifactSlug: string): string {
   return `television-onboarding--${channelSlug}--${artifactSlug}`;
+}
+
+/** The artifacts on a channel's pages, in page order. */
+function pageArtifactIDs(channel: { layout: TabPage[] }): string[] {
+  return channel.layout.flatMap((tabPage) => tabPage.artifactIds);
 }
 
 function targetPage(
@@ -614,10 +706,9 @@ function targetPage(
   };
 }
 
-function expectedInstalledPages(channelConfig: any): TabPage[] {
-  return channelConfig.artifacts.map((artifact: any) =>
-    targetPage(onboardingID(channelConfig.slug, artifact.slug), artifact)
-  );
+/** The configured-or-default pages of a channel, over its installed artifacts `ids` in config order. */
+function expectedInstalledPages(channelConfig: any, ids: string[]): TabPage[] {
+  return channelConfig.artifacts.map((artifact: any, index: number) => targetPage(ids[index]!, artifact));
 }
 
 function listFilesRecursively(root: string, prefix = ""): string[] {

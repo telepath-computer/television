@@ -176,12 +176,12 @@ Showing the person their full connect link is expected and correct: it is how th
 
 A *connect link* is the one thing the person needs to open Television: the server's address with the token in it, such as `http://100.64.0.7:32848/?token=<token>`. The same link works in a browser and in the desktop app. Without a token, the link is the plain address.
 
-`tv links` prints the running server's connect links, one per line, one for each address it listens on. If the server isn't running, it prints none and says why.
+`tv links` prints the running server's connect links, one per line, one for each address the server can be reached at: `127.0.0.1` for localhost, each address it listens on, and, when it listens on every interface (`0.0.0.0`), each of the machine's addresses, such as its LAN and tailnet addresses. If the server isn't running, it prints none and says why. `tv serve` and `tv serve --persist` print the same links when run in a terminal. When their output goes anywhere else, such as to you or to a log, they print the `tv links` command to run instead, so that the token never lands in a log.
 
-The printed addresses are the server's own: `127.0.0.1` for localhost, and `0.0.0.0` when it listens on every interface. When the person reaches the server by a different address, give them the link with that address in place of the printed one, keeping the port and token exactly:
+Give the person the link whose address they can reach. When they reach the server by an address none of the links has, give them the link with that address in place of the printed one, keeping the port and token exactly:
 
 - through an SSH tunnel: `localhost`, opened on their computer, along with the `ssh -L` command they need to run first;
-- for a `0.0.0.0` listener, including inside Docker: the address by which they reach this machine or its Docker host, such as its LAN or tailnet address.
+- inside Docker, where the printed addresses are the container's own: the address by which they reach the Docker host, such as its LAN or tailnet address.
 
 #### The link must be exact
 

@@ -160,10 +160,30 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *onboarding channel* — a bundled starter channel Television installs exactly once per Television home. Owned by `product/onboarding/onboarding-channels.md`.
 - *channel slug* — the stable identity key of an onboarding channel across releases, data directories, and browsers; the content folder name. Owned by `arch/onboarding/content.md`.
 - *artifact slug* — the stable identity key of an onboarding artifact within its channel. Owned by `arch/onboarding/content.md`.
+- *copy name* — `television-onboarding--<channel-slug>--<artifact-slug>`, the deterministic name of an installed onboarding artifact's copied content. Owned by `arch/onboarding/installer.md`.
 - *onboarding config* — the root config file in the bundled content tree that owns channel install order, the designated focus channel, display names, artifact titles, and each channel's initial tab-page order. Owned by `arch/onboarding/content.md`.
 - *bake* — the manually-run script that ports an onboarding channel design from the UI spec's design sources into the bundled content tree and config; its output is committed and reviewed like any other content change. Owned by `arch/onboarding/bake.md`.
 - *onboarding state file* — `state/onboarding.json`, the per-data-directory record of which channel slugs have been received. Owned by `arch/onboarding/installer.md`.
 - *onboarding channel marker* — the `onboarding` field persisted in a channel's metadata, carrying its slug. Owned by `arch/onboarding/installer.md`.
+
+## Resources
+
+- *resource* — something the server keeps on behalf of artifacts and agents, with a lifetime independent of any artifact. Owned by [product/resources/resources.md](product/resources/resources.md).
+- *resource ID* — the random ID every resource is given when it is created, unrelated to any artifact's ID; a resource has no name, so its resource ID is the only way to address it. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-resource-id).
+- *resource type* — what a resource holds and which operations it offers; Television has one, `json`. Owned by [product/resources/resources.md](product/resources/resources.md).
+- *JSON store* — a resource of type `json`: one persistent JSON value. Owned by [product/resources/json-store.md](product/resources/json-store.md).
+- *artifact's store*, *own store* — the JSON store that belongs to one local path artifact, which its pages use by default and its record points to; an ordinary store that its owner is bound to at `read-write`, implicitly. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-own-store).
+- *share link* — an address, `/artifact/<share-id>/`, that reaches one artifact at one access level; an artifact has at most one. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-share).
+- *share ID* — the random ID in a share link, separate from the artifact's own ID. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-share-id).
+- *access level* — `read` or `read-write`, carried by every ID that reaches an artifact and stated by every binding. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-id-levels).
+- *bindings flag* — the constant in the shipped code, off by default, that makes creating stores explicitly and binding them to artifacts available. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-flag).
+- *description* — the required line that says what a resource holds and what uses it. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-usage).
+- *usage* — a resource's free-text account of its content's structure and the rules its readers and writers follow, written by an agent. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-usage).
+- *binding* — a grant of one artifact's access to one store, by its resource ID, at one access level; an owner's binding to its own store is implicit, and the others need the bindings flag. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-binding).
+- *resource layer* — the part of Television every resource type shares: resource IDs, descriptions, storage, artifacts' stores and share links, access checks, routes, connections, events, and the common CLI commands. Owned by [arch/resources/index.md](arch/resources/index.md).
+- *page connection* — the WebSocket an artifact's page uses for all its resource traffic, authorized by the artifact ID or share ID in its path. Owned by [arch/resources/index.md](arch/resources/index.md#^rs-page-connection).
+- *resource SDK* — the browser module at `/sdk/v1/resources.js` through which an artifact's page uses its store. Owned by [arch/resources/sdk.md](arch/resources/sdk.md).
+- *resource guidance document* — `resources.md` in the `television` skill, which teaches agents to use an artifact's store and share links. Owned by [arch/resources/guidance.md](arch/resources/guidance.md).
 
 ## Licensing
 

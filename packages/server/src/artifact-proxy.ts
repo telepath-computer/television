@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import fs from "node:fs";
+import { STATUS_CODES } from "node:http";
 import path from "node:path";
 import type { RequestHandler, Response } from "express";
 import send, { type SendStream } from "send";
@@ -39,8 +40,25 @@ function proxyMountPath(id: string): string {
   return `/artifact/${encodeURIComponent(id)}`;
 }
 
-function proxyFilePath(id: string, basename: string): string {
-  return `${proxyMountPath(id)}/${encodeURIComponent(basename)}`;
+/** A single-file artifact's file, by its name, under the folder that holds it. */
+function fileNamePath(artifact: Artifact & { kind: "path" }): string {
+  return `/${encodeURIComponent(artifactBasename(artifact.path))}`;
+}
+
+/**
+ * Where a single-file artifact is served under an ID, to which the address
+ * without it redirects. Under the artifact's own ID that is its file's name,
+ * the address the app frames. Under a share ID it is the link's address
+ * itself, and every other path there, the file's name included, is a missing
+ * file (specs/arch/resources/index.md#^rs-share-serving).
+ */
+function fileEntry(artifact: Artifact & { kind: "path" }, reply: ProxyReply): string {
+  return reply.underOwnID ? fileNamePath(artifact) : "/";
+}
+
+/** Whether a request for a single-file artifact names its address without the entry, and so redirects to it. */
+function isShorthand(subpath: string, entry: string): boolean {
+  return subpath === "" || (subpath === "/" && entry !== "/");
 }
 
 function requestSubpath(originalURL: string, id: string): string | null {
@@ -51,9 +69,24 @@ function requestSubpath(originalURL: string, id: string): string | null {
   return null;
 }
 
-function sendNotFound(res: Response): void {
+/**
+ * An error response, under any ID: the status and fixed text for it, never
+ * the error's own message, which names the artifact's files and so, for an
+ * artifact stored in a folder named for its ID, the ID a share link hides
+ * (specs/arch/resources/index.md#^rs-share-serving). An error after the
+ * response has begun ends it.
+ */
+function sendStatus(res: Response, status: number): void {
+  if (res.headersSent) {
+    res.destroy();
+    return;
+  }
   applyProxyHeaders(res);
-  res.status(HTTP_NOT_FOUND).type("text/plain").send("Not found");
+  res.status(status).type("text/plain").send(status === HTTP_NOT_FOUND ? "Not found" : (STATUS_CODES[status] ?? "Error"));
+}
+
+function sendNotFound(res: Response): void {
+  sendStatus(res, HTTP_NOT_FOUND);
 }
 
 function sendArtifactNotFound(req: Parameters<RequestHandler>[0], res: Response, store: ServerStore): void {
@@ -80,6 +113,52 @@ function sendArtifactNotFound(req: Parameters<RequestHandler>[0], res: Response,
       sendNotFound(res);
     }
   })();
+}
+
+/**
+ * The proxy's answers to one request other than the artifact's content and
+ * the headers that describe it. Each is built from the request's own path
+ * and fixed text alone, and none takes a string, so no path the proxy
+ * resolved on disk, where a file's or folder's name can contain the
+ * artifact's ID, reaches a status line, header or body through them. The
+ * streaming library's own redirects and errors reach the viewer only through
+ * `addSlash`, `artifactMissing`, `notFound` and `failed`
+ * (specs/arch/resources/index.md#^rs-share-serving). The one answer built
+ * from a name on disk is a single file's redirect to its name, which only a
+ * request under the artifact's own ID gets.
+ */
+interface ProxyReply {
+  /** Whether the request's ID is the artifact's own rather than a share ID. */
+  readonly underOwnID: boolean;
+  /** `404` with fixed text. */
+  notFound(): void;
+  /** The built missing-artifact document, for an entry whose file is gone. */
+  artifactMissing(): void;
+  /** An error status with fixed text. */
+  failed(status: number): void;
+  /** `301` to the request's own path with a trailing slash. */
+  addSlash(): void;
+  /** `301` to where a single file is served: the link's address under a share ID, the file's name under the artifact's own ID. */
+  toFileEntry(): void;
+}
+
+function proxyReply(req: Parameters<RequestHandler>[0], res: Response, store: ServerStore, artifact: Artifact & { kind: "path" }, id: string): ProxyReply {
+  const requestPath = new URL(req.originalUrl, "http://television.local").pathname;
+  const underOwnID = id === artifact.id;
+  const redirect = (location: string) => {
+    applyProxyHeaders(res);
+    res.redirect(HTTP_MOVED_PERMANENTLY, location);
+  };
+  const addSlash = () => redirect(`${requestPath}/`);
+  return {
+    underOwnID,
+    notFound: () => sendNotFound(res),
+    artifactMissing: () => sendArtifactNotFound(req, res, store),
+    failed: (status) => sendStatus(res, status),
+    addSlash,
+    // Under a share ID only the address without its slash redirects, to the link's address.
+    toFileEntry: () => (underOwnID ? redirect(`${proxyMountPath(id)}${fileNamePath(artifact)}`) : addSlash()),
+  };
 }
 
 function sendMethodNotAllowed(res: Response): void {
@@ -154,7 +233,7 @@ function injectDocument(body: Buffer, appearanceSource: string, bridgeSource: st
   return Buffer.from(`${early}\n<script>\n${bridgeSource}\n</script>\n`);
 }
 
-function sendInjectedHTML(req: Parameters<RequestHandler>[0], res: Response, stream: SendStreamWithSend, resolvedPath: string, stat: fs.Stats, appearanceSource: string, bridgeSource: string): void {
+function sendInjectedHTML(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, stream: SendStreamWithSend, resolvedPath: string, stat: fs.Stats, appearanceSource: string, bridgeSource: string): void {
   void (async () => {
     try {
       const source = await readFile(resolvedPath);
@@ -175,7 +254,7 @@ function sendInjectedHTML(req: Parameters<RequestHandler>[0], res: Response, str
       }
       res.end(body);
     } catch {
-      sendNotFound(res);
+      reply.notFound();
     }
   })();
 }
@@ -195,7 +274,7 @@ ${renderedHTML}
 </html>`;
 }
 
-function sendRenderedMarkdown(req: Parameters<RequestHandler>[0], res: Response, resolvedPath: string, stat: fs.Stats, appearanceSource: string, bridgeSource: string): void {
+function sendRenderedMarkdown(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, resolvedPath: string, stat: fs.Stats, appearanceSource: string, bridgeSource: string): void {
   void (async () => {
     try {
       const source = await readFile(resolvedPath, "utf8");
@@ -231,14 +310,21 @@ function sendRenderedMarkdown(req: Parameters<RequestHandler>[0], res: Response,
       res.setHeader("Content-Length", String(body.byteLength));
       res.end(body);
     } catch {
-      sendNotFound(res);
+      reply.notFound();
     }
   })();
 }
 
-function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, subpath: string, options: send.SendOptions, appearanceSource: string, bridgeSource: string, notFound?: () => void): void {
+/**
+ * Serves `subpath` under `options.root`: the path the request named for a
+ * folder artifact, a single file's own name for one. The library's own
+ * redirect, when the path is a folder, and its errors are answered only by
+ * `onFolder`, `onMissing` and the reply, never from the path or the error.
+ */
+function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, subpath: string, options: send.SendOptions, appearanceSource: string, bridgeSource: string, onFolder: () => void, onMissing: () => void): void {
   applyProxyHeaders(res);
   const stream = send(req, subpath, { ...options, etag: true }) as SendStreamWithSend;
+  stream.on("directory", onFolder);
   const sendOriginal = stream.send.bind(stream);
   stream.send = (resolvedPath: string, stat?: fs.Stats) => {
     if (!stat) {
@@ -253,85 +339,79 @@ function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, su
       return;
     }
     res.removeHeader("ETag");
-    sendInjectedHTML(req, res, stream, resolvedPath, stat, appearanceSource, bridgeSource);
+    sendInjectedHTML(req, res, reply, stream, resolvedPath, stat, appearanceSource, bridgeSource);
   };
   stream.on("error", (error: NodeJS.ErrnoException & { status?: number }) => {
-    if ((error.status ?? HTTP_NOT_FOUND) === HTTP_NOT_FOUND && notFound) {
-      notFound();
-      return;
-    }
-    applyProxyHeaders(res);
-    res.status(error.status === HTTP_NOT_FOUND ? HTTP_NOT_FOUND : (error.status ?? HTTP_NOT_FOUND)).type("text/plain").send(error.message);
+    const status = error.status ?? HTTP_NOT_FOUND;
+    if (status === HTTP_NOT_FOUND) onMissing();
+    else reply.failed(status);
   });
   stream.pipe(res);
 }
 
-function serveDirectoryArtifact(req: Parameters<RequestHandler>[0], res: Response, store: ServerStore, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
+function serveDirectoryArtifact(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
+  // A folder's address without its trailing slash, the artifact's or a
+  // subfolder's, redirects to the request's own path with one.
   if (subpath === "") {
-    applyProxyHeaders(res);
-    res.redirect(HTTP_MOVED_PERMANENTLY, `${proxyMountPath(artifact.id)}/`);
+    reply.addSlash();
     return;
   }
-  pipeWithInjection(req, res, subpath, { root: artifact.path, index: ["index.html", "index.htm"], dotfiles: "allow" }, appearanceSource, bridgeSource, subpath === "/" ? () => sendArtifactNotFound(req, res, store) : undefined);
+  pipeWithInjection(req, res, reply, subpath, { root: artifact.path, index: ["index.html", "index.htm"], dotfiles: "allow" }, appearanceSource, bridgeSource, reply.addSlash, subpath === "/" ? reply.artifactMissing : reply.notFound);
 }
 
-function serveFileArtifact(req: Parameters<RequestHandler>[0], res: Response, store: ServerStore, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
+function serveFileArtifact(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
+  const entry = fileEntry(artifact, reply);
   let stat: fs.Stats;
   try {
     stat = fs.statSync(artifact.path);
   } catch {
-    const basename = artifactBasename(artifact.path);
-    if (subpath === `/${encodeURIComponent(basename)}`) sendArtifactNotFound(req, res, store);
-    else sendNotFound(res);
+    if (subpath === entry) reply.artifactMissing();
+    else reply.notFound();
     return;
   }
 
-  const basename = artifactBasename(artifact.path);
-  const canonical = proxyFilePath(artifact.id, basename);
   if (!stat.isFile()) {
-    if (subpath === `/${encodeURIComponent(basename)}`) sendArtifactNotFound(req, res, store);
-    else sendNotFound(res);
+    if (subpath === entry) reply.artifactMissing();
+    else reply.notFound();
     return;
   }
-  if (subpath === "" || subpath === "/") {
-    applyProxyHeaders(res);
-    res.redirect(HTTP_MOVED_PERMANENTLY, canonical);
+  if (isShorthand(subpath, entry)) {
+    reply.toFileEntry();
     return;
   }
-  if (subpath !== `/${encodeURIComponent(basename)}`) {
-    sendNotFound(res);
+  if (subpath !== entry) {
+    reply.notFound();
     return;
   }
-  pipeWithInjection(req, res, subpath, { root: path.dirname(artifact.path), index: false, dotfiles: "allow" }, appearanceSource, bridgeSource, () => sendArtifactNotFound(req, res, store));
+  // A file that has become a folder since the check above is missing.
+  pipeWithInjection(req, res, reply, fileNamePath(artifact), { root: path.dirname(artifact.path), index: false, dotfiles: "allow" }, appearanceSource, bridgeSource, reply.artifactMissing, reply.artifactMissing);
 }
 
-function serveMarkdownArtifact(req: Parameters<RequestHandler>[0], res: Response, store: ServerStore, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
-  const basename = artifactBasename(artifact.path);
-  const canonical = proxyFilePath(artifact.id, basename);
+function serveMarkdownArtifact(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
+  const entry = fileEntry(artifact, reply);
   let stat: fs.Stats;
   try {
     stat = fs.statSync(artifact.path);
   } catch {
-    if (subpath === `/${encodeURIComponent(basename)}`) sendArtifactNotFound(req, res, store);
-    else sendNotFound(res);
+    if (subpath === entry) reply.artifactMissing();
+    else reply.notFound();
     return;
   }
 
   if (!stat.isFile()) {
-    if (subpath === `/${encodeURIComponent(basename)}`) sendArtifactNotFound(req, res, store);
-    else sendNotFound(res);
+    if (subpath === entry) reply.artifactMissing();
+    else reply.notFound();
     return;
   }
-  if (subpath === "" || subpath === "/") {
-    applyProxyHeaders(res);
-    res.redirect(HTTP_MOVED_PERMANENTLY, canonical);
+  if (isShorthand(subpath, entry)) {
+    reply.toFileEntry();
     return;
   }
-  if (subpath !== `/${encodeURIComponent(basename)}`) {
-    sendNotFound(res);
+  if (subpath !== entry) {
+    reply.notFound();
     return;
   }
-  sendRenderedMarkdown(req, res, artifact.path, stat, appearanceSource, bridgeSource);
+  sendRenderedMarkdown(req, res, reply, artifact.path, stat, appearanceSource, bridgeSource);
 }
 
 export function serveArtifactProxy(
@@ -346,20 +426,24 @@ export function serveArtifactProxy(
       return;
     }
 
-    const rawID = req.params.id;
-    if (typeof rawID !== "string") {
+    // An artifact ID or a share ID; every redirect, error document and header
+    // is built from the request, never from the artifact's own ID or the
+    // names of its files (specs/arch/resources/index.md#^rs-share-serving).
+    const id = req.params.id;
+    if (typeof id !== "string") {
       sendNotFound(res);
       return;
     }
-    const artifact = store.getArtifact(rawID);
-    const subpath = requestSubpath(req.originalUrl, rawID);
+    const artifact = store.resolveArtifactAddress(id);
+    const subpath = requestSubpath(req.originalUrl, id);
     if (!artifact || artifact.kind !== "path" || subpath === null) {
       sendNotFound(res);
       return;
     }
 
-    if (isMarkdownPath(artifact.path)) serveMarkdownArtifact(req, res, store, artifact, subpath, appearanceSource, bridgeSource);
-    else if (hasTrailingSeparator(artifact.path)) serveDirectoryArtifact(req, res, store, artifact, subpath, appearanceSource, bridgeSource);
-    else serveFileArtifact(req, res, store, artifact, subpath, appearanceSource, bridgeSource);
+    const reply = proxyReply(req, res, store, artifact, id);
+    if (isMarkdownPath(artifact.path)) serveMarkdownArtifact(req, res, reply, artifact, subpath, appearanceSource, bridgeSource);
+    else if (hasTrailingSeparator(artifact.path)) serveDirectoryArtifact(req, res, reply, artifact, subpath, appearanceSource, bridgeSource);
+    else serveFileArtifact(req, res, reply, artifact, subpath, appearanceSource, bridgeSource);
   };
 }

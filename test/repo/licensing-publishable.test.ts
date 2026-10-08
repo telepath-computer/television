@@ -240,7 +240,7 @@ function makeFixture({
   writeFileSync(path.join(root, fixtureDependency.licenseFilePath), "Fixture dependency terms\n");
 
   const packages = includeEntries ? [fixtureDependency] : [];
-  for (const surface of ["cli", "web", "view:markdown", "skill:tv-calendar", "skill:tv-tasks"]) {
+  for (const surface of ["cli", "sdk:resources", "web", "view:markdown", "skill:tv-calendar", "skill:tv-tasks"]) {
     writeJSON(path.join(root, `.licenses-inventory/${surface}.json`), {
       surface,
       packages: surface === "cli" ? packages : [],
@@ -249,7 +249,7 @@ function makeFixture({
   const generated = renderThirdPartyNotices({
     surface: "cli",
     inventory: { surface: "cli", packages },
-    assetSurfaces: ["cli", "web", "view:markdown", "skill:tv-calendar", "skill:tv-tasks"],
+    assetSurfaces: ["cli", "sdk:resources", "web", "view:markdown", "skill:tv-calendar", "skill:tv-tasks"],
     config,
     assets: [],
     root,

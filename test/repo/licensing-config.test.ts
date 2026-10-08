@@ -45,6 +45,7 @@ describe("licensing configuration", () => {
   test("declares package topology in one module", () => {
     expect(includedLicenseSurfaces("cli")).toEqual([
       "cli",
+      "sdk:resources",
       "skill:tv-calendar",
       "skill:tv-tasks",
       "view:markdown",
@@ -88,6 +89,7 @@ describe("licensing configuration", () => {
       "clouds-theme",
       "tailwind-foundation",
       "tailwind-token-demo",
+      "firebase-push-keys",
     ]);
 
     const hind = assets[0];
@@ -253,6 +255,22 @@ describe("licensing configuration", () => {
       .toContain("https://github.com/tailwindlabs/tailwindcss/blob/41d9cae8e53378d16087fcf359eb785c2fd42ce4/LICENSE");
   });
 
+  // proofs/arch/licensing.md#^licensing-t-real-assets-seam
+  test("records the push-key code adapted from the Firebase JavaScript SDK, which opens with its attribution", () => {
+    const firebase = loadAssetManifest().find((asset) => asset.id === "firebase-push-keys")!;
+    expect(firebase.paths).toEqual(["packages/shared/src/resources/push-keys.ts"]);
+    expect(firebase.surfaces).toEqual(["cli", "sdk:resources", "source"]);
+    expect(firebase).not.toHaveProperty("noticesFolder");
+    expect(firebase.components).toHaveLength(1);
+    const [component] = firebase.components;
+    expect(component).toMatchObject({ name: "Firebase JavaScript SDK", license: "Apache-2.0" });
+    expect(component.noticeText).toMatch(/^Copyright 2017 Google LLC\n\n {33}Apache License\n {27}Version 2\.0, January 2004\n/);
+    expect(component.noticeText).toContain("9. Accepting Warranty or Additional Liability.");
+    expect(component.noticeText).toContain("END OF TERMS AND CONDITIONS");
+    expect(component.noticeText).toMatch(/See the License for the specific language governing permissions and\n   limitations under the License\.\n$/);
+    expectAdaptedFirebaseHeader(readFileSync(path.join(repoRoot, firebase.paths[0]), "utf8"));
+  });
+
   test("accepts exact and scope ignored patterns and rejects every other wildcard form", () => {
     const root = fixtureRoot();
     const configPath = path.join(root, "config.json");
@@ -413,6 +431,18 @@ function assetFixture(overrides: Record<string, unknown> = {}): Record<string, u
     surfaces: ["source"],
     ...overrides,
   };
+}
+
+/** The attribution comment a file adapted from the Firebase JavaScript SDK opens with. */
+function expectAdaptedFirebaseHeader(source: string): void {
+  expect(source).toMatch(/^\/\*\*/);
+  const header = source.split("*/")[0];
+  expect(header).toContain("Firebase JavaScript SDK");
+  expect(header).toContain("https://github.com/firebase/firebase-js-sdk");
+  expect(header).toContain("Copyright 2017 Google LLC");
+  expect(header).toContain('Licensed under the Apache License, Version 2.0 (the "License");');
+  expect(header).toContain("http://www.apache.org/licenses/LICENSE-2.0");
+  expect(header).toMatch(/modified by Television/i);
 }
 
 function inventory(surface: string, packages: SurfaceInventory["packages"]): SurfaceInventory {

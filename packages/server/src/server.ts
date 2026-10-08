@@ -1,6 +1,7 @@
 import express from "express";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import type { Duplex } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -23,9 +24,29 @@ import { telemetryVersion, type LaunchMode, type TelemetryEnv, type TelemetrySes
 import { resolveUpdateReleaseVersion } from "./updates/version.ts";
 import { buildServerStatus } from "./updates/server-status.ts";
 import { createUpdateChannelPoller, type UpdateChannelPoller } from "./updates/update-channel.ts";
+import { createAdminRouter } from "./resources/admin-routes.ts";
+import { createArtifactRouter } from "./resources/artifact-routes.ts";
+import { PageConnectionServer } from "./resources/page-connection.ts";
+import { SDK_NOTICES_ROUTE, SDK_ROUTE, serveResourceSdk, serveResourceSdkNotices } from "./resources/sdk-route.ts";
+import {
+  ADMIN_ROUTE_PREFIX,
+  ARTIFACT_ROUTE_PREFIX,
+  RESOURCE_BINDINGS_ENABLED,
+  parsePageConnectionPath,
+} from "@telepath-computer/television-shared/resources";
 import type { ArtifactPollCadence } from "@telepath-computer/television-artifact/browser";
 
 const HTTP_UNAUTHORIZED_STATUS = 401;
+const HTTP_FIRST_ERROR_STATUS = 400;
+const HTTP_INTERNAL_SERVER_ERROR_STATUS = 500;
+const HTTP_STATUS_LIMIT = 600;
+
+/** An uncaught request error's status, as Express's own handler finds it: its own if it is an error status, otherwise 500. */
+function errorStatus(error: unknown): number {
+  const fields = typeof error === "object" && error !== null ? (error as { status?: unknown; statusCode?: unknown }) : {};
+  const status = fields.status ?? fields.statusCode;
+  return typeof status === "number" && status >= HTTP_FIRST_ERROR_STATUS && status < HTTP_STATUS_LIMIT ? status : HTTP_INTERNAL_SERVER_ERROR_STATUS;
+}
 const CANONICAL_VERSION_DIRECTORY_PATTERN = /^v\d+(?:\.\d+)?$/;
 
 interface CanonicalVersionDirectory {
@@ -67,6 +88,16 @@ function resolveCanonicalVersionDirectories(
 
 declare const __TV_VERSION__: string | undefined;
 
+const ANY_IPV4 = "0.0.0.0";
+
+/** Every IPv4 address of the machine's network interfaces, loopback included, in the order the system reports them. */
+function interfaceIPv4Addresses(): string[] {
+  return Object.values(os.networkInterfaces())
+    .flatMap((entries) => entries ?? [])
+    .filter((entry) => entry.family === "IPv4")
+    .map((entry) => entry.address);
+}
+
 export interface ServerTelemetryOptions {
   env?: TelemetryEnv;
   sink?: TelemetryRuntimeSink;
@@ -94,6 +125,19 @@ export interface ServerOptions {
    * canonical routes are not registered.
    */
   canonicalDir?: string;
+  /**
+   * The built resource SDK's directory, holding `v1/resources.js` and its
+   * notices, served at `/sdk/v1/resources.js` and
+   * `/sdk/v1/THIRD-PARTY-NOTICES.txt`. Without it those paths answer 404 and
+   * the rest of the resource layer works (specs/arch/resources/sdk.md#^sdk-packaging).
+   */
+  sdkDir?: string;
+  /**
+   * The bindings flag (specs/arch/resources/index.md#^rs-flag-constant):
+   * `RESOURCE_BINDINGS_ENABLED` unless given. Production never passes it;
+   * tests turn it on.
+   */
+  resourceBindings?: boolean;
   acpProfile?: ACPAgentProfile;
   telemetry?: ServerTelemetryOptions;
   /**
@@ -115,6 +159,7 @@ export class Server {
   private readonly store: ServerStore;
   private readonly events: EventStreamServer;
   private readonly acp: ACPServer | null;
+  private readonly pageConnections: PageConnectionServer;
   private readonly port: number;
   private readonly authRequired: boolean;
   private readonly authMode: "auth" | "no-auth" | "none";
@@ -158,9 +203,26 @@ export class Server {
         // release version; a release version is not sensitive.
         version: updateReleaseVersion,
         bindAddresses: this.bindAddresses,
+        // Unauthenticated, so a wildcard listener's interface addresses are
+        // readable here; TV-952 moves them behind the token.
+        origins: this.getOrigins(),
         port: this.getListeningPort(),
       });
     });
+    // The resource routes come before the shared JSON parser and every CORS
+    // middleware: they parse their own bodies, up past a store's size limit,
+    // and send no CORS headers (specs/arch/resources/index.md#^rs-any-origin).
+    // The flag reaches the layer before the server accepts connections; with
+    // it on, the layer reads the bindings file (specs/arch/resources/index.md#^rs-startup).
+    if (options.resourceBindings ?? RESOURCE_BINDINGS_ENABLED) this.store.resources.enableBindings();
+    const resourceAccess = { layer: this.store.resources, authRequired: this.authRequired, authToken: this.store.authToken, origins: () => this.getOrigins() };
+    this.app.use(ADMIN_ROUTE_PREFIX, createAdminRouter(resourceAccess));
+    this.app.use(ARTIFACT_ROUTE_PREFIX, createArtifactRouter());
+    if (options.sdkDir) {
+      this.app.get(SDK_ROUTE, serveResourceSdk(options.sdkDir));
+      this.app.get(SDK_NOTICES_ROUTE, serveResourceSdkNotices(options.sdkDir));
+    }
+    this.pageConnections = new PageConnectionServer({ layer: this.store.resources });
     this.app.use(express.json());
 
     this.events = new EventStreamServer({
@@ -271,9 +333,19 @@ export class Server {
       }));
     }
 
-    this.app.use((error: unknown, _req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    // The last error handler answers with the status and its fixed text.
+    // Express's own would send the error's stack, since the server does not
+    // run with NODE_ENV=production, and an error's text can name the files
+    // of an artifact a share link serves, and so its ID
+    // (specs/arch/resources/index.md#^rs-share-serving).
+    this.app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
       log(this.store.storagePath, "uncaught request error", { error });
-      next(error);
+      if (res.headersSent) {
+        next(error);
+        return;
+      }
+      const status = errorStatus(error);
+      res.status(status).type("text/plain").send(http.STATUS_CODES[status] ?? "Error");
     });
 
     for (const httpServer of this.httpServers) {
@@ -347,6 +419,17 @@ export class Server {
     return [...this.baseURLs];
   }
 
+  /**
+   * The origins this server can be reached at, after `start()`
+   * (specs/arch/cli/index.md#^cli-server-origins): one for each bind address
+   * on the bound port, with `0.0.0.0` standing for each IPv4 address of the
+   * machine's interfaces as they are now. None is preferred.
+   */
+  getOrigins(): string[] {
+    const hosts = this.bindAddresses.flatMap((address) => (address === ANY_IPV4 ? interfaceIPv4Addresses() : [address]));
+    return [...new Set(hosts.map((host) => new URL(buildServerURL(host, this.getListeningPort())).origin))];
+  }
+
   getAuthToken(): string {
     return this.store.authToken;
   }
@@ -359,7 +442,7 @@ export class Server {
     return this.acp?.getChildPIDs() ?? [];
   }
 
-  private getListeningPort(): number {
+  getListeningPort(): number {
     return this.listeningPort;
   }
 
@@ -374,6 +457,7 @@ export class Server {
     try {
       await Promise.all([
         this.events.dispose(),
+        this.pageConnections.dispose(),
         this.acp?.dispose() ?? Promise.resolve(),
         Promise.resolve(this.store.dispose()),
         this.telemetryRuntime?.shutdown() ?? Promise.resolve(),
@@ -409,6 +493,11 @@ export class Server {
     }
     if (parsed.pathname === "/acp" && this.acp) {
       this.acp.handleUpgrade(request, duplex, head);
+      return;
+    }
+    const pageID = parsePageConnectionPath(parsed.pathname);
+    if (pageID !== null) {
+      this.pageConnections.handleUpgrade(request, duplex, head, pageID);
       return;
     }
     socket.destroy();

@@ -60,6 +60,7 @@ import {
   stripTrailingSeparators,
   type Artifact,
   type ArtifactKind,
+  type ArtifactShareLink,
 } from "@telepath-computer/television-artifact";
 import { createToken } from "./auth.ts";
 import { defaultWatchContentFile, type ContentWatcher, type WatchContentFile } from "./file-watcher.ts";
@@ -75,6 +76,17 @@ import {
   getTokenPath,
 } from "./artifact-paths.ts";
 import { runRedesignStorageMigration } from "./redesign-storage-migration.ts";
+import { isResourceID, isResourceRefusal, resourceError } from "@telepath-computer/television-shared/resources";
+import { ResourceLayer, unknownOutcome } from "./resources/layer.ts";
+import {
+  UncertainWriteError,
+  deleteFile,
+  errorMessage,
+  isTemporaryFileName,
+  nodeResourceStorageOperations,
+  rewriteFile,
+  type ResourceStorageOperations,
+} from "./resources/storage.ts";
 import { getThemeDir, getThemesDir, scanThemesDirectory } from "./themes.ts";
 import type { TelemetryClientContext } from "./telemetry/client-meta.ts";
 import type { ServerStoreTelemetryHooks } from "./telemetry/emitters.ts";
@@ -208,12 +220,25 @@ export interface ServerStoreOptions {
    * state, no onboarding (specs/arch/onboarding/installer.md#^token-only-boot).
    */
   installOnboardingChannels?: boolean;
+  /**
+   * Test hook: the file-writer operations of the resource layer and the
+   * artifact records (proofs/arch/resources/index.md, Test hooks).
+   * Production uses Node's.
+   */
+  resourceStorageOperations?: ResourceStorageOperations;
+  /**
+   * Test hook: the generator of artifact IDs and resource IDs
+   * (proofs/arch/resources/index.md, Test hooks). Production uses `ulid`.
+   */
+  generateID?: () => string;
 }
 
 export class ServerStore extends EventTarget<StoreDomainEvent> {
   readonly storagePath: string;
   readonly authToken: string;
   readonly dataDirCreated: boolean;
+  /** The resource layer (specs/arch/resources/index.md#^rs-bootstrap); loaded only by a serving boot. */
+  readonly resources: ResourceLayer;
   private readonly channels = new Map<string, Channel>();
   private focusedChannelId: string | null = null;
   private pinnedChannelIds: string[] = [];
@@ -223,6 +248,12 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   private themeRegistry: ThemeRegistrySnapshot = { themes: [], errors: [] };
   private displayStateReady = false;
   private readonly _artifacts = new Map<string, Artifact>();
+  /** Each own store's owner: the artifact whose record points to the resource ID. */
+  private readonly storeOwners = new Map<string, string>();
+  /** Each share ID's artifact (specs/arch/resources/index.md#^rs-share-ids). */
+  private readonly shareOwners = new Map<string, string>();
+  private readonly recordStorage: ResourceStorageOperations;
+  private readonly generateID: () => string;
   private readonly artifactChannels = new Map<string, string>();
   private readonly contentWatchers = new Map<string, ContentWatcher>();
   private readonly contentWatchDebounceTimers = new Map<string, NodeJS.Timeout>();
@@ -258,6 +289,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.bundledThemesPath = options.bundledThemesPath === undefined
       ? undefined
       : path.resolve(options.bundledThemesPath);
+    this.recordStorage = options.resourceStorageOperations ?? nodeResourceStorageOperations;
+    this.generateID = options.generateID ?? ulid;
     if (this.serving) {
       runRedesignStorageMigration(this.storagePath);
     }
@@ -265,12 +298,45 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.authToken = this.loadOrCreateAuthToken();
     this.load();
     this.rebuildArtifactChannels();
+    for (const artifact of this._artifacts.values()) {
+      if (artifact.kind === "path" && artifact.store !== undefined) this.storeOwners.set(artifact.store, artifact.id);
+      const share = shareOf(artifact);
+      if (share !== undefined) this.shareOwners.set(share.id, artifact.id);
+    }
+    this.resources = new ResourceLayer({
+      storagePath: this.storagePath,
+      generateID: this.generateID,
+      storage: this.recordStorage,
+      artifacts: {
+        artifactExists: (artifactID) => this._artifacts.has(artifactID),
+        hasStore: (artifactID) => this.artifactHasStore(artifactID),
+        storePointer: (artifactID) => storeOf(this._artifacts.get(artifactID)),
+        pointerOwner: (resourceID) => this.storeOwners.get(resourceID),
+        saveStorePointer: (artifactID, resourceID) => this.saveStorePointer(artifactID, resourceID),
+        isShareable: (artifactID) => this._artifacts.get(artifactID)?.kind === "path",
+        isMarkdown: (artifactID) => {
+          const artifact = this._artifacts.get(artifactID);
+          return artifact?.kind === "path" && isMarkdownPath(artifact.path);
+        },
+        shareOf: (artifactID) => shareOf(this._artifacts.get(artifactID)),
+        shareOwner: (shareID) => this.shareOwners.get(shareID),
+        newShareID: () => this.newID(),
+        saveShare: (artifactID, share) => this.saveShare(artifactID, share),
+      },
+    });
     if (!this.serving) {
       // Token-only construction: no channels, no display state, no onboarding
-      // install, no watchers. Default-channel setup belongs exclusively to the
-      // serving-boot invariant below.
+      // install, no watchers, and no resource loading: only a serving server
+      // reads or writes resource files (specs/arch/resources/index.md#^rs-storage).
+      // Default-channel setup belongs exclusively to the serving-boot
+      // invariant below.
       return;
     }
+    this.removeLeftoverRecordFiles();
+    // Bootstrap step 2 ends by loading the resource layer, before the install
+    // loop, so the installer can write artifacts' stores
+    // (specs/arch/onboarding/installer.md#^bootstrap-sequence).
+    this.resources.load();
     // Snapshot the no-content condition before the install loop; it gates the
     // focus rule (specs/arch/onboarding/installer.md#^onboarding-focus-rule).
     const noContentAtBoot =
@@ -285,6 +351,10 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
         createChannel: (input) => this.createChannel(input),
         createArtifact: (input) => this.createArtifact(input),
         setChannelLayout: (channelID, layout) => this.setChannelLayoutForInstall(channelID, layout),
+        // The store's first write (specs/arch/onboarding/installer.md#^onboarding-store-dates).
+        writeStartingValue: (artifactID, value) => {
+          this.resources.json.write({ artifactID }, { kind: "set", path: "", value });
+        },
       },
       this.onboardingContentPath,
     );
@@ -370,10 +440,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     url?: string;
   }, telemetryContext?: TelemetryClientContext | null): Artifact {
     const channel = this.requireChannel(input.channelID);
-    const artifact = this.createKindArtifact(input);
+    const created = this.createKindArtifact({ ...input, id: input.id ?? this.newID() });
     const previousLayout = channel.layout;
 
-    this.writeArtifact(artifact);
+    const saved = this.saveArtifactRecord(created, `creating artifact ${created.id}`);
+    const artifact = saved.artifact;
     channel.layout = [
       ...channel.layout,
       {
@@ -396,6 +467,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: channel.id, artifact }));
     this.emitTelemetry((hooks) => hooks.artifactCreated(artifact, telemetryContext));
 
+    if (saved.uncertain !== null) throw saved.uncertain;
     return artifact;
   }
 
@@ -437,10 +509,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     }
 
     if (updated === artifact) return artifact;
-    const metadataChanged = !hasSameArtifactMetadata(updated, artifact);
 
-    this.writeArtifact(updated);
-    this._artifacts.set(input.artifactID, updated);
+    const saved = this.saveArtifactRecord(updated, `updating artifact ${input.artifactID}`);
+    updated = saved.artifact;
+    const metadataChanged = !hasSameArtifactMetadata(updated, artifact);
+    this.adoptArtifactRecord(updated);
     if (pointerChanged) {
       this.startWatchingArtifactContent(updated);
       const watcher = this.contentWatchers.get(updated.id);
@@ -452,6 +525,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     if (metadataChanged) {
       this.emitTelemetry((hooks) => hooks.artifactUpdated(updated, telemetryContext));
     }
+    if (saved.uncertain !== null) throw saved.uncertain;
     return updated;
   }
 
@@ -489,9 +563,15 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       this.artifactChannels.delete(artifactID);
     }
 
+    const uncertain = this.deleteArtifactRecord(artifactID);
     this.stopWatchingArtifactContent(artifactID);
     this._artifacts.delete(artifactID);
-    rmSync(getArtifactLiveMetadataPath(this.storagePath, artifactID), { force: true });
+    const store = storeOf(artifact);
+    if (store !== undefined) this.storeOwners.delete(store);
+    const share = shareOf(artifact);
+    if (share !== undefined) this.shareOwners.delete(share.id);
+    // specs/arch/resources/index.md#^rs-artifact-delete
+    this.resources.artifactDeleted(artifactID, share?.id);
 
     if (channelID !== undefined) {
       this.dispatchEvent(new ArtifactRemovedEvent("artifact-removed", { artifactID, channelID: channelID }));
@@ -500,6 +580,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       hooks.artifactDeleted(artifact, deletionCause, telemetryContext)
     );
 
+    if (uncertain !== null) throw uncertain;
     return artifact.kind === "path"
       ? { outcome: "deleted", kind: "path", artifactID, path: artifact.path }
       : { outcome: "deleted", kind: "url", artifactID, url: artifact.url };
@@ -1506,8 +1587,152 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return cause !== undefined ? new Error(message, { cause }) : new Error(message);
   }
 
-  private writeArtifact(artifact: Artifact): void {
-    writeFileSync(getArtifactLiveMetadataPath(this.storagePath, artifact.id), JSON.stringify(artifact, null, JSON_INDENT_SPACES));
+  /**
+   * Saves an artifact's record under the resource layer's storage rule
+   * (specs/arch/resources/index.md#^rs-artifact-record). Returns the record
+   * now current: the one given, or, when the save's outcome is uncertain, the
+   * one read back, with the refusal to give once it has taken effect. Throws
+   * when nothing changed.
+   */
+  private saveArtifactRecord(artifact: Artifact, change: string): { artifact: Artifact; uncertain: Error | null } {
+    const filePath = getArtifactLiveMetadataPath(this.storagePath, artifact.id);
+    try {
+      rewriteFile(this.recordStorage, filePath, JSON.stringify(artifact, null, JSON_INDENT_SPACES));
+    } catch (error) {
+      if (!(error instanceof UncertainWriteError)) throw error;
+      const uncertain = unknownOutcome(change, error);
+      let readBack: Artifact;
+      try {
+        readBack = this.readArtifactFile(filePath, artifact.id);
+      } catch (readError) {
+        console.warn(`Artifact ${artifact.id} keeps its record from before a save whose outcome is unknown, since it cannot be read back: ${errorMessage(readError)}`);
+        throw uncertain;
+      }
+      return { artifact: readBack, uncertain };
+    }
+    return { artifact, uncertain: null };
+  }
+
+  /**
+   * Deletes an artifact's record under the storage rule. Returns the refusal
+   * to give when the deletion's outcome is uncertain but the record is gone;
+   * throws when the record stays.
+   */
+  private deleteArtifactRecord(artifactID: string): Error | null {
+    const filePath = getArtifactLiveMetadataPath(this.storagePath, artifactID);
+    try {
+      deleteFile(this.recordStorage, filePath);
+    } catch (error) {
+      if (!(error instanceof UncertainWriteError)) throw error;
+      const uncertain = unknownOutcome(`deleting artifact ${artifactID}`, error);
+      // Only a record confirmed gone is deleted; one whose absence cannot be checked stays.
+      let gone = false;
+      try {
+        gone = !this.recordStorage.exists(filePath);
+      } catch {
+        // Not confirmed.
+      }
+      if (!gone) throw uncertain;
+      return uncertain;
+    }
+    return null;
+  }
+
+  /** Makes a saved record current, keeping the maps of own stores' owners and share IDs in step with it. */
+  private adoptArtifactRecord(artifact: Artifact): void {
+    const before = this._artifacts.get(artifact.id);
+    const previous = storeOf(before);
+    if (previous !== undefined && this.storeOwners.get(previous) === artifact.id) this.storeOwners.delete(previous);
+    const previousShare = shareOf(before);
+    if (previousShare !== undefined && this.shareOwners.get(previousShare.id) === artifact.id) this.shareOwners.delete(previousShare.id);
+    this._artifacts.set(artifact.id, artifact);
+    const store = storeOf(artifact);
+    if (store !== undefined) this.storeOwners.set(store, artifact.id);
+    const share = shareOf(artifact);
+    if (share !== undefined) this.shareOwners.set(share.id, artifact.id);
+  }
+
+  /** Saves an artifact's store pointer for the resource layer (specs/arch/resources/index.md#^rs-first-write, #^rs-destroy-order). */
+  private saveStorePointer(artifactID: string, resourceID: string | undefined): { pointer: string | undefined; uncertain: Error | null } {
+    const artifact = this._artifacts.get(artifactID);
+    if (artifact?.kind !== "path") throw new Error(`Artifact ${artifactID} has no store.`);
+    const { store: _previous, ...rest } = artifact;
+    const next: Artifact = resourceID === undefined ? rest : { ...rest, store: resourceID };
+    const change = resourceID === undefined ? `removing the store of artifact ${artifactID}` : `saving the store of artifact ${artifactID}`;
+    let saved: { artifact: Artifact; uncertain: Error | null };
+    try {
+      saved = this.saveArtifactRecord(next, change);
+    } catch (error) {
+      if (isResourceRefusal(error)) throw error;
+      throw resourceError("unavailable", `Could not save the record of artifact ${artifactID}: ${errorMessage(error)}`);
+    }
+    this.adoptArtifactRecord(saved.artifact);
+    return { pointer: storeOf(saved.artifact), uncertain: saved.uncertain };
+  }
+
+  /**
+   * Saves an artifact's share link, or its removal, for the resource layer
+   * (specs/arch/resources/index.md#^rs-share-change). Returns the link now
+   * current, with the refusal to give when the save's outcome is uncertain.
+   */
+  private saveShare(artifactID: string, share: ArtifactShareLink | undefined): { share: ArtifactShareLink | undefined; uncertain: Error | null } {
+    const artifact = this._artifacts.get(artifactID);
+    if (artifact?.kind !== "path") throw new Error(`Artifact ${artifactID} cannot be shared.`);
+    const { share: _previous, ...rest } = artifact;
+    const next: Artifact = share === undefined ? rest : { ...rest, share };
+    const change = share === undefined ? `revoking the share link of artifact ${artifactID}` : `sharing artifact ${artifactID}`;
+    let saved: { artifact: Artifact; uncertain: Error | null };
+    try {
+      saved = this.saveArtifactRecord(next, change);
+    } catch (error) {
+      if (isResourceRefusal(error)) throw error;
+      throw resourceError("unavailable", `Could not save the record of artifact ${artifactID}: ${errorMessage(error)}`);
+    }
+    this.adoptArtifactRecord(saved.artifact);
+    return { share: shareOf(saved.artifact), uncertain: saved.uncertain };
+  }
+
+  /**
+   * The artifact an ID in an artifact's address reaches: the artifact with
+   * that ID, or the one whose share link has it (specs/arch/resources/index.md#^rs-resolve-id).
+   */
+  resolveArtifactAddress(id: string): Artifact | undefined {
+    const shared = this.shareOwners.get(id);
+    return this._artifacts.get(shared ?? id);
+  }
+
+  /**
+   * Whether an artifact has a store: a path artifact, whatever its path, with
+   * a generated ID, the ULID form that resource IDs share
+   * (specs/arch/resources/index.md#^rs-has-store).
+   */
+  private artifactHasStore(artifactID: string): boolean {
+    const artifact = this._artifacts.get(artifactID);
+    return artifact?.kind === "path" && isResourceID(artifact.id);
+  }
+
+  /**
+   * A new artifact ID or share ID, drawn again while it equals an existing
+   * artifact ID or share ID (specs/arch/resources/index.md#^rs-share-ids).
+   */
+  private newID(): string {
+    for (;;) {
+      const id = this.generateID();
+      if (!this._artifacts.has(id) && !this.shareOwners.has(id)) return id;
+    }
+  }
+
+  /** Removes temporary files that an interrupted record save left (specs/arch/resources/index.md#^rs-storage). */
+  private removeLeftoverRecordFiles(): void {
+    if (!existsSync(this.artifactsDir)) return;
+    for (const file of readdirSync(this.artifactsDir)) {
+      if (!isTemporaryFileName(file)) continue;
+      try {
+        this.recordStorage.deleteFile(path.join(this.artifactsDir, file));
+      } catch (error) {
+        console.warn(`Could not remove the leftover temporary file ${path.join(this.artifactsDir, file)}: ${errorMessage(error)}`);
+      }
+    }
   }
 
   private get channelsDir(): string {
@@ -1544,4 +1769,13 @@ function assertPreservesPageMembership(
       `Channel ${channelID} layout cannot add, remove, split, merge, or regroup page membership`,
     );
   }
+}
+
+/** The resource ID an artifact's record points to, if it has one. */
+function storeOf(artifact: Artifact | undefined): string | undefined {
+  return artifact?.kind === "path" ? artifact.store : undefined;
+}
+
+function shareOf(artifact: Artifact | undefined): ArtifactShareLink | undefined {
+  return artifact?.kind === "path" ? artifact.share : undefined;
 }

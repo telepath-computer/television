@@ -173,6 +173,7 @@ describe("skills build", () => {
 
     expect(existsSync(path.join(skillsDistRoot, "television", "SKILL.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "theming.md"))).toBe(true);
+    expect(existsSync(path.join(skillsDistRoot, "television", "resources.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "house-style.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "cli-capabilities.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "artifact-workflow.md"))).toBe(false);
@@ -248,6 +249,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("omit the query parameter");
     expect(televisionSkill).toContain("advisory authoring context");
     expect(televisionSkill).toContain("[theming guidance](./theming.md)");
+    expect(televisionSkill).toContain("[resource guidance](./resources.md)");
 
     const htmlGuidance = readFileSync(
       path.join(

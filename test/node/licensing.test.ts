@@ -44,6 +44,14 @@ const sourceNotices = {
   tasks: path.join(repoRoot, "packages/skills/skills/tv-tasks/dist", noticeName),
 };
 
+// The resource SDK's notices, beside the module in the server build and in the CLI's copy of it.
+const sdkNotices = {
+  built: path.join(repoRoot, "packages/server/dist/sdk/v1", noticeName),
+  copied: path.join(cliDist, "sdk/v1", noticeName),
+};
+const firebase = "Firebase JavaScript SDK";
+const firebaseAdaptedFile = path.join(repoRoot, "packages/shared/src/resources/push-keys.ts");
+
 const copiedNotices = {
   web: path.join(cliDist, "web", noticeName),
   markdown: path.join(cliDist, "views/markdown", noticeName),
@@ -80,6 +88,15 @@ describe("product licensing outputs", () => {
     expect(notice).toContain("@phosphor-icons/core");
     expect(notice).toContain("Tailwind CSS color palette");
     expectNoIgnoredPackageNames(notice);
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-build-seam
+  test("the resource SDK build persists its inventory and writes its notices beside the module", () => {
+    expect(packageNames(readSurfaceInventory(inventoryRoot, "sdk:resources"))).toEqual([]);
+    const expected = expectedSurfaceNotices("sdk:resources", ["sdk:resources"]);
+    expect(expected).not.toBeNull();
+    expect(readFileSync(sdkNotices.built, "utf8")).toBe(expected);
+    expect(materialSection(expected!, firebase)).toContain("Licensed under Apache-2.0.");
   });
 
   test("suite inventory handoff retains every product surface", () => {
@@ -124,7 +141,9 @@ describe("product licensing outputs", () => {
     }
     expect(notice).toContain("Hind variable font\nLicensed under OFL-1.1.");
     expect(notice).toContain("@phosphor-icons/core@2.1.1\nLicensed under MIT.");
+    expect(materialSection(notice, firebase)).toContain("Licensed under Apache-2.0.");
 
+    expect(readFileSync(sdkNotices.copied)).toEqual(readFileSync(sdkNotices.built));
     expect(existsSync(copiedNotices.calendar)).toBe(false);
     assertAudienceNotice(readFileSync(copiedNotices.tasks, "utf8"));
     const rawInventories = [cliDist, desktopDist].flatMap((root) => listFiles(root))
@@ -145,7 +164,9 @@ describe("product licensing outputs", () => {
     }
     for (const notice of notices.slice(0, 2)) {
       expect(materialSection(notice, "Nord color palette")).toContain("Copyright (c) 2016-present Sven Greb");
+      expect(materialSection(notice, firebase)).toContain("Copyright 2017 Google LLC");
     }
+    expect(notices[2]).not.toContain(firebase);
   });
 });
 
@@ -232,6 +253,39 @@ describe("shipped package licensing", () => {
     }
   });
 
+  // proofs/product/licensing.md#^licensing-ac-adapted-code
+  test("code adapted from the Firebase JavaScript SDK carries its attribution wherever it ships", async () => {
+    const header = readFileSync(firebaseAdaptedFile, "utf8").split("*/")[0];
+    expect(header).toMatch(/^\/\*\*/);
+    expect(header).toContain(firebase);
+    expect(header).toContain("https://github.com/firebase/firebase-js-sdk");
+    expect(header).toContain("Copyright 2017 Google LLC");
+    expect(header).toContain('Licensed under the Apache License, Version 2.0 (the "License");');
+    expect(header).toContain("http://www.apache.org/licenses/LICENSE-2.0");
+    expect(header).toMatch(/modified by Television/i);
+
+    const terms = loadAssetManifest({ root: repoRoot })
+      .find((asset) => asset.id === "firebase-push-keys")?.components[0]?.noticeText;
+    expect(terms).toMatch(/^Copyright 2017 Google LLC\n/);
+    expect(terms).toContain("TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION");
+    expect(terms).toContain("END OF TERMS AND CONDITIONS");
+
+    const served = await fetchFromServedCLI(`/sdk/v1/${noticeName}`);
+    expect(served.status).toBe(200);
+    assertAudienceNotice(served.text);
+    const notices = [
+      ["repository root", readFileSync(path.join(repoRoot, noticeName), "utf8")],
+      ["CLI tarball", readFileSync(path.join(packedCLI, "dist", noticeName), "utf8")],
+      ["CLI tarball's resource SDK", readFileSync(path.join(packedCLI, "dist/sdk/v1", noticeName), "utf8")],
+      ["served resource SDK", served.text],
+    ] as const;
+    for (const [where, notice] of notices) {
+      const section = materialSection(notice, firebase);
+      expect(section, where).toContain("Licensed under Apache-2.0.");
+      expect(section, where).toContain(terms!);
+    }
+  });
+
   // proofs/arch/node-versions.md#^node-versions-t-packed-declarations
   test("the CLI tarball retains the published Node consumer floor", () => {
     const manifest = JSON.parse(readFileSync(path.join(packedCLI, "package.json"), "utf8")) as {
@@ -250,6 +304,7 @@ describe("shipped package licensing", () => {
     const markdownExpected = expectedSurfaceNotices("view:markdown", ["view:markdown"]);
     const calendarExpected = expectedSurfaceNotices("skill:tv-calendar", ["skill:tv-calendar"]);
     const tasksExpected = expectedSurfaceNotices("skill:tv-tasks", ["skill:tv-tasks"]);
+    const sdkExpected = expectedSurfaceNotices("sdk:resources", ["sdk:resources"]);
     const locations = [
       [path.join(repoRoot, noticeName), sourceExpected],
       [path.join(packedCLI, "dist", noticeName), cliExpected],
@@ -266,6 +321,8 @@ describe("shipped package licensing", () => {
       [path.join(packedCLI, "dist/views/markdown", noticeName), markdownExpected],
       [path.join(packedCLI, "dist/skills/tv-calendar", noticeName), calendarExpected],
       [path.join(packedCLI, "dist/skills/tv-tasks", noticeName), tasksExpected],
+      [sdkNotices.built, sdkExpected],
+      [path.join(packedCLI, "dist/sdk/v1", noticeName), sdkExpected],
       [
         path.join(packedCLI, "dist/onboarding/productivity/company-todos", noticeName),
         readFileSync(path.join(repoRoot, "packages/server/assets/onboarding-channels/productivity/company-todos", noticeName), "utf8"),
@@ -285,6 +342,7 @@ describe("shipped package licensing", () => {
       ...listFiles(packedCLI).filter((file) => path.basename(file) === noticeName),
       ...listFiles(desktopUpload).filter((file) => path.basename(file) === noticeName),
       ...Object.values(sourceNotices).filter((file) => existsSync(file)),
+      ...[sdkNotices.built].filter((file) => existsSync(file)),
       ...listFiles(path.join(repoRoot, bundledThemesSource)).filter((file) => path.basename(file) === noticeName),
     ];
     const expectedNoticeFiles = locations.filter(([, expected]) => expected !== null).map(([file]) => file);
@@ -390,6 +448,22 @@ function themeFolderNotices(): { folder: string; text: string }[] {
     .filter(({ folder }) => path.dirname(folder) === bundledThemesSource);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledThemesSource}/nord`);
   return owed;
+}
+
+/** Starts the built CLI's server over a fresh home and fetches one path from it. */
+async function fetchFromServedCLI(pathname: string): Promise<{ status: number; text: string }> {
+  expect(existsSync(builtCLI), builtCLI).toBe(true);
+  const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-license-sdk-"));
+  const server = spawnServe(storagePath);
+  try {
+    const port = await waitForPort(server.child as ServeChild);
+    const response = await fetch(`http://127.0.0.1:${port}${pathname}`);
+    return { status: response.status, text: await response.text() };
+  } finally {
+    const cleanup = await server.dispose();
+    rmSync(storagePath, { recursive: true, force: true });
+    if (cleanup.outcome === "survived") throw new Error(`Licensing test server ${server.pid} survived cleanup`);
+  }
 }
 
 function expectedSurfaceNotices(
@@ -553,7 +627,7 @@ function serveEnv(): NodeJS.ProcessEnv {
 
 function spawnServe(storagePath: string): OwnedProcess {
   writeHomeConfig(storagePath, { port: 0, auth: false });
-  return spawnOwnedProcess(process.execPath, [builtCLI, "--home", storagePath, "serve"], {
+  return spawnOwnedProcess(process.execPath, [builtCLI, "--home", storagePath, "serve", "--print-links"], {
     cwd: cliDist,
     env: serveEnv(),
     stdio: ["ignore", "pipe", "pipe"],

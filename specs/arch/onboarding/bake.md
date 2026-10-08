@@ -6,8 +6,9 @@ The onboarding designs live under `specs/ui/onboarding-artifacts/`. The release
 bundle lives under `packages/server/assets/onboarding-channels/`. The bake is
 a manual repository script that renders each HTML artifact's reference frame,
 writes the production document around it, copies Markdown and declared skill
-assets, places the production date module beside two Productivity documents,
-and updates the bundled channel configuration.
+assets, places the production date module beside Today's Calendar and the
+to-do store module beside Company To-dos, and updates the bundled channel
+configuration.
 
 The frame remains the authority for the artifact markup and CSS. The bake adds
 the document shell and asset links around that rendering.
@@ -40,7 +41,8 @@ Each named design channel contains:
 - a manifest `skill` value when a rendered frame uses browser components
   supplied by a bundled skill;
 - `components: false` when the production document must omit the canonical
-  components module.
+  components module;
+- `store` when the artifact's store starts with data.
 
 An onboarding frame contains its artifact markup in the frame body and its
 artifact CSS in the optional `style:` block. It declares no parameters,
@@ -95,6 +97,7 @@ The bake writes this document: ^baked-shell
 <title>{artifact title}</title>
 <link rel="stylesheet" href="/canonical/v2/styles.css">
 <script type="module" src="./onboarding-relative-dates.js"></script>
+<script type="module" src="./onboarding-company-todos.js"></script>
 <script type="module" src="/canonical/v2/components.js"></script>
 <link rel="stylesheet" href="./{skill stylesheet}">
 <script type="module" src="./{skill module}"></script>
@@ -108,9 +111,10 @@ The bake writes this document: ^baked-shell
 </html>
 ```
 
-The relative-dates line appears only for Productivity's `company-todos` and
-`todays-calendar` artifacts. The canonical components line is omitted when
-the manifest says `components: false`. CSS files from the declared bundled
+The relative-dates line appears only for Productivity's `todays-calendar`
+artifact, and the to-do store line only for its `company-todos` artifact.
+The canonical components line is omitted when the manifest says
+`components: false`. CSS files from the declared bundled
 skill come next in filename order, followed by its JavaScript files in filename
 order. Both groups are absent without a declared skill. The title is the
 manifest title with `&`,
@@ -128,13 +132,21 @@ For each manifest card, the bake writes one packaged artifact:
   `<channel>/<slug>/index.html`. Every regular top-level file from
   `<skills-dist>/<skill>/`, except `SKILL.md`, is copied beside it.
 
-The two Productivity date artifacts also receive a copy of
+Productivity's `todays-calendar` artifact also receives a copy of
 `packages/server/assets/onboarding-relative-dates.js` beside `index.html`.
-Its module tag precedes the task or calendar skill module in the document
-head. The bake reads the module before replacing any channel folder and copies
+Its module tag precedes the calendar skill module in the document head. The
+bake reads the module before replacing any channel folder and copies
 its bytes without transforming them. The [onboarding UI design](../../ui/onboarding-artifacts/index.md#^productivity-relative-dates)
 owns its displayed-date behavior.
 ^relative-dates-module
+
+Productivity's `company-todos` artifact also receives a copy of
+`packages/server/assets/onboarding-company-todos.js` beside `index.html`, with
+its module tag the first script in the document head, before the canonical
+components module and the task skill's JavaScript. The bake reads and copies
+it the same way. The
+[onboarding UI design](../../ui/onboarding-artifacts/index.md#^productivity-todo-store)
+owns its behavior. ^todo-store-module
 
 The named channel folder is replaced as a unit, so removing a design source
 also removes its old packaged output. Channels not named by the invocation are
@@ -158,7 +170,7 @@ The bake updates `onboarding-channels.json` after writing the artifacts:
 - A new channel is appended with the design manifest's name.
 - An existing channel keeps its position and human-edited name.
 - Its artifact list is replaced by the manifest's ordered cards, carrying each
-  slug, title, and optional size and geometry.
+  slug, title, and optional size, geometry, and store.
 - `focusChannel` and every channel not being baked remain unchanged.
 
 The config is written as two-space-indented JSON with a trailing newline and
@@ -171,8 +183,8 @@ inspection.
 
 ## Determinism
 
-The same frames, Markdown, skill files, relative-dates module, starting config,
-and channel arguments produce the same bytes. A second bake with no input change
+The same frames, Markdown, skill files, relative-dates and to-do store modules,
+starting config, and channel arguments produce the same bytes. A second bake with no input change
 has no diff.
 ^determinism
 
@@ -180,7 +192,8 @@ has no diff.
 
 Tests run the real script against disposable roots. They cover every input
 rejection above, frame rendering and shell serialization, Markdown copying,
-skill-file copying, relative-dates module copying and linking, config updates,
+skill-file copying, relative-dates and to-do store module copying and linking,
+config updates,
 post-write validation, untouched channels,
 and repeatable output. Tests do not bake the committed production tree or
 compare it to a golden copy; the reviewed commit is what makes generated output

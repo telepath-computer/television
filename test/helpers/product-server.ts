@@ -175,7 +175,7 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
   let disposalPromise: Promise<void> | null = null;
 
   async function startServe(): Promise<{ process: ProductServerProcess; serverURL: string }> {
-    const owned = spawnOwnedProcess(process.execPath, [cliEntry(), "--home", home, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [cliEntry(), "--home", home, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       stdio: ["ignore", "pipe", "pipe"],
       env,

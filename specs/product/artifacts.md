@@ -1,4 +1,4 @@
-*What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
+*What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, a shared one outliving its producer, and what survives moving around the app.*
 
 **Status:** adopted redesign product authority.
 
@@ -8,11 +8,23 @@ An *artifact* is a pointer to content — held externally, or generated on the f
 
 An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel. ^af-artifact-reference
 
-The artifact record itself — its fields, the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)).
+The artifact record itself — its fields other than the [ID](#^af-artifact-id), its [store and share link](#^af-store-share), the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)). How a record is [saved](#^af-record-saved) is specified.
 
 ## Name
 
 An artifact's name is its title, which its creator sets as free text. The title is shown verbatim wherever Television displays the artifact. The title has no restrictions on length or characters and is not normalized, including by trimming it. The artifact's visible and accessible names are always the same. ^af-name
+
+## ID
+
+Television gives each artifact an ID when the artifact is created, and the ID never changes. Television serves an artifact's content to any browser that asks, at an address containing the ID, `/artifact/<id>/`, without the server's token. Knowing an artifact's ID is therefore what lets a browser load the artifact, and lets its page read and write [the artifact's store](./resources/resources.md#^rs-artifact-store). The IDs Television generates carry 80 random bits from a cryptographic source, which puts them beyond realistic guessing; the practical risk is an ID leaking through a shared link, browser history or a log, which more bits would not reduce ([the access model's limits](./resources/resources.md#^rs-limits)). ^af-artifact-id
+
+## Store and share link
+
+An artifact that this server serves from its own files has its own store, whatever kind of file or folder it is, a JSON store that its pages and agents use for its data ([resources.md#^rs-artifact-store](./resources/resources.md#^rs-artifact-store)). An artifact this server serves from its own files can also have a share link, which reaches it through a share ID at `read` or `read-write`, without revealing its own ID ([resources.md#^rs-share](./resources/resources.md#^rs-share)). The artifact's record holds the pointer to its store and its share link. ^af-store-share
+
+## Saving an artifact
+
+Every change to an artifact's record is saved durably, its creation and its deletion included: the change is complete, and reported, only once it is on disk. A record holds promises to the people who use the artifact's store and to those holding its share link, so a crash must neither lose the pointer to its store nor bring back a deleted artifact's link. When Television cannot confirm that a change reached the disk, the change fails, saying that its outcome is unknown, and Television keeps what the disk holds, which is ordinarily the change, so the person or agent can check and retry. ^af-record-saved
 
 ## The document
 
@@ -32,7 +44,7 @@ Known limit: while a document that cannot run Television's script holds keyboard
 
 ## Deleting an artifact
 
-Artifacts can be deleted. Deleting removes the artifact from its channel; its tab and frame go with it. The artifact's underlying file on disk is not touched — deletion changes what the channel shows, not what is stored. ^af-delete-semantics
+Artifacts can be deleted. Deleting removes the artifact from its channel; its tab and frame go with it. The artifact's underlying file on disk is not touched — deletion changes what the channel shows, not what is stored. Deletion also removes the artifact's share link and leaves its store, from which an agent can recover its data ([resources.md#^rs-artifact-deleted](./resources/resources.md#^rs-artifact-deleted)). With the bindings flag on, it removes the artifact's bindings and leaves the stores themselves ([resources.md#^rs-lifetime](./resources/resources.md#^rs-lifetime)). ^af-delete-semantics
 
 Deletion asks for confirmation before acting, and names the artifact in the asking, so
 nothing is removed by mistake and nothing is removed until it is confirmed. Declining

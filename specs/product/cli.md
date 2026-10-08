@@ -1,4 +1,4 @@
-*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
 
 # CLI
 
@@ -38,6 +38,8 @@ The visible command surface is:
 | `tv delete-artifact` | Delete an artifact registry record and remove its tab page. |
 | `tv get-artifact` | Print one artifact's metadata as JSON. |
 | `tv list-artifacts` | Print artifacts as JSON, optionally filtered by channel. |
+| `tv share-artifact` | Create or change an artifact's share link, and print it. |
+| `tv unshare-artifact` | Revoke an artifact's share link. |
 | `tv create-channel` | Create an empty channel. |
 | `tv update-channel` | Rename a channel. |
 | `tv remove-channel` | Delete a channel and its referenced artifact records. |
@@ -53,6 +55,9 @@ The visible command surface is:
 | `tv status` | Print the selected home, server health, version, telemetry state, and service status as JSON. |
 | `tv links` | Print the running server's connect links, one per line. |
 | `tv telemetry` | Enable or disable telemetry for the running server. |
+| `tv resource` | Read, write and watch the data that artifacts and agents share. |
+
+The share commands' and the `tv resource` command family's commands and output are owned by [the resources spec](./resources/resources.md#Commands) and, for `tv resource json`, [the JSON store spec](./resources/json-store.md#^js-cli). While [the bindings flag](./resources/resources.md#^rs-flag) is off, as shipped, `tv resource` offers neither `bind`, `unbind` nor `tv resource json create`. The rest of this spec applies to its commands as to every command.
 
 The canonical help flag is `--help`, with `-h` as its alias. The canonical version flag is `--version`, with `-V` and `-v` as its aliases.
 
@@ -113,7 +118,7 @@ Output formatting is currently inconsistent and depends on the command. Successf
 
 Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text, and `tv links` prints one connect link per line. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
-When a command's stdout is an interactive terminal, each link it prints is a terminal hyperlink using OSC-8 escape sequences, with the visible URL as the link text; a terminal that does not render OSC-8 hyperlinks still shows the URL text. When stdout is anything else, such as a pipe, a file, or an agent's shell tool, each link is the plain URL with no escape sequences, because some tools that capture output strip escape sequences in a way that removes the URL with them. This applies to the startup URLs of `tv serve` and `tv serve --persist` and to `tv links`. ^cli-link-output
+When a command's stdout is an interactive terminal, each link it prints is a terminal hyperlink using OSC-8 escape sequences, with the visible URL as the link text; a terminal that does not render OSC-8 hyperlinks still shows the URL text. When stdout is anything else, such as a pipe, a file, or an agent's shell tool, each link is the plain URL with no escape sequences, because some tools that capture output strip escape sequences in a way that removes the URL with them. This applies to `tv links` and to the links `tv serve` and `tv serve --persist` print, which they print only to an interactive terminal ([startup links](#^cli-startup-links)). ^cli-link-output
 
 ## Television home and configuration
 
@@ -244,7 +249,7 @@ Neither command contacts a server.
 
 ### Connecting to the server
 
-Commands that contact a server — the artifact, channel, focus, and theme-selection commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
+Commands that contact a server — the artifact, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
 
 These commands read the bearer token from `<home>/state/token`, trimming surrounding whitespace. A missing or empty token file means the command sends no bearer token. If a token-protected server returns `401`, the CLI prints:
 
@@ -252,18 +257,18 @@ These commands read the bearer token from `<home>/state/token`, trimming surroun
 Television server at http://localhost:<port> rejected the request as unauthorized. Check the token in <home>/state/token.
 ```
 
-A config port of `0` asks the operating system to choose the server's port when the server starts, so the config file cannot tell a command where that server is listening. Port `0` is for foreground and development use, and the repository test runner relies on it to allocate real listeners without fixed ports ([dynamic test ports](../arch/test-runner/test-runner.md#^test-dynamic-ports)). While the effective config port is `0`, each command that contacts the server must pass `--port <number>` with the nonzero port from that server's startup URL; `--port` takes a whole decimal integer from `1` through `65535`. While the config port is nonzero, these commands refuse `--port`, so the config file remains the one source of the port. No environment variable supplies a port, and commands that do not contact a server have no `--port` option. ^cli-client-port
+A config port of `0` asks the operating system to choose the server's port when the server starts, so the config file cannot tell a command where that server is listening. Port `0` is for foreground and development use, and the repository test runner relies on it to allocate real listeners without fixed ports ([dynamic test ports](../arch/test-runner/test-runner.md#^test-dynamic-ports)). While the effective config port is `0`, each command that contacts the server must pass `--port <number>` with the nonzero port from that server's startup output; `--port` takes a whole decimal integer from `1` through `65535`. While the config port is nonzero, these commands refuse `--port`, so the config file remains the one source of the port. No environment variable supplies a port, and commands that do not contact a server have no `--port` option. ^cli-client-port
 
 Both refusals are directive errors. For example:
 
 ```text
-tv list-channels requires --port because <config-path> sets port 0. Pass the port from the Television server's startup URL.
+tv list-channels requires --port because <config-path> sets port 0. Pass the port from the Television server's startup output.
 tv list-channels --port 43123 does not accept --port because <config-path> sets port 32848. Omit --port to use the configured port.
 ```
 
 ### Connect links
 
-A *connect link* is the URL a person opens to use Television, in a browser or in the desktop app. It is the server's origin for one listening address, followed by `/?token=<token>` when the server requires the bearer token; a tokenless server's connect link is the plain origin. A server listening on several addresses has one connect link per address. The startup URLs that `tv serve` and `tv serve --persist` print are connect links. ^cli-connect-link
+A *connect link* is the URL a person opens to use Television, in a browser or in the desktop app. The server, not the CLI, decides the addresses: it reports an origin, a scheme, host and port, for each address it listens on, with the port it bound. A listener on `0.0.0.0` is reported as one origin for each IPv4 address of the machine's network interfaces, loopback included, as they are when the server is asked, and never as `0.0.0.0`. No origin is preferred: which one reaches the server depends on where the person is, so the person picks. A connect link is one of those origins followed by `/?token=<token>` when the server requires the bearer token; a tokenless server's connect link is the plain origin. The links that `tv serve` and `tv serve --persist` print to a terminal are connect links. ^cli-connect-link
 
 `tv links` prints the running server's connect links, one per line, with no other output:
 
@@ -271,7 +276,7 @@ A *connect link* is the URL a person opens to use Television, in a browser or in
 tv [--home <path>] links [--port <number>]
 ```
 
-The links cover every address the server reports it is listening on, with the port it bound. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
+The links cover every origin the server reports, in the order it reports them. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
 
 ## Server lifecycle commands
 
@@ -289,6 +294,8 @@ Authentication is on by default. The server runs without bearer-token checks onl
 WARNING: running without an auth token. Tokenless mode is insecure for typical setups — be sure you mean to run without authentication. Run `tv config set auth true` and restart to require the bearer token.
 ```
 
+With [the bindings flag](./resources/resources.md#^rs-flag) on, the warning carries one more sentence, after `be sure you mean to run without authentication.`: `Any client that can reach this server can also change which artifacts may use which resources.` ^cli-tokenless-bindings-sentence
+
 When tokenless mode includes a non-loopback listener, stderr also prints:
 
 ```text
@@ -300,18 +307,27 @@ The config file's `listen` values are IPv4 addresses. The server resolves the bi
 When the effective config port is `0`, foreground `tv serve` prints this warning to stderr before it starts the server:
 
 ```text
-WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port from the startup URL.
+WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port in the startup output.
 ```
 
-Foreground startup prints:
+When stdout is an interactive terminal, foreground startup prints the server's connect links as `tv links` prints them, one for each origin the server reports, with the port it bound; under config port `0` that is the port the operating system chose:
 
 ```text
 Television server running.
 Open Television:
-  <startup URL>
+  <connect link>
 ```
 
-One startup URL is printed per bound listener, using the port the server actually bound; under config port `0` that is the port the operating system chose. Authenticated startup URLs include `?token=<token>`; tokenless startup URLs are plain origins. The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
+When stdout is anything else, such as a pipe, a file or a service's log, startup prints no link, so that the token never lands in a log. It prints instead:
+
+```text
+Television server running.
+Run `tv links` to print the links that open Television.
+```
+
+The command in that line is one that reaches this server: it carries `--home <home>`, with the home's absolute path, when the invocation gave `--home`, and `--port <port>`, with the port the server bound, when config port is `0`. ^cli-startup-links
+
+The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
 
 `tv serve --persist` installs Television as a user system service instead of running a foreground server:
 
@@ -334,13 +350,22 @@ The persisted environment sets `TELEVISION_DEVELOPER_HOME` to the installing use
 
 If a service already exists, `--persist` uninstalls it and then installs the new definition. That refresh is not atomic: if uninstall succeeds and install fails, the service is left down until `tv serve --persist` succeeds.
 
-Successful persisted install prints one startup URL for each configured bind address after listener resolution, using the config port. `127.0.0.1` appears alongside specific additional listeners, while a `listen` value containing `0.0.0.0` resolves to the all-interfaces URL alone. With authentication on, the URLs include the bearer token; the install creates the home's token first when the home has none yet.
+A successful persisted install prints `Television service installed.` When stdout is an interactive terminal, the command then waits up to 10 seconds for the installed service to answer, and prints its connect links as `tv links` prints them:
 
 ```text
 Television service installed.
 Open Television:
-  <startup URL for each configured bind address>
+  <connect link>
 ```
+
+When stdout is anything else, or the service has not answered in that time, it prints the `tv links` line of [foreground startup](#^cli-startup-links) instead, whose command carries `--home <home>` when the invocation gave `--home`:
+
+```text
+Television service installed.
+Run `tv links` to print the links that open Television.
+```
+
+With authentication on, the install creates the home's token first when the home has none yet, so the service starts with it. ^cli-persist-links
 
 `tv serve --persist-uninstall` and `tv stop` uninstall the persisted service and print:
 

@@ -1,4 +1,4 @@
-*Onboarding content and server packaging: the bundled content tree under `packages/server/assets/onboarding-channels/`, the onboarding config schema that orders channels and artifacts, slug rules, and server build-time validation.*
+*Onboarding content and server packaging: the bundled content tree under `packages/server/assets/onboarding-channels/`, the onboarding config schema that orders channels and artifacts and declares the starting values of their stores, slug rules, and server build-time validation.*
 
 **Status:** adopted version-3 content and packaging authority; the source tree and validator conform.
 
@@ -8,7 +8,7 @@ Starter channels begin as files bundled with Television. This document defines h
 
 ## What this owns
 
-This spec owns the source-of-truth layout for bundled onboarding content, the *onboarding config* schema, the slug rules that give channels and artifacts stable identity, and server build validation. How the CLI ships and resolves the validated server output is owned by [arch/cli/index.md#Build and packaged asset layout](../cli/index.md#Build and packaged asset layout). How the shipped content is installed at runtime is owned by [installer.md](./installer.md).
+This spec owns the source-of-truth layout for bundled onboarding content, the *onboarding config* schema, including the starting value an artifact declares for its store, the slug rules that give channels and artifacts stable identity, and server build validation. How the CLI ships and resolves the validated server output is owned by [arch/cli/index.md#Build and packaged asset layout](../cli/index.md#Build and packaged asset layout). How the shipped content is installed at runtime is owned by [installer.md](./installer.md).
 
 The onboarding artifact UI spec owns design sources for example channels ([ui/onboarding-artifacts/index.md](../../ui/onboarding-artifacts/index.md)). A design becomes shipped content only when an author ports it into this package's config and content tree through the manually run bake ([bake.md](./bake.md)). The committed package remains the authority for what a release installs.
 
@@ -40,11 +40,11 @@ Channel slugs and artifact slugs:
 - match `^[a-z0-9][a-z0-9-]*$`;
 - contain no consecutive hyphens (`--`).
 
-Installed artifact IDs join the two slugs with `--` ([deterministic artifact IDs](./installer.md#^artifact-ids)), so banning `--` inside either slug keeps the mapping injective. ^slug-rules
+Installed artifacts' copied content is named by joining the two slugs with `--` ([copy names](./installer.md#^artifact-ids)), so banning `--` inside either slug keeps those names unique. ^slug-rules
 
 ## Onboarding config
 
-`onboarding-channels.json` owns channel install order, the designated focus channel, display names, artifact titles, each channel's initial tab-page order, and each page's initial size and geometry.
+`onboarding-channels.json` owns channel install order, the designated focus channel, display names, artifact titles, each channel's initial tab-page order, each page's initial size and geometry, and the starting value of each artifact's store that has one.
 
 ```ts
 type ChannelSlug = string;  // slug rules above
@@ -67,8 +67,16 @@ interface OnboardingArtifactConfig {
   title: string;
   size?: PageSize;         // initial reference-pixel size; shared default when absent
   geometry?: PageGeometry; // initial page mode; shared default when absent
+  store?: OnboardingStoreConfig; // the starting value the installer writes to this artifact's store
+}
+
+interface OnboardingStoreConfig {
+  value: JSONValue;        // the store's starting value
+  shiftDatesFrom?: string; // a calendar date, YYYY-MM-DD: the installer shifts the value's dates from it to the installation day
 }
 ```
+
+`JSONValue` is the [JSON store's](../resources/json-store.md#^js-arch-sdk). Any artifact may declare a store, since every installed artifact has [a store](../resources/index.md#^rs-has-store), whatever its source's kind; a Markdown artifact's starting value is useless but allowed. Its starting value obeys the [JSON store's value rules and limits](../resources/json-store.md#^js-arch-values), and `shiftDatesFrom`, when present, is a valid calendar date in `YYYY-MM-DD` form. The data's structure and rules are described by a comment in the artifact's own code, as for any artifact's store. How the installer writes a declared starting value is [installer.md](./installer.md#^onboarding-store-install)'s. ^onboarding-store-config
 
 ### Initial tab pages
 
@@ -84,7 +92,7 @@ Rules:
 - `channels` is non-empty, and `focusChannel` names a configured channel. The production config names `tv-guide`.
 - Each channel has at least one artifact. Channel slugs are unique; artifact slugs are unique within a channel.
 - `name` and `title` are non-empty after trimming.
-- Artifact entries reject unknown keys. When present, `size` and `geometry` obey the shared tab-page validation exactly; the config does not define a second layout shape.
+- Artifact entries and store declarations reject unknown keys. When present, `size` and `geometry` obey the shared tab-page validation exactly; the config does not define a second layout shape.
 
 Illustrative config shape; the production config remains the authority for what ships:
 
@@ -124,7 +132,7 @@ Illustrative config shape; the production config remains the authority for what 
 
 The server package build (`packages/server/scripts/build.sh`) copies the whole `assets/onboarding-channels/` tree into `packages/server/dist/onboarding/` and **fails the build** if validation fails. The validator takes the content-tree root as an explicit input, allowing tests to run its real entry point over fixture trees without replacing the build mechanism. Validation asserts: ^build-validation
 
-- `onboarding-channels.json` exists, parses, and conforms to version 3, including non-empty channels and artifacts, non-empty names and titles, a known focus channel, exact artifact-entry keys, and valid optional page size and geometry;
+- `onboarding-channels.json` exists, parses, and conforms to version 3, including non-empty channels and artifacts, non-empty names and titles, a known focus channel, exact artifact-entry keys, valid optional page size and geometry, and valid store declarations;
 - every slug satisfies the slug rules;
 - every configured channel slug has a matching folder;
 - every configured artifact resolves to **exactly one** source shape — `<slug>.html`, `<slug>.md`, or a `<slug>/` directory;

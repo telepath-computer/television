@@ -1,5 +1,6 @@
-// The two Productivity onboarding documents share one story day. Their dates
-// move together when the document opens, using the viewer's local calendar day.
+// Today's Calendar is authored on the Productivity story day. Its dates move
+// when the document opens, using the viewer's local calendar day
+// (specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates).
 const dayMs = 86_400_000;
 const storyDay = Date.UTC(2026, 6, 8);
 
@@ -18,16 +19,6 @@ export function shiftDate(value, days) {
 if (typeof document !== "undefined") {
   const today = new Date();
   const days = localDayShift(today);
-
-  const tasks = document.querySelector("tv-task-list");
-  if (tasks) {
-    for (const due of tasks.querySelectorAll("tv-task-meta-due")) {
-      due.setAttribute("date", shiftDate(due.getAttribute("date"), days));
-    }
-    document.querySelector("header p").textContent = today.toLocaleDateString("en-US", {
-      weekday: "long", month: "long", day: "numeric",
-    });
-  }
 
   const calendar = document.querySelector("calendar-week");
   if (calendar) {

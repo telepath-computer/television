@@ -8,6 +8,7 @@ import {
   resolveCanonicalDir,
   resolveOnboardingContentPath,
   resolveBundledThemesPath,
+  resolveSdkDir,
   resolveStaticDir,
 } from "../../packages/cli/src/index.ts";
 
@@ -34,6 +35,7 @@ type BuiltAssetResolvers = {
   resolveOnboardingContentPath: Resolver;
   resolveBundledThemesPath: Resolver;
   resolveBundledSkillsRoot: Resolver;
+  resolveSdkDir: Resolver;
 };
 
 function loadBuiltResolvers(): BuiltAssetResolvers {
@@ -126,6 +128,13 @@ describe("full CLI build asset copies", () => {
       path.join(CLI_DIST, "skills"),
     );
   });
+
+  // [[arch/cli/index.md#^cli-build-sdk-copy]]
+  it("copies the complete resource SDK tree byte-for-byte", () => {
+    const serverBuild = path.join(REPO_ROOT, "packages/server/dist/sdk");
+    expect(existsSync(path.join(serverBuild, "v1", "resources.js"))).toBe(true);
+    expectByteIdenticalTree(serverBuild, path.join(CLI_DIST, "sdk"));
+  });
 });
 
 const builtResolvers = loadBuiltResolvers();
@@ -179,6 +188,15 @@ const resolverCases: Array<{
     builtPath: path.join(CLI_DIST, "skills"),
     devResolver: resolveBundledSkillsRoot,
     devPath: path.join(REPO_ROOT, "packages/skills/dist"),
+  },
+  // [[arch/cli/index.md#^cli-resolve-sdk-success]]
+  {
+    name: "resource SDK",
+    builtResolver: builtResolvers.resolveSdkDir,
+    builtPath: path.join(CLI_DIST, "sdk"),
+    devResolver: resolveSdkDir,
+    devPath: path.join(REPO_ROOT, "packages/server/dist/sdk"),
+    requiredChildren: ["v1/resources.js"],
   },
 ];
 
