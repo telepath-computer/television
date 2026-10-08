@@ -71,41 +71,38 @@ describe("the resource guidance document", () => {
     const pointer = pointers[0]!;
     expect(pointer).toContain("](./resources.md)");
     expect(pointer).toMatch(/JSON store/);
-    expect(pointer).toMatch(/shared by every client viewing it/);
-    expect(pointer).toMatch(/read or written by you/);
+    expect(pointer).toMatch(/needs to keep state/);
     expect(pointer).toMatch(/mentions JSON stores or resources/);
   });
 
-  it("leads with the JSON store's purpose, beside localStorage, and introduces resources after it", () => {
+  it("leads with the JSON store's purpose, leaves where an artifact's state lives to the agent, and introduces resources after it", () => {
     const intro = shipped("television", "SKILL.md").split("\n").find((line) => line.includes("resources.md"))!;
     const text = shipped("television", "resources.md");
     const opening = text.slice(0, text.search(/^## /m));
     for (const [where, passage] of [["SKILL.md", intro], ["resources.md", opening]] as const) {
       expect(passage, where).toMatch(/small database[^.]*inspired by Firebase's Realtime Database/);
-      expect(passage, where).toMatch(/what localStorage cannot/);
+      expect(passage, where).toMatch(/durabl/);
       expect(passage, where).toMatch(/every client viewing the artifact/);
       expect(passage, where).toMatch(/`tv` CLI/);
-      expect(passage, where).toMatch(/to-do list/);
-      expect(passage, where).toMatch(/in localStorage is fundamentally broken/);
-      expect(passage, where).toMatch(/belongs in a JSON store/);
-      expect(passage, where).toMatch(/[Aa]void localStorage for any state/);
-      expect(passage, where).toMatch(/future Television release may break it/);
-      expect(passage, where).toMatch(/survive a reload or a change of channel[^.]*JSON store/);
-      expect(passage, where).not.toMatch(/better[^.]*than localStorage/i);
-      expect(passage, where).not.toMatch(/replac\w*[^.]*localStorage|localStorage[^.]*\breplac\w*/i);
+      expect(passage, where).toMatch(/localStorage[^.]*highly discouraged[^.]*future version of Television may remove it/);
+      expect(passage, where).toMatch(/Markdown artifact[^.]*shared, synchronized, editable state/);
+      expect(passage, where).toMatch(/presentational flexibility and interactivity/);
+      expect(passage, where).toMatch(/third-party API[^.]*external service|external service[^.]*third-party API/);
+      expect(passage, where).toMatch(/design[^.]*\buse\b[^.]*person[^.]*\bdecide\b/);
+      expect(passage, where).toMatch(/to-do list[^.]*standard choice[^.]*JSON store/);
     }
     expect(opening.search(/JSON store/)).toBeGreaterThanOrEqual(0);
     expect(opening.search(/JSON store/)).toBeLessThan(opening.search(/\b[Rr]esources?\b/));
   });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-purpose
-  it("presents localStorage as a good choice for no kind of state", () => {
+  it("names localStorage only to discourage it", () => {
     for (const file of [["television", "SKILL.md"], ["television", "resources.md"], ["tv-tasks", "SKILL.md"]] as const) {
       // Split at every sentence end, whatever follows, so that a sentence opening with "localStorage" stands alone.
       const naming = shipped(...file).replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).filter((sentence) => /localStorage/.test(sentence));
       expect(naming, file.join("/")).not.toEqual([]);
       for (const sentence of naming) {
-        expect(sentence, file.join("/")).toMatch(/\bcannot\b|\bbroken\b|\bnot\b|\b[Aa]void\b/);
+        expect(sentence, file.join("/")).toMatch(/highly discouraged/);
       }
     }
   });
@@ -139,15 +136,6 @@ describe("how the resource guidance speaks of Firebase", () => {
 
 describe("what the resource guidance teaches", () => {
   const guidance = () => shipped("television", "resources.md");
-
-  it("when to use a JSON store, when state belongs in the page or the artifact's files, and to avoid localStorage", () => {
-    const when = section(guidance(), /^## When to use a JSON store/);
-    expect(when).toMatch(/every browser/);
-    expect(when).toMatch(/agent/);
-    expect(when).toMatch(/in the page/);
-    expect(when).toMatch(/[Aa]void localStorage/);
-    expect(when).toMatch(/artifact's files/);
-  });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-teaches
   it("an artifact's own store, documented by a comment beside getStore()", () => {
@@ -310,15 +298,16 @@ describe("the task-list skill", () => {
   const skill = () => shipped("tv-tasks", "SKILL.md");
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks
-  it("leaves where task data lives to the author, pointing to a JSON store for a to-do list and away from localStorage", () => {
+  it("leaves where task data lives to the author, calling the JSON store the standard choice for a to-do list and discouraging localStorage", () => {
     expect(sections(skill()).map(({ heading }) => heading).filter((heading) => /JSON store/.test(heading))).toEqual([]);
     const rule = sentences(skill());
-    expect(rule.some((sentence) => /artifact's author/.test(sentence) && /depends on/.test(sentence))).toBe(true);
+    expect(rule.some((sentence) => /artifact's author/.test(sentence) && /depends on[^.]*design[^.]*\buse\b[^.]*person/.test(sentence))).toBe(true);
     const sources = rule.find((sentence) => /JSON store/.test(sentence) && /third-party API/.test(sentence));
     expect(sources).toMatch(/productivity app/);
     expect(sources).toMatch(/HTML itself/);
-    expect(rule.some((sentence) => /JSON store/.test(sentence) && /to-do list/.test(sentence) && /`television` skill's `resources\.md`/.test(sentence))).toBe(true);
-    expect(rule.some((sentence) => /localStorage/.test(sentence) && /to-do lists?/.test(sentence) && /\b(not|don't|avoid)\b/i.test(sentence) && /future Television release/.test(sentence))).toBe(true);
+    expect(rule.some((sentence) => /`television` skill's `resources\.md`/.test(sentence))).toBe(true);
+    expect(rule.some((sentence) => /JSON store/.test(sentence) && /standard choice/.test(sentence) && /to-do list/.test(sentence))).toBe(true);
+    expect(rule.some((sentence) => /localStorage/.test(sentence) && /highly discouraged/.test(sentence) && /future version of Television may remove it/.test(sentence))).toBe(true);
   });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks-message
