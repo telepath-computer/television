@@ -5,7 +5,7 @@
 ## Authority and derivation
 
 ```
-spec prose (and testing directives)  →  proofs  →  real tests  →  real code
+spec  →  proofs  →  real tests  →  real code
 ```
 
 Specs are the highest authority for the requirements they state. Derivation proceeds from specs to proofs, tests, and code: each stage follows the requirements established above it. Discoveries travel back through that chain. When proof design, testing, or implementation reveals an ambiguity or a needed change to a requirement, resolve it in the owning spec under human ownership, then update the downstream work. Code must follow the spec wherever it states a requirement. Outside specified requirements, code remains authoritative under [spec-migration.md](spec-migration.md). Specifying one requirement does not require adopting the rest of a module.
@@ -22,11 +22,11 @@ Agents proceed autonomously on details derivable from the authorized intent and 
 
 For changes expressed through prose and conceptual decisions, the human and agent develop a proposal. Independent agent review of the proposal is optional when it would help settle the design. Once the human approves the proposal, an agent applies it to the owning specs. For design work, the human can work directly in the UI specs, using them as the working surface for decisions.
 
-In both cases the spec deltas then pass the *spec gate*, which begins the autonomous phase. To pass it, every spec delta has converged under independent agent review, and the review required by [spec policy](spec-policy.md#Slop-free zone) is complete unless the human chose to finish it before the pull request that first carries the deltas into a shared branch merges. The human stands behind the intended result. The reviewer assesses the affected spec tree for coherence, consistency, and implementability, including consequential edge cases and interactions with the rest of the system, against the existing spec standard: sufficiently clear to produce predictable behavior across reasonable implementation interpretations, as stated in the [reviewer checklist](reviewer-checklist.md). That standard leaves room for implementer judgment. The autonomous phase begins with proof derivation and convergence.
+In both cases the spec deltas then pass the *spec gate*, which begins the autonomous phase. To pass it, every spec delta has converged under independent agent review, and the [human review](#human-review) is complete unless the human chose to finish it before the pull request that first carries the deltas into a shared branch merges. The human stands behind the intended result. The reviewer assesses the affected spec tree for coherence, consistency, and implementability, including consequential edge cases and interactions with the rest of the system, against the existing spec standard: sufficiently clear to produce predictable behavior across reasonable implementation interpretations, as stated in the [reviewer checklist](reviewer-checklist.md). That standard leaves room for implementer judgment. The autonomous phase begins with proof derivation and convergence.
 
 After the spec gate, agents derive and independently converge the proofs, then a plan when the slice count is not clear. They implement and converge each slice, converge a final review of the integrated result when there is more than one slice, and prepare the PR for human review. Proof derivation and independent approval are required in every form of the process; they have no human approval gate. The [proof policy](spec-proofs.md) determines the proof obligations of the affected specs.
 
-Proposals record intent; their decisions flow into the authoritative specs. A proposal is a working document under [spec-docs.md](spec-docs.md); pre-merge docs prep decides whether it is archived. Human review before merge follows [spec policy](spec-policy.md#Slop-free zone).
+Proposals record intent; their decisions flow into the authoritative specs. A proposal is a working document under [spec-docs.md](spec-docs.md); pre-merge docs prep decides whether it is archived. Human review before merge follows [Human review](#human-review).
 
 ### Shortening the chain
 
@@ -41,9 +41,9 @@ These choices shorten preparation or combine implementation stages. Independent 
 Follow this spec-first sequence for every change, with proof derivation and red/green TDD as the default for all work:
 
 1. Decide whether it changes user-facing behavior, an implementation contract, or both.
-2. If behavior changes, update the owning product specs first, including their testing directives.
-3. Update the arch specs that own the affected contracts or modules, and any directives they need.
-4. Pass the *spec gate* ([Recommended approach](#recommended-approach)): every spec delta has converged under independent agent review, and the review required by [spec policy](spec-policy.md#Slop-free zone) is complete unless the human chose to finish it before the pull request that first carries the deltas into a shared branch merges.
+2. If behavior changes, update the owning product specs first, including any [testing guidance](spec-proofs.md#^testing-guidance) they need.
+3. Update the arch specs that own the affected contracts or modules, and any testing guidance they need.
+4. Pass the *spec gate* ([Recommended approach](#recommended-approach)): every spec delta has converged under independent agent review, and the [human review](#human-review) is complete unless the human chose to finish it before the pull request that first carries the deltas into a shared branch merges.
 5. Derive or update the proof for every touched spec. An ambiguity in a spec is a finding for the spec, never a choice the proof makes.
 6. When the slice count is not clear, derive and independently converge a plan from the specs and proofs under [Planning and slices](#planning-and-slices). A plan may settle on one slice.
 7. For each planned slice, or once for one-slice work, follow red/green TDD: write the failing tests, citing their proof assertions where useful, then implement until they pass under [test iteration discipline](arch/testing-policy.md#Test iteration discipline). Converge each implementation under [Independent review and convergence](#independent-review-and-convergence).
@@ -94,7 +94,7 @@ def build(feature):
 
   # Autonomous derivation: proofs are always derived and independently approved.
   converge("""
-    Derive or update proofs from the approved specs. Honor testing directives,
+    Derive or update proofs from the approved specs. Honor the specs' testing guidance,
     use the cheapest honest coverage, declare mocks and forfeits,
     and return ambiguous expected behavior to the owning spec.
   """)
@@ -237,11 +237,27 @@ A GitHub ruleset machine-enforces the pull-request, required-check, and strict u
 
 The shared branch takes the change only at that merge. When CI on a shared branch is red, corrective or revert work lands before other changes. Pull requests to other branches may open before full verification, but every integrated result must pass the full gate before merge.
 
-Human review follows [spec policy's shared-branch spec-review rule](spec-policy.md#^shared-branch-spec-review) and [minimum PR review](spec-policy.md#human-pr-review). When work is staged through an integration branch, the pull request into that branch is the pull request governed by the spec-review rule. Agent review and verification do not replace this human responsibility.
+Human review follows [Human review](#human-review). When work is staged through an integration branch, the pull request into that branch is the pull request governed by the spec-review rule. Agent review and verification do not replace this human responsibility.
 
 Once the work is complete, perform [pre-merge docs prep](spec-docs.md#^pre-pr-docs-prep) before treating the contribution as ready to merge into a shared branch, leaving `docs/working/` empty. Work-in-progress and draft PRs retain working documents, including during human spec review.
 
 Use [PR-writing](../developer-skills/pr-writing/SKILL.md) guidance to explain the final change against the PR's actual base, its impact, and the validation performed. A review request may revise the intended outcome; carry that decision through the affected specs, proofs, tests, and implementation, and review and validate the changed result. Revisions remain subject to the same review policy. Respect the scope authorized by the human throughout.
+
+## Human review
+
+[Spec policy](spec-policy.md#Slop-free zone) requires every spec statement to be owned by a human and backed by human review. This section governs how and when that review happens.
+
+Before a pull request carrying spec deltas merges into a [shared branch](#^shared-branch-workflow), a human reads every spec delta, understands it, and stands behind it as correct and intentional. That review may happen before implementation or on the pull request that first carries the deltas into a shared branch, but it must be complete before that pull request merges. A later pull request that promotes an integration branch to another shared branch does not defer the review: unapproved spec content never enters a shared branch. Human ownership does not require early approval. An agent reviews spec changes for consistency and correctness regardless of who authored them. The contribution owner may self-merge after human review; this workflow does not require another person’s approval or a GitHub review object. ^shared-branch-spec-review
+
+A spec that an architect has exempted from human line review declares that decision in its own header and names the review model that applies ([spec policy](spec-policy.md#Specific specs may state exceptions)). That review model takes the place of the human line review for that spec.
+
+### Human PR review
+
+Human PR review is the final check that the contribution expresses the intended product and stays within its expected scope. At a minimum, the human confirms that every spec delta is fully acceptable: read, understood, correct, intentional, and something they stand behind under spec policy's ownership rules. Independent agent review supports this responsibility but cannot replace it, except for a spec exempted as above.
+
+The human also scans the footprint of the code and test changes for disproportionate or unexpected impact. Red flags include scope expansion, new dependencies, substantial new machinery in production code or test harnesses, and changes to files or behaviors whose connection to the task is unclear. These warrant explanation and scrutiny before approval; their significance depends on the intended change.
+
+This scan does not require line-by-line human review of all code and tests. It asks whether the implementation's scope and complexity are proportionate and explainable. Agents remain responsible for detailed correctness, coverage, and verification. Humans may inspect or test the result further as appropriate.
 
 ## Reviews maintain authority
 
