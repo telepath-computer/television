@@ -426,6 +426,84 @@ test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
 });
 
 test.describe("stage page sizing", () => {
+  test("artifact menu owns both handle halves without blocking the uncovered strip (^st-ac-menu-over-handles)", async ({ page }) => {
+    await page.setViewportSize({ width: 1_200, height: 700 });
+    await page.goto(FIXTURE);
+    await waitForStage(page);
+    await settleStage(page);
+
+    const selectedPage = page.locator(".page[selected]");
+    const trigger = selectedPage.locator(".artifact-menu-trigger");
+    const menu = selectedPage.locator("tv-menu");
+    const item = menu.locator("tv-menu-item").first();
+    await trigger.click();
+    await expect(menu).toBeVisible();
+    await settleStage(page);
+
+    const points = await selectedPage.evaluate((selected) => {
+      const menu = selected.querySelector("tv-menu[open]");
+      const item = menu?.querySelector("tv-menu-item");
+      const handle = selected.querySelector(".page-handle.right");
+      if (!menu || !item || !handle) throw new Error("Expected an open menu item and right resize handle");
+      const menuBox = menu.getBoundingClientRect();
+      const itemBox = item.getBoundingClientRect();
+      const handleBox = handle.getBoundingClientRect();
+      const pageBox = selected.getBoundingClientRect();
+      const innerLeft = Math.max(itemBox.left, handleBox.left, pageBox.left);
+      const innerRight = Math.min(itemBox.right, handleBox.right, pageBox.right);
+      const outerLeft = Math.max(itemBox.left, handleBox.left, pageBox.right);
+      const outerRight = Math.min(itemBox.right, handleBox.right);
+      const top = Math.max(itemBox.top, handleBox.top);
+      const bottom = Math.min(itemBox.bottom, handleBox.bottom);
+      if (innerRight <= innerLeft || outerRight <= outerLeft || bottom <= top) {
+        throw new Error("Expected the menu item to overlap both halves of the right handle band");
+      }
+      const away = { x: (handleBox.left + pageBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
+      if (away.x >= menuBox.left && away.x <= menuBox.right && away.y >= menuBox.top && away.y <= menuBox.bottom) {
+        throw new Error("Expected the inner-band point to be away from the open menu");
+      }
+      return {
+        inner: { x: (innerLeft + innerRight) / 2, y: (top + bottom) / 2 },
+        outer: { x: (outerLeft + outerRight) / 2, y: (top + bottom) / 2 },
+        away,
+      };
+    });
+
+    for (const point of [points.outer, points.inner]) {
+      await page.mouse.move(point.x, point.y);
+      const hit = await item.evaluate((item, { x, y }) => {
+        const target = document.elementFromPoint(x, y);
+        return {
+          target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
+          cursor: target ? getComputedStyle(target).cursor : null,
+          menuCursor: getComputedStyle(item).cursor,
+        };
+      }, point);
+      expect(hit.target).toBe("tv-menu-item");
+      expect(hit.cursor).toBe(hit.menuCursor);
+    }
+
+    await page.mouse.move(points.away.x, points.away.y);
+    await expect(menu).toBeVisible();
+    const awayHit = await selectedPage.evaluate((selected, { x, y }) => {
+      const target = document.elementFromPoint(x, y);
+      return target === selected.querySelector(".page-handle.right") ? "page-handle right" : target?.tagName;
+    }, points.away);
+    expect(awayHit).toBe("page-handle right");
+
+    await page.mouse.move(points.inner.x, points.inner.y);
+    await page.mouse.down();
+    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+    await page.mouse.up();
+    await expect(menu).toBeHidden();
+    await expect(selectedPage).toHaveAttribute("full-screen", "");
+    expect((await report(page)).pageUpdateCalls).toEqual([{
+      channelID: "channel-stage",
+      fullScreen: true,
+      sizes: AUTHORED_PAGE_SIZES,
+    }]);
+  });
+
   test("renders fractional stored sizes through the shared factor without animating window tracking", async ({ page }) => {
     await page.setViewportSize({ width: 1_201, height: 821 });
     await page.emulateMedia({ reducedMotion: "no-preference" });

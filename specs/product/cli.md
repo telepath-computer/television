@@ -350,7 +350,9 @@ The persisted environment sets `TELEVISION_DEVELOPER_HOME` to the installing use
 
 If a service already exists, `--persist` uninstalls it and then installs the new definition. That refresh is not atomic: if uninstall succeeds and install fails, the service is left down until `tv serve --persist` succeeds.
 
-A successful persisted install prints `Television service installed.` When stdout is an interactive terminal, the command then waits up to 10 seconds for the installed service to answer, and prints its connect links as `tv links` prints them:
+After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. Linear TV-938 tracks this limitation. ^cli-persist-health-wait
+
+Once a server answers, the command prints `Television service installed.` When stdout is an interactive terminal, it then prints the connect links of the server that answered, as `tv links` prints them:
 
 ```text
 Television service installed.
@@ -358,7 +360,7 @@ Open Television:
   <connect link>
 ```
 
-When stdout is anything else, or the service has not answered in that time, it prints the `tv links` line of [foreground startup](#^cli-startup-links) instead, whose command carries `--home <home>` when the invocation gave `--home`:
+When stdout is anything else, or the links cannot be read before the 15 seconds have passed, it prints the `tv links` line of [foreground startup](#^cli-startup-links) instead, whose command carries `--home <home>` when the invocation gave `--home`:
 
 ```text
 Television service installed.
@@ -366,6 +368,12 @@ Run `tv links` to print the links that open Television.
 ```
 
 With authentication on, the install creates the home's token first when the home has none yet, so the service starts with it. ^cli-persist-links
+
+If no server has answered within 15 seconds, the command prints nothing to stdout, writes this error to stderr, and exits `1`. `<home>` is the absolute home. The service stays installed, so a server that starts late still runs without another install. ^cli-persist-health-timeout
+
+```text
+Television service installed, but the server did not respond at http://localhost:<port> within 15 seconds. The service remains installed. See <home>/logs/tv.log for the cause.
+```
 
 `tv serve --persist-uninstall` and `tv stop` uninstall the persisted service and print:
 

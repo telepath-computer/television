@@ -110,6 +110,10 @@ const DAEMON_NAME = "com.television.server";
 const TELEMETRY_LAUNCH_MODE_ENV = "TELEVISION_LAUNCH_MODE";
 const DEVELOPER_MARKER = ".tv-developer";
 const SKILL_INSTALL_TELEMETRY_TIMEOUT_MS = 1_000;
+// Long enough for one service-manager restart after a startup failure that
+// clears on its own (specs/arch/cli/index.md#^cli-persist-health-check).
+const PERSISTED_HEALTH_TIMEOUT_MS = 15_000;
+const PERSISTED_HEALTH_RETRY_MS = 250;
 const MIN_CLIENT_PORT = 1;
 const MAX_PORT = 65_535;
 const MAX_PROCESS_EXIT_STATUS = 255;
@@ -214,9 +218,32 @@ function writeStartup(output: Writable, heading: string, links: string[] | null,
   for (const link of links) writeLine(output, `  ${link}`);
 }
 
-// How long `tv serve --persist` waits for the service it installed to answer, and how often it asks (specs/arch/cli/index.md, daemon boundary).
-const PERSISTED_LINKS_WAIT_MS = 10_000;
-const PERSISTED_LINKS_POLL_MS = 250;
+/**
+ * Calls `health()` until a call resolves or the deadline passes, and returns
+ * the reply of the call that resolved, or null when none did. The deadline
+ * also ends a call that never settles.
+ */
+async function waitForHealth(client: TelevisionClient, timeoutMs: number): Promise<Awaited<ReturnType<TelevisionClient["health"]>> | null> {
+  let expired = false;
+  let deadlineTimer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<null>((resolve) => {
+    deadlineTimer = setTimeout(() => {
+      expired = true;
+      resolve(null);
+    }, timeoutMs);
+  });
+  try {
+    while (!expired) {
+      const answered = await Promise.race([client.health().catch(() => null), deadline]);
+      if (answered !== null) return answered;
+      if (expired) break;
+      await Promise.race([new Promise<void>((resolve) => setTimeout(resolve, PERSISTED_HEALTH_RETRY_MS)), deadline]);
+    }
+    return null;
+  } finally {
+    clearTimeout(deadlineTimer);
+  }
+}
 
 async function bestEffortWithinTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T | null> {
   void operation.catch(() => {});
@@ -1051,37 +1078,27 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
   };
 
   /**
-   * The links of the service `tv serve --persist` installed, once it answers
-   * (specs/product/cli.md#^cli-persist-links); null when it has not answered
-   * within the wait, or its links cannot be read.
+   * The links of the service `tv serve --persist` installed, from the health
+   * reply that answered (specs/product/cli.md#^cli-persist-links); null when
+   * they cannot be read before the health-check deadline.
    */
-  const persistedLinks = async (home: string, port: number): Promise<string[] | null> => {
-    const serverURL = buildServerURL("localhost", port);
-    const token = readAuthToken(home);
-    const client = env.createClient(serverURL, token);
-    const deadline = Date.now() + PERSISTED_LINKS_WAIT_MS;
-    // The wait bounds every request in it: one still pending at the deadline ends the wait with null.
-    const beforeDeadline = <T>(request: Promise<T>): Promise<T | null> => {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const expired = new Promise<null>((resolve) => { timer = setTimeout(() => resolve(null), Math.max(0, deadline - Date.now())); });
-      return Promise.race([request, expired]).finally(() => clearTimeout(timer));
-    };
-    let health: Awaited<ReturnType<TelevisionClient["health"]>>;
-    for (;;) {
-      try {
-        const answered = await beforeDeadline(client.health());
-        if (answered === null) return null;
-        health = answered;
-        break;
-      } catch {
-        if (Date.now() >= deadline) return null;
-      }
-      await new Promise((resolve) => setTimeout(resolve, PERSISTED_LINKS_POLL_MS));
-    }
+  const persistedLinks = async (
+    serverURL: string,
+    token: string | undefined,
+    client: TelevisionClient,
+    health: Awaited<ReturnType<TelevisionClient["health"]>>,
+    deadline: number,
+  ): Promise<string[] | null> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), Math.max(0, deadline - Date.now()));
+    });
     try {
-      return await beforeDeadline(connectLinks(serverURL, token, client, health));
+      return await Promise.race([connectLinks(serverURL, token, client, health), expired]);
     } catch {
       return null;
+    } finally {
+      clearTimeout(timer);
     }
   };
 
@@ -1133,8 +1150,26 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       });
       throw error;
     }
+    const healthServerURL = buildServerURL(DEFAULT_SERVER_HOST, settings.port);
+    const token = readAuthToken(home);
+    const client = env.createClient(healthServerURL, token);
+    const deadline = Date.now() + PERSISTED_HEALTH_TIMEOUT_MS;
+    const health = await waitForHealth(client, PERSISTED_HEALTH_TIMEOUT_MS);
+    if (health === null) {
+      log(home, "persisted service did not respond", {
+        daemonName: DAEMON_NAME,
+        healthURL: `${healthServerURL}/health`,
+        timeoutMs: PERSISTED_HEALTH_TIMEOUT_MS,
+      });
+      // The service is installed, so the notice rule still applies.
+      if (disclose) writeLine(env.stderr, TELEMETRY_NOTICE);
+      throw new Error(
+        `Television service installed, but the server did not respond at ${healthServerURL} within ${PERSISTED_HEALTH_TIMEOUT_MS / 1_000} seconds. ` +
+          `The service remains installed. See ${path.join(home, "logs", "tv.log")} for the cause.`,
+      );
+    }
     // Links only to a terminal, or when asked for, so that no token lands in a log.
-    const links = startup.printLinks || env.stdout.isTTY === true ? await persistedLinks(home, settings.port) : null;
+    const links = startup.printLinks || env.stdout.isTTY === true ? await persistedLinks(healthServerURL, token, client, health, deadline) : null;
     writeStartup(env.stdout, "Television service installed.", links, startup.homeGiven ? { home } : {});
     if (disclose) writeLine(env.stderr, TELEMETRY_NOTICE);
   };

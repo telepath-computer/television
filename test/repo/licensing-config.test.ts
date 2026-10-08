@@ -90,6 +90,7 @@ describe("licensing configuration", () => {
       "tailwind-foundation",
       "tailwind-token-demo",
       "firebase-push-keys",
+      "markdown-table-editor",
     ]);
 
     const hind = assets[0];

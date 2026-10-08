@@ -74,7 +74,7 @@ The agent and the Television server run on macOS or Linux. The viewer can be any
 
 This guide assumes your commands run without a sandbox. Installing Television installs a global npm package, writes a per-user launchd or systemd service, writes files in the person's home directory, and talks to the server over HTTP on `localhost`. A sandbox can block any of these. If you run in one, plan for that before you start: you may need your harness to grant permission or to run particular commands outside the sandbox. If you need the person to approve that, say so in the confirm message.
 
-A sandbox can also block HTTP requests to `localhost`. Then `tv status`, `tv links`, and other commands report that the server isn't running when it is, and your link verification fails. Before concluding the server is down, check whether your sandbox allows loopback requests, for example by running the same command outside it.
+A sandbox can also block HTTP requests to `localhost`. Then `tv serve --persist` reports that the server did not respond, `tv status`, `tv links`, and other commands report that the server isn't running when it is, and your link verification fails. Before concluding the server is down, check whether your sandbox allows loopback requests, for example by running the same command outside it.
 
 #### Package and Node
 
@@ -86,7 +86,7 @@ The `tv` command talks only to the server on `localhost`, and has no option to r
 
 #### The server service
 
-`tv serve --persist` installs the server as a per-user launchd service on macOS or systemd user service on Linux, named `com.television.server`, and starts it. It replaces any existing Television service, so rerunning it is how you apply changed settings or run upgraded code. It records the installing shell's `PATH` and Television's environment controls, such as `DO_NOT_TRACK`, so run it from a shell where those are as the service should have them, and where `tv` resolves to the intended install.
+`tv serve --persist` installs the server as a per-user launchd service on macOS or systemd user service on Linux, named `com.television.server`, and starts it. It then waits up to 15 seconds for a server to answer on the configured port. Success normally means the service's server is up, but the command can't tell which server answered: if another Television server already uses that port, such as one started by hand with plain `tv serve`, that server answers and the service's server can't start, and the log shows the service's server failing because the port is in use. If no server answers in time, the command fails with a message saying so; the service stays installed, and the log usually says why (section 6). It replaces any existing Television service, so rerunning it is how you apply changed settings or run upgraded code. It records the installing shell's `PATH` and Television's environment controls, such as `DO_NOT_TRACK`, so run it from a shell where those are as the service should have them, and where `tv` resolves to the intended install.
 
 The first install on macOS makes macOS show a notification about a new background or login item. It may name "node", "Node.js Foundation", or an unidentified developer, because macOS names the Node binary rather than Television. It is the Television service and is expected.
 
@@ -258,6 +258,8 @@ Before installing the service, record which agent harness is installing Televisi
 #### Problems that aren't obvious
 
 - **`tv` commands and the service use different homes.** `tv status` reports the home the command resolved, which the server doesn't know. If it differs from the home in the service definition, commands may report an unhealthy or unauthorized server while the service is fine. Point `~/.tv-home` at the service's home, or reinstall the service from the intended home.
+- **`tv serve --persist` says the server did not respond.** The service is installed, but its server isn't answering. The log usually names the cause, such as a `listen` address that isn't on this machine or a port another program is using. Fix the setting and rerun `tv serve --persist`. If the log shows the server running, check whether a sandbox is blocking `localhost` (section 1).
+- **`tv status` reports `healthy: false` soon after the computer starts or the person logs in.** The service takes a few seconds to start, and the service manager keeps restarting a server that can't start yet, for example while a Tailscale address isn't up. If `daemon.installed` is true, check again after about 15 seconds before troubleshooting.
 - **The server won't stay up after a network change.** A `listen` address that no longer exists on the machine stops the server from starting; the log names the address. Update `listen` and rerun `tv serve --persist` (section 2).
 - **The person sees "Access token required".** Their link's token doesn't match the server's. Check the server's token works locally; if it does, their link is stale or was corrupted. Give them their current link. In a browser, they open it; in the desktop app, they choose **Television › Disconnect from Server** and paste it.
 - **The person can't reach the server from another computer.** Check that the address they use is in `bindAddresses`, that it is still this machine's address, and, for an SSH tunnel, that their tunnel is running and they're opening the `localhost` link. Then check what lies between: Tailscale connectivity, a firewall, or Docker port publishing.
@@ -360,7 +362,7 @@ Then wait for their go-ahead. For a person on the desktop app connect screen wit
 1. Install the package, if it isn't installed (section 1).
 2. Install the skills, make sure they're available to you, and load the `television` skill (section 1).
 3. Set `installedByAgent` (section 5), and apply the `listen` setting that section 2 gives for how the person reaches this machine. If the person has asked to keep their data outside `~/.television`, write that path into `~/.tv-home` first.
-4. Run `tv serve --persist`.
+4. Run `tv serve --persist`. If it says the server did not respond, work out why (section 6) before going on.
 5. Check `tv status` (section 6). If the person asked to turn telemetry off, run `tv telemetry disable` now.
 6. Get the connect link from `tv links`, adjust its address if needed, and verify it exactly as section 3 requires.
 

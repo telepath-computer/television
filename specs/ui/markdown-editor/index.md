@@ -1,16 +1,22 @@
-*UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
+*UI spec: the Markdown editor’s color treatment and a narrow buffer for table-link gestures and table-edge navigation.*
 
-# Markdown editor color (UI)
+# Markdown editor color and table interactions (UI)
 
 The Markdown editor presents source as readable document content while remaining directly editable. This spec keeps every visible part of that editor legible as the surrounding artifact changes between light, dark, and themed appearances.
 
 ## Authority and boundary
 
-This spec owns the Markdown editor’s color styling. [styles.css](./styles.css) is the exact styling authority for foreground, fill, border, outline, and caret colors contributed by the editor and its currently installed CodeMirror extensions. It covers rendered and source-reveal Markdown, editor focus and cursor affordances, task checkboxes, and every ordinary, hover, active, selected, and editing state of the interactive table.
+This spec owns the Markdown editor’s color styling and the narrow table-interaction buffer below. [styles.css](./styles.css) is the exact styling authority for foreground, fill, border, outline, and caret colors contributed by the editor and its currently installed CodeMirror extensions. It covers rendered and source-reveal Markdown, editor focus and cursor affordances, task checkboxes, and every ordinary, hover, active, selected, and editing state of the interactive table.
 
-The editor’s markup, editing behavior, typography, spacing, layout, and effects outside that color boundary remain code-authoritative under the [frame-core carve-out](../../arch/artifact-frame/index.md#^frame-core-carve-out). The canonical foundation remains authoritative for the tokens, document background, inherited text color, native color scheme, and browser-native selection treatment that this stylesheet consumes.
+The editor’s markup, editing behavior, typography, spacing, layout, and effects outside that color boundary remain code-authoritative under the [frame-core carve-out](../../arch/artifact-frame/index.md#^frame-core-carve-out), except for the table-interaction buffer below and the narrow contracts in [the Markdown table buffer](../../arch/artifact-frame/markdown-tables-buffer.md). The canonical foundation remains authoritative for the tokens, document background, inherited text color, native color scheme, and browser-native selection treatment that this stylesheet consumes.
 
 Server-rendered read-only Markdown is a separate, code-authoritative surface outside this spec. It is neither a production copy nor a declaration-by-declaration mirror of this stylesheet; shared appearance intent does not create a stylesheet-sync contract. ^md-editor-color-scope
+
+## Table interaction buffer
+
+These interaction contracts accompany [the table-source architecture buffer](../../arch/artifact-frame/markdown-tables-buffer.md). They do not adopt the remaining editor interaction, markup, layout, or typography into spec authority. A future Markdown-editor spec absorbs this buffer. ^md-table-interaction-buffer
+
+Markdown links in displayed table cells render as clickable labels and use the same plain/modifier-click navigation gestures as links outside tables. Alt-click retains cell editing. Code literals remain literal. Tab, Shift-Tab, and Enter at table edges leave the table rather than creating rows; explicit structural editing remains available. ^md-table-interactions
 
 ## Appearance
 
