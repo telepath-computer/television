@@ -86,6 +86,7 @@ describe("the resource guidance document", () => {
       expect(passage, where).toMatch(/`tv` CLI/);
       expect(passage, where).toMatch(/localStorage[^.]*highly discouraged[^.]*future version of Television may remove it/);
       expect(passage, where).toMatch(/Markdown artifact[^.]*shared, synchronized, editable state/);
+      expect(passage, where).toMatch(/Markdown artifact[^.]*within Television[^.]*share link[^.]*read-only, unlike a JSON store/);
       expect(passage, where).toMatch(/presentational flexibility and interactivity/);
       expect(passage, where).toMatch(/third-party API[^.]*external service|external service[^.]*third-party API/);
       expect(passage, where).toMatch(/design[^.]*\buse\b[^.]*person[^.]*\bdecide\b/);
