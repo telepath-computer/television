@@ -41,7 +41,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `testing-policy.md` (236 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (352 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
-    - `index.md` (49 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `index.md` (50 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
     - `reload-navigation.md` (138 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
   - **channel-state/**
@@ -156,7 +157,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **select/**
       - `index.md` (42 lines) — *UI spec: the select — the control that chooses one option from a list; its trigger, selection, interior, and keyboard.*
   - **markdown-editor/**
-    - `index.md` (29 lines) — *UI spec: the Markdown editor’s color treatment across rendered Markdown, source-reveal states, editing affordances, and interactive tables.*
+    - `index.md` (35 lines) — *UI spec: the Markdown editor’s color treatment and a narrow buffer for table-link gestures and table-edge navigation.*
   - **onboarding-artifacts/**
     - `index.md` (238 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
