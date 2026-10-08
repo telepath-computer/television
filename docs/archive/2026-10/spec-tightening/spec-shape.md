@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #25.** This was the working record used to sharpen the spec policy: real passages from the specs that the draft standard did not settle, each with the ruling it received. `specs/spec-policy.md` followed it with deviations in wording, and states the outcome only as principles; the passages and the rulings on them are found here and nowhere else. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # What belongs in a spec
 
 Working document for the spec-tightening exploration on `thopter/spec-tightening`. It has no authority. It tries to state a tighter standard for what Television's specs should contain, compares the current specs against that standard, and collects real passages that test the standard and need a ruling.
