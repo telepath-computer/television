@@ -14,7 +14,7 @@ Specs are a slop-free zone — one of the most important reasons they exist.
 
 Most content in a modern repository is written by AI, and AI-written content tends towards slop: plausible-looking statements, half-considered decisions, eager overcomplication. Once slop becomes authority, it becomes a downward spiral. Later work builds on it and generates more slop — confused complexity compounding on itself.
 
-Maintaining a slop-free zone breaks the cycle. Every statement in a spec is owned by a human, who has read it, understands it, and stands behind it as correct and intentional. Agents may draft specs and humans may edit them directly; either way, a human review backs every statement. The [spec workflow](spec-workflow.md) governs how and when that review happens.
+Maintaining a slop-free zone breaks the cycle. Every statement in a spec is owned by a human, who has read it, understands it, and stands behind it as correct and intentional. Ownership comes from that review: the human accepted the statement, not necessarily chose or wrote it. When a spec is revised, each statement is judged under this policy; being in the spec already gives it no extra standing. Agents may draft specs and humans may edit them directly; either way, a human review backs every statement. The [spec workflow](spec-workflow.md) governs how and when that review happens.
 
 ## Authority cascade
 
@@ -137,24 +137,11 @@ For example, a spec saying that an authentication token lives in browser storage
 
 Documenting accepted limitations is normal, not rare. An accepted limitation describes something the product does not do today. It is not a prohibition, and changing it is an ordinary spec change.
 
-## Inputs to proof derivation that the spec does not otherwise show
+## Testing guidance
 
-A proof derives its test plan from the spec's own statements. A spec may add a section with this heading for what a proof writer could not derive from those statements. Restating the spec's promises here adds nothing. Most specs need no such section, and one with nothing to say is omitted. Each subsection appears only when it has content:
+A proof derives its test plan from the spec and the testing policy, and what follows from those is the proof's to work out. A spec may carry a `## Testing guidance` section only for what a proof writer could not reasonably derive from them: for example, a regression case that has come up, a fact about the product or its environment that a test author would likely miss, or coverage owned by another spec that bears on this one. The test for each item: if removing it would not change a correct proof derivation, it does not belong. Most specs need no such section, and a spec with nothing to say here omits it. ^testing-guidance-rule
 
-```
-## Inputs to proof derivation that the spec does not otherwise show
-### Directives from the designer or architect
-### Facts a test author would likely miss
-### Coverage owned by another spec
-### Regression cases
-### Other
-```
-
-- **Directives from the designer or architect** say what must be tested or how, including a decision to leave something unproven.
-- **Facts a test author would likely miss** are things about the product or its environment that a proof would otherwise not account for.
-- **Coverage owned by another spec** points to coverage this spec seems to imply but that another spec owns, where a proof writer would otherwise duplicate it or look for it here. Specs are a network of overlapping concepts, and the coverage a spec seems to imply is sometimes owned elsewhere.
-- **Regression cases** preserve knowledge that would otherwise be lost: a failure that happened, or a trap a later implementer would walk into. Each entry states the behaviour that must keep working and why it exists, briefly.
-- **Other** holds anything else a proof writer needs from the human that does not fit above.
+A regression case says why it exists, because its purpose is to preserve knowledge that would otherwise be lost.
 
 ## Mechanics
 
@@ -233,7 +220,7 @@ Two exceptions are procedural: `index.md` is generated, and reference integrity 
 Authority is a hierarchical cascade. A general policy — this document, the testing policy, any cross-cutting spec — binds by default, but a more specific spec, owning a narrower area, may state an explicit exception, and within its area that statement is authoritative. The most specific spec that addresses a point wins. A deviation must be stated; silence inherits the policy.
 
 *Examples.*
-- The testing policy requires that every principal user path be proven by an acceptance test. A spec for a system with many branching paths may judge that several carry diminishing return, and choose to prove the principal ones and leave the rest unproven. That choice goes in the spec's "Directives from the designer or architect" subsection.
+- The testing policy requires that every principal user path be proven by an acceptance test. A spec for a system with many branching paths may judge that several carry diminishing return, and choose to prove the principal ones and leave the rest unproven. That choice goes in the spec's testing guidance.
 - An exemption from human review exists only by explicit architect decision for an individual spec. An architect may decide that a particular spec is governed by agent review instead, for instance where its subject is dense enough that adversarial review between capable models maintains it better than a human line review. The exempt spec declares that decision in its own header and names the review model that applies.
 
 ### Documents without authority

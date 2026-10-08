@@ -41,8 +41,8 @@ These choices shorten preparation or combine implementation stages. Independent 
 Follow this spec-first sequence for every change, with proof derivation and red/green TDD as the default for all work:
 
 1. Decide whether it changes user-facing behavior, an implementation contract, or both.
-2. If behavior changes, update the owning product specs first, including any [proof-derivation inputs](spec-proofs.md#^proof-derivation-inputs) they need.
-3. Update the arch specs that own the affected contracts or modules, and any proof-derivation inputs they need.
+2. If behavior changes, update the owning product specs first, including any [testing guidance](spec-proofs.md#^testing-guidance) they need.
+3. Update the arch specs that own the affected contracts or modules, and any testing guidance they need.
 4. Pass the *spec gate* ([Recommended approach](#recommended-approach)): every spec delta has converged under independent agent review, and the [human review](#human-review) is complete unless the human chose to finish it before the pull request that first carries the deltas into a shared branch merges.
 5. Derive or update the proof for every touched spec. An ambiguity in a spec is a finding for the spec, never a choice the proof makes.
 6. When the slice count is not clear, derive and independently converge a plan from the specs and proofs under [Planning and slices](#planning-and-slices). A plan may settle on one slice.
@@ -94,7 +94,7 @@ def build(feature):
 
   # Autonomous derivation: proofs are always derived and independently approved.
   converge("""
-    Derive or update proofs from the approved specs. Honor the specs' proof-derivation inputs,
+    Derive or update proofs from the approved specs. Honor the specs' testing guidance,
     use the cheapest honest coverage, declare mocks and forfeits,
     and return ambiguous expected behavior to the owning spec.
   """)
