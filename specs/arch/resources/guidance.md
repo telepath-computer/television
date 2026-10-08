@@ -18,7 +18,7 @@ The guidance leads with the JSON store's purpose, in `SKILL.md`'s paragraph and 
 
 - a JSON store, a small database that Television keeps on its server, inspired by Firebase's Realtime Database, keeps an artifact's data durably, shares it live with every client viewing the artifact, and lets the agent read and write it through the `tv` CLI;
 - localStorage is also available to an artifact's page, but highly discouraged, because a future version of Television may remove it;
-- a Markdown artifact can also act as shared, synchronized, editable state, which the person edits in Television and the agent edits on disk, but it lacks an HTML page's presentational flexibility and interactivity;
+- a Markdown artifact can also act as shared, synchronized, editable state, which the person edits in Television and the agent edits on disk, but it is editable only within Television: shared through a share link, it is read-only, unlike a JSON store; it also lacks an HTML page's presentational flexibility and interactivity;
 - an artifact's state can also live in the third-party APIs or external services it integrates with;
 - which of these fits depends on the artifact's design, its use and the person, and the agent decides; for a to-do list, the standard choice is a JSON store.
 

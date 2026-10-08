@@ -10,7 +10,7 @@ This record holds decisions and work on `thopter/resource-api` after the change 
 
 - the JSON store provides durable, multi-client, agent-readable storage, inspired by Firebase's Realtime Database;
 - localStorage is also available but highly discouraged, because it may be removed in a future version of Television;
-- Markdown artifacts can also act as shared, synchronized, editable state, but they lack the presentational flexibility and interactivity of HTML;
+- Markdown artifacts can also act as shared, synchronized, editable state, but they lack the presentational flexibility and interactivity of HTML. Josh's refinement: a Markdown artifact is editable only within Television itself; shared outside it, through a share link, it is read-only, unlike a JSON store;
 - state can also live in the third-party APIs or external services an artifact integrates with, depending on the design, the use case and the person;
 - the agent decides; for a to-do list, the standard choice is the JSON store, said as information, not as a rule.
 
