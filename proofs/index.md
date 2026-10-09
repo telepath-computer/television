@@ -51,7 +51,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `runtime.md` (21 lines) — *How the Electron runtime's promises are proven: exact-version declarations, runtime validity over authored package and runtime trees, and a real cold installation on a Node release known to truncate one.*
     - `updates.md` (28 lines) — *How desktop updates are proven: main-process and preload contracts with Electron and the update runtime replaced by recording mocks, the real Electron app with the runtime in its simulation mode, and the desktop product's update check, which presses the restart in a candidate build on a real Mac.*
   - **layout/**
-    - `index.md` (43 lines) — *How the promises in Layout (architecture) are proven.*
+    - `index.md` (48 lines) — *How the promises in Layout (architecture) are proven.*
     - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
     - `bake.md` (85 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
