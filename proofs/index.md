@@ -84,7 +84,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
-    - `test-runner.md` (74 lines) — *How the promises in Test Runner are proven.*
+    - `test-runner.md` (75 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
     - `authoring.md` (35 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*
@@ -151,7 +151,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **select/**
       - `index.md` (24 lines) — *How the production select's value, semantics, interaction, and placement are proven in Chromium.*
   - **markdown-editor/**
-    - `index.md` (27 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
+    - `index.md` (29 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
   - **onboarding-artifacts/**
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
