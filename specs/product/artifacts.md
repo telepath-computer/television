@@ -6,7 +6,7 @@
 
 An *artifact* is a pointer to content — held externally, or generated on the fly — that Television shows the user. Artifacts are where users interact with information and functionality that is not core to Television itself, to undertake their use cases: a document, a chart, a picture, a page from the web, put there by the user or by an agent working for them. This spec describes what a person can rely on from one: how it behaves, what identifies it, what can be done to it, and when work inside it is preserved or lost.
 
-An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel. ^af-artifact-reference
+An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel, except after a move that did not finish ([#^af-move](#^af-move)). ^af-artifact-reference
 
 The artifact record itself — its fields other than the [ID](#^af-artifact-id), its [store and share link](#^af-store-share), the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)). How a record is [saved](#^af-record-saved) is specified.
 
@@ -53,7 +53,7 @@ removal above.
 
 ## Moving to another channel
 
-An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel; a page left with no artifacts is removed, with its tab. It opens as a new page at the end of the new channel's order, at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing. In the unlikely case that the server stops partway through a move, or cannot save the new channel, the artifact is left on no channel and is no longer shown ([arch/layout/index.md#^ly-move](../arch/layout/index.md#^ly-move)). The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
+An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel; a page left with no artifacts is removed, with its tab. It opens as a new page at the end of the new channel's order, at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing. In the unlikely case that the server stops partway through a move, or cannot save the new channel, the artifact is left on no channel, so the app no longer shows it; its record, store, and share link remain ([arch/layout/index.md#^ly-move](../arch/layout/index.md#^ly-move)). The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
 
 ## Local source changes
 
