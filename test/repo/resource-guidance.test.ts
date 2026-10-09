@@ -326,9 +326,13 @@ describe("the task-list skill", () => {
 
 // spec: proofs/arch/artifact-frame/isolation.md#^iso-t-map-guidance
 describe("the television skill's map guidance", () => {
-  it("says that mapping services may not work in artifacts because the sandbox strips what they expect, and recommends Leaflet with known coordinates", () => {
-    const text = sentences(shipped("television", "SKILL.md"));
+  it("says that mapping services may not work in artifacts because the sandbox strips what they expect, and recommends Leaflet with Esri's tiles and their attribution", () => {
+    const skill = shipped("television", "SKILL.md");
+    const text = sentences(skill);
     expect(text.some((sentence) => /mapping services/.test(sentence) && /may not work/.test(sentence) && /sandbox/.test(sentence) && /referrer/.test(sentence))).toBe(true);
-    expect(text.some((sentence) => /Leaflet/.test(sentence) && /known coordinates|coordinates you already know/.test(sentence) && /simple map/.test(sentence))).toBe(true);
+    expect(text.some((sentence) => /Leaflet/.test(sentence) && /Esri/.test(sentence) && /World Street Map/.test(sentence) && /World Imagery/.test(sentence) && /simple map/.test(sentence))).toBe(true);
+    for (const layer of ["World_Street_Map", "World_Imagery"]) {
+      expect(skill).toMatch(new RegExp(`${layer}[\\s\\S]*?Powered by <a href="https://www\\.esri\\.com">Esri</a> \\| Sources?: Esri, `));
+    }
   });
 });

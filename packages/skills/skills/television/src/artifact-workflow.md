@@ -154,7 +154,22 @@ Replace `<version>` with the target Television app version. For a running server
 
 `authoredForAppVersion` is advisory authoring context for a future agent. The server ignores it when serving the stylesheet, so it neither asserts compatibility nor controls whether the artifact loads. Set it when creating an artifact or deliberately re-authoring one against that app surface. Preserve an existing `authoredForAppVersion` value during unrelated maintenance. If you cannot establish the target app version, omit the query parameter; the canonical URL remains valid without it.
 
-Third-party mapping services such as Google Maps and OpenStreetMap may not work correctly in an artifact, because the CSP sandbox the artifact runs under strips the referrer and other information they expect. For a simple map, with markers, popups, panning and zooming, use Leaflet with known coordinates.
+Third-party mapping services such as Google Maps and OpenStreetMap may not work correctly in an artifact, because the CSP sandbox the artifact runs under strips the referrer and other information they expect. Leaflet's usual OpenStreetMap tiles are among them. For a simple map, with markers, popups, panning and zooming, use Leaflet with known coordinates and Esri's World Street Map or World Imagery tiles, which work in the sandbox. Esri's terms require the map to show "Powered by Esri" and the tile layer's sources, as this attribution does:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="map" style="height: 400px"></div>
+<script>
+  const map = L.map("map").setView([51.505, -0.09], 13);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
+    attribution: 'Powered by <a href="https://www.esri.com">Esri</a> | Sources: Esri, HERE, Garmin, USGS, Intermap, INCREMENT P, NRCan, Esri Japan, METI, Esri China (Hong Kong), Esri Korea, Esri (Thailand), NGCC, &copy; OpenStreetMap contributors, and the GIS User Community',
+  }).addTo(map);
+  L.marker([51.505, -0.09]).addTo(map).bindPopup("A place");
+</script>
+```
+
+For satellite imagery, put `World_Imagery` in place of `World_Street_Map` in the tile address, and use the attribution `Powered by <a href="https://www.esri.com">Esri</a> | Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community`.
 
 ### Suggested HTML file set
 
