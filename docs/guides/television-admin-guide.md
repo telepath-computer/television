@@ -297,9 +297,9 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 
 #### Artifacts that use browser storage
 
-HTML artifacts run in a sandbox where `localStorage`, `sessionStorage`, cookies and IndexedDB don't work: touching them throws an error. An artifact that kept data there loses it, and one that doesn't catch the error stops working. Earlier releases let artifacts use them. What they kept stays in the browser where the artifact can no longer read it, and nothing records which artifact wrote what, so it can't be moved for them.
+HTML artifacts run in a sandbox where `localStorage`, `sessionStorage`, cookies and IndexedDB don't work: touching them throws an error. An artifact that kept data there loses it, and one that doesn't catch the error stops working. Television 1.4.29 and earlier let artifacts use them. What they kept stays in the browser where the artifact can no longer read it, and nothing records which artifact wrote what, so it can't be moved for them.
 
-So on an upgrade, list the HTML artifacts with `tv list-artifacts` and look through their files for `localStorage`, `sessionStorage`, `document.cookie` and `indexedDB`. For each artifact that uses them, decide whether to remove that use or replace it with the artifact's JSON store, which the `television` skill's resource guidance describes.
+So on an upgrade from 1.4.29 or earlier, list the HTML artifacts with `tv list-artifacts` and look through their files for `localStorage`, `sessionStorage`, `document.cookie` and `indexedDB`. For each artifact that uses them, decide whether to remove that use or replace it with the artifact's JSON store, which the `television` skill's resource guidance describes. An upgrade from a later version skips this check.
 
 #### Moving from the npm desktop app to the downloaded app
 
@@ -413,7 +413,7 @@ Work out, without involving the person:
 - **Where the skills are installed** (section 7).
 - **The settings the service will use**: work through the settings checks in section 7.
 - **An npm desktop app** installed on this machine (section 7).
-- **Artifacts that use browser storage** (section 7).
+- **Artifacts that use browser storage**, if the installed version is 1.4.29 or earlier (section 7).
 
 ### 2. Confirm
 
@@ -434,7 +434,7 @@ No telemetry notice. Then wait for their go-ahead.
 3. Fix the settings you found in the check (section 7), then run `tv serve --persist`.
 4. Verify the running version matches the installed one (section 7).
 5. In the rare case that the person needs a new link (section 7), get it from `tv links` and verify it exactly as section 3 requires.
-6. Change the artifacts that use browser storage, as you said you would (section 7).
+6. If you found artifacts that use browser storage, change them as you said you would (section 7).
 
 ### 4. Report
 
