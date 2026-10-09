@@ -749,19 +749,19 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   return copied;
 }
 
-/** A page width or height for `tv update-page`: a finite, positive number of reference pixels. */
-function parsePageDimension(option: "--width" | "--height", value: string): number {
+/** A width or height for `tv reposition-artifact`: a finite, positive number of reference pixels. */
+function parseArtifactDimension(option: "--width" | "--height", value: string): number {
   const parsed = value.trim() === "" ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw createDirectiveError(`tv update-page ${option} must be a finite, positive number of reference pixels; got ${value}.`);
+    throw createDirectiveError(`tv reposition-artifact ${option} must be a finite, positive number of reference pixels; got ${value}.`);
   }
   return parsed;
 }
 
-/** A page position for `tv update-page`: a whole number from 1. The upper bound needs the channel. */
-function parsePagePosition(value: string): number {
+/** A position for `tv reposition-artifact`: a whole number from 1. The upper bound needs the channel. */
+function parseArtifactPosition(value: string): number {
   if (!/^\d+$/.test(value.trim()) || Number(value) < 1) {
-    throw createDirectiveError(`tv update-page --position must be a whole number from 1; got ${value}.`);
+    throw createDirectiveError(`tv reposition-artifact --position must be a whole number from 1; got ${value}.`);
   }
   return Number(value);
 }
@@ -1450,29 +1450,29 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     });
 
   program
-    .command("update-page")
+    .command("reposition-artifact")
     .description(
-      "Change the tab page that holds an artifact, on whatever channel holds it: its size in reference pixels (the size it shows at on a 1280x800 stage), its full-screen state, or its position in the channel's left-to-right order. The changes apply together as one shared layout update, as if made in the app. Read a channel's arrangement with `tv get-channel`.",
+      "Change an artifact's size in reference pixels (the size it shows at on a 1280x800 stage), its full-screen state, or its position in its channel's left-to-right order, on whatever channel holds it. The changes apply together as one shared layout update, as if made in the app. Read a channel's arrangement with `tv get-channel`.",
     )
     .requiredOption("--id <id>", "Artifact ID")
-    .option("--width <px>", "Page width in reference pixels; finite and positive")
-    .option("--height <px>", "Page height in reference pixels; finite and positive")
-    .option("--full-screen", "Put the page in full-screen")
-    .option("--no-full-screen", "Take the page out of full-screen; its size is unchanged")
+    .option("--width <px>", "Width in reference pixels; finite and positive")
+    .option("--height <px>", "Height in reference pixels; finite and positive")
+    .option("--full-screen", "Make the artifact full-screen")
+    .option("--no-full-screen", "Take the artifact out of full-screen; its size is unchanged")
     .option("--position <n>", "Position in the channel's order, counting from 1 at the left")
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .action(async (opts: { id: string; width?: string; height?: string; fullScreen?: boolean; position?: string; port?: number }) => {
-      // specs/product/cli.md#^cli-update-page
+      // specs/product/cli.md#^cli-reposition-artifact
       const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
       if (new Set(fullScreenFlags).size > 1) {
-        throw createDirectiveError("tv update-page accepts --full-screen or --no-full-screen, not both.");
+        throw createDirectiveError("tv reposition-artifact accepts --full-screen or --no-full-screen, not both.");
       }
       const fullScreen = fullScreenFlags.length === 0 ? undefined : fullScreenFlags[0] === "--full-screen";
-      const width = opts.width === undefined ? undefined : parsePageDimension("--width", opts.width);
-      const height = opts.height === undefined ? undefined : parsePageDimension("--height", opts.height);
-      const position = opts.position === undefined ? undefined : parsePagePosition(opts.position);
+      const width = opts.width === undefined ? undefined : parseArtifactDimension("--width", opts.width);
+      const height = opts.height === undefined ? undefined : parseArtifactDimension("--height", opts.height);
+      const position = opts.position === undefined ? undefined : parseArtifactPosition(opts.position);
       if (width === undefined && height === undefined && fullScreen === undefined && position === undefined) {
-        throw createDirectiveError("tv update-page requires at least one of --width, --height, --full-screen, --no-full-screen, or --position.");
+        throw createDirectiveError("tv reposition-artifact requires at least one of --width, --height, --full-screen, --no-full-screen, or --position.");
       }
 
       const client = createAuthenticatedClient(opts);
@@ -1481,7 +1481,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       if (channel === undefined) throw new ValidationError(`Artifact not found: ${opts.id}`);
       if (position !== undefined && position > channel.layout.length) {
         throw new ValidationError(
-          `--position must be from 1 to ${channel.layout.length}, the number of pages on channel ${channel.id}; got ${position}.`,
+          `--position must be from 1 to ${channel.layout.length} on channel ${channel.id}; got ${position}.`,
         );
       }
 
@@ -1495,13 +1495,13 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       const layout = channel.layout.filter((_page, pageIndex) => pageIndex !== index);
       layout.splice(position === undefined ? index : position - 1, 0, changed);
       await client.channels.update({ channelID: channel.id, layout });
-      writeLine(env.stdout, `Page of artifact ${opts.id} updated.`);
+      writeLine(env.stdout, `Artifact ${opts.id} repositioned.`);
     });
 
   program
     .command("move-artifact")
     .description(
-      "Move an artifact to another channel. It stays the same artifact, keeping its ID, store, and share link, and becomes the last page on that channel at the size and full-screen state it had. To show the same path or URL on two channels at once, create a second artifact instead.",
+      "Move an artifact to another channel. It stays the same artifact, keeping its ID, store, and share link, and becomes the last artifact in that channel's order, at the size and full-screen state it had. To show the same path or URL on two channels at once, create a second artifact instead.",
     )
     .requiredOption("--id <id>", "Artifact ID")
     .requiredOption("--channel <id>", "Target channel ID")

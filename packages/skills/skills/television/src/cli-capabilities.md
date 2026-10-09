@@ -36,7 +36,7 @@ Commands group into four intents:
 
 - **Channel and display commands** — create, inspect, rename, remove, or switch channels, or change the active display theme (`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`).
 - **Artifact creation commands** — register path or URL artifacts (`create-path-artifact`, `create-url-artifact`).
-- **Artifact management commands** — inspect, retitle, repoint, focus, list, arrange, move, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `update-page`, `move-artifact`, `focus-artifact`).
+- **Artifact management commands** — inspect, retitle, repoint, focus, list, arrange, move, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `reposition-artifact`, `move-artifact`, `focus-artifact`).
 - **Server and environment commands** — operate on the Television server and its home (`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`).
 
 When the CLI rejects a command, follow the directive it prints rather than guessing flags.
@@ -117,29 +117,29 @@ These are illustrative, not exhaustive. When the language is ambiguous or unusua
 
 ## Channel placement
 
-Artifact creation commands require `--channel` because new artifacts need immediate channel membership. `tv move-artifact --id <id> --channel <target> (--focus-artifact|--no-focus)` moves an existing artifact to another channel. It stays the same artifact, so its ID, its store, and its share link keep working, and it lands as the last page on the target channel at the size and full-screen state it had. Creating a second artifact with the same `--path` or `--url` on the other channel instead shows the content in both places, as two artifacts with separate stores.
+Artifact creation commands require `--channel` because new artifacts need immediate channel membership. `tv move-artifact --id <id> --channel <target> (--focus-artifact|--no-focus)` moves an existing artifact to another channel. It stays the same artifact, so its ID, its store, and its share link keep working, and it becomes the last artifact in the target channel's order, at the size and full-screen state it had. Creating a second artifact with the same `--path` or `--url` on the other channel instead shows the content in both places, as two artifacts with separate stores.
 
 Think carefully about whether the user means:
 
 - create something new on a channel
-- rearrange, resize, or full-screen an artifact's page on its current channel
+- reorder, resize, or full-screen an artifact on its current channel
 - move an existing artifact to another channel
 - show the same path or URL on a second channel as well
 - delete an artifact from its channel
 
 Those are different operations with different consequences. The per-command help text spells out which is which.
 
-### Arranging pages
+### Arranging artifacts
 
-Each artifact sits on its own page, and a channel's pages run left to right in the order its tabs show. `tv get-channel --channel <id>` prints the channel's `layout`: its pages in that order, each with its `artifactIds`, its `geometry.full_screen` flag, and its `size`.
+A channel shows its artifacts left to right, in the order of its tabs. `tv get-channel --channel <id>` prints the channel's `layout`: one entry per artifact in that order, each with the artifact's ID in `artifactIds`, its `geometry.full_screen` flag, and its `size`.
 
-`tv update-page --id <artifact-id>` changes the page holding that artifact, with any of:
+`tv reposition-artifact --id <artifact-id>` changes that artifact's arrangement, with any of:
 
-- `--width <px>` and `--height <px>` — the page's size
-- `--full-screen` or `--no-full-screen` — whether the page fills the stage; leaving full-screen returns the page to its size
-- `--position <n>` — where the page sits in the order, counting from 1 at the left
+- `--width <px>` and `--height <px>` — the artifact's size
+- `--full-screen` or `--no-full-screen` — whether the artifact fills the stage; leaving full-screen returns the artifact to its size
+- `--position <n>` — where the artifact sits in the order, counting from 1 at the left
 
-Sizes are reference pixels, not screen pixels: the size the page shows at when the stage is 1280 by 800. On a larger or smaller window, every page grows or shrinks by the same partial factor, never in full proportion, and a page is never shown larger than the stage. A new page starts at 760 by 770. To make pages bigger or smaller relative to each other, change their sizes by the same ratio you want them to appear in; to fill the stage, use `--full-screen` rather than a large size.
+Sizes are reference pixels, not screen pixels: the size the artifact shows at when the stage is 1280 by 800. On a larger or smaller window, every artifact grows or shrinks by the same partial factor, never in full proportion, and an artifact is never shown larger than the stage. A new artifact starts at 760 by 770. To make artifacts bigger or smaller relative to each other, change their sizes by the same ratio you want them to appear in; to fill the stage, use `--full-screen` rather than a large size.
 
 These are the same changes a person makes by dragging and double-clicking in the app, and everyone viewing the channel sees them at once. When the user cannot see the result from where they are, tell them what you changed.
 

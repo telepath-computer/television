@@ -1,10 +1,10 @@
 ---
-description: Artifact work — markdown files, HTML files/directories, URL pointers, create/update/delete flows, browser-only tab-page reordering, and the quality bar.
+description: Artifact work — markdown files, HTML files/directories, URL pointers, create/update/delete flows, arranging and moving artifacts, and the quality bar.
 ---
 
 # Artifact workflow
 
-Read this document for Television artifact work: creating files, registering path or URL artifacts, browser-only tab-page reordering, deleting, and updating titles.
+Read this document for Television artifact work: creating files, registering path or URL artifacts, arranging and moving artifacts, deleting, and updating titles.
 
 If you need bundled Television authoring skills installed first, copy them into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i`.
 
@@ -197,7 +197,7 @@ tv update-artifact --id "<artifact-id>" --url "https://example.com/next"
 
 The new path follows the same rules as creation (file or indexed directory, trailing separator optional). Rendering follows the new pointer immediately, and for path artifacts the content watcher retargets with it. Prefer repointing over delete-and-recreate when the artifact should keep its identity and channel placement.
 
-To change an artifact's page — its size, full-screen state, or position in the channel's order — use `tv update-page`, described under Arranging pages above.
+To change an artifact's size, full-screen state, or position in its channel's order, use `tv reposition-artifact`, described under Arranging artifacts above.
 
 To move an artifact to another channel, keeping its identity, store, and share link:
 

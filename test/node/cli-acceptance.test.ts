@@ -567,19 +567,19 @@ describe("CLI product spine acceptance", () => {
     return { running, token, api, channel, layout, tv };
   }
 
-  // Spec: [[product/cli.md#^cli-ac-update-page|update-page acceptance]].
-  it("update-page changes a page's size, full-screen state, and position through the built CLI and real server", async () => {
-    const { channel, tv } = await seededServer("television-cli-acceptance-update-page-");
+  // Spec: [[product/cli.md#^cli-ac-reposition-artifact|reposition-artifact acceptance]].
+  it("reposition-artifact changes a page's size, full-screen state, and position through the built CLI and real server", async () => {
+    const { channel, tv } = await seededServer("television-cli-acceptance-reposition-artifact-");
     const home = await channel("Arranged", 3);
     const [first, middle, last] = home.artifactIDs as [string, string, string];
     const before = JSON.parse((await tv(["get-channel", "--channel", home.id])).stdout).channel.layout;
 
     const result = await tv([
-      "update-page", "--id", middle, "--width", "612.5", "--height", "480", "--full-screen", "--position", "1",
+      "reposition-artifact", "--id", middle, "--width", "612.5", "--height", "480", "--full-screen", "--position", "1",
     ]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe(`Page of artifact ${middle} updated.\n`);
+    expect(result.stdout).toBe(`Artifact ${middle} repositioned.\n`);
     expect(result.stderr).toBe("");
     const read = await tv(["get-channel", "--channel", home.id]);
     expect(read.exitCode).toBe(0);
@@ -590,13 +590,13 @@ describe("CLI product spine acceptance", () => {
     ]);
   });
 
-  // Spec: [[product/cli.md#^cli-ac-update-page-invalid|update-page rejected-change acceptance]].
-  it("update-page rejects a position beyond the channel's pages through the built CLI and real server", async () => {
-    const { channel, layout, tv } = await seededServer("television-cli-acceptance-update-page-invalid-");
+  // Spec: [[product/cli.md#^cli-ac-reposition-artifact-invalid|reposition-artifact rejected-change acceptance]].
+  it("reposition-artifact rejects a position beyond the channel's pages through the built CLI and real server", async () => {
+    const { channel, layout, tv } = await seededServer("television-cli-acceptance-reposition-artifact-invalid-");
     const home = await channel("Arranged", 2);
     const before = await layout(home.id);
 
-    const result = await tv(["update-page", "--id", home.artifactIDs[0]!, "--position", "3"]);
+    const result = await tv(["reposition-artifact", "--id", home.artifactIDs[0]!, "--position", "3"]);
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");

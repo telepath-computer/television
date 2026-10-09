@@ -43,7 +43,7 @@ When the artifact is the real answer, keep the final reply short. Tell the user 
 That relationship matters:
 
 - creating an artifact places it on a channel immediately
-- `tv update-page` changes an artifact's page — its size, full-screen state, and position in the channel's order — and `tv get-channel` shows the current arrangement
+- `tv reposition-artifact` changes an artifact's size, full-screen state, and position in its channel's order, and `tv get-channel` shows the current arrangement
 - `tv move-artifact` moves an artifact to another channel, keeping its ID, store, and share link
 - deleting an artifact removes its registry record and its tab page from the channel
 

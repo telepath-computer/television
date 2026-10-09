@@ -509,7 +509,7 @@ describe("CLI Slice 1 artifact command surface", () => {
       "create-url-artifact",
       "update-artifact",
       "delete-artifact",
-      "update-page",
+      "reposition-artifact",
       "move-artifact",
       "get-artifact",
       "list-artifacts",
@@ -2653,7 +2653,7 @@ const SERVER_COMMANDS: string[][] = [
   ["create-url-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
   ["update-artifact", "--id", "artifact-1", "--title", "T"],
   ["delete-artifact", "--id", "artifact-1"],
-  ["update-page", "--id", "artifact-1", "--width", "500"],
+  ["reposition-artifact", "--id", "artifact-1", "--width", "500"],
   ["move-artifact", "--id", "artifact-1", "--channel", "screen-1", "--no-focus"],
   ["get-artifact", "--id", "artifact-1"],
   ["list-artifacts"],
@@ -3338,7 +3338,7 @@ describe("page arrangement and moving commands", () => {
     return { stdout, stderr, client, env: fakeEnvironment({ stdout, stderr, createClient }) };
   }
 
-  // proofs/arch/cli/index.md#^cli-t-update-page-request
+  // proofs/arch/cli/index.md#^cli-t-reposition-artifact-request
   it.each([
     ["--width", ["--width", "612.5"], [page(["first"]), page(["middle", "companion"], false, { width: 612.5, height: 770 }), page(["last"], true)]],
     ["--height", ["--height", "400"], [page(["first"]), page(["middle", "companion"], false, { width: 760, height: 400 }), page(["last"], true)]],
@@ -3346,26 +3346,26 @@ describe("page arrangement and moving commands", () => {
     ["--position first", ["--position", "1"], [page(["middle", "companion"]), page(["first"]), page(["last"], true)]],
     ["--position last", ["--position", "3"], [page(["first"]), page(["last"], true), page(["middle", "companion"])]],
     ["--position unchanged", ["--position", "2"], [page(["first"]), page(["middle", "companion"]), page(["last"], true)]],
-  ])("update-page %s changes only that page and submits the channel's layout once", async (_name, options, expectedLayout) => {
+  ])("reposition-artifact %s changes only that page and submits the channel's layout once", async (_name, options, expectedLayout) => {
     const { stdout, stderr, client, env } = arrange();
-    expect(await runCLI(["update-page", "--id", "middle", ...options], env)).toBe(0);
+    expect(await runCLI(["reposition-artifact", "--id", "middle", ...options], env)).toBe(0);
     expect(client.channels.list).toHaveBeenCalledTimes(1);
     expect(client.channels.update).toHaveBeenCalledTimes(1);
     expect(client.channels.update).toHaveBeenCalledWith({ channelID: "home-channel", layout: expectedLayout });
-    expect(stdout.toString()).toBe("Page of artifact middle updated.\n");
+    expect(stdout.toString()).toBe("Artifact middle repositioned.\n");
     expect(stderr.toString()).toBe("");
   });
 
-  it("update-page --no-full-screen leaves full-screen without changing the size", async () => {
+  it("reposition-artifact --no-full-screen leaves full-screen without changing the size", async () => {
     const { client, env } = arrange();
-    expect(await runCLI(["update-page", "--id", "last", "--no-full-screen"], env)).toBe(0);
+    expect(await runCLI(["reposition-artifact", "--id", "last", "--no-full-screen"], env)).toBe(0);
     expect(client.channels.update).toHaveBeenCalledWith({
       channelID: "home-channel",
       layout: [page(["first"]), page(["middle", "companion"]), page(["last"])],
     });
   });
 
-  // proofs/arch/cli/index.md#^cli-t-update-page-invalid
+  // proofs/arch/cli/index.md#^cli-t-reposition-artifact-invalid
   it.each([
     ["no change option", []],
     ["both full-screen flags", ["--full-screen", "--no-full-screen"]],
@@ -3378,22 +3378,43 @@ describe("page arrangement and moving commands", () => {
     ["a fractional position", ["--position", "1.5"]],
     ["a non-numeric position", ["--position", "first"]],
     ["a position beyond the page count", ["--position", "4"]],
-  ])("update-page rejects %s without updating", async (_name, options) => {
+  ])("reposition-artifact rejects %s without updating", async (_name, options) => {
     const { stdout, stderr, client, env } = arrange();
-    expect(await runCLI(["update-page", "--id", "middle", ...options], env)).toBe(1);
+    expect(await runCLI(["reposition-artifact", "--id", "middle", ...options], env)).toBe(1);
     expect(client.channels.update).not.toHaveBeenCalled();
     expect(stdout.toString()).toBe("");
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
-  // proofs/arch/cli/index.md#^cli-t-update-page-not-found
-  it("update-page reports an artifact that no channel holds", async () => {
+  // proofs/arch/cli/index.md#^cli-t-reposition-artifact-not-found
+  it("reposition-artifact reports an artifact that no channel holds", async () => {
     const { stdout, stderr, client, env } = arrange();
-    expect(await runCLI(["update-page", "--id", "nowhere", "--width", "500"], env)).toBe(1);
+    expect(await runCLI(["reposition-artifact", "--id", "nowhere", "--width", "500"], env)).toBe(1);
     expect(client.channels.update).not.toHaveBeenCalled();
     expect(stdout.toString()).toBe("");
     expect(stderr.toString()).toContain("Artifact not found: nowhere");
     expect(stderr.toString()).toContain(SKILL_POINTER);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-arrangement-wording
+  it("reposition-artifact and move-artifact help and messages do not say page", async () => {
+    const texts: string[] = [];
+    for (const argv of [["reposition-artifact", "--help"], ["help", "move-artifact"]]) {
+      const { stdout, env } = arrange();
+      expect(await runCLI(argv, env)).toBe(0);
+      texts.push(stdout.toString());
+    }
+    for (const options of [["--width", "500"], ["--position", "4"], []]) {
+      const { stdout, stderr, env } = arrange();
+      await runCLI(["reposition-artifact", "--id", "middle", ...options], env);
+      texts.push(stdout.toString(), stderr.toString());
+    }
+    const moved = arrange();
+    expect(await runCLI(["move-artifact", "--id", "middle", "--channel", "other-channel", "--no-focus"], moved.env)).toBe(0);
+    texts.push(moved.stdout.toString());
+
+    expect(texts.join("\n")).toContain("reposition-artifact");
+    for (const text of texts) expect(text).not.toMatch(/\bpages?\b/i);
   });
 
   // proofs/arch/cli/index.md#^cli-t-move-artifact

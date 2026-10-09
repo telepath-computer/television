@@ -36,7 +36,7 @@ The visible command surface is:
 | `tv create-url-artifact` | Register an `http(s)` URL on a channel. |
 | `tv update-artifact` | Update an artifact title or repoint its path/URL. |
 | `tv delete-artifact` | Delete an artifact registry record and remove its tab page. |
-| `tv update-page` | Change the size, full-screen state, or position of an artifact's tab page. |
+| `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
 | `tv move-artifact` | Move an artifact to another channel. |
 | `tv get-artifact` | Print one artifact's metadata as JSON. |
 | `tv list-artifacts` | Print artifacts as JSON, optionally filtered by channel. |
@@ -505,21 +505,23 @@ url artifact <artifact-id> deleted from the registry.
   url target was not touched.
 ```
 
-### Page arrangement and moving
+### Arranging and moving artifacts
 
-`tv update-page --id <id> [--width <px>] [--height <px>] [--full-screen|--no-full-screen] [--position <n>]` changes the tab page that holds the artifact, on whatever channel holds it. The changes it makes are the ones a person makes in the app by resizing, entering or leaving full-screen, and reordering ([ui/app/stage/index.md](../ui/app/stage/index.md)), and connected clients show them the same way. ^cli-update-page
+`tv reposition-artifact --id <id> [--width <px>] [--height <px>] [--full-screen|--no-full-screen] [--position <n>]` changes the arrangement of an artifact's tab page ([tab-pages.md](./tab-pages.md)), on whatever channel holds it. The changes it makes are the ones a person makes in the app by resizing, entering or leaving full-screen, and reordering ([ui/app/stage/index.md](../ui/app/stage/index.md)), and connected clients show them the same way. ^cli-reposition-artifact
 
-- `--width` and `--height` set the page's size in reference pixels ([arch/layout/index.md#^ly-page-size](../arch/layout/index.md#^ly-page-size)); either may be given alone. Each must be a finite, positive number. As with a dragged size, a size larger than the stage is accepted and limited where the page is drawn.
-- `--full-screen` puts the page in full-screen and `--no-full-screen` takes it out. Neither changes the page's size, so leaving full-screen returns the page to its size ([arch/layout/index.md#^ly-fullscreen-mode](../arch/layout/index.md#^ly-fullscreen-mode)).
-- `--position <n>` moves the page to position `n` in the channel's order, counting from `1` at the left; the other pages keep their order around it.
+- `--width` and `--height` set the artifact's size in reference pixels ([arch/layout/index.md#^ly-page-size](../arch/layout/index.md#^ly-page-size)); either may be given alone. Each must be a finite, positive number. As with a dragged size, a size larger than the stage is accepted and limited where the artifact is drawn.
+- `--full-screen` makes the artifact full-screen and `--no-full-screen` takes it out of full-screen. Neither changes the artifact's size, so leaving full-screen returns the artifact to its size ([arch/layout/index.md#^ly-fullscreen-mode](../arch/layout/index.md#^ly-fullscreen-mode)).
+- `--position <n>` moves the artifact to position `n` in the channel's order, counting from `1` at the left; the other artifacts keep their order around it.
 - The changes given apply together, or none do.
-- The command requires at least one of these options. Giving none, giving both `--full-screen` and `--no-full-screen`, a size that is not a finite positive number, or a position that is not a whole number from `1` to the number of pages on the channel is an error, and nothing changes.
+- The command requires at least one of these options. Giving none, giving both `--full-screen` and `--no-full-screen`, a size that is not a finite positive number, or a position that is not a whole number from `1` to the channel's last position is an error, and nothing changes.
 
 Success prints:
 
 ```text
-Page of artifact <artifact-id> updated.
+Artifact <artifact-id> repositioned.
 ```
+
+The help, output, and errors of `tv reposition-artifact` and `tv move-artifact` speak of artifacts and their order and size. They do not say "page" or "tab page", which are internal terms. ^cli-arrangement-wording
 
 `tv move-artifact --id <id> --channel <channel-id> (--focus-artifact|--no-focus)` moves an artifact to another channel ([product/artifacts.md#^af-move](./artifacts.md#^af-move)). Exactly one focus directive is required. `--focus-artifact` sends a transient artifact-focus nudge for the artifact after the move, which takes clients to its new channel; `--no-focus` leaves focus unchanged. Success prints: ^cli-move-artifact
 
@@ -539,7 +541,7 @@ When `--channel` does not name a channel, the command exits `1`, changes nothing
 Channel not found: <channel-id>
 ```
 
-When `--id` does not name an artifact on any channel, `tv update-page` and `tv move-artifact` exit `1`, change nothing, and print this error before the standard bundled-skills recovery pointer:
+When `--id` does not name an artifact on any channel, `tv reposition-artifact` and `tv move-artifact` exit `1`, change nothing, and print this error before the standard bundled-skills recovery pointer:
 
 ```text
 Artifact not found: <artifact-id>

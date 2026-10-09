@@ -27,7 +27,7 @@ In stage 1 a page holds exactly one artifact. That is a UI-layer constraint, not
 - Pages can be resized, and the new size is shared: it is part of the channel's layout, saved on the server for every client. The gesture is specified in [ui/app/stage/index.md](../ui/app/stage/index.md).
 - Pages scale with the display, partially and all together: a larger window shows artifacts somewhat larger, never in full proportion to the window ([ui/app/stage/index.md](../ui/app/stage/index.md), The size).
 - Pages can be made full-screen, and leaving returns the page to its size; the gestures are specified in [ui/app/stage/index.md](../ui/app/stage/index.md).
-- Agents can make the same reordering, sizing, and full-screen changes with the CLI ([cli.md#^cli-update-page](./cli.md#^cli-update-page)); they are the same shared layout changes.
+- Agents can make the same reordering, sizing, and full-screen changes with the CLI ([cli.md#^cli-reposition-artifact](./cli.md#^cli-reposition-artifact)); they are the same shared layout changes.
 
 ## Tabs
 
