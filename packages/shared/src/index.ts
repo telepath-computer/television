@@ -18,6 +18,7 @@ export {
   type DisplayState,
   type InstalledTheme,
   type LayoutNode,
+  type MoveArtifactResult,
   type OnboardingChannelMarker,
   type PageSize,
   type ResourceEventMessage,

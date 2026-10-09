@@ -79,6 +79,8 @@ export type NewArtifact =
     };
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
+/** The outcome of moving an artifact to a channel (specs/arch/layout/index.md#^ly-move). */
+export type MoveArtifactResult = { outcome: "moved" | "unchanged"; artifactID: string; channelID: string };
 
 /** Response shape for `DELETE /artifacts/:id`. */
 export type DeleteArtifactResult =

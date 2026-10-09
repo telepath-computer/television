@@ -371,6 +371,20 @@ export function registerRoutes(
     }
   });
 
+  // specs/arch/layout/index.md#^ly-move
+  app.post("/artifacts/:id/move", ...auth, (req: Request<{ id: string }>, res) => {
+    const channelID = (req.body as { channelID?: unknown } | undefined)?.channelID;
+    if (typeof channelID !== "string" || channelID === "") {
+      sendError(res, HTTP_BAD_REQUEST, "channelID is required");
+      return;
+    }
+    try {
+      res.json(store.moveArtifact({ artifactID: req.params.id, channelID }));
+    } catch (error) {
+      handleStoreError(res, error, "Failed to move artifact");
+    }
+  });
+
   app.get("/artifacts/:id", ...auth, (req: Request<{ id: string }>, res) => {
     const artifact = store.getArtifact(req.params.id);
     if (!artifact) {

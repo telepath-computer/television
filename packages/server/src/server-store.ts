@@ -16,6 +16,7 @@ import {
   ChannelUpdatedEvent,
   ThemeChangedEvent,
   type ArtifactRemovalResult,
+  type MoveArtifactResult,
   type StoreDomainEvent,
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
@@ -92,6 +93,7 @@ import type { TelemetryClientContext } from "./telemetry/client-meta.ts";
 import type { ServerStoreTelemetryHooks } from "./telemetry/emitters.ts";
 import type { ArtifactDeletionCause, ThemeChangeReason } from "./telemetry/types.ts";
 import { runOnboardingBootstrap } from "./onboarding-installer.ts";
+import { readMoveRecord, removeMoveRecord, writeMoveRecord, type MoveRecord } from "./move-record.ts";
 import {
   BUNDLED_THEME_STATE_VERSION,
   DEFAULT_BUNDLED_THEME_ID,
@@ -250,6 +252,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   private readonly _artifacts = new Map<string, Artifact>();
   /** Each own store's owner: the artifact whose record points to the resource ID. */
   private readonly storeOwners = new Map<string, string>();
+  /**
+   * A committed move not yet complete on disk; every later channel or
+   * artifact change completes it first (specs/arch/layout/index.md#^ly-move).
+   */
+  private pendingMove: MoveRecord | null = null;
   /** Each share ID's artifact (specs/arch/resources/index.md#^rs-share-ids). */
   private readonly shareOwners = new Map<string, string>();
   private readonly recordStorage: ResourceStorageOperations;
@@ -333,6 +340,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       return;
     }
     this.removeLeftoverRecordFiles();
+    this.completeInterruptedMove();
     // Bootstrap step 2 ends by loading the resource layer, before the install
     // loop, so the installer can write artifacts' stores
     // (specs/arch/onboarding/installer.md#^bootstrap-sequence).
@@ -439,6 +447,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     path?: string;
     url?: string;
   }, telemetryContext?: TelemetryClientContext | null): Artifact {
+    this.completePendingMove();
     const channel = this.requireChannel(input.channelID);
     const created = this.createKindArtifact({ ...input, id: input.id ?? this.newID() });
     const previousLayout = channel.layout;
@@ -472,6 +481,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   updateArtifact(input: { artifactID: string; fields: { title?: string; path?: string; url?: string } }, telemetryContext?: TelemetryClientContext | null): Artifact {
+    this.completePendingMove();
     const artifact = this._artifacts.get(input.artifactID);
     if (!artifact) {
       throw new NotFoundError(`Artifact not found: ${input.artifactID}`, { entityType: "artifact", entityID: input.artifactID });
@@ -544,6 +554,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     deletionCause: ArtifactDeletionCause,
     telemetryContext?: TelemetryClientContext | null,
   ): ArtifactRemovalResult {
+    this.completePendingMove();
     const artifact = this._artifacts.get(artifactID);
     if (!artifact) {
       throw new NotFoundError(`Artifact not found: ${artifactID}`, { entityType: "artifact", entityID: artifactID });
@@ -589,6 +600,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   // `onboarding` is installer-only: routes never forward the field from
   // public request bodies (specs/arch/onboarding/installer.md#^marker-api-readonly).
   createChannel(input: { name: string; id?: string; onboarding?: OnboardingChannelMarker }, telemetryContext?: TelemetryClientContext | null): Channel {
+    this.completePendingMove();
     const shouldEstablishFocus = this.displayStateReady && this.focusedChannelId === null;
     const channel: Channel = {
       id: input.id ?? ulid(),
@@ -617,6 +629,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   updateChannel(input: { channelID: string; fields: ChannelPatch }, telemetryContext?: TelemetryClientContext | null): Channel {
+    this.completePendingMove();
     const channel = this.requireChannel(input.channelID);
     const previousName = channel.name;
     const nextName = input.fields.name ?? previousName;
@@ -871,6 +884,47 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
    * necessary, then broadcast an `artifact-focus` event for clients to
    * scroll-and-highlight.
    */
+  /**
+   * Move an artifact to another channel (specs/arch/layout/index.md#^ly-move).
+   * Saving the move record commits the move; a later failure keeps the moved
+   * layouts, reports an unknown outcome, and leaves the record pending.
+   */
+  moveArtifact(input: { artifactID: string; channelID: string }): MoveArtifactResult {
+    this.completePendingMove();
+    const { artifactID } = input;
+    const artifact = this._artifacts.get(artifactID);
+    if (!artifact) {
+      throw new NotFoundError(`Artifact not found: ${artifactID}`, { entityType: "artifact", entityID: artifactID });
+    }
+    const target = this.requireChannel(input.channelID);
+    const sourceID = this.artifactChannels.get(artifactID);
+    if (sourceID === target.id) return { outcome: "unchanged", artifactID, channelID: target.id };
+    if (sourceID === undefined) {
+      throw new ConflictError(`Artifact ${artifactID} is not attached to any channel; cannot move`);
+    }
+    const sourcePage = this.requireChannel(sourceID).layout.find((page) => page.artifactIds.includes(artifactID));
+    const record: MoveRecord = {
+      artifactID,
+      sourceChannelID: sourceID,
+      targetChannelID: target.id,
+      geometry: structuredClone(sourcePage?.geometry ?? DEFAULT_PAGE_GEOMETRY),
+      size: { ...(sourcePage?.size ?? DEFAULT_PAGE_SIZE) },
+    };
+
+    // A failure here commits nothing and changes nothing.
+    writeMoveRecord(this.recordStorage, this.storagePath, record);
+    this.pendingMove = record;
+    this.applyMove(record);
+    const source = this.channels.get(sourceID);
+    if (source) this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel: source }));
+    // Clients learn an artifact's record from `artifact-created`; the target's
+    // update that follows carries the page's real geometry and size.
+    this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: target.id, artifact }));
+    this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel: target }));
+    this.finishPendingMove(`moving artifact ${artifactID}`);
+    return { outcome: "moved", artifactID, channelID: target.id };
+  }
+
   focus(input: { artifactID: string }): { channelID: string; artifactID: string } {
     const artifact = this._artifacts.get(input.artifactID);
     if (!artifact) {
@@ -897,6 +951,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   removeChannel(channelID: string, telemetryContext?: TelemetryClientContext | null): ChannelRemovalResult {
+    this.completePendingMove();
     const channel = this.requireChannel(channelID);
     const previousFocusedChannelId = this.getFocusedChannelId();
     const nextPinnedChannelIds = this.pinnedChannelIds.filter((id) => id !== channel.id);
@@ -1212,6 +1267,61 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     }, CONTENT_WATCH_DEBOUNCE_MS);
 
     this.contentWatchDebounceTimers.set(artifactID, timer);
+  }
+
+  /**
+   * Apply a move record to the live layouts. Idempotent, so it serves both a
+   * new move and the completion of an interrupted one: the artifact leaves the
+   * source if it is still there and joins the target if it is absent.
+   */
+  private applyMove(record: MoveRecord): void {
+    const source = this.channels.get(record.sourceChannelID);
+    if (source) source.layout = removeArtifactFromPages(source.layout, record.artifactID);
+    const target = this.channels.get(record.targetChannelID);
+    if (target && !getChannelArtifactIDs(target).includes(record.artifactID)) {
+      target.layout = [
+        ...target.layout,
+        { artifactIds: [record.artifactID], geometry: structuredClone(record.geometry), size: { ...record.size } },
+      ];
+    }
+    if (source) this.rebuildArtifactChannelsForChannel(source);
+    if (target) this.rebuildArtifactChannelsForChannel(target);
+  }
+
+  /** Save both channels of the pending move and remove its record. */
+  private finishPendingMove(change: string): void {
+    const record = this.pendingMove;
+    if (record === null) return;
+    try {
+      for (const channelID of [record.targetChannelID, record.sourceChannelID]) {
+        const channel = this.channels.get(channelID);
+        if (channel) this.persistChannel(channel);
+      }
+      removeMoveRecord(this.recordStorage, this.storagePath);
+    } catch (error) {
+      throw unknownOutcome(change, error);
+    }
+    this.pendingMove = null;
+  }
+
+  /** The one handoff every channel and artifact change passes through first. */
+  private completePendingMove(): void {
+    if (this.pendingMove === null) return;
+    this.finishPendingMove(`completing the move of artifact ${this.pendingMove.artifactID}`);
+  }
+
+  /** At startup, complete a move whose record survived (specs/arch/layout/index.md#^ly-move). */
+  private completeInterruptedMove(): void {
+    const record = readMoveRecord(this.recordStorage, this.storagePath);
+    if (record === null) return;
+    this.pendingMove = record;
+    this.applyMove(record);
+    try {
+      this.finishPendingMove(`completing the move of artifact ${record.artifactID}`);
+    } catch (error) {
+      // The record stays pending; the next change retries it.
+      console.warn(errorMessage(error));
+    }
   }
 
   private requireChannel(channelID: string): Channel {
@@ -1654,6 +1764,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
 
   /** Saves an artifact's store pointer for the resource layer (specs/arch/resources/index.md#^rs-first-write, #^rs-destroy-order). */
   private saveStorePointer(artifactID: string, resourceID: string | undefined): { pointer: string | undefined; uncertain: Error | null } {
+    this.completePendingMove();
     const artifact = this._artifacts.get(artifactID);
     if (artifact?.kind !== "path") throw new Error(`Artifact ${artifactID} has no store.`);
     const { store: _previous, ...rest } = artifact;
@@ -1676,6 +1787,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
    * current, with the refusal to give when the save's outcome is uncertain.
    */
   private saveShare(artifactID: string, share: ArtifactShareLink | undefined): { share: ArtifactShareLink | undefined; uncertain: Error | null } {
+    this.completePendingMove();
     const artifact = this._artifacts.get(artifactID);
     if (artifact?.kind !== "path") throw new Error(`Artifact ${artifactID} cannot be shared.`);
     const { share: _previous, ...rest } = artifact;
