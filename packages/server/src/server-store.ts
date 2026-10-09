@@ -911,8 +911,14 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       size: { ...(sourcePage?.size ?? DEFAULT_PAGE_SIZE) },
     };
 
-    // A failure here commits nothing and changes nothing.
-    writeMoveRecord(this.recordStorage, this.storagePath, record);
+    // A failure before the record replaces its file commits nothing and
+    // changes nothing. A failure after it is uncertain: the record may be on
+    // disk, so the move is committed and completes like any other.
+    try {
+      writeMoveRecord(this.recordStorage, this.storagePath, record);
+    } catch (error) {
+      if (!(error instanceof UncertainWriteError)) throw error;
+    }
     this.pendingMove = record;
     this.applyMove(record);
     const source = this.channels.get(sourceID);
@@ -1295,7 +1301,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     try {
       for (const channelID of [record.targetChannelID, record.sourceChannelID]) {
         const channel = this.channels.get(channelID);
-        if (channel) this.persistChannel(channel);
+        if (channel) this.persistChannelDurably(channel);
       }
       removeMoveRecord(this.recordStorage, this.storagePath);
     } catch (error) {
@@ -1637,6 +1643,20 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   private persistChannel(channel: Channel): void {
+    writeFileSync(path.join(this.channelsDir, `${channel.id}.json`), this.storedChannelText(channel));
+  }
+
+  /**
+   * Save a channel atomically and durably, through the same writer as the
+   * artifact records: a crash leaves either the old file or the new one. A
+   * move saves its channels this way, because its record is removed once they
+   * are saved (specs/arch/layout/index.md#^ly-move).
+   */
+  private persistChannelDurably(channel: Channel): void {
+    rewriteFile(this.recordStorage, path.join(this.channelsDir, `${channel.id}.json`), this.storedChannelText(channel));
+  }
+
+  private storedChannelText(channel: Channel): string {
     if (!this.channels.has(channel.id)) {
       throw new Error(`Cannot persist channel ${channel.id}: not in live map`);
     }
@@ -1647,10 +1667,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       layout: channel.layout,
       ...(channel.onboarding ? { onboarding: channel.onboarding } : {}),
     };
-    writeFileSync(
-      path.join(this.channelsDir, `${channel.id}.json`),
-      JSON.stringify(stored, null, JSON_INDENT_SPACES),
-    );
+    return JSON.stringify(stored, null, JSON_INDENT_SPACES);
   }
 
   private readArtifactFile(filePath: string, expectedID: string): Artifact {

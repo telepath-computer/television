@@ -356,6 +356,49 @@ describe("moving an artifact between channels", () => {
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
   });
 
+  // proofs/arch/layout/index.md#^ly-ac-move-record-uncertain
+  it("treats a move record whose save is uncertain as committed and keeps later changes behind it", async () => {
+    const fx = fixture();
+    // The store's declared storage-operations hook, failing only the flush
+    // that follows the move record's rename: the record is in place, but its
+    // save reports an uncertain outcome.
+    let failNextFlush = false;
+    const storage = {
+      ...nodeResourceStorageOperations,
+      rename(fromPath: string, toPath: string) {
+        nodeResourceStorageOperations.rename(fromPath, toPath);
+        if (toPath === moveRecordPath(fx.storagePath)) failNextFlush = true;
+      },
+      flushDirectory(directoryPath: string) {
+        if (failNextFlush) {
+          failNextFlush = false;
+          throw new Error("flush failed");
+        }
+        nodeResourceStorageOperations.flushDirectory(directoryPath);
+      },
+    };
+    const store = createServingStore(fx.storagePath, { resourceStorageOperations: storage });
+    const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
+    servers.push(server);
+    await server.start();
+    const token = store.authToken;
+    const unblock = blockFile(channelPath(fx.storagePath, fx.target));
+
+    await move(server, token, "moved", fx.target)
+      .expect(503)
+      .expect(({ body }) => expect(body.error).toMatch(/outcome is unknown/));
+    expect(await layoutOf(server, token, fx.target)).toEqual(TARGET_AFTER);
+    expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
+    await request(server.httpServer).patch(`/channels/${fx.third}`).set(auth(token)).send({ name: "Renamed" }).expect(503);
+    expect(await layoutOf(server, token, fx.third)).toEqual([page([fx.thirdA])]);
+
+    unblock();
+    await request(server.httpServer).patch(`/channels/${fx.third}`).set(auth(token)).send({ name: "Renamed" }).expect(200);
+    expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
+    expect(storedLayout(fx.storagePath, fx.source)).toEqual(SOURCE_AFTER);
+    expect(storedLayout(fx.storagePath, fx.target)).toEqual(TARGET_AFTER);
+  });
+
   // proofs/arch/layout/index.md#^ly-ac-move-recovery-blocked
   it("serves the moved layouts and keeps a startup recovery pending when its record cannot be removed", async () => {
     const fx = fixture();

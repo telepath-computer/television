@@ -41,3 +41,4 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 - Local checks so far: unit:server 999 passed; CLI, shared, skills packages passed; lint and type-check clean; tab-pages e2e passed; artifact-move e2e passed 3/3 without retries; CLI acceptance (4 new) passed. PostHog roundtrip suite not run (needs TV_POSTHOG_TEST_READ_KEY; unrelated).
 - Spec re-review after testing-exception change: PASS at cedf32c (one P3 wording note, applied without re-review). Proof round 6 PASS.
 - Implementation review round 1 dispatched.
+- Full verify (Blaxel) at 5f6e530: PASSED, 36 shards; 1 recovered flake (e2e:browser-app channel-switcher-context-menu.test.ts drag test, unrelated); attestation refs/testpass/1/679ae161ce9df4a67471df38638d353301b91871.
