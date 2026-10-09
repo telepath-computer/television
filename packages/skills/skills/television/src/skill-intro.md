@@ -43,9 +43,9 @@ When the artifact is the real answer, keep the final reply short. Tell the user 
 That relationship matters:
 
 - creating an artifact places it on a channel immediately
-- reordering an artifact's tab page is a browser UI tab-drag gesture; the CLI does not expose layout mutation today
-- deleting an artifact removes its registry record and its tab page from the channel
-- moving the same underlying path or URL to another channel means deleting the old artifact and creating a new artifact with the same path or URL on the target channel
+- `tv reposition-artifact` changes an artifact's size, full-screen state, and position in its channel's order, and `tv get-channel` shows the current arrangement
+- `tv move-artifact` moves an artifact to another channel, keeping its ID, store, and share link
+- deleting an artifact removes its registry record and removes the artifact from its channel
 
 ### Onboarding channels
 

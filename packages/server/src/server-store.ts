@@ -16,6 +16,7 @@ import {
   ChannelUpdatedEvent,
   ThemeChangedEvent,
   type ArtifactRemovalResult,
+  type MoveArtifactResult,
   type StoreDomainEvent,
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
@@ -867,6 +868,57 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   /**
+   * Move an artifact to another channel as two ordinary channel saves
+   * (specs/arch/layout/index.md#^ly-move): off the source, then onto the
+   * target. A failed target save, like a stop between the two, leaves the
+   * artifact on no channel; that risk is accepted to keep a move simple.
+   */
+  moveArtifact(input: { artifactID: string; channelID: string }): MoveArtifactResult {
+    const { artifactID } = input;
+    if (!this._artifacts.has(artifactID)) {
+      throw new NotFoundError(`Artifact not found: ${artifactID}`, { entityType: "artifact", entityID: artifactID });
+    }
+    const target = this.requireChannel(input.channelID);
+    const sourceID = this.artifactChannels.get(artifactID);
+    if (sourceID === target.id) return { outcome: "unchanged", artifactID, channelID: target.id };
+    if (sourceID === undefined) {
+      // Left on no channel by a move that did not finish; no channel holds it.
+      throw new NotFoundError(`Artifact not found: ${artifactID}`, { entityType: "artifact", entityID: artifactID });
+    }
+    const source = this.requireChannel(sourceID);
+    const page = source.layout.find((candidate) => candidate.artifactIds.includes(artifactID))!;
+
+    const previousSourceLayout = source.layout;
+    source.layout = removeArtifactFromPages(source.layout, artifactID);
+    try {
+      this.persistChannel(source, { atomically: true });
+    } catch (error) {
+      source.layout = previousSourceLayout;
+      throw error;
+    }
+    this.artifactChannels.delete(artifactID);
+    this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel: source }));
+
+    const previousTargetLayout = target.layout;
+    target.layout = [
+      ...target.layout,
+      { artifactIds: [artifactID], geometry: structuredClone(page.geometry), size: { ...page.size } },
+    ];
+    try {
+      this.persistChannel(target, { atomically: true });
+    } catch (error) {
+      target.layout = previousTargetLayout;
+      throw error;
+    }
+    this.artifactChannels.set(artifactID, target.id);
+    // Clients learn an artifact's record from `artifact-created`; the target's
+    // update that follows carries the page's real geometry and size.
+    this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: target.id, artifact: this._artifacts.get(artifactID)! }));
+    this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel: target }));
+    return { outcome: "moved", artifactID, channelID: target.id };
+  }
+
+  /**
    * Resolve the owning channel for `artifactID`, flip the active channel if
    * necessary, then broadcast an `artifact-focus` event for clients to
    * scroll-and-highlight.
@@ -1526,7 +1578,13 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return token;
   }
 
-  private persistChannel(channel: Channel): void {
+  /**
+   * Save a channel's record. `atomically` replaces the file through the same
+   * writer as the artifact records, so a stop mid-save leaves the old record or
+   * the new one; a move saves its two channels this way
+   * (specs/arch/layout/index.md#^ly-move).
+   */
+  private persistChannel(channel: Channel, { atomically = false } = {}): void {
     if (!this.channels.has(channel.id)) {
       throw new Error(`Cannot persist channel ${channel.id}: not in live map`);
     }
@@ -1537,10 +1595,18 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       layout: channel.layout,
       ...(channel.onboarding ? { onboarding: channel.onboarding } : {}),
     };
-    writeFileSync(
-      path.join(this.channelsDir, `${channel.id}.json`),
-      JSON.stringify(stored, null, JSON_INDENT_SPACES),
-    );
+    const filePath = path.join(this.channelsDir, `${channel.id}.json`);
+    const text = JSON.stringify(stored, null, JSON_INDENT_SPACES);
+    if (!atomically) {
+      writeFileSync(filePath, text);
+      return;
+    }
+    try {
+      rewriteFile(this.recordStorage, filePath, text);
+    } catch (error) {
+      // The new record replaced the old one; only the directory flush after it failed.
+      if (!(error instanceof UncertainWriteError)) throw error;
+    }
   }
 
   private readArtifactFile(filePath: string, expectedID: string): Artifact {

@@ -14,7 +14,7 @@ The `tv` CLI is designed to be invoked on the same host as the Television server
 
 This spec defines the CLI spelling of focus requests; product channels and tab pages own their effects.
 
-A *focus directive* is one of the mutually exclusive flags that tells a creation command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation.
+A *focus directive* is one of the mutually exclusive flags that tells a creation or move command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation and `move-artifact`.
 
 *Channel focus* is the persisted active channel owned by [channels.md](./channels.md). *Artifact focus* is a transient one-shot signal: clients select the artifact's tab page and switch to its channel when needed, without scrolling-to-card or highlight/glow behavior ([tab-pages.md#^tp-focus-selects](./tab-pages.md#^tp-focus-selects)). It is not persisted.
 
@@ -35,7 +35,9 @@ The visible command surface is:
 | `tv create-path-artifact` | Register an existing local markdown/HTML file or indexed directory on a channel. |
 | `tv create-url-artifact` | Register an `http(s)` URL on a channel. |
 | `tv update-artifact` | Update an artifact title or repoint its path/URL. |
-| `tv delete-artifact` | Delete an artifact registry record and remove its tab page. |
+| `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
+| `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
+| `tv move-artifact` | Move an artifact to another channel. |
 | `tv get-artifact` | Print one artifact's metadata as JSON. |
 | `tv list-artifacts` | Print artifacts as JSON, optionally filtered by channel. |
 | `tv share-artifact` | Create or change an artifact's share link, and print it. |
@@ -395,7 +397,7 @@ The first-initialization notice and its eligibility are owned by [the telemetry 
 
 `tv list-channels` prints `{ "channels": [...] }`.
 
-`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. With no `--channel`, the command auto-selects when exactly one channel exists. With zero or multiple channels and no `--channel`, the command reports the channel-selection problem directly. With multiple channels, the error says that `channelID` is required and lists the available channels by name and ID. With zero channels, the error says that `channelID` is required and that there are no available channels. The error does not say the server could not be reached.
+`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. The channel's `layout` is its tab pages in order, from left to right: each page with its artifact IDs, its `full_screen` state, and its `size` in reference pixels ([arch/layout/index.md#^ly-model](../arch/layout/index.md#^ly-model)). This is how an agent reads a channel's arrangement. With no `--channel`, the command auto-selects when exactly one channel exists. With zero or multiple channels and no `--channel`, the command reports the channel-selection problem directly. With multiple channels, the error says that `channelID` is required and lists the available channels by name and ID. With zero channels, the error says that `channelID` is required and that there are no available channels. The error does not say the server could not be reached. ^cli-get-channel-layout
 
 `tv create-channel --name <name> (--focus-channel|--no-focus)` creates an empty channel. Exactly one focus directive is required. `--focus-channel` sets persistent channel focus to the new channel; `--no-focus` leaves focus unchanged. Success prints:
 
@@ -487,8 +489,6 @@ Artifact <artifact-id> updated.
 
 `tv list-artifacts [--channel <id>]` prints `{ "artifacts": [...] }`. With no `--channel`, it lists every artifact. With `--channel`, it filters to artifacts on that channel.
 
-The CLI does not have a command that reorders an artifact's tab page on its current channel. Reordering is a layout change made through the UI or the channel PATCH API. To show the same file, directory, or URL on another channel, create a second artifact on that channel with the same `--path` or `--url`.
-
 `tv delete-artifact --id <id>` deletes an artifact registry record and removes its tab page from its channel. A path artifact deletion prints:
 
 ```text
@@ -504,6 +504,56 @@ url artifact <artifact-id> deleted from the registry.
   url: <url>
   url target was not touched.
 ```
+
+### Arranging and moving artifacts
+
+`tv reposition-artifact --id <id> [--width <px>] [--height <px>] [--full-screen|--no-full-screen] [--position <n>]` changes the arrangement of an artifact's tab page ([tab-pages.md](./tab-pages.md)), on whatever channel holds it. The changes it makes are the ones a person makes in the app by resizing, entering or leaving full-screen, and reordering ([ui/app/stage/index.md](../ui/app/stage/index.md)), and connected clients show them the same way. ^cli-reposition-artifact
+
+- `--width` and `--height` set the artifact's size in reference pixels ([arch/layout/index.md#^ly-page-size](../arch/layout/index.md#^ly-page-size)); either may be given alone. Each must be a finite, positive number. As with a dragged size, a size larger than the stage is accepted and limited where the artifact is drawn.
+- `--full-screen` makes the artifact full-screen and `--no-full-screen` takes it out of full-screen. Neither changes the artifact's size, so leaving full-screen returns the artifact to its size ([arch/layout/index.md#^ly-fullscreen-mode](../arch/layout/index.md#^ly-fullscreen-mode)).
+- `--position <n>` moves the artifact to position `n` in the channel's order, counting from `1` at the left; the other artifacts keep their order around it.
+- The changes given apply together, or none do.
+- The command requires at least one of these options. Giving none, giving both `--full-screen` and `--no-full-screen`, a size that is not a finite positive number, or a position that is not a whole number from `1` to the channel's last position is an error, and nothing changes.
+
+Success prints:
+
+```text
+Artifact <artifact-id> repositioned.
+```
+
+The command reads the channel and then sends its whole new arrangement. If an artifact is added to, removed from, or moved off that channel in between, the server refuses the arrangement and nothing changes. The command then exits `1` and prints this error before the standard bundled-skills recovery pointer:
+
+```text
+Channel <channel-id> changed before artifact <artifact-id> could be repositioned, so nothing changed. Run the command again.
+```
+
+The help, output, and errors of `tv reposition-artifact` and `tv move-artifact` speak of artifacts and their order and size. They do not say "page" or "tab page", which are internal terms. ^cli-arrangement-wording
+
+`tv move-artifact --id <id> --channel <channel-id> (--focus-artifact|--no-focus)` moves an artifact to another channel ([product/artifacts.md#^af-move](./artifacts.md#^af-move)). Exactly one focus directive is required. `--focus-artifact` sends a transient artifact-focus nudge for the artifact after the move, which takes clients to its new channel; `--no-focus` leaves focus unchanged. Success prints: ^cli-move-artifact
+
+```text
+Artifact <artifact-id> moved to channel <channel-id>.
+```
+
+When the artifact is already on that channel, nothing changes; the command still sends the nudge if `--focus-artifact` was given, and prints:
+
+```text
+Artifact <artifact-id> is already on channel <channel-id>.
+```
+
+When `--channel` does not name a channel, the command exits `1`, changes nothing, and prints this error before the standard bundled-skills recovery pointer:
+
+```text
+Channel not found: <channel-id>
+```
+
+When `--id` does not name an artifact on any channel, `tv reposition-artifact` and `tv move-artifact` exit `1`, change nothing, and print this error before the standard bundled-skills recovery pointer:
+
+```text
+Artifact not found: <artifact-id>
+```
+
+To show the same file, directory, or URL on two channels at once, create a second artifact on the other channel with the same `--path` or `--url`.
 
 ## Display focus and themes
 

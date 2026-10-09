@@ -6,13 +6,13 @@ Generated from the first-line description of every proof by `scripts/specs-index
 
 - **product/**
   - `artifact-navigation.md` (34 lines) — *How the promises in Artifact navigation are proven.*
-  - `artifacts.md` (50 lines) — *How the promises in Artifacts are proven.*
+  - `artifacts.md` (52 lines) — *How the promises in Artifacts are proven.*
   - `channels.md` (29 lines) — *How the promises in Channels are proven.*
-  - `cli.md` (103 lines) — *How the promises in CLI are proven.*
+  - `cli.md` (108 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
   - `licensing.md` (33 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
-  - `tab-pages.md` (29 lines) — *How the promises in Tab pages are proven.*
+  - `tab-pages.md` (30 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (89 lines) — *How the promises in Telemetry are proven.*
   - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
   - `update-notifications.md` (89 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
@@ -40,7 +40,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (53 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
-    - `index.md` (265 lines) — *How the promises in CLI architecture are proven.*
+    - `index.md` (271 lines) — *How the promises in CLI architecture are proven.*
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
@@ -51,7 +51,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `runtime.md` (21 lines) — *How the Electron runtime's promises are proven: exact-version declarations, runtime validity over authored package and runtime trees, and a real cold installation on a Node release known to truncate one.*
     - `updates.md` (28 lines) — *How desktop updates are proven: main-process and preload contracts with Electron and the update runtime replaced by recording mocks, the real Electron app with the runtime in its simulation mode, and the desktop product's update check, which presses the restart in a candidate build on a real Mac.*
   - **layout/**
-    - `index.md` (28 lines) — *How the promises in Layout (architecture) are proven.*
+    - `index.md` (40 lines) — *How the promises in Layout (architecture) are proven.*
     - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
     - `bake.md` (85 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
@@ -69,7 +69,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `client-signals.md` (28 lines) — *How the promises in Telemetry client signals are proven.*
     - `client.md` (33 lines) — *How the promises in Telemetry client agent are proven.*
     - `derivation.md` (31 lines) — *How the promises in Telemetry property derivation are proven.*
-    - `emitters.md` (31 lines) — *How the promises in Telemetry emitters are proven.*
+    - `emitters.md` (32 lines) — *How the promises in Telemetry emitters are proven.*
     - `identity.md` (26 lines) — *How the promises in Telemetry identity and control are proven.*
     - `index.md` (23 lines) — *How the promises in Telemetry architecture are proven.*
     - `server-telemetry-buffer.md` (20 lines) — *How the promises in Server telemetry integration (buffer) are proven.*

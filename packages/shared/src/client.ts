@@ -3,6 +3,7 @@ import { TELEVISION_CLIENT_META_HEADER } from "./types.ts";
 import type {
   ArtifactPatch,
   CreateArtifactResult,
+  MoveArtifactResult,
   DeleteArtifactResult,
   DisplayPatch,
   DisplayState,
@@ -368,6 +369,15 @@ export class ArtifactClient {
     return this.#http.requestJSON<DeleteArtifactResult>(
       "DELETE",
       `/artifacts/${encodeURIComponent(input.artifactID)}`,
+    );
+  }
+
+  /** Move an artifact to another channel (specs/arch/layout/index.md#^ly-move). */
+  move(input: { artifactID: string; channelID: string }): Promise<MoveArtifactResult> {
+    return this.#http.requestJSON<MoveArtifactResult>(
+      "POST",
+      `/artifacts/${encodeURIComponent(input.artifactID)}/move`,
+      { channelID: input.channelID },
     );
   }
 }

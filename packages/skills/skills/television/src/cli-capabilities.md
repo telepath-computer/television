@@ -36,7 +36,7 @@ Commands group into four intents:
 
 - **Channel and display commands** — create, inspect, rename, remove, or switch channels, or change the active display theme (`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`).
 - **Artifact creation commands** — register path or URL artifacts (`create-path-artifact`, `create-url-artifact`).
-- **Artifact management commands** — inspect, retitle, repoint, focus, list, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `focus-artifact`).
+- **Artifact management commands** — inspect, retitle, repoint, focus, list, arrange, move, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `reposition-artifact`, `move-artifact`, `focus-artifact`).
 - **Server and environment commands** — operate on the Television server and its home (`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`).
 
 When the CLI rejects a command, follow the directive it prints rather than guessing flags.
@@ -68,7 +68,7 @@ Use read commands when you need authoritative state for planning or verification
 Television separates state changes from focus. Choosing where an artifact lives is one decision; choosing whether the user's attention moves there is a separate one.
 
 - **channel focus** is persistent: which channel the user is currently looking at
-- **artifact focus** is transient: clients select the artifact's tab page, switching channels first when needed
+- **artifact focus** is transient: clients select the artifact, switching channels first when needed
 
 There is a persisted focused channel.
 There is not a persisted focused artifact.
@@ -117,16 +117,31 @@ These are illustrative, not exhaustive. When the language is ambiguous or unusua
 
 ## Channel placement
 
-Artifact creation commands require `--channel` because new artifacts need immediate channel membership. Reordering an artifact's tab page on its current channel is a browser UI tab-drag gesture; the CLI does not expose layout mutation today. To move the same underlying path or URL to a different channel, delete the old artifact and create a new artifact on the target channel with the same path or URL.
+Artifact creation commands require `--channel` because new artifacts need immediate channel membership. `tv move-artifact --id <id> --channel <target> (--focus-artifact|--no-focus)` moves an existing artifact to another channel. It stays the same artifact, so its ID, its store, and its share link keep working, and it becomes the last artifact in the target channel's order, at the size and full-screen state it had. Creating a second artifact with the same `--path` or `--url` on the other channel instead shows the content in both places, as two artifacts with separate stores.
 
 Think carefully about whether the user means:
 
 - create something new on a channel
-- reorder an artifact's tab page on its current channel in the browser UI
+- reorder, resize, or full-screen an artifact on its current channel
+- move an existing artifact to another channel
+- show the same path or URL on a second channel as well
 - delete an artifact from its channel
-- recreate the same path or URL on a different channel
 
 Those are different operations with different consequences. The per-command help text spells out which is which.
+
+### Arranging artifacts
+
+A channel shows its artifacts left to right, in the order of its tabs. `tv get-channel --channel <id>` prints the channel's `layout`: one entry per artifact in that order, each with the artifact's ID in `artifactIds`, its `geometry.full_screen` flag, and its `size`.
+
+`tv reposition-artifact --id <artifact-id>` changes that artifact's arrangement, with any of:
+
+- `--width <px>` and `--height <px>` — the artifact's size
+- `--full-screen` or `--no-full-screen` — whether the artifact fills the stage; leaving full-screen returns the artifact to its size
+- `--position <n>` — where the artifact sits in the order, counting from 1 at the left
+
+Sizes are reference pixels, not screen pixels: the size the artifact shows at when the stage is 1280 by 800. On a larger or smaller window, every artifact grows or shrinks by the same partial factor, never in full proportion, and an artifact is never shown larger than the stage. A new artifact starts at 760 by 770. To make artifacts bigger or smaller relative to each other, change their sizes by the same ratio you want them to appear in; to fill the stage, use `--full-screen` rather than a large size.
+
+These are the same changes a person makes by dragging and double-clicking in the app, and everyone viewing the channel sees them at once. When the user cannot see the result from where they are, tell them what you changed.
 
 ### Choosing the right channel
 
