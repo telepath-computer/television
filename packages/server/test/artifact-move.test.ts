@@ -438,11 +438,11 @@ describe("moving an artifact between channels", () => {
       }],
       ["saving an artifact's share link", {
         apply: (client, fx) => client.resources.share({ artifactID: fx.thirdA }),
-        applied: async (client, fx) => (await client.artifacts.get({ artifactID: fx.thirdA })).artifact.share !== undefined,
+        applied: async (client, fx) => "share" in (await client.artifacts.get({ artifactID: fx.thirdA })).artifact,
       }],
       ["saving an artifact's store pointer on its first store write", {
         apply: (client, fx) => client.resources.json.set({ store: { artifactID: fx.thirdA }, path: "", value: 1 }),
-        applied: async (client, fx) => (await client.artifacts.get({ artifactID: fx.thirdA })).artifact.store !== undefined,
+        applied: async (client, fx) => "store" in (await client.artifacts.get({ artifactID: fx.thirdA })).artifact,
       }],
     ];
 
