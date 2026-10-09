@@ -18,7 +18,7 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 
 - [x] Spec edits derived (ab3ad83)
 - [x] Spec convergence (round 4 PASS at 498cd03, no findings)
-- [ ] Proofs derived and converged (rounds 1-4 FAIL, each narrower; round 5 running)
+- [x] Proofs derived and converged (round 6 PASS at cedf32c, no findings)
 - [x] Slice decision / plan (one slice, no plan)
 - [ ] Implementation (red/green) and convergence
 - [ ] Update branch with origin/main, full verification (Blaxel)
@@ -39,3 +39,5 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 - Spec changed after gate (^ly-move startup-failure wording) in the commit after 0cb48c8; spec re-review round 5 and proof round 5 running in parallel.
 - Implementation written alongside: server move + move-record.ts + route + shared client move(); CLI update-page and move-artifact; no web client change needed (move emits channel-updated(source), artifact-created(target), channel-updated(target)). Browser harness does not serve the resource SDK, so ^af-ac-move reads the store through the resource API.
 - Local checks so far: unit:server 999 passed; CLI, shared, skills packages passed; lint and type-check clean; tab-pages e2e passed; artifact-move e2e passed 3/3 without retries; CLI acceptance (4 new) passed. PostHog roundtrip suite not run (needs TV_POSTHOG_TEST_READ_KEY; unrelated).
+- Spec re-review after testing-exception change: PASS at cedf32c (one P3 wording note, applied without re-review). Proof round 6 PASS.
+- Implementation review round 1 dispatched.
