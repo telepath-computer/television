@@ -4,7 +4,7 @@
 
 This spec is authoritative for Television's one canonical test command surface and its behavior: the commands, the selectors, provider selection, the broad-run guardrail, retry conditions, `verify` orchestration, exit codes, local execution, and the Cursor-agent environment workaround. It is the boundary spec for the testing area and delegates to its companions: the surface registry it selects from is [test-registry.md](./test-registry.md); the preflight checks it runs are [preflight.md](./preflight.md); the normalized results and run directory it writes are [reporting.md](./reporting.md); remote execution is [sharded-execution.md](./sharded-execution.md), realized by [blaxel-testshards.md](./blaxel-testshards.md); the GitHub Actions CI workflow's setup and execution contract is [github-ci.md](./github-ci.md). The discipline every test is held to is [testing-policy.md](../testing-policy.md).
 
-This spec is also authoritative for test-service address allocation and process lifecycle. Service declarations are owned by [test-registry.md](./test-registry.md).
+This spec is also authoritative for test-service address allocation, the responses of registry-declared services, and process lifecycle. Service declarations are owned by [test-registry.md](./test-registry.md).
 
 ## Why this exists
 
@@ -181,6 +181,12 @@ Each URL is independent. A harness with two origins receives two published URLs 
 A test may contain a numeric port as inert input or expected output only when the value is never dereferenced as the address of a live test-infrastructure listener. This permits parser/serialization fixtures and a deliberate unreachable target to which no test process binds. It does not permit a URL used by navigation, `fetch`, a socket client, `src`, or `href` to identify a running test service.
 
 When a browser origin must remain stable while its backend restarts, one front listener binds port `0` for the whole test and updates its forwarding target after each independently bound backend starts. The test never closes a reservation and asks a replacement server to rebind its number.
+
+## Vite service responses
+
+A registry-declared service answers every request in full and never with `304 Not Modified`: its listener removes the `If-None-Match` and `If-Modified-Since` headers from each request before Vite handles it. ^test-service-full-responses
+
+The reason is a Chromium behavior, observed on Linux in the Chromium 145 build that Playwright 1.58.2 installs, both its headless shell and full Chromium. There, each script, module, stylesheet, or image response with status 304 left the page's renderer holding a 2 MB shared-memory buffer until the page's browser context closed, even after the page navigated elsewhere. Vite serves the application's development build as hundreds of separate modules that the browser revalidates on every load, so in that build each further load of the application in one page held about 465 MB more. Other Chromium versions may differ. Playwright launches Chromium with `--disable-dev-shm-usage`, which places those buffers in the temporary directory. Where that directory is kept in memory, as on [Blaxel workers](./blaxel-testshards.md), a test that loads the application several times in one page can run out of memory and crash the page.
 
 ## Destructive fixture placement
 

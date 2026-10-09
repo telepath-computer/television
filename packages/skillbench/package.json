@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/skillbench",
-  "version": "1.4.28",
+  "version": "1.4.29",
   "license": "MIT",
   "type": "module",
   "private": true,
