@@ -882,7 +882,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     const sourceID = this.artifactChannels.get(artifactID);
     if (sourceID === target.id) return { outcome: "unchanged", artifactID, channelID: target.id };
     if (sourceID === undefined) {
-      throw new ConflictError(`Artifact ${artifactID} is not attached to any channel; cannot move`);
+      // Left on no channel by a move that did not finish; no channel holds it.
+      throw new NotFoundError(`Artifact not found: ${artifactID}`, { entityType: "artifact", entityID: artifactID });
     }
     const source = this.requireChannel(sourceID);
     const page = source.layout.find((candidate) => candidate.artifactIds.includes(artifactID))!;

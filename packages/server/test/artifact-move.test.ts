@@ -297,5 +297,10 @@ describe("moving an artifact between channels", () => {
     expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(TARGET_BEFORE);
     await request(restarted.server.httpServer).get("/artifacts/moved").set(auth(restarted.token)).expect(200)
       .expect(({ body }) => expect(body.artifact).toEqual(before));
+    // An artifact on no channel cannot be moved, and is reported as no
+    // channel holding it.
+    await move(restarted.server, restarted.token, "moved", fx.target)
+      .expect(404)
+      .expect(({ body }) => expect(body.error).toBe("Artifact not found: moved"));
   });
 });
