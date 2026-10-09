@@ -19,7 +19,7 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 - [x] Spec edits derived (ab3ad83)
 - [ ] Spec convergence
 - [ ] Proofs derived and converged
-- [ ] Slice decision / plan
+- [x] Slice decision / plan (one slice, no plan)
 - [ ] Implementation (red/green) and convergence
 - [ ] Update branch with origin/main, full verification (Blaxel)
 - [ ] Docs prep, draft PR
@@ -27,3 +27,9 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 ## Findings and validation log
 
 - Spec review round 1 dispatched against ab3ad83.
+- Round 1 FAIL (ab3ad83): interrupted move unrecoverable (blocking); unconditional tab removal; content-total wording. Fixed in a70f641 with a durable move record completed at startup.
+- Round 2 FAIL (a70f641): failed-save rollback contradicted startup completion (blocking); ownership statement; focus-directive definition. Fixed in 52f841b: the saved move record is the commit point.
+- Round 3 dispatched against 52f841b.
+- Proof and skill-guidance drafts committed at 8c98372/52f841b ahead of proof convergence (proof stage starts after the spec gate).
+- Slice decision: one slice. Server move + startup completion + route + shared client method, two CLI commands, web client handling of moved-in artifacts, skill text: small, tightly coupled, reviewable as one result. No plan.
+- Implementation note: web client learns artifact records from `artifact-created`; a `channel-updated` that adds an unknown artifact leaves no record, so the move needs client handling (see artifacts proof ^af-ac-move).
