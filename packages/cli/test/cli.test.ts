@@ -2653,6 +2653,8 @@ const SERVER_COMMANDS: string[][] = [
   ["create-url-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
   ["update-artifact", "--id", "artifact-1", "--title", "T"],
   ["delete-artifact", "--id", "artifact-1"],
+  ["update-page", "--id", "artifact-1", "--width", "500"],
+  ["move-artifact", "--id", "artifact-1", "--channel", "screen-1", "--no-focus"],
   ["get-artifact", "--id", "artifact-1"],
   ["list-artifacts"],
   ["create-channel", "--name", "New", "--no-focus"],

@@ -356,6 +356,46 @@ describe("moving an artifact between channels", () => {
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
   });
 
+  // proofs/arch/layout/index.md#^ly-ac-move-recovery-blocked
+  it("serves the moved layouts and keeps a startup recovery pending when its record cannot be removed", async () => {
+    const fx = fixture();
+    writeMoveRecord(nodeResourceStorageOperations, fx.storagePath, {
+      artifactID: "moved",
+      sourceChannelID: fx.source,
+      targetChannelID: fx.target,
+      geometry: { kind: "single", full_screen: true },
+      size: MOVED_SIZE,
+    });
+    // The store's declared storage-operations hook, failing only the removal
+    // of the move record until the test allows it.
+    let blockRecordRemoval = true;
+    const storage = {
+      ...nodeResourceStorageOperations,
+      deleteFile(filePath: string) {
+        if (blockRecordRemoval && filePath === moveRecordPath(fx.storagePath)) throw new Error("record removal blocked");
+        nodeResourceStorageOperations.deleteFile(filePath);
+      },
+    };
+    const store = createServingStore(fx.storagePath, { resourceStorageOperations: storage });
+    const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
+    servers.push(server);
+    await server.start();
+    const token = store.authToken;
+
+    expect(await layoutOf(server, token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(server, token, fx.target)).toEqual(TARGET_AFTER);
+    expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
+    await request(server.httpServer).patch(`/channels/${fx.third}`).set(auth(token)).send({ name: "Renamed" })
+      .expect(503)
+      .expect(({ body }) => expect(body.error).toMatch(/outcome is unknown/));
+
+    blockRecordRemoval = false;
+    await request(server.httpServer).patch(`/channels/${fx.third}`).set(auth(token)).send({ name: "Renamed" }).expect(200);
+    expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
+    expect(storedLayout(fx.storagePath, fx.source)).toEqual(SOURCE_AFTER);
+    expect(storedLayout(fx.storagePath, fx.target)).toEqual(TARGET_AFTER);
+  });
+
   // proofs/arch/layout/index.md#^ly-t-move-pending-handoff
   describe("every channel and artifact change completes a pending move first", () => {
     interface Change {
