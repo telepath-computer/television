@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch stlhood/cli-artifact-layout.** This was the proposal the human approved before the spec edits; the specs follow it, with the move's crash safety (a durable move record that commits the move and is completed before any later change or at startup) added during spec review in specs/arch/layout/index.md#^ly-move. It is the one place the approved intent is stated as a whole, including what was left out of scope. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Proposal: arranging artifacts from the CLI
 
 ## Goal
