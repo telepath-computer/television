@@ -4,6 +4,7 @@ import { connect, createServer as createNetServer, type Socket } from "node:net"
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import WebSocket from "ws";
 import { disposeAllOwnedProcesses, spawnOwnedProcess, type OwnedProcess } from "../helpers/owned-process.ts";
 import { writeHomeConfig } from "../helpers/television-home.ts";
 
@@ -534,6 +535,131 @@ describe("CLI product spine acceptance", () => {
     expect(result.stderr).toContain("Install all bundled skills with `tv skills install <path>`");
   });
 
+
+  /** A running built server, its token headers, and helpers to seed it through the production API. */
+  async function seededServer(prefix: string) {
+    const storagePath = makeTempDir(prefix, dirs);
+    const running = await startBuiltCLI(storagePath);
+    const token = readFileSync(path.join(storagePath, "state", "token"), "utf8").trim();
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+    const api = async (method: string, route: string, body?: unknown) => {
+      const response = await fetch(new URL(route, running.startupURL), {
+        method,
+        headers,
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+      expect(response.status, `${method} ${route}`).toBeLessThan(300);
+      return response.json() as Promise<any>;
+    };
+    const channel = async (name: string, artifactCount: number) => {
+      const { channel: created } = await api("POST", "/channels", { name });
+      const artifactIDs: string[] = [];
+      for (let index = 0; index < artifactCount; index += 1) {
+        const { artifact } = await api("POST", "/artifacts", {
+          kind: "url", title: `${name} ${index}`, url: `https://example.com/${index}`, channelID: created.id,
+        });
+        artifactIDs.push(artifact.id);
+      }
+      return { id: created.id as string, artifactIDs };
+    };
+    const layout = async (channelID: string) => (await api("GET", `/channels/${encodeURIComponent(channelID)}`)).channel.layout;
+    const tv = (args: string[]) => runBuiltCLI(["--home", storagePath, ...args, "--port", String(running.port)]);
+    return { running, token, api, channel, layout, tv };
+  }
+
+  // Spec: [[product/cli.md#^cli-ac-update-page|update-page acceptance]].
+  it("update-page changes a page's size, full-screen state, and position through the built CLI and real server", async () => {
+    const { channel, tv } = await seededServer("television-cli-acceptance-update-page-");
+    const home = await channel("Arranged", 3);
+    const [first, middle, last] = home.artifactIDs as [string, string, string];
+    const before = JSON.parse((await tv(["get-channel", "--channel", home.id])).stdout).channel.layout;
+
+    const result = await tv([
+      "update-page", "--id", middle, "--width", "612.5", "--height", "480", "--full-screen", "--position", "1",
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe(`Page of artifact ${middle} updated.\n`);
+    expect(result.stderr).toBe("");
+    const read = await tv(["get-channel", "--channel", home.id]);
+    expect(read.exitCode).toBe(0);
+    expect(JSON.parse(read.stdout).channel.layout).toEqual([
+      { artifactIds: [middle], geometry: { kind: "single", full_screen: true }, size: { width: 612.5, height: 480 } },
+      before.find((page: any) => page.artifactIds[0] === first),
+      before.find((page: any) => page.artifactIds[0] === last),
+    ]);
+  });
+
+  // Spec: [[product/cli.md#^cli-ac-update-page-invalid|update-page rejected-change acceptance]].
+  it("update-page rejects a position beyond the channel's pages through the built CLI and real server", async () => {
+    const { channel, layout, tv } = await seededServer("television-cli-acceptance-update-page-invalid-");
+    const home = await channel("Arranged", 2);
+    const before = await layout(home.id);
+
+    const result = await tv(["update-page", "--id", home.artifactIDs[0]!, "--position", "3"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("--position must be from 1 to 2");
+    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(await layout(home.id)).toEqual(before);
+  });
+
+  // Spec: [[product/cli.md#^cli-ac-move-artifact|move-artifact acceptance]].
+  it("move-artifact moves an artifact, reports an unchanged move, and focuses on request through the built CLI and real server", async () => {
+    const { running, token, channel, tv } = await seededServer("television-cli-acceptance-move-artifact-");
+    const source = await channel("Source", 2);
+    const target = await channel("Target", 1);
+    const third = await channel("Third", 0);
+    const moved = source.artifactIDs[0]!;
+    const readLayout = async (channelID: string) =>
+      JSON.parse((await tv(["get-channel", "--channel", channelID])).stdout).channel.layout as Array<{ artifactIds: string[] }>;
+
+    const result = await tv(["move-artifact", "--id", moved, "--channel", target.id, "--no-focus"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe(`Artifact ${moved} moved to channel ${target.id}.\n`);
+    expect(result.stderr).toBe("");
+    expect((await readLayout(source.id)).map((page) => page.artifactIds)).toEqual([[source.artifactIDs[1]]]);
+    expect((await readLayout(target.id)).map((page) => page.artifactIds)).toEqual([[target.artifactIDs[0]], [moved]]);
+
+    const again = await tv(["move-artifact", "--id", moved, "--channel", target.id, "--no-focus"]);
+    expect(again.exitCode).toBe(0);
+    expect(again.stdout).toBe(`Artifact ${moved} is already on channel ${target.id}.\n`);
+
+    const eventsURL = new URL("/events", running.startupURL);
+    eventsURL.protocol = eventsURL.protocol.replace(/^http/, "ws");
+    eventsURL.search = new URLSearchParams({ token }).toString();
+    const ws = new WebSocket(eventsURL);
+    await new Promise<void>((resolve, reject) => { ws.once("open", () => resolve()); ws.once("error", reject); });
+    const focusSignal = new Promise<{ channelID: string; artifactID: string }>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Timed out waiting for artifact-focus")), 5_000);
+      ws.on("message", (data) => {
+        const event = JSON.parse(String(data));
+        if (event.type !== "artifact-focus") return;
+        clearTimeout(timeout);
+        resolve(event);
+      });
+    });
+    const focused = await tv(["move-artifact", "--id", moved, "--channel", third.id, "--focus-artifact"]);
+    expect(focused.exitCode).toBe(0);
+    expect(await focusSignal).toMatchObject({ type: "artifact-focus", artifactID: moved, channelID: third.id });
+    ws.close();
+  });
+
+  // Spec: [[product/cli.md#^cli-ac-move-channel-not-found|move-artifact unknown-channel acceptance]].
+  it("move-artifact reports an unknown channel through the built CLI and real server", async () => {
+    const { channel, layout, tv } = await seededServer("television-cli-acceptance-move-missing-");
+    const source = await channel("Source", 1);
+    const before = await layout(source.id);
+
+    const result = await tv(["move-artifact", "--id", source.artifactIDs[0]!, "--channel", "missing-channel", "--no-focus"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("Channel not found: missing-channel");
+    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(await layout(source.id)).toEqual(before);
+  });
   // Spec: [[product/cli.md#^cli-ac-directive-error|directive-error acceptance]].
   it("returns exit 1 and recovery guidance for a directive error", async () => {
     const result = await runBuiltCLI(["list-artifacts", "--bogus"]);

@@ -7,8 +7,8 @@ import WebSocket from "ws";
 import {
   DEFAULT_PAGE_GEOMETRY,
   DEFAULT_PAGE_SIZE,
-  type ServerEvent,
   TelevisionClient,
+  type ServerEvent,
   type TabPage,
 } from "@telepath-computer/television-shared";
 import { Server } from "../src/server.ts";
@@ -35,6 +35,13 @@ function page(
 
 const MOVED_SIZE = { width: 512.5, height: 640 };
 
+// The moved page sits between other pages, and each channel keeps several
+// pages, so a move that reorders the pages it leaves behind is caught.
+const SOURCE_BEFORE = [page(["source-before"]), page(["moved"], true, MOVED_SIZE), page(["source-other"]), page(["source-last"])];
+const SOURCE_AFTER = [page(["source-before"]), page(["source-other"]), page(["source-last"])];
+const TARGET_BEFORE = [page(["target-a"]), page(["target-b"])];
+const TARGET_AFTER = [...TARGET_BEFORE, page(["moved"], true, MOVED_SIZE)];
+
 interface Fixture {
   storagePath: string;
   source: string;
@@ -46,11 +53,10 @@ interface Fixture {
 }
 
 /**
- * Three ordinary channels, each with pages created through the production
- * store, and an authored version-2 channel whose first page holds two
- * artifacts (a state stage 1 cannot create through its UI).
- * Source: [moved (full-screen, MOVED_SIZE), source-other]. Target: [target-a].
- * Third: [thirdA]. Authored: [[authored-a, authored-b], [authored-c]].
+ * Channels and pages created through the production store, plus an authored
+ * version-2 channel whose first page holds three artifacts (a state stage 1
+ * cannot create through its UI). Third: [thirdA].
+ * Authored: [[authored-a, authored-b, authored-d], [authored-c]].
  */
 function createFixture(): Fixture {
   const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-artifact-move-"));
@@ -59,25 +65,24 @@ function createFixture(): Fixture {
   const target = store.createChannel({ id: "target-channel", name: "Target" });
   const third = store.createChannel({ id: "third-channel", name: "Third" });
   const authored = store.createChannel({ id: "authored-channel", name: "Authored" });
-  const url = (name: string) => `https://example.com/${name}`;
   for (const [id, channelID] of [
+    ["source-before", source.id],
     ["moved", source.id],
     ["source-other", source.id],
+    ["source-last", source.id],
     ["target-a", target.id],
+    ["target-b", target.id],
     ["authored-a", authored.id],
     ["authored-b", authored.id],
+    ["authored-d", authored.id],
     ["authored-c", authored.id],
   ] as const) {
-    store.createArtifact({ id, kind: "url", title: id, channelID, url: url(id) });
+    store.createArtifact({ id, kind: "url", title: id, channelID, url: `https://example.com/${id}` });
   }
-  // A path artifact with a generated ID, so it can have a store and a share link.
   const thirdFile = path.join(storagePath, "third-a.html");
   writeFileSync(thirdFile, "<!doctype html><title>third</title>");
   const thirdA = store.createArtifact({ kind: "path", title: "third-a", channelID: third.id, path: thirdFile });
-  store.updateChannel({
-    channelID: source.id,
-    fields: { layout: [page(["moved"], true, MOVED_SIZE), page(["source-other"])] },
-  });
+  store.updateChannel({ channelID: source.id, fields: { layout: SOURCE_BEFORE } });
   store.dispose();
 
   writeFileSync(
@@ -86,7 +91,7 @@ function createFixture(): Fixture {
       id: authored.id,
       name: authored.name,
       layoutVersion: LAYOUT_VERSION,
-      layout: [page(["authored-a", "authored-b"], false, MOVED_SIZE), page(["authored-c"])],
+      layout: [page(["authored-a", "authored-b", "authored-d"], false, MOVED_SIZE), page(["authored-c"])],
     }, null, 2),
   );
 
@@ -193,20 +198,18 @@ describe("moving an artifact between channels", () => {
       .expect(200)
       .expect(({ body }) => expect(body).toEqual({ outcome: "moved", artifactID: "moved", channelID: fx.target }));
 
-    const expectedSource = [page(["source-other"])];
-    const expectedTarget = [page(["target-a"]), page(["moved"], true, MOVED_SIZE)];
-    expect((await sourceEvent).channel.layout).toEqual(expectedSource);
-    expect((await targetEvent).channel.layout).toEqual(expectedTarget);
+    expect((await sourceEvent).channel.layout).toEqual(SOURCE_AFTER);
+    expect((await targetEvent).channel.layout).toEqual(TARGET_AFTER);
     ws.close();
-    expect(await layoutOf(first.server, first.token, fx.source)).toEqual(expectedSource);
-    expect(await layoutOf(first.server, first.token, fx.target)).toEqual(expectedTarget);
+    expect(await layoutOf(first.server, first.token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(first.server, first.token, fx.target)).toEqual(TARGET_AFTER);
     await request(first.server.httpServer).get("/artifacts/moved").set(auth(first.token)).expect(200)
       .expect(({ body }) => expect(body.artifact).toEqual(before));
 
     await stop(first.server);
     const restarted = await start(fx);
-    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual(expectedSource);
-    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(expectedTarget);
+    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(TARGET_AFTER);
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
   });
 
@@ -215,16 +218,13 @@ describe("moving an artifact between channels", () => {
     const fx = fixture();
     const { server, token } = await start(fx);
 
-    await move(server, token, "authored-a", fx.target).expect(200);
+    await move(server, token, "authored-b", fx.target).expect(200);
 
     expect(await layoutOf(server, token, fx.authored)).toEqual([
-      page(["authored-b"], false, MOVED_SIZE),
+      page(["authored-a", "authored-d"], false, MOVED_SIZE),
       page(["authored-c"]),
     ]);
-    expect(await layoutOf(server, token, fx.target)).toEqual([
-      page(["target-a"]),
-      page(["authored-a"], false, MOVED_SIZE),
-    ]);
+    expect(await layoutOf(server, token, fx.target)).toEqual([...TARGET_BEFORE, page(["authored-b"], false, MOVED_SIZE)]);
   });
 
   // proofs/arch/layout/index.md#^ly-ac-move-same
@@ -232,13 +232,12 @@ describe("moving an artifact between channels", () => {
     const fx = fixture();
     const { server, token } = await start(fx);
     const storedBefore = readFileSync(channelPath(fx.storagePath, fx.source));
-    const layoutBefore = await layoutOf(server, token, fx.source);
 
     await move(server, token, "moved", fx.source)
       .expect(200)
       .expect(({ body }) => expect(body).toEqual({ outcome: "unchanged", artifactID: "moved", channelID: fx.source }));
 
-    expect(await layoutOf(server, token, fx.source)).toEqual(layoutBefore);
+    expect(await layoutOf(server, token, fx.source)).toEqual(SOURCE_BEFORE);
     expect(readFileSync(channelPath(fx.storagePath, fx.source))).toEqual(storedBefore);
   });
 
@@ -255,8 +254,8 @@ describe("moving an artifact between channels", () => {
       .expect(404)
       .expect(({ body }) => expect(body.error).toBe(message));
 
-    expect(await layoutOf(server, token, fx.source)).toEqual([page(["moved"], true, MOVED_SIZE), page(["source-other"])]);
-    expect(await layoutOf(server, token, fx.target)).toEqual([page(["target-a"])]);
+    expect(await layoutOf(server, token, fx.source)).toEqual(SOURCE_BEFORE);
+    expect(await layoutOf(server, token, fx.target)).toEqual(TARGET_BEFORE);
     expect([fx.source, fx.target].map((id) => readFileSync(channelPath(fx.storagePath, id)))).toEqual(storedBefore);
   });
 
@@ -270,15 +269,15 @@ describe("moving an artifact between channels", () => {
     const response = await move(first.server, first.token, "moved", fx.target);
     expect(response.status).toBeGreaterThanOrEqual(500);
 
-    expect(await layoutOf(first.server, first.token, fx.source)).toEqual([page(["moved"], true, MOVED_SIZE), page(["source-other"])]);
-    expect(await layoutOf(first.server, first.token, fx.target)).toEqual([page(["target-a"])]);
+    expect(await layoutOf(first.server, first.token, fx.source)).toEqual(SOURCE_BEFORE);
+    expect(await layoutOf(first.server, first.token, fx.target)).toEqual(TARGET_BEFORE);
     expect([fx.source, fx.target].map((id) => readFileSync(channelPath(fx.storagePath, id)))).toEqual(storedBefore);
     unblock();
 
     await stop(first.server);
     const restarted = await start(fx);
-    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual([page(["moved"], true, MOVED_SIZE), page(["source-other"])]);
-    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual([page(["target-a"])]);
+    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual(SOURCE_BEFORE);
+    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(TARGET_BEFORE);
   });
 
   // proofs/arch/layout/index.md#^ly-ac-move-save-fails
@@ -291,17 +290,17 @@ describe("moving an artifact between channels", () => {
       .expect(503)
       .expect(({ body }) => expect(body.error).toMatch(/outcome is unknown/));
 
-    expect(await layoutOf(first.server, first.token, fx.source)).toEqual([page(["source-other"])]);
-    expect(await layoutOf(first.server, first.token, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
+    expect(await layoutOf(first.server, first.token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(first.server, first.token, fx.target)).toEqual(TARGET_AFTER);
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
 
     await stop(first.server);
     unblock();
     const restarted = await start(fx);
-    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual([page(["source-other"])]);
-    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
-    expect(storedLayout(fx.storagePath, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
-    expect(storedLayout(fx.storagePath, fx.source)).toEqual([page(["source-other"])]);
+    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(TARGET_AFTER);
+    expect(storedLayout(fx.storagePath, fx.target)).toEqual(TARGET_AFTER);
+    expect(storedLayout(fx.storagePath, fx.source)).toEqual(SOURCE_AFTER);
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
   });
 
@@ -316,7 +315,7 @@ describe("moving an artifact between channels", () => {
       .expect(503)
       .expect(({ body }) => expect(body.error).toMatch(/outcome is unknown/));
     expect(await layoutOf(first.server, first.token, fx.third)).toEqual([page([fx.thirdA])]);
-    expect(await layoutOf(first.server, first.token, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
+    expect(await layoutOf(first.server, first.token, fx.target)).toEqual(TARGET_AFTER);
 
     unblock();
     await move(first.server, first.token, "moved", fx.third).expect(200);
@@ -324,8 +323,8 @@ describe("moving an artifact between channels", () => {
 
     await stop(first.server);
     const restarted = await start(fx);
-    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual([page(["source-other"])]);
-    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual([page(["target-a"])]);
+    expect(await layoutOf(restarted.server, restarted.token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(restarted.server, restarted.token, fx.target)).toEqual(TARGET_BEFORE);
     expect(await layoutOf(restarted.server, restarted.token, fx.third)).toEqual([page([fx.thirdA]), page(["moved"], true, MOVED_SIZE)]);
   });
 
@@ -344,31 +343,67 @@ describe("moving an artifact between channels", () => {
     });
     if (targetSaved) {
       const stored = JSON.parse(readFileSync(channelPath(fx.storagePath, fx.target), "utf8"));
-      stored.layout = [page(["target-a"]), page(["moved"], true, MOVED_SIZE)];
+      stored.layout = TARGET_AFTER;
       writeFileSync(channelPath(fx.storagePath, fx.target), JSON.stringify(stored, null, 2));
     }
 
     const { server, token } = await start(fx);
 
-    expect(await layoutOf(server, token, fx.source)).toEqual([page(["source-other"])]);
-    expect(await layoutOf(server, token, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
-    expect(storedLayout(fx.storagePath, fx.source)).toEqual([page(["source-other"])]);
-    expect(storedLayout(fx.storagePath, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
+    expect(await layoutOf(server, token, fx.source)).toEqual(SOURCE_AFTER);
+    expect(await layoutOf(server, token, fx.target)).toEqual(TARGET_AFTER);
+    expect(storedLayout(fx.storagePath, fx.source)).toEqual(SOURCE_AFTER);
+    expect(storedLayout(fx.storagePath, fx.target)).toEqual(TARGET_AFTER);
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
   });
 
   // proofs/arch/layout/index.md#^ly-t-move-pending-handoff
   describe("every channel and artifact change completes a pending move first", () => {
-    const changes: Array<[string, (client: TelevisionClient, fx: Fixture) => Promise<unknown>]> = [
-      ["creating an artifact", (client, fx) => client.artifacts.create({ kind: "url", title: "New", url: "https://example.com/new", channelID: fx.third })],
-      ["updating an artifact", (client, fx) => client.artifacts.update({ artifactID: fx.thirdA, title: "Renamed" })],
-      ["deleting an artifact", (client, fx) => client.artifacts.delete({ artifactID: fx.thirdA })],
-      ["creating a channel", (client) => client.channels.create({ name: "Fresh" })],
-      ["renaming a channel", (client, fx) => client.channels.update({ channelID: fx.third, name: "Renamed" })],
-      ["updating a channel's layout", (client, fx) => client.channels.update({ channelID: fx.authored, layout: [page(["authored-c"]), page(["authored-a", "authored-b"], false, MOVED_SIZE)] })],
-      ["removing a channel", (client, fx) => client.channels.remove({ channelID: fx.third })],
-      ["saving an artifact's share link", (client, fx) => client.resources.share({ artifactID: fx.thirdA })],
-      ["saving an artifact's store pointer on its first store write", (client, fx) => client.resources.json.set({ store: { artifactID: fx.thirdA }, path: "", value: 1 })],
+    interface Change {
+      /** Makes the requested change through the real shared client. */
+      apply: (client: TelevisionClient, fx: Fixture) => Promise<unknown>;
+      /** Whether the requested change is visible through the server. */
+      applied: (client: TelevisionClient, fx: Fixture) => Promise<boolean>;
+    }
+    const channelNames = async (client: TelevisionClient) => (await client.channels.list()).channels.map(({ name }) => name);
+    const artifactExists = (client: TelevisionClient, artifactID: string) =>
+      client.artifacts.get({ artifactID }).then(() => true, () => false);
+    const changes: Array<[string, Change]> = [
+      ["creating an artifact", {
+        apply: (client, fx) => client.artifacts.create({ kind: "url", title: "New", url: "https://example.com/new", channelID: fx.third }),
+        applied: async (client, fx) => (await client.artifacts.list({ channelID: fx.third })).artifacts.some(({ title }) => title === "New"),
+      }],
+      ["updating an artifact", {
+        apply: (client, fx) => client.artifacts.update({ artifactID: fx.thirdA, title: "Renamed" }),
+        applied: async (client, fx) => (await client.artifacts.get({ artifactID: fx.thirdA })).artifact.title === "Renamed",
+      }],
+      ["deleting an artifact", {
+        apply: (client, fx) => client.artifacts.delete({ artifactID: fx.thirdA }),
+        applied: async (client, fx) => !(await artifactExists(client, fx.thirdA)),
+      }],
+      ["creating a channel", {
+        apply: (client) => client.channels.create({ name: "Fresh" }),
+        applied: async (client) => (await channelNames(client)).includes("Fresh"),
+      }],
+      ["renaming a channel", {
+        apply: (client, fx) => client.channels.update({ channelID: fx.third, name: "Renamed" }),
+        applied: async (client, fx) => (await client.channels.get({ channelID: fx.third })).channel.name === "Renamed",
+      }],
+      ["updating a channel's layout", {
+        apply: (client, fx) => client.channels.update({ channelID: fx.authored, layout: [page(["authored-c"]), page(["authored-a", "authored-b", "authored-d"], false, MOVED_SIZE)] }),
+        applied: async (client, fx) => (await client.channels.get({ channelID: fx.authored })).channel.layout[0]!.artifactIds[0] === "authored-c",
+      }],
+      ["removing a channel", {
+        apply: (client, fx) => client.channels.remove({ channelID: fx.third }),
+        applied: async (client) => !(await channelNames(client)).includes("Third"),
+      }],
+      ["saving an artifact's share link", {
+        apply: (client, fx) => client.resources.share({ artifactID: fx.thirdA }),
+        applied: async (client, fx) => (await client.artifacts.get({ artifactID: fx.thirdA })).artifact.share !== undefined,
+      }],
+      ["saving an artifact's store pointer on its first store write", {
+        apply: (client, fx) => client.resources.json.set({ store: { artifactID: fx.thirdA }, path: "", value: 1 }),
+        applied: async (client, fx) => (await client.artifacts.get({ artifactID: fx.thirdA })).artifact.store !== undefined,
+      }],
     ];
 
     it.each(changes)("%s", async (_name, change) => {
@@ -378,13 +413,21 @@ describe("moving an artifact between channels", () => {
       const unblock = blockFile(channelPath(fx.storagePath, fx.target));
       await expect(client.artifacts.move({ artifactID: "moved", channelID: fx.target })).rejects.toThrow(/outcome is unknown/);
       expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
+
+      // While the pending move still cannot complete, the change is refused
+      // and does not happen.
+      await expect(change.apply(client, fx)).rejects.toThrow(/outcome is unknown/);
+      expect(await change.applied(client, fx)).toBe(false);
+      expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
+
+      // Once the move can complete, the change completes it first, then
+      // happens itself.
       unblock();
-
-      await change(client, fx);
-
+      await change.apply(client, fx);
+      expect(await change.applied(client, fx)).toBe(true);
       expect(existsSync(moveRecordPath(fx.storagePath))).toBe(false);
-      expect(storedLayout(fx.storagePath, fx.target)).toEqual([page(["target-a"]), page(["moved"], true, MOVED_SIZE)]);
-      expect(storedLayout(fx.storagePath, fx.source)).toEqual([page(["source-other"])]);
+      expect(storedLayout(fx.storagePath, fx.target)).toEqual(TARGET_AFTER);
+      expect(storedLayout(fx.storagePath, fx.source)).toEqual(SOURCE_AFTER);
     });
   });
 });

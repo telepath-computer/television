@@ -41,7 +41,7 @@ import type {
   DeleteArtifactResult,
   ChannelRemovalResult,
 } from "@telepath-computer/television-shared";
-import { TelevisionClient, ValidationError, buildConnectURL, type TelemetryStatus } from "@telepath-computer/television-shared";
+import { TelevisionClient, ValidationError, buildConnectURL, type TabPage, type TelemetryStatus } from "@telepath-computer/television-shared";
 import {
   ACCESS_LEVELS,
   RESOURCE_BINDINGS_ENABLED,
@@ -749,6 +749,23 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   return copied;
 }
 
+/** A page width or height for `tv update-page`: a finite, positive number of reference pixels. */
+function parsePageDimension(option: "--width" | "--height", value: string): number {
+  const parsed = value.trim() === "" ? Number.NaN : Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw createDirectiveError(`tv update-page ${option} must be a finite, positive number of reference pixels; got ${value}.`);
+  }
+  return parsed;
+}
+
+/** A page position for `tv update-page`: a whole number from 1. The upper bound needs the channel. */
+function parsePagePosition(value: string): number {
+  if (!/^\d+$/.test(value.trim()) || Number(value) < 1) {
+    throw createDirectiveError(`tv update-page --position must be a whole number from 1; got ${value}.`);
+  }
+  return Number(value);
+}
+
 function resolveFocusDirective(
   argv: string[],
   commandName: string,
@@ -1430,6 +1447,81 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       for (const line of formatDeleteArtifactResult(result)) {
         writeLine(env.stdout, line);
       }
+    });
+
+  program
+    .command("update-page")
+    .description(
+      "Change the tab page that holds an artifact, on whatever channel holds it: its size in reference pixels (the size it shows at on a 1280x800 stage), its full-screen state, or its position in the channel's left-to-right order. The changes apply together as one shared layout update, as if made in the app. Read a channel's arrangement with `tv get-channel`.",
+    )
+    .requiredOption("--id <id>", "Artifact ID")
+    .option("--width <px>", "Page width in reference pixels; finite and positive")
+    .option("--height <px>", "Page height in reference pixels; finite and positive")
+    .option("--full-screen", "Put the page in full-screen")
+    .option("--no-full-screen", "Take the page out of full-screen; its size is unchanged")
+    .option("--position <n>", "Position in the channel's order, counting from 1 at the left")
+    .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
+    .action(async (opts: { id: string; width?: string; height?: string; fullScreen?: boolean; position?: string; port?: number }) => {
+      // specs/product/cli.md#^cli-update-page
+      const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
+      if (new Set(fullScreenFlags).size > 1) {
+        throw createDirectiveError("tv update-page accepts --full-screen or --no-full-screen, not both.");
+      }
+      const fullScreen = fullScreenFlags.length === 0 ? undefined : fullScreenFlags[0] === "--full-screen";
+      const width = opts.width === undefined ? undefined : parsePageDimension("--width", opts.width);
+      const height = opts.height === undefined ? undefined : parsePageDimension("--height", opts.height);
+      const position = opts.position === undefined ? undefined : parsePagePosition(opts.position);
+      if (width === undefined && height === undefined && fullScreen === undefined && position === undefined) {
+        throw createDirectiveError("tv update-page requires at least one of --width, --height, --full-screen, --no-full-screen, or --position.");
+      }
+
+      const client = createAuthenticatedClient(opts);
+      const { channels } = await client.channels.list();
+      const channel = channels.find((candidate) => candidate.layout.some((page) => page.artifactIds.includes(opts.id)));
+      if (channel === undefined) throw new ValidationError(`Artifact not found: ${opts.id}`);
+      if (position !== undefined && position > channel.layout.length) {
+        throw new ValidationError(
+          `--position must be from 1 to ${channel.layout.length}, the number of pages on channel ${channel.id}; got ${position}.`,
+        );
+      }
+
+      const index = channel.layout.findIndex((page) => page.artifactIds.includes(opts.id));
+      const current = channel.layout[index]!;
+      const changed: TabPage = {
+        ...current,
+        geometry: fullScreen === undefined ? current.geometry : { ...current.geometry, full_screen: fullScreen },
+        size: { width: width ?? current.size.width, height: height ?? current.size.height },
+      };
+      const layout = channel.layout.filter((_page, pageIndex) => pageIndex !== index);
+      layout.splice(position === undefined ? index : position - 1, 0, changed);
+      await client.channels.update({ channelID: channel.id, layout });
+      writeLine(env.stdout, `Page of artifact ${opts.id} updated.`);
+    });
+
+  program
+    .command("move-artifact")
+    .description(
+      "Move an artifact to another channel. It stays the same artifact, keeping its ID, store, and share link, and becomes the last page on that channel at the size and full-screen state it had. To show the same path or URL on two channels at once, create a second artifact instead.",
+    )
+    .requiredOption("--id <id>", "Artifact ID")
+    .requiredOption("--channel <id>", "Target channel ID")
+    .option("--focus-artifact", "Focus the artifact on its new channel after the move")
+    .option("--no-focus", "Move the artifact without changing focus")
+    .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
+    .action(async (opts: { id: string; channel: string; port?: number }) => {
+      // specs/product/cli.md#^cli-move-artifact
+      const shouldFocus = resolveFocusDirective(argv, "move-artifact", "--focus-artifact");
+      const client = createAuthenticatedClient(opts);
+      const result = await client.artifacts.move({ artifactID: opts.id, channelID: opts.channel });
+      if (shouldFocus) {
+        await client.display.focus({ artifactID: opts.id });
+      }
+      writeLine(
+        env.stdout,
+        result.outcome === "moved"
+          ? `Artifact ${opts.id} moved to channel ${result.channelID}.`
+          : `Artifact ${opts.id} is already on channel ${result.channelID}.`,
+      );
     });
 
   program

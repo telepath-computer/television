@@ -326,6 +326,30 @@ describe("server telemetry emitters", () => {
     expect(h.sink.events.map((event) => event.name)).toEqual(["artifact_created", "artifact_deleted"]);
   });
 
+  // proofs/arch/telemetry/emitters.md#^t-move-silent
+  it("records nothing when an artifact moves between channels, including when its source page empties", async () => {
+    const h = await setup();
+    const source = h.store.listChannels()[0]!;
+    const target = h.store.createChannel({ name: "Target Private" });
+    const stays = h.store.createArtifact({ kind: "path", title: "Stays Private", channelID: source.id, path: writeTargetFile(h, "stays.html") });
+    const moved = h.store.createArtifact({ kind: "path", title: "Moved Private", channelID: source.id, path: writeTargetFile(h, "moved.html") });
+    h.sink.clear();
+
+    const move = async (artifactID: string, channelID: string) => {
+      const response = await fetch(new URL(`/artifacts/${artifactID}/move`, h.server.getBaseURL()), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${h.store.authToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ channelID }),
+      });
+      expect(response.status).toBe(200);
+    };
+    await move(moved.id, target.id);
+    await move(stays.id, target.id);
+
+    expect(h.store.getChannel(source.id)!.channel.layout).toEqual([]);
+    expect(h.sink.events).toEqual([]);
+  });
+
   it("classifies explicit pin-list commits and ignores no-ops and deletion pruning", async () => {
     const h = await setup();
     const first = h.store.listChannels()[0]!;
