@@ -82,31 +82,4 @@ describe("reload acceptance spine (restart-at-version)", () => {
     pwExpect(await navigationType(page)).toBe("navigate");
     pwExpect(await readMarker(page)).toBeNull();
   });
-
-  it("only the bundle-serving server can trigger a reload; another server's mismatch disturbs nothing (^ac-reload-origin-only)", async () => {
-    const distA = await buildVersionedWebBundle("1.0.0");
-    // Server X serves the bundle and matches it; server Y mismatches wildly.
-    const serverX = await launchServer({ version: "1.0.0", staticDir: distA });
-    const serverY = await launchServer({ version: "9.9.9", staticDir: distA });
-
-    // ?serverURL= is the test vehicle only (version-advertisement.md
-    // ^reload-origin-rule): the page is served by X but connects to Y, so the
-    // page holds a live client of Y whose server-status mismatches the bundle.
-    const page = await newPage();
-    await page.goto(`${serverX.url}/?serverURL=${encodeURIComponent(serverY.url)}`);
-    await pwExpect.poll(() => bundleVersion(page)).toBe("1.0.0");
-    await pwExpect
-      .poll(() => connectionStatus(page, normalized(serverY.url)), { timeout: RELOAD_POLL_TIMEOUT_MS })
-      .toBe("connected");
-
-    // The mismatch with Y — a server that did not serve this bundle —
-    // triggers nothing: no reload, no marker, and Y's client stays connected
-    // and undisturbed.
-    await plantSentinel(page);
-    await page.waitForTimeout(SILENCE_WINDOW_MS);
-    pwExpect(await sentinelAlive(page)).toBe(true);
-    pwExpect(await navigationType(page)).toBe("navigate");
-    pwExpect(await readMarker(page)).toBeNull();
-    pwExpect(await connectionStatus(page, normalized(serverY.url))).toBe("connected");
-  });
 })

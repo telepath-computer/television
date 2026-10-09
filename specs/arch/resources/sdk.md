@@ -16,7 +16,7 @@ The CLI build copies `packages/server/dist/sdk/` to `packages/cli/dist/sdk/`, an
 
 ## Serving
 
-The server answers `GET` and `HEAD` for `/sdk/v1/resources.js` without authorization, with `Content-Type: text/javascript; charset=utf-8`, an `ETag`, and `Cache-Control: no-cache`, the revalidating class of [the canonical cache policy](../canonical.md#^cn-cache-policy). Every page receives the same bytes: the module carries no credentials, artifact IDs or other per-request content. The server answers `GET` and `HEAD` for `/sdk/v1/THIRD-PARTY-NOTICES.txt` the same way, without authorization and with the same headers apart from `Content-Type: text/plain; charset=utf-8`, with the notices file the build wrote beside the module. The `v1` in the module's path is the resource API version; a later version would be served beside it at its own path. ^sdk-serving
+The server answers `GET` and `HEAD` for `/sdk/v1/resources.js` without authorization, with `Content-Type: text/javascript; charset=utf-8`, an `ETag`, `Cache-Control: no-cache`, the revalidating class of [the canonical cache policy](../canonical.md#^cn-cache-policy), and `Access-Control-Allow-Origin: *`, because a sandboxed artifact page imports the module from an opaque origin ([isolation.md#^iso-routes](../artifact-frame/isolation.md#^iso-routes)). Every page receives the same bytes: the module carries no credentials, artifact IDs or other per-request content. The server answers `GET` and `HEAD` for `/sdk/v1/THIRD-PARTY-NOTICES.txt` the same way, without authorization and with the same headers apart from `Content-Type: text/plain; charset=utf-8`, with the notices file the build wrote beside the module. The `v1` in the module's path is the resource API version; a later version would be served beside it at its own path. ^sdk-serving
 
 ## Finding the artifact
 
@@ -98,4 +98,4 @@ An exception thrown by a page's callback is reported through the browser's uncau
 
 ## Testing
 
-SDK coverage must load the module as the server serves it, in a real browser, from a page on a plain-HTTP origin that is not `localhost`, so that the secure-context restriction is in force.
+SDK coverage must load the module as the server serves it, in a real browser, from an artifact page that the server sandboxes, on a plain-HTTP origin that is not `localhost`, so that the sandbox and the secure-context restriction are in force.

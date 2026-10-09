@@ -573,8 +573,11 @@ export function installBridge(win: Window = window, options: InstallBridgeOption
 
     postNavigationRequest({ url: win.location.href });
 
-    const navigation = (win as Window & { navigation?: EventTarget }).navigation;
-    if (navigation) {
+    // The Navigation API's entries and events are disabled in a document
+    // with an opaque origin, as every sandboxed artifact document has, so
+    // the fallback records there too.
+    const navigation = (win as Window & { navigation?: EventTarget & { currentEntry?: unknown } }).navigation;
+    if (navigation && navigation.currentEntry !== null) {
       navigation.addEventListener("navigate", (event) => {
         const navigateEvent = event as Event & {
           destination?: { url?: string; sameDocument?: boolean };
@@ -606,41 +609,60 @@ export function installBridge(win: Window = window, options: InstallBridgeOption
         postNavigationRequest(message);
       });
     } else {
-      win.document.addEventListener(
-        "click",
-        (event) => {
-          const mouse = event as MouseEvent;
-          // Modifier-clicks are intentionally left to browser defaults instead
-          // of being intercepted into host-managed artifact history. Cmd/Ctrl
-          // opens a new tab, Shift opens a new window, and middle-click/auxclick
-          // is not handled by this click listener so the browser can open a
-          // background tab. In Electron those default window-open paths are
-          // routed by setWindowOpenHandler to shell.openExternal.
-          if (mouse.metaKey || mouse.ctrlKey || mouse.shiftKey || mouse.altKey) return;
-          const elementConstructor = win.document.defaultView?.Element;
-          if (!elementConstructor || !(mouse.target instanceof elementConstructor)) return;
-          const anchor = mouse.target.closest("a[href]") as HTMLAnchorElement | null;
-          if (!anchor) return;
-          if (anchor.target && anchor.target.toLowerCase() !== "_self") return;
-          if (anchor.hasAttribute("download")) return;
-          const href = anchor.getAttribute("href");
-          if (!href) return;
-          const url = webNavigationURL(anchor.href, win.document.baseURI);
-          if (!url) return;
-          if (
-            url.origin === win.location.origin &&
-            url.pathname === win.location.pathname &&
-            url.search === win.location.search &&
-            url.hash !== ""
-          ) {
-            postNavigationRequest({ url: url.href, sameDocument: true });
-            return;
-          }
-          mouse.preventDefault();
-          postNavigationRequest({ url: url.href });
-        },
-        true,
-      );
+      // The fallback acts on a click or submission only after every page
+      // handler has run, wherever and whenever it was registered, and only
+      // when none cancelled it. A window listener added while the event is
+      // captured runs after every other listener of the window's bubble phase.
+      const afterPageHandlers = (type: "click" | "submit", act: (event: Event) => void) => {
+        let pending: ((event: Event) => void) | null = null;
+        win.addEventListener(
+          type,
+          (captured) => {
+            if (pending) win.removeEventListener(type, pending);
+            const settle = (event: Event) => {
+              if (event !== captured) return;
+              win.removeEventListener(type, settle);
+              pending = null;
+              if (!event.defaultPrevented) act(event);
+            };
+            pending = settle;
+            win.addEventListener(type, settle);
+          },
+          true,
+        );
+      };
+
+      afterPageHandlers("click", (event) => {
+        const mouse = event as MouseEvent;
+        // Modifier-clicks are intentionally left to browser defaults instead
+        // of being intercepted into host-managed artifact history. Cmd/Ctrl
+        // opens a new tab, Shift opens a new window, and middle-click/auxclick
+        // is not handled by this click listener so the browser can open a
+        // background tab. In Electron those default window-open paths are
+        // routed by setWindowOpenHandler to shell.openExternal.
+        if (mouse.metaKey || mouse.ctrlKey || mouse.shiftKey || mouse.altKey) return;
+        const elementConstructor = win.document.defaultView?.Element;
+        if (!elementConstructor || !(mouse.target instanceof elementConstructor)) return;
+        const anchor = mouse.target.closest("a[href]") as HTMLAnchorElement | null;
+        if (!anchor) return;
+        if (anchor.target && anchor.target.toLowerCase() !== "_self") return;
+        if (anchor.hasAttribute("download")) return;
+        const href = anchor.getAttribute("href");
+        if (!href) return;
+        const url = webNavigationURL(anchor.href, win.document.baseURI);
+        if (!url) return;
+        if (
+          url.origin === win.location.origin &&
+          url.pathname === win.location.pathname &&
+          url.search === win.location.search &&
+          url.hash !== ""
+        ) {
+          postNavigationRequest({ url: url.href, sameDocument: true });
+          return;
+        }
+        mouse.preventDefault();
+        postNavigationRequest({ url: url.href });
+      });
 
       const originalPushState = win.history.pushState.bind(win.history);
       const originalReplaceState = win.history.replaceState.bind(win.history);
@@ -659,31 +681,37 @@ export function installBridge(win: Window = window, options: InstallBridgeOption
       win.addEventListener("hashchange", () => {
         postNavigationRequest({ url: win.location.href, sameDocument: true });
       });
-      win.document.addEventListener(
-        "submit",
-        (event) => {
-          const submit = event as SubmitEvent;
-          const form = submit.target;
-          const formConstructor = win.document.defaultView?.HTMLFormElement;
-          if (!formConstructor || !(form instanceof formConstructor)) return;
-          if (form.target && form.target.toLowerCase() !== "_self") return;
-          const action = webNavigationURL(form.action || win.location.href, win.document.baseURI);
-          if (!action) return;
-          submit.preventDefault();
-          const method = form.method.toLowerCase();
-          if (method === "get") {
-            const formDataConstructor = win.document.defaultView?.FormData;
-            if (!formDataConstructor) return;
-            const params = new URLSearchParams();
-            for (const [name, value] of new formDataConstructor(form)) {
-              if (typeof value === "string") params.append(name, value);
-            }
-            action.search = params.toString();
-          }
-          postNavigationRequest({ url: action.href });
-        },
-        true,
-      );
+
+      // Only a GET submission to the frame itself is recorded; the browser
+      // performs every other, such as a POST or dialog submission or one to
+      // another browsing context. The submit button's formaction, formmethod,
+      // formtarget and value apply as the browser applies them. The form's
+      // own action, method and target are read from its attributes, because
+      // a control with one of those names hides the form's property of it.
+      afterPageHandlers("submit", (event) => {
+        const submit = event as SubmitEvent;
+        const form = submit.target;
+        const formConstructor = win.document.defaultView?.HTMLFormElement;
+        if (!formConstructor || !(form instanceof formConstructor)) return;
+        const submitter = submit.submitter ?? null;
+        const override = (name: string) => (submitter?.hasAttribute(name) ? submitter.getAttribute(name) ?? "" : null);
+        const target = override("formtarget") ?? form.getAttribute("target");
+        if (target && target.toLowerCase() !== "_self") return;
+        // A method the browser does not know means GET, as in the browser.
+        const method = (override("formmethod") ?? form.getAttribute("method"))?.toLowerCase();
+        if (method === "post" || method === "dialog") return;
+        const action = webNavigationURL((override("formaction") ?? form.getAttribute("action")) || win.location.href, win.document.baseURI);
+        if (!action) return;
+        const formDataConstructor = win.document.defaultView?.FormData;
+        if (!formDataConstructor) return;
+        const params = new URLSearchParams();
+        for (const [name, value] of new formDataConstructor(form, submitter)) {
+          params.append(name, typeof value === "string" ? value : value.name);
+        }
+        action.search = params.toString();
+        submit.preventDefault();
+        postNavigationRequest({ url: action.href });
+      });
     }
   }
 

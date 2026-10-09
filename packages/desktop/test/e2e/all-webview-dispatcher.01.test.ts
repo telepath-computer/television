@@ -23,7 +23,7 @@ async function launchApp(
   // electron-mode page declaring no shell version would — correctly — halt
   // at the upgrade gate instead of booting the artifact UI under test.
   const { app, page } = await launchDesktop({
-    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9&serverURL=${encodeURIComponent(appURL)}`,
+    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9`,
     env: options.env,
   });
   return { app, page, appURL };
@@ -263,9 +263,12 @@ test.describe("Electron all-webview dispatcher", () => {
       await expect.poll(() => app.evaluate(async ({ webContents }) => {
         const contents = webContents.getAllWebContents().find((candidate) => candidate.getType() === "webview");
         if (!contents) throw new Error("No webview found");
-        return await contents.executeJavaScript(
-          `document.querySelector("#srcdoc-frame")?.contentDocument?.querySelector("#nested-content")?.textContent ?? null`,
-        );
+        // The test reads the subframe through Electron rather than through
+        // its parent.
+        const nested = contents.mainFrame.frames.find((frame) => frame.url === "about:srcdoc");
+        return nested ? await nested.executeJavaScript(
+          `document.querySelector("#nested-content")?.textContent ?? null`,
+        ) : null;
       }), { timeout: 15_000 }).toBe("Nested frame");
       await app.evaluate(() => {
         (globalThis as typeof globalThis & { __televisionExternalOpenLog?: string[] }).__televisionExternalOpenLog = [];
@@ -307,12 +310,15 @@ test.describe("Electron all-webview dispatcher", () => {
         return (globalThis as typeof globalThis & { __televisionExternalOpenLog?: string[] }).__televisionExternalOpenLog ?? [];
       })).toEqual([applicationURL, scriptedApplicationURL, applicationURL]);
 
-      await app.evaluate(({ session }) => {
+      await app.evaluate(({ webContents }) => {
         const main = globalThis as typeof globalThis & {
           __televisionDownloadLog?: Array<{ filename: string; url: string }>;
         };
         main.__televisionDownloadLog = [];
-        session.defaultSession.once("will-download", (event, item) => {
+        // The download belongs to the artifact webview's partition.
+        const guest = webContents.getAllWebContents().find((candidate) => candidate.getType() === "webview");
+        if (!guest) throw new Error("No webview found");
+        guest.session.once("will-download", (event, item) => {
           main.__televisionDownloadLog?.push({
             filename: item.getFilename(),
             url: item.getURL(),

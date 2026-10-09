@@ -912,15 +912,14 @@ describe("ServerConnection /events message routing", () => {
     const statuses: unknown[] = [];
     const serverEvents: unknown[] = [];
     c.addEventListener("server-status", (event) => {
-      const received = event as unknown as { serverURL: string; message: unknown };
-      statuses.push({ serverURL: received.serverURL, message: received.message });
+      statuses.push((event as unknown as { message: unknown }).message);
     });
     c.addEventListener("server-event", () => serverEvents.push(true));
 
     const message = { type: "server-status", version: "1.2.3", requiredDesktopVersion: null, update: null };
     socket.emit("message", { data: JSON.stringify(message) });
 
-    expect(statuses).toEqual([{ serverURL: "http://example.test", message }]);
+    expect(statuses).toEqual([message]);
     expect(serverEvents).toHaveLength(0);
     c.dispose();
   });

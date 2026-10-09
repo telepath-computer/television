@@ -23,9 +23,19 @@ EOF
 cd /tmp/tv-demo-channel && python3 -m http.server 8399 --bind 127.0.0.1
 ```
 
+## Step 1 — a staging server that serves the interface (used by the browser previews and the real Electron app)
+
+The interface must come from the server it connects to ([version-advertisement.md#^reload-origin-rule](./version-advertisement.md#^reload-origin-rule)). The from-source CLI serves the interface built in `packages/web/dist` ([the CLI's development asset resolvers](../cli/index.md#Build and packaged asset layout)), and the server runs from source, so the `TV_TEST_*` hooks are live. Give the staging server its home once:
+
+```bash
+npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home config set port 4402 auth false
+```
+
+Each recipe builds the interface with `npm run build:web` first and then starts the staging server with `npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home serve`. A recipe that stages a server version stamps the bundle to match it with `TV_TEST_WEB_VERSION`, which avoids an auto-reload attempt from the version mismatch.
+
 ## Toast + bell (browser)
 
-The page origin must be the Television server — the Vite `?serverURL=` page is out of scope for update UX ([version-advertisement.md#^reload-origin-rule](./version-advertisement.md#^reload-origin-rule)) — so use the built CLI. With the fast poll interval ([update-channel.md#^hook-poll-interval](./update-channel.md#^hook-poll-interval)), live edits to the channel JSON reach an open page within seconds:
+The interface must come from the server it connects to ([version-advertisement.md#^reload-origin-rule](./version-advertisement.md#^reload-origin-rule)), so use the built CLI, which serves it. With the fast poll interval ([update-channel.md#^hook-poll-interval](./update-channel.md#^hook-poll-interval)), live edits to the channel JSON reach an open page within seconds:
 
 ```bash
 npm run build
@@ -42,69 +52,48 @@ Dismiss the toast: the bell persists and survives reloads; clicking it re-presen
 
 ## Desktop upgrade recommendation — browser preview
 
-The recommendation is the deprecated notice for desktop apps installed from npm. It lives in the web client, uses the desktop mode/version page parameters, and requires no applying server toast ([desktop-upgrade-recommendation.md#^desktop-rec-condition](./desktop-upgrade-recommendation.md#^desktop-rec-condition)). Run a from-source server with no channel override, then use Vite for the web client:
+The recommendation is the deprecated notice for desktop apps installed from npm. It lives in the web client, uses the desktop mode/version page parameters, and requires no applying server toast ([desktop-upgrade-recommendation.md#^desktop-rec-condition](./desktop-upgrade-recommendation.md#^desktop-rec-condition)). Run the staging server (Step 1) with no channel override, which leaves this `0.0.0` server without a server toast:
 
 ```bash
-# Terminal A — no channel override means this 0.0.0 server has no server toast:
-npx tsx packages/cli/src/index.ts --home /tmp/tv-recommendation-storage config set port 4401 auth false
-npx tsx packages/cli/src/index.ts --home /tmp/tv-recommendation-storage serve
-
-# Terminal B:
-npx vite --config packages/web/vite.config.ts --host 127.0.0.1 --port 5180 --strictPort
+npm run build:web
+npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home serve
 ```
 
-Open `http://127.0.0.1:5180/?mode=electron&serverURL=http://127.0.0.1:4401&desktopAppVersion=0.1.210`. The normal interface presents the desktop recommendation and bell, with its download link and steps and *Later* as its only button. Dismiss it to leave the bell; clicking the bell re-presents it. Reset automatic presentation with `localStorage.removeItem("tv-desktop-upgrade-recommendation-dismissed")` in devtools ([desktop-upgrade-recommendation.md#^desktop-rec-dismissal](./desktop-upgrade-recommendation.md#^desktop-rec-dismissal)).
+Open `http://127.0.0.1:4402/?mode=electron&desktopAppVersion=0.1.210`. The normal interface presents the desktop recommendation and bell, with its download link and steps and *Later* as its only button. Dismiss it to leave the bell; clicking the bell re-presents it. Reset automatic presentation with `localStorage.removeItem("tv-desktop-upgrade-recommendation-dismissed")` in devtools ([desktop-upgrade-recommendation.md#^desktop-rec-dismissal](./desktop-upgrade-recommendation.md#^desktop-rec-dismissal)).
 
 ## Desktop upgrade gate — browser preview
 
-The gate lives in the web client and reads its inputs from the page URL ([desktop-upgrade-gate.md#^gate-seam](./desktop-upgrade-gate.md#^gate-seam)), so a plain browser stages it against a from-source server (where the `TV_TEST_*` hooks are live):
+The gate lives in the web client and reads its inputs from the page URL ([desktop-upgrade-gate.md#^gate-seam](./desktop-upgrade-gate.md#^gate-seam)), so a plain browser stages it against the staging server (Step 1):
 
 ```bash
-# Terminal A — from-source server staged at version 1.0.0, requiring desktop 2.0.0:
-npx tsx packages/cli/src/index.ts --home /tmp/tv-gate-storage config set port 4401 auth false
+TV_TEST_WEB_VERSION=1.0.0 npm run build:web
+# The staging server at version 1.0.0, requiring desktop 2.0.0:
 TV_TEST_VERSION=1.0.0 TV_TEST_REQUIRED_DESKTOP_VERSION=2.0.0 \
 TV_UPDATE_CHANNEL_URL=http://127.0.0.1:8399/update-channel.json \
-npx tsx packages/cli/src/index.ts --home /tmp/tv-gate-storage serve
-
-# Terminal B — the web client via Vite:
-npx vite --config packages/web/vite.config.ts --host 127.0.0.1 --port 5180 --strictPort
+npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home serve
 ```
 
 Then open, in a browser:
 
-- **Gated:** `http://127.0.0.1:5180/?mode=electron&serverURL=http://127.0.0.1:4401&desktopAppVersion=1.0.0`
+- **Gated:** `http://127.0.0.1:4402/?mode=electron&desktopAppVersion=1.0.0`
 - **Gated, unknown shell version** (the installed base, which predates `?desktopAppVersion=` — [desktop-upgrade-gate.md#^gate-unknown-version](./desktop-upgrade-gate.md#^gate-unknown-version)): same URL without `&desktopAppVersion=`
 - **Not gated:** `…&desktopAppVersion=2.0.0` — normal boot, and the toast presents (channel 99.0.0 is newer than server 1.0.0)
 
 ## Desktop upgrade gate — real Electron app
 
-The shell must claim an old version — dev shells report `0.0.0`, which is gate-exempt ([desktop-upgrade-gate.md#^gate-exemptions](./desktop-upgrade-gate.md#^gate-exemptions)) — via the declared `TV_TEST_MODE` + `TV_TEST_DESKTOP_APP_VERSION` hook ([desktop-upgrade-gate.md#^hook-shell-version](../../../proofs/arch/updates/desktop-upgrade-gate.md#^hook-shell-version)). And the desktop app loads its interface from the server, which the from-source CLI does not serve — so the server side runs through the public `Server` API with a `staticDir`. Save the script at the **repo root** (it needs the workspace's module resolution) and delete it afterwards:
+The shell must claim an old version — dev shells report `0.0.0`, which is gate-exempt ([desktop-upgrade-gate.md#^gate-exemptions](./desktop-upgrade-gate.md#^gate-exemptions)) — via the declared `TV_TEST_MODE` + `TV_TEST_DESKTOP_APP_VERSION` hook ([desktop-upgrade-gate.md#^hook-shell-version](../../../proofs/arch/updates/desktop-upgrade-gate.md#^hook-shell-version)). And the desktop app loads its interface from the server, so the server side is the staging server (Step 1):
 
 ```bash
-# 1. Build the web bundle stamped to match the staged server version
-#    (avoids a cosmetic auto-reload attempt from the version mismatch):
+# 1. Build the interface stamped to match the staged server version:
 TV_TEST_WEB_VERSION=1.0.0 npm run build:web
 
-# 2. Save this as ./tv-gate-server.local.mts at the repo root:
-cat > tv-gate-server.local.mts <<'EOF'
-import path from "node:path";
-import { Server, ServerStore } from "@telepath-computer/television-server";
-const server = new Server({
-  store: new ServerStore({ storagePath: "/tmp/tv-desktop-gate-demo" }),
-  host: "127.0.0.1", port: 4402, auth: false,
-  staticDir: path.resolve("packages/web/dist"),
-});
-await server.start();
-console.log("serving", server.getBaseURL());
-EOF
-
-# 3. Run it with the staging hooks:
+# 2. Run the staging server with the staging hooks:
 TV_TEST_VERSION=1.0.0 \
 TV_TEST_REQUIRED_DESKTOP_VERSION=2.0.0 \
 TV_UPDATE_CHANNEL_URL=http://127.0.0.1:8399/update-channel.json \
-npx tsx tv-gate-server.local.mts
+npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home serve
 
-# 4. In another terminal — the gated shell:
+# 3. In another terminal — the gated shell:
 TV_TEST_MODE=true TV_TEST_DESKTOP_APP_VERSION=1.0.0 npm run start:electron
 ```
 
@@ -126,14 +115,18 @@ env -u ELECTRON_RUN_AS_NODE npx electron packages/desktop --runtime-simulate-upd
 
 ## Desktop self-update notice — real Electron app
 
-The notice needs the real app, since only the app reports a downloaded update ([desktop-self-update-notice.md#^desktop-self-update-notice-condition](./desktop-self-update-notice.md#^desktop-self-update-notice-condition)). Run steps 1–3 of the gate recipe above without `TV_TEST_REQUIRED_DESKTOP_VERSION` and `TV_UPDATE_CHANNEL_URL`, so the server neither gates nor announces a server release, then start the app with the update runtime in its simulation mode:
+The notice needs the real app, since only the app reports a downloaded update ([desktop-self-update-notice.md#^desktop-self-update-notice-condition](./desktop-self-update-notice.md#^desktop-self-update-notice-condition)). Run the staging server (Step 1) with none of the gate recipe's settings, so this `0.0.0` server neither gates nor polls a channel ([update-channel.md#^dev-version-no-poll](./update-channel.md#^dev-version-no-poll)); a server staged at a release version with `TV_TEST_VERSION` would poll the production channel and present its server notice instead. Then start the app with the update runtime in its simulation mode:
 
 ```bash
+npm run build:web
+npx tsx packages/cli/src/index.ts --home /tmp/tv-staging-home serve
+
+# In another terminal:
 npm run build:desktop
 env -u ELECTRON_RUN_AS_NODE npx electron packages/desktop --runtime-simulate-updates=update-available
 ```
 
-Connect to `http://127.0.0.1:4402`. A few seconds after launch the bell lights and the desktop self-update notice presents with the simulated version and **Restart to update**. Dismiss it to leave the bell; clicking the bell presents it again. Reset automatic presentation with `localStorage.removeItem("tv-desktop-self-update-dismissed")` in devtools ([desktop-self-update-notice.md#^desktop-self-update-notice-dismissal](./desktop-self-update-notice.md#^desktop-self-update-notice-dismissal)). Without `TV_TEST_MODE`, pressing **Restart to update** relaunches the app in the simulation's no-update mode, with no notice. To see the server notice take precedence, keep `TV_UPDATE_CHANNEL_URL` in step 3: the toast presents, and the desktop self-update notice stays hidden even after the toast is dismissed ([desktop-self-update-notice.md#^desktop-self-update-notice-precedence](./desktop-self-update-notice.md#^desktop-self-update-notice-precedence)).
+Connect to `http://127.0.0.1:4402`. A few seconds after launch the bell lights and the desktop self-update notice presents with the simulated version and **Restart to update**. Dismiss it to leave the bell; clicking the bell presents it again. Reset automatic presentation with `localStorage.removeItem("tv-desktop-self-update-dismissed")` in devtools ([desktop-self-update-notice.md#^desktop-self-update-notice-dismissal](./desktop-self-update-notice.md#^desktop-self-update-notice-dismissal)). Without `TV_TEST_MODE`, pressing **Restart to update** relaunches the app in the simulation's no-update mode, with no notice. To see the server notice take precedence, start the staging server with `TV_UPDATE_CHANNEL_URL=http://127.0.0.1:8399/update-channel.json`: the toast presents, and the desktop self-update notice stays hidden even after the toast is dismissed ([desktop-self-update-notice.md#^desktop-self-update-notice-precedence](./desktop-self-update-notice.md#^desktop-self-update-notice-precedence)).
 
 ## Verifying an auto-reload happened
 
@@ -153,6 +146,6 @@ To confirm a page really self-healed (silently reloaded onto the new bundle, [ve
 | `TV_TEST_REQUIRED_DESKTOP_VERSION` | server env | the requirement an unstamped server advertises ([desktop-upgrade-gate.md#^hook-required-version](../../../proofs/arch/updates/desktop-upgrade-gate.md#^hook-required-version)) |
 | `TV_TEST_WEB_VERSION` | `vite build` env | stamps the web bundle's version at build time ([version-advertisement.md#^hook-web-version](../../../proofs/arch/updates/version-advertisement.md#^hook-web-version)) |
 | `TV_TEST_MODE=true` + `TV_TEST_DESKTOP_APP_VERSION` | desktop app env | the shell claims this version instead of its real one; both required ([desktop-upgrade-gate.md#^hook-shell-version](../../../proofs/arch/updates/desktop-upgrade-gate.md#^hook-shell-version)) |
-| `?mode=electron&serverURL=…&desktopAppVersion=…` | page URL | browser preview of the gate inputs ([desktop-upgrade-gate.md#^gate-seam](./desktop-upgrade-gate.md#^gate-seam)) |
+| `?mode=electron&desktopAppVersion=…` | page URL | browser preview of the gate inputs ([desktop-upgrade-gate.md#^gate-seam](./desktop-upgrade-gate.md#^gate-seam)) |
 | `localStorage["tv-update-dismissed"]` | browser console | the dismissed announced version; remove to replay server-notice auto-presentation ([update-channel.md#^dismissal](./update-channel.md#^dismissal)) |
 | `localStorage["tv-desktop-upgrade-recommendation-dismissed"]` | browser console | the dismissed recommended desktop version; remove to replay recommendation auto-presentation ([desktop-upgrade-recommendation.md#^desktop-rec-dismissal](./desktop-upgrade-recommendation.md#^desktop-rec-dismissal)) |

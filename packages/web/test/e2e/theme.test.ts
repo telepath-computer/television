@@ -1,8 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 import { waitForApplicationShell } from "./helpers.ts";
@@ -60,17 +62,17 @@ function writeThemeBackground(themePath: string, background: string): void {
 
 async function patchDisplayTheme(
   page: Page,
-  serverURL: string,
+  appURL: string,
   token: string,
   activeThemeName: string | null,
 ): Promise<number> {
   return page.evaluate(
     async (
       {
-        serverURL: url,
+        appURL: url,
         token: auth,
         activeThemeName: themeName,
-      }: { serverURL: string; token: string; activeThemeName: string | null },
+      }: { appURL: string; token: string; activeThemeName: string | null },
     ) => {
       const response = await fetch(`${url}/display`, {
         method: "PATCH",
@@ -82,7 +84,7 @@ async function patchDisplayTheme(
       });
       return response.status;
     },
-    { serverURL, token, activeThemeName },
+    { appURL, token, activeThemeName },
   );
 }
 
@@ -109,11 +111,11 @@ test("direct-render artifact iframes can load canonical font files", async ({ pa
 
   try {
     await server.start();
-    const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
     const token = server.getAuthToken();
 
     await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
+      `${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`,
     );
 
     const frame = page.frameLocator(".artifact-view iframe.artifact-content");
@@ -145,11 +147,11 @@ test("PATCH /display activeThemeName re-skins the connected TV app and clears on
 
   try {
     await server.start();
-    const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
     const token = server.getAuthToken();
 
     await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
+      `${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`,
     );
     await waitForApplicationShell(page);
 
@@ -165,14 +167,14 @@ test("PATCH /display activeThemeName re-skins the connected TV app and clears on
     );
     expect(initialBackground).not.toBe(THEMED_BACKGROUND);
 
-    expect(await patchDisplayTheme(page, serverURL, token, "test-theme")).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, "test-theme")).toBe(204);
     await expect
       .poll(() =>
         page.locator(".app-main").evaluate(element => getComputedStyle(element).backgroundColor),
       )
       .toBe(THEMED_BACKGROUND);
 
-    expect(await patchDisplayTheme(page, serverURL, token, null)).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, null)).toBe(204);
     await expect
       .poll(() =>
         page.locator(".app-main").evaluate(element => getComputedStyle(element).backgroundColor),
@@ -199,15 +201,15 @@ test("editing the active theme.css on disk re-skins the connected TV app without
 
   try {
     await server.start();
-    const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
     const token = server.getAuthToken();
 
     await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
+      `${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`,
     );
     await waitForApplicationShell(page);
 
-    expect(await patchDisplayTheme(page, serverURL, token, "test-theme")).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, "test-theme")).toBe(204);
     await expect
       .poll(() =>
         page.locator(".app-main").evaluate(element => getComputedStyle(element).backgroundColor),
@@ -275,10 +277,10 @@ test("PATCH /display activeThemeName reloads mounted artifact iframes so canonic
 
   try {
     await server.start();
-    const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
     const token = server.getAuthToken();
     await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
+      `${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`,
     );
 
     const iframe = page.locator(".artifact-view iframe.artifact-content");
@@ -289,7 +291,7 @@ test("PATCH /display activeThemeName reloads mounted artifact iframes so canonic
     const initialSrc = await iframe.getAttribute("src");
     if (!initialSrc) throw new Error("Expected initial artifact frame src");
 
-    expect(await patchDisplayTheme(page, serverURL, token, "theme-a")).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, "theme-a")).toBe(204);
     await expect
       .poll(() => frame.locator("body").evaluate((body) => getComputedStyle(body).backgroundColor))
       .toBe(FIRST_ARTIFACT_THEME_BACKGROUND);
@@ -299,7 +301,7 @@ test("PATCH /display activeThemeName reloads mounted artifact iframes so canonic
     expect(firstReloadSrc).not.toBe(initialSrc);
     expect(new URL(firstReloadSrc, page.url()).searchParams.get("tv-reload")).toBe("1");
 
-    expect(await patchDisplayTheme(page, serverURL, token, "theme-b")).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, "theme-b")).toBe(204);
     await expect
       .poll(() => frame.locator("body").evaluate((body) => getComputedStyle(body).backgroundColor))
       .toBe(SECOND_ARTIFACT_THEME_BACKGROUND);
@@ -358,10 +360,10 @@ test("PATCH /display activeThemeName leaves remote Television URL artifact docum
       channelID: consumerChannel.id,
     });
     await consumer.start();
-    const serverURL = consumer.getBaseURL();
+    const appURL = await appURLForServer(consumer.getBaseURL(), baseURL!);
     const token = consumer.getAuthToken();
     await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
+      `${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`,
     );
 
     const iframe = page.locator(`.stage .page[data-page-key="${remoteArtifact.id}"] iframe.artifact-content`);
@@ -370,7 +372,7 @@ test("PATCH /display activeThemeName leaves remote Television URL artifact docum
     await expect(frame.locator("#remote-theme-probe")).toHaveText("Remote theme probe");
     await expect(frame.locator("body")).toHaveAttribute("data-load-count", "1");
 
-    expect(await patchDisplayTheme(page, serverURL, token, "consumer-theme")).toBe(204);
+    expect(await patchDisplayTheme(page, appURL, token, "consumer-theme")).toBe(204);
     await expect.poll(() => page.evaluate(() => {
       const application = (window as unknown as {
         __telepath: { applicationService: { snapshot: { display: { activeThemeName: string | null } } } };
