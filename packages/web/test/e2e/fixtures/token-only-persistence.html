@@ -24,8 +24,8 @@
       import { ServerConnectionOwner } from "/packages/web/src/services/server-connection-owner.ts";
       import { ApplicationService } from "/packages/web/src/services/application-service.ts";
 
-      const serverURL = new URL(window.location.href).searchParams.get("serverURL");
-      if (!serverURL) throw new Error("serverURL is required");
+      // The app's one server is the origin this page was loaded from.
+      const serverURL = window.location.origin;
 
       const localStore = new LocalStore("television-browser", createDefaultLocalState());
       const connectionOwner = new ServerConnectionOwner({

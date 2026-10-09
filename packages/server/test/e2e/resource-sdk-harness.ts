@@ -17,6 +17,9 @@ export const SDK_DIR = fileURLToPath(new URL("../../dist/sdk", import.meta.url))
 /** A host name the browser resolves to the loopback server: a plain-HTTP origin that is not localhost. */
 export const TEST_HOST = "tv-sdk.test";
 
+/** The fixed ID of `startWithStorelessPage`'s page artifact. */
+export const STORELESS_PAGE_ID = "page-without-a-store";
+
 /** Browser launch options mapping the test host name to the loopback server. */
 export const MAPPED_HOST_LAUNCH = { args: [`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
 
@@ -87,11 +90,17 @@ export function artifactPath(artifactID: string, rest = ""): string {
   return `/artifact/${encodeURIComponent(artifactID)}/${rest}`;
 }
 
-/** Loads a page and waits for its SDK; every test page first checks that it is not a secure context. */
+/**
+ * Loads a page and waits for its SDK. Every test page first checks that it is
+ * not a secure context, and that its origin is opaque exactly when it is an
+ * artifact page, which the server sandboxes.
+ */
 export async function openPage(page: Page, url: string): Promise<void> {
   await page.goto(url);
   await page.waitForFunction(() => window.sdkReady === true);
   expect(await page.evaluate(() => window.isSecureContext)).toBe(false);
+  const artifactPage = new URL(url).pathname.startsWith("/artifact/");
+  expect(await page.evaluate(() => window.origin === "null"), url).toBe(artifactPage);
 }
 
 /** Polls the page until `check` returns true. */
@@ -115,18 +124,28 @@ export class SdkTestContext {
     return proxy;
   }
 
+  /** Registers a folder artifact serving the authored page as `index.html` and `sub/page.html`, and returns its ID. */
+  createPageArtifact(server: RunningServer, title = "Page"): string {
+    const channel = server.store.listChannels()[0]!;
+    return server.store.createArtifact({ kind: "path", title, channelID: channel.id, path: this.pageFolder() }).id;
+  }
+
   /**
-   * Registers a folder artifact serving the authored page as `index.html` and
-   * `sub/page.html`, and returns its ID. With a fixed `id`, as earlier
-   * releases' onboarding gave, the artifact has no store.
+   * Starts a server holding a page artifact as an earlier release's
+   * onboarding installed it, under the fixed ID `page-without-a-store`,
+   * which therefore has no store.
    */
-  createPageArtifact(server: RunningServer, title = "Page", options: { id?: string } = {}): string {
+  startWithStorelessPage(options: StartOptions = {}): Promise<RunningServer> {
+    return this.start({ ...options, fixedIDArtifacts: [{ id: STORELESS_PAGE_ID, path: this.pageFolder() }] });
+  }
+
+  /** A folder holding the authored page as `index.html` and `sub/page.html`. */
+  private pageFolder(): string {
     const folder = this.folder("television-sdk-page-");
     writeFileSync(path.join(folder, "index.html"), PAGE_HTML);
     mkdirSync(path.join(folder, "sub"));
     writeFileSync(path.join(folder, "sub", "page.html"), PAGE_HTML);
-    const channel = server.store.listChannels()[0]!;
-    return server.store.createArtifact({ ...options, kind: "path", title, channelID: channel.id, path: folder }).id;
+    return `${folder}${path.sep}`;
   }
 
   /** A page artifact whose own store holds `value`, written through the administrative routes; returns its ID and the store's resource ID. */

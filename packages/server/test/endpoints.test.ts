@@ -165,10 +165,8 @@ describe("pointer artifact REST endpoints", () => {
       .get(`/artifacts/${encodeURIComponent(res.body.artifact.id)}`)
       .set(auth(h))
       .expect(200)
-      .expect(({ body, headers }) => {
+      .expect(({ body }) => {
         expect(body.artifact).toEqual(res.body.artifact);
-        expect(headers["access-control-allow-origin"]).toBe("*");
-        expect(headers["access-control-allow-methods"]).toContain("GET");
       });
     await request(h.server.httpServer).get("/artifacts/does-not-exist").set(auth(h)).expect(404);
   });
@@ -217,6 +215,64 @@ describe("pointer artifact REST endpoints", () => {
     ]) {
       await request(h.server.httpServer).post("/artifacts").set(auth(h)).send(body).expect(400);
     }
+  });
+
+  it("refuses a create that supplies the artifact's ID and generates one otherwise (^af-ac-no-supplied-id)", async () => {
+    const h = await setup();
+    const target = writeTarget("page.html", "<!doctype html>");
+    const channel = h.store.listChannels()[0]!;
+    const suppliedID = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+    for (const body of [
+      { id: suppliedID, kind: "path", title: "P", channelID: channel.id, path: target },
+      { id: suppliedID, kind: "url", title: "U", channelID: channel.id, url: "https://example.com/a" },
+    ]) {
+      await request(h.server.httpServer).post("/artifacts").set(auth(h)).send(body).expect(400);
+    }
+    expect(h.store.listArtifacts()).toEqual([]);
+    expect(h.store.getChannel(channel.id)!.channel.layout).toEqual([]);
+
+    for (const body of [
+      { kind: "path", title: "P", channelID: channel.id, path: target },
+      { kind: "url", title: "U", channelID: channel.id, url: "https://example.com/a" },
+    ]) {
+      const created = await request(h.server.httpServer).post("/artifacts").set(auth(h)).send(body).expect(201);
+      const id = (created.body as { artifact: { id: string } }).artifact.id;
+      expect(id).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+      expect(id).not.toBe(suppliedID);
+    }
+  });
+
+  // spec: proofs/arch/desktop/artifact-partitions.md#^dp-t-artifacts-route
+  it("lists every artifact in one answer for the desktop reaper (^dp-t-artifacts-route)", async () => {
+    const h = await setup();
+    const target = writeTarget("listed.html", "<!doctype html>");
+    const channels = [h.store.listChannels()[0]!.id];
+    for (const name of ["Second", "Third"]) {
+      const created = await request(h.server.httpServer).post("/channels").set(auth(h)).send({ name }).expect(201);
+      channels.push((created.body as { channel: { id: string } }).channel.id);
+    }
+    const ids: string[] = [];
+    for (let index = 0; index < 250; index++) {
+      const channelID = channels[index % channels.length]!;
+      const artifact = index % 2 === 0
+        ? h.store.createArtifact({ kind: "path", title: `P${index}`, channelID, path: target })
+        : h.store.createArtifact({ kind: "url", title: `U${index}`, channelID, url: `https://example.com/${index}` });
+      ids.push(artifact.id);
+    }
+
+    const listed = async () => {
+      const response = await request(h.server.httpServer).get("/artifacts").set(auth(h)).expect(200);
+      expect(response.headers["content-type"]).toMatch(/^application\/json/);
+      const artifacts = (response.body as { artifacts: Array<{ id: unknown }> }).artifacts;
+      expect(artifacts.every((artifact) => typeof artifact.id === "string")).toBe(true);
+      return artifacts.map((artifact) => artifact.id as string);
+    };
+    const first = await listed();
+    expect(first).toHaveLength(250);
+    expect(new Set(first)).toEqual(new Set(ids));
+
+    await request(h.server.httpServer).delete(`/artifacts/${ids[17]}`).set(auth(h)).expect(200);
+    expect(new Set(await listed())).toEqual(new Set(ids.filter((id) => id !== ids[17])));
   });
 
   it("routes surface unexpected errors as HTTP 500, not 400", async () => {
@@ -396,24 +452,6 @@ describe("pointer artifact REST endpoints", () => {
     expect(h.store.getArtifact(artifact.id)).toBeUndefined();
   });
 
-  it("OPTIONS preflights are registered for the protected route surface", async () => {
-    const h = await setup();
-    for (const route of [
-      "/channels",
-      "/channels/screen-1",
-      "/artifacts",
-      "/artifacts/artifact-1",
-      "/display",
-      "/display/focus",
-      "/themes",
-      "/themes/refresh",
-      "/markdown/artifact-1",
-      "/demo-mode",
-    ]) {
-      await request(h.server.httpServer).options(route).expect(204).expect("Access-Control-Allow-Origin", "*");
-    }
-  });
-
   it("requires bearer auth on individual protected route shapes", async () => {
     const h = await setup();
     await request(h.server.httpServer).get("/channels").expect(401);
@@ -432,24 +470,6 @@ describe("pointer artifact REST endpoints", () => {
     await request(h.server.httpServer).get("/markdown/artifact-1").expect(401);
     await request(h.server.httpServer).put("/markdown/artifact-1").send("# nope").expect(401);
     await request(h.server.httpServer).get("/demo-mode").expect(401);
-  });
-
-  it("GET /demo-mode answers a cross-origin browser client", async () => {
-    const h = await setup();
-    const response = await request(h.server.httpServer).get("/demo-mode").set(auth(h)).expect(200);
-    expect(response.headers["access-control-allow-origin"]).toBe("*");
-    expect(typeof response.body.browserExternalPages).toBe("boolean");
-  });
-
-  it("OPTIONS preflights include CORS headers", async () => {
-    const h = await setup();
-    await request(h.server.httpServer)
-      .options("/artifacts")
-      .expect(204)
-      .expect("Access-Control-Allow-Origin", "*")
-      .expect("Access-Control-Allow-Methods", /GET/)
-      .expect("Access-Control-Allow-Headers", /Authorization/);
-    await request(h.server.httpServer).options("/display/focus").expect(204).expect("Access-Control-Allow-Origin", "*");
   });
 
   it("requires bearer auth on protected registry, channel, and display routes", async () => {

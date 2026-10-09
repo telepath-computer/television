@@ -197,10 +197,7 @@ class FakeOwner extends EventTarget {
   }
 
   emitServerEvent(event: ServerEvent): void {
-    this.dispatchEvent(new ServerEventMessageEvent("server-event", {
-      serverURL: this.connection.url,
-      event,
-    }));
+    this.dispatchEvent(new ServerEventMessageEvent("server-event", { event }));
   }
 }
 

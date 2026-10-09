@@ -4,7 +4,7 @@
 
 # Artifact frame (architecture)
 
-**Plain english:** this is the front door to the machinery behind showing an artifact in the app. Three pieces of that machinery are pinned down by their own specs — the message channel between the app and the embedded document, how local source changes, reloads, and in-artifact navigation work, and how artifact responses stay fresh when loaded. The remaining machinery is deliberately *not* specified: it is mature, well-tested code, and this document says exactly where that unspecified zone begins and ends. UI specs separately own the frame's presentation and the Markdown editor's color treatment.
+**Plain english:** this is the front door to the machinery behind showing an artifact in the app. Four pieces of that machinery are pinned down by their own specs — the message channel between the app and the embedded document, how local source changes, reloads, and in-artifact navigation work, how artifact responses stay fresh when loaded, and the sandbox that keeps an artifact's code away from the app. The remaining machinery is deliberately *not* specified: it is mature, well-tested code, and this document says exactly where that unspecified zone begins and ends. UI specs separately own the frame's presentation and the Markdown editor's color treatment.
 
 ## What this owns
 
@@ -18,12 +18,13 @@ This spec owns the artifact-frame domain's **authority boundary** and its **fram
 | [reload-navigation.md](./reload-navigation.md) | local path-content watching and notification, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
 | [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the bundled Markdown view |
 | [proxy-caching.md](./proxy-caching.md) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
+| [isolation.md](./isolation.md) | the sandbox artifact documents run in, in a browser, and the sessions that isolate them in the desktop app, the browser features they are granted, the cross-origin rules on the routes they load, and the known limitations |
 
 ## The frame core is code-authoritative, deliberately
 
 Everything in the frame's implementation *not* claimed by the module specs above or the narrow Markdown-editor color and table exceptions below is the **frame core**, and it remains governed by code — reviewed and evolved as code, with no spec to conform to. The core includes: ^frame-core-carve-out
 
-- **Renderer routing** — deciding how an artifact renders (the markdown host, a proxied iframe, an Electron webview) and constructing the frame element around it.
+- **Renderer routing** — deciding how an artifact renders (the markdown host, a proxied iframe, an Electron webview) and constructing the frame element around it, apart from the frame's `sandbox` and `allow` attributes, which [isolation.md](./isolation.md#^iso-iframe-sandbox) owns, and a webview's `partition` attribute, which [desktop artifact partitions](../desktop/artifact-partitions.md#^dp-interface-names) owns.
 - **The markdown host** — the bundled markdown view and its content protocol, except for the editor's color treatment owned by [ui/markdown-editor](../../ui/markdown-editor/index.md) and the contracts in [the Markdown table buffer](markdown-tables-buffer.md) and [the table-interaction UI buffer](../../ui/markdown-editor/index.md#^md-table-interaction-buffer). Server-rendered read-only Markdown remains part of the code-authoritative core.
 - **The status-view mechanism** — how the artifact-missing and url-unsupported documents are produced and served stays code's; their bridge participation is the bridge spec's, their contents the frame's error page ([ui/app/artifact-frame/index.md](../../ui/app/artifact-frame/index.md), Error page).
 - **Navigation-state and reload internals** beyond the contracts [reload-navigation.md](./reload-navigation.md) states.
