@@ -7575,11 +7575,11 @@ class Ti extends gs {
         onUndo: () => Es(t),
         onRedo: () => ys(t),
         onNavigate: (m) => {
+          const anchor = m === "before" ? o.from - 1 : o.to + 1;
+          if (anchor < 0 || anchor > t.state.doc.length) return;
           t.dispatch({
             annotations: he("table.navigate"),
-            selection: {
-              anchor: m === "before" ? Math.max(0, o.from - 1) : Math.min(t.state.doc.length, o.to + 1)
-            }
+            selection: { anchor }
           }), t.focus();
         },
         onDelete: () => {
