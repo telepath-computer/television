@@ -34,7 +34,12 @@ async function startExternalSite(): Promise<{ origin: string; close(): Promise<v
   const { port } = server.address() as AddressInfo;
   return {
     origin: `http://127.0.0.1:${port}`,
-    close: () => new Promise((resolve) => server.close(() => resolve())),
+    // The page is still open when cleanup runs, and the browser may hold a
+    // connection that has not sent a request; close() alone waits for it.
+    close: () => {
+      server.closeAllConnections();
+      return new Promise((resolve) => server.close(() => resolve()));
+    },
   };
 }
 

@@ -13,7 +13,7 @@ The upstream distribution embeds Svelte and Runed implementations. Their exact p
 ## Behavioral changes
 
 - Loading, rendering, cursor movement, and cell selection no longer format the table or repair blank lines around it. Remote updates and rejected-save rollback do not trigger a replacement save.
-- Tab, Shift-Tab, and Enter at table edges leave the table rather than inserting rows. Row insertion remains an explicit editing operation.
+- Tab, Shift-Tab, and Enter at table edges leave the table rather than inserting rows. Where the table starts or ends the document, they keep the caret in the edge cell. Row insertion remains an explicit editing operation.
 - Ordinary cell edits replace only changed source spans, preserving other cells, whitespace, overflow cells, and edge `<br>` content. Alignment edits replace the separator; structural operations and full-table paste retain upstream canonical serialization and may normalize or discard that extra content.
 - Cursor positions and undo/redo use original cell spans, including escaped pipes and ragged rows, rather than offsets into a reformatted table.
 - Newly parsed tables render without requiring canonical formatting or a caret move. Incremental parsing can still briefly delay rendering in long documents; nested blockquote/list table support is unchanged.
@@ -29,9 +29,9 @@ The localized changes in `index.js` are:
 - Import the readable, typed raw-source position mapper in `../../source-table.ts`.
 - Omit seven upstream lint suppression comments that are obsolete or refer to rules unavailable in Television; this does not change runtime behavior.
 - `pi` (table description): retain raw cell spans alongside the normalized display model, use them for source selections, preserve explicit active-cell identity when missing cells share a source offset, and reset structural history dimensions before rebuilding mapping/selection, and reset synchronization to the normalized in-memory baseline after undo. Explicit cell intent takes precedence over the hidden-selection sentinel.
-- `Ti` (widget): map coordinates and selection-only synchronization through raw spans; write only actual model changes into the exact table span. Cell edits with unchanged dimensions replace changed raw cell spans, retaining overflow cells, edge breaks and other cells; alignment edits replace the separator. Structural changes retain upstream canonical serialization.
+- `Ti` (widget): map coordinates and selection-only synchronization through raw spans; write only actual model changes into the exact table span. Cell edits with unchanged dimensions replace changed raw cell spans, retaining overflow cells, edge breaks and other cells; alignment edits replace the separator. Structural changes retain upstream canonical serialization. Edge navigation moves the root caret just outside the table only when that position exists; at a document edge it leaves focus and the caret in the edge cell.
 - `as` (table discovery): render noncanonical source directly. The automatic `If` formatter and `Pf` boundary-correction filter are no longer installed.
 - `mo` (cell navigation): leave the table at its edges instead of creating rows. Explicit row menus remain available.
-- `Lf`/`Of` (root selection navigation): use raw source cell spans. Boundary exits and `Hf` mixed selections clamp to document bounds.
+- `Lf`/`Of` (root selection navigation): use raw source cell spans. `Hf` mixed selections clamp to document bounds.
 
 The remaining UI and embedded runtime code is upstream distribution code. Keeping that distribution avoids adding a Svelte build pipeline for this limited correction. To update it, obtain the exact new upstream archive, compare these regions against its implementation, apply only the still-needed changes, and run the source-preservation, table, link, and marker browser suites. Refresh provenance and notices when the upstream payload changes. A broader UI rewrite should use upstream source rather than extending the bundled runtime here.

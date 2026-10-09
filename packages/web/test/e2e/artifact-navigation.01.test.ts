@@ -45,6 +45,27 @@ async function historyURLs(page: Page, artifactID: string): Promise<string[]> {
   return (await navigationRecord(page, artifactID))?.entries.map((entry) => entry.url) ?? [];
 }
 
+// Each artifact document reports its own URL to the host when it loads. A
+// report that arrives after the next host navigation has started is taken as a
+// new navigation, so history steps wait until the shown page's report arrives.
+async function recordDocumentReports(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const reports: string[] = [];
+    (window as unknown as { __documentReports: string[] }).__documentReports = reports;
+    window.addEventListener("message", (event) => {
+      const data = event.data as { type?: unknown; url?: unknown; native?: unknown; sameDocument?: unknown } | null;
+      if (data?.type !== "navigation-request" || typeof data.url !== "string") return;
+      if (data.native === true || data.sameDocument === true) return;
+      reports.push(new URL(data.url).pathname);
+    });
+  });
+}
+
+async function expectReportedPage(page: Page, heading: string, pathname: string): Promise<void> {
+  await expect(page.frameLocator(".artifact-view iframe.artifact-content").first().locator("h1")).toHaveText(heading);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __documentReports: string[] }).__documentReports.at(-1))).toBe(pathname);
+}
+
 async function clickBackButton(page: Page): Promise<void> {
   await page.locator(".artifact-view button[aria-label='Back']").click();
 }
@@ -141,24 +162,26 @@ test.describe("artifact iframe navigation", () => {
     const frame = page.frameLocator(".artifact-view iframe.artifact-content").first();
     const back = page.locator(".artifact-view button[aria-label='Back']");
     const forward = page.locator(".artifact-view button[aria-label='Forward']");
+    const pagePath = (name: string) => `/artifact/${artifactID}/${name}`;
+    await recordDocumentReports(page);
 
     await frame.locator("#page1").click();
-    await expect(frame.locator("h1")).toHaveText("Page 1");
+    await expectReportedPage(page, "Page 1", pagePath("page1.html"));
     await expect(back).toBeEnabled();
     await expect(forward).toBeDisabled();
     await expect.poll(() => historyURLs(page, artifactID)).toEqual([`/artifact/${artifactID}/page1.html`]);
 
     await frame.locator("#page2").click();
-    await expect(frame.locator("h1")).toHaveText("Page 2");
+    await expectReportedPage(page, "Page 2", pagePath("page2.html"));
     await frame.locator("#page3").click();
-    await expect(frame.locator("h1")).toHaveText("Page 3");
+    await expectReportedPage(page, "Page 3", pagePath("page3.html"));
 
     await clickBackButton(page);
-    await expect(frame.locator("h1")).toHaveText("Page 2");
+    await expectReportedPage(page, "Page 2", pagePath("page2.html"));
     await clickBackButton(page);
-    await expect(frame.locator("h1")).toHaveText("Page 1");
+    await expectReportedPage(page, "Page 1", pagePath("page1.html"));
     await clickBackButton(page);
-    await expect(frame.locator("h1")).toHaveText("Index");
+    await expectReportedPage(page, "Index", pagePath(""));
     await expect(back).toBeDisabled();
     await expect(forward).toBeEnabled();
     await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({
@@ -171,11 +194,11 @@ test.describe("artifact iframe navigation", () => {
     });
 
     await clickForwardButton(page);
-    await expect(frame.locator("h1")).toHaveText("Page 1");
+    await expectReportedPage(page, "Page 1", pagePath("page1.html"));
     await clickForwardButton(page);
-    await expect(frame.locator("h1")).toHaveText("Page 2");
+    await expectReportedPage(page, "Page 2", pagePath("page2.html"));
     await clickForwardButton(page);
-    await expect(frame.locator("h1")).toHaveText("Page 3");
+    await expectReportedPage(page, "Page 3", pagePath("page3.html"));
     await expect(back).toBeEnabled();
     await expect(forward).toBeDisabled();
     await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 2 });

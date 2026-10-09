@@ -16,7 +16,7 @@ Server-rendered read-only Markdown is a separate, code-authoritative surface out
 
 These interaction contracts accompany [the table-source architecture buffer](../../arch/artifact-frame/markdown-tables-buffer.md). They do not adopt the remaining editor interaction, markup, layout, or typography into spec authority. A future Markdown-editor spec absorbs this buffer. ^md-table-interaction-buffer
 
-Markdown links in displayed table cells render as clickable labels and use the same plain/modifier-click navigation gestures as links outside tables. Alt-click retains cell editing. Code literals remain literal. Tab, Shift-Tab, and Enter at table edges leave the table rather than creating rows; explicit structural editing remains available. ^md-table-interactions
+Markdown links in displayed table cells render as clickable labels and use the same plain/modifier-click navigation gestures as links outside tables. Alt-click retains cell editing. Code literals remain literal. Tab, Shift-Tab, and Enter at table edges leave the table rather than creating rows. When the table starts or ends the document, there is no position beyond it in that direction, so the key keeps the caret in the edge cell. Explicit structural editing remains available. ^md-table-interactions
 
 ## Appearance
 

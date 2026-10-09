@@ -4,7 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 // proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-intentional-source
 // proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-structural-source
 // proofs/arch/artifact-frame/markdown-tables-buffer.md#^mt-t-discovery
-// proofs/ui/markdown-editor/index.md#^md-table-t-interactions
+// proofs/ui/markdown-editor/index.md#^md-table-t-edge-navigation
 
 const RAW = "8. Before\n\n|A|B|\n|---|---|\n|1|two|\n \n12. After";
 interface HostView { state: { doc: { toString(): string }; selection: { main: { head: number } } }; dispatch(spec: unknown): void; focus(): void }
@@ -12,6 +12,7 @@ interface Host extends Window {
   __cmView?: HostView;
   __sourceSaves?: string[];
   __sendSource?: (content: string) => void;
+  __rootFocuses?: number;
   __televisionContentBridge?: { postToHost(message: unknown): void; onHostMessage(callback: (message: unknown) => void): () => void };
 }
 async function load(page: Page, content: string, reject = false): Promise<void> {
@@ -264,8 +265,10 @@ test("viewing and remote replacement render noncanonical tables without changing
   expect(await saves(page)).toEqual([]);
 });
 
-test("navigating beyond table edges leaves source and saves untouched", async ({ page }) => {
-  const raw = "|A|B|\n|---|---|\n|1|two|";
+test("edge keys leave a table with surrounding text without changing source or saving", async ({ page }) => {
+  const raw = "Before\n\n|A|B|\n|---|---|\n|1|two|\n\nAfter";
+  const from = raw.indexOf("|A|");
+  const to = raw.indexOf("two|") + "two|".length;
   await load(page, raw);
   await expect(page.locator(".tbl-table-widget")).toHaveCount(1);
   for (const gesture of [{ cell: "last", key: "Tab" }, { cell: "first", key: "Shift+Tab" }, { cell: "last", key: "Enter" }]) {
@@ -273,10 +276,47 @@ test("navigating beyond table edges leaves source and saves untouched", async ({
     await cell.click();
     await expect(page.locator(".tbl-cell-editor .cm-content")).toBeFocused();
     await page.keyboard.press(gesture.key);
+    await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
     await expect(page.locator(".cm-content").first()).toBeFocused();
-    await expect.poll(() => source(page)).toBe(raw);
+    const head = await page.evaluate(() => (window as Host).__cmView?.state.selection.main.head ?? -1);
+    if (gesture.cell === "first") expect(head).toBeLessThan(from);
+    else expect(head).toBeGreaterThan(to);
+    expect(await source(page)).toBe(raw);
   }
+  await expect(page.locator(".tbl-cell")).toHaveCount(4);
   await page.waitForTimeout(650);
+  await expect(page.locator(".cm-content").first()).toBeFocused();
+  expect(await source(page)).toBe(raw);
+  expect(await saves(page)).toEqual([]);
+});
+
+test("edge keys at document edges keep the caret in the edge cell without changing source or saving", async ({ page }) => {
+  const raw = "|A|B|\n|---|---|\n|1|two|";
+  await load(page, raw);
+  await expect(page.locator(".tbl-table-widget")).toHaveCount(1);
+  await page.evaluate(() => {
+    const host = window as Host;
+    document.querySelector(".cm-content")?.addEventListener("focus", () => { host.__rootFocuses = (host.__rootFocuses ?? 0) + 1; });
+  });
+  for (const gesture of [{ cell: "last", key: "Tab", text: "two" }, { cell: "first", key: "Shift+Tab", text: "A" }, { cell: "last", key: "Enter", text: "two" }]) {
+    const cell = gesture.cell === "first" ? page.locator(".tbl-cell").first() : page.locator(".tbl-cell").last();
+    const editor = cell.locator(".tbl-cell-editor .cm-content");
+    await cell.click();
+    await expect(editor).toBeFocused();
+    await page.evaluate(() => { (window as Host).__rootFocuses = 0; });
+    await page.keyboard.press(gesture.key);
+    await expect(editor).toBeFocused();
+    expect(await page.evaluate(() => (window as Host).__rootFocuses)).toBe(0);
+    const head = await page.evaluate(() => (window as Host).__cmView?.state.selection.main.head ?? -1);
+    expect(head).toBeGreaterThanOrEqual(raw.indexOf(gesture.text));
+    expect(head).toBeLessThanOrEqual(raw.indexOf(gesture.text) + gesture.text.length);
+    expect(await source(page)).toBe(raw);
+  }
+  await expect(page.locator(".tbl-cell")).toHaveCount(4);
+  await page.waitForTimeout(650);
+  expect(await page.evaluate(() => (window as Host).__rootFocuses)).toBe(0);
+  await expect(page.locator(".tbl-cell").last().locator(".tbl-cell-editor .cm-content")).toBeFocused();
+  expect(await source(page)).toBe(raw);
   expect(await saves(page)).toEqual([]);
 });
 
