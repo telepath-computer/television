@@ -14,7 +14,7 @@ The `tv` CLI is designed to be invoked on the same host as the Television server
 
 This spec defines the CLI spelling of focus requests; product channels and tab pages own their effects.
 
-A *focus directive* is one of the mutually exclusive flags that tells a creation command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation.
+A *focus directive* is one of the mutually exclusive flags that tells a creation or move command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation and `move-artifact`.
 
 *Channel focus* is the persisted active channel owned by [channels.md](./channels.md). *Artifact focus* is a transient one-shot signal: clients select the artifact's tab page and switch to its channel when needed, without scrolling-to-card or highlight/glow behavior ([tab-pages.md#^tp-focus-selects](./tab-pages.md#^tp-focus-selects)). It is not persisted.
 
