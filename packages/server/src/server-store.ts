@@ -93,7 +93,7 @@ import type { TelemetryClientContext } from "./telemetry/client-meta.ts";
 import type { ServerStoreTelemetryHooks } from "./telemetry/emitters.ts";
 import type { ArtifactDeletionCause, ThemeChangeReason } from "./telemetry/types.ts";
 import { runOnboardingBootstrap } from "./onboarding-installer.ts";
-import { readMoveRecord, removeMoveRecord, writeMoveRecord, type MoveRecord } from "./move-record.ts";
+import { moveRecordPath, readMoveRecord, removeMoveRecord, writeMoveRecord, type MoveRecord } from "./move-record.ts";
 import {
   BUNDLED_THEME_STATE_VERSION,
   DEFAULT_BUNDLED_THEME_ID,
@@ -1299,6 +1299,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     const record = this.pendingMove;
     if (record === null) return;
     try {
+      // The record must be durable before either channel changes on disk, or
+      // a crash between the channel saves could leave no record to complete
+      // the move. Its own save flushed this directory unless that flush was
+      // the step that failed, so flush it again here.
+      this.recordStorage.flushDirectory(path.dirname(moveRecordPath(this.storagePath)));
       for (const channelID of [record.targetChannelID, record.sourceChannelID]) {
         const channel = this.channels.get(channelID);
         if (channel) this.persistChannelDurably(channel);

@@ -357,14 +357,21 @@ describe("moving an artifact between channels", () => {
   });
 
   // proofs/arch/layout/index.md#^ly-ac-move-record-uncertain
-  it("treats a move record whose save is uncertain as committed and keeps later changes behind it", async () => {
+  it("treats a move record whose save is uncertain as committed, makes it durable before any channel write, and keeps later changes behind it", async () => {
     const fx = fixture();
     // The store's declared storage-operations hook, failing only the flush
     // that follows the move record's rename: the record is in place, but its
     // save reports an uncertain outcome.
+    // It also logs each operation, so the test can check that the record is
+    // made durable before any channel file is written.
     let failNextFlush = false;
+    const operations: string[] = [];
     const storage = {
       ...nodeResourceStorageOperations,
+      writeTemporaryFile(filePath: string, contents: string) {
+        operations.push(`write ${path.dirname(filePath)}`);
+        nodeResourceStorageOperations.writeTemporaryFile(filePath, contents);
+      },
       rename(fromPath: string, toPath: string) {
         nodeResourceStorageOperations.rename(fromPath, toPath);
         if (toPath === moveRecordPath(fx.storagePath)) failNextFlush = true;
@@ -372,8 +379,10 @@ describe("moving an artifact between channels", () => {
       flushDirectory(directoryPath: string) {
         if (failNextFlush) {
           failNextFlush = false;
+          operations.push(`failed flush ${directoryPath}`);
           throw new Error("flush failed");
         }
+        operations.push(`flush ${directoryPath}`);
         nodeResourceStorageOperations.flushDirectory(directoryPath);
       },
     };
@@ -389,6 +398,14 @@ describe("moving an artifact between channels", () => {
       .expect(({ body }) => expect(body.error).toMatch(/outcome is unknown/));
     expect(await layoutOf(server, token, fx.target)).toEqual(TARGET_AFTER);
     expect(existsSync(moveRecordPath(fx.storagePath))).toBe(true);
+    const stateDir = path.dirname(moveRecordPath(fx.storagePath));
+    const channelsDir = path.dirname(channelPath(fx.storagePath, fx.target));
+    const failed = operations.indexOf(`failed flush ${stateDir}`);
+    const recordFlushed = operations.indexOf(`flush ${stateDir}`, failed);
+    const firstChannelWrite = operations.indexOf(`write ${channelsDir}`, failed);
+    expect(failed).toBeGreaterThanOrEqual(0);
+    expect(recordFlushed).toBeGreaterThan(failed);
+    expect(firstChannelWrite).toBeGreaterThan(recordFlushed);
     await request(server.httpServer).patch(`/channels/${fx.third}`).set(auth(token)).send({ name: "Renamed" }).expect(503);
     expect(await layoutOf(server, token, fx.third)).toEqual([page([fx.thirdA])]);
 
