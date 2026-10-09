@@ -197,9 +197,13 @@ tv update-artifact --id "<artifact-id>" --url "https://example.com/next"
 
 The new path follows the same rules as creation (file or indexed directory, trailing separator optional). Rendering follows the new pointer immediately, and for path artifacts the content watcher retargets with it. Prefer repointing over delete-and-recreate when the artifact should keep its identity and channel placement.
 
-Reordering an artifact's tab page on its current channel is a browser UI tab-drag gesture; the CLI does not expose layout mutation today.
+To change an artifact's page — its size, full-screen state, or position in the channel's order — use `tv update-page`, described under Arranging pages above.
 
-To move the same underlying path or URL to another channel, delete the existing artifact and create a new one on the target channel with the same `--path` or `--url`.
+To move an artifact to another channel, keeping its identity, store, and share link:
+
+```bash
+tv move-artifact --id "<artifact-id>" --channel "<target-channel-id>" --no-focus
+```
 
 To delete the registry record and remove its tab page from the channel:
 
