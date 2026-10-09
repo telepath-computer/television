@@ -35,7 +35,7 @@ The visible command surface is:
 | `tv create-path-artifact` | Register an existing local markdown/HTML file or indexed directory on a channel. |
 | `tv create-url-artifact` | Register an `http(s)` URL on a channel. |
 | `tv update-artifact` | Update an artifact title or repoint its path/URL. |
-| `tv delete-artifact` | Delete an artifact registry record and remove its tab page. |
+| `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
 | `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
 | `tv move-artifact` | Move an artifact to another channel. |
 | `tv get-artifact` | Print one artifact's metadata as JSON. |

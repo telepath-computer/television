@@ -871,9 +871,9 @@ describe("CLI product spine acceptance", () => {
     );
     expect(installedTelevisionSkill).toContain("advisory authoring context");
     expect(installedTelevisionSkill).toContain(
-      "clients select the artifact's tab page, switching channels first when needed",
+      "clients select the artifact, switching channels first when needed",
     );
-    expect(installedTelevisionSkill).toContain("remove its tab page from the channel");
+    expect(installedTelevisionSkill).toContain("remove the artifact from its channel");
     expect(installedTelevisionSkill).toContain("`update-channel`");
     expect(installedTelevisionSkill).not.toContain("scroll and highlight the artifact");
     expect(installedTelevisionSkill).not.toContain("remove its card from its channel");

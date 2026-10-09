@@ -1745,7 +1745,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
   program
     .command("focus-artifact")
     .description(
-      "Send a transient focus nudge for a specific artifact. Connected clients select the artifact's tab page and switch to its channel when needed. This is NOT persisted as state — there is no concept of a 'focused artifact' that survives reconnects (the focused channel is persistent, but artifact focus is a one-shot event).",
+      "Send a transient focus nudge for a specific artifact. Connected clients select the artifact and switch to its channel when needed. This is NOT persisted as state — there is no concept of a 'focused artifact' that survives reconnects (the focused channel is persistent, but artifact focus is a one-shot event).",
     )
     .requiredOption("--id <id>", "Artifact ID")
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)

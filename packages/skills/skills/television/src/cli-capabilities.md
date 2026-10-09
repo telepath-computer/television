@@ -68,7 +68,7 @@ Use read commands when you need authoritative state for planning or verification
 Television separates state changes from focus. Choosing where an artifact lives is one decision; choosing whether the user's attention moves there is a separate one.
 
 - **channel focus** is persistent: which channel the user is currently looking at
-- **artifact focus** is transient: clients select the artifact's tab page, switching channels first when needed
+- **artifact focus** is transient: clients select the artifact, switching channels first when needed
 
 There is a persisted focused channel.
 There is not a persisted focused artifact.

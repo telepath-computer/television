@@ -205,7 +205,7 @@ To move an artifact to another channel, keeping its identity, store, and share l
 tv move-artifact --id "<artifact-id>" --channel "<target-channel-id>" --no-focus
 ```
 
-To delete the registry record and remove its tab page from the channel:
+To delete the registry record and remove the artifact from its channel:
 
 ```bash
 tv delete-artifact --id "<artifact-id>"

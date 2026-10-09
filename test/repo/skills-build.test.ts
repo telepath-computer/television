@@ -224,7 +224,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("https://television.run/install.md");
     expect(televisionSkill).toContain("Fetch the full raw content — never a summary.");
     expect(televisionSkill).toContain(
-      "clients select the artifact's tab page, switching channels first when needed",
+      "clients select the artifact, switching channels first when needed",
     );
     expect(televisionSkill).toContain(
       "(`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`)",
@@ -232,7 +232,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain(
       "(`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`)",
     );
-    expect(televisionSkill).toContain("remove its tab page from the channel");
+    expect(televisionSkill).toContain("remove the artifact from its channel");
     expect(televisionSkill).not.toContain("scroll and highlight the artifact");
     expect(televisionSkill).not.toContain("remove its card from its channel");
     expect(televisionSkill).not.toContain("removes its registry record and its card from the channel");

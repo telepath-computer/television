@@ -699,7 +699,8 @@ describe("CLI Slice 1 artifact command surface", () => {
 
     const focusStdout = new BufferOutput();
     expect(await runCLI(["help", "focus-artifact"], fakeEnvironment({ stdout: focusStdout, stderr: new BufferOutput() }))).toBe(0);
-    expect(focusStdout.toString()).toMatch(/select\s+the artifact's tab page/);
+    expect(focusStdout.toString()).toMatch(/select\s+the artifact and switch/);
+    expect(focusStdout.toString()).not.toMatch(/\bpages?\b/i);
     expect(focusStdout.toString()).toMatch(/switch to its channel when needed/);
     expect(focusStdout.toString()).not.toMatch(/scroll|highlight/i);
 
