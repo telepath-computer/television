@@ -94,7 +94,14 @@ async function startViteService(declaration, root) {
       },
     });
     if (vite.config.server.middlewareMode !== true) throw new Error(`Surface service ${declaration.id} did not retain Vite middleware mode`);
-    httpServer.on("request", vite.middlewares);
+    // Without validators Vite answers in full, never 304: Chromium holds a
+    // shared-memory buffer per 304 until the browser context closes
+    // (specs/arch/test-runner/test-runner.md#^test-service-full-responses).
+    httpServer.on("request", (request, response) => {
+      delete request.headers["if-none-match"];
+      delete request.headers["if-modified-since"];
+      vite.middlewares(request, response);
+    });
     await listen(httpServer);
     const address = httpServer.address();
     if (!address || typeof address === "string" || address.port === 0) throw new Error(`Surface service ${declaration.id} did not publish a TCP address`);
