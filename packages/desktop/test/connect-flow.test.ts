@@ -41,6 +41,7 @@ const mockState = vi.hoisted(() => {
     },
     shell: { openExternal: vi.fn() },
     nativeTheme: { themeSource: "system" },
+    session: { defaultSession: { setPermissionRequestHandler: vi.fn(), setPermissionCheckHandler: vi.fn() } },
   };
 });
 
@@ -55,6 +56,7 @@ vi.mock("electron", () => ({
   ipcMain: mockState.ipcMain,
   shell: mockState.shell,
   nativeTheme: mockState.nativeTheme,
+  session: mockState.session,
 }));
 
 const fsState = vi.hoisted(() => ({ files: new Map<string, string>() }));
@@ -110,8 +112,10 @@ describe("connect flow", () => {
     return main;
   }
 
+  // The connect screen invokes from the window's own web contents.
   function invoke(channel: string, ...args: unknown[]): Promise<any> {
-    return Promise.resolve(mockState.ipcHandlers.get(`television:${channel}`)!({}, ...args));
+    const sender = mockState.MockBrowserWindow.instances.at(-1)!.webContents;
+    return Promise.resolve(mockState.ipcHandlers.get(`television:${channel}`)!({ sender }, ...args));
   }
 
   function disconnectItem() {

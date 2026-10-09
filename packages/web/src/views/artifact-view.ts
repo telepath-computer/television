@@ -99,6 +99,7 @@ export class ArtifactView extends View<[ApplicationService, Artifact, ArtifactVi
     () => {
       this._missingArtifactReplyTransport = null;
     },
+    (url) => openApplicationLinkThroughShell(url),
   );
   private _activeReloadFrameSrc: string | null = null;
   private _applicationSubscriptionsAttached = false;
@@ -309,6 +310,10 @@ export class ArtifactView extends View<[ApplicationService, Artifact, ArtifactVi
     } else {
       state.navigate(url);
     }
+    // A request that changed no history committed nothing, so no render
+    // consumed the flag; left set, it would keep the next Back or Forward
+    // from assigning the frame's src.
+    this._preserveFrameSrcOnNavigationRender = false;
   }
 
   private readonly handleNavigationChange = (): void => {
@@ -509,7 +514,7 @@ export class ArtifactView extends View<[ApplicationService, Artifact, ArtifactVi
     const frame = this.currentFrame;
     if (artifact?.kind !== "url" || frame?.tagName.toLowerCase() !== "iframe") return;
     this._rootRef.value?.removeAttribute("data-embed-loaded");
-    frame.setAttribute("src", artifact.url);
+    this._documentHost?.assignFrameSrc(artifact.url);
     this._documentHost?.refreshFrameLoadState();
   }
 
@@ -599,7 +604,7 @@ export class ArtifactView extends View<[ApplicationService, Artifact, ArtifactVi
     this.resetTrustedFrame();
     this._activeReloadFrameSrc = null;
     this._rootRef.value?.removeAttribute("data-embed-loaded");
-    frame.setAttribute("src", route.viewURL);
+    this._documentHost?.assignFrameSrc(route.viewURL);
     this._documentHost?.refreshFrameLoadState();
   }
 
@@ -793,6 +798,14 @@ export const ArtifactViewView = view(ArtifactView);
 
 function isExternalURL(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
+}
+
+/** Passes an artifact's application link to the desktop main process through the window's native preload bridge. */
+function openApplicationLinkThroughShell(url: string): void {
+  const nativeBridge = (globalThis as typeof globalThis & {
+    __televisionNativeBridge?: { openApplicationLink?: (url: string) => void };
+  }).__televisionNativeBridge;
+  nativeBridge?.openApplicationLink?.(url);
 }
 
 function sameArtifactDocument(left: Artifact, right: Artifact): boolean {

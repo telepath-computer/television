@@ -166,7 +166,7 @@ The administrative routes live under `/api/resources/v1/` and are JSON over HTTP
 
 The server serves requests and WebSocket upgrades on either route family whatever their `Origin` header, and sends no CORS headers on these routes. The ID in an artifact route's path, or the token on an administrative route, is the whole authorization: a page on another site that holds an artifact ID or share ID reaches the store at that ID's level, as any client holding it does, and a server that requires the token refuses an administrative request without it wherever the request comes from. The routes do not depend on the scheme or host a browser used to reach the server, so pages served through [a front that terminates TLS](../../product/resources/resources.md#^rs-https-front) and forwards plain HTTP, whose origins are `https:`, use them as other pages do. No resource route changes state on `GET` or `HEAD`. ^rs-any-origin
 
-A shared artifact's page is framed with the producer's URL directly (`packages/web/src/artifact-dispatcher.ts`), so its document has the producer's origin and its SDK connects to the producer's server.
+A shared artifact's page is framed with the producer's URL directly (`packages/web/src/artifact-dispatcher.ts`). In a browser its document is sandboxed with an opaque origin ([isolation.md#^iso-sandbox-header](../artifact-frame/isolation.md#^iso-sandbox-header)); in either runtime its address is the producer's, so its SDK connects to the producer's server.
 
 ## The page connection
 

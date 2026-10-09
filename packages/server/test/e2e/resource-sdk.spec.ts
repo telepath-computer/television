@@ -5,6 +5,7 @@ import type { PageEvent, ResourceInfo } from "@telepath-computer/television-shar
 import {
   MAPPED_HOST_LAUNCH,
   SdkTestContext,
+  STORELESS_PAGE_ID,
   TEST_HOST,
   artifactPath,
   openPage,
@@ -155,9 +156,9 @@ test.describe("the layer's functions", () => {
   });
 
   test("onAccessChanged hears null on a page whose artifact has no store, and, as a page's only use of the SDK, once its share link is revoked, after which getAccess rejects with no-store", async ({ page }) => {
-    const server = await context.start();
+    const server = await context.startWithStorelessPage();
     const port = serverPort(server);
-    const storeless = context.createPageArtifact(server, "No store", { id: "page-without-a-store" });
+    const storeless = STORELESS_PAGE_ID;
     await openPage(page, pageURL(port, artifactPath(storeless)));
     expect(await page.evaluate(() => window.outcome(() => window.sdk.getAccess()))).toEqual(refusedWith("no-store"));
     await page.evaluate(() => {
@@ -182,8 +183,8 @@ test.describe("the layer's functions", () => {
   });
 
   test("with the bindings hook, keep the level null on a page opened through a share link to an artifact that has no store when the link's level changes: onAccessChanged hears nothing more and getAccess still rejects with no-store", async ({ page }) => {
-    const server = await context.start({ resourceBindings: true });
-    const storeless = context.createPageArtifact(server, "No store", { id: "page-without-a-store" });
+    const server = await context.startWithStorelessPage({ resourceBindings: true });
+    const storeless = STORELESS_PAGE_ID;
     const bound = await server.createdStore({ value: { n: 0 } });
     await server.bind(bound, storeless, "read-write");
     const shareID = await server.sharedAt(storeless, "read");
@@ -308,9 +309,9 @@ test.describe("the layer's functions", () => {
 // spec: proofs/arch/resources/sdk.md#^sdk-t-handles
 test.describe("handles", () => {
   test("are made without network traffic, the artifact's own with a null resource ID; its first operation fails no-store on a page whose artifact has no store, and one by resource ID fails not-enabled with the flag off", async ({ page }) => {
-    const server = await context.start();
+    const server = await context.startWithStorelessPage();
     const { artifactID, resourceID } = await context.pageWithStore(server, { n: 0 });
-    const storeless = context.createPageArtifact(server, "No store", { id: "page-without-a-store" });
+    const storeless = STORELESS_PAGE_ID;
     const proxy = await context.proxy(server);
     await openPage(page, pageURL(proxy.port, artifactPath(artifactID)));
 

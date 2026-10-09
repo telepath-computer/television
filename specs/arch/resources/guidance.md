@@ -6,7 +6,7 @@ Agents learn to give artifacts lasting data from one guidance document that trav
 
 ## What this owns
 
-This spec owns the content and derivation of the *resource guidance document*, shipped as `resources.md` beside the `television` skill's `SKILL.md` and `theming.md`, what guidance for created stores and bindings must teach, and what the `tv-tasks` skill says about where task-list data lives and where a live list's messages go. The behavior the guidance describes is owned by [product/resources/resources.md](../../product/resources/resources.md), [product/resources/json-store.md](../../product/resources/json-store.md) and the [resource architecture](./index.md); bundle membership and consumer delivery by [making skills](../making-skills.md). The guidance states nothing those specs do not promise.
+This spec owns the content and derivation of the *resource guidance document*, shipped as `resources.md` beside the `television` skill's `SKILL.md` and `theming.md`, what guidance for created stores and bindings must teach, and what the `tv-tasks` skill says about where task-list data lives and where a live list's messages go. The behavior the guidance describes is owned by [product/resources/resources.md](../../product/resources/resources.md), [product/resources/json-store.md](../../product/resources/json-store.md) and the [resource architecture](./index.md); bundle membership and consumer delivery by [making skills](../making-skills.md). The guidance states nothing those specs do not promise, apart from its deliberately simpler account of browser storage under [its opening](#^rg-purpose).
 
 ## Document role and source
 
@@ -17,10 +17,12 @@ The `television` skill's build emits `resources.md` from `packages/skills/skills
 The guidance leads with the JSON store's purpose, in `SKILL.md`'s paragraph and in the opening of `resources.md`, and only then introduces resources, the general concept the JSON store is the first type of: while it is the only type, its use is the reason to read on. The guidance informs the agent's judgment about where an artifact's state lives and sets no rules about which kinds of state go where, since that depends on what the person wants. In substance, it says: ^rg-purpose
 
 - a JSON store, a small database that Television keeps on its server, inspired by Firebase's Realtime Database, keeps an artifact's data durably, shares it live with every client viewing the artifact, and lets the agent read and write it through the `tv` CLI;
-- localStorage is also available to an artifact's page, but highly discouraged, because a future version of Television may remove it;
+- `localStorage`, cookies and IndexedDB do not work in artifacts, because artifacts run under the CSP sandbox ([isolation.md](../artifact-frame/isolation.md#^iso-limitations)): touching them, or `sessionStorage`, throws `SecurityError`, so code that cannot avoid touching them, such as a library, catches the exception, and Television offers no storage that stays in one browser;
 - a Markdown artifact can also act as shared, synchronized, editable state, which the person edits in Television and the agent edits on disk, but it is editable only within Television: shared through a share link, it is read-only, unlike a JSON store; it also lacks an HTML page's presentational flexibility and interactivity;
 - an artifact's state can also live in the third-party APIs or external services it integrates with;
 - which of these fits depends on the artifact's design, its use and the person, and the agent decides; for a to-do list, the standard choice is a JSON store.
+
+Browser storage works in the desktop app, where artifacts run unsandboxed with storage of their own ([isolation.md#^iso-desktop-sessions](../artifact-frame/isolation.md#^iso-desktop-sessions)). The guidance says it does not work in artifacts, without naming the runtime, because an artifact is not written for one runtime and cannot rely on what works only in the desktop app; the `tv-tasks` skill says the same.
 
 ## What it teaches
 
@@ -53,7 +55,7 @@ The `television` skill ships no guidance for creating stores and binding them wh
 
 ## The task-list skill
 
-The `tv-tasks` skill is presentational: it teaches how to render tasks once an artifact has them, not where they come from or where their state lives. It says that this is the artifact author's choice, which depends on the artifact's design, its use and the person, and names places the data can come from, such as a JSON store, a third-party API such as the person's productivity app when it has an HTTP API, or the artifact's HTML itself. Referring to the `television` skill's `resources.md`, it describes the JSON store as [the guidance's opening](#^rg-purpose) does and says that it is the standard choice for a to-do list's data, and it says that localStorage is also available but highly discouraged, because a future version of Television may remove it. ^rg-tv-tasks
+The `tv-tasks` skill is presentational: it teaches how to render tasks once an artifact has them, not where they come from or where their state lives. It says that this is the artifact author's choice, which depends on the artifact's design, its use and the person, and names places the data can come from, such as a JSON store, a third-party API such as the person's productivity app when it has an HTTP API, or the artifact's HTML itself. Referring to the `television` skill's `resources.md`, it describes the JSON store as [the guidance's opening](#^rg-purpose) does and says that it is the standard choice for a to-do list's data, and it says that `localStorage`, cookies and IndexedDB do not work in artifacts, because artifacts run under the CSP sandbox. ^rg-tv-tasks
 
 For a list whose tasks arrive or change while the page is open, such as one rendered from a JSON store, the `tv-tasks` skill says where the list's status or error message goes: in the page header, after its title and any subtitle. A list that shows such a message has a page header to hold it. ^rg-tv-tasks-message
 

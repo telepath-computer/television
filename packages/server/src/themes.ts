@@ -20,6 +20,7 @@ const ETAG_DIGEST_LENGTH = 16;
 const HTTP_NO_CONTENT_STATUS = 204;
 const HTTP_NOT_FOUND_STATUS = 404;
 const HTTP_NOT_MODIFIED_STATUS = 304;
+const HTTP_METHOD_NOT_ALLOWED_STATUS = 405;
 const THEME_MANIFEST_FILE = "manifest.json";
 const THEME_ENTRY_FILE = "theme.css";
 type ThemeScriptDeclaration = keyof Pick<
@@ -302,15 +303,18 @@ interface ThemeDeliveryStore {
  * whether a selected theme ID is a package; request handling never rescans it.
  */
 export function serveActiveTheme(store: ThemeDeliveryStore): express.RequestHandler {
-  return (req, res, next) => {
+  return (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
     if (req.method === "OPTIONS") {
       res.status(HTTP_NO_CONTENT_STATUS).end();
       return;
     }
+    // Answered here: Express's own 404 would replace the sandbox header the
+    // server sets on this route (specs/arch/themes/delivery.md#^theme-delivery-route).
     if (req.method !== "GET" && req.method !== "HEAD") {
-      next();
+      res.setHeader("Allow", "GET, HEAD, OPTIONS");
+      res.sendStatus(HTTP_METHOD_NOT_ALLOWED_STATUS);
       return;
     }
 
