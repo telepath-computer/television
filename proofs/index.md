@@ -151,7 +151,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **select/**
       - `index.md` (24 lines) — *How the production select's value, semantics, interaction, and placement are proven in Chromium.*
   - **markdown-editor/**
-    - `index.md` (27 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
+    - `index.md` (29 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
   - **onboarding-artifacts/**
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
