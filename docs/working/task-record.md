@@ -17,7 +17,7 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 ## Stages
 
 - [x] Spec edits derived (ab3ad83)
-- [ ] Spec convergence
+- [x] Spec convergence (round 4 PASS at 498cd03, no findings)
 - [ ] Proofs derived and converged
 - [x] Slice decision / plan (one slice, no plan)
 - [ ] Implementation (red/green) and convergence
@@ -33,3 +33,5 @@ Codex CLI 0.154.0, `gpt-6-astra`, `model_reasoning_effort="xhigh"`, fresh `codex
 - Proof and skill-guidance drafts committed at 8c98372/52f841b ahead of proof convergence (proof stage starts after the spec gate).
 - Slice decision: one slice. Server move + startup completion + route + shared client method, two CLI commands, web client handling of moved-in artifacts, skill text: small, tightly coupled, reviewable as one result. No plan.
 - Implementation note: web client learns artifact records from `artifact-created`; a `channel-updated` that adds an unknown artifact leaves no record, so the move needs client handling (see artifacts proof ^af-ac-move).
+- Round 3 FAIL (52f841b): retained record could replay over later changes. Fixed in 498cd03 (complete pending move before any other change). Round 4 PASS, no findings.
+- Proof review round 1 dispatched against 498cd03.
