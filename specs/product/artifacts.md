@@ -53,7 +53,7 @@ removal above.
 
 ## Moving to another channel
 
-An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel, and that page's tab goes with it. It opens as a new page at the end of the new channel's order, at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing. The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
+An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel; a page left with no artifacts is removed, with its tab. It opens as a new page at the end of the new channel's order, at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing. The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
 
 ## Local source changes
 
