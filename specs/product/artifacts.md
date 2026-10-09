@@ -1,4 +1,4 @@
-*What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, a shared one outliving its producer, and what survives moving around the app.*
+*What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
 
 **Status:** adopted redesign product authority.
 
@@ -50,6 +50,10 @@ Deletion asks for confirmation before acting, and names the artifact in the aski
 nothing is removed by mistake and nothing is removed until it is confirmed. Declining
 leaves the artifact, its tab, and its page exactly as they were; confirming performs the
 removal above.
+
+## Moving to another channel
+
+An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel, and that page's tab goes with it. It opens as a new page at the end of the new channel's order, at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing. The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
 
 ## Local source changes
 
