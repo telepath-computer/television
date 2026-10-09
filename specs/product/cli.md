@@ -521,6 +521,12 @@ Success prints:
 Artifact <artifact-id> repositioned.
 ```
 
+The command reads the channel and then sends its whole new arrangement. If an artifact is added to, removed from, or moved off that channel in between, the server refuses the arrangement and nothing changes. The command then exits `1` and prints this error before the standard bundled-skills recovery pointer:
+
+```text
+Channel <channel-id> changed before artifact <artifact-id> could be repositioned, so nothing changed. Run the command again.
+```
+
 The help, output, and errors of `tv reposition-artifact` and `tv move-artifact` speak of artifacts and their order and size. They do not say "page" or "tab page", which are internal terms. ^cli-arrangement-wording
 
 `tv move-artifact --id <id> --channel <channel-id> (--focus-artifact|--no-focus)` moves an artifact to another channel ([product/artifacts.md#^af-move](./artifacts.md#^af-move)). Exactly one focus directive is required. `--focus-artifact` sends a transient artifact-focus nudge for the artifact after the move, which takes clients to its new channel; `--no-focus` leaves focus unchanged. Success prints: ^cli-move-artifact

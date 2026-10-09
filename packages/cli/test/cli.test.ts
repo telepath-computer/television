@@ -3396,6 +3396,22 @@ describe("page arrangement and moving commands", () => {
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
+  // proofs/arch/cli/index.md#^cli-t-reposition-artifact-stale
+  it("reposition-artifact reports a channel that changed before its update", async () => {
+    const { stdout, stderr, client, env } = arrange();
+    client.channels.update.mockRejectedValueOnce(new RequestError(
+      "Channel home-channel layout cannot add, remove, split, merge, or regroup page membership",
+      { serverURL: "http://localhost:43123", status: 409 },
+    ));
+    expect(await runCLI(["reposition-artifact", "--id", "middle", "--width", "500"], env)).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain(
+      "Channel home-channel changed before artifact middle could be repositioned, so nothing changed. Run the command again.",
+    );
+    expect(stderr.toString()).not.toMatch(/\bpages?\b/i);
+    expect(stderr.toString()).toContain(SKILL_POINTER);
+  });
+
   // proofs/arch/cli/index.md#^cli-t-arrangement-wording
   it("reposition-artifact and move-artifact help and messages do not say page", async () => {
     const texts: string[] = [];

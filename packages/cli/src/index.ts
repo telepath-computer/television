@@ -120,6 +120,7 @@ const MAX_PROCESS_EXIT_STATUS = 255;
 const LOOPBACK_IPV4 = "127.0.0.1";
 const CONFIG_KEYS = ["port", "listen", "auth", "installedByAgent"] as const;
 const HTTP_UNAUTHORIZED_STATUS = 401;
+const HTTP_CONFLICT_STATUS = 409;
 const HELP_POINTER = "Television ships bundled skills. The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming. Re-read it only if it is not already in context or you know the installed skill changed. Additional `tv-*` skills cover specialized artifact types. Install all bundled skills with `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.";
 export const PORT_ZERO_WARNING = "WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port in the startup output.";
 const TELEMETRY_NOTICE = "Fully anonymized telemetry is enabled by default. Opt out: tv telemetry disable.";
@@ -1494,7 +1495,18 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       };
       const layout = channel.layout.filter((_page, pageIndex) => pageIndex !== index);
       layout.splice(position === undefined ? index : position - 1, 0, changed);
-      await client.channels.update({ channelID: channel.id, layout });
+      try {
+        await client.channels.update({ channelID: channel.id, layout });
+      } catch (error) {
+        // The server refuses a layout whose membership no longer matches, which
+        // means another change reached the channel after it was read.
+        if ((error as { status?: unknown }).status === HTTP_CONFLICT_STATUS) {
+          throw new ValidationError(
+            `Channel ${channel.id} changed before artifact ${opts.id} could be repositioned, so nothing changed. Run the command again.`,
+          );
+        }
+        throw error;
+      }
       writeLine(env.stdout, `Artifact ${opts.id} repositioned.`);
     });
 
