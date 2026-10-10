@@ -23,7 +23,6 @@ export const ChangeEvent = defineEvent<ChangeEvent>();
 /** Parsed `/events` WebSocket event from a television server. */
 export interface ServerEventMessageEvent extends Event {
   type: "server-event";
-  serverURL: string;
   event: ServerEvent;
 }
 export const ServerEventMessageEvent = defineEvent<ServerEventMessageEvent>();

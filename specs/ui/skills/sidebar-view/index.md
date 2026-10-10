@@ -20,5 +20,5 @@ Points:
 - A label too long for the sidebar truncates with an ellipsis, and never shows a whitespace gap before the ellipsis ("carriage…", not "carriage …").
 - Items always live in groups; an untitled group is the idiom for ungrouped items.
 - Views are authored within the artifact the sidebar belongs to; the sidebar is not a shell for navigating other artifacts. View contents are free-form authored markup placed inside the matching `tv-view`; that is the prototype's complete construction model.
-- The boundary between the sidebar and the detail pane can be dragged to resize the sidebar, between a minimum and a maximum width. The chosen width is remembered per artifact, on the device.
+- The boundary between the sidebar and the detail pane can be dragged to resize the sidebar, between a minimum and a maximum width. The chosen width is remembered per artifact and shared by everyone viewing it: resizing the sidebar in one browser resizes it in every other. Someone viewing the artifact through a read-only share link sees the shared width and can resize the sidebar only for themselves.
 - The prototype specifies pointer selection only. It makes no keyboard or focus promise and is not publication-quality accessibility authority; those behaviors must be designed before registration.

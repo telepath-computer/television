@@ -6,7 +6,7 @@ Television's desktop package turns the web interface into a native application. 
 
 ## What this owns
 
-This root owns the desktop domain's module map, terms, cross-module coverage model, and the main-process identity rules below. User-visible installation, platform support, identity, and saved-data behavior is [product/desktop-app.md](../../product/desktop-app.md). Each module spec exclusively owns the contract named in the map. The [desktop app explainer](../explainer-desktop-app.md) follows the whole app across the product, update, UI, licensing and testing specs as well.
+This root owns the desktop domain's module map, terms, cross-module coverage model, and the IPC sender and main-process identity rules below. User-visible installation, platform support, identity, and saved-data behavior is [product/desktop-app.md](../../product/desktop-app.md). Each module spec exclusively owns the contract named in the map. The [desktop app explainer](../explainer-desktop-app.md) follows the whole app across the product, update, UI, licensing and testing specs as well.
 
 ## Module map
 
@@ -18,6 +18,7 @@ This root owns the desktop domain's module map, terms, cross-module coverage mod
 | Desktop updates | [updates.md](./updates.md) | the update runtime's start and options, the record of a downloaded update, the update operations on the native preload bridge, and the restart that installs an update |
 | Electron runtime | [runtime.md](./runtime.md) | Electron's exact version and declarations, runtime validity on development and test hosts, how those hosts obtain the runtime, and major-upgrade operations |
 | Electron e2e harness | [e2e-harness.md](./e2e-harness.md) | runtime preparation for desktop tests, executable handoff to Playwright, Linux environment planning, and real-Electron harness seams |
+| Desktop artifact partitions | [artifact-partitions.md](./artifact-partitions.md) | which Electron session each artifact webview uses, the partition names the served interface and the main process agree on, the record of each server's partitions, and the reaper that deletes the partitions of deleted artifacts |
 
 The domain terms *Electron runtime* and *valid Electron runtime* are defined by [runtime.md](./runtime.md), and *upload directory* and *candidate build* by [distribution.md](./distribution.md).
 
@@ -27,6 +28,7 @@ Desktop modules consume these authorities without restating them:
 
 - [Node versions](../node-versions.md) owns the repository toolchain, including the Node version the ToDesktop build installs dependencies with. The installed app runs on the Node that Electron embeds.
 - [Artifact bridge architecture](../artifact-frame/artifact-bridge.md) owns communication and input behavior across the Electron `<webview>` boundary. Desktop keeps `<webview>` as that embedded-document mechanism.
+- [Artifact isolation](../artifact-frame/isolation.md#In the desktop app) owns why artifact webviews run in partitions apart from the window's session, how the main process rewrites the artifact proxy's headers there, and the permission handlers the main process sets on the window's session and the partitions'.
 - [Desktop upgrade gate](../updates/desktop-upgrade-gate.md) owns cross-release compatibility gating between an installed desktop release and the server-served interface. [Desktop connection flow](./connect-flow.md) owns the surrounding main-process connection lifecycle.
 - [Licensing architecture](../licensing.md) owns the desktop build's third-party notices, the license gate's check of the workspace's `dependencies`, the license checks on the upload directory, and where Electron's license files sit in the built app.
 - [GitHub CI](../test-runner/github-ci.md), [Blaxel shards](../test-runner/blaxel-testshards.md), and [preflight](../test-runner/preflight.md) own the provider setup and checks around the desktop test harness.
@@ -36,6 +38,10 @@ ToDesktop builds, signs and notarizes the app users install under [distribution.
 ## External links
 
 The desktop app installs a window-open handler on every Electron `webContents`. The handler denies every request to open an Electron window. For external HTTP and HTTPS links, it passes the URL to the operating system through `shell.openExternal`.
+
+## IPC senders
+
+The main process acts on an IPC message only when it comes from the window's own web contents, which show the local page or the server's page, and ignores every message from a webview's web contents, whatever its channel. The served interface reaches the main process through the window's context-isolated native preload bridge; an artifact webview reaches only the page that shows it, through [the artifact bridge](../artifact-frame/artifact-bridge.md#^ab-link-handling). ^desktop-ipc-senders
 
 ## Main-process identity
 

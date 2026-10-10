@@ -8,10 +8,11 @@
 //
 // The preload is the webview document's lifecycle authority. It carries the
 // target lifecycle shapes and artifact-route freshness notification over IPC;
-// the browser bridge remains inert in this top-level browsing context.
+// the browser bridge remains inert in this top-level browsing context. It runs
+// with context isolation, so page scripts reach only the content bridge.
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { classifyLinkTarget } from "@telepath-computer/television-artifact/link-target";
-import { OPEN_APPLICATION_LINK_CHANNEL } from "./application-link.ts";
+import { APPLICATION_LINK_HOST_CHANNEL } from "./application-link.ts";
 
 const BRIDGE_CHANNEL = "television-artifact-bridge";
 
@@ -42,8 +43,8 @@ interface ContentBridge {
   openApplicationLink(url: string): boolean;
 }
 
-// Webviews run this preload without context isolation. Capture Chromium's native
-// activation getter before artifact scripts can shadow the page-visible property.
+// Read Chromium's native activation getter itself, so a shadowing
+// `isActive` property cannot answer for it.
 const userActivation = window.navigator.userActivation;
 let userActivationPrototype: object | null = userActivation
   ? Object.getPrototypeOf(userActivation) as object | null
@@ -71,7 +72,9 @@ function openApplicationLink(url: string): boolean {
   if (!hasActiveUserGesture()) return false;
   const target = classifyLinkTarget(url, window.document.baseURI);
   if (target.kind !== "application") return false;
-  ipcRenderer.send(OPEN_APPLICATION_LINK_CHANNEL, target.url);
+  // The host renderer passes the request on to the main process
+  // (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling).
+  ipcRenderer.sendToHost(APPLICATION_LINK_HOST_CHANNEL, target.url);
   return true;
 }
 
@@ -91,12 +94,7 @@ const contentBridge: ContentBridge = {
   openApplicationLink,
 };
 
-if (process.contextIsolated) {
-  contextBridge.exposeInMainWorld("__televisionContentBridge", contentBridge);
-} else {
-  (window as Window & { __televisionContentBridge?: ContentBridge })
-    .__televisionContentBridge = contentBridge;
-}
+contextBridge.exposeInMainWorld("__televisionContentBridge", contentBridge);
 
 function handleApplicationAnchorActivation(event: MouseEvent): void {
   const supportedButton = (event.type === "click" && event.button === 0) ||

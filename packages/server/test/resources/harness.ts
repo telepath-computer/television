@@ -43,14 +43,18 @@ export interface StartOptions {
   resourceBindings?: boolean;
   /** The ID-generator hook (proofs/arch/resources/index.md, Test hooks). */
   generateID?: () => string;
+  /**
+   * Path artifacts an earlier release's onboarding installed under fixed IDs,
+   * which no current code path supplies, each serving its `path` or, without
+   * one, an HTML page written for it.
+   */
+  fixedIDArtifacts?: Array<{ id: string; path?: string }>;
 }
 
 /** What `createArtifact` registers. */
 export interface ArtifactFixture {
   /** The content's form: an HTML file by default. */
   form?: "html" | "htm" | "markdown" | "folder" | "url";
-  /** A fixed ID, as earlier releases' onboarding gave its artifacts. */
-  id?: string;
   /** Where the content is written, without its extension, instead of a new name in the home. */
   at?: string;
 }
@@ -207,9 +211,8 @@ export class RunningServer {
   /** Registers an artifact on the first channel, an HTML file unless `fixture` says otherwise, and returns its ID. */
   createArtifact(title = "Artifact", fixture: ArtifactFixture = {}): string {
     const channel = this.store.listChannels()[0]!;
-    const id = fixture.id === undefined ? {} : { id: fixture.id };
     if (fixture.form === "url") {
-      return this.store.createArtifact({ ...id, kind: "url", title, channelID: channel.id, url: "https://example.com/" }).id;
+      return this.store.createArtifact({ kind: "url", title, channelID: channel.id, url: "https://example.com/" }).id;
     }
     const base = fixture.at ?? path.join(this.home, `${title.replace(/\W+/g, "-")}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(path.dirname(base), { recursive: true });
@@ -222,7 +225,7 @@ export class RunningServer {
       target = `${base}.${fixture.form === "markdown" ? "md" : (fixture.form ?? "html")}`;
       writeFileSync(target, fixture.form === "markdown" ? "# Artifact\n" : "<!doctype html><title>artifact</title>");
     }
-    return this.store.createArtifact({ ...id, kind: "path", title, channelID: channel.id, path: target }).id;
+    return this.store.createArtifact({ kind: "path", title, channelID: channel.id, path: target }).id;
   }
 
   wsURL(route: string, query: Record<string, string> = {}): string {
@@ -564,6 +567,7 @@ export class ResourceTestContext {
 
   async start(options: StartOptions = {}): Promise<RunningServer> {
     const home = options.home ?? this.home();
+    for (const artifact of options.fixedIDArtifacts ?? []) writeFixedIDArtifact(home, artifact);
     const store = createServingStore(home, {
       ...(options.storage ? { resourceStorageOperations: options.storage } : {}),
       ...(options.onboardingContentPath ? { onboardingContentPath: options.onboardingContentPath } : {}),
@@ -595,4 +599,16 @@ export class ResourceTestContext {
     this.running.clear();
     for (const home of this.homes.splice(0)) rmSync(home, { recursive: true, force: true });
   }
+}
+
+/** A path artifact's record as an earlier release left it, under a fixed ID; the store loads it on boot. */
+function writeFixedIDArtifact(home: string, artifact: { id: string; path?: string }): void {
+  let target = artifact.path;
+  if (target === undefined) {
+    target = path.join(home, `${artifact.id}.html`);
+    writeFileSync(target, "<!doctype html><title>artifact</title>");
+  }
+  const record = getArtifactLiveMetadataPath(home, artifact.id);
+  mkdirSync(path.dirname(record), { recursive: true });
+  writeFileSync(record, JSON.stringify({ id: artifact.id, kind: "path", title: artifact.id, path: target }));
 }

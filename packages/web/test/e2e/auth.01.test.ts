@@ -31,6 +31,9 @@ test.describe("markdown endpoint auth integration", () => {
       await server.start();
       const serverURL = server.getBaseURL();
       const token = server.getAuthToken();
+      // The requests come from a page on the server's own origin, as the
+      // Markdown editor's do; the server answers no other origin's requests.
+      await page.goto(`${serverURL}/health`);
       const results = await page.evaluate(
         async ({ serverURL, token, artifactID }) => {
           const path = `/markdown/${encodeURIComponent(artifactID)}`;
@@ -68,14 +71,12 @@ test.describe("markdown endpoint auth integration", () => {
 
 function productAppIndexURL(appURL: string, token?: string): string {
   const url = new URL("/packages/web/src/index.html", appURL);
-  url.searchParams.set("serverURL", appURL);
   if (token) url.searchParams.set("token", token);
   return url.toString();
 }
 
 function productAppCleanURL(appURL: string): string {
   const url = new URL("/packages/web/src/index.html", appURL);
-  url.searchParams.set("serverURL", appURL);
   return url.toString();
 }
 

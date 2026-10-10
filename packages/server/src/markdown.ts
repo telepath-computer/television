@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import express, { type RequestHandler } from "express";
 import { hasTrailingSeparator, isMarkdownPath, type Artifact } from "@telepath-computer/television-artifact";
 import type { ServerStore } from "./server-store.ts";
+import { artifactRealLocation } from "./artifact-location.ts";
 
 const HTTP_NO_CONTENT = 204;
 const HTTP_NOT_FOUND = 404;
@@ -38,8 +39,16 @@ export function serveMarkdownContent(store: ServerStore): { get: RequestHandler;
       return;
     }
 
+    // A file whose real location is not a Markdown or HTML file is missing
+    // (specs/product/artifacts.md#^af-real-location).
+    const location = artifactRealLocation(artifact.path);
+    if (location === null) {
+      sendMarkdownError(res, HTTP_NOT_FOUND, `Markdown artifact not found: ${id}`);
+      return;
+    }
+
     try {
-      const content = await fs.readFile(artifact.path, "utf8");
+      const content = await fs.readFile(location.path, "utf8");
       res.type("text/markdown; charset=utf-8").send(content);
     } catch (error) {
       if (isNotFoundIOError(error)) {
@@ -58,10 +67,16 @@ export function serveMarkdownContent(store: ServerStore): { get: RequestHandler;
       return;
     }
 
+    const location = artifactRealLocation(artifact.path);
+    if (location === null) {
+      sendMarkdownError(res, HTTP_NOT_FOUND, `Markdown artifact not found: ${id}`);
+      return;
+    }
+
     const content = typeof req.body === "string" ? req.body : "";
     try {
-      await fs.access(artifact.path, constants.F_OK);
-      await fs.writeFile(artifact.path, content, "utf8");
+      await fs.access(location.path, constants.F_OK);
+      await fs.writeFile(location.path, content, "utf8");
       res.status(HTTP_NO_CONTENT).end();
     } catch (error) {
       if (isNotFoundIOError(error)) {

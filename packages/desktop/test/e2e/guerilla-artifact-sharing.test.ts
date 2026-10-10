@@ -1,4 +1,6 @@
-import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -58,7 +60,7 @@ function proxyURL(server: Server, artifactID: string, filePath: string): string 
 }
 
 async function openConsumerDesktop(harness: Harness): Promise<{ app: ElectronApplication; page: Page }> {
-  const fixture = `${VITE_BASE_URL}/packages/web/src/index.html?serverURL=${encodeURIComponent(harness.consumer.getBaseURL())}&token=${encodeURIComponent(harness.consumer.getAuthToken())}&mode=electron`;
+  const fixture = `${await appURLForServer(harness.consumer.getBaseURL(), VITE_BASE_URL)}/packages/web/src/index.html?token=${encodeURIComponent(harness.consumer.getAuthToken())}&mode=electron`;
   const launched = await launchDesktop({
     fixture,
     env: {
