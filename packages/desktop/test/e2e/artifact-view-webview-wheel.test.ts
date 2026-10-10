@@ -1,4 +1,6 @@
-import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -90,10 +92,10 @@ async function disposeHarness(harness: ElectronFrameHarness): Promise<void> {
   }
 }
 
-function applicationURL(harness: ElectronFrameHarness): string {
-  const url = new URL("/packages/web/src/index.html", desktopViteBaseURL);
+async function applicationURL(harness: ElectronFrameHarness): Promise<string> {
+  const appURL = await appURLForServer(harness.server.getBaseURL(), desktopViteBaseURL);
+  const url = new URL("/packages/web/src/index.html", appURL);
   url.searchParams.set("mode", "electron");
-  url.searchParams.set("serverURL", harness.server.getBaseURL());
   url.searchParams.set("token", harness.server.getAuthToken());
   url.searchParams.set("desktopAppVersion", "9.9.9");
   return url.href;
@@ -103,7 +105,7 @@ async function openApplication(harness: ElectronFrameHarness): Promise<{
   readonly app: ElectronApplication;
   readonly page: Page;
 }> {
-  const launched = await launchDesktop({ fixture: applicationURL(harness) });
+  const launched = await launchDesktop({ fixture: await applicationURL(harness) });
   try {
     await expectPermanentApplicationShell(launched.page);
     await configureTestMotion(launched.page);

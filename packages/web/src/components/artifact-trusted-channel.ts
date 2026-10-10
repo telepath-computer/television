@@ -47,6 +47,8 @@ export type ArtifactFrameMessageHandler = (
 
 export type ArtifactFrameDocumentChangeHandler = () => void;
 
+export type ArtifactApplicationLinkHandler = (url: string) => void;
+
 interface WebviewIpcMessage {
   channel: string;
   args: unknown[];
@@ -54,6 +56,7 @@ interface WebviewIpcMessage {
 
 interface WebviewElement extends HTMLElement {
   send?: (channel: string, payload: unknown) => void;
+  getURL?: () => string;
 }
 
 /**
@@ -64,6 +67,7 @@ interface WebviewElement extends HTMLElement {
 export class ArtifactTrustedChannel {
   readonly #onMessage: ArtifactFrameMessageHandler;
   readonly #onDocumentChange: ArtifactFrameDocumentChangeHandler;
+  readonly #onApplicationLink: ArtifactApplicationLinkHandler;
   #currentGuid: BridgeDocumentGuid | null = null;
   #lifecycleWindow: Window | null = null;
   #currentFrame: HTMLElement | null = null;
@@ -73,9 +77,11 @@ export class ArtifactTrustedChannel {
   constructor(
     onMessage: ArtifactFrameMessageHandler,
     onDocumentChange: ArtifactFrameDocumentChangeHandler = () => {},
+    onApplicationLink: ArtifactApplicationLinkHandler = () => {},
   ) {
     this.#onMessage = onMessage;
     this.#onDocumentChange = onDocumentChange;
+    this.#onApplicationLink = onApplicationLink;
   }
 
   get currentGuid(): BridgeDocumentGuid | null {
@@ -154,6 +160,10 @@ export class ArtifactTrustedChannel {
   readonly #handleWebviewIpcMessage = (event: Event): void => {
     const ipc = ((event as Event & { detail?: WebviewIpcMessage }).detail ??
       (event as unknown as WebviewIpcMessage));
+    if (ipc?.channel === WEBVIEW_APPLICATION_LINK_CHANNEL) {
+      this.#receiveApplicationLink(ipc.args?.[0]);
+      return;
+    }
     if (!ipc || ipc.channel !== WEBVIEW_BRIDGE_CHANNEL) return;
     const message = artifactFrameInboundMessage(ipc.args?.[0]);
     const webview = this.#subscribedWebview;
@@ -163,6 +173,18 @@ export class ArtifactTrustedChannel {
       send: (reply) => webview.send?.(WEBVIEW_BRIDGE_CHANNEL, reply),
     });
   };
+
+  /**
+   * Passes on an application-link request from the webview the host shows,
+   * only while it shows a page on the host's own HTTP(S) origin
+   * (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling). The
+   * webview's URL decides, since a sandboxed document's own origin is opaque.
+   */
+  #receiveApplicationLink(value: unknown): void {
+    const webview = this.#subscribedWebview;
+    if (!webview || typeof value !== "string" || !showsHostWebOrigin(webview)) return;
+    this.#onApplicationLink(value);
+  }
 
   readonly #handleWebviewDidStartNavigation = (event: Event): void => {
     const navigation = eventFields(event) as { isMainFrame?: unknown; isInPlace?: unknown };
@@ -220,6 +242,24 @@ export class ArtifactTrustedChannel {
 }
 
 const WEBVIEW_BRIDGE_CHANNEL = "television-artifact-bridge";
+const WEBVIEW_APPLICATION_LINK_CHANNEL = "television-application-link";
+
+function isWebURL(url: URL | Location): boolean {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+// A `blob:` URL reports the origin of the page that created it, so the
+// webview's URL must itself be HTTP(S).
+function showsHostWebOrigin(webview: WebviewElement): boolean {
+  const host = window.location;
+  if (!isWebURL(host)) return false;
+  try {
+    const shown = new URL(webview.getURL?.() ?? "");
+    return isWebURL(shown) && shown.origin === host.origin;
+  } catch {
+    return false;
+  }
+}
 
 function artifactFrameInboundMessage(value: unknown): ArtifactFrameInboundMessage | null {
   if (isArtifactMissingRequest(value)) return value;
@@ -240,6 +280,8 @@ function isArtifactFrame(frame: HTMLElement | null): frame is HTMLElement {
 }
 
 function expectedFrameOrigin(frame: HTMLIFrameElement): string | null {
+  // A frame the host sandboxes has an opaque origin, which a message reports as "null".
+  if (frame.hasAttribute("sandbox")) return "null";
   try {
     return new URL(frame.getAttribute("src") ?? frame.src, window.location.href).origin;
   } catch {

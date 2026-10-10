@@ -521,13 +521,11 @@ export class ServerConnection extends EventTarget<
           }
           this.dispatchEvent(
             new ServerEventMessageEvent("server-event", {
-              serverURL: this.url,
               event: { type: "channel-changed", channelID: display.focusedChannelId },
             }),
           );
           this.dispatchEvent(
             new ServerEventMessageEvent("server-event", {
-              serverURL: this.url,
               event: {
                 type: "pinned-channels-changed",
                 pinnedChannelIds: [...display.pinnedChannelIds],
@@ -540,7 +538,7 @@ export class ServerConnection extends EventTarget<
             // change has already been applied and the refresh targets the
             // channel the server currently considers focused.
             this.dispatchEvent(
-              new ServerReconnectedEvent("server-reconnected", { serverURL: this.url }),
+              new ServerReconnectedEvent("server-reconnected"),
             );
           }
         } catch (error) {
@@ -598,10 +596,7 @@ export class ServerConnection extends EventTarget<
             }
           }
           this.dispatchEvent(
-            new ServerStatusEvent("server-status", {
-              serverURL: this.url,
-              message: statusMessage,
-            }),
+            new ServerStatusEvent("server-status", { message: statusMessage }),
           );
           if (startBootstrap) {
             // Checked AFTER the dispatch: a listener may have just begun a
@@ -623,7 +618,7 @@ export class ServerConnection extends EventTarget<
         const serverEvent = message as unknown as ServerEvent;
         this.applyServerEvent(serverEvent);
         this.dispatchEvent(
-          new ServerEventMessageEvent("server-event", { serverURL: this.url, event: serverEvent }),
+          new ServerEventMessageEvent("server-event", { event: serverEvent }),
         );
       });
 

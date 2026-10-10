@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/television-skills",
-  "version": "1.4.29",
+  "version": "1.5.0",
   "license": "MIT",
   "type": "module",
   "private": true,

@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -48,15 +50,18 @@ async function historyURLs(page: Page, artifactID: string): Promise<string[]> {
 // Each artifact document reports its own URL to the host when it loads. A
 // report that arrives after the next host navigation has started is taken as a
 // new navigation, so history steps wait until the shown page's report arrives.
+// A sandboxed page also reports each link it follows with the destination's
+// URL, so a document's own report is the one just before its bridge says it
+// is ready.
 async function recordDocumentReports(page: Page): Promise<void> {
   await page.evaluate(() => {
     const reports: string[] = [];
+    let lastReport: string | null = null;
     (window as unknown as { __documentReports: string[] }).__documentReports = reports;
     window.addEventListener("message", (event) => {
-      const data = event.data as { type?: unknown; url?: unknown; native?: unknown; sameDocument?: unknown } | null;
-      if (data?.type !== "navigation-request" || typeof data.url !== "string") return;
-      if (data.native === true || data.sameDocument === true) return;
-      reports.push(new URL(data.url).pathname);
+      const data = event.data as { type?: unknown; url?: unknown } | null;
+      if (data?.type === "navigation-request" && typeof data.url === "string") lastReport = new URL(data.url).pathname;
+      if (data?.type === "bridge-ready" && lastReport !== null) reports.push(lastReport);
     });
   });
 }
@@ -98,6 +103,18 @@ test.describe("artifact iframe navigation", () => {
         <h1>Index</h1>
         <a id="page1" href="page1.html">Page 1</a>
         <a id="fragment" href="#section">Section</a>
+        <a id="handled" href="page2.html">Handled by the page</a>
+        <button id="push" onclick="history.pushState({}, '', 'pushed.html')">Push</button>
+        <form id="search" action="results.html">
+          <input name="q" value="cats"><input type="hidden" name="action" value="search">
+          <button id="submit-search">Search</button>
+        </form>
+        <script>
+          document.getElementById("handled").addEventListener("click", (event) => {
+            event.preventDefault();
+            document.body.dataset.handled = "yes";
+          });
+        </script>
         <div class="spacer"></div><h2 id="section">Section</h2>
       `),
       "utf8",
@@ -109,17 +126,6 @@ test.describe("artifact iframe navigation", () => {
         <a id="page2" href="page2.html">Page 2</a>
         <a id="canonical" href="./">Index</a>
         <button id="replace" onclick="history.replaceState({}, '', 'replace-state.html')">Replace</button>
-        <script>
-          setTimeout(() => {
-            window.navigation?.addEventListener("navigate", (event) => {
-              parent.postMessage({
-                type: "test-default-prevented",
-                value: event.defaultPrevented,
-                url: event.destination.url,
-              }, "*");
-            });
-          });
-        </script>
       `),
       "utf8",
     );
@@ -133,6 +139,12 @@ test.describe("artifact iframe navigation", () => {
       html(`<h1>Page 3</h1>`),
       "utf8",
     );
+    writeFileSync(
+      path.join(artifactDir, "results.html"),
+      html(`<h1>Results</h1><p id="query"></p><a id="page1" href="page1.html">Page 1</a>
+        <script>document.getElementById("query").textContent = location.search;</script>`),
+      "utf8",
+    );
 
     const artifact = store.createArtifact({
       kind: "path",
@@ -144,10 +156,9 @@ test.describe("artifact iframe navigation", () => {
     await server.start();
     serverURL = server.getBaseURL();
     token = server.getAuthToken();
+    const appURL = await appURLForServer(serverURL, baseURL!);
 
-    await page.goto(
-      `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${token}`,
-    );
+    await page.goto(`${appURL}/packages/web/src/index.html?token=${token}`);
     await page.evaluate(() => localStorage.clear());
     await page.reload();
     await waitForApp(page);
@@ -204,29 +215,38 @@ test.describe("artifact iframe navigation", () => {
     await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 2 });
   });
 
-  test("Navigation API same-origin cross-document navigation proceeds natively while host records history", async ({ page }) => {
-    await page.evaluate(() => {
-      (window as unknown as { __defaultPreventedEvents: unknown[] }).__defaultPreventedEvents = [];
-      window.addEventListener("message", (event) => {
-        if (event.data?.type === "test-default-prevented") {
-          (window as unknown as { __defaultPreventedEvents: unknown[] }).__defaultPreventedEvents.push(event.data);
-        }
-      });
-    });
+  // spec: proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-sandboxed-recording-seam
+  test("a sandboxed frame records links, pushState, fragments and GET forms, and not a click the page handled", async ({ page }) => {
     const frame = page.frameLocator(".artifact-view iframe.artifact-content").first();
+    const frameDocument = () => page.frames().find((candidate) => candidate.url().includes(`/artifact/${artifactID}/`))!;
+    await expect.poll(() => frameDocument()?.evaluate(() => window.origin)).toBe("null");
+
+    await frame.locator("#handled").click();
+    await expect(frame.locator("body")).toHaveAttribute("data-handled", "yes");
+    await expect(frame.locator("h1")).toHaveText("Index");
+
+    await frame.locator("#fragment").click();
+    await expect.poll(() => historyURLs(page, artifactID)).toEqual([`/artifact/${artifactID}/#section`]);
+    await expect.poll(() => frameDocument().evaluate(() => location.hash)).toBe("#section");
+
+    await frame.locator("#push").click();
+    await expect.poll(() => historyURLs(page, artifactID)).toEqual([
+      `/artifact/${artifactID}/#section`,
+      `/artifact/${artifactID}/pushed.html`,
+    ]);
+    await expect.poll(() => frameDocument().evaluate(() => location.pathname)).toBe(`/artifact/${artifactID}/pushed.html`);
+
+    await frame.locator("#submit-search").click();
+    await expect(frame.locator("h1")).toHaveText("Results");
+    await expect(frame.locator("#query")).toHaveText("?q=cats&action=search");
 
     await frame.locator("#page1").click();
     await expect(frame.locator("h1")).toHaveText("Page 1");
-    await frame.locator("#page2").click();
-    await expect(frame.locator("h1")).toHaveText("Page 2");
-
-    await expect.poll(() => page.evaluate(() => {
-      const events = (window as unknown as { __defaultPreventedEvents: Array<{ value: boolean }> }).__defaultPreventedEvents;
-      return events.some((event) => event.value === false);
-    })).toBe(true);
     await expect.poll(() => historyURLs(page, artifactID)).toEqual([
+      `/artifact/${artifactID}/#section`,
+      `/artifact/${artifactID}/pushed.html`,
+      `/artifact/${artifactID}/results.html?q=cats&action=search`,
       `/artifact/${artifactID}/page1.html`,
-      `/artifact/${artifactID}/page2.html`,
     ]);
   });
 

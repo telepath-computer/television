@@ -16,8 +16,6 @@ import {
 } from "../../../../packages/web/src/views/update-notification.ts";
 import { DOWNLOADED_VERSION } from "./samples.ts";
 
-const PRIMARY = "http://primary.test";
-
 // The implementation: the real shipped update notification, mounted via a
 // fake connection owner and driven by a server-status event. Without
 // markdown the server relays no notice; with `desktopUpdate`, a desktop
@@ -37,7 +35,6 @@ export function impl({
   desktopUpdate?: "ready" | "restarting";
 }): HTMLElement {
   const connection = {
-    url: PRIMARY,
     status: "connected",
     serverVersion: null as string | null,
     updateState: null as UpdateState | null,
@@ -60,7 +57,6 @@ export function impl({
   controller = new UpdateNotificationController(draw);
   controller.configure({
     connectionOwner: owner,
-    primaryServerURL: PRIMARY,
     dismissalStorage,
     desktopUpdate: desktopUpdate === undefined ? null : downloadedUpdate(desktopUpdate),
   });
@@ -86,7 +82,7 @@ export function impl({
     // The retention invariant the real ServerConnection maintains.
     connection.serverVersion = message.version;
     connection.updateState = message.update ?? null;
-    owner.dispatchEvent(new ServerStatusEvent("server-status", { serverURL: PRIMARY, message }));
+    owner.dispatchEvent(new ServerStatusEvent("server-status", { message }));
     draw();
     queueMicrotask(() => {
       if (dismissed) el.querySelector<HTMLButtonElement>(".update-later")?.click();

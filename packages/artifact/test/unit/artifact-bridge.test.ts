@@ -648,6 +648,148 @@ describe("installBridge", () => {
     );
   });
 
+  // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-fallback-recorder
+  describe("the fallback recorder (^ab-ac-fallback-recorder)", () => {
+    /** A framed window whose document resolves addresses against an artifact page's. */
+    function artifactPageWindow(): Window {
+      const win = makeFramedWindow();
+      win.document.head.innerHTML = `<base href="https://internal.test/artifact/a/index.html">`;
+      return win;
+    }
+
+    const navigationRequests = (spy: { mock: { calls: unknown[][] } }): Array<{ type: string; url: string }> =>
+      spy.mock.calls
+        .map(([message]) => message as { type: string; url: string })
+        .filter((message) => message.type === "navigation-request");
+
+    /** A click or submission whose preventDefault calls are counted. */
+    function counted<T extends Event>(event: T): T & { preventions: number } {
+      const counter = Object.assign(event, { preventions: 0 });
+      const preventDefault = event.preventDefault.bind(event);
+      Object.defineProperty(event, "preventDefault", {
+        value: () => {
+          counter.preventions += 1;
+          preventDefault();
+        },
+      });
+      return counter;
+    }
+
+    function click(win: Window, id: string) {
+      const event = counted(new (win as Window & typeof globalThis).MouseEvent("click", { bubbles: true, cancelable: true }));
+      win.document.getElementById(id)!.dispatchEvent(event);
+      return event;
+    }
+
+    function submit(win: Window, formID: string, submitterID?: string) {
+      const form = win.document.getElementById(formID) as HTMLFormElement;
+      const submitter = submitterID === undefined ? null : win.document.getElementById(submitterID) as HTMLElement;
+      const event = counted(new (win as Window & typeof globalThis).SubmitEvent("submit", { bubbles: true, cancelable: true, submitter }));
+      form.dispatchEvent(event);
+      return event;
+    }
+
+    it("records with the fallback when the Navigation API is absent or its entries are disabled, and with the API otherwise", () => {
+      for (const [name, navigation, fallback] of [
+        ["absent", undefined, true],
+        ["entries disabled, as with an opaque origin", Object.assign(new EventTarget(), { currentEntry: null }), true],
+        ["entries enabled", Object.assign(new EventTarget(), { currentEntry: {} }), false],
+      ] as const) {
+        const win = artifactPageWindow();
+        Object.defineProperty(win, "navigation", { configurable: true, value: navigation });
+        const listened = navigation === undefined ? null : vi.spyOn(navigation, "addEventListener");
+        win.document.body.innerHTML = `<a id="link" href="/artifact/a/next.html">next</a>`;
+        const parentPostMessage = vi.spyOn(win.parent, "postMessage");
+        installBridge(win);
+        parentPostMessage.mockClear();
+
+        const event = click(win, "link");
+        expect({ name, prevented: event.defaultPrevented, reported: navigationRequests(parentPostMessage) }).toEqual({
+          name,
+          prevented: fallback,
+          reported: fallback ? [{ type: "navigation-request", url: "https://internal.test/artifact/a/next.html" }] : [],
+        });
+        if (listened) expect(listened.mock.calls.some(([type]) => type === "navigate"), name).toBe(!fallback);
+        parentPostMessage.mockRestore();
+      }
+    });
+
+    it("neither prevents nor reports a click or submission a page handler cancels, wherever and whenever it registered", () => {
+      for (const where of ["target", "document", "window"] as const) {
+        for (const when of ["before", "after"] as const) {
+          for (const kind of ["click", "submit"] as const) {
+            const win = artifactPageWindow();
+            Object.defineProperty(win, "navigation", { configurable: true, value: undefined });
+            win.document.body.innerHTML = `
+              <a id="link" href="/artifact/a/next.html">next</a>
+              <form id="form" action="/artifact/a/search"><input name="q" value="x"></form>
+            `;
+            const target = { target: win.document.getElementById(kind === "click" ? "link" : "form")!, document: win.document, window: win }[where];
+            const cancel = (event: Event) => event.preventDefault();
+            const parentPostMessage = vi.spyOn(win.parent, "postMessage");
+            if (when === "before") target.addEventListener(kind, cancel);
+            installBridge(win);
+            if (when === "after") target.addEventListener(kind, cancel);
+            parentPostMessage.mockClear();
+
+            const event = kind === "click" ? click(win, "link") : submit(win, "form");
+            const label = `${kind} cancelled on the ${where}, registered ${when} the bridge`;
+            expect({ label, preventions: event.preventions, reported: navigationRequests(parentPostMessage) }).toEqual({ label, preventions: 1, reported: [] });
+            parentPostMessage.mockRestore();
+          }
+        }
+      }
+    });
+
+    it("prevents and reports only uncancelled GET submissions to the frame itself, at the address the browser would load", () => {
+      const win = artifactPageWindow();
+      Object.defineProperty(win, "navigation", { configurable: true, value: undefined });
+      win.document.body.innerHTML = `
+        <form id="get" action="search?old=1#results">
+          <input name="q" value="cats &amp; dogs">
+          <button id="plain" name="go" value="yes">Go</button>
+          <button id="elsewhere" formaction="/artifact/a/other" name="via" value="button">Other</button>
+          <button id="to-tab" formtarget="_blank">Tab</button>
+          <button id="as-post" formmethod="post">Post</button>
+          <button id="as-dialog" formmethod="dialog">Dialog</button>
+        </form>
+        <form id="post" method="post" action="save"><input name="q" value="x"><button id="post-as-get" formmethod="get">Get</button></form>
+        <form id="dialog" method="dialog"><button>Close</button></form>
+        <form id="targeted" target="_blank" action="search"><input name="q" value="x"></form>
+        <form id="named" action="search"><input name="action" value="find"><input name="method" value="exact"><input name="target" value="titles"></form>
+      `;
+      // In a browser, a form's controls named action, method and target hide
+      // the form's properties of those names; jsdom does not, so these stand in.
+      const named = win.document.getElementById("named") as HTMLFormElement;
+      for (const name of ["action", "method", "target"]) {
+        Object.defineProperty(named, name, { value: named.elements.namedItem(name) });
+      }
+      const parentPostMessage = vi.spyOn(win.parent, "postMessage");
+      installBridge(win);
+
+      const outcome = (formID: string, submitterID?: string) => {
+        parentPostMessage.mockClear();
+        const event = submit(win, formID, submitterID);
+        return { prevented: event.defaultPrevented, reported: navigationRequests(parentPostMessage).map((message) => message.url) };
+      };
+      expect(outcome("get")).toEqual({ prevented: true, reported: ["https://internal.test/artifact/a/search?q=cats+%26+dogs#results"] });
+      expect(outcome("get", "plain")).toEqual({ prevented: true, reported: ["https://internal.test/artifact/a/search?q=cats+%26+dogs&go=yes#results"] });
+      expect(outcome("get", "elsewhere")).toEqual({ prevented: true, reported: ["https://internal.test/artifact/a/other?q=cats+%26+dogs&via=button"] });
+      expect(outcome("post", "post-as-get")).toEqual({ prevented: true, reported: ["https://internal.test/artifact/a/save?q=x"] });
+      expect(outcome("named")).toEqual({ prevented: true, reported: ["https://internal.test/artifact/a/search?action=find&method=exact&target=titles"] });
+      for (const [formID, submitterID] of [
+        ["get", "to-tab"],
+        ["targeted", undefined],
+        ["get", "as-post"],
+        ["get", "as-dialog"],
+        ["post", undefined],
+        ["dialog", undefined],
+      ] as const) {
+        expect({ formID, submitterID, ...outcome(formID, submitterID) }).toEqual({ formID, submitterID, prevented: false, reported: [] });
+      }
+    });
+  });
+
   // spec: proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-navigation-control
   it("fallback click interception leaves non-web anchors native and unreported", () => {
     const win = makeFramedWindow();
