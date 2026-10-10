@@ -187,14 +187,29 @@ describe.each(["chromium", "firefox"] as const)("sharing and permissions across 
       expect(await logged(frame, "access")).toEqual(["read-write"]);
     });
 
-    // The shared page holds no producer token and cannot use the producer's administrative routes.
+    // The shared page, sandboxed by the viewer's frame and the producer's header, can use no browser storage, and its
+    // request to the producer's administrative routes gives it no response.
     const reach = await frame.evaluate(async (listPath) => {
-      const storage = (area: Storage) => Object.keys(area).map((key) => `${key}=${area.getItem(key)}`).join("\n");
-      const response = await fetch(listPath);
-      return { stored: `${storage(localStorage)}\n${storage(sessionStorage)}\n${document.cookie}`, status: response.status };
+      const attempt = (use: () => unknown): string => {
+        try {
+          use();
+          return "usable";
+        } catch (error) {
+          return (error as Error).name;
+        }
+      };
+      return {
+        origin: String(self.origin),
+        storage: [
+          attempt(() => localStorage.length),
+          attempt(() => sessionStorage.length),
+          attempt(() => document.cookie),
+          attempt(() => indexedDB.open("probe")),
+        ],
+        admin: await fetch(listPath).then((response) => String(response.status), (error: Error) => error.name),
+      };
     }, adminRoutes.list);
-    expect(reach.stored).not.toContain(producer.token!);
-    expect(reach.status).toBe(401);
+    expect(reach).toEqual({ origin: "null", storage: ["SecurityError", "SecurityError", "SecurityError", "SecurityError"], admin: "TypeError" });
 
     // A page on the viewer's origin that knows the share link reaches the store at the link's level, since the share ID
     // is the connection's authority, while its request to the administrative routes, without the token, changes nothing.

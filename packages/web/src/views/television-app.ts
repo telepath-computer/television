@@ -32,10 +32,9 @@ import "./television-app.css";
 import "./television-app.host.css";
 
 export interface TelevisionAppOptions {
-  runtimeServerURL: string;
+  serverURL: string;
   electronMode: boolean;
   connectionOwner?: ServerConnectionOwner;
-  primaryServerURL: string;
   updatePresentation?: UpdatePresentationState;
   desktopRecommendation?: DesktopUpgradeRecommendationContext;
   desktopUpdate?: DesktopUpdateState;
@@ -130,7 +129,7 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
   ): TemplateResult {
     const state = selectApplicationState(
       application.snapshot,
-      options.runtimeServerURL,
+      options.serverURL,
     );
     const snapshot = application.snapshot;
     const hasShell = hasApplicationShell(state, snapshot.connection.hasEverConnected);
@@ -527,7 +526,6 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
       <main class="app-main">
         ${TopBarView(application, snapshot, {
           connectionOwner: options.connectionOwner,
-          primaryServerURL: options.primaryServerURL,
           updatePresentation: options.updatePresentation,
           desktopRecommendation: options.desktopRecommendation,
           desktopUpdate: options.desktopUpdate,

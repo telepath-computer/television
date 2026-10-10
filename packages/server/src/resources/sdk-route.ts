@@ -10,7 +10,9 @@ export const SDK_NOTICES_ROUTE = "/sdk/v1/THIRD-PARTY-NOTICES.txt";
 /**
  * Serves the built SDK from `sdkDir` without authorization: the module
  * carries no credentials or per-request content, and revalidates on every
- * use (specs/arch/canonical.md#^cn-cache-policy).
+ * use (specs/arch/canonical.md#^cn-cache-policy). Any origin may read it,
+ * since a sandboxed artifact page imports it from an opaque origin
+ * (specs/arch/artifact-frame/isolation.md#^iso-routes).
  */
 export function serveResourceSdk(sdkDir: string): RequestHandler {
   return serveSdkFile(path.resolve(sdkDir, "v1", "resources.js"), "text/javascript; charset=utf-8");
@@ -25,7 +27,10 @@ function serveSdkFile(file: string, contentType: string): RequestHandler {
   return (_req, res, next) => {
     res.sendFile(
       file,
-      { cacheControl: false, headers: { "Content-Type": contentType, "Cache-Control": "no-cache" } },
+      {
+        cacheControl: false,
+        headers: { "Content-Type": contentType, "Cache-Control": "no-cache", "Access-Control-Allow-Origin": "*" },
+      },
       (error) => {
         if (error && !res.headersSent) next(error);
       },

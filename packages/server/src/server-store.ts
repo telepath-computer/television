@@ -99,12 +99,12 @@ import {
   type BundledThemeState,
   writeBundledThemeStateFile,
 } from "./bundled-theme-installer.ts";
+import { artifactRealLocation } from "./artifact-location.ts";
 
 const JSON_INDENT_SPACES = 2;
 const LAYOUT_VERSION = 2 as const;
 const CONTENT_WATCH_DEBOUNCE_MS = 100;
 const JSON_FILE_SUFFIX = ".json";
-const DIRECTORY_INDEX_BASENAMES = ["index.html", "index.htm"] as const;
 const BUNDLED_VIEW_IDS = new Set(["artifact-missing", "markdown"]);
 
 type ThemeJavaScriptDeclarationValues = readonly [
@@ -431,8 +431,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   /** Create a new artifact and append its default page to the owning channel. */
+  /** Creates an artifact with a generated ID; nothing that creates an artifact supplies its ID (specs/product/artifacts.md#^af-artifact-id). */
   createArtifact(input: {
-    id?: string;
     kind: ArtifactKind;
     title: string;
     channelID: string;
@@ -440,7 +440,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     url?: string;
   }, telemetryContext?: TelemetryClientContext | null): Artifact {
     const channel = this.requireChannel(input.channelID);
-    const created = this.createKindArtifact({ ...input, id: input.id ?? this.newID() });
+    const created = this.createKindArtifact({ ...input, id: this.newID() });
     const previousLayout = channel.layout;
 
     const saved = this.saveArtifactRecord(created, `creating artifact ${created.id}`);
@@ -1223,7 +1223,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   private createKindArtifact(input: {
-    id?: string;
+    id: string;
     kind: ArtifactKind;
     title: string;
     path?: string;
@@ -1238,7 +1238,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
           throw new InvalidRequestError("path artifacts cannot set url");
         }
         const artifactPath = this.normalizeArtifactPath(input.path.trim());
-        return createArtifact({ ...(input.id ? { id: input.id } : {}), kind: "path", title: input.title, path: artifactPath });
+        return createArtifact({ id: input.id, kind: "path", title: input.title, path: artifactPath });
       }
       case "url": {
         if (input.url === undefined) {
@@ -1251,7 +1251,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
         if (!isExternalArtifactURL(url)) {
           throw new InvalidRequestError(`url must be an absolute http(s) URL: ${url}`);
         }
-        return createArtifact({ ...(input.id ? { id: input.id } : {}), kind: "url", title: input.title, url });
+        return createArtifact({ id: input.id, kind: "url", title: input.title, url });
       }
     }
   }
@@ -1281,7 +1281,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
 
     if (stat.isDirectory()) {
       const canonical = hasTrailingSeparator(stripped) ? stripped : `${stripped}${path.sep}`;
-      if (!DIRECTORY_INDEX_BASENAMES.some((basename) => existsSync(path.join(canonical, basename)))) {
+      if (artifactRealLocation(canonical) === null) {
         throw new InvalidRequestError(`directory artifact must contain index.html or index.htm: ${canonical}`);
       }
       return canonical;
@@ -1292,6 +1292,9 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     }
     if (!isAllowedArtifactFilePath(stripped)) {
       throw new InvalidRequestError(`path extension must be one of .md, .markdown, .htm, .html: ${stripped}`);
+    }
+    if (artifactRealLocation(stripped) === null) {
+      throw new InvalidRequestError(`path must lead, once symbolic links are followed, to a file ending in .md, .markdown, .htm or .html: ${stripped}`);
     }
     return stripped;
   }

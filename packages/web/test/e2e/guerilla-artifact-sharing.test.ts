@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { writeFileSync } from "node:fs";
 import {
   createHarness,

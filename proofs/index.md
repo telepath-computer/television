@@ -6,7 +6,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 
 - **product/**
   - `artifact-navigation.md` (34 lines) — *How the promises in Artifact navigation are proven.*
-  - `artifacts.md` (50 lines) — *How the promises in Artifacts are proven.*
+  - `artifacts.md` (58 lines) — *How the promises in Artifacts are proven.*
   - `channels.md` (29 lines) — *How the promises in Channels are proven.*
   - `cli.md` (103 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
@@ -15,7 +15,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `tab-pages.md` (29 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (89 lines) — *How the promises in Telemetry are proven.*
   - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
-  - `update-notifications.md` (89 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
+  - `update-notifications.md` (88 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
   - `versioning.md` (27 lines) — *How Television's release versions are proven where users receive them: the packed CLI package and the desktop upload directory built from the same commit, the built `tv` process and running server, update details, and the native About panel in the desktop product's Mac install check.*
   - **onboarding/**
     - `onboarding-channels.md` (69 lines) — *How the promises in Onboarding channels are proven.*
@@ -31,8 +31,9 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `skillbench.md` (13 lines) — *How the promises in Skillbench are proven.*
   - `testing-policy.md` (7 lines) — *How the testing policy’s development discipline is checked.*
   - **artifact-frame/**
-    - `artifact-bridge.md` (112 lines) — *How the promises in Artifact bridge are proven.*
-    - `index.md` (23 lines) — *How the promises in Artifact frame (architecture) are proven.*
+    - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
+    - `index.md` (24 lines) — *How the promises in Artifact frame (architecture) are proven.*
+    - `isolation.md` (82 lines) — *How artifact isolation is proven: escalation walks in which hostile artifact code, sandboxed in Chromium and Firefox and unsandboxed in its partition in the real Electron app, fails to obtain the token, act with the app's authority or reach the main process; a desktop walk showing artifacts' storage apart from the window's and from each other's; walks showing artifacts still load what they need; and the header, route, frame-attribute, header-rewriting and permission rules as contracts with real-browser and real-Electron crossings.*
     - `markdown-tables-buffer.md` (31 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
     - `reload-navigation.md` (97 lines) — *How the promises in Reload and navigation are proven.*
@@ -44,10 +45,11 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
+    - `artifact-partitions.md` (42 lines) — *How desktop artifact partitions are proven: naming, attachment, the record and the reaper as contracts, crossed in the real Electron app connected to a running server, including a stand-in for an interface without partition support and a reaping across a restart.*
     - `connect-flow.md` (32 lines) — *Desktop connection coverage across link parsing, saved state, the packaged local page, native IPC, and server navigation.*
     - `distribution.md` (34 lines) — *How the ToDesktop build's promises are proven: repository checks of the desktop workspace, its ToDesktop configuration, a generated upload directory, the build script's exit status and the real ToDesktop CLI's dry run, and the product's real-host checks for everything ToDesktop does.*
     - `e2e-harness.md` (21 lines) — *How the promises in Electron e2e harness are proven.*
-    - `index.md` (28 lines) — *How the desktop architecture root's promises are proven: main-process identity contracts and a real-Electron data-location seam, composed with the module proofs and the product's real-host checks.*
+    - `index.md` (31 lines) — *How the desktop architecture root's promises are proven: main-process identity contracts, the IPC-sender rule as a contract and a real-Electron seam, and a real-Electron data-location seam, composed with the module proofs and the product's real-host checks.*
     - `runtime.md` (21 lines) — *How the Electron runtime's promises are proven: exact-version declarations, runtime validity over authored package and runtime trees, and a real cold installation on a Node release known to truncate one.*
     - `updates.md` (28 lines) — *How desktop updates are proven: main-process and preload contracts with Electron and the update runtime replaced by recording mocks, the real Electron app with the runtime in its simulation mode, and the desktop product's update check, which presses the restart in a candidate build on a real Mac.*
   - **layout/**
@@ -64,7 +66,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `json-store.md` (66 lines) — *How the JSON store's architecture is proven: the shared module's path, value and write rules as contracts, the content file, the server's write application, durability failures, transactions and subscriptions against a running server, the SDK's local-write model and reconnection in a real browser, and the `tv resource json` CLI integration.*
     - `sdk.md` (44 lines) — *How the resource SDK is proven: its build contents and serving over real HTTP, and its behavior as the server serves it, in a real browser on a plain-HTTP origin that is not `localhost`, against a running server.*
   - **skills/**
-    - `sidebar-view.md` (13 lines) — *How the promises in Sidebar-view skill (architecture) are proven.*
+    - `sidebar-view.md` (21 lines) — *How the sidebar-view skill's architecture is proven: the surface proof's walk proves where the sidebar width is kept, and the spec's other facts order no tests.*
   - **telemetry/**
     - `client-signals.md` (28 lines) — *How the promises in Telemetry client signals are proven.*
     - `client.md` (33 lines) — *How the promises in Telemetry client agent are proven.*
@@ -160,7 +162,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (13 lines) — *How the promises in Skillbench (UI) are proven.*
   - **skills/**
     - **sidebar-view/**
-      - `index.md` (13 lines) — *How the promises in Sidebar view (UI) are proven.*
+      - `index.md` (21 lines) — *How the sidebar-view skill's surface is proven: its resizable sidebar's shared width, walked in a real browser against a running server, while the skill's other points stay untested as a prototype's.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

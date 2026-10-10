@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import {

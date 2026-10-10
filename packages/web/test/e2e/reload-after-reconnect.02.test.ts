@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Frame, Page } from "@playwright/test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,7 +9,8 @@ import {
   createArtifactFile,
   waitForApplicationShell,
 } from "./helpers.ts";
-import { startDevelopmentProxy } from "../../../../test/helpers/product-server.ts";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer, startDevelopmentProxy } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { observeApplicationPresentations } from "./application-presentation.helpers.ts";
 
@@ -60,6 +61,14 @@ interface ContinuitySnapshot {
   readonly animationFrames: number;
 }
 
+/** The artifact's document. It is sandboxed, so the app's page cannot reach into it; the test does. */
+async function artifactDocument(page: Page): Promise<Frame> {
+  const iframe = await page.locator(".stage .page[selected] .artifact-view iframe.artifact-content").elementHandle();
+  const frame = await iframe?.contentFrame();
+  if (!frame) throw new Error("Complete APP-3 continuity surface is not mounted");
+  return frame;
+}
+
 async function installContinuityObservation(page: Page): Promise<ContinuitySnapshot> {
   await page.evaluate(() => {
     const root = document.querySelector("#app");
@@ -71,18 +80,10 @@ async function installContinuityObservation(page: Page): Promise<ContinuitySnaps
     const artifactView = page?.querySelector(".artifact-view");
     const iframe = artifactView?.querySelector<HTMLIFrameElement>("iframe.artifact-content");
     const frameWindow = iframe?.contentWindow;
-    const frameDocument = iframe?.contentDocument;
-    const input = frameDocument?.querySelector<HTMLInputElement>("#draft");
     if (!root || !sidebar || !main || !topBar || !stage || !page ||
-        !artifactView || !iframe || !frameWindow || !frameDocument || !input) {
+        !artifactView || !iframe || !frameWindow) {
       throw new Error("Complete APP-3 continuity surface is not mounted");
     }
-
-    input.value = "draft retained through reconnect";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    const scrollingElement = frameDocument.scrollingElement;
-    if (!scrollingElement) throw new Error("Artifact document has no scrolling element");
-    scrollingElement.scrollTop = 420;
 
     const refs: Record<string, Node> = {
       root,
@@ -106,15 +107,18 @@ async function installContinuityObservation(page: Page): Promise<ContinuitySnaps
       }
     });
     observer.observe(root, { childList: true, subtree: true });
-    frameWindow.addEventListener("pagehide", () => documentLifecycle.push("pagehide"));
-    frameWindow.addEventListener("beforeunload", () => documentLifecycle.push("beforeunload"));
+    // The document reports its own unloading, since the page cannot listen in it.
+    window.addEventListener("message", (event) => {
+      const data = event.data as { type?: unknown; event?: unknown };
+      if (event.source === frameWindow && data?.type === "app3-document-lifecycle" && typeof data.event === "string") {
+        documentLifecycle.push(data.event);
+      }
+    });
 
     const owner = window as unknown as {
       __tvApp3Continuity?: {
         refs: Record<string, Node>;
         frameWindow: Window;
-        frameDocument: Document;
-        input: HTMLInputElement;
         observer: MutationObserver;
         removedNodes: string[];
         documentLifecycle: string[];
@@ -123,12 +127,24 @@ async function installContinuityObservation(page: Page): Promise<ContinuitySnaps
     owner.__tvApp3Continuity = {
       refs,
       frameWindow,
-      frameDocument,
-      input,
       observer,
       removedNodes,
       documentLifecycle,
     };
+  });
+  await (await artifactDocument(page)).evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>("#draft");
+    const scrollingElement = document.scrollingElement;
+    if (!input || !scrollingElement) throw new Error("Complete APP-3 continuity surface is not mounted");
+    input.value = "draft retained through reconnect";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    scrollingElement.scrollTop = 420;
+    // Marks on this document and input; a replacement would carry neither.
+    Object.assign(document, { app3Observed: true });
+    Object.assign(input, { app3Observed: true });
+    for (const event of ["pagehide", "beforeunload"]) {
+      window.addEventListener(event, () => window.parent.postMessage({ type: "app3-document-lifecycle", event }, "*"));
+    }
   });
   return readContinuityObservation(page);
 }
@@ -137,13 +153,11 @@ async function readContinuityObservation(
   page: Page,
   { stop = false }: { stop?: boolean } = {},
 ): Promise<ContinuitySnapshot> {
-  return page.evaluate((shouldStop) => {
+  const shell = await page.evaluate((shouldStop) => {
     const owner = window as unknown as {
       __tvApp3Continuity?: {
         refs: Record<string, Node>;
         frameWindow: Window;
-        frameDocument: Document;
-        input: HTMLInputElement;
         observer: MutationObserver;
         removedNodes: string[];
         documentLifecycle: string[];
@@ -157,8 +171,7 @@ async function readContinuityObservation(
     const currentPage = currentStage?.querySelector(":scope .page[selected]");
     const currentArtifactView = currentPage?.querySelector(".artifact-view");
     const currentIframe = currentArtifactView?.querySelector<HTMLIFrameElement>("iframe.artifact-content");
-    const currentFrameDocument = currentIframe?.contentDocument;
-    const result: ContinuitySnapshot = {
+    const result = {
       sameNodes: {
         root: currentRoot === state.refs.root,
         sidebar: currentRoot?.querySelector(":scope > .app-sidebar") === state.refs.sidebar,
@@ -169,16 +182,9 @@ async function readContinuityObservation(
         artifactView: currentArtifactView === state.refs.artifactView,
         iframe: currentIframe === state.refs.iframe,
         contentWindow: currentIframe?.contentWindow === state.frameWindow,
-        document: currentFrameDocument === state.frameDocument,
-        input: currentFrameDocument?.querySelector("#draft") === state.input,
       },
       removedNodes: [...state.removedNodes],
       documentLifecycle: [...state.documentLifecycle],
-      draft: state.input.value,
-      scrollTop: state.frameDocument.scrollingElement?.scrollTop ?? -1,
-      animationFrames: Number(
-        (state.frameWindow as unknown as { app3AnimationFrames?: number }).app3AnimationFrames ?? 0,
-      ),
     };
     if (shouldStop) {
       state.observer.disconnect();
@@ -186,6 +192,24 @@ async function readContinuityObservation(
     }
     return result;
   }, stop);
+  const artifact = await (await artifactDocument(page)).evaluate(() => {
+    const input = document.querySelector<HTMLInputElement>("#draft");
+    return {
+      document: (document as Document & { app3Observed?: boolean }).app3Observed === true,
+      input: (input as (HTMLInputElement & { app3Observed?: boolean }) | null)?.app3Observed === true,
+      draft: input?.value ?? "",
+      scrollTop: document.scrollingElement?.scrollTop ?? -1,
+      animationFrames: Number((window as unknown as { app3AnimationFrames?: number }).app3AnimationFrames ?? 0),
+    };
+  });
+  return {
+    sameNodes: { ...shell.sameNodes, document: artifact.document, input: artifact.input },
+    removedNodes: shell.removedNodes,
+    documentLifecycle: shell.documentLifecycle,
+    draft: artifact.draft,
+    scrollTop: artifact.scrollTop,
+    animationFrames: artifact.animationFrames,
+  };
 }
 
 function expectContinuity(snapshot: ContinuitySnapshot): void {
@@ -212,11 +236,9 @@ async function openApp(page: Page, baseURL: string | undefined, server: Server):
   if (!baseURL) {
     throw new Error("Expected Playwright baseURL");
   }
-  const serverURL = server.getBaseURL();
+  const appURL = await appURLForServer(server.getBaseURL(), baseURL);
   const token = server.getAuthToken();
-  await page.goto(
-    `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
-  );
+  await page.goto(`${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`);
   // Generous timeout: first load may pay cold Vite transforms, and the app
   // auto-retries its initial /events connect on a 1s backoff under load.
   await waitForApplicationShell(page);
@@ -414,7 +436,7 @@ test.describe("reload after reconnect (real server)", () => {
         if (frame === page.mainFrame()) topLevelNavigations += 1;
       });
       await page.goto(
-        `${proxy.url}/packages/web/src/index.html?serverURL=${encodeURIComponent(proxy.url)}&token=${encodeURIComponent(server.getAuthToken())}`,
+        `${proxy.url}/packages/web/src/index.html?token=${encodeURIComponent(server.getAuthToken())}`,
       );
       await waitForApplicationShell(page);
       await configureTestMotion(page);

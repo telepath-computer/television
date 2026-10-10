@@ -191,9 +191,8 @@ describe("application-state selection (^ap-ac-one-state)", () => {
       });
     const initialRender = nextApplicationRender();
     render(TelevisionAppView(application as never, {
-      runtimeServerURL: SERVER_URL,
+      serverURL: SERVER_URL,
       electronMode: false,
-      primaryServerURL: SERVER_URL,
       sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
       sidebarCollapsedPreference: SIDEBAR_COLLAPSED_PREFERENCE,
       onRenderComplete(state) {
@@ -319,9 +318,8 @@ describe("root shell composition and readiness (^ap-ac-markup-smoke)", () => {
 
     const committedStates: string[] = [];
     render(TelevisionAppView(application as never, {
-      runtimeServerURL: SERVER_URL,
+      serverURL: SERVER_URL,
       electronMode: false,
-      primaryServerURL: SERVER_URL,
       sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
       sidebarCollapsedPreference: SIDEBAR_COLLAPSED_PREFERENCE,
       onRenderComplete() {
@@ -475,9 +473,8 @@ describe("collapsed shell composition (^ap-ac-collapse-composition)", () => {
       const app = createApplicationHost();
 
       render(TelevisionAppView(application as never, {
-        runtimeServerURL: SERVER_URL,
+        serverURL: SERVER_URL,
         electronMode: false,
-        primaryServerURL: SERVER_URL,
         sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
         sidebarCollapsedPreference: collapsedPreference(row.collapsed),
       }), app);
@@ -551,9 +548,8 @@ describe("application theme visual layers (^ap-ac-theme-layers)", () => {
     const application = new FakeApplication(applicationSnapshot());
     bodyRenderInitialized = true;
     render(TelevisionAppView(application as never, {
-      runtimeServerURL: SERVER_URL,
+      serverURL: SERVER_URL,
       electronMode: false,
-      primaryServerURL: SERVER_URL,
       sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
       sidebarCollapsedPreference: SIDEBAR_COLLAPSED_PREFERENCE,
     }), document.body);
@@ -615,9 +611,8 @@ describe("application navigation listener lifecycle", () => {
     const application = new FakeApplication(applicationSnapshot());
     const app = createApplicationHost();
     const appView = () => TelevisionAppView(application as never, {
-      runtimeServerURL: SERVER_URL,
+      serverURL: SERVER_URL,
       electronMode: false,
-      primaryServerURL: SERVER_URL,
       sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
       sidebarCollapsedPreference: SIDEBAR_COLLAPSED_PREFERENCE,
     });
@@ -754,7 +749,7 @@ it("requests a desktop drag strip only over a bare background", async () => {
       const host = createApplicationHost();
       const application = new FakeApplication(applicationSnapshot());
       render(TelevisionAppView(application as never, {
-        runtimeServerURL: SERVER_URL, primaryServerURL: SERVER_URL, electronMode,
+        serverURL: SERVER_URL, electronMode,
         sidebarWidthPreference: SIDEBAR_WIDTH_PREFERENCE,
         sidebarCollapsedPreference: collapsedPreference(collapsed),
       }), host);

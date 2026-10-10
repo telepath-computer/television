@@ -14,7 +14,8 @@ import { agentCommands, artifactExample, storeComment } from "../helpers/resourc
  * [[arch/resources/guidance.md#^rg-t-purpose]],
  * [[arch/resources/guidance.md#^rg-t-firebase]],
  * [[arch/resources/guidance.md#^rg-t-teaches]] and
- * [[arch/resources/guidance.md#^rg-t-tv-tasks]].
+ * [[arch/resources/guidance.md#^rg-t-tv-tasks]], and the `television`
+ * skill's map guidance, [[arch/artifact-frame/isolation.md#^iso-t-map-guidance]].
  */
 
 const REPO_ROOT = path.resolve(process.cwd());
@@ -84,7 +85,10 @@ describe("the resource guidance document", () => {
       expect(passage, where).toMatch(/durabl/);
       expect(passage, where).toMatch(/every client viewing the artifact/);
       expect(passage, where).toMatch(/`tv` CLI/);
-      expect(passage, where).toMatch(/localStorage[^.]*highly discouraged[^.]*future version of Television may remove it/);
+      expect(passage, where).toMatch(/`localStorage`, cookies and IndexedDB do not work in artifacts[^.]*CSP sandbox/);
+      expect(passage, where).toMatch(/`sessionStorage`[^.]*`SecurityError`/);
+      expect(passage, where).toMatch(/such as a library[^.]*catch/);
+      expect(passage, where).toMatch(/no storage that stays in one browser/);
       expect(passage, where).toMatch(/Markdown artifact[^.]*shared, synchronized, editable state/);
       expect(passage, where).toMatch(/Markdown artifact[^.]*within Television[^.]*share link[^.]*read-only, unlike a JSON store/);
       expect(passage, where).toMatch(/presentational flexibility and interactivity/);
@@ -97,13 +101,13 @@ describe("the resource guidance document", () => {
   });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-purpose
-  it("names localStorage only to discourage it", () => {
+  it("names browser storage only to say that it does not work in artifacts or how to catch the exception", () => {
     for (const file of [["television", "SKILL.md"], ["television", "resources.md"], ["tv-tasks", "SKILL.md"]] as const) {
-      // Split at every sentence end, whatever follows, so that a sentence opening with "localStorage" stands alone.
-      const naming = shipped(...file).replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).filter((sentence) => /localStorage/.test(sentence));
+      // Split at every sentence end, whatever follows, so that a sentence opening with a storage name stands alone.
+      const naming = shipped(...file).replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).filter((sentence) => /localStorage|sessionStorage|\bcookies?\b|IndexedDB/i.test(sentence));
       expect(naming, file.join("/")).not.toEqual([]);
       for (const sentence of naming) {
-        expect(sentence, file.join("/")).toMatch(/highly discouraged/);
+        expect(sentence, file.join("/")).toMatch(/do not work in artifacts|`SecurityError`|catch/);
       }
     }
   });
@@ -299,7 +303,7 @@ describe("the task-list skill", () => {
   const skill = () => shipped("tv-tasks", "SKILL.md");
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks
-  it("leaves where task data lives to the author, calling the JSON store the standard choice for a to-do list and discouraging localStorage", () => {
+  it("leaves where task data lives to the author, calling the JSON store the standard choice for a to-do list and saying that browser storage does not work in artifacts", () => {
     expect(sections(skill()).map(({ heading }) => heading).filter((heading) => /JSON store/.test(heading))).toEqual([]);
     const rule = sentences(skill());
     expect(rule.some((sentence) => /artifact's author/.test(sentence) && /depends on[^.]*design[^.]*\buse\b[^.]*person/.test(sentence))).toBe(true);
@@ -308,7 +312,7 @@ describe("the task-list skill", () => {
     expect(sources).toMatch(/HTML itself/);
     expect(rule.some((sentence) => /`television` skill's `resources\.md`/.test(sentence))).toBe(true);
     expect(rule.some((sentence) => /JSON store/.test(sentence) && /standard choice/.test(sentence) && /to-do list/.test(sentence))).toBe(true);
-    expect(rule.some((sentence) => /localStorage/.test(sentence) && /highly discouraged/.test(sentence) && /future version of Television may remove it/.test(sentence))).toBe(true);
+    expect(rule.some((sentence) => /`localStorage`, cookies and IndexedDB do not work in artifacts/.test(sentence) && /CSP sandbox/.test(sentence))).toBe(true);
   });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks-message
@@ -317,5 +321,14 @@ describe("the task-list skill", () => {
     expect(rule).toMatch(/page header/);
     expect(rule).toMatch(/subtitle/);
     expect(sentences(skill()).some((sentence) => /page header to hold it/.test(sentence))).toBe(true);
+  });
+});
+
+// spec: proofs/arch/artifact-frame/isolation.md#^iso-t-map-guidance
+describe("the television skill's map guidance", () => {
+  it("says that mapping services may not work in artifacts because the sandbox strips what they expect, and recommends Leaflet with Esri's tiles", () => {
+    const text = sentences(shipped("television", "SKILL.md"));
+    expect(text.some((sentence) => /mapping services/.test(sentence) && /may not work/.test(sentence) && /sandbox/.test(sentence) && /referrer/.test(sentence))).toBe(true);
+    expect(text.some((sentence) => /Leaflet/.test(sentence) && /Esri/.test(sentence) && /World Street Map/.test(sentence) && /World Imagery/.test(sentence))).toBe(true);
   });
 });

@@ -692,7 +692,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
     );
 
     const appURL = await product.appURL(baseURL);
-    await page.goto(`${appURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appURL)}`);
+    await page.goto(`${appURL}/packages/web/src/index.html`);
     await waitForApplicationShell(page);
 
     await openSettings(page);
@@ -1065,7 +1065,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     const appURL = await product.appURL(baseURL);
     await Promise.all(applicationPages.map(async (applicationPage) => {
       await applicationPage.goto(
-        `${appURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appURL)}`,
+        `${appURL}/packages/web/src/index.html`,
       );
       await waitForApplicationShell(applicationPage);
     }));

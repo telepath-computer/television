@@ -104,7 +104,7 @@ test.describe("boot barrier (^t-gate-boot-barrier)", () => {
     const boot = trackBootRequests(page);
     const presentation = await observeApplicationPresentations(page);
 
-    await page.goto(`${serverA.getBaseURL()}/?mode=electron&desktopAppVersion=1.3.1`);
+    await page.goto(`${serverA.getBaseURL()}/?mode=electron&desktopAppVersion=1.5.0`);
 
     // Halted at the gate: the surface renders (built-in fallback — no channel).
     await expect(gate(page)).toBeVisible({ timeout: 15_000 });
@@ -120,7 +120,7 @@ test.describe("boot barrier (^t-gate-boot-barrier)", () => {
     ).toEqual([]);
 
     // Retraction: restart with the production floor instead of the staged
-    // 2.0.0 requirement. Desktop 1.3.1 now satisfies the requirement, so
+    // 2.0.0 requirement. Desktop 1.5.0 now satisfies the requirement, so
     // the client reloads into a normal boot (^gate-reevaluation).
     await serverA.dispose();
     await startServer({ staticDir: dist, port });
@@ -197,7 +197,7 @@ test("a reconnect requirement replaces the outage with the lone retained gate", 
   const initial = await startServer({ staticDir: dist });
   const front = await startStableFrontProxy(initial.getBaseURL());
   try {
-    await page.goto(`${front.url}/?mode=electron&desktopAppVersion=1.3.1`);
+    await page.goto(`${front.url}/?mode=electron&desktopAppVersion=1.5.0`);
     await waitForApplicationShell(page);
     await configureTestMotion(page);
     const presentation = await observeApplicationPresentations(page);

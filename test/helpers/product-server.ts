@@ -105,6 +105,7 @@ function installProductRuntimeAssets(buildDir: string): void {
   const artifactMissingView = path.join(webDist, "views/artifact-missing");
   const markdownView = path.join(REPO_ROOT, "packages/view-markdown/dist");
   const canonical = path.join(REPO_ROOT, "packages/canonical/dist/canonical");
+  const sdk = path.join(REPO_ROOT, "packages/server/dist/sdk");
   const webIndex = path.join(webDist, "index.html");
   const webAssets = path.join(webDist, "assets");
   if (!existsSync(path.join(artifactMissingView, "index.html"))) {
@@ -116,6 +117,9 @@ function installProductRuntimeAssets(buildDir: string): void {
   if (!existsSync(path.join(canonical, "v1/styles.css"))) {
     throw new Error(`Canonical build produced no v1 stylesheet at ${canonical}`);
   }
+  if (!existsSync(path.join(sdk, "v1/resources.js"))) {
+    throw new Error(`SDK build produced no module at ${sdk}`);
+  }
   if (!existsSync(webIndex)) {
     throw new Error(`Web build produced no index.html at ${webIndex}`);
   }
@@ -126,6 +130,7 @@ function installProductRuntimeAssets(buildDir: string): void {
   cpSync(artifactMissingView, path.join(buildDir, "views/artifact-missing"), { recursive: true });
   cpSync(markdownView, path.join(buildDir, "views/markdown"), { recursive: true });
   cpSync(canonical, path.join(buildDir, "canonical"), { recursive: true });
+  cpSync(sdk, path.join(buildDir, "sdk"), { recursive: true });
   const staticDir = path.join(buildDir, "web");
   mkdirSync(staticDir, { recursive: true });
   cpSync(webIndex, path.join(staticDir, "index.html"));
@@ -284,7 +289,41 @@ export interface DevelopmentProxy {
   dispose(): Promise<void>;
 }
 
-export async function startDevelopmentProxy(options: { productServerURL: string; viteBaseURL: string }): Promise<DevelopmentProxy> {
+const serverAppURLs = new Map<string, Promise<string>>();
+
+/**
+ * Puts a server the test started itself and the test Vite server on one
+ * origin, and returns that origin, since the app reaches only the server that
+ * served it (specs/arch/updates/version-advertisement.md#^reload-origin-rule).
+ * Repeated calls for the same pair return the same origin. Such a server has
+ * no built views, so the app's views come from the test Vite server's
+ * sources. The proxy is disposed with the test's product servers.
+ */
+export function appURLForServer(serverURL: string, viteBaseURL: string): Promise<string> {
+  const key = `${serverURL} ${viteBaseURL}`;
+  const existing = serverAppURLs.get(key);
+  if (existing) return existing;
+  const appURL = (async () => {
+    const proxy = await startDevelopmentProxy({ productServerURL: serverURL, viteBaseURL, viewsFromVite: true });
+    const dispose: ProductServerDisposer = async () => {
+      activeProductServerDisposers.delete(dispose);
+      serverAppURLs.delete(key);
+      await proxy.dispose();
+    };
+    activeProductServerDisposers.add(dispose);
+    return proxy.url;
+  })();
+  serverAppURLs.set(key, appURL);
+  appURL.catch(() => serverAppURLs.delete(key));
+  return appURL;
+}
+
+export async function startDevelopmentProxy(options: {
+  productServerURL: string;
+  viteBaseURL: string;
+  /** Send the Markdown view to the test Vite server too, for a server without built views. */
+  viewsFromVite?: boolean;
+}): Promise<DevelopmentProxy> {
   let product = new URL(options.productServerURL);
   const vite = new URL(options.viteBaseURL);
   const sockets = new Set<Socket>();
@@ -308,9 +347,11 @@ export async function startDevelopmentProxy(options: { productServerURL: string;
     peers.set(left, right);
     peers.set(right, left);
   };
+  const toVite = (pathname: string): boolean =>
+    shouldProxyToVite(pathname) || (options.viewsFromVite === true && pathname.startsWith("/views/markdown/"));
   const server = createServer((req, res) => {
     const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
-    const target = shouldProxyToVite(pathname) ? vite : product;
+    const target = toVite(pathname) ? vite : product;
     proxyRequest(req, res, target);
   });
   server.on("connection", (socket) => {
@@ -324,7 +365,7 @@ export async function startDevelopmentProxy(options: { productServerURL: string;
   });
   server.on("upgrade", (req, socket, head) => {
     const pathname = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
-    const target = shouldProxyToVite(pathname) ? vite : product;
+    const target = toVite(pathname) ? vite : product;
     req.on("error", () => closeLinked(socket));
     proxyUpgrade(req, socket, head, target, { link: linkPeers, close: closeLinked, end: endLinked });
   });

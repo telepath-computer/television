@@ -1,17 +1,19 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
 import { TelevisionClient } from "@telepath-computer/television-shared";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 import { waitForApplicationShell } from "./helpers.ts";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/settings.html";
 
-async function openFixture(page: Page, baseURL: string, serverURL: string): Promise<void> {
-  await page.goto(`${baseURL}${FIXTURE}?serverURL=${encodeURIComponent(serverURL)}`);
+async function openFixture(page: Page, appURL: string): Promise<void> {
+  await page.goto(`${appURL}${FIXTURE}`);
   await page.waitForFunction(() =>
     (window as unknown as { __fixtureReady?: boolean }).__fixtureReady === true
   );
@@ -45,9 +47,10 @@ test("settings controls cross the registry and confirmed display state", async (
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const otherClient = new TelevisionClient(serverURL);
     await otherClient.display.patch({ appearanceMode: "light" });
-    await openFixture(page, baseURL!, serverURL);
+    await openFixture(page, appURL);
 
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(popoverOpen(page, "#settings-popover")).toBeVisible();
@@ -135,9 +138,10 @@ test("settings provides confirmed executable-theme JavaScript consent", async ({
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const otherClient = new TelevisionClient(serverURL);
     await otherClient.display.patch({ activeThemeName: "Executable.ID" });
-    await openFixture(page, baseURL!, serverURL);
+    await openFixture(page, appURL);
 
     expect(await page.locator(".settings-javascript-consent").count()).toBe(0);
     await page.getByRole("button", { name: "Settings" }).click();
@@ -243,10 +247,11 @@ test("theme consent opt-out reload restores open Settings once", async ({
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const client = new TelevisionClient(serverURL);
     await client.display.patch({ activeThemeName: "executable" });
     await page.goto(
-      `${baseURL!}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}`,
+      `${appURL}/packages/web/src/index.html`,
     );
     await waitForApplicationShell(page);
     await page.getByRole("button", { name: "Settings" }).click();
@@ -306,8 +311,9 @@ test("settings and skills retain native light dismissal", async ({ page, baseURL
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const client = new TelevisionClient(serverURL);
-    await openFixture(page, baseURL!, serverURL);
+    await openFixture(page, appURL);
     const before = await client.display.get();
 
     await page.getByRole("button", { name: "Settings" }).click();
