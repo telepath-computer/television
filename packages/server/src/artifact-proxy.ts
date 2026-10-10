@@ -14,16 +14,26 @@ import {
 } from "@telepath-computer/television-artifact/browser";
 import { MARKDOWN_DOC_CSS } from "./markdown-doc-style.ts";
 import { ServerStore } from "./server-store.ts";
+import { artifactRealLocation } from "./artifact-location.ts";
 
 const HTTP_OK = 200;
 const HTTP_MOVED_PERMANENTLY = 301;
 const HTTP_NOT_MODIFIED = 304;
+const HTTP_FORBIDDEN = 403;
 const HTTP_NOT_FOUND = 404;
 const HTTP_METHOD_NOT_ALLOWED = 405;
 const HTML_CACHE_CONTROL = "no-cache, must-revalidate";
 const SHARED_PROXY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
+};
+// Every proxy response allows any origin, without credentials, and exposes
+// `ETag` to the bridge's freshness poll: an artifact document's requests to
+// its own files are cross-origin once the browser sandboxes it, and the ID in
+// the path is the capability (specs/arch/artifact-frame/isolation.md#^iso-routes).
+const CROSS_ORIGIN_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Expose-Headers": "ETag",
 };
 
 interface SendStreamWithSend extends SendStream {
@@ -316,19 +326,41 @@ function sendRenderedMarkdown(req: Parameters<RequestHandler>[0], res: Response,
 }
 
 /**
- * Serves `subpath` under `options.root`: the path the request named for a
- * folder artifact, a single file's own name for one. The library's own
- * redirect, when the path is a folder, and its errors are answered only by
- * `onFolder`, `onMissing` and the reply, never from the path or the error.
+ * Whether a folder artifact serves what the request resolved to: its real
+ * location, once symbolic links are followed, is inside the folder's real
+ * location, with no part below it that starts with a dot
+ * (specs/product/artifacts.md#^af-folder-files).
  */
-function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, subpath: string, options: send.SendOptions, appearanceSource: string, bridgeSource: string, onFolder: () => void, onMissing: () => void): void {
+function isServedFromFolder(realFolder: string, resolvedPath: string): boolean {
+  let realPath: string;
+  try {
+    realPath = fs.realpathSync(resolvedPath);
+  } catch {
+    return false;
+  }
+  const relative = path.relative(realFolder, realPath);
+  return !path.isAbsolute(relative) && relative.split(path.sep).every((part) => !part.startsWith("."));
+}
+
+/**
+ * Serves `subpath` under `options.root`: the path the request named for a
+ * folder artifact, a single file's own name for one. What `serves` refuses
+ * is answered as missing. The library's own redirect, when the path is a
+ * folder, and its errors are answered only by `onFolder`, `onMissing` and the
+ * reply, never from the path or the error.
+ */
+function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, subpath: string, options: send.SendOptions, appearanceSource: string, bridgeSource: string, onFolder: () => void, onMissing: () => void, serves: (resolvedPath: string) => boolean = () => true): void {
   applyProxyHeaders(res);
   const stream = send(req, subpath, { ...options, etag: true }) as SendStreamWithSend;
-  stream.on("directory", onFolder);
+  stream.on("directory", (_res: Response, resolvedPath: string) => (serves(resolvedPath) ? onFolder() : onMissing()));
   const sendOriginal = stream.send.bind(stream);
   stream.send = (resolvedPath: string, stat?: fs.Stats) => {
     if (!stat) {
       sendOriginal(resolvedPath, stat);
+      return;
+    }
+    if (!serves(resolvedPath)) {
+      onMissing();
       return;
     }
     stream.setHeader(resolvedPath, stat);
@@ -343,7 +375,8 @@ function pipeWithInjection(req: Parameters<RequestHandler>[0], res: Response, re
   };
   stream.on("error", (error: NodeJS.ErrnoException & { status?: number }) => {
     const status = error.status ?? HTTP_NOT_FOUND;
-    if (status === HTTP_NOT_FOUND) onMissing();
+    // The library refuses a path that climbs above the root with `403`.
+    if (status === HTTP_NOT_FOUND || status === HTTP_FORBIDDEN) onMissing();
     else reply.failed(status);
   });
   stream.pipe(res);
@@ -356,21 +389,19 @@ function serveDirectoryArtifact(req: Parameters<RequestHandler>[0], res: Respons
     reply.addSlash();
     return;
   }
-  pipeWithInjection(req, res, reply, subpath, { root: artifact.path, index: ["index.html", "index.htm"], dotfiles: "allow" }, appearanceSource, bridgeSource, reply.addSlash, subpath === "/" ? reply.artifactMissing : reply.notFound);
+  const onMissing = subpath === "/" ? reply.artifactMissing : reply.notFound;
+  const location = artifactRealLocation(artifact.path);
+  if (location === null) {
+    onMissing();
+    return;
+  }
+  const realFolder = location.path;
+  pipeWithInjection(req, res, reply, subpath, { root: realFolder, index: ["index.html", "index.htm"], dotfiles: "allow" }, appearanceSource, bridgeSource, reply.addSlash, onMissing, (resolvedPath) => isServedFromFolder(realFolder, resolvedPath));
 }
 
 function serveFileArtifact(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
   const entry = fileEntry(artifact, reply);
-  let stat: fs.Stats;
-  try {
-    stat = fs.statSync(artifact.path);
-  } catch {
-    if (subpath === entry) reply.artifactMissing();
-    else reply.notFound();
-    return;
-  }
-
-  if (!stat.isFile()) {
+  if (artifactRealLocation(artifact.path) === null) {
     if (subpath === entry) reply.artifactMissing();
     else reply.notFound();
     return;
@@ -383,22 +414,15 @@ function serveFileArtifact(req: Parameters<RequestHandler>[0], res: Response, re
     reply.notFound();
     return;
   }
-  // A file that has become a folder since the check above is missing.
-  pipeWithInjection(req, res, reply, fileNamePath(artifact), { root: path.dirname(artifact.path), index: false, dotfiles: "allow" }, appearanceSource, bridgeSource, reply.artifactMissing, reply.artifactMissing);
+  // A file whose real location has changed since the check above, to a
+  // folder or to anything else, is missing.
+  pipeWithInjection(req, res, reply, fileNamePath(artifact), { root: path.dirname(artifact.path), index: false, dotfiles: "allow" }, appearanceSource, bridgeSource, reply.artifactMissing, reply.artifactMissing, (resolvedPath) => artifactRealLocation(resolvedPath) !== null);
 }
 
 function serveMarkdownArtifact(req: Parameters<RequestHandler>[0], res: Response, reply: ProxyReply, artifact: Artifact & { kind: "path" }, subpath: string, appearanceSource: string, bridgeSource: string): void {
   const entry = fileEntry(artifact, reply);
-  let stat: fs.Stats;
-  try {
-    stat = fs.statSync(artifact.path);
-  } catch {
-    if (subpath === entry) reply.artifactMissing();
-    else reply.notFound();
-    return;
-  }
-
-  if (!stat.isFile()) {
+  const location = artifactRealLocation(artifact.path);
+  if (location === null) {
     if (subpath === entry) reply.artifactMissing();
     else reply.notFound();
     return;
@@ -411,7 +435,7 @@ function serveMarkdownArtifact(req: Parameters<RequestHandler>[0], res: Response
     reply.notFound();
     return;
   }
-  sendRenderedMarkdown(req, res, reply, artifact.path, stat, appearanceSource, bridgeSource);
+  sendRenderedMarkdown(req, res, reply, location.path, location.stat, appearanceSource, bridgeSource);
 }
 
 export function serveArtifactProxy(
@@ -421,6 +445,7 @@ export function serveArtifactProxy(
   const appearanceSource = appearanceResolverScriptSource('"system"');
   const bridgeSource = bridgeScriptSource({ pollCadence: options.pollCadence });
   return (req, res) => {
+    for (const [name, value] of Object.entries(CROSS_ORIGIN_HEADERS)) res.setHeader(name, value);
     if (req.method !== "GET" && req.method !== "HEAD") {
       sendMethodNotAllowed(res);
       return;

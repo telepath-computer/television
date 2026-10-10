@@ -75,7 +75,7 @@ async function createURLArtifact(
 async function openApp(page: Page, server: ProductServer, baseURL: string | undefined): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const appBaseURL = await server.appURL(baseURL);
-  await page.goto(`${appBaseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appBaseURL)}`);
+  await page.goto(`${appBaseURL}/packages/web/src/index.html`);
   await waitForApp(page);
 }
 

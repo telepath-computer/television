@@ -1,6 +1,6 @@
 {
   "name": "television-monorepo",
-  "version": "1.4.29",
+  "version": "1.5.0",
   "license": "MIT",
   "type": "module",
   "private": true,
@@ -26,7 +26,8 @@
     "build:canonical": "npm --workspace @telepath-computer/canonical run build",
     "build:web": "npm --workspace @telepath-computer/television-web run build",
     "build:views": "npm --workspace @telepath-computer/television run build:views",
-    "build:web-and-artifact-documents": "npm run build:web && npm run build:views && npm run build:canonical",
+    "build:web-and-artifact-documents": "npm run build:web && npm run build:views && npm run build:canonical && npm run build:sdk",
+    "build:sdk": "node packages/server/scripts/build-sdk.mjs",
     "build:cli": "npm --workspace @telepath-computer/television run build",
     "build:desktop": "npm --workspace @telepath-computer/television-desktop run build",
     "link": "npm run build && npm link",

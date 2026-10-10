@@ -311,9 +311,10 @@ describe("requests from other origins on the artifact routes", () => {
       headers: { "Content-Type": "text/plain;charset=UTF-8", ...headers },
     });
 
-  /** The origins of pages on another site, and of pages behind a front that terminates TLS for the server's own host. */
+  /** The origins of pages on another site, of sandboxed artifact pages, and of pages behind a front that terminates TLS for the server's own host. */
   const otherOrigins = (server: RunningServer): Array<[string, string]> => [
     ["another site", "http://other-site.example"],
+    ["a sandboxed page", "null"],
     ["an HTTPS front", `https://${server.host}`],
   ];
 
@@ -544,8 +545,8 @@ describe("checks at application time", () => {
   });
 
   it("sends a connection whose artifact has no store no level when its share link's level changes, and with the flag on its bindings at the page's new level", async () => {
-    const server = await context.start({ resourceBindings: true });
-    const artifactID = server.createArtifact("No store", { id: "page-without-a-store" });
+    const server = await context.start({ resourceBindings: true, fixedIDArtifacts: [{ id: "page-without-a-store" }] });
+    const artifactID = "page-without-a-store";
     const bound = await server.createdStore({ value: { n: 1 } });
     await server.bind(bound, artifactID, "read-write");
     const page = await server.pageConnection(await server.sharedAt(artifactID, "read"));

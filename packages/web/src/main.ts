@@ -15,7 +15,7 @@ import { UpdatePresentationState } from "./services/update-presentation.ts";
 import { DesktopUpdateState, type DesktopUpdateBridge } from "./services/desktop-update.ts";
 import { getBrowserLocalStorage } from "./services/acp-session-store.ts";
 import { buildClientTelemetryMeta } from "./services/telemetry-client.ts";
-import { isElectronMode, resolveAuthToken, resolveDesktopAppVersion, resolveServerURL } from "./config.ts";
+import { isElectronMode, resolveAuthToken, resolveDesktopAppVersion } from "./config.ts";
 import type {
   AppearanceChangedEvent,
   ThemeChangedEvent,
@@ -59,7 +59,10 @@ if (electronMode) {
 } else {
   delete document.documentElement.dataset.platform;
 }
-const runtimeServerURL = resolveServerURL();
+// The client's one server is the origin its page was loaded from, in the
+// browser and the desktop app alike (specs/arch/updates/version-advertisement.md
+// ^reload-origin-rule).
+const serverURL = normalizeServerURL(window.location.origin);
 const launchToken = resolveAuthToken();
 const localStore = new LocalStore(
   electronMode ? "television-electron" : "television-browser",
@@ -79,13 +82,6 @@ const telemetryMeta = telemetryStorage
       desktopAppVersion: electronMode ? resolveDesktopAppVersion() : null,
     })
   : null;
-// The bundle-serving origin's connection URL: the page origin, or in Electron
-// mode the connected server URL the page was loaded from. Both the reload
-// contract (^reload-origin-rule) and the desktop gate key on it exclusively.
-const primaryServerURL = electronMode
-  ? normalizeServerURL(runtimeServerURL)
-  : normalizeServerURL(window.location.origin);
-
 // The desktop upgrade gate's boot barrier
 // (specs/arch/updates/desktop-upgrade-gate.md ^boot-barrier). Electron
 // context is the ?mode=electron parameter alone (^electron-context — every
@@ -107,14 +103,13 @@ const updatePresentation = new UpdatePresentationState();
 
 const gateController = createDesktopGateController({
   detection: gateDetection,
-  primaryServerURL,
   navigationLatch,
   presentation: updatePresentation,
 });
 
 const connectionOwner = new ServerConnectionOwner({
   localStore,
-  serverURL: runtimeServerURL,
+  serverURL,
   launchToken,
   telemetryMeta,
   navigationPending: () => navigationLatch.pending,
@@ -165,15 +160,11 @@ if (launchToken) {
   );
 }
 
-// Client auto-reload (specs/arch/updates/version-advertisement.md): only the
-// bundle-serving origin can be version-matched against this bundle
-// (^reload-origin-rule). A browser page loaded with a differing ?serverURL=
-// (the dev affordance) therefore never reloads. Attached BEFORE the gate
-// controller: the reload decision evaluates each server-status first
-// (^reload-gate-precedence).
+// Client auto-reload (specs/arch/updates/version-advertisement.md). Attached
+// BEFORE the gate controller: the reload decision evaluates each
+// server-status first (^reload-gate-precedence).
 createUpdateReloadAgent({
   owner: connectionOwner,
-  primaryServerURL,
   navigationLatch,
 });
 gateController.attach(connectionOwner);
@@ -470,10 +461,9 @@ const reopenSettingsAfterConnectedMount = (state: string): void => {
 const presentApplication = (): void => {
   if (applicationPresented) return;
   render(TelevisionAppView(applicationService, {
-    runtimeServerURL,
+    serverURL,
     electronMode,
     connectionOwner,
-    primaryServerURL,
     updatePresentation,
     desktopRecommendation: gateDetection,
     desktopUpdate,

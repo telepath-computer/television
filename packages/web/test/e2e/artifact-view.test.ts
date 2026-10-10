@@ -1,4 +1,5 @@
 import { chromium, expect, test } from "@playwright/test";
+import { bridgeScriptSource } from "@telepath-computer/television-artifact/browser";
 
 declare global {
   interface Window {
@@ -102,10 +103,7 @@ async function openFixture(page: import("@playwright/test").Page): Promise<void>
         contentType: "text/html",
         body: `<!doctype html><html><body>
           <input id="editor" value="focused artifact document">
-          <script type="module">
-            import { installBridge } from "/packages/artifact/src/browser/artifact-bridge.ts";
-            installBridge(window, { reportNavigation: false });
-          </script>
+          <script>${bridgeScriptSource({ reportNavigation: false })}</script>
         </body></html>`,
       });
       return;
@@ -243,7 +241,7 @@ test.describe("artifact rendering dispatcher", () => {
 
     const iframe = page.locator(".artifact-view iframe");
     await expect(iframe).toHaveAttribute("src", `/artifact/${BUNDLE_ID}/`);
-    await expect(iframe).not.toHaveAttribute("sandbox", /.*/);
+    await expect(iframe).toHaveAttribute("sandbox", "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads");
 
     const frame = page.frameLocator(".artifact-view iframe");
     await expect(frame.locator("h1")).toHaveText("Bundle root");
@@ -324,10 +322,7 @@ test.describe("artifact rendering dispatcher", () => {
     await page.route("**/artifact/fast-before-connect/**", async (route) => {
       await route.fulfill({
         contentType: "text/html",
-        body: `<!doctype html><h1>Fast local</h1><script type="module">
-          import { installBridge } from "/packages/artifact/src/browser/artifact-bridge.ts";
-          installBridge(window, { reportNavigation: false });
-        </script>`,
+        body: `<!doctype html><h1>Fast local</h1><script>${bridgeScriptSource({ reportNavigation: false })}</script>`,
       });
     });
     await openFixture(page);
@@ -350,9 +345,14 @@ test.describe("artifact rendering dispatcher", () => {
 
     const guid = await artifactTrustGuid(page, "#fast-view");
     if (!guid) throw new Error("Expected adopted browser bridge GUID");
+    // The document is sandboxed, so only the document itself shows that the
+    // production installer marked it installed.
     expect(await browserLifecycle(page)).toEqual([
-      { type: "bridge-ready", guid, installed: true },
+      { type: "bridge-ready", guid, installed: null },
     ]);
+    expect(await page.frameLocator("#fast-view iframe.artifact-content").locator("html").evaluate(() =>
+      (window as Window & { __televisionArtifactBridgeInstalled?: boolean }).__televisionArtifactBridgeInstalled,
+    )).toBe(true);
   });
 
   test("renders TV artifact URL artifacts inline in browser mode", async ({ page }) => {
