@@ -299,7 +299,20 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 
 HTML artifacts run in a sandbox where `localStorage`, `sessionStorage`, cookies and IndexedDB don't work: touching them throws an error. An artifact that kept data there loses it, and one that doesn't catch the error stops working. Versions earlier than 1.5.0 let artifacts use them. What they kept stays in the browser where the artifact can no longer read it, and nothing records which artifact wrote what, so it can't be moved for them.
 
-So on an upgrade from a version earlier than 1.5.0, list the HTML artifacts with `tv list-artifacts` and look through their files for `localStorage`, `sessionStorage`, `document.cookie` and `indexedDB`. For each artifact that uses them, decide whether to remove that use or replace it with the artifact's JSON store, which the `television` skill's resource guidance describes. An upgrade from 1.5.0 or later skips this check.
+So on an upgrade from a version earlier than 1.5.0, list the HTML artifacts with `tv list-artifacts` and look through their files for `localStorage`, `sessionStorage`, `document.cookie` and `indexedDB`. An upgrade from 1.5.0 or later skips this check.
+
+**Choosing what to recommend.** For each artifact that uses them, work out what it saves, and recommend one of two changes:
+
+- update it to save in the artifact's JSON store, which the `television` skill's resource guidance describes, when what it saves matters to the person, such as entries they made. The Television server keeps the JSON store, so everyone who opens the artifact, on any device or through its share link, sees the same data;
+- remove the saving, when it only remembers something minor, such as the last tab that was open.
+
+**Telling the person.** Put this in the confirm message in plain words. Leave out technical terms such as browser storage, `localStorage`, cookies, sandbox and JSON store; most people don't know them, and they don't need to. Tell them:
+
+- that Television 1.5.0 changes what artifacts can save, as part of improved security, and which of their artifacts this affects, by name;
+- what you recommend for each: update it so it keeps saving, or remove the saving;
+- what they'll notice: whatever these artifacts saved before the upgrade won't come back. An updated artifact keeps its data in Television from then on, so it's the same on all their devices and for anyone they share the artifact with. An artifact that no longer saves starts fresh each time it opens.
+
+For example: "Television 1.5.0 improves security by changing what artifacts can save, and two of yours are affected. Reading List saves the books you add. I recommend updating it so it keeps doing that; the list will then be the same on all your devices and for anyone you share it with, but the books saved so far won't come back. Weather remembers the last city you looked at. I recommend removing that, so it opens on its default city each time."
 
 #### Moving from the npm desktop app to the downloaded app
 
@@ -423,7 +436,7 @@ Send one message, in plain words:
 - in the rare cases where section 7 says the person's connection changes, that they'll need a new link;
 - anything that needs their decision, such as an outdated Node version;
 - if you found the npm desktop app on this machine, an offer to move them to the downloaded app;
-- if you found artifacts that use browser storage, which ones, and what you'll do with each.
+- if you found artifacts that use browser storage, which ones are affected, what you recommend for each, and what they'll notice, in the plain words section 7 describes.
 
 No telemetry notice. Then wait for their go-ahead.
 
@@ -434,14 +447,14 @@ No telemetry notice. Then wait for their go-ahead.
 3. Fix the settings you found in the check (section 7), then run `tv serve --persist`.
 4. Verify the running version matches the installed one (section 7).
 5. In the rare case that the person needs a new link (section 7), get it from `tv links` and verify it exactly as section 3 requires.
-6. If you found artifacts that use browser storage, change them as you said you would (section 7).
+6. If you found artifacts that use browser storage, change them as the person agreed (section 7).
 
 ### 4. Report
 
 One short message: Television is upgraded, and to which version. Add only what the person needs to act on:
 
 - the steps to move off the npm desktop app, if that applies (section 7);
-- the artifacts you changed because they used browser storage, if any (section 7);
+- the artifacts you changed, if any, and what each now does, in the same plain words as the confirm message (section 7);
 - in the rare case they need a new connect link (section 7), the link, complete and verified, with how to use it: open it in a browser, or in the desktop app choose **Television › Disconnect from Server** and paste it; and that they can get it again by asking you or running `tv links` on this machine.
 
 ## Read this guide in full
