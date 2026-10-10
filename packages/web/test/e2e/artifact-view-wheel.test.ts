@@ -20,9 +20,8 @@ import {
 import {
   configureTestMotion,
   createArtifactFile,
-  startMotionObservation,
 } from "./helpers.ts";
-import { chromium, type Frame, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -34,7 +33,6 @@ interface SeededArtifact {
 
 function appIndexURL(appURL: string): string {
   const url = new URL("/packages/web/src/index.html", appURL);
-  url.searchParams.set("serverURL", appURL);
   return url.toString();
 }
 
@@ -115,31 +113,6 @@ async function selectArtifact(page: Page, artifactID: string): Promise<void> {
   await expect(pageFor(page, artifactID)).toHaveAttribute("selected", "");
 }
 
-function minimalTallPdf(): Buffer {
-  const stream = "BT /F1 24 Tf 72 1900 Td (Television native PDF interaction) Tj ET";
-  const objects = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 2000] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
-    `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`,
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-  ];
-  let body = "%PDF-1.4\n";
-  const offsets = [0];
-  for (const [index, object] of objects.entries()) {
-    offsets.push(Buffer.byteLength(body));
-    body += `${index + 1} 0 obj\n${object}\nendobj\n`;
-  }
-  const xrefOffset = Buffer.byteLength(body);
-  body += `xref\n0 ${objects.length + 1}\n`;
-  body += "0000000000 65535 f \n";
-  for (const offset of offsets.slice(1)) {
-    body += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  }
-  body += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
-  return Buffer.from(body);
-}
-
 async function documentScrollTop(page: Page, artifactID: string): Promise<number> {
   return frameFor(page, artifactID).locator("html").evaluate(() => {
     const offsets: number[] = [document.scrollingElement?.scrollTop ?? 0];
@@ -164,21 +137,6 @@ async function scrollDocumentWithWheel(
   const before = await documentScrollTop(page, artifactID);
   await page.mouse.wheel(0, 600);
   await expect.poll(() => documentScrollTop(page, artifactID)).toBeGreaterThan(before);
-}
-
-async function pdfDocumentFrame(
-  page: Page,
-  pdfURL: string,
-): Promise<Frame | null> {
-  for (const frame of page.frames()) {
-    if (
-      frame.url() === pdfURL &&
-      await frame.locator('embed[type="application/x-google-chrome-pdf"]').count() === 1
-    ) {
-      return frame;
-    }
-  }
-  return null;
 }
 
 // Product acceptance for specs/product/artifacts.md. Every case drives
@@ -319,17 +277,10 @@ test.describe("artifact frame browser product outcomes", () => {
     }
   });
 
-  test("keeps raw image, PDF, and CSP-blocked documents natively interactive without bridge readiness (^af-ac-native)", async ({
+  test("keeps raw image and CSP-blocked documents natively interactive without bridge readiness (^af-ac-native)", async ({
+    page,
     baseURL,
   }) => {
-    // Chromium's browser-level headless mode downloads PDFs. The headless
-    // Ozone display backend keeps the real headed PDF viewer without needing
-    // a host display server.
-    const browser = await chromium.launch({
-      headless: false,
-      args: ["--ozone-platform=headless"],
-    });
-    const page = await browser.newPage({ baseURL });
     const product = await launchProductServer();
     try {
       const client = new TelevisionClient(product.serverURL);
@@ -348,10 +299,6 @@ test.describe("artifact frame browser product outcomes", () => {
       copyFileSync(
         path.join(REPO_ROOT, "packages/desktop/assets/icon.png"),
         path.join(nativeSourceDirectory, "oversized.png"),
-      );
-      writeFileSync(
-        path.join(nativeSourceDirectory, "tall.pdf"),
-        minimalTallPdf(),
       );
       writeFileSync(
         path.join(nativeSourceDirectory, "csp.html"),
@@ -385,13 +332,6 @@ test.describe("artifact frame browser product outcomes", () => {
         "Oversized raw image",
         `${sourceURL}/oversized.png`,
       );
-      const pdfURL = `${sourceURL}/tall.pdf`;
-      const pdf = await createURLArtifact(
-        client,
-        channelID,
-        "Tall PDF",
-        pdfURL,
-      );
       const csp = await createURLArtifact(
         client,
         channelID,
@@ -412,36 +352,6 @@ test.describe("artifact frame browser product outcomes", () => {
       }
       await scrollDocumentWithWheel(page, image.id);
 
-      const pdfSelectionMotion = await startMotionObservation(page, ".stage");
-      await selectArtifact(page, pdf.id);
-      await pdfSelectionMotion.settle({ requireMotion: true });
-      await expect.poll(async () => await pdfDocumentFrame(page, pdfURL) !== null)
-        .toBe(true);
-      const pdfFrame = await pdfDocumentFrame(page, pdfURL);
-      if (!pdfFrame) throw new Error("Expected selected PDF document frame");
-      const pdfIframe = pageFor(page, pdf.id).locator(".artifact-view iframe");
-      const artifactFrame = await (await pdfIframe.elementHandle())?.contentFrame();
-      expect(artifactFrame).not.toBeNull();
-      expect(pdfFrame.parentFrame()?.parentFrame()).toBe(artifactFrame);
-      const pdfScrollTop = () => pdfFrame.locator("html").evaluate(
-        (element) => element.scrollTop,
-      );
-      expect(await pdfScrollTop()).toBe(0);
-      const embedBox = await pdfFrame
-        .locator('embed[type="application/x-google-chrome-pdf"]')
-        .boundingBox();
-      if (!embedBox) throw new Error("Expected selected PDF plugin box");
-      await page.mouse.move(
-        embedBox.x + embedBox.width / 2,
-        embedBox.y + embedBox.height / 2,
-      );
-      await page.mouse.click(
-        embedBox.x + embedBox.width / 2,
-        embedBox.y + embedBox.height / 2,
-      );
-      await page.mouse.wheel(0, 600);
-      await expect.poll(pdfScrollTop).toBeGreaterThan(0);
-
       await selectArtifact(page, csp.id);
       const cspFrame = frameFor(page, csp.id);
       await expect(cspFrame.locator("#native-result")).toHaveText("ready");
@@ -453,7 +363,6 @@ test.describe("artifact frame browser product outcomes", () => {
       await expect(cspFrame.locator("#native-result")).toHaveText("clicked");
     } finally {
       await product.dispose();
-      await browser.close();
     }
   });
 

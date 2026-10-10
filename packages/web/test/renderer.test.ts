@@ -170,7 +170,6 @@ const mockState = vi.hoisted(() => {
     MockLocalStore,
     createDefaultLocalState,
     dependenciesRegister: vi.fn(),
-    resolveServerURL: vi.fn(),
     resolveAuthToken: vi.fn(),
     resolveDesktopAppVersion: vi.fn(),
     isElectronMode: vi.fn(),
@@ -204,7 +203,6 @@ vi.mock("../src/store.ts", () => {
 
 vi.mock("../src/config.ts", () => {
   return {
-    resolveServerURL: mockState.resolveServerURL,
     resolveAuthToken: mockState.resolveAuthToken,
     resolveDesktopAppVersion: mockState.resolveDesktopAppVersion,
     isElectronMode: mockState.isElectronMode,
@@ -259,7 +257,6 @@ describe("renderer", () => {
     mockState.MockLocalStore.instances.length = 0;
     mockState.createDefaultLocalState.mockClear();
     mockState.dependenciesRegister.mockReset();
-    mockState.resolveServerURL.mockReset();
     mockState.resolveAuthToken.mockReset();
     mockState.resolveAuthToken.mockReturnValue(null);
     mockState.resolveDesktopAppVersion.mockReset();
@@ -282,7 +279,6 @@ describe("renderer", () => {
 
   it("defers the Electron root until the existing boot decision settles", async () => {
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
 
@@ -302,7 +298,6 @@ describe("renderer", () => {
 
   it("presents Electron authorization when rejection settles before a boot decision", async () => {
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
 
@@ -315,9 +310,9 @@ describe("renderer", () => {
   });
 
   it("in electron mode creates store/services and registers them in DI", async () => {
-    const localServerURL = "http://localhost:32848";
+    // The one server is the page's own origin; a leftover ?serverURL= is ignored.
+    window.history.replaceState(null, "", "/?mode=electron&serverURL=http%3A%2F%2Felsewhere.example");
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue(localServerURL);
 
     await import("../src/main.ts");
 
@@ -330,6 +325,7 @@ describe("renderer", () => {
       retainedGateHalted: expect.any(Function),
     });
     expect(mockState.MockServerConnectionOwner.instances).toHaveLength(1);
+    expect(mockState.MockServerConnectionOwner.instances[0].args.serverURL).toBe(window.location.origin);
     expect(mockState.MockServerConnectionOwner.instances[0].connect).toHaveBeenCalledTimes(1);
     expect(mockState.dependenciesRegister).toHaveBeenCalledTimes(2);
   });
@@ -340,7 +336,6 @@ describe("renderer", () => {
       __televisionNativeBridge?: { onNavigationKey(callback: (key: string) => void): void };
     }).__televisionNativeBridge = { onNavigationKey };
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
 
@@ -353,9 +348,8 @@ describe("renderer", () => {
 
   // proofs/arch/themes/delivery.md#^theme-delivery-t-app-link-renderer
   it("ties the theme link to connection and theme events before display readiness", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -393,9 +387,8 @@ describe("renderer", () => {
 
   // proofs/arch/themes/delivery.md#^theme-delivery-t-app-script-renderer
   it("ties the theme script to confirmed consent, refresh, and connection lifecycle", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -532,9 +525,8 @@ describe("renderer", () => {
 
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-lifecycle
   it("installs ready theme frames after deferred application mount", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -566,9 +558,8 @@ describe("renderer", () => {
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-lifecycle
   // proofs/arch/themes/delivery.md#^theme-delivery-t-app-script-renderer
   it("reconciles theme frames across confirmed setup, refresh, selection, and connection state", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -774,9 +765,8 @@ describe("renderer", () => {
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-lifecycle
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-appearance-lifecycle
   it("fails theme frame lookup closed while stylesheet, main script, and application continue", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -849,9 +839,8 @@ describe("renderer", () => {
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-lifecycle
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-appearance-lifecycle
   it("discards superseded theme frame resolutions and rejections", async () => {
-    const serverURL = "http://localhost:32848";
+    const serverURL = window.location.origin;
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue(serverURL);
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1001,7 +990,6 @@ describe("renderer", () => {
     themeJavaScriptConsentIds,
   }) => {
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1033,7 +1021,6 @@ describe("renderer", () => {
   // proofs/arch/themes/delivery.md#^theme-delivery-t-script-reset
   it("applies theme transitions in place when no script include exists", async () => {
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1071,10 +1058,9 @@ describe("renderer", () => {
     window.history.replaceState(
       { retained: true },
       "",
-      "/channels?serverURL=http%3A%2F%2Flocalhost%3A32848&kept=yes#current",
+      "/channels?desktopAppVersion=1.2.3&kept=yes#current",
     );
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const settingsPopover = document.createElement("div");
@@ -1101,8 +1087,7 @@ describe("renderer", () => {
 
     const url = new URL(window.location.href);
     expect(url.pathname).toBe("/channels");
-    expect(url.searchParams.get("serverURL"))
-      .toBe("http://localhost:32848");
+    expect(url.searchParams.get("desktopAppVersion")).toBe("1.2.3");
     expect(url.searchParams.get("kept")).toBe("yes");
     expect(url.searchParams.has("reopenSettings")).toBe(expectsMarker);
     expect(url.hash).toBe("#current");
@@ -1127,16 +1112,15 @@ describe("renderer", () => {
     window.history.replaceState(
       { retained: true },
       "",
-      "/channels?serverURL=http%3A%2F%2Flocalhost%3A32848&reopenSettings=1#current",
+      "/channels?desktopAppVersion=1.2.3&reopenSettings=1#current",
     );
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
 
     expect(window.location.pathname).toBe("/channels");
     expect(window.location.search).toBe(
-      "?serverURL=http%3A%2F%2Flocalhost%3A32848",
+      "?desktopAppVersion=1.2.3",
     );
     expect(window.location.hash).toBe("#current");
     expect(window.history.state).toEqual({ retained: true });
@@ -1157,7 +1141,6 @@ describe("renderer", () => {
   // proofs/arch/themes/delivery.md#^theme-delivery-t-fixed-preference-resources
   it("keeps fixed-theme appearance and resources stable until the active scheme becomes adaptive", async () => {
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1226,7 +1209,6 @@ describe("renderer", () => {
     "applies destination appearance before a theme reset when cache writes fail: %s",
     async (cacheWriteFails) => {
       mockState.isElectronMode.mockReturnValue(false);
-      mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
       await import("../src/main.ts");
       const application = mockState.MockApplicationService.instances[0];
@@ -1279,7 +1261,6 @@ describe("renderer", () => {
       };
     }).__televisionNativeBridge = { onNavigationKey: vi.fn() };
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1312,7 +1293,6 @@ describe("renderer", () => {
       setAppearanceMode,
     };
     mockState.isElectronMode.mockReturnValue(true);
-    mockState.resolveServerURL.mockReturnValue("http://localhost:32848");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1418,7 +1398,6 @@ describe("renderer", () => {
       setAppearanceMode,
     };
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue("http://example.com");
 
     await import("../src/main.ts");
     const application = mockState.MockApplicationService.instances[0];
@@ -1434,9 +1413,7 @@ describe("renderer", () => {
   });
 
   it("in browser mode registers services and passes the app view runtime options", async () => {
-    const browserServerURL = "http://example.com";
     mockState.isElectronMode.mockReturnValue(false);
-    mockState.resolveServerURL.mockReturnValue(browserServerURL);
 
     await import("../src/main.ts");
 
@@ -1456,7 +1433,7 @@ describe("renderer", () => {
       mockState.MockApplicationService.instances[0],
     );
     expect(mockState.televisionAppView.mock.calls[0]?.[1]).toMatchObject({
-      runtimeServerURL: browserServerURL,
+      serverURL: window.location.origin,
       electronMode: false,
     });
   });

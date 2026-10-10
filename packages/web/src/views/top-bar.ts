@@ -33,7 +33,6 @@ interface DeleteRestoration {
 
 export interface TopBarOptions {
   connectionOwner?: UpdateNotificationConnectionOwner | null;
-  primaryServerURL?: string;
   updatePresentation?: UpdatePresentationState | null;
   desktopRecommendation?: DesktopUpgradeRecommendationContext | null;
   desktopUpdate?: DesktopUpdateState | null;
@@ -99,7 +98,6 @@ export class TopBar extends View<[
     ) queueMicrotask(() => this.#restoreAfterDelete(deletion));
     this.#update.configure({
       connectionOwner: options.connectionOwner,
-      primaryServerURL: options.primaryServerURL,
       presentation: options.updatePresentation,
       desktopRecommendation: options.desktopRecommendation,
       desktopUpdate: options.desktopUpdate,
