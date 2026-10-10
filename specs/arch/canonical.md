@@ -2,7 +2,7 @@
 
 # Canonical
 
-Television serves artifacts a stylesheet and a components script at one stable address per version: the canonical bundle. It gives artifacts consistency and capability without requiring package imports — tokens, type, document defaults, and public elements, one link away on the same origin. A live version's rendered truth is the complete foundation ([ui/foundation/index.css](../ui/foundation/index.css)) and the element specs the build draws on. A frozen version's authority is its committed built payload under `packages/canonical/frozen/`, anchored by that version's provenance record (currently [v1's `frozen.json`](../../packages/canonical/frozen/v1/frozen.json)). This spec owns those two input classes, the build that produces the served files, the public mount and caching, the theme layer, version compatibility, and the freeze procedure.
+Television serves artifacts a stylesheet and a components script at one stable address per version: the canonical bundle. It gives artifacts consistency and capability without requiring package imports — tokens, type, document defaults, and public elements, one link away on the same server. A live version's rendered truth is the complete foundation ([ui/foundation/index.css](../ui/foundation/index.css)) and the element specs the build draws on. A frozen version's authority is its committed built payload under `packages/canonical/frozen/`, anchored by that version's provenance record (currently [v1's `frozen.json`](../../packages/canonical/frozen/v1/frozen.json)). This spec owns those two input classes, the build that produces the served files, the public mount and caching, the theme layer, version compatibility, and the freeze procedure.
 
 ## Serving
 

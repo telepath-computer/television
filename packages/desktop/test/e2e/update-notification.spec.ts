@@ -38,24 +38,30 @@ const SERVER_VERSION = "1.0.0";
 const CHANNEL_VERSION = "1.5.0";
 const NOTES_URL = "https://television.run/notes-1.5.0";
 const PROMPT = "Please upgrade my Television server following https://television.run/install.md";
-// A release of the npm package that passes the production floor (1.3.1) and
-// sits below the recommendation (1.4.0).
+// A release of the npm package, below the recommendation (1.4.0).
 const NPM_SHELL_VERSION = "1.3.2";
+// The production floor (1.5.0) gates every npm-installed shell, so the
+// recommendation reaches no client of a production server. The
+// recommendation walks give their server this requirement through the
+// declared TV_TEST_REQUIRED_DESKTOP_VERSION hook, so the npm shell passes.
+const NPM_ADMITTING_REQUIREMENT = "1.3.1";
 // Restated from specs/ui/app/update-notification/content.yml#desktop_upgrade_recommendation.
 const RECOMMENDATION_DOWNLOAD_URL = "https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64";
 const SILENCE_WINDOW_MS = 2_000;
 
 const ENV_KEYS = ["TV_TEST_VERSION", "TV_TEST_REQUIRED_DESKTOP_VERSION", "TV_UPDATE_CHANNEL_URL", "TV_UPDATE_CHANNEL_POLL_INTERVAL_MS"] as const;
 
-async function startDesktopNotificationServer(channelDocument: unknown): Promise<{
+async function startDesktopNotificationServer(channelDocument: unknown, requiredDesktopVersion?: string): Promise<{
   server: Server;
   dispose(): Promise<void>;
 }> {
   const savedEnv = new Map<string, string | undefined>(ENV_KEYS.map((key) => [key, process.env[key]]));
   const fixture = await startUpdateChannelFixture(channelDocument);
   process.env.TV_TEST_VERSION = SERVER_VERSION;
-  // The server advertises the production required desktop version.
-  delete process.env.TV_TEST_REQUIRED_DESKTOP_VERSION;
+  // The server advertises the production required desktop version unless
+  // the walk names another.
+  if (requiredDesktopVersion === undefined) delete process.env.TV_TEST_REQUIRED_DESKTOP_VERSION;
+  else process.env.TV_TEST_REQUIRED_DESKTOP_VERSION = requiredDesktopVersion;
   process.env.TV_UPDATE_CHANNEL_URL = fixture.url;
   delete process.env.TV_UPDATE_CHANNEL_POLL_INTERVAL_MS;
 
@@ -195,7 +201,7 @@ test.describe("desktop update notification", () => {
       schemaVersion: 1,
       version: SERVER_VERSION,
       toast: { markdown: "This equal-version server notice does not apply." },
-    });
+    }, NPM_ADMITTING_REQUIREMENT);
     const tempDirs: string[] = [];
     let launched: Awaited<ReturnType<typeof launchDesktop>> | null = null;
 
@@ -276,7 +282,7 @@ test.describe("desktop update notification", () => {
         markdown: `**Television ${CHANNEL_VERSION}** is available.`,
         prompt: PROMPT,
       },
-    });
+    }, NPM_ADMITTING_REQUIREMENT);
     const tempDirs: string[] = [];
     let launched: Awaited<ReturnType<typeof launchDesktop>> | null = null;
 

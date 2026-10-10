@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server, ServerStore } from "@telepath-computer/television-server";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { waitForApplicationShell } from "./helpers.ts";
 
@@ -53,9 +54,8 @@ export async function disposeHarness(harness: Harness): Promise<void> {
 
 export async function openConsumer(page: Page, baseURL: string | undefined, consumer: Server): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
-  await page.goto(
-    `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(consumer.getBaseURL())}&token=${encodeURIComponent(consumer.getAuthToken())}`,
-  );
+  const appURL = await appURLForServer(consumer.getBaseURL(), baseURL);
+  await page.goto(`${appURL}/packages/web/src/index.html?token=${encodeURIComponent(consumer.getAuthToken())}`);
   await waitForApplicationShell(page);
 }
 

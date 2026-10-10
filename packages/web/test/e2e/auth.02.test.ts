@@ -1,8 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import {
   configureTestMotion,
@@ -26,15 +27,15 @@ test.describe("web auth modal integration", () => {
 
     try {
       await server.start();
-      const serverURL = server.getBaseURL();
+      const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
       const token = server.getAuthToken();
 
       await page.goto(
-        `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&mode=electron&token=${encodeURIComponent(token)}`,
+        `${appURL}/packages/web/src/index.html?mode=electron&token=${encodeURIComponent(token)}`,
       );
 
       await waitForApplicationShell(page);
-      await expect(page).toHaveURL(`${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&mode=electron`);
+      await expect(page).toHaveURL(`${appURL}/packages/web/src/index.html?mode=electron`);
     } finally {
       await server.dispose();
       rmSync(storagePath, { recursive: true, force: true });
@@ -68,7 +69,8 @@ test.describe("web authentication integration", () => {
 
     try {
       await server.start();
-      await page.goto(`${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(server.getBaseURL())}&token=${encodeURIComponent(server.getAuthToken())}`);
+      const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
+      await page.goto(`${appURL}/packages/web/src/index.html?token=${encodeURIComponent(server.getAuthToken())}`);
       await waitForApplicationShell(page);
       await configureTestMotion(page);
       await expect(

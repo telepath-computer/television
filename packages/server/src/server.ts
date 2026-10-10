@@ -15,6 +15,7 @@ import { isAuthorizedBearer } from "./auth.ts";
 import { resolveBindAddresses } from "./bind-addresses.ts";
 import { serveCanonicalBase, serveCanonicalStyles } from "./canonical.ts";
 import { serveActiveTheme } from "./themes.ts";
+import { applySandboxHeader } from "./sandbox-header.ts";
 import { log } from "./logger.ts";
 import { buildStartupBindFailureRecord, StartupBindError, type StartupBindAttempt } from "./startup-bind-failure.ts";
 import { createServerStoreTelemetryHooks, deriveServerConfigSnapshotProperties, emitServerBootTelemetry } from "./telemetry/emitters.ts";
@@ -195,6 +196,14 @@ export class Server {
       res.setHeader("X-TV-Version", updateReleaseVersion);
       next();
     });
+    // Every response from the artifact proxy and the active-theme route
+    // carries the sandbox header (specs/arch/artifact-frame/isolation.md
+    // ^iso-sandbox-header). Registered before the body parser and the routes
+    // so the errors they raise carry it too.
+    this.app.use(["/artifact", "/theme"], (_req, res, next) => {
+      applySandboxHeader(res);
+      next();
+    });
 
     this.app.get("/health", (_req, res) => {
       res.json({
@@ -268,8 +277,8 @@ export class Server {
         options.canonicalDir,
       )) {
         const mountPath = `/canonical/${version}`;
-        // Artifact iframe documents and canonical stylesheet subresources may
-        // have different origins depending on the client/server URL in use.
+        // Sandboxed artifact documents load canonical files from an opaque
+        // origin (specs/arch/artifact-frame/isolation.md#^iso-routes).
         this.app.use(mountPath, (_req, res, next) => {
           res.setHeader("Access-Control-Allow-Origin", "*");
           next();
@@ -311,7 +320,13 @@ export class Server {
     for (const viewID of ["artifact-missing", "markdown"]) {
       const viewPath = this.store.getViewPath(viewID);
       if (viewPath) {
-        this.app.use(`/views/${viewID}`, express.static(viewPath));
+        // The missing-file page is an artifact document the proxy serves, so
+        // its files allow any origin; the Markdown editor runs on the app's
+        // origin (specs/arch/artifact-frame/isolation.md#^iso-routes).
+        const crossOrigin = viewID === "artifact-missing";
+        this.app.use(`/views/${viewID}`, express.static(viewPath, {
+          setHeaders: crossOrigin ? (res) => res.setHeader("Access-Control-Allow-Origin", "*") : undefined,
+        }));
       }
     }
 

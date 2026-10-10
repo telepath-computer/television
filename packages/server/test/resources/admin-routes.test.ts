@@ -141,11 +141,11 @@ const MISSING = "01JZZZZZZZZZZZZZZZZZZZZZZZ";
 // spec: proofs/arch/resources/index.md#^rs-arch-t-refusals
 describe("administrative refusals", () => {
   it("with the flag off, refuses what the flag hides, unknown artifacts and stores, invalid descriptions and usages, and an artifact without a store", async () => {
-    const server = await context.start();
+    const server = await context.start({ fixedIDArtifacts: [{ id: "onboarding-welcome" }] });
     const artifactID = server.createArtifact();
     await server.jsonSet({ artifactID }, "", {});
     const own = server.storePointer(artifactID)!;
-    const storeless = server.createArtifact("Onboarding", { id: "onboarding-welcome" });
+    const storeless = "onboarding-welcome";
     const url = server.createArtifact("Link", { form: "url" });
     await expectRefusals([
       ["not-enabled", server.createJsonStore({ description: "Fresh" })],
@@ -251,10 +251,11 @@ function corsHeaders(headers: Headers): string[] {
 }
 
 // spec: proofs/arch/resources/index.md#^rs-arch-t-origin
-/** The origins of pages on another site, and of pages behind a front that terminates TLS for the server's own host. */
+/** The origins of pages on another site, of sandboxed artifact pages, and of pages behind a front that terminates TLS for the server's own host. */
 function otherOrigins(server: RunningServer): Array<[string, string]> {
   return [
     ["another site", "http://other-site.example"],
+    ["a sandboxed page", "null"],
     ["an HTTPS front", `https://${server.host}`],
   ];
 }

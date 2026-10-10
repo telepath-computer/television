@@ -154,6 +154,8 @@ Replace `<version>` with the target Television app version. For a running server
 
 `authoredForAppVersion` is advisory authoring context for a future agent. The server ignores it when serving the stylesheet, so it neither asserts compatibility nor controls whether the artifact loads. Set it when creating an artifact or deliberately re-authoring one against that app surface. Preserve an existing `authoredForAppVersion` value during unrelated maintenance. If you cannot establish the target app version, omit the query parameter; the canonical URL remains valid without it.
 
+Third-party mapping services such as Google Maps and OpenStreetMap may not work correctly in an artifact, because the CSP sandbox the artifact runs under strips the referrer and other information they expect. For a map, use Leaflet with Esri's street or satellite tiles (World Street Map or World Imagery), which work in a sandboxed artifact.
+
 ### Suggested HTML file set
 
 For durable HTML artifacts, write nearby documentation so a future agent can maintain the work:

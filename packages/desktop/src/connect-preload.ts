@@ -12,6 +12,7 @@ import {
   isDesktopAppearanceMode,
   SET_APPEARANCE_MODE_CHANNEL,
 } from "./appearance-mode.ts";
+import { OPEN_APPLICATION_LINK_CHANNEL } from "./application-link.ts";
 import {
   DESKTOP_UPDATE_DOWNLOADED_CHANNEL,
   GET_DESKTOP_UPDATE_CHANNEL,
@@ -20,6 +21,9 @@ import {
 } from "./desktop-update.ts";
 
 contextBridge.exposeInMainWorld("__televisionNativeBridge", {
+  // Artifact webviews go in partitions the main process sets up, so the
+  // served interface names them (specs/arch/desktop/artifact-partitions.md#^dp-bridge-flag).
+  artifactPartitions: 1,
   onNavigationKey(callback: (key: string) => void): void {
     ipcRenderer.on(NATIVE_NAVIGATION_KEY_CHANNEL, (_event, key: unknown) => {
       if (isNativeNavigationKey(key)) callback(key);
@@ -45,6 +49,11 @@ contextBridge.exposeInMainWorld("__televisionNativeBridge", {
   },
   restartToInstallUpdate(): void {
     ipcRenderer.send(RESTART_TO_INSTALL_UPDATE_CHANNEL);
+  },
+  // An application link an artifact's preload sent to the interface; the
+  // main process classifies it (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling).
+  openApplicationLink(url: unknown): void {
+    if (typeof url === "string") ipcRenderer.send(OPEN_APPLICATION_LINK_CHANNEL, url);
   },
 });
 

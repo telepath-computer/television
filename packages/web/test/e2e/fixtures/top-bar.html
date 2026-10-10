@@ -25,7 +25,6 @@
       import { TopBarView } from "/packages/web/src/views/top-bar.ts";
       await import("/packages/web/src/views/television-app.css");
 
-      const PRIMARY = "http://primary.test";
       const host = document.querySelector("#fixture-app");
       const main = document.querySelector("#fixture-main");
       const params = new URLSearchParams(location.search);
@@ -35,7 +34,6 @@
       }
       const owner = new EventTarget();
       const connection = {
-        url: PRIMARY,
         status: "connected",
         serverVersion: "1.0.0",
         updateState: null,
@@ -153,7 +151,6 @@
         render(html`
           ${TopBarView(application, application.snapshot, {
             connectionOwner: owner,
-            primaryServerURL: PRIMARY,
             dismissalStorage: {
               getItem: (key) => dismissal.get(key) ?? null,
               setItem: (key, value) => dismissal.set(key, value),
@@ -228,10 +225,7 @@
             requiredDesktopVersion: null,
             update: connection.updateState,
           };
-          owner.dispatchEvent(new ServerStatusEvent("server-status", {
-            serverURL: PRIMARY,
-            message,
-          }));
+          owner.dispatchEvent(new ServerStatusEvent("server-status", { message }));
           await waitForRenderAfter(before);
         },
       };

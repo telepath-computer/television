@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,6 +8,8 @@ import {
   createArtifactFile,
   waitForApplicationShell,
 } from "./helpers.ts";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 
@@ -53,11 +55,9 @@ async function openApp(page: Page, baseURL: string | undefined, server: Server):
   if (!baseURL) {
     throw new Error("Expected Playwright baseURL");
   }
-  const serverURL = server.getBaseURL();
+  const appURL = await appURLForServer(server.getBaseURL(), baseURL);
   const token = server.getAuthToken();
-  await page.goto(
-    `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${encodeURIComponent(token)}`,
-  );
+  await page.goto(`${appURL}/packages/web/src/index.html?token=${encodeURIComponent(token)}`);
   // Generous timeout: first load may pay cold Vite transforms, and the app
   // auto-retries its initial /events connect on a 1s backoff under load.
   await waitForApplicationShell(page);

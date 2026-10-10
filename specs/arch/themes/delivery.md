@@ -26,7 +26,7 @@ A package-root `README.md` is authoring context, not a public theme asset. `/the
 
 With the null theme selected, or when the active package root or CSS entry file is unavailable, `/theme/theme.css` returns an empty stylesheet. Each gated JavaScript entry returns its empty response under the conditions above. Other files return `404`. Inactive packages have no public mount.
 
-Every response requires revalidation. The active-theme validator derives from package identity and response bytes, so selection, entry-file edits, and asset replacement cannot reuse stale bytes at the stable URL. Appearance is not an input to these bytes or validators. Registry control routes remain authenticated; theme files are public because cross-origin stylesheet requests cannot attach the display API's bearer token. ^theme-delivery-route
+Every response requires revalidation. The active-theme validator derives from package identity and response bytes, so selection, entry-file edits, and asset replacement cannot reuse stale bytes at the stable URL. Appearance is not an input to these bytes or validators. Registry control routes remain authenticated; theme files are public because cross-origin stylesheet requests cannot attach the display API's bearer token. Every response also carries the [sandbox header](../artifact-frame/isolation.md#^iso-sandbox-header), so a package's HTML file opened as a page runs sandboxed. ^theme-delivery-route
 
 ## Canonical composition
 

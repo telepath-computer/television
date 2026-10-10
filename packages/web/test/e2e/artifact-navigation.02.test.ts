@@ -1,8 +1,12 @@
-import { chromium, expect, test, type Page } from "@playwright/test";
-import { spawn } from "node:child_process";
+import { chromium, type Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
+import { execFile, spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { Server, ServerStore } from "@telepath-computer/television-server";
 import { artifactNavigationStorageKey } from "../../src/services/artifact-navigation-state.ts";
 import { APPLICATION_SHELL_STATES, waitForApplicationRender } from "../../../../test/helpers/application-readiness.ts";
@@ -11,6 +15,8 @@ import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { configureTestMotion } from "./helpers.ts";
 
 const EXTERNAL_URL = "https://example.com/external";
+const X11_PROMPT_DRIVER = path.join(path.dirname(fileURLToPath(import.meta.url)), "x11-prompt-driver.py");
+const execFileAsync = promisify(execFile);
 
 type NavigationRecord = {
   v: 1;
@@ -89,6 +95,31 @@ async function startVirtualDisplay(): Promise<{ display: string; dispose(): Prom
   };
 }
 
+/** The pixel at a point of the virtual display's screen, as RRGGBB. */
+async function screenPixel(display: string, point: { x: number; y: number }): Promise<string> {
+  const { stdout } = await execFileAsync("python3", [X11_PROMPT_DRIVER, display, "pixel", String(point.x), String(point.y)], { timeout: 5_000 });
+  return stdout.trim();
+}
+
+/**
+ * Answers Chromium's prompt before it opens an application link, as the
+ * person would. Chromium dims the page behind the prompt, so the prompt shows
+ * while `point`, a point of the page below it, differs from `undimmed`. Cancel
+ * is the prompt's default button, so Tab moves to Open before Enter.
+ */
+async function openThroughApplicationPrompt(page: Page, display: string, point: { x: number; y: number }, undimmed: string): Promise<void> {
+  await expect.poll(() => screenPixel(display, point), {
+    timeout: 15_000,
+    message: "Chromium asks before it opens the application",
+  }).not.toBe(undimmed);
+  // For about half a second after the prompt appears, Chromium ignores
+  // presses on its buttons, so that a double-click meant for the page cannot
+  // answer it, and a press in that time starts the wait again. Nothing on the
+  // screen or the page shows when that time has passed, so the test waits.
+  await page.waitForTimeout(1_000);
+  await execFileAsync("python3", [X11_PROMPT_DRIVER, display, "keys", "Tab", "Return"], { timeout: 5_000 });
+  await expect.poll(() => screenPixel(display, point), { timeout: 15_000, message: "the prompt closes" }).toBe(undimmed);
+}
 
 test.describe("artifact iframe navigation", () => {
   let storagePath: string;
@@ -168,7 +199,7 @@ test.describe("artifact iframe navigation", () => {
       if (window === window.top) localStorage.clear();
     });
     await page.goto(
-      `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${token}`,
+      `${await appURLForServer(serverURL, baseURL!)}/packages/web/src/index.html?token=${token}`,
     );
     await waitForApp(page);
   });
@@ -233,7 +264,7 @@ test("markdown modifier-click opens a tab and leaves artifact history unchanged"
       if (window === window.top) localStorage.clear();
     });
     await page.goto(
-      `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(server.getBaseURL())}&token=${server.getAuthToken()}`,
+      `${await appURLForServer(server.getBaseURL(), baseURL!)}/packages/web/src/index.html?token=${server.getAuthToken()}`,
     );
     await waitForApp(page);
     await expect(page.locator(".artifact-view iframe.artifact-content")).toHaveAttribute("src", "/views/markdown/");
@@ -292,12 +323,12 @@ test("application-link activations cross the real Linux browser handler without 
           channelID,
         });
         await server.start();
+        const appURL = await appURLForServer(server.getBaseURL(), baseURL!);
 
         profilePath = mkdtempSync(path.join(os.tmpdir(), "television-browser-protocol-profile-"));
         mkdirSync(path.join(profilePath, "Default"), { recursive: true });
         const allowedOrigins = {
-          [new URL(baseURL ?? "http://127.0.0.1").origin]: { "example-app": true },
-          [new URL(server.getBaseURL()).origin]: { "example-app": true },
+          [new URL(appURL).origin]: { "example-app": true },
         };
         writeFileSync(
           path.join(profilePath, "Default", "Preferences"),
@@ -313,9 +344,7 @@ test("application-link activations cross the real Linux browser handler without 
           args: ["--no-sandbox"],
         });
         const page = context.pages()[0] ?? await context.newPage();
-        await page.goto(
-          `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(server.getBaseURL())}&token=${server.getAuthToken()}`,
-        );
+        await page.goto(`${appURL}/packages/web/src/index.html?token=${server.getAuthToken()}`);
         await waitForApp(page);
         const frame = page.frameLocator(".artifact-view iframe.artifact-content").first();
         const applicationLink = artifactKind === "html"
@@ -339,12 +368,23 @@ test("application-link activations cross the real Linux browser handler without 
         });
         handler.clearInvocations();
 
-        await applicationLink.click();
-        await applicationLink.click({ modifiers: ["Control"] });
-        await applicationLink.click({ modifiers: ["Meta"] });
-        await applicationLink.click({ button: "middle" });
-
-        await expect.poll(() => handler.readInvocations(), { timeout: 15_000 }).toEqual([
+        // In an HTML artifact, whose document is sandboxed, Chromium does not
+        // apply the profile's approval and asks before every activation
+        // (specs/arch/artifact-frame/isolation.md, known limitation 15).
+        const promptPoint = { x: 640, y: 600 };
+        const undimmed = await screenPixel(virtualDisplay.display, promptPoint);
+        const activations = [
+          () => applicationLink.click(),
+          () => applicationLink.click({ modifiers: ["Control"] }),
+          () => applicationLink.click({ modifiers: ["Meta"] }),
+          () => applicationLink.click({ button: "middle" }),
+        ];
+        for (const [index, activate] of activations.entries()) {
+          await activate();
+          if (artifactKind === "html") await openThroughApplicationPrompt(page, virtualDisplay.display, promptPoint, undimmed);
+          await expect.poll(() => handler.readInvocations().length, { timeout: 15_000 }).toBe(index + 1);
+        }
+        expect(handler.readInvocations()).toEqual([
           applicationURL,
           applicationURL,
           applicationURL,
@@ -360,14 +400,17 @@ test("application-link activations cross the real Linux browser handler without 
         expect(await navigationRecord(page, artifact.id)).toBeNull();
         expect(context.pages()).toHaveLength(initialPageCount);
 
-        if (artifactKind === "html") {
-          await frame.locator("#script-link").click();
-          await expect(frame.locator("body")).toHaveAttribute("data-script-activated", "true");
-        } else {
-          const scriptLink = frame.locator("a.cm-md-link").filter({ hasText: "Do not run" });
-          await scriptLink.click();
-          await expect(frame.locator("body")).not.toHaveAttribute("data-script-activated", "true");
-        }
+        // A javascript: link does nothing in either artifact: the HTML frame's
+        // sandbox attribute stops it (specs/arch/artifact-frame/isolation.md,
+        // known limitation 16), and the markdown view leaves it inert.
+        const scriptLink = artifactKind === "html"
+          ? frame.locator("#script-link")
+          : frame.locator("a.cm-md-link").filter({ hasText: "Do not run" });
+        await scriptLink.click();
+        // Give a queued javascript: URL its turn before checking that nothing ran.
+        await frame.locator("html").evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
+        expect(await frame.locator("body").getAttribute("data-script-activated")).toBeNull();
+        expect(await frame.locator("html").evaluate(() => window.location.href)).toBe(initialFrameURL);
         expect(handler.readInvocations()).toEqual([
           applicationURL,
           applicationURL,
