@@ -60,6 +60,13 @@ export default defineConfig({
             testMatch: "appearance-frame.test.ts",
             use: { browserName: "firefox" as const },
           },
+          {
+            // Artifact isolation's walks and seams that the proofs run in Firefox too.
+            name: "firefox-isolation",
+            testMatch: ["artifact-navigation.01.test.ts", "artifact-isolation.test.ts"],
+            grep: /a sandboxed frame records|a sandboxed artifact loads its own files|artifact storage and authority stay isolated/,
+            use: { browserName: "firefox" as const },
+          },
         ]
       : []),
   ],

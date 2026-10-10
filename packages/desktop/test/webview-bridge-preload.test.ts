@@ -23,8 +23,12 @@ const fakeIpc: FakeIpcRenderer = {
 };
 
 vi.mock("electron", () => ({
+  // The preload runs with context isolation; here its exposed bridge lands on
+  // the test's one window.
   contextBridge: {
-    exposeInMainWorld: vi.fn(),
+    exposeInMainWorld: vi.fn((name: string, value: unknown) => {
+      (window as unknown as Record<string, unknown>)[name] = value;
+    }),
   },
   ipcRenderer: {
     send: (...args: unknown[]) => fakeIpc.send(...args),
@@ -41,7 +45,12 @@ vi.mock("electron", () => ({
 }));
 
 const BRIDGE_CHANNEL = "television-artifact-bridge";
-const OPEN_APPLICATION_LINK_CHANNEL = "television:open-application-link";
+const APPLICATION_LINK_HOST_CHANNEL = "television-application-link";
+
+/** The application-link requests the preload sent to its host renderer. */
+function linkRequests(): unknown[][] {
+  return fakeIpc.sendToHost.mock.calls.filter(([channel]) => channel === APPLICATION_LINK_HOST_CHANNEL);
+}
 
 async function importPreloadAt(pathname: string): Promise<void> {
   window.history.pushState({}, "", pathname);
@@ -119,21 +128,18 @@ describe("webview-bridge-preload", () => {
     };
 
     expect(bridge.openApplicationLink("example-app://open/item")).toBe(false);
-    expect(fakeIpc.send).not.toHaveBeenCalled();
+    expect(linkRequests()).toEqual([]);
 
     Object.defineProperty(userActivation, "isActive", { configurable: true, value: true });
     expect(bridge.openApplicationLink("example-app://open/item")).toBe(false);
-    expect(fakeIpc.send).not.toHaveBeenCalled();
+    expect(linkRequests()).toEqual([]);
     delete (userActivation as { isActive?: boolean }).isActive;
 
     active = true;
     expect(bridge.openApplicationLink("example-app://open/item")).toBe(true);
-    expect(fakeIpc.send).toHaveBeenCalledWith(
-      OPEN_APPLICATION_LINK_CHANNEL,
-      "example-app://open/item",
-    );
+    expect(linkRequests()).toEqual([[APPLICATION_LINK_HOST_CHANNEL, "example-app://open/item"]]);
 
-    fakeIpc.send.mockClear();
+    fakeIpc.sendToHost.mockClear();
     for (const denied of [
       "https://example.com",
       "javascript:document.body.textContent='owned'",
@@ -142,6 +148,7 @@ describe("webview-bridge-preload", () => {
     ]) {
       expect(bridge.openApplicationLink(denied)).toBe(false);
     }
+    expect(linkRequests()).toEqual([]);
     expect(fakeIpc.send).not.toHaveBeenCalled();
   });
 
@@ -167,7 +174,7 @@ describe("webview-bridge-preload", () => {
     const programmatic = new MouseEvent("click", { bubbles: true, cancelable: true });
     anchor.dispatchEvent(programmatic);
     expect(programmatic.defaultPrevented).toBe(true);
-    expect(fakeIpc.send).not.toHaveBeenCalled();
+    expect(linkRequests()).toEqual([]);
 
     active = true;
     const activations = [
@@ -180,12 +187,13 @@ describe("webview-bridge-preload", () => {
       document.getElementById(id)!.dispatchEvent(event);
       expect(event.defaultPrevented).toBe(true);
     }
-    expect(fakeIpc.send.mock.calls).toEqual([
-      [OPEN_APPLICATION_LINK_CHANNEL, "example-app://open/item"],
-      [OPEN_APPLICATION_LINK_CHANNEL, "example-app://open/target"],
-      [OPEN_APPLICATION_LINK_CHANNEL, "example-app://open/download"],
-      [OPEN_APPLICATION_LINK_CHANNEL, "example-app://open/item"],
+    expect(linkRequests()).toEqual([
+      [APPLICATION_LINK_HOST_CHANNEL, "example-app://open/item"],
+      [APPLICATION_LINK_HOST_CHANNEL, "example-app://open/target"],
+      [APPLICATION_LINK_HOST_CHANNEL, "example-app://open/download"],
+      [APPLICATION_LINK_HOST_CHANNEL, "example-app://open/item"],
     ]);
+    expect(fakeIpc.send).not.toHaveBeenCalled();
   });
 
   it("posts target lifecycle shapes with one document GUID", async () => {

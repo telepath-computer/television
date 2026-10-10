@@ -208,7 +208,7 @@ test.describe("desktop self-update notice rendering seam (^desktop-self-update-n
 
 test.describe("desktop recommendation rendering seam (^desktop-rec-t-render)", () => {
   test("renders the authored recommendation through markdown with its download link and Later alone", async ({ page }) => {
-    // 1.3.2 is a release of the npm package, which passes the gate's floor.
+    // 1.3.2 is a release of the npm package; the fixture's server requires no desktop version.
     await gotoFixture(page, "?mode=electron&desktopAppVersion=1.3.2");
 
     await expect(notice(page)).toBeVisible();

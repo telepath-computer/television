@@ -168,10 +168,7 @@ export class ServerConnectionOwner extends EventTarget<
   readonly #handleServerEvent = (event: ServerEventMessageEvent): void => {
     if (this.#disposed) return;
     this.dispatchEvent(
-      new ServerEventMessageEvent("server-event", {
-        serverURL: event.serverURL,
-        event: event.event,
-      }),
+      new ServerEventMessageEvent("server-event", { event: event.event }),
     );
   };
 
@@ -180,20 +177,15 @@ export class ServerConnectionOwner extends EventTarget<
     this.dispatchEvent(new ChannelsChangedEvent("channels-changed"));
   };
 
-  readonly #handleServerReconnected = (event: ServerReconnectedEvent): void => {
+  readonly #handleServerReconnected = (): void => {
     if (this.#disposed) return;
-    this.dispatchEvent(
-      new ServerReconnectedEvent("server-reconnected", { serverURL: event.serverURL }),
-    );
+    this.dispatchEvent(new ServerReconnectedEvent("server-reconnected"));
   };
 
   readonly #handleServerStatus = (event: ServerStatusEvent): void => {
     if (this.#disposed) return;
     this.dispatchEvent(
-      new ServerStatusEvent("server-status", {
-        serverURL: event.serverURL,
-        message: event.message,
-      }),
+      new ServerStatusEvent("server-status", { message: event.message }),
     );
   };
 }

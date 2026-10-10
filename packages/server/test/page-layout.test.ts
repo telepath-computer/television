@@ -40,14 +40,14 @@ function createFixture(): Fixture {
   const store = createServingStore(storagePath);
   const ordinary = store.createChannel({ id: "ordinary-channel", name: "Ordinary" });
   const ordinaryArtifacts = [
-    store.createArtifact({ id: "ordinary-a", kind: "url", title: "A", channelID: ordinary.id, url: "https://example.com/a" }),
-    store.createArtifact({ id: "ordinary-b", kind: "url", title: "B", channelID: ordinary.id, url: "https://example.com/b" }),
+    store.createArtifact({ kind: "url", title: "A", channelID: ordinary.id, url: "https://example.com/a" }),
+    store.createArtifact({ kind: "url", title: "B", channelID: ordinary.id, url: "https://example.com/b" }),
   ];
   const authored = store.createChannel({ id: "authored-channel", name: "Authored" });
   const authoredArtifacts = [
-    store.createArtifact({ id: "authored-a", kind: "url", title: "A", channelID: authored.id, url: "https://example.com/a" }),
-    store.createArtifact({ id: "authored-b", kind: "url", title: "B", channelID: authored.id, url: "https://example.com/b" }),
-    store.createArtifact({ id: "authored-c", kind: "url", title: "C", channelID: authored.id, url: "https://example.com/c" }),
+    store.createArtifact({ kind: "url", title: "A", channelID: authored.id, url: "https://example.com/a" }),
+    store.createArtifact({ kind: "url", title: "B", channelID: authored.id, url: "https://example.com/b" }),
+    store.createArtifact({ kind: "url", title: "C", channelID: authored.id, url: "https://example.com/c" }),
   ];
   store.dispose();
 

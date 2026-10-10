@@ -106,26 +106,6 @@ const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": `Authorization, Content-Type, ${TELEVISION_CLIENT_META_HEADER}`,
-  // Cross-origin clients can read the version advertisement header
-  // (specs/arch/updates/version-advertisement.md ^version-header).
-  "Access-Control-Expose-Headers": "X-TV-Version",
-};
-
-function applyCorsHeaders(res: Response): void {
-  for (const [name, value] of Object.entries(CORS_HEADERS)) {
-    res.setHeader(name, value);
-  }
-}
-
-const applyCorsMiddleware: RequestHandler = (_req, res, next) => {
-  applyCorsHeaders(res);
-  next();
-};
-
 function sendError(res: Response, status: number, message: string): void {
   res.status(status).json({ error: message });
 }
@@ -188,13 +168,11 @@ export function registerRoutes(
     res.status(HTTP_OK).json({ product: "television" });
   });
 
-  app.use("/channels", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/artifacts", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/display", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/themes", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/markdown", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/telemetry", applyCorsMiddleware);
-  app.use("/demo-mode", applyCorsMiddleware);
+  app.use("/channels", telemetryMiddleware);
+  app.use("/artifacts", telemetryMiddleware);
+  app.use("/display", telemetryMiddleware);
+  app.use("/themes", telemetryMiddleware);
+  app.use("/markdown", telemetryMiddleware);
 
   const artifactProxy = serveArtifactProxy(store, { pollCadence: options.testArtifactPollCadence });
   app.all("/artifact/:id", artifactProxy);
@@ -203,20 +181,6 @@ export function registerRoutes(
   const markdownContent = serveMarkdownContent(store);
   app.get("/markdown/:id", ...bearerAuth, markdownContent.get);
   app.put("/markdown/:id", ...bearerAuth, markdownContent.put);
-
-  app.options("/channels", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/channels/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/artifacts", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/artifacts/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/display", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/display/focus", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/themes", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/themes/refresh", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/markdown/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/demo-mode", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry/enable", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry/disable", (_req, res) => res.status(HTTP_NO_CONTENT).end());
 
   // Browser demo mode (specs/product/artifacts.md#^af-demo-mode) is read per
   // request, so adding or removing the marker needs no server restart.

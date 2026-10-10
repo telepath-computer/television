@@ -1,9 +1,11 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server } from "@telepath-computer/television-server";
 import { TelevisionClient } from "@telepath-computer/television-shared";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/application-snapshot.html";
@@ -38,6 +40,7 @@ test("real browser application snapshot starts complete and reduces websocket up
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const client = new TelevisionClient(serverURL);
     const existing = (await client.channels.list()).channels[0]!;
     const { channel } = await client.channels.create({
@@ -55,7 +58,7 @@ test("real browser application snapshot starts complete and reduces websocket up
       pinnedChannelIds: [channel.id, existing.id],
     });
 
-    await page.goto(`${baseURL}${FIXTURE}?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${appURL}${FIXTURE}`);
 
     await expect(page.locator("#snapshot")).not.toHaveText("");
     await expect.poll(async () => (await readSnapshot(page)).ready).toBe(true);
@@ -125,6 +128,7 @@ test("real stale pin rejection converges to server truth and leaves the event co
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const client = new TelevisionClient(serverURL);
     const survivor = (await client.channels.list()).channels[0]!;
     const { channel: removed } = await client.channels.create({
@@ -137,7 +141,7 @@ test("real stale pin rejection converges to server truth and leaves the event co
       pinnedChannelIds: stalePins,
     });
 
-    await page.goto(`${baseURL}${FIXTURE}?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${appURL}${FIXTURE}`);
     await expect.poll(async () => {
       const snapshot = await readSnapshot(page);
       return {
@@ -195,7 +199,7 @@ test("real stale pin rejection converges to server truth and leaves the event co
       name: "RequestError",
       message: `Channel not found: ${removed.id}`,
       status: 404,
-      serverURL,
+      serverURL: appURL,
     });
     const serverDisplay = await client.display.get();
     const afterRejection = await readSnapshot(page);
@@ -230,6 +234,7 @@ test("ambiguous pin writes refetch only display after delivered and lost request
   try {
     await server.start();
     const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(serverURL, baseURL!);
     const client = new TelevisionClient(serverURL);
     const first = (await client.channels.list()).channels[0]!;
     const { channel: second } = await client.channels.create({
@@ -241,7 +246,7 @@ test("ambiguous pin writes refetch only display after delivered and lost request
       pinnedChannelIds: [first.id],
     });
 
-    await page.goto(`${baseURL}${FIXTURE}?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${appURL}${FIXTURE}`);
     await expect.poll(async () => {
       const snapshot = await readSnapshot(page);
       return {
@@ -260,7 +265,7 @@ test("ambiguous pin writes refetch only display after delivered and lost request
         : [first.id];
       const requests: string[] = [];
       let writeIntercepted = false;
-      const routePattern = `${serverURL}/**`;
+      const routePattern = `${appURL}/**`;
       const routeHandler = async (route: Route): Promise<void> => {
         const request = route.request();
         const url = new URL(request.url());
@@ -309,7 +314,7 @@ test("ambiguous pin writes refetch only display after delivered and lost request
         resolved: false,
         name: "RequestError",
         status: null,
-        serverURL,
+        serverURL: appURL,
       });
       expect(writeIntercepted).toBe(true);
       expect(requests).toEqual(["PATCH /display", "GET /display"]);

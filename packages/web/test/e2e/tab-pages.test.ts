@@ -28,7 +28,6 @@ interface SeededChannel {
 
 function appIndexURL(appURL: string): string {
   const url = new URL("/packages/web/src/index.html", appURL);
-  url.searchParams.set("serverURL", appURL);
   return url.toString();
 }
 

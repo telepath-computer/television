@@ -28,7 +28,7 @@ const OWN_SUMMARY = (resourceID: string, artifactID: string) => ({
 // spec: proofs/arch/resources/index.md#^rs-arch-t-has-store
 describe("which artifacts have a store", () => {
   it("gives every local path artifact a store, Markdown included, and none to URL and fixed-ID artifacts, saying so without naming a kind of file", async () => {
-    const server = await context.start();
+    const server = await context.start({ fixedIDArtifacts: [{ id: "onboarding-welcome" }] });
     for (const form of ["html", "htm", "markdown", "folder"] as const) {
       const artifactID = server.createArtifact(`A ${form}`, { form });
       expect((await server.jsonSet({ artifactID }, "a", form)).status, form).toBe(200);
@@ -39,7 +39,7 @@ describe("which artifacts have a store", () => {
     }
     const withoutStores = [
       server.createArtifact("Link", { form: "url" }),
-      server.createArtifact("Onboarding", { id: "onboarding-welcome" }),
+      "onboarding-welcome",
     ];
     for (const artifactID of withoutStores) {
       const refused = (await server.jsonGet({ artifactID })).body as { code: string; error: string };
@@ -498,7 +498,7 @@ describe("changing a share link", () => {
   it("refuses read-write sharing of a Markdown artifact with read-write-unsupported, creating or changing nothing, while a read link to it works and an artifact without a store is shared read-write, after tokenless on a tokenless server", async () => {
     let home = "";
     const { storage, log } = recordingRecords(() => home);
-    const server = await context.start({ storage });
+    const server = await context.start({ storage, fixedIDArtifacts: [{ id: "page-without-a-store" }] });
     home = server.home;
     const notes = server.createArtifact("Notes", { form: "markdown" });
     log.length = 0;
@@ -522,7 +522,7 @@ describe("changing a share link", () => {
     expect(JSON.parse(readFileSync(server.recordFile(notes), "utf8")).share).toEqual({ id: shareID, access: "read" });
 
     // Whether an artifact has a store decides nothing: one without a store, by a fixed ID, is shared read-write.
-    const storeless = server.createArtifact("Storeless", { id: "page-without-a-store" });
+    const storeless = "page-without-a-store";
     expect((await server.share(storeless, "read-write")).body).toMatchObject({ access: "read-write" });
     await server.stop();
 
@@ -730,7 +730,7 @@ describe("serving under a share ID", () => {
       ["a path below a file", `${base}/index.html/x`, {}, 404, "Not found"],
       ["a folder without an index", `${base}/empty/`, {}, 404, "Not found"],
       ["a symbolic link loop", `${base}/loop`, {}, 500, "Internal Server Error"],
-      ["a path that climbs out", `${base}/..%2fx`, {}, 403, "Forbidden"],
+      ["a path that climbs out", `${base}/..%2fx`, {}, 404, "Not found"],
       ["a null byte", `${base}/%00`, {}, 400, "Bad Request"],
       ["a failed precondition", `${base}/data.txt`, { "If-Match": '"other"' }, 412, "Precondition Failed"],
       ["a range past the end", `${base}/data.txt`, { Range: "bytes=100-200" }, 416, "Range Not Satisfiable"],

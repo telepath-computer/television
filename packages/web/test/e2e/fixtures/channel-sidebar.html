@@ -220,9 +220,8 @@
         if (renderCount <= before) throw new Error("application render did not complete");
       };
       render(TelevisionAppView(application, {
-        runtimeServerURL: location.origin,
+        serverURL: location.origin,
         electronMode: true,
-        primaryServerURL: location.origin,
         sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
         sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
         onRenderComplete() {
