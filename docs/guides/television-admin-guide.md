@@ -297,9 +297,7 @@ After the upgrade, open browser tabs reload themselves once when they reconnect;
 
 #### Artifacts that use browser storage
 
-HTML artifacts run in a sandbox where `localStorage`, `sessionStorage`, cookies and IndexedDB don't work: touching them throws an error. An artifact that kept data there loses it, and one that doesn't catch the error stops working. Versions earlier than 1.5.0 let artifacts use them. What they kept stays in the browser where the artifact can no longer read it, and nothing records which artifact wrote what, so it can't be moved for them.
-
-So on an upgrade from a version earlier than 1.5.0, list the HTML artifacts with `tv list-artifacts` and look through their files for `localStorage`, `sessionStorage`, `document.cookie` and `indexedDB`. For each artifact that uses them, decide whether to remove that use or replace it with the artifact's JSON store, which the `television` skill's resource guidance describes. An upgrade from 1.5.0 or later skips this check.
+Television 1.5.0 improved artifact security, and artifacts can no longer use browser storage (`localStorage`, `sessionStorage`, cookies, IndexedDB); what they saved there before can't be carried over. On an upgrade from an earlier version, check the HTML artifacts (`tv list-artifacts`) for those, and decide for each what to recommend: remove the saving, or move it to the artifact's JSON store (see the `television` skill). Tell the person in plain words, without technical terms, that improved security in Television changes how artifacts save data, which of their artifacts are affected, and how each will behave after the change.
 
 #### Moving from the npm desktop app to the downloaded app
 
@@ -423,7 +421,7 @@ Send one message, in plain words:
 - in the rare cases where section 7 says the person's connection changes, that they'll need a new link;
 - anything that needs their decision, such as an outdated Node version;
 - if you found the npm desktop app on this machine, an offer to move them to the downloaded app;
-- if you found artifacts that use browser storage, which ones, and what you'll do with each.
+- if you found artifacts that use browser storage, what section 7 says to tell them.
 
 No telemetry notice. Then wait for their go-ahead.
 
