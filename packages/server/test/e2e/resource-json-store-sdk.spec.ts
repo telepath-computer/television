@@ -1,3 +1,5 @@
+import http from "node:http";
+import type { AddressInfo } from "node:net";
 import { expect, test, type Page } from "@playwright/test";
 import { adminRoutes, type JSONValue } from "@telepath-computer/television-shared/resources";
 import type { RunningServer } from "../resources/harness.ts";
@@ -5,6 +7,8 @@ import { PROGRAM_START, checkProgram, runCallbackProgram } from "./callback-prog
 import {
   MAPPED_HOST_LAUNCH,
   SdkTestContext,
+  STORELESS_PAGE_ID,
+  TEST_HOST,
   artifactPath,
   openPage,
   pageURL,
@@ -801,8 +805,8 @@ test.describe("the local view", () => {
   });
 
   test("with the bindings hook, on a page whose artifact has no store, rejects a write made in the callback that hears one bound store become read to another that the same change made read", async ({ page }) => {
-    const server = await context.start({ resourceBindings: true });
-    const storeless = context.createPageArtifact(server, "No store", { id: "page-without-a-store" });
+    const server = await context.startWithStorelessPage({ resourceBindings: true });
+    const storeless = STORELESS_PAGE_ID;
     const first = await server.createdStore({ value: { n: 0 } });
     const second = await server.createdStore({ value: { n: 0 } });
     await server.bind(first, storeless, "read-write");
@@ -1497,15 +1501,36 @@ test.describe("waiting for a first connection", () => {
   });
 });
 
-/** Sets `count` through the administrative route with a synchronous request, from the page's own code. */
-/** The source of a function the page evaluates to set `count` in the artifact's store as another client, synchronously, through the administrative routes. */
-function adminSetSource(artifactID: string): string {
-  return `(token, value) => {
+const relays: http.Server[] = [];
+test.afterEach(async () => {
+  await Promise.all(relays.splice(0).map((relay) => new Promise((resolve) => relay.close(resolve))));
+});
+
+/**
+ * Another client, which the page's own code calls synchronously: for each
+ * request it sets `count` in the artifact's store through the administrative
+ * routes, which take the server's token, and answers once the write is
+ * applied. The page is sandboxed, so it cannot call those routes itself.
+ * Resolves to the source of the function the page evaluates to call it.
+ */
+async function anotherClient(server: RunningServer, artifactID: string): Promise<string> {
+  const relay = http.createServer((request, response) => {
+    const chunks: Buffer[] = [];
+    request.on("data", (chunk: Buffer) => chunks.push(chunk));
+    request.on("end", () => {
+      void server.jsonSet({ artifactID }, "count", Number(Buffer.concat(chunks).toString())).then((written) => {
+        response.writeHead(written.status === 200 ? 204 : 500, { "Access-Control-Allow-Origin": "*" }).end();
+      });
+    });
+  });
+  relays.push(relay);
+  await new Promise<void>((resolve) => relay.listen(0, "127.0.0.1", resolve));
+  const { port } = relay.address() as AddressInfo;
+  return `(value) => {
   const request = new XMLHttpRequest();
-  request.open("POST", ${JSON.stringify(adminRoutes.jsonSet)}, false);
-  request.setRequestHeader("Authorization", "Bearer " + token);
-  request.setRequestHeader("Content-Type", "application/json");
-  request.send(JSON.stringify({ store: { artifactID: ${JSON.stringify(artifactID)} }, path: "count", value: { value } }));
+  request.open("POST", ${JSON.stringify(`http://${TEST_HOST}:${port}/`)}, false);
+  request.send(String(value));
+  if (request.status !== 204) throw new Error("another client's write failed");
 }`;
 }
 
@@ -1551,17 +1576,17 @@ test.describe("transactions", () => {
     await openPage(page, pageURL(serverPort(server), artifactPath(artifactID)));
     await watchValues(page, ["count"]);
     const result = await page.evaluate(
-      async ({ token, source }) => {
-        const adminSet = (0, eval)(source) as (token: string, value: number) => void;
+      async ({ source }) => {
+        const adminSet = (0, eval)(source) as (value: number) => void;
         const seen: unknown[] = [];
         const outcome = await window.sdk.runTransaction(window.sdk.ref(window.sdk.getStore(), "count"), (current) => {
           seen.push(current);
-          if (seen.length === 1) adminSet(token, 100);
+          if (seen.length === 1) adminSet(100);
           return (current as number) + 1;
         });
         return { seen, committed: outcome.committed, value: outcome.snapshot.val() };
       },
-      { token: server.token, source: adminSetSource(artifactID) },
+      { source: await anotherClient(server, artifactID) },
     );
     expect(result).toEqual({ seen: [5, 100], committed: true, value: 101 });
     expect(await stored(server, artifactID, "count")).toEqual({ exists: true, value: 101 });
@@ -1579,20 +1604,20 @@ test.describe("transactions", () => {
     await openPage(page, pageURL(serverPort(server), artifactPath(artifactID)));
     await watchValues(page, ["count"]);
     const aborted = await page.evaluate(
-      async ({ token, source }) => {
-        const adminSet = (0, eval)(source) as (token: string, value: number) => void;
+      async ({ source }) => {
+        const adminSet = (0, eval)(source) as (value: number) => void;
         let calls = 0;
         const outcome = await window.sdk.runTransaction(window.sdk.ref(window.sdk.getStore(), "count"), (current) => {
           calls += 1;
           if (calls === 1) {
-            adminSet(token, 100);
+            adminSet(100);
             return (current as number) + 1;
           }
           return undefined;
         });
         return { calls, committed: outcome.committed, value: outcome.snapshot.val() };
       },
-      { token: server.token, source: adminSetSource(artifactID) },
+      { source: await anotherClient(server, artifactID) },
     );
     expect(aborted).toEqual({ calls: 2, committed: false, value: 100 });
     await pageWaitFor(page, () => (window.logs.count!.at(-1) as Shot).value === 100);
@@ -1603,19 +1628,19 @@ test.describe("transactions", () => {
     ]);
 
     const exhausted = await page.evaluate(
-      async ({ token, source }) => {
-        const adminSet = (0, eval)(source) as (token: string, value: number) => void;
+      async ({ source }) => {
+        const adminSet = (0, eval)(source) as (value: number) => void;
         let calls = 0;
         const outcome = await window.outcome(() =>
           window.sdk.runTransaction(window.sdk.ref(window.sdk.getStore(), "count"), (current) => {
             calls += 1;
-            adminSet(token, 1_000 + calls);
+            adminSet(1_000 + calls);
             return (current as number) + 1;
           }),
         );
         return { calls, outcome };
       },
-      { token: server.token, source: adminSetSource(artifactID) },
+      { source: await anotherClient(server, artifactID) },
     );
     expect(exhausted).toEqual({ calls: 25, outcome: refusedWith("max-retries") });
     expect(await stored(server, artifactID, "count")).toEqual({ exists: true, value: 1_025 });

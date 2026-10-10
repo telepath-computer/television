@@ -89,8 +89,10 @@
         webview.addEventListener("did-finish-load", () => resolve(), { once: true });
         webview.reload();
       });
+      // The same artifact stops being a Markdown file, so the frame keeps its
+      // webview, and partition, while the Markdown runtime is disposed.
       window.__disposeMarkdownHost = () => {
-        card.artifact = { id: "disposed", kind: "url", title: "Disposed", url: "/views/markdown/" };
+        card.artifact = { id: "md-webview", kind: "path", title: "Markdown", path: "/tmp/note.html" };
       };
       window.__fixtureReady = true;
     </script>

@@ -379,7 +379,7 @@ export class ApplicationService extends EventTarget<
   };
 
   readonly #handleServerEvent = (message: ServerEventMessageEvent): void => {
-    if (this.#disposed || message.serverURL !== this.#connectionOwner.connection.url) return;
+    if (this.#disposed) return;
     for (const buffer of this.#eventBuffers) buffer.push(message.event);
 
     const event = message.event;

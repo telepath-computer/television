@@ -34,8 +34,10 @@ For a running server, read the exact release `version` from `tv status`; when wo
 
 For a single-file artifact, inline them into `<style>` and
 `<script type="module">` tags instead. `sidebar.js` makes the sidebar work —
-selection, view switching, and the draggable sidebar width (remembered per
-artifact).
+selection, view switching, and the draggable sidebar width, which everyone
+viewing the artifact shares. It keeps the width at `tv-sidebar-view/width` in
+the artifact's own JSON store, so keep any other data the artifact stores
+there under other paths.
 
 Leave the body at zero padding: the sidebar and views supply their own gutters.
 

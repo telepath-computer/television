@@ -1,4 +1,6 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -113,7 +115,7 @@ test.describe("page full-screen production walk", () => {
     });
 
     await page.goto(
-      `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(server.getBaseURL())}&token=${server.getAuthToken()}`,
+      `${await appURLForServer(server.getBaseURL(), baseURL!)}/packages/web/src/index.html?token=${server.getAuthToken()}`,
     );
     await waitForApplicationShell(page);
     await expect(page.locator(".page[selected] .artifact-view")).toHaveCount(1);

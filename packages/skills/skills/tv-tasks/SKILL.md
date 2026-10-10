@@ -206,9 +206,9 @@ third-party API such as the person's productivity app when it has an HTTP API,
 or from the HTML itself, written into the artifact. A JSON store keeps a list's
 data durably, shares it live with every client viewing the artifact and lets
 you read and write it; it is the standard choice for a to-do list's data, and
-the `television` skill's `resources.md` describes it. localStorage is also
-available, but it is highly discouraged, because a future version of
-Television may remove it.
+the `television` skill's `resources.md` describes it. `localStorage`, cookies
+and IndexedDB do not work in artifacts, because artifacts run under the CSP
+sandbox.
 
 When the tasks arrive or change while the page is open, as when you render
 them from a JSON store, put the list's status or error message in the page

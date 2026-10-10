@@ -81,6 +81,7 @@ test.describe("serving the SDK", () => {
     expect(first.status).toBe(200);
     expect(first.headers.get("content-type")).toBe("text/javascript; charset=utf-8");
     expect(first.headers.get("cache-control")).toBe("no-cache");
+    expect(first.headers.get("access-control-allow-origin")).toBe("*");
     const etag = first.headers.get("etag");
     expect(etag).toBeTruthy();
     expect(Buffer.from(await first.arrayBuffer()).equals(built)).toBe(true);
@@ -93,6 +94,7 @@ test.describe("serving the SDK", () => {
     expect(head.headers.get("content-type")).toBe("text/javascript; charset=utf-8");
     expect(head.headers.get("etag")).toBe(etag);
     expect(head.headers.get("cache-control")).toBe("no-cache");
+    expect(head.headers.get("access-control-allow-origin")).toBe("*");
 
     // As a browser revalidates. Without a Cache-Control header of its own, fetch
     // adds `no-cache` to a conditional request, which asks for the body regardless.

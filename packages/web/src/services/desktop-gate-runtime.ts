@@ -21,7 +21,6 @@ import type { UpdatePresentationState } from "./update-presentation.ts";
 type AnyEventListener = (event: any) => void;
 
 export interface GateConnection {
-  readonly url: string;
   sendTelemetrySignal(event: ClientSignalEventName, properties: Record<string, string>): void;
 }
 
@@ -34,8 +33,6 @@ export interface GateConnectionOwner {
 export interface DesktopGateControllerOptions {
   /** The page's Electron detection (desktop-gate.ts); the barrier is inert outside Electron context. */
   detection: ElectronDetection;
-  /** The bundle-serving connection's URL — the only server the gate is evaluated against. */
-  primaryServerURL: string;
   /** The reload-into-normal-boot exit (^gate-reevaluation); defaults to location.reload(). */
   reload?: () => void;
   /**
@@ -98,9 +95,7 @@ export function createDesktopGateController(options: DesktopGateControllerOption
     // the halted-state send path in ServerConnection (^gate-telemetry).
     // desktop_app_version is omitted when the shell version is unknown
     // (client-signals.md omission-allowed validation).
-    const connection = owner?.connection;
-    if (connection?.url !== options.primaryServerURL) return;
-    connection.sendTelemetrySignal("desktop_upgrade_gate_shown", {
+    owner?.connection.sendTelemetrySignal("desktop_upgrade_gate_shown", {
       ...(options.detection.shellVersion === null ? {} : { desktop_app_version: options.detection.shellVersion }),
       required_desktop_version: requirement,
     });
@@ -111,7 +106,6 @@ export function createDesktopGateController(options: DesktopGateControllerOption
     // controller's own earlier exit) — the page is dying; the gate must not
     // render, signal, or navigate (^reload-gate-precedence enforcement).
     if (navigationLatch.pending) return;
-    if (event.serverURL !== options.primaryServerURL) return;
     if (presentationFor(event.message).gated) {
       gated = true;
       suppressUpdateToasts();

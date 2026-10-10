@@ -69,11 +69,11 @@ class TestServer extends ServerConnection {
   }
 
   emitServerEvent(event: ServerEvent): void {
-    this.dispatchEvent(new ServerEventMessageEvent("server-event", { serverURL: this.url, event }));
+    this.dispatchEvent(new ServerEventMessageEvent("server-event", { event }));
   }
 
   emitServerStatus(message: ServerStatusMessage): void {
-    this.dispatchEvent(new ServerStatusEvent("server-status", { serverURL: this.url, message }));
+    this.dispatchEvent(new ServerStatusEvent("server-status", { message }));
   }
 }
 
@@ -188,7 +188,7 @@ describe("ServerConnectionOwner", () => {
     server.dispatchEvent(new ChangeEvent("change"));
     server.emitServerEvent({ type: "channel-created", channel });
     server.dispatchEvent(new ChannelsChangedEvent("channels-changed"));
-    server.dispatchEvent(new ServerReconnectedEvent("server-reconnected", { serverURL: SERVER_URL }));
+    server.dispatchEvent(new ServerReconnectedEvent("server-reconnected"));
     server.emitServerStatus(status);
 
     expect(changed).toHaveBeenCalledTimes(1);

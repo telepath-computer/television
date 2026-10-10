@@ -4,8 +4,13 @@ import {
   ipcMain,
   Menu,
   nativeTheme,
+  session,
   shell,
+  type IpcMainEvent,
+  type IpcMainInvokeEvent,
   type MenuItemConstructorOptions,
+  type Session,
+  type WebContents,
 } from "electron";
 import { classifyLinkTarget } from "@telepath-computer/television-artifact/link-target";
 import todesktop from "@todesktop/runtime";
@@ -31,6 +36,13 @@ import {
   SET_APPEARANCE_MODE_CHANNEL,
 } from "./appearance-mode.ts";
 import { OPEN_APPLICATION_LINK_CHANNEL } from "./application-link.ts";
+import {
+  ArtifactPartitionReaper,
+  partitionForWebview,
+  recordArtifactPartition,
+  rewriteArtifactProxyHeaders,
+  type ArtifactWebviewPartition,
+} from "./artifact-partitions.ts";
 import {
   DESKTOP_UPDATE_DOWNLOADED_CHANNEL,
   GET_DESKTOP_UPDATE_CHANNEL,
@@ -65,6 +77,9 @@ const CONNECT_CHANNEL = "television:connect";
 const TEST_EXTERNAL_OPEN_CHANNEL = "television:test:external-open";
 const TEST_FIXTURE_FLAG = "--test-fixture";
 const ERR_ABORTED = -3;
+// Electron's permissions for the features an artifact iframe's `allow`
+// attribute grants (specs/arch/artifact-frame/isolation.md#^iso-desktop-permissions).
+const WEBVIEW_PERMISSIONS = new Set(["clipboard-sanitized-write", "fullscreen", "mediaKeySystem"]);
 const INITIAL_RETRY_MS = 1_000;
 const MAX_RETRY_MS = 30_000;
 
@@ -78,20 +93,16 @@ function readTestFixtureURL(argv: readonly string[]): string | null {
   return argv[idx + 1] ?? null;
 }
 
-function isExternalOpenURL(url: string): boolean {
-  return url.startsWith("http://") || url.startsWith("https://");
-}
-
-function sharesNonOpaqueWebOrigin(leftValue: string, rightValue: string): boolean {
+function sameOrigin(url: string, other: string): boolean {
   try {
-    const left = new URL(leftValue);
-    const right = new URL(rightValue);
-    if (left.protocol !== "http:" && left.protocol !== "https:") return false;
-    if (right.protocol !== "http:" && right.protocol !== "https:") return false;
-    return left.origin !== "null" && left.origin === right.origin;
+    return new URL(url).origin === new URL(other).origin;
   } catch {
     return false;
   }
+}
+
+function isExternalOpenURL(url: string): boolean {
+  return url.startsWith("http://") || url.startsWith("https://");
 }
 
 function recordExternalOpenForTest(url: string): void {
@@ -134,6 +145,10 @@ export class App {
   private retryDelay = INITIAL_RETRY_MS;
   private pendingNavigation: { attempt: number; connection: Connection; version: string } | null = null;
   private localPage = false;
+  // The partitions whose sessions are set up, which Electron has therefore
+  // opened, since the app started.
+  private readonly openedPartitions = new Set<string>();
+  private reaper: ArtifactPartitionReaper | null = null;
 
   async start(): Promise<void> {
     await app.whenReady();
@@ -146,17 +161,22 @@ export class App {
     }
     nativeTheme.themeSource = "system";
     this.connection = loadConnection();
+    this.reaper = new ArtifactPartitionReaper({
+      userData: app.getPath("userData"),
+      isOpened: (partition) => this.openedPartitions.has(partition),
+    });
     this.installMenu();
     this.installWindowOpenHandler();
-    ipcMain.on(SET_APPEARANCE_MODE_CHANNEL, (_event, mode: unknown) => {
+    this.installPermissionHandlers(session.defaultSession);
+    ipcMain.on(SET_APPEARANCE_MODE_CHANNEL, this.fromWindow((mode: unknown) => {
       if (isDesktopAppearanceMode(mode)) nativeTheme.themeSource = mode;
-    });
-    ipcMain.handle(GET_DESKTOP_UPDATE_CHANNEL, async () => downloadedUpdateVersion);
-    ipcMain.on(RESTART_TO_INSTALL_UPDATE_CHANNEL, () => restartToInstallUpdate());
-    ipcMain.handle(GET_CONNECT_STATE_CHANNEL, async () => this.connectState);
-    ipcMain.handle(CONNECT_CHANNEL, async (_event, link: string) => this.tryConnect(link));
-    ipcMain.handle(COMPLETE_CONNECT_CHANNEL, async (_event, attempt: number) => this.completeConnect(attempt));
-    ipcMain.handle(DISCONNECT_CHANNEL, async () => this.disconnect());
+    }));
+    ipcMain.handle(GET_DESKTOP_UPDATE_CHANNEL, this.fromWindow(async () => downloadedUpdateVersion));
+    ipcMain.on(RESTART_TO_INSTALL_UPDATE_CHANNEL, this.fromWindow(() => restartToInstallUpdate()));
+    ipcMain.handle(GET_CONNECT_STATE_CHANNEL, this.fromWindow(async () => this.connectState));
+    ipcMain.handle(CONNECT_CHANNEL, this.fromWindow(async (link: string) => this.tryConnect(link)));
+    ipcMain.handle(COMPLETE_CONNECT_CHANNEL, this.fromWindow(async (attempt: number) => this.completeConnect(attempt)));
+    ipcMain.handle(DISCONNECT_CHANNEL, this.fromWindow(async () => this.disconnect()));
     await this.createWindow();
 
     app.on("window-all-closed", () => {
@@ -165,6 +185,56 @@ export class App {
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) void this.createWindow();
     });
+  }
+
+  /**
+   * Acts on an IPC message only from the window's own web contents and ignores
+   * every webview's, whatever the channel; an `invoke` from a webview is
+   * answered with nothing (specs/arch/desktop/index.md#^desktop-ipc-senders).
+   */
+  private fromWindow<Args extends unknown[], Result>(
+    handler: (...args: Args) => Result,
+  ): (event: IpcMainEvent | IpcMainInvokeEvent, ...args: Args) => Result | undefined {
+    return (event, ...args) => (event.sender === this.window?.webContents ? handler(...args) : undefined);
+  }
+
+  /**
+   * Grants the window every permission and a webview only the three its
+   * features need, on the window's session and on every partition's
+   * (specs/arch/artifact-frame/isolation.md#^iso-desktop-permissions).
+   * A check from a cross-origin subframe arrives without web contents and gets
+   * a webview's permissions.
+   */
+  private installPermissionHandlers(target: Session): void {
+    const granted = (contents: WebContents | null, permission: string): boolean =>
+      (contents !== null && contents === this.window?.webContents) || WEBVIEW_PERMISSIONS.has(permission);
+    target.setPermissionRequestHandler((contents, permission, callback) => {
+      callback(granted(contents, permission));
+    });
+    target.setPermissionCheckHandler((contents, permission) => granted(contents, permission));
+  }
+
+  /**
+   * Sets up a partition's session before its first webview: the permission
+   * handlers on every partition, and the artifact proxy's header rewriting on
+   * all but the fallback partition, which keeps the sandbox
+   * (specs/arch/artifact-frame/isolation.md#^iso-desktop-header).
+   */
+  private setUpPartition(assigned: ArtifactWebviewPartition): void {
+    if (!this.openedPartitions.has(assigned.partition)) {
+      this.openedPartitions.add(assigned.partition);
+      const partitionSession = session.fromPartition(assigned.partition);
+      this.installPermissionHandlers(partitionSession);
+      if (assigned.kind !== "fallback") {
+        partitionSession.webRequest.onHeadersReceived({ urls: ["*://*/artifact/*"] }, (details, callback) => {
+          const responseHeaders = rewriteArtifactProxyHeaders(details.url, details.responseHeaders ?? {});
+          callback(responseHeaders === undefined ? {} : { responseHeaders });
+        });
+      }
+    }
+    if (assigned.kind === "artifact") {
+      recordArtifactPartition(app.getPath("userData"), assigned.origin, assigned.partition, assigned.artifactID);
+    }
   }
 
   private async createWindow(): Promise<void> {
@@ -185,9 +255,32 @@ export class App {
         webviewTag: true,
       },
     });
-    this.window.webContents.on("will-attach-webview", (_event, webPreferences) => {
+    // Every webview runs in a partition the main process has set up, never
+    // the window's session (specs/arch/desktop/artifact-partitions.md#^dp-attach).
+    this.window.webContents.on("will-attach-webview", (event, webPreferences) => {
       webPreferences.preload = path.join(__dirname, "webview-bridge-preload.cjs");
-      webPreferences.contextIsolation = false;
+      webPreferences.contextIsolation = true;
+      const assigned = partitionForWebview(webPreferences.partition, this.window?.webContents.getURL() ?? "");
+      if (assigned === null) {
+        event.preventDefault();
+        return;
+      }
+      webPreferences.partition = assigned.partition;
+      this.setUpPartition(assigned);
+    });
+    // The reaper runs only while the window shows the saved connection's
+    // server page (specs/arch/desktop/artifact-partitions.md#^dp-reaper).
+    this.window.webContents.on("did-start-navigation", (details) => {
+      if (details.isMainFrame && !details.isSameDocument) this.reaper?.stop();
+    });
+    this.window.webContents.on("did-finish-load", () => {
+      const connection = this.connection;
+      const page = this.window?.webContents.getURL() ?? "";
+      if (connection !== null && !this.localPage && sameOrigin(page, connection.serverURL)) {
+        void this.reaper?.pageLoaded(connection);
+      } else {
+        this.reaper?.stop();
+      }
     });
     this.window.webContents.on("did-fail-load", (_event, code, _description, validatedURL, isMainFrame) => {
       if (!isMainFrame) return;
@@ -198,6 +291,7 @@ export class App {
     this.window.once("ready-to-show", () => this.window?.show());
     this.window.on("closed", () => {
       this.cancelConnectionWork();
+      this.reaper?.stop();
       this.window = null;
     });
 
@@ -227,6 +321,7 @@ export class App {
 
   async loadConnectScreen(): Promise<void> {
     if (!this.window) return;
+    this.reaper?.stop();
     const attempt = this.cancelConnectionWork();
     this.localPage = true;
     this.retryDelay = INITIAL_RETRY_MS;
@@ -239,6 +334,7 @@ export class App {
 
   private async disconnect(): Promise<void> {
     this.cancelConnectionWork();
+    this.reaper?.stop();
     this.window?.webContents.stop();
     deleteConnection();
     this.connection = null;
@@ -317,15 +413,14 @@ export class App {
   }
 
   private installWindowOpenHandler(): void {
-    ipcMain.on(OPEN_APPLICATION_LINK_CHANNEL, (event, value: unknown) => {
-      if (event.sender.getType() !== "webview" || typeof value !== "string") return;
-      const host = event.sender.hostWebContents;
-      // Electron supplies the sender's current committed URL. Authorize that
-      // document at handler time; no origin asserted by the page is trusted.
-      if (!host || !sharesNonOpaqueWebOrigin(event.sender.getURL(), host.getURL())) return;
+    // The served interface passes on an application link that an artifact's
+    // preload sent it; the value is classified again here
+    // (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling).
+    ipcMain.on(OPEN_APPLICATION_LINK_CHANNEL, this.fromWindow((value: unknown) => {
+      if (typeof value !== "string") return;
       const target = classifyLinkTarget(value, "https://television.invalid/");
       if (target.kind === "application") openExternal(target.url);
-    });
+    }));
 
     app.on("web-contents-created", (_event, contents) => {
       if (contents.getType() === "webview") {

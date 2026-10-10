@@ -3,6 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { render } from "lit-html";
 import { ChangeEvent, type ServerStatusMessage, type UpdateToast } from "@telepath-computer/television-shared";
+import { ServerStatusEvent } from "../src/events.ts";
 import { FakeUpdateConnection, FakeUpdateConnectionOwner, dispatchServerStatus } from "./helpers/update-status.ts";
 import {
   DISMISSED_VERSION_KEY,
@@ -51,8 +52,6 @@ import { StandInDesktopUpdateBridge } from "./helpers/desktop-update-bridge.ts";
 //     load; `update_prompt_copy_clicked` on each click; both carry only the
 //     two version properties.
 
-const PRIMARY = "http://primary.test";
-const OTHER = "http://other.test";
 const SERVER_VERSION = "1.0.0";
 
 // The shared fake satisfies the controller's connection slice.
@@ -88,13 +87,13 @@ interface Harness {
   owner: FakeUpdateConnectionOwner;
   connection: FakeUpdateConnection;
   storage: MemoryStorage;
-  sendStatus(input: { toast?: UpdateToast | null; serverURL?: string; version?: string }): void;
+  sendStatus(input: { toast?: UpdateToast | null; version?: string }): void;
 }
 
 function harness(
   options: { dismissed?: string; recommendationDismissed?: string; desktopSelfUpdateDismissed?: string } = {},
 ): Harness {
-  const connection = new FakeUpdateConnection(PRIMARY);
+  const connection = new FakeUpdateConnection();
   const owner = new FakeUpdateConnectionOwner(connection);
   const stored: Record<string, string> = {};
   if (options.dismissed !== undefined) stored[DISMISSED_VERSION_KEY] = options.dismissed;
@@ -109,14 +108,14 @@ function harness(
     owner,
     connection,
     storage,
-    sendStatus({ toast: toastState = null, serverURL = PRIMARY, version = SERVER_VERSION }) {
+    sendStatus({ toast: toastState = null, version = SERVER_VERSION }) {
       const message: ServerStatusMessage = {
         type: "server-status",
         version,
         requiredDesktopVersion: null,
         update: { toast: toastState, desktop: null },
       };
-      dispatchServerStatus(owner, message, serverURL);
+      dispatchServerStatus(owner, message);
     },
   };
 }
@@ -145,7 +144,6 @@ function mountController(
   controller = new UpdateNotificationController(draw);
   controller.configure({
     connectionOwner: h.owner,
-    primaryServerURL: PRIMARY,
     dismissalStorage: h.storage,
     presentation,
     desktopRecommendation,
@@ -278,7 +276,14 @@ describe("auto-presentation and dismissal (^t-dismissal)", () => {
 
   it("renders from the owned connection's retained state rather than the server-status event payload", () => {
     const h = mount();
-    h.sendStatus({ toast: toast("9.9.9"), serverURL: OTHER });
+    h.owner.dispatchEvent(new ServerStatusEvent("server-status", {
+      message: {
+        type: "server-status",
+        version: SERVER_VERSION,
+        requiredDesktopVersion: null,
+        update: { toast: toast("9.9.9"), desktop: null },
+      },
+    }));
     expect(notice(h)).toBeNull();
     expect(bell(h)).toBeNull();
     expect(h.connection.signals).toEqual([]);

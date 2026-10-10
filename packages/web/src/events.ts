@@ -27,7 +27,6 @@ export const ChannelsChangedEvent = defineEvent<ChannelsChangedEvent>();
  */
 export interface ServerReconnectedEvent extends Event {
   type: "server-reconnected";
-  serverURL: string;
 }
 export const ServerReconnectedEvent = defineEvent<ServerReconnectedEvent>();
 
@@ -42,7 +41,6 @@ export const ServerReconnectedEvent = defineEvent<ServerReconnectedEvent>();
  */
 export interface ServerStatusEvent extends Event {
   type: "server-status";
-  serverURL: string;
   message: ServerStatusMessage;
 }
 export const ServerStatusEvent = defineEvent<ServerStatusEvent>();
