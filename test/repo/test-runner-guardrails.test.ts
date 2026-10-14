@@ -101,10 +101,10 @@ describe("test runner guardrails", () => {
   test("setup-workspace composite encodes the exact-key cache contract", () => {
     const action = readFileSync(setupWorkspacePath, "utf8");
     expect(action).not.toContain("restore-keys:");
-    for (const input of ["package-lock.json", "packages/skills/package.json", "packages/skillbench/**"]) {
+    for (const input of ["package-lock.json", "packages/skills/package.json"]) {
       expect(action).toContain(input);
     }
-    for (const cached of ["node_modules", "packages/skillbench/dist"]) {
+    for (const cached of ["node_modules"]) {
       expect(action).toContain(cached);
     }
     expect(action).toContain("cache-hit != 'true'");
@@ -134,10 +134,10 @@ describe("test runner guardrails", () => {
     expect(action).toContain("default: shard-readiness-v2");
     expect(action).toContain("cache-key-suffix");
     expect(action).toContain('if [ -n "$CACHE_KEY_SUFFIX" ]');
-    for (const input of ["package-lock.json", "packages/skills/package.json", "packages/skillbench/**"]) {
+    for (const input of ["package-lock.json", "packages/skills/package.json"]) {
       expect(action).toContain(input);
     }
-    for (const cached of ["node_modules", "packages/skillbench/dist", "~/.cache/ms-playwright"]) {
+    for (const cached of ["node_modules", "~/.cache/ms-playwright"]) {
       expect(action).toContain(cached);
     }
   });

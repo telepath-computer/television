@@ -7,11 +7,11 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `reviewer-checklist.md` (20 lines) — *Review questions that restate the spec policies, for use when reviewing any spec or change.*
 - `spec-docs.md` (62 lines) — *The repository docs folder: guides, working documents, and the archive; what each holds, what standing it has, and the pre-merge docs prep that moves documents from working to archived.*
 - `spec-migration.md` (56 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
-- `spec-policy.md` (211 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
-- `spec-proofs.md` (73 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
+- `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
+- `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
-- `spec-workflow.md` (248 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
-- `staging.md` (46 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
+- `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
+- `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
 - `terms.md` (200 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
@@ -38,10 +38,9 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `explainer-connection-states.md` (60 lines) — *Explainer: what a person sees while Television can't use its server — the desktop setup screen, the connection dialogs in the browser and the desktop app, and the rules that choose between them.*
   - `explainer-desktop-app.md` (77 lines) — *Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
   - `licensing.md` (294 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
-  - `making-skills.md` (35 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, optional UI-spec staging, and final consumer delivery.*
+  - `making-skills.md` (30 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
-  - `skillbench.md` (55 lines) — *Arch spec: the skillbench package — the skill-eval tool: the CLI that runs eval configs and the read-only page for reviewing what agents produced.*
-  - `testing-policy.md` (236 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
     - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
@@ -172,8 +171,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (344 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
-  - **skillbench/**
-    - `index.md` (26 lines) — *UI spec: skillbench — the eval review page's interaction, markup, and styling.*
   - **skills/**
     - **sidebar-view/**
       - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*

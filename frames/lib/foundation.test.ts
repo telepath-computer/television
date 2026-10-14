@@ -10,7 +10,7 @@ const removeListeners: (() => void)[] = [];
 // fresh copy.
 const importFoundation = async () => {
   vi.resetModules();
-  await import("../../frames/lib/foundation.ts");
+  await import("./foundation.ts");
 };
 
 const themeStyle = () =>

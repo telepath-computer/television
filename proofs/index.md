@@ -25,10 +25,9 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **arch/**
   - `canonical.md` (36 lines) — *How the promises in Canonical are proven.*
   - `developer-skills.md` (21 lines) — *Developer skill installation proven through real temporary homes and installer processes.*
-  - `licensing.md` (25 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
+  - `licensing.md` (24 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (18 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
-  - `skillbench.md` (13 lines) — *How the promises in Skillbench are proven.*
   - `testing-policy.md` (7 lines) — *How the testing policy’s development discipline is checked.*
   - **artifact-frame/**
     - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
@@ -158,8 +157,6 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
-  - **skillbench/**
-    - `index.md` (13 lines) — *How the promises in Skillbench (UI) are proven.*
   - **skills/**
     - **sidebar-view/**
       - `index.md` (21 lines) — *How the sidebar-view skill's surface is proven: its resizable sidebar's shared width, walked in a real browser against a running server, while the skill's other points stay untested as a prototype's.*

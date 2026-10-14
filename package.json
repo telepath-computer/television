@@ -41,7 +41,6 @@
     "lint:package-manifests": "node scripts/check-publishable.mjs --manifest-only",
     "check:publish-tarballs": "node scripts/check-publishable.mjs --tarballs",
     "specs:index": "node scripts/specs-index.mjs",
-    "skillbench": "node packages/skillbench/dist/cli.js",
     "frameset": "frameset ${TAILSCALE_REMOTE:+--host 0.0.0.0 --allowed-hosts all}"
   },
   "devDependencies": {

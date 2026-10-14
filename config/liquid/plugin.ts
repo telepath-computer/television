@@ -16,10 +16,10 @@ const FORM_QUERY_RE = /[?&](raw|url|inline)(?:&|$)/;
 export function liquidTemplates(): Plugin {
   return {
     name: "liquid-templates",
-    // The spec tree usually sits outside the consuming project's Vite root
-    // (e.g. Storybook's root is storybook/), and files outside the root are
-    // not reliably watched: an edit to a spec yml or template then serves a
-    // stale transform until the server restarts. Watch specs/ explicitly.
+    // The spec tree can sit outside the consuming project's Vite root, where
+    // files are not reliably watched: an edit to a spec yml or template then
+    // serves a stale transform until the server restarts. Watch specs/
+    // explicitly.
     configureServer(server) {
       server.watcher.add(resolve(REPO_ROOT, "specs"));
     },
