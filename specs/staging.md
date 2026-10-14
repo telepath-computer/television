@@ -32,10 +32,6 @@ Workshop wiring may measure a frame, apply an [executable motion reference](spec
 
 Fixture content (sample channels, example artifacts) is staging's own, kept beside its consumers or in `frames/lib/` when shared.
 
-## The earlier workshop
-
-The `staging/` tree and the remaining Storybook stories (`storybook/`) persist for surfaces not yet converted: per-state documents mounting `template.liquid` files, sheets as `index.html`, and shared mechanisms in `staging/lib/`, including the pseudo-state mirror. They are upgraded to the frames workshop as touched.
-
 ## Linting
 
 Staging is deliberately not exempt from the `no-magic-numbers` lint rule. A bare number in staging is usually a value that carries design authority, restated where authority cannot see it — the lint error is the signal, and the response is ordered:

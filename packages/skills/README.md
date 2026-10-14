@@ -66,18 +66,6 @@ or copy `packages/skills/dist/<name>/` there directly.
 - `tv-tasks/` is a built skill (`package.json` + a Vite build). It emits
   `dist/task.js`, `dist/task.css`, and a copied `dist/SKILL.md`.
 
-## Previewing and evaluating skills
-
-A skill with authored Storybook staging or empirical evals keeps those records under
-`storybook/stories/skills/<skill>/` and `storybook/skill-evals/<skill>.json`; see
-`specs/arch/making-skills.md`. A `Preview` leaf embeds skillbench over that skill's eval
-outputs. Storybook mounts the built `packages/canonical/dist/canonical` root at
-`/canonical`; build the canonical package before starting Storybook.
-
-These records are optional development evidence, not bundle membership. The explicit
-example is `tv-sidebar-view`: it has prototype spec, story, and eval records while
-remaining absent from `skills.json` and therefore absent from shipped output.
-
 ## Authoring new skills
 
 Create `skills/tv-<name>/SKILL.md` with YAML frontmatter carrying non-empty

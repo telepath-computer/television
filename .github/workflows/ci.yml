@@ -302,7 +302,6 @@ jobs:
         with:
           path: |
             node_modules
-            packages/skillbench/dist
             ~/.cache/ms-playwright
           key: ${{ steps.shard-readiness.outputs.cache-key }}
 

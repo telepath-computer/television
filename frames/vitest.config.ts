@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [liquidTemplates()],
   test: {
     retry: 0,
-    include: ["test/**/*.test.ts"],
+    include: ["lib/**/*.test.ts"],
   },
 });

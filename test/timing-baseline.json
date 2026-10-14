@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "sourceThrough": "2026-09-29T18:40:36.192Z",
   "files": {
+    "frames/lib/foundation.test.ts": {
+      "surfaceId": "unit:frames",
+      "providers": {
+        "blaxel-playwright-x64-4vcpu": {
+          "medianDurationMs": 248,
+          "sampleCount": 1,
+          "retryCount": 0,
+          "recoveredFlakeCount": 0,
+          "lastUpdated": "2026-09-29T18:40:36.192Z"
+        }
+      }
+    },
     "packages/artifact/test/artifacts.test.ts": {
       "surfaceId": "unit:artifact",
       "providers": {
@@ -1351,66 +1363,6 @@
       "providers": {
         "blaxel-playwright-x64-4vcpu": {
           "medianDurationMs": 12,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "packages/skillbench/test/cli.test.ts": {
-      "surfaceId": "unit:skillbench",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 511,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "packages/skillbench/test/config.test.ts": {
-      "surfaceId": "unit:skillbench",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 14,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "packages/skillbench/test/render.test.ts": {
-      "surfaceId": "unit:skillbench",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 9,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "packages/skillbench/test/run.test.ts": {
-      "surfaceId": "unit:skillbench",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 68,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "packages/skillbench/test/ui.test.ts": {
-      "surfaceId": "unit:skillbench",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 5,
           "sampleCount": 1,
           "retryCount": 0,
           "recoveredFlakeCount": 0,
@@ -3038,30 +2990,6 @@
         }
       }
     },
-    "staging/test/foundation.test.ts": {
-      "surfaceId": "unit:staging",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 248,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "staging/test/pseudo-states.test.ts": {
-      "surfaceId": "unit:staging",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 5,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
     "test/node/bake-onboarding.test.ts": {
       "surfaceId": "e2e:node",
       "providers": {
@@ -3523,18 +3451,6 @@
       "providers": {
         "blaxel-playwright-x64-4vcpu": {
           "medianDurationMs": 544,
-          "sampleCount": 1,
-          "retryCount": 0,
-          "recoveredFlakeCount": 0,
-          "lastUpdated": "2026-09-29T18:40:36.192Z"
-        }
-      }
-    },
-    "test/repo/onboarding-legacy-surface.test.ts": {
-      "surfaceId": "unit:root",
-      "providers": {
-        "blaxel-playwright-x64-4vcpu": {
-          "medianDurationMs": 24,
           "sampleCount": 1,
           "retryCount": 0,
           "recoveredFlakeCount": 0,

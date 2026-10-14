@@ -88,7 +88,6 @@ describe("licensing configuration", () => {
       "tokyo-night-theme",
       "clouds-theme",
       "tailwind-foundation",
-      "tailwind-token-demo",
       "firebase-push-keys",
       "markdown-table-editor",
     ]);
@@ -239,12 +238,7 @@ describe("licensing configuration", () => {
     ]);
     expect(foundation.surfaces).toEqual(["web", "view:markdown", "source", "desktop"]);
     expect(foundation.components).toEqual([tailwind]);
-    const demo = assets.find((asset) => asset.id === "tailwind-token-demo")!;
-    expect(demo.paths).toEqual(["staging/frames/token-system/styles.css"]);
-    expect(demo.surfaces).toEqual(["source"]);
-    expect(demo.components).toEqual([tailwind]);
-    expect(demo).not.toHaveProperty("noticesFolder");
-    for (const file of [...clouds.paths.filter((file) => file.endsWith(".css")), ...foundation.paths.filter((file) => !file.includes("/frozen/")), ...demo.paths]) {
+    for (const file of [...clouds.paths.filter((file) => file.endsWith(".css")), ...foundation.paths.filter((file) => !file.includes("/frozen/"))]) {
       const header = readFileSync(path.join(repoRoot, file), "utf8").split("*/")[0];
       expect(header, file).toMatch(/^\/\*/);
       expect(header, file).toContain("https://github.com/tailwindlabs/tailwindcss");
