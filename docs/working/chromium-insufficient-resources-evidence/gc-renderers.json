@@ -1,0 +1,578 @@
+[
+  {
+    "kind": "ROSE_GC_BEFORE",
+    "data": {
+      "at": "2026-10-01T22:21:26.951Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1519017284 kB",
+            "VmRSS:\t   94780 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 259,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "shared-memory": 229,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 220,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 466620416
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1519015940 kB",
+            "VmRSS:\t   86480 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 259,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "shared-memory": 229,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 220,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 466620416
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         2730892 kB",
+        "MemAvailable:    2724816 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           3822512 kB"
+      ],
+      "fileNr": "832\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 2762153984
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  },
+  {
+    "kind": "ROSE_GC_AFTER",
+    "data": {
+      "at": "2026-10-01T22:21:27.072Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518566212 kB",
+            "VmRSS:\t   55728 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518564868 kB",
+            "VmRSS:\t   52288 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         3699996 kB",
+        "MemAvailable:    3692256 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           2920608 kB"
+      ],
+      "fileNr": "416\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 3685933056
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  },
+  {
+    "kind": "ROSE_GC_BEFORE",
+    "data": {
+      "at": "2026-10-01T22:21:28.387Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518575396 kB",
+            "VmRSS:\t   86100 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 43,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 13
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 13635584
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518573572 kB",
+            "VmRSS:\t   80040 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 43,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 13
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 13635584
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         3506724 kB",
+        "MemAvailable:    3498712 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           2944532 kB"
+      ],
+      "fileNr": "448\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 3661377536
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  },
+  {
+    "kind": "ROSE_GC_AFTER",
+    "data": {
+      "at": "2026-10-01T22:21:28.498Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518566692 kB",
+            "VmRSS:\t   58788 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518564868 kB",
+            "VmRSS:\t   54528 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         3542992 kB",
+        "MemAvailable:    3534980 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           2927288 kB"
+      ],
+      "fileNr": "416\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 3679182848
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  },
+  {
+    "kind": "ROSE_GC_BEFORE",
+    "data": {
+      "at": "2026-10-01T22:21:29.888Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518584072 kB",
+            "VmRSS:\t   87392 kB",
+            "Threads:\t16"
+          ],
+          "fdCount": 43,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 13
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 13635584
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518573572 kB",
+            "VmRSS:\t   81144 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 43,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 13
+          },
+          "sharedMemorySizes": {
+            "131000": 8,
+            "2097152": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 13635584
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         3332724 kB",
+        "MemAvailable:    3324684 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           2951136 kB"
+      ],
+      "fileNr": "448\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 3654643712
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  },
+  {
+    "kind": "ROSE_GC_AFTER",
+    "data": {
+      "at": "2026-10-01T22:21:29.953Z",
+      "processes": [
+        {
+          "pid": 11694,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518575368 kB",
+            "VmRSS:\t   59208 kB",
+            "Threads:\t16"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        },
+        {
+          "pid": 11730,
+          "command": "/home/playwright/.cache/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-linux64/chrome-headless-shell --type=renderer --headless=old --no-sandbox --disable-dev-shm-usage --disable-back-forward-cache --disable-background-timer-throttling --disable-breakpad --enable-automation --force-color-profile=srgb --remote-debugging-pipe --allo",
+          "status": [
+            "Name:\tchrome-headless",
+            "PPid:\t11649",
+            "FDSize:\t512",
+            "VmSize:\t1518564868 kB",
+            "VmRSS:\t   55196 kB",
+            "Threads:\t15"
+          ],
+          "fdCount": 35,
+          "limits": [
+            "Max processes             31819                31819                processes ",
+            "Max open files            4096                 4096                 files     ",
+            "Max address space         unlimited            unlimited            bytes     "
+          ],
+          "descriptorKinds": {
+            "file": 11,
+            "socket": 11,
+            "anon_inode:[eventfd]": 4,
+            "anon_inode:[eventpoll]": 4,
+            "shared-memory": 5
+          },
+          "sharedMemorySizes": {
+            "131000": 4,
+            "4198400": 1
+          },
+          "sharedMemoryAllocated": 4722688
+        }
+      ],
+      "memory": [
+        "MemTotal:        8149540 kB",
+        "MemFree:         3341408 kB",
+        "MemAvailable:    3333368 kB",
+        "SwapFree:              0 kB",
+        "Shmem:           2933852 kB"
+      ],
+      "fileNr": "448\t0\t814457",
+      "oomKills": "oom_kill 0",
+      "filesystems": {
+        "/tmp": {
+          "total": 6676103168,
+          "available": 3672453120
+        },
+        "/dev/shm": {
+          "total": 4172562432,
+          "available": 4172562432
+        }
+      },
+      "cgroup": {
+        "memory.current": "unavailable",
+        "memory.max": "unavailable",
+        "memory.events": "unavailable",
+        "pids.current": "unavailable",
+        "pids.max": "unavailable",
+        "cpu.stat": "unavailable"
+      }
+    }
+  }
+]

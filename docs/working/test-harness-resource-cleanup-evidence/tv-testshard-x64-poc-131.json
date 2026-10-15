@@ -1,0 +1,502 @@
+{
+  "capturedAt": "2026-10-01T22:44:17.626697+00:00",
+  "tmp": {
+    "availableBytes": 2137575424,
+    "totalBytes": 6676103168,
+    "categories": [
+      {
+        "prefix": ".X*",
+        "count": 1,
+        "examples": [
+          {
+            "name": ".X11-unix",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": ".org.chromium.Chromium.*",
+        "count": 3,
+        "examples": [
+          {
+            "name": ".org.chromium.Chromium.p98fYu",
+            "kind": "file"
+          },
+          {
+            "name": ".org.chromium.Chromium.SPumEs",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "MozillaUpdateLock-847956029D21FDC7",
+        "count": 1,
+        "examples": [
+          {
+            "name": "MozillaUpdateLock-847956029D21FDC7",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "multipart-uploads",
+        "count": 1,
+        "examples": [
+          {
+            "name": "multipart-uploads",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "node-compile-cache*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "node-compile-cache",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "playwright-*",
+        "count": 2,
+        "examples": [
+          {
+            "name": "playwright-artifacts-5Qz2J3",
+            "kind": "dir"
+          },
+          {
+            "name": "playwright-transform-cache-0",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "television-source-cli-e2e-*",
+        "count": 267,
+        "examples": [
+          {
+            "name": "television-source-cli-e2e-0UvOF0",
+            "kind": "dir"
+          },
+          {
+            "name": "television-source-cli-e2e-xz6UWF",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "television-web-bundle-*",
+        "count": 146,
+        "examples": [
+          {
+            "name": "television-web-bundle-0U3Bq1",
+            "kind": "dir"
+          },
+          {
+            "name": "television-web-bundle-0zVhkg",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tsx-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tsx-0",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-blaxel-token-*",
+        "count": 7,
+        "examples": [
+          {
+            "name": "tv-blaxel-token-7V3eTY",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-blaxel-token-FFrYeT",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-dynamic-services-*",
+        "count": 8,
+        "examples": [
+          {
+            "name": "tv-dynamic-services-Cvuced",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-dynamic-services-L4ir31",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-electron-env-*",
+        "count": 33,
+        "examples": [
+          {
+            "name": "tv-electron-env-0RIXYm",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-electron-env-0tSmO7",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-electron-missing-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-electron-missing-OoUqnq",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-electron-missing-Y711Eu",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-git-askpass.sh",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-git-askpass.sh",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-interrupted-attempt-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-interrupted-attempt-M63Tzl",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-interrupted-attempt-NqzTGZ",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-owner-cleanup-*",
+        "count": 2,
+        "examples": [
+          {
+            "name": "tv-owner-cleanup-2026-09-29T18-41-53-559Z-1385612-shard-8.json",
+            "kind": "file"
+          },
+          {
+            "name": "tv-owner-cleanup-2026-09-11T19-44-47-497Z-2030667-shard-8.json",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-partial-leases-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-partial-leases-5Gl2yt",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-partial-leases-TZE8QZ",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-posthog-preflight-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-posthog-preflight-N3e9KL",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-posthog-preflight-missing-*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "tv-posthog-preflight-missing-utVaiY",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-blaxel-wrapper-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-blaxel-wrapper-YbDL1t",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-blaxel-wrapper-s1eNDm",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-combine-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-combine-KWaBaw",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-combine-NMu42s",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-contradiction-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-contradiction-B59JgY",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-contradiction-JwJxXQ",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-corrupt-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-corrupt-8J3HdF",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-corrupt-FPlCy3",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-distinct-infra-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-distinct-infra-TNDzyX",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-distinct-infra-r9YzK1",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-empty-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-empty-SfDSYb",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-empty-ar7rau",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-leak-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-leak-0FzFHu",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-leak-UF5ev3",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-normalize-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-normalize-KGv4so",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-normalize-Odm1iY",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-remote-native-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-remote-native-LhC04g",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-remote-native-akc5RU",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-reports-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-reports-0Jfsvl",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-reports-12iCrO",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-stale-owner-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-stale-owner-BaHmEj",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-stale-owner-OX1kvE",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-task-infra-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-task-infra-4VzJKa",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-task-infra-QOrMRp",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-provider-timing-shards-*",
+        "count": 3,
+        "examples": [
+          {
+            "name": "tv-provider-timing-shards-GD7UrH",
+            "kind": "dir"
+          },
+          {
+            "name": "tv-provider-timing-shards-P7dmtU",
+            "kind": "dir"
+          }
+        ]
+      },
+      {
+        "prefix": "tv-testshard-*",
+        "count": 222,
+        "examples": [
+          {
+            "name": "tv-testshard-2026-10-01T22-04-01-804Z-2873890-s8.sh",
+            "kind": "file"
+          },
+          {
+            "name": "tv-testshard-2026-10-01T21-41-24-129Z-2861191-s8.sh",
+            "kind": "file"
+          }
+        ]
+      },
+      {
+        "prefix": "xvfb-run.*",
+        "count": 1,
+        "examples": [
+          {
+            "name": "xvfb-run.9dfpKV",
+            "kind": "dir"
+          }
+        ]
+      }
+    ]
+  },
+  "meminfo": {
+    "MemTotal": "8149540 kB",
+    "MemAvailable": "3077332 kB",
+    "SwapTotal": "0 kB",
+    "SwapFree": "0 kB",
+    "Shmem": "4433052 kB"
+  },
+  "lock": null,
+  "processes": [
+    {
+      "pid": 1,
+      "command": "init",
+      "ownerTokens": []
+    },
+    {
+      "pid": 423,
+      "command": "ukp-fs",
+      "ownerTokens": []
+    },
+    {
+      "pid": 426,
+      "command": "entrypoint.sh",
+      "ownerTokens": []
+    },
+    {
+      "pid": 427,
+      "command": "sandbox-api",
+      "ownerTokens": []
+    },
+    {
+      "pid": 428,
+      "command": "MainThread",
+      "ownerTokens": []
+    },
+    {
+      "pid": 16872,
+      "command": "sh",
+      "ownerTokens": []
+    },
+    {
+      "pid": 16873,
+      "command": "python3",
+      "ownerTokens": []
+    },
+    {
+      "pid": 16874,
+      "command": "sleep",
+      "ownerTokens": []
+    }
+  ],
+  "tmpReferences": [],
+  "sandbox": "tv-testshard-x64-poc-131",
+  "method": "Read-only os.scandir(/tmp), statvfs, selected /proc/meminfo values, process comm and TV_TEST_SURFACE_OWNER only, cwd/fd paths under /tmp, and the shard owner.json if present. Random six-character directory suffixes grouped for readability. No file contents or environment secrets collected."
+}

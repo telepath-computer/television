@@ -1,0 +1,2585 @@
+[
+  {
+    "experiment": 1,
+    "runDirectory": "/home/user/workspace/wt/television/investigate-chromium-insufficient-resources/.test-runs/2026-10-01T22-06-53-142Z-p2875221-r19ba7810391cbf6c",
+    "commit": "0ba2dcdaed7c9a2d7692be012255d4b5ceb7d5af",
+    "sandbox": "tv-testshard-x64-poc-143",
+    "result": {
+      "id": "2026-10-01T22-06-53-142Z-p2875221-r19ba7810391cbf6c",
+      "commandProvider": "blaxel",
+      "timingProvider": "blaxel-playwright-x64-4vcpu",
+      "status": "passed",
+      "infraStatus": "completed",
+      "testStatus": "passed",
+      "startedAt": "2026-10-01T22:06:54.717Z",
+      "completedAt": "2026-10-01T22:07:40.426Z",
+      "durationMs": 45709
+    },
+    "attempts": [
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 0,
+        "status": "passed",
+        "durationMs": 5959,
+        "startTime": "2026-10-01T22:07:31.091Z",
+        "error": null,
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:07:31.311Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3734932 kB",
+                "MemAvailable:    3745952 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           3079096 kB"
+              ],
+              "fileNr": "224\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 7478,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7458",
+                    "FDSize:\t128",
+                    "VmSize:\t50617288 kB",
+                    "VmRSS:\t    8840 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 261,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:07:37.108Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          528056 kB",
+                  "MemAvailable:     549428 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5840544 kB"
+                ],
+                "fileNr": "1696\t0\t814457",
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 7478,
+                    "kind": "network",
+                    "fdCount": 42,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7458",
+                      "FDSize:\t128",
+                      "VmSize:\t50618576 kB",
+                      "VmRSS:\t   20044 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 7502,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7461",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519911712 kB",
+                      "VmRSS:\t  140560 kB",
+                      "Threads:\t14"
+                    ]
+                  },
+                  {
+                    "pid": 7540,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7461",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519909888 kB",
+                      "VmRSS:\t  127952 kB",
+                      "Threads:\t14"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:07:37.233Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:          801948 kB",
+                "MemAvailable:     823440 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           5635056 kB"
+              ],
+              "fileNr": "992\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 7478,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7458",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   19576 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  }
+                },
+                {
+                  "pid": 7502,
+                  "kind": "renderer",
+                  "fdCount": 707,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7461",
+                    "FDSize:\t1024",
+                    "VmSize:\t1519912048 kB",
+                    "VmRSS:\t  141920 kB",
+                    "Threads:\t14"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 677,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      }
+    ]
+  },
+  {
+    "experiment": 2,
+    "runDirectory": "/home/user/workspace/wt/television/investigate-chromium-insufficient-resources/.test-runs/2026-10-01T22-08-43-298Z-p2875805-r39e7ed872b6bcb21",
+    "commit": "0ba2dcdaed7c9a2d7692be012255d4b5ceb7d5af",
+    "sandbox": "tv-testshard-x64-poc-39",
+    "result": {
+      "id": "2026-10-01T22-08-43-298Z-p2875805-r39e7ed872b6bcb21",
+      "commandProvider": "blaxel",
+      "timingProvider": "blaxel-playwright-x64-4vcpu",
+      "status": "passed",
+      "infraStatus": "completed",
+      "testStatus": "passed",
+      "startedAt": "2026-10-01T22:08:44.865Z",
+      "completedAt": "2026-10-01T22:09:29.186Z",
+      "durationMs": 44321
+    },
+    "attempts": [
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 0,
+        "status": "passed",
+        "durationMs": 4359,
+        "startTime": "2026-10-01T22:09:22.804Z",
+        "error": null,
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:09:22.818Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2451848 kB",
+                "MemAvailable:    2480472 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4021684 kB"
+              ],
+              "fileNr": "288\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 8513,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t8492",
+                    "FDSize:\t128",
+                    "VmSize:\t50617288 kB",
+                    "VmRSS:\t   14788 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 265,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:09:27.077Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          119560 kB",
+                  "MemAvailable:     153952 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           6173108 kB"
+                ],
+                "fileNr": "1696\t0\t814457",
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 8513,
+                    "kind": "network",
+                    "fdCount": 42,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t8492",
+                      "FDSize:\t128",
+                      "VmSize:\t50618576 kB",
+                      "VmRSS:\t   21588 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 8727,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t8495",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519912192 kB",
+                      "VmRSS:\t  141560 kB",
+                      "Threads:\t14"
+                    ]
+                  },
+                  {
+                    "pid": 8754,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t8495",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519959064 kB",
+                      "VmRSS:\t  128964 kB",
+                      "Threads:\t20"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:09:27.160Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:          341484 kB",
+                "MemAvailable:     372820 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           6159348 kB"
+              ],
+              "fileNr": "1024\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 8513,
+                  "kind": "network",
+                  "fdCount": 30,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t8492",
+                    "FDSize:\t128",
+                    "VmSize:\t50617552 kB",
+                    "VmRSS:\t   21476 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 12,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 2
+                  }
+                },
+                {
+                  "pid": 8727,
+                  "kind": "renderer",
+                  "fdCount": 707,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t8495",
+                    "FDSize:\t1024",
+                    "VmSize:\t1519912528 kB",
+                    "VmRSS:\t  142856 kB",
+                    "Threads:\t14"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 677,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      }
+    ]
+  },
+  {
+    "experiment": 3,
+    "runDirectory": "/home/user/workspace/wt/television/investigate-chromium-insufficient-resources/.test-runs/2026-10-01T22-10-17-150Z-p2876640-r6c20ebd19d66a71a",
+    "commit": "0ba2dcdaed7c9a2d7692be012255d4b5ceb7d5af",
+    "sandbox": "tv-testshard-x64-poc-15",
+    "result": {
+      "id": "2026-10-01T22-10-17-150Z-p2876640-r6c20ebd19d66a71a",
+      "commandProvider": "blaxel",
+      "timingProvider": "blaxel-playwright-x64-4vcpu",
+      "status": "failed",
+      "infraStatus": "completed",
+      "testStatus": "failed",
+      "startedAt": "2026-10-01T22:10:18.844Z",
+      "completedAt": "2026-10-01T22:15:08.685Z",
+      "durationMs": 289841
+    },
+    "attempts": [
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 0,
+        "status": "timedOut",
+        "durationMs": 90053,
+        "startTime": "2026-10-01T22:11:33.511Z",
+        "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:11:33.527Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         1639032 kB",
+                "MemAvailable:    1709856 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4582788 kB"
+              ],
+              "fileNr": "288\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 6507,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t6487",
+                    "FDSize:\t128",
+                    "VmSize:\t50617288 kB",
+                    "VmRSS:\t   15032 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 264,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:11:38.290Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          920584 kB",
+                  "MemAvailable:     862864 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5410524 kB"
+                ],
+                "fileNr": "1024\t0\t814457",
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 6507,
+                    "kind": "network",
+                    "fdCount": 34,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t6487",
+                      "FDSize:\t128",
+                      "VmSize:\t50617932 kB",
+                      "VmRSS:\t   20804 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 6742,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t6490",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519918084 kB",
+                      "VmRSS:\t  128412 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:13:03.553Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2545440 kB",
+                "MemAvailable:    2485900 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4057056 kB"
+              ],
+              "fileNr": "320\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 6507,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t6487",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   18732 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      },
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 1,
+        "status": "timedOut",
+        "durationMs": 90325,
+        "startTime": "2026-10-01T22:13:04.817Z",
+        "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:13:04.943Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2884208 kB",
+                "MemAvailable:    2824140 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4043640 kB"
+              ],
+              "fileNr": "224\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 6896,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t6876",
+                    "FDSize:\t128",
+                    "VmSize:\t50617256 kB",
+                    "VmRSS:\t    8684 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 264,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:13:10.753Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          999608 kB",
+                  "MemAvailable:     941196 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5450248 kB"
+                ],
+                "fileNr": "1024\t0\t814457",
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 6896,
+                    "kind": "network",
+                    "fdCount": 34,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t6876",
+                      "FDSize:\t128",
+                      "VmSize:\t50617932 kB",
+                      "VmRSS:\t   20588 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 6957,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t6879",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519918080 kB",
+                      "VmRSS:\t  139016 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:14:34.964Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2743300 kB",
+                "MemAvailable:    2683412 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4096916 kB"
+              ],
+              "fileNr": "352\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 6896,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t6876",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   18272 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      },
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 2,
+        "status": "failed",
+        "durationMs": 9071,
+        "startTime": "2026-10-01T22:14:36.535Z",
+        "error": "Error: page.evaluate: Error: Application root did not render an expected state; last state: missing\n    at eval (eval at evaluate (:290:30), <anonymous>:32:14)",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:14:36.653Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3072172 kB",
+                "MemAvailable:    3012020 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4072512 kB"
+              ],
+              "fileNr": "192\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 7105,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7083",
+                    "FDSize:\t128",
+                    "VmSize:\t50617288 kB",
+                    "VmRSS:\t    8816 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "failure-resources",
+            "data": {
+              "at": "2026-10-01T22:14:41.120Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:          127620 kB",
+                "MemAvailable:      70980 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           6518872 kB"
+              ],
+              "fileNr": "1536\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 7105,
+                  "kind": "network",
+                  "fdCount": 36,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7083",
+                    "FDSize:\t128",
+                    "VmSize:\t50618064 kB",
+                    "VmRSS:\t   25240 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 14,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 6
+                  }
+                },
+                {
+                  "pid": 7128,
+                  "kind": "renderer",
+                  "fdCount": 694,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7086",
+                    "FDSize:\t1024",
+                    "VmSize:\t1519897128 kB",
+                    "VmRSS:\t  132712 kB",
+                    "Threads:\t15"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 664,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  }
+                },
+                {
+                  "pid": 7165,
+                  "kind": "renderer",
+                  "fdCount": 563,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7086",
+                    "FDSize:\t1024",
+                    "VmSize:\t1519618820 kB",
+                    "VmRSS:\t  114564 kB",
+                    "Threads:\t14"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 533,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 694,
+              "maximumPending": 226,
+              "failures": 136,
+              "sample": {
+                "at": "2026-10-01T22:14:41.179Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          150892 kB",
+                  "MemAvailable:      93792 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           6519052 kB"
+                ],
+                "fileNr": "1536\t0\t814457",
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 7105,
+                    "kind": "network",
+                    "fdCount": 37,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7083",
+                      "FDSize:\t128",
+                      "VmSize:\t50618064 kB",
+                      "VmRSS:\t   24680 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 7128,
+                    "kind": "renderer",
+                    "fdCount": 694,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7086",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519897128 kB",
+                      "VmRSS:\t  132712 kB",
+                      "Threads:\t15"
+                    ]
+                  },
+                  {
+                    "pid": 7165,
+                    "kind": "renderer",
+                    "fdCount": 563,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t7086",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519618820 kB",
+                      "VmRSS:\t  113996 kB",
+                      "Threads:\t14"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:14:45.682Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:          374264 kB",
+                "MemAvailable:     317216 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           6385496 kB"
+              ],
+              "fileNr": "992\t0\t814457",
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 7105,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7083",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   20116 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  }
+                },
+                {
+                  "pid": 7128,
+                  "kind": "renderer",
+                  "fdCount": 694,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t7086",
+                    "FDSize:\t1024",
+                    "VmSize:\t1519889096 kB",
+                    "VmRSS:\t  124724 kB",
+                    "Threads:\t15"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 664,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 136,
+        "firstFailedRequests": [
+          {
+            "url": "http://127.0.0.1:39101/packages/artifact/src/missing-artifact-page.ts",
+            "pending": 136,
+            "maximumPending": 226
+          },
+          {
+            "url": "http://127.0.0.1:39101/packages/artifact/src/link-target.ts",
+            "pending": 135,
+            "maximumPending": 226
+          },
+          {
+            "url": "http://127.0.0.1:39101/packages/artifact/src/index.ts",
+            "pending": 134,
+            "maximumPending": 226
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "experiment": 4,
+    "runDirectory": "/home/user/workspace/wt/television/investigate-chromium-insufficient-resources/.test-runs/2026-10-01T22-14-34-254Z-p2879064-rb0056a09a8053d4b",
+    "commit": "8a75e3a9d2d59e3e3b8ffb6550aa05a79b8b7d2b",
+    "sandbox": "tv-testshard-x64-poc-32",
+    "result": {
+      "id": "2026-10-01T22-14-34-254Z-p2879064-rb0056a09a8053d4b",
+      "commandProvider": "blaxel",
+      "timingProvider": "blaxel-playwright-x64-4vcpu",
+      "status": "failed",
+      "infraStatus": "completed",
+      "testStatus": "failed",
+      "startedAt": "2026-10-01T22:14:35.874Z",
+      "completedAt": "2026-10-01T22:19:49.221Z",
+      "durationMs": 313347
+    },
+    "attempts": [
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 0,
+        "status": "timedOut",
+        "durationMs": 90073,
+        "startTime": "2026-10-01T22:15:14.179Z",
+        "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:15:14.513Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2503260 kB",
+                "MemAvailable:    2577740 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4181444 kB"
+              ],
+              "fileNr": "192\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2394783744
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 1826,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t1805",
+                    "FDSize:\t128",
+                    "VmSize:\t50617288 kB",
+                    "VmRSS:\t    8788 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  },
+                  "sharedMemorySizes": {},
+                  "sharedMemoryAllocated": 0
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 259,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:15:20.351Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          980656 kB",
+                  "MemAvailable:     926220 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5575128 kB"
+                ],
+                "fileNr": "992\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 967827456
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 1826,
+                    "kind": "network",
+                    "fdCount": 34,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t1805",
+                      "FDSize:\t128",
+                      "VmSize:\t50617932 kB",
+                      "VmRSS:\t   18420 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 1888,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t1808",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519918084 kB",
+                      "VmRSS:\t  128300 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "lowest-resources",
+            "data": {
+              "minimumDiskAvailable": 279891968,
+              "minimumMemoryAvailableKB": 181372,
+              "sample": {
+                "at": "2026-10-01T22:15:19.853Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          136628 kB",
+                  "MemAvailable:     181372 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           6246452 kB"
+                ],
+                "fileNr": "1344\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 279891968
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 1826,
+                    "kind": "network",
+                    "fdCount": 36,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t1805",
+                      "FDSize:\t128",
+                      "VmSize:\t50618064 kB",
+                      "VmRSS:\t   24920 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 1850,
+                    "kind": "renderer",
+                    "fdCount": 548,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t1808",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519598596 kB",
+                      "VmRSS:\t  134136 kB",
+                      "Threads:\t15"
+                    ]
+                  },
+                  {
+                    "pid": 1888,
+                    "kind": "renderer",
+                    "fdCount": 524,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t1808",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519547140 kB",
+                      "VmRSS:\t  121612 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:16:44.525Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2484596 kB",
+                "MemAvailable:    2428152 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4221796 kB"
+              ],
+              "fileNr": "320\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2353655808
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 1826,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t1805",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   16712 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  },
+                  "sharedMemorySizes": {
+                    "16": 1
+                  },
+                  "sharedMemoryAllocated": 4096
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      },
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 1,
+        "status": "timedOut",
+        "durationMs": 90396,
+        "startTime": "2026-10-01T22:16:45.952Z",
+        "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:16:46.118Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2728680 kB",
+                "MemAvailable:    2671804 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4208548 kB"
+              ],
+              "fileNr": "256\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2367131648
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 2047,
+                  "kind": "network",
+                  "fdCount": 20,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t2020",
+                    "FDSize:\t128",
+                    "VmSize:\t50617244 kB",
+                    "VmRSS:\t    8284 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  },
+                  "sharedMemorySizes": {},
+                  "sharedMemoryAllocated": 0
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 266,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:16:51.998Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          851524 kB",
+                  "MemAvailable:     796264 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5615176 kB"
+                ],
+                "fileNr": "992\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 926785536
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 2047,
+                    "kind": "network",
+                    "fdCount": 34,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2020",
+                      "FDSize:\t128",
+                      "VmSize:\t50617932 kB",
+                      "VmRSS:\t   19272 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 2102,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2023",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519918676 kB",
+                      "VmRSS:\t  139908 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "lowest-resources",
+            "data": {
+              "minimumDiskAvailable": 267485184,
+              "minimumMemoryAvailableKB": 69600,
+              "sample": {
+                "at": "2026-10-01T22:16:51.751Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          123212 kB",
+                  "MemAvailable:      69600 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           6258792 kB"
+                ],
+                "fileNr": "1312\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 267485184
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 2047,
+                    "kind": "network",
+                    "fdCount": 36,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2020",
+                      "FDSize:\t128",
+                      "VmSize:\t50618064 kB",
+                      "VmRSS:\t   24616 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 2065,
+                    "kind": "renderer",
+                    "fdCount": 362,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2023",
+                      "FDSize:\t512",
+                      "VmSize:\t1519208992 kB",
+                      "VmRSS:\t  132004 kB",
+                      "Threads:\t14"
+                    ]
+                  },
+                  {
+                    "pid": 2102,
+                    "kind": "renderer",
+                    "fdCount": 696,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2023",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519899396 kB",
+                      "VmRSS:\t  121356 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:18:16.137Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2540924 kB",
+                "MemAvailable:    2484324 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4261040 kB"
+              ],
+              "fileNr": "352\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2313469952
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 2047,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t2020",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   17128 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  },
+                  "sharedMemorySizes": {
+                    "16": 1
+                  },
+                  "sharedMemoryAllocated": 4096
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      },
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 2,
+        "status": "timedOut",
+        "durationMs": 90068,
+        "startTime": "2026-10-01T22:18:17.974Z",
+        "error": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:18:18.103Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2860164 kB",
+                "MemAvailable:    2803208 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4237056 kB"
+              ],
+              "fileNr": "224\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2337763328
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 2254,
+                  "kind": "network",
+                  "fdCount": 19,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t2232",
+                    "FDSize:\t128",
+                    "VmSize:\t50617244 kB",
+                    "VmRSS:\t    8292 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 8,
+                    "socket": 4,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1
+                  },
+                  "sharedMemorySizes": {},
+                  "sharedMemoryAllocated": 0
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 707,
+              "maximumPending": 267,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:18:23.193Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:         1069824 kB",
+                  "MemAvailable:    1014404 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           5631696 kB"
+                ],
+                "fileNr": "1024\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 909901824
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 2254,
+                    "kind": "network",
+                    "fdCount": 34,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2232",
+                      "FDSize:\t128",
+                      "VmSize:\t50617932 kB",
+                      "VmRSS:\t   19736 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 2313,
+                    "kind": "renderer",
+                    "fdCount": 707,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2235",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519910148 kB",
+                      "VmRSS:\t  127852 kB",
+                      "Threads:\t14"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "lowest-resources",
+            "data": {
+              "minimumDiskAvailable": 58142720,
+              "minimumMemoryAvailableKB": 84688,
+              "sample": {
+                "at": "2026-10-01T22:18:22.698Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:          138392 kB",
+                  "MemAvailable:      84688 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           6463200 kB"
+                ],
+                "fileNr": "1440\t0\t814457",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 58142720
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172300288
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 2254,
+                    "kind": "network",
+                    "fdCount": 36,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2232",
+                      "FDSize:\t128",
+                      "VmSize:\t50618064 kB",
+                      "VmRSS:\t   23876 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 2277,
+                    "kind": "renderer",
+                    "fdCount": 606,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2235",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519717384 kB",
+                      "VmRSS:\t  135244 kB",
+                      "Threads:\t15"
+                    ]
+                  },
+                  {
+                    "pid": 2313,
+                    "kind": "renderer",
+                    "fdCount": 544,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t2235",
+                      "FDSize:\t1024",
+                      "VmSize:\t1519579908 kB",
+                      "VmRSS:\t  121728 kB",
+                      "Threads:\t14"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:19:48.124Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2613900 kB",
+                "MemAvailable:    2557356 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           4278036 kB"
+              ],
+              "fileNr": "352\t0\t814457",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2296057856
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172300288
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 2254,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t2232",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   17824 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  },
+                  "sharedMemorySizes": {
+                    "16": 1
+                  },
+                  "sharedMemoryAllocated": 4096
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      }
+    ]
+  },
+  {
+    "experiment": 5,
+    "runDirectory": "/home/user/workspace/wt/television/investigate-chromium-insufficient-resources/.test-runs/2026-10-01T22-21-04-731Z-p2882965-r4564bb4b4668cd6d",
+    "commit": "9743dbe7b734adbe3e0a6658f8f6c7611ef49389",
+    "sandbox": "tv-testshard-x64-poc-03",
+    "result": {
+      "id": "2026-10-01T22-21-04-731Z-p2882965-r4564bb4b4668cd6d",
+      "commandProvider": "blaxel",
+      "timingProvider": "blaxel-playwright-x64-4vcpu",
+      "status": "passed",
+      "infraStatus": "completed",
+      "testStatus": "passed",
+      "startedAt": "2026-10-01T22:21:06.332Z",
+      "completedAt": "2026-10-01T22:21:34.890Z",
+      "durationMs": 28558
+    },
+    "attempts": [
+      {
+        "title": "executable theme reset reloads connected Chromium documents under confirmed state",
+        "retry": 0,
+        "status": "passed",
+        "durationMs": 7021,
+        "startTime": "2026-10-01T22:21:22.913Z",
+        "error": null,
+        "measurements": [
+          {
+            "kind": "start",
+            "data": {
+              "at": "2026-10-01T22:21:23.157Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3946536 kB",
+                "MemAvailable:    3936572 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2877360 kB"
+              ],
+              "fileNr": "224\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3729829888
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 11,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50559728 kB",
+                    "VmRSS:\t    7512 kB",
+                    "Threads:\t1"
+                  ],
+                  "descriptorKinds": {
+                    "file": 8,
+                    "socket": 3
+                  },
+                  "sharedMemorySizes": {},
+                  "sharedMemoryAllocated": 0
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_BEFORE",
+            "data": {
+              "at": "2026-10-01T22:21:26.951Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         2730892 kB",
+                "MemAvailable:    2724816 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           3822512 kB"
+              ],
+              "fileNr": "832\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 2762153984
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   19800 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                },
+                {
+                  "pid": 11694,
+                  "kind": "renderer",
+                  "fdCount": 259,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11649",
+                    "FDSize:\t512",
+                    "VmSize:\t1519017284 kB",
+                    "VmRSS:\t   94780 kB",
+                    "Threads:\t15"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 229,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  },
+                  "sharedMemorySizes": {
+                    "131000": 8,
+                    "2097152": 220,
+                    "4198400": 1
+                  },
+                  "sharedMemoryAllocated": 466620416
+                },
+                {
+                  "pid": 11730,
+                  "kind": "renderer",
+                  "fdCount": 259,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11649",
+                    "FDSize:\t512",
+                    "VmSize:\t1519015940 kB",
+                    "VmRSS:\t   86480 kB",
+                    "Threads:\t15"
+                  ],
+                  "descriptorKinds": {
+                    "file": 11,
+                    "socket": 11,
+                    "shared-memory": 229,
+                    "anon_inode:[eventfd]": 4,
+                    "anon_inode:[eventpoll]": 4
+                  },
+                  "sharedMemorySizes": {
+                    "131000": 8,
+                    "2097152": 220,
+                    "4198400": 1
+                  },
+                  "sharedMemoryAllocated": 466620416
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_AFTER",
+            "data": {
+              "at": "2026-10-01T22:21:27.072Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3699996 kB",
+                "MemAvailable:    3692256 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2920608 kB"
+              ],
+              "fileNr": "416\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3685933056
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   19800 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_BEFORE",
+            "data": {
+              "at": "2026-10-01T22:21:28.387Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3506724 kB",
+                "MemAvailable:    3498712 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2944532 kB"
+              ],
+              "fileNr": "448\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3661377536
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   19992 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_AFTER",
+            "data": {
+              "at": "2026-10-01T22:21:28.498Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3542992 kB",
+                "MemAvailable:    3534980 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2927288 kB"
+              ],
+              "fileNr": "416\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3679182848
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   19992 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_BEFORE",
+            "data": {
+              "at": "2026-10-01T22:21:29.888Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3332724 kB",
+                "MemAvailable:    3324684 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2951136 kB"
+              ],
+              "fileNr": "448\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3654643712
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   20172 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                }
+              ]
+            }
+          },
+          {
+            "kind": "ROSE_GC_AFTER",
+            "data": {
+              "at": "2026-10-01T22:21:29.953Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3341408 kB",
+                "MemAvailable:    3333368 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2933852 kB"
+              ],
+              "fileNr": "448\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3672453120
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 42,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50618576 kB",
+                    "VmRSS:\t   20172 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 16,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 10
+                  },
+                  "sharedMemorySizes": {
+                    "16": 2,
+                    "131000": 8
+                  },
+                  "sharedMemoryAllocated": 1056768
+                }
+              ]
+            }
+          },
+          {
+            "kind": "peak",
+            "data": {
+              "maximumFD": 255,
+              "maximumPending": 268,
+              "failures": 0,
+              "sample": {
+                "at": "2026-10-01T22:21:26.834Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:         2772672 kB",
+                  "MemAvailable:    2766592 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           3806180 kB"
+                ],
+                "fileNr": "832\t0\t814457",
+                "oomKills": "oom_kill 0",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 2779287552
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172562432
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 11666,
+                    "kind": "network",
+                    "fdCount": 42,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11646",
+                      "FDSize:\t128",
+                      "VmSize:\t50618576 kB",
+                      "VmRSS:\t   19796 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 11694,
+                    "kind": "renderer",
+                    "fdCount": 255,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11649",
+                      "FDSize:\t512",
+                      "VmSize:\t1519009092 kB",
+                      "VmRSS:\t   91164 kB",
+                      "Threads:\t15"
+                    ]
+                  },
+                  {
+                    "pid": 11730,
+                    "kind": "renderer",
+                    "fdCount": 255,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11649",
+                      "FDSize:\t512",
+                      "VmSize:\t1519007748 kB",
+                      "VmRSS:\t   83836 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "lowest-resources",
+            "data": {
+              "minimumDiskAvailable": 2779287552,
+              "minimumMemoryAvailableKB": 2766592,
+              "sample": {
+                "at": "2026-10-01T22:21:26.834Z",
+                "memory": [
+                  "MemTotal:        8149540 kB",
+                  "MemFree:         2772672 kB",
+                  "MemAvailable:    2766592 kB",
+                  "SwapFree:              0 kB",
+                  "Shmem:           3806180 kB"
+                ],
+                "fileNr": "832\t0\t814457",
+                "oomKills": "oom_kill 0",
+                "filesystems": {
+                  "/tmp": {
+                    "total": 6676103168,
+                    "available": 2779287552
+                  },
+                  "/dev/shm": {
+                    "total": 4172562432,
+                    "available": 4172562432
+                  }
+                },
+                "cgroup": {
+                  "memory.current": "unavailable",
+                  "memory.max": "unavailable",
+                  "memory.events": "unavailable",
+                  "pids.current": "unavailable",
+                  "pids.max": "unavailable",
+                  "cpu.stat": "unavailable"
+                },
+                "processes": [
+                  {
+                    "pid": 11666,
+                    "kind": "network",
+                    "fdCount": 42,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11646",
+                      "FDSize:\t128",
+                      "VmSize:\t50618576 kB",
+                      "VmRSS:\t   19796 kB",
+                      "Threads:\t8"
+                    ]
+                  },
+                  {
+                    "pid": 11694,
+                    "kind": "renderer",
+                    "fdCount": 255,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11649",
+                      "FDSize:\t512",
+                      "VmSize:\t1519009092 kB",
+                      "VmRSS:\t   91164 kB",
+                      "Threads:\t15"
+                    ]
+                  },
+                  {
+                    "pid": 11730,
+                    "kind": "renderer",
+                    "fdCount": 255,
+                    "status": [
+                      "Name:\tchrome-headless",
+                      "PPid:\t11649",
+                      "FDSize:\t512",
+                      "VmSize:\t1519007748 kB",
+                      "VmRSS:\t   83836 kB",
+                      "Threads:\t15"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "kind": "end",
+            "data": {
+              "at": "2026-10-01T22:21:30.129Z",
+              "memory": [
+                "MemTotal:        8149540 kB",
+                "MemFree:         3415728 kB",
+                "MemAvailable:    3407672 kB",
+                "SwapFree:              0 kB",
+                "Shmem:           2922468 kB"
+              ],
+              "fileNr": "384\t0\t814457",
+              "oomKills": "oom_kill 0",
+              "filesystems": {
+                "/tmp": {
+                  "total": 6676103168,
+                  "available": 3683971072
+                },
+                "/dev/shm": {
+                  "total": 4172562432,
+                  "available": 4172562432
+                }
+              },
+              "cgroup": {
+                "memory.current": "unavailable",
+                "memory.max": "unavailable",
+                "memory.events": "unavailable",
+                "pids.current": "unavailable",
+                "pids.max": "unavailable",
+                "cpu.stat": "unavailable"
+              },
+              "processes": [
+                {
+                  "pid": 11666,
+                  "kind": "network",
+                  "fdCount": 28,
+                  "status": [
+                    "Name:\tchrome-headless",
+                    "PPid:\t11646",
+                    "FDSize:\t128",
+                    "VmSize:\t50617420 kB",
+                    "VmRSS:\t   19656 kB",
+                    "Threads:\t8"
+                  ],
+                  "descriptorKinds": {
+                    "file": 9,
+                    "socket": 11,
+                    "anon_inode:[eventfd]": 3,
+                    "anon_inode:[eventpoll]": 3,
+                    "anon_inode:inotify": 1,
+                    "shared-memory": 1
+                  },
+                  "sharedMemorySizes": {
+                    "16": 1
+                  },
+                  "sharedMemoryAllocated": 4096
+                }
+              ]
+            }
+          }
+        ],
+        "failedRequestCount": 0,
+        "firstFailedRequests": []
+      }
+    ]
+  }
+]
