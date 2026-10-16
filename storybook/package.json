@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "storybook dev -p 6006 ${TAILSCALE_REMOTE:+--host $(tailscale ip -4)}",
     "build": "storybook build -o dist",
+    "build-storybook": "storybook build",
     "type-check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

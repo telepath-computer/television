@@ -22,6 +22,7 @@
     "start:server": "scripts/dev-server.sh",
     "start:electron": "scripts/dev-electron.sh",
     "storybook": "npm --workspace @telepath-computer/storybook run dev",
+    "build-storybook": "npm --workspace @telepath-computer/storybook run build-storybook --",
     "build": "npm --workspace @telepath-computer/television run build",
     "build:canonical": "npm --workspace @telepath-computer/canonical run build",
     "build:web": "npm --workspace @telepath-computer/television-web run build",
