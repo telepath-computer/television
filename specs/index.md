@@ -12,7 +12,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
 - `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
-- `terms.md` (201 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- `terms.md` (202 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (135 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
@@ -92,7 +92,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **templates/**
     - `authoring.md` (15 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (29 lines) — *The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
+    - `bundled-templates.md` (34 lines) — *The bundled Checklist artifact template: its ID, manifest, store contract, write scope, thumbnail, and adapting-agent guidance.*
     - `index.md` (88 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
@@ -180,6 +180,9 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **skills/**
     - **sidebar-view/**
       - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*
+  - **templates/**
+    - **checklist/**
+      - `index.md` (7 lines) — *UI spec: the bundled Checklist template page, whose interaction, markup, and styling are piloted in Storybook.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**
