@@ -65,13 +65,16 @@ afterEach(() => {
 
 describe("bundled artifact template package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-example-t-package
+  // proofs/arch/templates/bundled-templates.md#^templates-example-t-no-display
   it("declares the sole Example with its minimum version, manifest, starting data, and adapting guidance", () => {
     expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["example"]);
     expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([{ id: "example", minimumVersion: "1.0.0" }]);
     const folder = path.join(sourceRoot, "example");
-    expect(JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"))).toEqual({
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    expect(manifest).toEqual({
       name: "Example", description: "A live message that an agent can change.", version: "1.0.0",
     });
+    expect(manifest).not.toHaveProperty("display");
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ message: "Hello from a template." });
     expect(readFileSync(path.join(folder, "README.md"), "utf8"))
       .toContain("The page shows the `message` string in this artifact's JSON store; use `tv resource json` to change it.");

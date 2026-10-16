@@ -8,6 +8,8 @@ Television ships one [bundled artifact template](../../product/templates.md#^art
 |---|---|---|---|---|
 | `example` | Example | A live message that an agent can change. | `1.0.0` | `1.0.0` |
 
+The bundled source manifest for Example declares no `display`.
+
 `BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['example']`; [telemetry](../telemetry/derivation.md#^artifact-template-telemetry-derivation) uses this closed vocabulary. ^bundled-artifact-template-inventory
 
 Its `data.json` seeds the artifact's [own JSON store](../../product/resources/resources.md#^rs-own-store) with this value:

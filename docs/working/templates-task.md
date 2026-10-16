@@ -35,3 +35,17 @@ None beyond the stages above.
 - Final integrated revision `b19d0a6`: full gate on Blaxel passed, 22 of 22 surfaces, 0 tests failed, 0 process leaks, 0 infrastructure failures, **1 flaky test recovered on retry**: `packages/web/test/e2e/theme-product-acceptance.test.ts:881`, "executable themes run only in the Chromium application lifecycle and isolate failures" (e2e:browser-app-real-stack, 2 attempts). Attestation `refs/testpass/1/738a5564800a418e18bc872a76605f3153687f29`.
 - Revision `9a3a03f`: full gate on Blaxel passed, 22 of 22 surfaces, 0 failed, **1 flaky test recovered on retry**: `test/node/telemetry-cli.test.ts`, "tv skills install -i emits only after installer success and emits no installer arguments". Cause: the assertion searched the whole event, including its random distinct ID, for `add`; fixed in `87e3beb` by checking only the event's properties. The assertion predates this branch. Attestation `refs/testpass/1/54ade7c60bf9864686429bc633bf4070ccafac01`.
 - Final revision `7f1b1ac`: full gate on Blaxel passed, 22 of 22 surfaces, 0 failed, 0 recovered retries, 0 process leaks, 0 infrastructure failures. Attestation `refs/testpass/1/35a67f9f2ed37adeabecc4d5791c62b0d4236cd8`.
+
+## Starting sizes (TV-970)
+
+- Intent: `docs/working/template-sizes-proposal.md`, approved by Rupert on October 16, 2026. Specs derived in seven files from `1d14895`; independent review round 1 FAIL (Example wording, fixed), round 2 PASS at `9bdafaa`. Later wording changes by Rupert: the type is `ArtifactDisplayOptions` and the concept is *display options* (glossary entry added).
+- Rupert approved the spec changes on October 16, 2026 and handed over the autonomous phase.
+- Expected shape: one slice (CLI options, creation requests, template manifest validation, layout of the new page, `television` skill guidance), so no separate plan.
+
+| Stage | Status |
+|---|---|
+| Proofs | Done: 7 proofs at `5e95062`; review round 1 PASS with three non-blocking findings, applied with the implementation (its review is the follow-up review) |
+| Implementation, red/green TDD | Done: `6372243`; review round 1 FAIL (open clients missed the layout for an unplaced artifact with display options; missing height precedence case), fixed in `0a1e117`; round 2 PASS with no findings. Round 2 also served as the follow-up review of the three proof refinements |
+| Full verification | Passed at `0a1e117` on Blaxel: 22 of 22 surfaces, 0 failed, 0 recovered retries, 0 leaks, 0 infrastructure failures; attestation `refs/testpass/1/92e655f79bdd432d97a2e7947ef6be15f70411b9`. The run at `6372243` recovered one retry in the unchanged channel-switcher drag test (`packages/web/test/e2e/channel-switcher-context-menu.test.ts:218`); it did not recur |
+| PR description | Updated with a Display options section |
+- Open: `npm run type-check` in `storybook/` reports 3 errors in `.storybook/preview.ts` (the icon frame import and the adopted-styles loop). They predate the display options work and are on this branch's head; fix before merge.

@@ -17,13 +17,13 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (135 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
   - `channels.md` (64 lines) — *What a channel is to a user: identity, creation, renaming, deletion and last-channel replacement, pinning, ordering, and how one channel is the focused one everywhere.*
-  - `cli.md` (677 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, artifact templates, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
+  - `cli.md` (679 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, artifact templates, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
   - `desktop-app.md` (60 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
   - `keyboard-navigation.md` (51 lines) — *How the keyboard moves through the app: the navigation chord that steps between tab pages and between channels, where it always works, and the one place it can't.*
   - `licensing.md` (117 lines) — *Television's licensing promises: the project is MIT and every published package and the desktop application say so, every shipped artifact carries the licenses and attributions of the third-party code and assets it redistributes, and the standard test suites block unacceptably-licensed dependencies from shipping.*
   - `tab-pages.md` (61 lines) — *What tab pages promise the user: one tab per page of the focused channel, labeled by its artifact, stepped through by tab or keyboard, with selection private to each browser.*
   - `telemetry.md` (328 lines) — *Anonymous, opt-out product telemetry: what Television measures about how early users use it, the privacy guarantees that bound what is collected, and the disclosure and opt-out behavior users get.*
-  - `templates.md` (23 lines) — *Artifact templates: reusable folders that create ordinary path artifacts, their discovery and bundled set, and the ways people and agents use them.*
+  - `templates.md` (25 lines) — *Artifact templates: reusable folders that create ordinary path artifacts, their discovery and bundled set, and the ways people and agents use them.*
   - `themes-and-appearance.md` (125 lines) — *Themes and appearance: how people choose a server-wide installed theme, use its CSS and JavaScript visual surfaces, grant per-theme consent for main-page JavaScript, and set the light, dark, or system preference that the active theme resolves into appearance.*
   - `update-notifications.md` (139 lines) — *How users learn about important Television updates and how clients stay current: the shared update notice and persistent bell, the deprecated desktop upgrade recommendation for apps installed from npm, silent client auto-reload, the desktop app's own updates, and the desktop upgrade gate.*
   - `versioning.md` (45 lines) — *How Television names release lines, carries exact Semantic Versions unchanged, and gives each desktop release the version of the Television release it is built from.*
@@ -53,7 +53,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (166 lines) — *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel and last-channel replacement — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
   - **cli/**
     - `admin-guide.md` (17 lines) — *The standalone administrator guide: procedural authority, human review, source and publication.*
-    - `index.md` (495 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, bundled assets, and service integration.*
+    - `index.md` (497 lines) — *The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, bundled assets, and service integration.*
     - `startup-bind-failure.md` (89 lines) — *All-or-nothing listener startup: any requested address that cannot bind is fatal — one structured log record, sockets closed, exit 69 — with the service manager's restart cadence as the sole retry loop.*
   - **desktop/**
     - `appearance.md` (26 lines) — *Desktop appearance: how confirmed display state controls Electron renderers, webviews, menus, and dialogs.*
@@ -65,7 +65,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `runtime.md` (86 lines) — *The Electron runtime for development runs and tests: its exact version and declarations, installed-file validity on development and test hosts, how those hosts obtain it, and the recurring major-upgrade procedure.*
     - `updates.md` (47 lines) — *Desktop updates: how the main process starts ToDesktop's update runtime, records a downloaded update, tells the served interface about it, and restarts the app to install it.*
   - **layout/**
-    - `index.md` (93 lines) — *The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](arch/layout/migration.md)'s.*
+    - `index.md` (100 lines) — *The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](arch/layout/migration.md)'s.*
     - `migration.md` (101 lines) — *The server migration: the one boot-time migration that carries a stored data directory across everything the redesign changes on disk — the screen-to-channel names, the version-1 card-tree layouts flattened into version-2 tab pages, the onboarding marker slimmed to its slug, the redesigned display record, the page-size backfill, and the required appearance preference.*
   - **onboarding/**
     - `bake.md` (200 lines) — *How onboarding reference frames become complete artifact documents in Television's release bundle.*
@@ -92,8 +92,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **templates/**
     - `authoring.md` (15 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (27 lines) — *The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
-    - `index.md` (82 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
+    - `bundled-templates.md` (29 lines) — *The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
+    - `index.md` (88 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
     - `blaxel-testshards.md` (131 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*

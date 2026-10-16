@@ -13,7 +13,7 @@ import {
 import path from "node:path";
 import { randomInt } from "node:crypto";
 import { checkJsonLimits, validateJsonValue } from "@telepath-computer/television-shared/resources";
-import type { ArtifactTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import type { ArtifactDisplayOptions, ArtifactTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
 import { isSemanticVersion } from "./themes.ts";
 
 const MAX_SLUG_LENGTH = 60;
@@ -101,6 +101,7 @@ export function readableTemplateThumbnail(folder: string): string | null {
 export function validateTemplatePackage(folder: string, id: string): { template?: ArtifactTemplate; errors: string[] } {
   const errors: string[] = [];
   let manifest: Record<string, unknown> | undefined;
+  let display: ArtifactDisplayOptions | undefined;
   try {
     const parsed: unknown = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
@@ -117,6 +118,28 @@ export function validateTemplatePackage(folder: string, id: string): { template?
     if (typeof manifest.description !== "string" || manifest.description.trim() === "") errors.push("manifest description must be non-empty");
     if (typeof manifest.version !== "string" || !isSemanticVersion(manifest.version)) {
       errors.push("manifest version must be a valid Semantic Version");
+    }
+    if (Object.hasOwn(manifest, "display")) {
+      const candidate = manifest.display;
+      if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+        errors.push("manifest display must be an object");
+      } else {
+        const fields = candidate as Record<string, unknown>;
+        display = {};
+        for (const key of ["width", "height"] as const) {
+          if (!Object.hasOwn(fields, key)) continue;
+          const value = fields[key];
+          if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+            errors.push(`manifest display.${key} must be a finite, positive number`);
+          } else {
+            display[key] = value;
+          }
+        }
+        if (Object.hasOwn(fields, "fullScreen")) {
+          if (typeof fields.fullScreen !== "boolean") errors.push("manifest display.fullScreen must be a boolean");
+          else display.fullScreen = fields.fullScreen;
+        }
+      }
     }
   }
   if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
@@ -139,6 +162,7 @@ export function validateTemplatePackage(folder: string, id: string): { template?
         name: manifest.name as string,
         description: manifest.description as string,
         version: manifest.version as string,
+        ...(display !== undefined ? { display } : {}),
         hasData,
         hasThumbnail: readableTemplateThumbnail(folder) !== null,
         path: folder,

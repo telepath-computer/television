@@ -763,11 +763,11 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   return copied;
 }
 
-/** A width or height for `tv reposition-artifact`: a finite, positive number of reference pixels. */
-function parseArtifactDimension(option: "--width" | "--height", value: string): number {
+/** A creation or reposition width/height in finite, positive reference pixels. */
+function parseArtifactDimension(option: "--width" | "--height", value: string, command = "reposition-artifact"): number {
   const parsed = value.trim() === "" ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw createDirectiveError(`tv reposition-artifact ${option} must be a finite, positive number of reference pixels; got ${value}.`);
+    throw createDirectiveError(`tv ${command} ${option} must be a finite, positive number of reference pixels; got ${value}.`);
   }
   return parsed;
 }
@@ -1390,13 +1390,17 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .option("--title <title>", "Artifact title; defaults to the template name when using --template")
     .option("--data <json>", "Starting JSON value for a template artifact")
     .option("--data-file <path>", "File containing starting JSON for a template artifact; - reads standard input")
+    .option("--width <px>", "Starting width in reference pixels; finite and positive")
+    .option("--height <px>", "Starting height in reference pixels; finite and positive")
+    .option("--full-screen", "Start the artifact in full-screen mode")
+    .option("--no-full-screen", "Start the artifact out of full-screen mode")
     .option("--focus-artifact", "Focus the new artifact after creation")
     .option("--no-focus", "Create the artifact in the background without changing focus")
     .option("--before <artifact-id>", PLACE_BEFORE_HELP)
     .option("--after <artifact-id>", PLACE_AFTER_HELP)
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .addHelpText("after", buildArtifactWorkflowHelpNote(true))
-    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; title?: string; data?: string; dataFile?: string; before?: string; after?: string; port?: number }) => {
+    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
       const sourceCount = [opts.path, opts.url, opts.template].filter((value) => value !== undefined).length;
       if (sourceCount !== 1) throw createDirectiveError("tv create-artifact requires exactly one of --path, --url, or --template.");
       if (opts.template === undefined && opts.title === undefined) throw createDirectiveError("tv create-artifact requires --title with --path or --url.");
@@ -1404,6 +1408,19 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
         throw createDirectiveError("tv create-artifact accepts --data and --data-file only with --template.");
       }
       if (opts.data !== undefined && opts.dataFile !== undefined) throw createDirectiveError("tv create-artifact accepts --data or --data-file, not both.");
+      const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
+      if (new Set(fullScreenFlags).size > 1) {
+        throw createDirectiveError("tv create-artifact accepts --full-screen or --no-full-screen, not both.");
+      }
+      const width = opts.width === undefined ? undefined : parseArtifactDimension("--width", opts.width, "create-artifact");
+      const height = opts.height === undefined ? undefined : parseArtifactDimension("--height", opts.height, "create-artifact");
+      const fullScreen = fullScreenFlags.length === 0 ? undefined : fullScreenFlags[0] === "--full-screen";
+      const display = width === undefined && height === undefined && fullScreen === undefined
+        ? {} : { display: {
+            ...(width !== undefined ? { width } : {}),
+            ...(height !== undefined ? { height } : {}),
+            ...(fullScreen !== undefined ? { fullScreen } : {}),
+          } };
       const shouldFocus = resolveFocusDirective(argv, "create-artifact", "--focus-artifact");
       const placement = resolvePlacement("create-artifact", opts);
       let data: JSONValue | undefined;
@@ -1426,12 +1443,12 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       let artifactID: string;
       let registeredTarget: string;
       if (opts.template !== undefined) {
-        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...placement, source: "cli" });
+        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
         artifactID = created.artifactID;
         registeredTarget = created.path;
       } else {
         const pointer = opts.path !== undefined ? { kind: "path" as const, path: opts.path.trim() } : { kind: "url" as const, url: opts.url!.trim() };
-        const { artifact } = await client.artifacts.create({ ...pointer, title: opts.title!, channelID: opts.channel, ...placement });
+        const { artifact } = await client.artifacts.create({ ...pointer, title: opts.title!, channelID: opts.channel, ...display, ...placement });
         artifactID = artifact.id;
         registeredTarget = pointer.kind === "path" ? pointer.path : pointer.url;
       }

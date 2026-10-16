@@ -409,6 +409,62 @@ describe("startup links", () => {
 });
 
 describe("artifact template CLI commands", () => {
+  // proofs/arch/cli/index.md#^cli-t-create-display-request
+  it.each([
+    ["path", ["--width", "315.5"], { width: 315.5 }],
+    ["path", ["--height", "280"], { height: 280 }],
+    ["path", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["path", ["--full-screen"], { fullScreen: true }],
+    ["path", ["--no-full-screen"], { fullScreen: false }],
+    ["path", [], undefined],
+    ["url", ["--width", "315.5"], { width: 315.5 }],
+    ["url", ["--height", "280"], { height: 280 }],
+    ["url", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["url", ["--full-screen"], { fullScreen: true }],
+    ["url", ["--no-full-screen"], { fullScreen: false }],
+    ["url", [], undefined],
+    ["template", ["--width", "315.5"], { width: 315.5 }],
+    ["template", ["--height", "280"], { height: 280 }],
+    ["template", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["template", ["--full-screen"], { fullScreen: true }],
+    ["template", ["--no-full-screen"], { fullScreen: false }],
+    ["template", [], undefined],
+  ] as const)("maps display options for %s: %j", async (source, options, display) => {
+    const home = temporaryHome();
+    const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+    const sourceArgs = source === "path" ? ["--path", "/server-only/note.md", "--title", "Note"]
+      : source === "url" ? ["--url", "https://example.com", "--title", "Link"]
+      : ["--template", "example"];
+    expect(await runCLI(["--home", home, "create-artifact", "--channel", "screen-1", ...sourceArgs, ...options, "--no-focus"], env)).toBe(0);
+    const client = (env.createClient as any).mock.results[0].value;
+    const call = source === "template" ? client.templates.create.mock.calls[0][0] : client.artifacts.create.mock.calls[0][0];
+    if (display === undefined) expect(call).not.toHaveProperty("display");
+    else expect(call.display).toEqual(display);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-create-display-invalid
+  it.each([
+    ["--width", "0"], ["--width", "-2"], ["--width", "abc"], ["--width", "Infinity"],
+    ["--height", "0"], ["--height", "-2"], ["--height", "abc"], ["--height", "1e400"],
+    ["--full-screen", "--no-full-screen"],
+  ] as const)("rejects invalid creation display %s %s for every source", async (...options) => {
+    for (const sourceArgs of [
+      ["--path", "/server-only/note.md", "--title", "Note"],
+      ["--url", "https://example.com", "--title", "Link"],
+      ["--template", "example"],
+    ]) {
+      const home = temporaryHome();
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr });
+      expect(await runCLI(["--home", home, "create-artifact", "--channel", "screen-1", ...sourceArgs, ...options, "--no-focus"], env)).toBe(1);
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toMatch(options[0] === "--full-screen" ? /both|not both/i : /finite|positive/i);
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+      expect(env.createClient).not.toHaveBeenCalled();
+    }
+  });
+
   // proofs/arch/cli/index.md#^acdde6ff
   // proofs/arch/cli/index.md#^07842556
   it.each([
@@ -753,6 +809,10 @@ describe("CLI artifact command surface", () => {
     const stdout = new BufferOutput();
     expect(await runCLI(["help", "create-artifact"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
     expect(stdout.toString()).toContain("--focus-artifact");
+    // proofs/arch/cli/index.md#^cli-t-create-display-help
+    for (const option of ["--width <px>", "--height <px>", "--full-screen", "--no-full-screen"]) {
+      expect(stdout.toString()).toContain(option);
+    }
     expect(stdout.toString()).toContain(
       "The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
     );

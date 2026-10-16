@@ -248,9 +248,9 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 
 | Command | Client call(s) |
 |---|---|
-| `create-artifact --path` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, before?, after? })`. |
-| `create-artifact --url` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, before?, after? })`. |
-| `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the copied folder path for the success output. |
+| `create-artifact --path` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, display?, before?, after? })`. |
+| `create-artifact --url` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, display?, before?, after? })`. |
+| `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, display?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the copied folder path for the success output. |
 | `templates list` | `client.templates.list()`; print the [scan result](../../product/cli.md#^cli-templates-list). |
 | `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim() })`. |
 | `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
@@ -276,6 +276,8 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 | `share-artifact`, `unshare-artifact` | The calls the [resource architecture](../resources/index.md#^rs-share-cli-integration) defines. |
 
 After any `create-artifact` source succeeds, the CLI prints the [common creation output](../../product/cli.md#^cli-create-artifact) and calls `client.display.focus({ artifactID })` only when focus was requested.
+
+For each creation source, the CLI checks the [display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, and `--no-full-screen` as `fullScreen: false`. It omits fields with no corresponding option.
 
 Every link the CLI prints — the connect links `tv serve` and `tv serve --persist` print, `tv links` output and the share links `tv share-artifact` prints — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 
