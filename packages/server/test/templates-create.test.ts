@@ -147,12 +147,12 @@ describe("template artifact creation", () => {
       templateID: "complete", channelID, source: "cli", display: { width: 500.5 },
     });
     const explicitFalse = await client.templates.create({
-      templateID: "complete", channelID, source: "cli", display: { fullScreen: false },
+      templateID: "complete", channelID, source: "cli", display: { height: 333, fullScreen: false },
     });
     const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui" });
     const expected = [
       { artifactIds: [fromCommand.artifactID], geometry: { kind: "single", full_screen: true }, size: { width: 500.5, height: 420 } },
-      { artifactIds: [explicitFalse.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 360, height: 420 } },
+      { artifactIds: [explicitFalse.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 360, height: 333 } },
       { artifactIds: [fromDefaults.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 240, height: DEFAULT_PAGE_SIZE.height } },
     ];
     expect((await client.channels.get({ channelID })).channel.layout).toEqual(expected);

@@ -458,7 +458,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return [...this._artifacts.values()];
   }
 
-  /** Create a new artifact and append its default page to the owning channel. */
+  /** Create a new artifact and append its page to the owning channel. */
   /** Creates an artifact with a generated ID; nothing that creates an artifact supplies its ID (specs/product/artifacts.md#^af-artifact-id). */
   createArtifact(input: {
     kind: ArtifactKind;
@@ -494,8 +494,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.artifactChannels.set(artifact.id, channel.id);
     this.startWatchingArtifactContent(artifact);
     this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: channel.id, artifact }));
-    // Clients add a created artifact at the end; the update carries its place.
-    if (before !== undefined || after !== undefined) {
+    // Clients synthesize a default appended page; send the saved layout when placement or display was supplied.
+    if (before !== undefined || after !== undefined || display !== undefined) {
       this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel }));
     }
     this.emitTelemetry((hooks) => hooks.artifactCreated(artifact, telemetryContext));

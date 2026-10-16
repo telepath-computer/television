@@ -224,28 +224,31 @@ describe("target page layout server boundary", () => {
   });
 
   // proofs/arch/layout/index.md#^ly-ac-create-display
-  it("creates path and URL pages with independent display values through HTTP, events, and restart", async () => {
+  it("creates unplaced path and URL pages with display values through HTTP, events, and restart", async () => {
     const fixture = createFixture();
     dirs.push(fixture.storagePath);
     const target = path.join(fixture.storagePath, "new-page.html");
     writeFileSync(target, "<!doctype html><title>New page</title>");
     const first = await start(fixture);
     const ws = await openEvents(first.server, first.token);
-    const update = nextChannelUpdate(ws, fixture.ordinary.id);
+    const pathUpdate = nextChannelUpdate(ws, fixture.ordinary.id);
 
     const pathResult = await request(first.server.httpServer).post("/artifacts").set(auth(first.token))
       .send({ kind: "path", path: target, title: "Path", channelID: fixture.ordinary.id,
-        before: fixture.ordinary.artifactIds[0], display: { width: 612.5, height: 481, fullScreen: true } })
+        display: { width: 612.5, height: 481, fullScreen: true } })
       .expect(201);
     const pathPage = page([pathResult.body.artifact.id], true, { width: 612.5, height: 481 });
-    expect((await update).channel.layout[0]).toEqual(pathPage);
+    const pathLayout = [...fixture.ordinary.artifactIds.map((id) => page([id])), pathPage];
+    expect((await pathUpdate).channel.layout).toEqual(pathLayout);
 
+    const urlUpdate = nextChannelUpdate(ws, fixture.ordinary.id);
     const urlResult = await request(first.server.httpServer).post("/artifacts").set(auth(first.token))
       .send({ kind: "url", url: "https://example.com/new", title: "URL", channelID: fixture.ordinary.id,
         display: { height: 333 } })
       .expect(201);
     const urlPage = page([urlResult.body.artifact.id], false, { width: DEFAULT_PAGE_SIZE.width, height: 333 });
-    const expected = [pathPage, ...fixture.ordinary.artifactIds.map((id) => page([id])), urlPage];
+    const expected = [...pathLayout, urlPage];
+    expect((await urlUpdate).channel.layout).toEqual(expected);
     await request(first.server.httpServer).get(`/channels/${fixture.ordinary.id}`).set(auth(first.token))
       .expect(200).expect(({ body }) => expect(body.channel.layout).toEqual(expected));
     ws.close();
