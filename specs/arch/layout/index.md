@@ -40,7 +40,7 @@ type PageSize = {
   height: number;
 };
 
-type ArtifactStartingDisplay = {
+type ArtifactDisplayOptions = {
   width?: number;
   height?: number;
   fullScreen?: boolean;
@@ -57,7 +57,7 @@ The one-artifact-per-page limit is a stage-1 UI-layer constraint, not a property
 
 `full_screen` is a mode over the page's size, not a size of its own: `true` shows the page at the stage's complete page box, and leaving the mode returns to what `size` renders ([ui/app/stage/index.md](../../ui/app/stage/index.md), Full-screen). Entering and leaving the mode never changes `size`. ^ly-fullscreen-mode
 
-An artifact creation request can supply `display?: ArtifactStartingDisplay` for its starting page. This includes the path and URL `POST /artifacts` request and the [template creation request](../templates/index.md#creating-an-artifact). Each supplied width and height must be a finite positive number; `fullScreen` must be a boolean. The server rejects invalid values before creating an artifact. The selected values become the page's `size` and `geometry.full_screen`; after [template resolution](../../product/templates.md#^artifact-template-starting-display), each absent size uses the shared default ([#^ly-page-size](#^ly-page-size)) and absent `fullScreen` is `false`. ^ly-creation-display
+An artifact creation request can supply `display?: ArtifactDisplayOptions` for its starting page. This includes the path and URL `POST /artifacts` request and the [template creation request](../templates/index.md#creating-an-artifact). Each supplied width and height must be a finite positive number; `fullScreen` must be a boolean. The server rejects invalid values before creating an artifact. The selected values become the page's `size` and `geometry.full_screen`; after [template resolution](../../product/templates.md#^artifact-template-starting-display), each absent size uses the shared default ([#^ly-page-size](#^ly-page-size)) and absent `fullScreen` is `false`. ^ly-creation-display
 
 There is no stage-1 pane tree, stored split ratio, page-splitting operation, or unnamed multi-artifact placeholder. Later layout kinds and their interactions are stage-2 work; they extend `PageGeometry` when their actual requirements exist. ^ly-no-splits
 

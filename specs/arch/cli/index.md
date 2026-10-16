@@ -277,7 +277,7 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 
 After any `create-artifact` source succeeds, the CLI prints the [common creation output](../../product/cli.md#^cli-create-artifact) and calls `client.display.focus({ artifactID })` only when focus was requested.
 
-For each creation source, the CLI checks the [starting display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, and `--no-full-screen` as `fullScreen: false`. It omits fields with no corresponding option.
+For each creation source, the CLI checks the [display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, and `--no-full-screen` as `fullScreen: false`. It omits fields with no corresponding option.
 
 Every link the CLI prints — the connect links `tv serve` and `tv serve --persist` print, `tv links` output and the share links `tv share-artifact` prints — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 
