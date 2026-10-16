@@ -63,8 +63,8 @@ body {
   grid-template-columns: 1.125em minmax(0, 1fr) auto;
   align-items: baseline;
   gap: var(--space-12);
-  min-height: 44px;
-  padding: var(--space-10) 0;
+  min-height: 36px;
+  padding: var(--space-6) 0;
   box-sizing: border-box;
   font-size: var(--text-lg);
   line-height: 1.4;
