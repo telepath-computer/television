@@ -362,7 +362,7 @@ class TableController {
     if (this.hasView()) for (const column of columns) column.rowDrag = false;
     this.grid.rowHeaders = rowHeader(actions, !this.args.readOnly && !this.hasView(), Boolean(this.args.readOnly));
     if (!this.args.readOnly) columns.push({
-      prop: "__add", name: "", size: 54, readonly: true, sortable: false,
+      prop: "__add", name: "", size: 54, readonly: true, sortable: false, filter: false,
       columnTemplate: (h) => h("button", { class: "rg-add-column", type: "button", title: "Add column", "aria-label": "Add column", onClick: (event: MouseEvent) => { event.stopPropagation(); this.showColumnComposer(data.columns.length, event.currentTarget as HTMLElement); } }, h("tv-icon", { name: "add", size: "sm" })),
       cellTemplate: (h, props) => (props.model as GridRow).__kind === "new" ? h("button", {
         class: "rg-new-row rg-new-row-fill", type: "button", title: "Add a row", "aria-label": "Add a row",
