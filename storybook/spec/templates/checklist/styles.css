@@ -40,7 +40,6 @@ body {
 .checklist-title {
   margin: 0;
   padding-bottom: var(--space-16);
-  border-bottom: 1px solid var(--color-border);
   font-size: var(--text-4xl);
   font-weight: var(--font-weight-semibold);
   line-height: 1.25;
