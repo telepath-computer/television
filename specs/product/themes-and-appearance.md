@@ -98,7 +98,7 @@ In Chrome and Firefox, an iframe's used color scheme controls the light or dark 
 
 ## Settings access
 
-The navbar provides a settings control immediately after the skill picker. Its popover contains the theme and appearance choices, per-theme main-page JavaScript consent when the active theme declares it, theme refresh, validation errors, and write failures. The appearance choices remain available under a fixed theme: changing one updates the stored preference even though the visible appearance stays fixed. Sandboxed frame declarations require no consent control. The popover closes when the user clicks elsewhere or presses Escape. Exact content, markup, interaction, and styling belong to the settings UI spec.
+The navbar provides a settings control. Its popover contains the theme and appearance choices, per-theme main-page JavaScript consent when the active theme declares it, theme refresh, validation errors, and write failures. The appearance choices remain available under a fixed theme: changing one updates the stored preference even though the visible appearance stays fixed. Sandboxed frame declarations require no consent control. The popover closes when the user clicks elsewhere or presses Escape. Exact content, markup, interaction, and styling belong to the settings UI spec.
 
 ## Scope
 

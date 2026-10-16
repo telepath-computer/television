@@ -1,0 +1,215 @@
+/* The Templates popover's interior. The panel's box, placement and dismissal
+   are the popover's ([[ui/foundation/popover/index.md]]); these styles own
+   the heading, the search field, the grid of templates and the box of
+   templates with errors. */
+
+.templates-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-height: 560px;
+  overflow: hidden;
+  /* No padding at the bottom: the scrolling grid runs to the panel's edge,
+     so a cut-off row reads as cut off. Its own bottom padding scrolls with
+     it. */
+  padding: var(--space-8) var(--space-8) 0;
+}
+
+.templates-heading {
+  margin: 0;
+  padding: var(--space-12) var(--space-12) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.templates-intro {
+  margin: 0;
+  padding: var(--space-2) var(--space-12) var(--space-2);
+  /* A touch smaller than body text, between it and the small size. */
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+/* A muted, bordered search field on the panel's own surface. */
+.templates-search {
+  position: relative;
+  display: block;
+  padding: var(--space-8) var(--space-10) var(--space-4);
+  color: var(--color-text-muted);
+}
+
+.templates-search tv-icon {
+  position: absolute;
+  left: calc(var(--space-10) + var(--space-8));
+  top: calc(50% + (var(--space-8) - var(--space-4)) / 2);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.templates-search input {
+  width: 100%;
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--frame-titlebar-background);
+  padding: var(--control-padding);
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  font-size: var(--control-font-size);
+  color: var(--color-text);
+}
+
+.templates-search input:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.templates-body {
+  overflow-y: auto;
+  padding: var(--space-20) var(--space-12) calc(var(--space-24) + var(--space-8));
+}
+
+/* A box at the bottom sits as far from the panel's bottom edge as from its
+   sides. */
+.templates-body:has(> .templates-invalid:last-child, > .templates-folder-error:last-child) {
+  padding-bottom: calc(var(--space-12) + var(--space-8));
+}
+
+/* The grid: each template is a rounded rectangle holding a flat card, with a
+   fine edge and a soft shadow, and its name underneath. The rectangle takes
+   the menu's highlight tint when highlighted, by the pointer or the arrow
+   keys, and its pressed tint while pressed. Nothing in it can be dragged or
+   selected as text. */
+.templates-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* Equal columns whatever the names: a long name is cut off, never widens
+     its column. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.template-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-8) var(--space-8);
+  min-width: 0;
+  border-radius: var(--panel-radius);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.template-tile[data-highlighted] {
+  background: var(--option-background-highlighted);
+}
+
+.template-tile[data-pressed],
+.template-tile:active {
+  background: var(--option-background-active);
+}
+
+.template-tile-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Portrait, narrower than its rectangle, so the card has room around it. */
+  width: 76%;
+  aspect-ratio: 4 / 5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 28px;
+  box-shadow:
+    0 0 0 0.5px oklch(0% 0 0 / 12%),
+    0 1px 2px oklch(0% 0 0 / 6%),
+    0 2px 8px oklch(0% 0 0 / 6%);
+}
+
+.template-tile-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+.template-tile-name {
+  max-width: 100%;
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.templates-empty {
+  margin: 0;
+  padding: var(--space-16) var(--space-10);
+  text-align: center;
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* The templates folder cannot be read: the same muted box, in place of the
+   grid. */
+.templates-folder-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-10);
+  border-radius: var(--panel-radius);
+  background: var(--color-surface-muted);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.templates-folder-error tv-icon {
+  flex: none;
+  margin-top: 0.15em;
+  color: var(--color-alert);
+}
+
+/* Templates with errors: a small muted box below the grid. */
+.templates-invalid {
+  list-style: none;
+  margin: var(--space-16) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--panel-radius);
+  background: var(--color-surface-muted);
+}
+
+.template-invalid {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-6);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.template-invalid tv-icon {
+  flex: none;
+  margin-top: 0.15em;
+  color: var(--color-alert);
+}
+
+.template-invalid-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.template-invalid-folder {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}

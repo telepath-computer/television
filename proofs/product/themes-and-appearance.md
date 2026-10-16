@@ -6,7 +6,7 @@ Proves [specs/product/themes-and-appearance.md](../../specs/product/themes-and-a
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Coverage declarations are carried inside the migrated assertion blocks below. The settings control has no required adjacency to another control; its behavior and access remain with the Settings proof.
 
 The executable-theme browser spine uses two connected application documents in one real Chromium session against a running production server. Real package fixtures drive main-enabled, unflagged, iframe-enabled, syntax-error, and uncaught-exception paths through Settings, persisted display state, the three public script routes, the production application resource owner, two real iframe boundaries, and an artifact document. Theme-owned markers, execution counters, package assets, and frame messages make absence before main consent, main execution in both application documents, automatic sandbox execution, repeat execution, document-lifetime effects, reload reset, classic-script-relative URL resolution, and frame replacement observable without a test hook or mock. Browser error events and ordinary application controls establish failure isolation.
 

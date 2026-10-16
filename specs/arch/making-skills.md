@@ -2,28 +2,23 @@
 
 # Making skills
 
-A bundled skill gives an agent instructions and may ship assets used by the artifact it authors. `packages/skills/skills.json` defines bundle membership; the owning product, UI, and architecture specs define the content. Shipped output is derived from those sources and verified through the real build, package, and direct-install path. This spec owns that process.
+A bundled skill gives an agent instructions and may ship assets used by the artifact it authors. `packages/skills/skills.json` lists only `television`, the skill Television ships. The owning product and architecture specs define its content. Shipped output is derived from those sources and verified through the real build, package, and direct-install path. This spec owns that process.
 
 ## Authority
 
 A skill that defines a designed artifact surface may have a UI spec under `specs/ui/skills/<name>/` (`index.md`, `template.liquid`, `styles.css`, and `content.yml` as needed), per [spec-ui.md](../spec-ui.md). Its templates are rendered truth; production and bundles never import them. General product guidance, including the `television` skill's primary and theming documents, follows its owning product and architecture authorities and does not need a UI surface.
 
-The presence of source under `packages/skills/skills/` does not by itself make the skill shippable. The active authority for sidebar-view marks that skill a non-shipping prototype, and `skills.json` omits it.
+The presence of source under `packages/skills/skills/` does not by itself make a skill shippable. The `tv-calendar`, `tv-table`, and `tv-tasks` sources remain in that tree but are not bundled agent skills. The calendar and task browser components are still built for the [onboarding bake](./onboarding/bake.md#^skill-assets). The active authority for sidebar-view marks that skill a non-shipping prototype, and `skills.json` omits it.
 
 ## The bundle
 
-A skill's source lives in `packages/skills/skills/<name>/`, its shipping membership comes from `skills.json`, and the build emits it to `packages/skills/dist/<name>/`. Each shipped file is derived from authority by one of four mechanisms:
-
-- **Copy** — carried CSS is the spec's `styles.css`, copied at port time (plus artifact page sizing).
-- **Render** — exemplar markup in the skill text is the spec template rendered with sample arguments (hand-rendered until bake tooling exists).
-- **Generate or author** — the skill text (SKILL.md) conveys the spec's author-facing points; hand-authored for now, generation-from-points is an option per skill.
-- **Implement** — carried JS implements the ui spec's interaction points, with tests.
+A skill's source lives in `packages/skills/skills/<name>/`, its shipping membership comes from `skills.json`, and the build emits bundled skills to `packages/skills/dist/<name>/`. That directory contains only manifest members, including in development. The build emits calendar and task browser components to `packages/skills/onboarding-dist/<name>/` for the onboarding bake.
 
 Derived source files are committed and reviewed. When an authority change affects them, they are re-derived before the change is complete; generated `dist/` output remains a build artifact.
 
-The bundled `television` skill emits three guidance files. `SKILL.md` is the primary entry point and references its siblings `theming.md` and `resources.md`; [theme authoring](./themes/authoring.md) owns the content and derivation of `theming.md`, and [resource guidance](./resources/guidance.md) owns those of `resources.md`.
+The bundled `television` skill emits four guidance files. `SKILL.md` is the primary entry point and references `theming.md`, `resources.md`, and `templates.md`. [Theme authoring](./themes/authoring.md) owns the content and derivation of `theming.md`, [resource guidance](./resources/guidance.md) owns those of `resources.md`, and [artifact template guidance](./templates/authoring.md) owns those of `templates.md`.
 
-`SKILL.md` teaches HTML authors that a canonical stylesheet link may carry `authoredForAppVersion`, explains that the value is advisory authoring context rather than a load requirement, and tells an agent to copy the target server's exact release version from `tv status` or the checkout's exact version from the root `package.json` without translation. A missing status version or the `0.0.0` development sentinel establishes no target release. It sets the value when creating or deliberately re-authoring an artifact against that app surface, preserves an existing value during unrelated maintenance, and permits omission when the target version is unknown. The `tv-tasks`, `tv-calendar`, `tv-sidebar-view`, and `tv-table` skill sources put the same query placeholder on their canonical stylesheet links and give the same running-server and checkout version sources; the `television` skill remains the authority for the parameter's meaning.
+`SKILL.md` teaches HTML authors that a canonical stylesheet link may carry `authoredForAppVersion`, explains that the value is advisory authoring context rather than a load requirement, and tells an agent to copy the target server's exact release version from `tv status` or the checkout's exact version from the root `package.json` without translation. A missing status version or the `0.0.0` development sentinel establishes no target release. It sets the value when creating or deliberately re-authoring an artifact against that app surface, preserves an existing value during unrelated maintenance, and permits omission when the target version is unknown.
 
 ## Evaluation
 

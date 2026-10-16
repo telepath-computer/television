@@ -13,7 +13,8 @@ import {
   UpdateNotificationController,
   type UpdateNotificationConnectionOwner,
 } from "./update-notification.ts";
-import { SkillSelectorView } from "./skill-selector.ts";
+import { TemplatesPopoverView } from "./skill-selector.ts";
+import type { ServerConnection } from "../services/server-connection.ts";
 import { SettingsView } from "./settings.ts";
 import type { TabReorderChange } from "./tab-reorder.ts";
 import { TabStripView } from "./tab-strip.ts";
@@ -33,6 +34,7 @@ interface DeleteRestoration {
 
 export interface TopBarOptions {
   connectionOwner?: UpdateNotificationConnectionOwner | null;
+  templateConnection?: ServerConnection | null;
   updatePresentation?: UpdatePresentationState | null;
   desktopRecommendation?: DesktopUpgradeRecommendationContext | null;
   desktopUpdate?: DesktopUpdateState | null;
@@ -184,7 +186,7 @@ export class TopBar extends View<[
           options.sidebarTransitioning,
         )}
         <div class="top-bar-controls">
-          ${SkillSelectorView(options.connectionOwner?.connection)}
+          ${TemplatesPopoverView(application, options.templateConnection ?? undefined)}
           ${SettingsView(application)}
           ${this.#update.template()}
         </div>

@@ -28,7 +28,6 @@ import type { NetworkProxy } from "./network-proxy.ts";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../..", import.meta.url));
 const PRODUCTION_TREE = path.join(REPO_ROOT, "packages/server/assets/onboarding-channels");
-const SKILLS_BUILD = path.join(REPO_ROOT, "packages/skills/scripts/build.mjs");
 const BAKE = path.join(REPO_ROOT, "scripts/bake-onboarding.mjs");
 const CANONICAL_DIR = fileURLToPath(new URL("../../dist/canonical", import.meta.url));
 /** How long to wait for writes a test expects not to happen. */
@@ -46,11 +45,12 @@ test.beforeAll(() => {
   test.setTimeout(180_000);
   workRoot = mkdtempSync(path.join(os.tmpdir(), "tv-onboarding-company-todos-"));
   contentRoot = path.join(workRoot, "onboarding-channels");
-  const skillsDist = path.join(workRoot, "skills-dist");
+  const skillsDist = path.join(workRoot, "onboarding-dist");
   cpSync(PRODUCTION_TREE, contentRoot, { recursive: true });
-  execFileSync(process.execPath, [SKILLS_BUILD], {
+  // proofs/ui/onboarding-artifacts/index.md#^oa-ac-skill-assets
+  execFileSync("npm", ["--workspace", "@telepath-computer/television-skills", "run", "build"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, TV_SKILLS_DIST_DIR: skillsDist },
+    env: { ...process.env, TV_ONBOARDING_COMPONENTS_DIST_DIR: skillsDist, TV_SKILLS_DIST_DIR: path.join(workRoot, "skills-dist") },
     stdio: "pipe",
   });
   execFileSync(process.execPath, [BAKE, "productivity", "--root", contentRoot, "--skills-dist", skillsDist], {

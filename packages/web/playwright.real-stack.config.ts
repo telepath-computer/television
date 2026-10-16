@@ -24,6 +24,7 @@ export default defineConfig({
     "**/path-artifact-real-stack-coverage.test.ts",
     "**/sidebar-collapse.test.ts",
     "**/sidebar-resize.test.ts",
+    "**/template-example-real-stack.test.ts",
     "**/theme-product-acceptance.test.ts",
   ],
   outputDir: "../../.playwright/test-results-web-real-stack",

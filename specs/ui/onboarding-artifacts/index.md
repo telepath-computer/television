@@ -120,11 +120,12 @@ each with:
   230 × 230 CSS pixels when the page box can hold it, while a smaller page box
   wins ([stage bounds](../app/stage/index.md#bounds));
 - `skill: <name>`, when the frame uses browser components supplied by a
-  bundled skill. The frame contains the public element markup but no import.
-  During preview, the Frameset workshop loads that skill's source CSS and
-  JavaScript. During bake, this field makes the bake copy the skill's built
-  browser files beside the generated HTML and link them from its document
-  head;
+  component source retained for the onboarding bake. The frame contains the
+  public element markup but no import. During preview, the Frameset workshop
+  loads that source's CSS and JavaScript. During bake, this field makes the
+  bake copy its built browser files from the
+  [onboarding component output](../../arch/onboarding/bake.md#^skill-assets)
+  beside the generated HTML and link them from its document head;
 - `components: false`, when the baked document omits the canonical components
   module. It defaults to `true`;
 - `store`, when the artifact's
@@ -164,8 +165,8 @@ dependencies, fiction constraints, and deliberate deviations.
   ask (→ Today's Calendar), a person-specific prep (→ Meeting prep).
 - **Priorities for Today** — shell capped at 920px; the content is a single
   column and loses nothing narrower.
-- **Today's Calendar** — a **directory artifact** backed by the bundled
-  tv-calendar skill (manifest: `skill: tv-calendar`): `calendar.css`/
+- **Today's Calendar** — a **directory artifact** backed by the retained
+  tv-calendar component source (manifest: `skill: tv-calendar`): `calendar.css`/
   `calendar.js` are sibling dependencies of `index.html`, and the document
   shell links them. `<calendar-week>`/`<calendar-event>`
   are defined by `calendar.js` (inert text without it), and the tv-calendar
@@ -174,8 +175,8 @@ dependencies, fiction constraints, and deliberate deviations.
   `orange`/`yellow`) are the component's palette API, not theme tokens.
 - **Meeting prep** — shell capped at 880px; the person card stacks on narrow
   widths.
-- **Company To-dos** — a **directory artifact** backed by the bundled
-  tv-tasks skill (manifest: `skill: tv-tasks`): `task.css`/`task.js` are
+- **Company To-dos** — a **directory artifact** backed by the retained
+  tv-tasks component source (manifest: `skill: tv-tasks`): `task.css`/`task.js` are
   sibling dependencies of
   `index.html`, alongside the canonical components module for `<tv-icon>`.
   The tv-tasks component supplies the whole surface at zero body padding; the
@@ -297,11 +298,11 @@ Under [What a UI surface's suite is responsible for](../../arch/testing-policy.m
 
 Under [The suite does not assert styling adherence](../../arch/testing-policy.md#^ui-styling-out), this surface requires no measurement of responsive widths, the appearance produced by theme tokens, charts, tables, internal cards, or the CSS width transition on the Open model research bar. Those visual details are judged in staging and review.
 
-Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [bake testing](../../arch/onboarding/bake.md#Testing) owns proof that the real bake renders the frames into complete packaged documents, preserves the Markdown source byte for byte, and includes every declared sibling asset for a skill-backed artifact. This surface requires no second smoke test that covers every artifact.
+Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [bake testing](../../arch/onboarding/bake.md#Testing) owns proof that the real bake renders the frames into complete packaged documents, preserves the Markdown source byte for byte, and includes every declared sibling asset for a component-backed artifact. This surface requires no second smoke test that covers every artifact.
 
 The bake also owns validation of these manifests. It owns the configuration output that records their artifact order. This surface requires no duplicate test of manifest validation or configuration output.
 
-Real-browser coverage must load the baked Company To-dos and Today's Calendar documents using assets from the production skill and canonical builds. The calendar must upgrade and render every authored event. Neither document may report a JavaScript module loading error or an error from a custom element.
+Real-browser coverage must load the baked Company To-dos and Today's Calendar documents using assets from the [onboarding component output](../../arch/onboarding/bake.md#^skill-assets) and the production canonical build. The calendar must upgrade and render every authored event. Neither document may report a JavaScript module loading error or an error from a custom element.
 
 With the browser on a known local day after July 8, 2026 that differs from its
 UTC day, that coverage also checks the calendar header and the shifted
@@ -323,7 +324,7 @@ task shown; a save refused while the page can use the store returns its
 checkbox and shows the error; and a lost connection shows the page as
 disconnected, with every checkbox disabled, until the connection returns.
 
-Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [product onboarding acceptance](../../product/onboarding/onboarding-channels.md#Testing) owns proof of installation through the built `tv` process and of serving the packaged bytes, including the markdown source. [Installer testing](../../arch/onboarding/installer.md#Testing) owns proof that each page is created with the values configured for it or the shared defaults. [Artifact product testing](../../product/artifacts.md#Testing), [artifact-frame lifecycle testing](../../arch/artifact-frame/index.md#Testing), and [reload and navigation architecture](../../arch/artifact-frame/reload-navigation.md) own proof that artifact documents load, remain isolated, are interactive, and reload when the theme changes. Because those specs own these behaviors, the real-browser coverage here starts with baked documents. It does not repeat installation, page order, artifact-frame behavior, or theme changes. The bundled task and calendar skill suites retain ownership of their components' complete behavior and motion. This surface proves only that the authored task and calendar documents produce the browser outcomes above when loaded with the assets declared in their manifests.
+Under [Tests are the validation mechanism](../../arch/testing-policy.md#Tests are the validation mechanism), [product onboarding acceptance](../../product/onboarding/onboarding-channels.md#Testing) owns proof of installation through the built `tv` process and of serving the packaged bytes, including the markdown source. [Installer testing](../../arch/onboarding/installer.md#Testing) owns proof that each page is created with the values configured for it or the shared defaults. [Artifact product testing](../../product/artifacts.md#Testing), [artifact-frame lifecycle testing](../../arch/artifact-frame/index.md#Testing), and [reload and navigation architecture](../../arch/artifact-frame/reload-navigation.md) own proof that artifact documents load, remain isolated, are interactive, and reload when the theme changes. Because those specs own these behaviors, the real-browser coverage here starts with baked documents. It does not repeat installation, page order, artifact-frame behavior, or theme changes. The task and calendar component suites retain ownership of their components' complete behavior and motion. This surface proves only that the authored task and calendar documents produce the browser outcomes above when loaded with the assets declared in their manifests.
 
 ## Staging
 

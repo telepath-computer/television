@@ -9,7 +9,7 @@ params:
       - { id: "weekend-recipes", name: "Weekend recipes" }
       - { id: "return-to-australia", name: "Return to Australia" }
       - { id: "daily-plan-flow", name: "Daily plan flow" }
-  selected: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: television, description: the one open channel — selection is singular }
+  selected: { enum: [television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: television, description: the one open channel — selection is singular }
   renaming: { enum: [none, television, agenda, weekend-recipes, return-to-australia, daily-plan-flow], default: none, description: the one row whose name is being edited in place }
   menus: { type: boolean, default: true, description: "rows carry their menu triggers; false hides the context-menu triggers" }
   menu_channel: { type: string, default: "none", description: "the id of the channel whose channel context menu is posed open" }

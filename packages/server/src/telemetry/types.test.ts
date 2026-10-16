@@ -2,7 +2,6 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   AGENT_TYPES,
   ARTIFACT_DELETION_CAUSES,
-  ARTIFACT_SKILLS,
   AUTH_MODES,
   CHANNEL_PINS_CHANGE_TYPES,
   LAYOUT_CHANGE_TYPES,
@@ -15,19 +14,33 @@ import {
 } from "./types.ts";
 
 describe("telemetry event and property vocabulary", () => {
+  // proofs/arch/telemetry/index.md#^t-template-vocabulary
+  it("accepts only closed template-use source and template values", () => {
+    const cli = { name: "artifact_template_used", properties: { source: "cli", template: "example" } } satisfies TelemetryEvent;
+    const ui = { name: "artifact_template_used", properties: { source: "ui", template: "custom" } } satisfies TelemetryEvent;
+    const other = {} satisfies TelemetryEventProperties;
+    expect([cli.properties.source, ui.properties.template, other]).toEqual(["cli", "custom", {}]);
+    const badSource = {
+      // @ts-expect-error template source is a closed pair.
+      source: "agent",
+    } satisfies TelemetryEventProperties;
+    const badTemplate = {
+      // @ts-expect-error installed custom IDs are not telemetry values.
+      template: "private-template-id",
+    } satisfies TelemetryEventProperties;
+    expect([badSource, badTemplate]).toHaveLength(2);
+  });
   it("accepts only the closed event names", () => {
     const valid = { name: "server_started", properties: {} } satisfies TelemetryEvent;
     const redesign = [
       { name: "channel_pins_changed", properties: { pin_change_type: "reorder", pinned_channel_count: 2 } },
       { name: "tab_page_full_screen_changed", properties: { full_screen: true } },
-      { name: "artifact_skill_prompt_copy_clicked", properties: { artifact_skill: "calendar" } },
       { name: "artifact_deleted", properties: { deletion_cause: "channel_deleted" } },
     ] satisfies TelemetryEvent[];
     expect(valid.name).toBe("server_started");
     expect(redesign.map(({ name }) => name)).toEqual([
       "channel_pins_changed",
       "tab_page_full_screen_changed",
-      "artifact_skill_prompt_copy_clicked",
       "artifact_deleted",
     ]);
 
@@ -61,7 +74,6 @@ describe("telemetry event and property vocabulary", () => {
     expect(LAYOUT_CHANGE_TYPES).toEqual(["tab_reorder"]);
     expect(CHANNEL_PINS_CHANGE_TYPES).toEqual(["pin", "unpin", "reorder", "replace"]);
     expect(ARTIFACT_DELETION_CAUSES).toEqual(["direct", "channel_deleted"]);
-    expect(ARTIFACT_SKILLS).toEqual(["calendar", "table", "tasks", "markdown"]);
 
     // @ts-expect-error auth modes are closed.
     const invalidAuth = "oauth" satisfies TelemetryEventProperties["auth_mode"];

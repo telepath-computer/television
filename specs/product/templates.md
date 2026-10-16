@@ -1,0 +1,25 @@
+*Artifact templates: reusable folders that create ordinary path artifacts, their discovery and bundled set, and the ways people and agents use them.*
+
+# Artifact templates
+
+An *artifact template* is a reusable starting point for an artifact: a folder containing a working HTML page and supporting files, with optional starting data for the artifact's [own JSON store](./resources/resources.md#^rs-own-store). Television copies the folder when someone uses it, so the resulting artifact can be adapted without changing the template. The folder format and discovery contract are in [template architecture](../arch/templates/index.md).
+
+## Finding and using an artifact template
+
+Artifact templates live as folders directly under `<home>/templates/`, where [the Television home](./cli.md#^cli-home) is selected. People and agents may edit those folders or add their own. Each time an agent lists artifact templates, or a person opens the Templates popover, Television scans the directory again. Valid templates are available for creation; an invalid folder is reported with an error rather than offered for use. The [scan contract](../arch/templates/index.md#discovery) owns the exact results.
+
+Using an artifact template creates an ordinary folder path artifact in the chosen channel. Television copies the page and supporting files into a new folder under `<home>/artifacts/`; the artifact points at that copy. The title is the template's display name unless the caller supplies another title. The folder name is based on that title at creation and stays fixed if the artifact is retitled. The artifact has an ordinary generated ID and no record of which template was used. Editing or deleting it has the same effects as editing or deleting any other path artifact: deletion removes its record and leaves the copied folder and its store on disk ([artifacts](./artifacts.md#^af-delete-semantics), [resources](./resources/resources.md#^rs-artifact-deleted)). ^artifact-template-result
+
+A template may declare *display options*, a width, height, and full-screen state for each new artifact, in its [manifest](../arch/templates/index.md#^artifact-template-package). Each value is chosen separately: a value supplied at creation takes precedence, followed by the template's value, then the shared defaults ([layout](../arch/layout/index.md#^ly-creation-display)). The [creation command](./cli.md#^cli-create-display) can supply values for any source; the Templates popover uses the template's values or the defaults. These values can be changed after creation, and the artifact retains no link to the template's display options. ^artifact-template-display-options
+
+If the template has starting data, Television writes it as the artifact's store's first value. Data supplied by the caller replaces the template's starting data. A template without either starts with an unwritten store. Creation succeeds only when all steps complete and any starting data is durably saved. Once copying starts, Television removes nothing it created. If copying, registering the artifact, saving its place in the channel, or writing starting data fails or has an uncertain outcome, the request fails; the [creation contract](../arch/templates/index.md#^artifact-template-copy) owns its error and recovery details. The page can use the [resource SDK](../arch/resources/sdk.md) and the agent can use [`tv resource json`](./resources/json-store.md#^js-cli) to work with the store's value. ^artifact-template-data
+
+Agents use [`tv templates list`, `tv create-artifact --template`, and `tv templates path`](./cli.md#artifact-template-commands). People use templates from the Templates popover in the navbar: using one creates the artifact in the focused channel, to the right of the selected tab in that browser, and focuses it. With no tabs, the artifact becomes the channel's only page. The [Templates UI spec](../ui/app/skill-selector/index.md) owns what the popover shows and how it works. ^artifact-template-popover
+
+## Bundled artifact templates
+
+Television ships the Example artifact template. [Bundled template content](../arch/templates/bundled-templates.md) owns its starting data and page behavior. On serving boot, it installs a bundled template if its ID has never been handled in this home. After handling, an absent folder stays absent as a user deletion. An existing valid template at or above that bundled template's minimum version is preserved, including user edits; one that is invalid or below the minimum is backed up and replaced. A minimum rises only when compatibility requires it, so a routine bundled improvement does not overwrite a usable installed copy. [Bundled installation](../arch/templates/bundled-installation.md) owns the version and backup contracts. ^artifact-template-bundled
+
+## Scope
+
+People and agents manage artifact templates in their folders. Television provides no UI for editing, deleting, installing, or sharing templates between installations. An artifact made from a template is independent of that template after creation.

@@ -40,8 +40,8 @@ const startTimeoutMs = 30_000;
 const sourceNotices = {
   web: path.join(repoRoot, "packages/web/dist", noticeName),
   markdown: path.join(repoRoot, "packages/view-markdown/dist", noticeName),
-  calendar: path.join(repoRoot, "packages/skills/skills/tv-calendar/dist", noticeName),
-  tasks: path.join(repoRoot, "packages/skills/skills/tv-tasks/dist", noticeName),
+  calendar: path.join(repoRoot, "packages/skills/onboarding-dist/tv-calendar", noticeName),
+  tasks: path.join(repoRoot, "packages/skills/onboarding-dist/tv-tasks", noticeName),
 };
 
 // The resource SDK's notices, beside the module in the server build and in the CLI's copy of it.
@@ -55,8 +55,8 @@ const firebaseAdaptedFile = path.join(repoRoot, "packages/shared/src/resources/p
 const copiedNotices = {
   web: path.join(cliDist, "web", noticeName),
   markdown: path.join(cliDist, "views/markdown", noticeName),
-  calendar: path.join(cliDist, "skills/tv-calendar", noticeName),
-  tasks: path.join(cliDist, "skills/tv-tasks", noticeName),
+  calendar: path.join(cliDist, "onboarding/productivity/todays-calendar", noticeName),
+  tasks: path.join(cliDist, "onboarding/productivity/company-todos", noticeName),
 };
 
 describe("product licensing outputs", () => {
@@ -106,7 +106,7 @@ describe("product licensing outputs", () => {
   });
 
   test("suite-run gate consumes all prebuilt inventories without rebuilding products", () => {
-    const expectedSurfaces = [...LICENSE_INVENTORY_SURFACES];
+    const expectedSurfaces = [...LICENSE_INVENTORY_SURFACES].sort((left, right) => left.localeCompare(right, "en"));
     const observedFiles = [
       path.join(cliDist, noticeName),
       ...expectedSurfaces.map((surface) => path.join(inventoryRoot, `${surface}.json`)),
@@ -121,6 +121,7 @@ describe("product licensing outputs", () => {
     expect(observedFiles.map(fileSnapshot)).toEqual(before);
   });
 
+  // proofs/arch/licensing.md#^licensing-t-aggregation-seam
   test("aggregation covers copied child surfaces without declared dependencies or raw inventories", () => {
     const notice = readFileSync(path.join(cliDist, noticeName), "utf8");
     const packageNames = packageNamesFromNotice(notice);
@@ -145,6 +146,7 @@ describe("product licensing outputs", () => {
 
     expect(readFileSync(sdkNotices.copied)).toEqual(readFileSync(sdkNotices.built));
     expect(existsSync(copiedNotices.calendar)).toBe(false);
+    expect(readFileSync(copiedNotices.tasks)).toEqual(readFileSync(sourceNotices.tasks));
     assertAudienceNotice(readFileSync(copiedNotices.tasks, "utf8"));
     const rawInventories = [cliDist, desktopDist].flatMap((root) => listFiles(root))
       .filter((file) => /(?:oss-licenses|metafile|licenses-inventory).*\.json$/i.test(path.basename(file)));
@@ -185,6 +187,7 @@ describe("shipped package licensing", () => {
     if (packedRoot !== "") rmSync(packedRoot, { recursive: true, force: true });
   });
 
+  // proofs/product/licensing.md#^licensing-ac-cli-tarball
   test("CLI tarball carries the project license and every notice input class", () => {
     expect(readFileSync(path.join(packedCLI, "LICENSE"))).toEqual(readFileSync(path.join(repoRoot, "LICENSE")));
     const notice = readFileSync(path.join(packedCLI, "dist", noticeName), "utf8");
@@ -302,8 +305,8 @@ describe("shipped package licensing", () => {
     const desktopExpected = expectedSurfaceNotices("desktop", ["desktop"]);
     const webExpected = expectedSurfaceNotices("web", ["web"]);
     const markdownExpected = expectedSurfaceNotices("view:markdown", ["view:markdown"]);
-    const calendarExpected = expectedSurfaceNotices("skill:tv-calendar", ["skill:tv-calendar"]);
-    const tasksExpected = expectedSurfaceNotices("skill:tv-tasks", ["skill:tv-tasks"]);
+    const calendarExpected = expectedSurfaceNotices("onboarding:calendar", ["onboarding:calendar"]);
+    const tasksExpected = expectedSurfaceNotices("onboarding:tasks", ["onboarding:tasks"]);
     const sdkExpected = expectedSurfaceNotices("sdk:resources", ["sdk:resources"]);
     const locations = [
       [path.join(repoRoot, noticeName), sourceExpected],
@@ -319,14 +322,10 @@ describe("shipped package licensing", () => {
       [sourceNotices.tasks, tasksExpected],
       [path.join(packedCLI, "dist/web", noticeName), webExpected],
       [path.join(packedCLI, "dist/views/markdown", noticeName), markdownExpected],
-      [path.join(packedCLI, "dist/skills/tv-calendar", noticeName), calendarExpected],
-      [path.join(packedCLI, "dist/skills/tv-tasks", noticeName), tasksExpected],
+      [path.join(packedCLI, "dist/onboarding/productivity/todays-calendar", noticeName), calendarExpected],
+      [path.join(packedCLI, "dist/onboarding/productivity/company-todos", noticeName), tasksExpected],
       [sdkNotices.built, sdkExpected],
       [path.join(packedCLI, "dist/sdk/v1", noticeName), sdkExpected],
-      [
-        path.join(packedCLI, "dist/onboarding/productivity/company-todos", noticeName),
-        readFileSync(path.join(repoRoot, "packages/server/assets/onboarding-channels/productivity/company-todos", noticeName), "utf8"),
-      ],
       ...themeFolderNotices().flatMap(({ folder, text }) => [
         [path.join(repoRoot, folder, noticeName), text],
         [path.join(packedCLI, "dist/themes", path.basename(folder), noticeName), text],
@@ -353,11 +352,12 @@ describe("shipped package licensing", () => {
 });
 
 describe("Vite licensing outputs", () => {
+  // proofs/arch/licensing.md#^licensing-t-vite-seam
   test("Vite surfaces persist emitted package inventories and final notices", () => {
     const webInventory = readSurfaceInventory(inventoryRoot, "web");
     const markdownInventory = readSurfaceInventory(inventoryRoot, "view:markdown");
-    const calendarInventory = readSurfaceInventory(inventoryRoot, "skill:tv-calendar");
-    const tasksInventory = readSurfaceInventory(inventoryRoot, "skill:tv-tasks");
+    const calendarInventory = readSurfaceInventory(inventoryRoot, "onboarding:calendar");
+    const tasksInventory = readSurfaceInventory(inventoryRoot, "onboarding:tasks");
 
     expect(packageDeclaration(webInventory, "dompurify")).toBe("(MPL-2.0 OR Apache-2.0)");
     expect(packageNames(markdownInventory)).toContain("@codemirror/state");
@@ -379,6 +379,7 @@ describe("Vite licensing outputs", () => {
       .toMatch(/@rupertsworld\/event-target@[^\n]+\nLicensed under MIT\./);
   });
 
+  // proofs/arch/licensing.md#^licensing-t-vite-seam
   test("Vite output directories contain final notices and no raw inventory artifact", () => {
     const expectedNotices = [
       ...Object.entries(sourceNotices).filter(([surface]) => surface !== "calendar")
@@ -396,9 +397,8 @@ describe("Vite licensing outputs", () => {
     const shippingRoots = [
       path.join(repoRoot, "packages/web/dist"),
       path.join(repoRoot, "packages/view-markdown/dist"),
-      path.join(repoRoot, "packages/skills/skills/tv-calendar/dist"),
-      path.join(repoRoot, "packages/skills/skills/tv-tasks/dist"),
       path.join(repoRoot, "packages/skills/dist"),
+      path.join(repoRoot, "packages/skills/onboarding-dist"),
       cliDist,
     ];
     const rawInventories = shippingRoots.flatMap((root) => listFiles(root))
@@ -411,7 +411,7 @@ describe("Vite licensing outputs", () => {
     expect(webJavaScript).toMatch(/@license DOMPurify/i);
 
     const calendarJavaScript = readFileSync(
-      path.join(repoRoot, "packages/skills/skills/tv-calendar/dist/calendar.js"),
+      path.join(repoRoot, "packages/skills/onboarding-dist/tv-calendar/calendar.js"),
       "utf8",
     );
     expect(calendarJavaScript).not.toMatch(/(?:@lit\/reactive-element|lit-element|lit-html|Copyright 2017 Google LLC)/i);

@@ -3,6 +3,7 @@ import {
   BUNDLED_THEME_IDS,
   type BundledThemeID,
 } from "../bundled-theme-installer.ts";
+import type { BundledArtifactTemplateID } from "../bundled-template-ids.ts";
 
 export type { BundledThemeID };
 
@@ -52,9 +53,9 @@ export type ChannelPinsChangeType = (typeof CHANNEL_PINS_CHANGE_TYPES)[number];
 
 export const ARTIFACT_DELETION_CAUSES = ["direct", "channel_deleted"] as const;
 export type ArtifactDeletionCause = (typeof ARTIFACT_DELETION_CAUSES)[number];
+export type ArtifactTemplateSource = "cli" | "ui";
+export type ArtifactTemplateTelemetryID = BundledArtifactTemplateID | "custom";
 
-export const ARTIFACT_SKILLS = ["calendar", "table", "tasks", "markdown"] as const;
-export type ArtifactSkill = (typeof ARTIFACT_SKILLS)[number];
 
 export const THEME_STATES = ["none", ...BUNDLED_THEME_IDS, "custom"] as const;
 export type ThemeState = (typeof THEME_STATES)[number];
@@ -121,11 +122,12 @@ export interface TelemetryEventProperties extends Partial<ThemeSettingsPropertie
   url_host?: UrlHost;
   url_is_artifact_proxy?: boolean;
   deletion_cause?: ArtifactDeletionCause;
+  source?: ArtifactTemplateSource;
+  template?: ArtifactTemplateTelemetryID;
   change_type?: LayoutChangeType;
   pin_change_type?: ChannelPinsChangeType;
   pinned_channel_count?: number;
   full_screen?: boolean;
-  artifact_skill?: ArtifactSkill;
   theme_count?: number;
   theme_change_reason?: ThemeChangeReason;
   agent_type?: AgentType;
@@ -147,13 +149,13 @@ export type TelemetryEvent =
   | EventWithProperties<"artifact_created">
   | EventWithProperties<"artifact_updated">
   | EventWithProperties<"artifact_deleted">
+  | EventWithProperties<"artifact_template_used">
   | EventWithProperties<"screen_created">
   | EventWithProperties<"screen_updated">
   | EventWithProperties<"screen_deleted">
   | EventWithProperties<"layout_changed">
   | EventWithProperties<"channel_pins_changed">
   | EventWithProperties<"tab_page_full_screen_changed">
-  | EventWithProperties<"artifact_skill_prompt_copy_clicked">
   | EventWithProperties<"theme_changed">
   | EventWithProperties<"appearance_mode_changed">
   | EventWithProperties<"skill_installed">
@@ -173,13 +175,13 @@ export type TelemetryEventName =
   | "artifact_created"
   | "artifact_updated"
   | "artifact_deleted"
+  | "artifact_template_used"
   | "screen_created"
   | "screen_updated"
   | "screen_deleted"
   | "layout_changed"
   | "channel_pins_changed"
   | "tab_page_full_screen_changed"
-  | "artifact_skill_prompt_copy_clicked"
   | "theme_changed"
   | "appearance_mode_changed"
   | "skill_installed"

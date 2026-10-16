@@ -2,9 +2,9 @@
 
 # Copy button (UI)
 
-A button that copies a value to the clipboard and briefly confirms the copy in place. It is a reusable control meant to be composed by other surfaces (e.g. [app/update-notification/index.md](../update-notification/index.md), [app/skill-selector/index.md](../skill-selector/index.md)); this directory owns its interaction, markup, and styling ([spec-ui.md](../../../spec-ui.md)).
+A button that copies a value to the clipboard and briefly confirms the copy in place. It is a reusable control meant to be composed by other surfaces, such as [the update notification](../update-notification/index.md); this directory owns its interaction, markup, and styling ([spec-ui.md](../../../spec-ui.md)).
 
-**Status:** stage-one reusable native-button control authority, implemented by a production lit-html template helper. Skill selector and update notification consume the shared helper.
+**Status:** stage-one reusable native-button control authority, implemented by a production lit-html template helper.
 
 The supporting artifacts, each authoritative:
 
@@ -34,7 +34,7 @@ Confirmation acceptance must also exercise the production control's real timer i
 
 Under [The suite does not assert styling adherence](../../../arch/testing-policy.md#^ui-styling-out), this surface's suite does not cover icon alignment, whether the button's width changes, or whether its container reflows while the visible content changes.
 
-Under [Tests are the validation mechanism](../../../arch/testing-policy.md#Tests are the validation mechanism), the [skill selector](../skill-selector/index.md#Interaction) and [update notification](../update-notification/index.md#Interaction) own the prompt values they pass. Each of those specs also owns what its `onActivate` callback does. This surface's proof covers copying and confirmation for every caller. Composing surfaces do not repeat those paths.
+Under [Tests are the validation mechanism](../../../arch/testing-policy.md#Tests are the validation mechanism), the [update notification](../update-notification/index.md#Interaction) owns the prompt values it passes and what its `onActivate` callback does. This surface's proof covers copying and confirmation for every caller. Composing surfaces do not repeat those paths.
 
 ## Decisions
 

@@ -17,7 +17,7 @@ An artifact frame belongs to the application document. The document inside its i
 <div id="foreground-overlay" inert aria-hidden="true"></div>
 ```
 
-`#app` owns the application layout and suppresses ordinary text selection in its contents; readable regions can explicitly restore selection. `.app-sidebar` holds the channel list. The sidebar defaults to 260 pixels wide, resizes between 160 and 350 pixels, and remembers the chosen width per browser; it can also collapse entirely, the navbar then opening with an expand control and — while a channel is open — a channel-switcher popover, with the collapsed state remembered per browser. `.app-main` holds the wallpaper, navbar and stage. `.app-main > .top-bar` supplies the horizontal control inset; stage padding is separate. Preserve the shell width constraints so overflowing tabs and pages scroll inside their regions without widening the document. `#app:focus` suppresses a ring on the container itself. The wallpaper region establishes a backdrop boundary so overlay blur samples the wallpaper rather than adjacent content, while fixed popovers retain viewport positioning.
+`#app` owns the application layout and suppresses ordinary text selection in its contents; readable regions can explicitly restore selection. `.app-sidebar` holds the channel list. The sidebar defaults to 260 pixels wide, resizes between 160 and 350 pixels, and remembers the chosen width per browser; it can also collapse entirely, the navbar then opening with an expand control and channel-switcher popover, with the collapsed state remembered per browser. `.app-main` holds the wallpaper, navbar and stage. `.app-main > .top-bar` supplies the horizontal control inset; stage padding is separate. Preserve the shell width constraints so overflowing tabs and pages scroll inside their regions without widening the document. `#app:focus` suppresses a ring on the container itself. The wallpaper region establishes a backdrop boundary so overlay blur samples the wallpaper rather than adjacent content, while fixed popovers retain viewport positioning.
 
 While Television cannot use its server, one connection dialog is shown. Disconnected and unreachable states keep an established shell and its artifact documents mounted; first connection, authorization and upgrade-gate states have no shell behind them. Three failed unreachable reconnects change Disconnected to Can’t connect with server; the displayed upgrade gate stays until reload.
 
@@ -95,7 +95,7 @@ Channel context menus use `tv-menu`, `tv-menu-item`, `hr`, and `tv-menu-item[int
 
 `.top-bar` centers `.top-bar > .tab-strip` while tabs fit and keeps `.top-bar-controls` at the trailing edge. With `.tab-strip[data-overflow]`, the strip scrolls within the remaining space. The layout retains an 8-pixel gap before the strip and 48 pixels of draggable ground before the trailing controls; tabs and their edge fades stay clear of both control groups. Both child bands exclude native window dragging; empty bar ground remains available for it. The navbar and sidebar titlebar share the application bar height, with their controls vertically centered.
 
-`.top-bar-lead` appears only while the channel sidebar is collapsed: `.sidebar-expand` reopens it, and — only while a channel is open — `.channel-switcher` (with `.channel-switcher-name` truncating the label) opens `.channel-switcher-pop`, a `tv-popover` composing the channel list over a pinned `.channel-switcher-pop-footer` create bar, its scrolling body `.channel-switcher-pop-body`. While the lead group is present the leading flank refuses to shrink below it, so a long name pushes the strip off-centre rather than clipping.
+`.top-bar-lead` appears only while the channel sidebar is collapsed: `.sidebar-expand` reopens it, and `.channel-switcher` (with `.channel-switcher-name` truncating the label) opens `.channel-switcher-pop`, a `tv-popover` composing the channel list over a pinned `.channel-switcher-pop-footer` create bar, its scrolling body `.channel-switcher-pop-body`. While the lead group is present the leading flank refuses to shrink below it, so a long name pushes the strip off-centre rather than clipping.
 
 The popover retains channel row spacing, type and shape, but assigns its colors locally from ordinary panel and option roles. Sidebar-specific color overrides therefore do not set its colors. `.channel-switcher-pop .channel[aria-selected="true"]` keeps primary selection colors. Unselected rows use a neutral highlight for hover, keyboard focus or an open context menu; `.channel-switcher-pop .channel:focus-visible` has no outline. While keyboard focus is visible, a stationary pointer does not highlight a second row. Preserve these distinctions when styling the popover.
 
@@ -174,24 +174,25 @@ The artifact menu uses the same shared menu elements and placement as channel me
 
 An executable active theme adds `.settings-javascript-consent`, with `.settings-javascript-disclosure` and `label.settings-javascript-toggle`. The label contains a native checkbox carrying `role="switch"` and `name="theme-javascript-consent"`. `.settings-javascript-toggle input`, `input::before`, `input:checked`, `input:checked::before`, and `input:focus-visible` define its track, knob, enabled state and focus ring. `.settings-status[role="status"]`, `.settings-failure[role="alert"]`, and `.settings-errors` show loading, failure and registry diagnostics; `.settings-errors p` and `.settings-errors strong` separate the message and folder emphasis.
 
-### Skills, update notice and copy confirmation
+### Templates, update notice and copy confirmation
 
 ```html
-<button class="skill-trigger" id="skills-trigger" icon variant="ghost">…</button>
-<tv-popover class="skill-popover" trigger="skills-trigger">
-  <div class="skill-heading">…</div><p class="skill-intro">…</p>
-  <div class="skill-grid">
-    <article class="skill-card">
-      <div class="skill-thumb"><img alt=""></div>
-      <div class="skill-name">…</div><p class="skill-desc">…</p>
-      <button class="copy-button" size="sm">…</button>
-      <span class="copy-button-status" role="status" aria-live="polite"></span>
-    </article>
+<button class="templates-trigger" id="templates-trigger" icon variant="ghost" aria-label="Templates">…</button>
+<tv-popover class="templates-popover" trigger="templates-trigger">
+  <h2 class="templates-heading">…</h2><p class="templates-intro">…</p>
+  <label class="templates-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-controls="templates-grid" aria-activedescendant="…"></label>
+  <div class="templates-body">
+    <ul class="templates-grid" id="templates-grid" role="listbox" aria-label="Templates">
+      <li class="template-tile" role="option" data-highlighted>
+        <span class="template-tile-card"><img alt="" draggable="false"></span><span class="template-tile-name">…</span>
+      </li>
+    </ul>
+    <ul class="templates-invalid"><li class="template-invalid"><span class="template-invalid-text"><span class="template-invalid-folder">…</span>…</span></li></ul>
   </div>
 </tv-popover>
 ```
 
-`.skill-popover`, `.skill-heading`, and `.skill-intro` define the panel framing. `.skill-grid` arranges the cards. `.skill-card`, `.skill-thumb`, `.skill-thumb img`, `.skill-name`, and `.skill-desc` own each card; `.skill-card button.copy-button` places its copy action at the bottom.
+`.templates-popover` holds a fixed heading and search above the scrolling `.templates-body`. `.templates-grid` arranges the tiles in three columns. `.template-tile[data-highlighted]` and `.template-tile[data-pressed]` use the shared option tints; `.template-tile-card` crops a thumbnail or holds the artifact icon, and `.template-tile-name` truncates a long name. The search field stays focused while arrows move the active option. `.templates-empty` replaces the grid when no template matches, and `.templates-folder-error` replaces it when the folder cannot be read. `.templates-invalid` lists folder errors below the grid.
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
@@ -244,7 +245,7 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 `.artifact-error` paints the document ground; `.artifact-error-body` limits the reading column. `.artifact-error h1`, `.artifact-error p`, and `.artifact-error-block` arrange its text. A missing artifact can include a path chip. An unsupported URL can include a link or `.plain-address`, followed by a link to the admin guide for installing the Mac desktop app. `.artifact-error a`, `.artifact-error .plain-address`, and `.artifact-error code` wrap long content; the path chip is selected whole for copying. Optional host-supplied content may carry `[hidden]`.
 
 <!-- Authority freshness: review this authored reference whenever a listed source changes. -->
-<!-- app-reference-source: specs/ui/app/app.frame sha256: d3f547b23c22507ffc38b4741c5b9fa5c66ddc83e845f999fc09a6259986aa0b -->
+<!-- app-reference-source: specs/ui/app/app.frame sha256: 907e1b4a150b0ac3649f77ed58933290bf053f6829a112e5222611593ee0b80c -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: f336de141ff397e1e282f89a35ceb4e449e70ed3d85e92852c854ca7f61acce3 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-menu.frame sha256: e01464499f195ec8d44d9d0f899069e78661944131f23aca74459e1dca283111 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/delete-confirm/delete-confirm.frame sha256: 42dea00eb14ddc11756cf012d53c1ae63c8a6f0409110ff3b30b8c0833532fb6 -->
@@ -253,19 +254,21 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame sha256: 15138e0ed0273ec54267efa55aae65b7b35a8812952a94902e05b85c3beb6725 -->
 <!-- app-reference-source: specs/ui/app/dialog/dialog.frame sha256: 31a723b9cafde4bbc2783cb01cc22e9dcfc88e71d36120dc24edf1de5ddcab17 -->
 <!-- app-reference-source: specs/ui/app/settings/settings.frame sha256: 35f923930af589729410a2b45a66ba7edddd6fd78f7de31f265cd5164abfc769 -->
-<!-- app-reference-source: specs/ui/app/sidebar/channel-list.frame sha256: 498bd76036a32641537b1a1c37ed3e135a2f0fdaf23fb66de12ef174eabc4fab -->
+<!-- app-reference-source: specs/ui/app/sidebar/channel-list.frame sha256: 71b3a11b35715eea72e79d0887b71526aaa1c5a3d65ea22c6c5468261e444edc -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-menu.frame sha256: 3696718c2d20c39e0408554439010b70ea9d649bdc77aab6fbab4a65453ecc4d -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-placeholder.frame sha256: 2b18f7e0ca020db7c6d697752a12633f418a7964bb819885f56cd56a6ef19001 -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel.frame sha256: 267e70719e2c8f2693c566c2d1118908391152ed9f573905215c384062f00dfd -->
 <!-- app-reference-source: specs/ui/app/sidebar/delete-confirm.frame sha256: 940dfd33179c4a59e1190efd4bb48b12a04fb2e8f246db9f5edb619e2ed6f75a -->
-<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 7e92cd473576d4a47f576342a09542ad8021dc8b60c978b1d8196a62b0aa1b87 -->
-<!-- app-reference-source: specs/ui/app/skill-selector/skill-selector.frame sha256: 7474d8a456c13f2064b90c43d04a37ffae9ef9e542ffa39a16fcbf27f6158a7f -->
-<!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: a4ec027d1aa152f456704df57d32b319e62405343fc8026cae31f97532314bfd -->
+<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 54a14612559867f9fb552c826fa4290da0dc965e5c80a9b2338c1dd6483f6cee -->
+<!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: 97dd9252bb561694a70ac6795f9261565da0195fd7087d5e4a9abee8541102cc -->
 <!-- app-reference-source: specs/ui/app/styles.css sha256: b3129a9c9fe4ad498324983304ef7ec448f3a510a9eb337d1ee24f5c003c0f84 -->
 <!-- app-reference-source: specs/ui/app/system-modal/system-modal.frame sha256: 5b2d6762819fd376cbfff840be88c4fb87e4713c5a7b98f478ab93246b1762c0 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: c2ee2416dc5411716fbab93f0adda0c5861e6e7be58b5f07d14d6c77a4c0320e -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: cbf92c6747eb93e6b8b16249062973c0209d0706b15f1a9d3b021af5f943f7c9 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
-<!-- app-reference-source: specs/ui/app/index.md sha256: a82a5169d070e9b3a6ecc4da5a7d616f3c0a9ad841512bd6322e36ebf652f401 -->
+<!-- app-reference-source: specs/ui/app/index.md sha256: 8ccd1d15f9f29d5cf099f1686fe9cfc8eeee976745302f80842223cd1de10bef -->
+<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 883d11f4d4fb0537a36fc63e88c70441b6f52f0c2fb9ae3ad21fb6abc9072bb6 -->
+<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.mdx sha256: 43753d5b97ab4632d5edc1db9a196ff707126ebdff55c7f007425a52eda05221 -->
+<!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->

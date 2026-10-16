@@ -1448,12 +1448,12 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     })));
     await page.keyboard.press("Escape");
 
-    const skillButton = page.getByRole("button", { name: "Artifact skills" });
-    const skillBounds = await skillButton.boundingBox();
-    if (skillBounds === null) throw new Error("Artifact skills button has no pointer geometry");
+    const templatesButton = page.getByRole("button", { name: "Templates" });
+    const templatesBounds = await templatesButton.boundingBox();
+    if (templatesBounds === null) throw new Error("Templates button has no pointer geometry");
     const dragEnd = {
-      x: Math.round(skillBounds.x + skillBounds.width / 2),
-      y: Math.round(skillBounds.y + skillBounds.height / 2),
+      x: Math.round(templatesBounds.x + templatesBounds.width / 2),
+      y: Math.round(templatesBounds.y + templatesBounds.height / 2),
     };
     await page.mouse.move(clickPoint.x, clickPoint.y);
     await clearSandboxPointerRecords(page);
@@ -1508,7 +1508,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
       .toEqual(dragMessages);
     expect(await sandboxPointerRecords(page, "overlay")).toEqual(dragMessages);
     await expect(page.locator("#settings-popover[open]")).toHaveCount(0);
-    await expect(page.locator("#skills-popover[open]")).toHaveCount(0);
+    await expect(page.locator(".templates-popover[open]")).toHaveCount(0);
 
     await clearSandboxPointerRecords(page);
     await cdp.send("Input.dispatchTouchEvent", {

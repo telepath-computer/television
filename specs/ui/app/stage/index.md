@@ -106,11 +106,11 @@ Dragging a corner to the stage's extents snaps the page into full-screen mode ([
 
 ## The empty channel
 
-A channel with no pages shows the empty-channel message specified by [stage.frame](./stage.frame) and [content.yml](./content.yml). When no channel exists, the stage shows neither pages nor the empty-channel message.
+A channel with no pages shows the empty-channel message specified by [stage.frame](./stage.frame) and [content.yml](./content.yml).
 
 ## Testing
 
-Under [What a UI surface's suite is responsible for](../../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the stage's no-channel, empty-channel, and populated branches. The no-channel branch must show neither pages nor the empty-channel message. The empty-channel branch must show the authored message without pages. The populated branch must show each supplied page and artifact frame exactly once and in the supplied order. It must mark selection and `full_screen` exactly as supplied.
+Under [What a UI surface's suite is responsible for](../../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the stage's empty-channel and populated branches. The empty-channel branch must show the authored message without pages. The populated branch must show each supplied page and artifact frame exactly once and in the supplied order. It must mark selection and `full_screen` exactly as supplied.
 
 When channels change, the suite must prove that every discarded artifact view disconnects and releases its global frame-message subscription before any arriving view becomes active. After repeated channel changes in a real browser, discarded artifact views and frames must be eligible for garbage collection while the current channel remains rendered. The garbage-collection result proves that the stage lifecycle does not strongly retain discarded artifact views or frames. It does not prove that total process memory stays constant or that unrelated subsystems contain no leaks.
 
@@ -132,5 +132,4 @@ Under the same rule, [tab-page acceptance](../../../product/tab-pages.md#Testing
 
 Under [Tests are the validation mechanism](../../../arch/testing-policy.md#Tests are the validation mechanism), the [tab strip](../tab-strip/index.md) owns its unmodified arrow-key behavior and the edge scrolling that runs while a tab drag is held. [Keyboard-navigation architecture](../../../arch/ui/keyboard-navigation.md#Testing) owns the proof that a pointer press and the application navigation chord enter the same page-selection operation. [Keyboard-navigation product acceptance](../../../product/keyboard-navigation.md#Testing) owns the chord's rendered outcomes, including when a tab holds focus. This surface does not require another rendered comparison of pointer selection with keyboard selection.
 
-Under the same rule, the [app shell](../index.md#Testing) owns the integrated presentation when there is no channel or when the focused channel has no pages. This surface's suite proves only the stage branches described above. It does not repeat the app shell's complete presentations for no channel and an empty channel.
-
+Under the same rule, the [app shell](../index.md#Testing) owns the integrated presentation when the focused channel has no pages. This surface's suite proves only the stage branches described above. It does not repeat the app shell's complete presentation for an empty channel.

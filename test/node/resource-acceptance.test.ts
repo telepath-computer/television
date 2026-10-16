@@ -52,9 +52,9 @@ async function createChannel(server: BuiltServer, name: string): Promise<string>
 /** Registers `file` as a path artifact on a new channel, and returns its ID. */
 async function createArtifact(server: BuiltServer, title: string, file = htmlFile(title)): Promise<string> {
   const channelID = await createChannel(server, title);
-  const created = await server.tv(["create-path-artifact", "--channel", channelID, "--title", title, "--path", file, "--no-focus"]);
+  const created = await server.tv(["create-artifact", "--channel", channelID, "--title", title, "--path", file, "--no-focus"]);
   expect(created.exitCode, created.stderr).toBe(0);
-  return /Path artifact (\S+) created\./.exec(created.stdout)![1]!;
+  return /Artifact (\S+) created\./.exec(created.stdout)![1]!;
 }
 
 /** An artifact's record, as `tv get-artifact` prints it. */
@@ -147,13 +147,13 @@ describe("the share commands at the shell", () => {
 
       const unknownLevel = await server.tv(["share-artifact", "--id", artifactID, "--access", "write"]);
       expectRefused(unknownLevel, "with an unknown level", "--access");
-      expect(unknownLevel.stderr).toContain("Television ships bundled skills.");
+      expect(unknownLevel.stderr).toContain("Television ships the `television` skill");
       const missing = "01JBNOSUCHARTIFACT00000000";
       expectRefused(await server.tv(["share-artifact", "--id", missing, "--access", "read"]), "share a missing artifact", `Artifact not found: ${missing}`);
       expectRefused(await server.tv(["unshare-artifact", "--id", missing]), "unshare a missing artifact", `Artifact not found: ${missing}`);
       const urlChannel = await createChannel(server, "Links");
-      const urlArtifact = await server.tv(["create-url-artifact", "--channel", urlChannel, "--title", "Elsewhere", "--url", "https://example.com/", "--no-focus"]);
-      const urlID = /URL artifact (\S+) created\./.exec(urlArtifact.stdout)?.[1];
+      const urlArtifact = await server.tv(["create-artifact", "--channel", urlChannel, "--title", "Elsewhere", "--url", "https://example.com/", "--no-focus"]);
+      const urlID = /Artifact (\S+) created\./.exec(urlArtifact.stdout)?.[1];
       expect(urlID, urlArtifact.stdout).toBeDefined();
       expectRefused(
         await server.tv(["share-artifact", "--id", urlID!, "--access", "read"]),
@@ -235,7 +235,7 @@ describe("resource commands at the shell", () => {
     expect(parse(await server.tv(["resource", "info", resourceID]))).toEqual({ resource: { ...described, bindings: [{ artifactID, access: "read-write" }] } });
     const neither = await server.tv(["resource", "describe", resourceID]);
     expectRefused(neither, "describe with neither", "--usage");
-    expect(neither.stderr).toContain("Television ships bundled skills.");
+    expect(neither.stderr).toContain("Television ships the `television` skill");
     expectRefused(await server.tv(["resource", "describe", resourceID, ""]), "describe with an empty description");
     expect(parse(await server.tv(["resource", "info", resourceID])).resource).toMatchObject({ description: "Launch tasks" });
 
@@ -307,7 +307,7 @@ describe("resource commands at the shell", () => {
     ]) {
       const result = await server.tv(argv);
       expectRefused(result, argv.join(" "), "Unknown tv command");
-      expect(result.stderr, argv.join(" ")).toContain("Television ships bundled skills.");
+      expect(result.stderr, argv.join(" ")).toContain("Television ships the `television` skill");
     }
 
     const headers = { "content-type": "application/json", authorization: `Bearer ${server.token}` };
@@ -449,14 +449,14 @@ describe("JSON store commands at the shell", () => {
     for (const options of [[], [...byArtifact, ...byResource], ["--name", "todos"], ["--resource-id", resourceID]]) {
       const result = await server.tv(["resource", "json", "set", ...options, "whole", "false"]);
       expectRefused(result, options.join(" ") || "no store option");
-      expect(result.stderr).toContain("Television ships bundled skills.");
+      expect(result.stderr).toContain("Television ships the `television` skill");
     }
     expect(await server.tv(["resource", "json", "get", ...byArtifact])).toEqual(ok('{"exists":true,"value":{"whole":true}}\n'));
     const missing = "01JBNOSUCHARTIFACT00000000";
     expectRefused(await server.tv(["resource", "json", "get", "--artifact", missing]), "a missing artifact", `Artifact not found: ${missing}`);
     const linkChannel = await createChannel(server, "Elsewhere");
-    const link = await server.tv(["create-url-artifact", "--channel", linkChannel, "--title", "Elsewhere", "--url", "https://example.com/", "--no-focus"]);
-    const linkID = /URL artifact (\S+) created\./.exec(link.stdout)![1]!;
+    const link = await server.tv(["create-artifact", "--channel", linkChannel, "--title", "Elsewhere", "--url", "https://example.com/", "--no-focus"]);
+    const linkID = /Artifact (\S+) created\./.exec(link.stdout)![1]!;
     const noStore = await server.tv(["resource", "json", "get", "--artifact", linkID]);
     expectRefused(noStore, "a URL artifact", "only artifacts this server serves from its own files");
     expect(noStore.stderr, "no kind of file named").not.toMatch(/HTML|Markdown/);
