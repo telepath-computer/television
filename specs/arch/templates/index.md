@@ -23,6 +23,7 @@ interface ArtifactTemplateManifest {
   name: string;
   description: string;
   version: string;
+  display?: ArtifactStartingDisplay;
 }
 
 interface ArtifactTemplate extends ArtifactTemplateManifest {
@@ -38,7 +39,9 @@ interface ArtifactTemplateScan {
 }
 ```
 
-An artifact template is valid when `manifest.json` is readable JSON with non-empty string `name` and `description` fields and a valid Semantic Versioning 2.0.0 `version`, `index.html` is a readable file at the folder root, and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. Unknown manifest fields are accepted and omitted from the validated record. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/skill-selector/index.md) owns how it is shown and its recommended dimensions. ^artifact-template-package
+`ArtifactStartingDisplay` is the [layout-owned type](../layout/index.md#^ly-creation-display). In `manifest.json`, `display` is an optional JSON object. Each of its fields is optional: `width` and `height` are finite positive numbers in reference pixels, and `fullScreen` is a boolean. An invalid `display` or recognized field invalidates the folder, with an error naming that field. Unknown fields both at the manifest root and inside `display` are accepted and omitted from the validated record.
+
+An artifact template is valid when `manifest.json` is readable JSON with non-empty string `name` and `description` fields, a valid Semantic Versioning 2.0.0 `version`, and valid `display` when present; `index.html` is a readable file at the folder root; and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/skill-selector/index.md) owns how it is shown and its recommended dimensions. ^artifact-template-package
 
 ## Discovery
 
@@ -56,6 +59,7 @@ interface CreateTemplateArtifactRequest {
   channelID: string;
   title?: string;
   data?: JSONValue; // presence replaces data.json, including when the value is null
+  display?: ArtifactStartingDisplay; // supplied fields override the template's display
   before?: string;
   after?: string;
   source: "cli" | "ui";
@@ -74,6 +78,8 @@ For creation from the Templates popover, the client sends the artifact in that b
 The create route checks request fields at runtime against `CreateTemplateArtifactRequest`, including `source` being exactly `cli` or `ui`. A different source or any other malformed field receives the same bad-request response as other application routes, HTTP `400` with `{ error: string }`, before any folder, artifact record, or store is created. A rejected source never reaches telemetry. ^artifact-template-request-validation
 
 `JSONValue` is the [JSON store type](../resources/json-store.md#^js-arch-sdk). The CLI parses `--data` or `--data-file` before making its request. The server validates whichever starting value is selected against the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits) before creating a folder, artifact record, or store. The server also checks that the channel and template are usable, that at most one of `before` and `after` is given, and that any named artifact is on that channel, following the [placement rule](../../product/cli.md#^cli-before-after), before it copies or seeds anything. The JSON text supplied to the CLI is checked for valid JSON and that size limit before it sends a request. ^artifact-template-preflight
+
+The server checks a request's `display` against the [starting display contract](../layout/index.md#^ly-creation-display) before copying or creating anything. It combines each supplied field with the template's validated `display` and the shared defaults according to the [product's precedence rule](../../product/templates.md#^artifact-template-starting-display). The Templates popover omits `display` from its request.
 
 Television copies the selected template folder into a fresh folder under `<home>/artifacts/`. It excludes `manifest.json`, `data.json`, and `thumbnail.png`; it copies `README.md` and other supporting files. It registers a normal folder path artifact pointing at the copy, with the template name or supplied title, and rechecks placement as it saves the channel layout. Once registration and placement succeed, the server sets any starting value at the root of the artifact's own store through the [resource layer's first-write path](../resources/index.md#^rs-first-write). Creation succeeds when these steps complete and any starting value is durably saved.
 

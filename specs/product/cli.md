@@ -448,10 +448,12 @@ Channel <channel-id> deleted:
 ### Creating an artifact
 
 ```bash
-tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
+tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--width <px>] [--height <px>] [--full-screen | --no-full-screen] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
 ```
 
 Exactly one of `--path`, `--url`, and `--template` is required. `--title` is required with a path or URL; with a template, it defaults to the template's name. `--data` and `--data-file` are allowed only with `--template`. A missing or multiple source, a missing required title, or data supplied with a path or URL is a directive error before any creation request. `--channel` and exactly one focus directive are required, with no focus default. `--focus-artifact` sends a transient artifact-focus nudge after creation; `--no-focus` leaves focus unchanged. The new artifact goes at the end of the channel's order unless `--before` or `--after` places it beside another artifact ([placement](#^cli-before-after)). ^cli-create-artifact
+
+For every source, `--width` and `--height` set the artifact's starting size in reference pixels; either may be given alone. `--full-screen` starts it in full-screen mode, and `--no-full-screen` starts it out of that mode. Each size must be a finite positive number. Giving both full-screen options or an invalid size is a directive error, and nothing is created. The supplied options take their place in the [starting-value order](./templates.md#^artifact-template-starting-display). The size remains beneath full-screen mode, so leaving that mode returns the artifact to its starting size unless it has been resized. ^cli-create-display
 
 Every source prints the same two lines on success:
 
