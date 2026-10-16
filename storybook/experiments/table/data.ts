@@ -157,10 +157,14 @@ export const empty: TableData = {
 };
 
 // A deterministic pseudo-random sequence, so generated tables are the same
-// on every render.
-const sequence = (seed: number) => () => {
-  seed = (seed * 1664525 + 1013904223) % 4294967296;
-  return seed / 4294967296;
+// on every render. The seed is scrambled first: nearby seeds would otherwise
+// start with nearly the same values.
+const sequence = (seed: number) => {
+  seed = Math.imul(seed ^ 0x9e3779b9, 0x85ebca6b) >>> 0;
+  return () => {
+    seed = (seed * 1664525 + 1013904223) % 4294967296;
+    return seed / 4294967296;
+  };
 };
 
 const people = ["Rupert", "Josh", "Stephen", "Izzi", "Ade", "Julie"];
