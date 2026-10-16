@@ -45,8 +45,7 @@ None beyond the stages above.
 | Stage | Status |
 |---|---|
 | Proofs | Done: 7 proofs at `5e95062`; review round 1 PASS with three non-blocking findings, applied with the implementation (its review is the follow-up review) |
-| Implementation, red/green TDD | In progress, one slice |
-| Full verification | Not started |
-| PR description | Not started |
-
+| Implementation, red/green TDD | Done: `6372243`; review round 1 FAIL (open clients missed the layout for an unplaced artifact with display options; missing height precedence case), fixed in `0a1e117`; round 2 PASS with no findings. Round 2 also served as the follow-up review of the three proof refinements |
+| Full verification | Passed at `0a1e117` on Blaxel: 22 of 22 surfaces, 0 failed, 0 recovered retries, 0 leaks, 0 infrastructure failures; attestation `refs/testpass/1/92e655f79bdd432d97a2e7947ef6be15f70411b9`. The run at `6372243` recovered one retry in the unchanged channel-switcher drag test (`packages/web/test/e2e/channel-switcher-context-menu.test.ts:218`); it did not recur |
+| PR description | Updated with a Display options section |
 - Open: `npm run type-check` in `storybook/` reports 3 errors in `.storybook/preview.ts` (the icon frame import and the adopted-styles loop). They predate the display options work and are on this branch's head; fix before merge.
