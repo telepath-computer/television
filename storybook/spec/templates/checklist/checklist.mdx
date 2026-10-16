@@ -29,13 +29,23 @@ Typing in the add field and pressing Return adds the text as a new item at the e
 
 ## Items
 
-Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types. Return ends editing and moves the focus to the add field. An item whose text is cleared and then left is removed.
+Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types. Return in an item adds a new, empty item directly below it and puts the caret there, so a list can be typed one line after another. An item whose text is cleared and then left is removed.
 
 <Canvas of={Stories.EditingItem} />
 
 Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. Long items wrap, with the box beside their first line.
 
 <Canvas of={Stories.LongItems} />
+
+## Changes from elsewhere
+
+The page updates live when an agent or another viewer changes the checklist. A change to the item the person is editing does not replace what they are typing: their text wins, and is saved when they type or leave the item. Changes to the title and to other items show at once.
+
+## Read-only
+
+When the page can only read its store, as through a read-only share link, the title and items are shown as text, the boxes cannot be ticked, and there is no add field or remove button. The page switches between editable and read-only as its access changes, and is read-only while it has no access at all, as after the share link it was opened through is revoked, keeping what it last showed.
+
+<Canvas of={Stories.ReadOnly} />
 
 ## A long list
 

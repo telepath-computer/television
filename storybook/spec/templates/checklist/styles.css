@@ -98,6 +98,10 @@ body {
   mask: var(--icon-check) center / 80% no-repeat;
 }
 
+.checklist-check:disabled {
+  cursor: default;
+}
+
 .checklist-check:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

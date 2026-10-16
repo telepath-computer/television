@@ -50,20 +50,23 @@ interface TableData {
 
 ## Checklist
 
-A plain list of items to tick off, simpler than the former `tv-tasks` model.
+**Settled by Rupert on October 16, 2026.** The page's look and behaviour are the spec pilot in `storybook/spec/templates/checklist/` (stories, `checklist.mdx`, `styles.css`): a sheet of paper with an editable title, items that tick, edit in place and wrap, and an "Add an item" field.
 
 ```ts
 interface ChecklistData {
   title: string;
-  items: Record<string, { order: number; text: string; done: boolean }>;
+  items: Record<string, { order: number; text: string; done: boolean }>; // keys from push
 }
 ```
 
-**Recommendation.** Fully usable by a person: add an item, edit its text, tick or untick it, remove it. Each change writes only that item through the SDK; adding uses `push`. No reordering. It starts with the title "Checklist" and no items, with the add field focused.
-
-**To settle.**
-1. Should ticked items move to the bottom, stay in place, or be hidden behind a "Show done" toggle?
-2. Is drag-to-reorder needed in the first version?
+Decisions:
+1. Return in the title adds a new, empty item at the top and puts the caret in it; Return in an item adds a new, empty item directly below it. An item left empty is removed.
+2. Done items stay in place, muted and struck through. No reordering in the first version.
+3. When an agent or another viewer changes the item a person is editing, the person's text wins. Other changes show at once.
+4. Read-only when the page's access to its store is `read` (a read-only share link) or `null` (no access, as after the link is revoked), detected through the SDK's `getAccess` and `onAccessChanged`; it switches live as access changes.
+5. Starting size about 640 by 800 reference pixels, through the template's display options.
+6. A new checklist has the title "Checklist" and no items, with the add field focused.
+7. The Example template is deleted when Checklist ships; it was never released.
 
 ## Markdown
 
