@@ -7,6 +7,7 @@ export {
   getChannelArtifactIDs,
   type AppearanceMode,
   type ArtifactTemplate,
+  type ArtifactDisplayOptions,
   type ArtifactTemplateScan,
   type ArtifactRemovalResult,
   type Channel,

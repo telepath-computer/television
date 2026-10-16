@@ -6,6 +6,7 @@ import type {
   CreateTemplateArtifactRequest,
   CreateTemplateArtifactResult,
   CreateArtifactResult,
+  ArtifactDisplayOptions,
   MoveArtifactResult,
   ArtifactPlacement,
   DeleteArtifactResult,
@@ -324,7 +325,7 @@ export class ArtifactClient {
   }
 
   /** Create an artifact on a channel in one round trip. */
-  create(input: ({ channelID: string } & NewArtifact & ArtifactPlacement)): Promise<CreateArtifactResult> {
+  create(input: ({ channelID: string; display?: ArtifactDisplayOptions } & NewArtifact & ArtifactPlacement)): Promise<CreateArtifactResult> {
     const body: Record<string, unknown> = {
       kind: input.kind,
       title: input.title,
@@ -338,6 +339,7 @@ export class ArtifactClient {
         break;
     }
     body.channelID = input.channelID;
+    if (input.display !== undefined) body.display = input.display;
     if (input.before !== undefined) body.before = input.before;
     if (input.after !== undefined) body.after = input.after;
     return this.#http.requestJSON<CreateArtifactResult>("POST", "/artifacts", body);

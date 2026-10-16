@@ -46,11 +46,18 @@ const createChannelSchema = z.object({
   id: z.string().optional(),
 });
 
+const artifactDisplaySchema = z.object({
+  width: z.number().finite().positive().optional(),
+  height: z.number().finite().positive().optional(),
+  fullScreen: z.boolean().optional(),
+}).strict();
+
 const createPathArtifactSchema = z
   .object({
     kind: z.literal("path"),
     title: z.string(),
     path: z.string(),
+    display: artifactDisplaySchema.optional(),
   })
   .strict();
 
@@ -59,6 +66,7 @@ const createURLArtifactSchema = z
     kind: z.literal("url"),
     title: z.string(),
     url: z.string(),
+    display: artifactDisplaySchema.optional(),
   })
   .strict();
 
@@ -78,6 +86,7 @@ const createTemplateArtifactBodySchema = z.object({
   channelID: z.string(),
   title: z.string().optional(),
   data: z.unknown().optional(),
+  display: artifactDisplaySchema.optional(),
   ...placementFields,
   source: z.enum(["cli", "ui"]),
 }).strict();

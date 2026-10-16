@@ -165,6 +165,8 @@ function runBuildExpectFailure(scriptPath: string, cwd: string): string {
 describe("skills build", () => {
   // proofs/arch/templates/authoring.md#^templates-guide-t-intro
   // proofs/arch/templates/authoring.md#^templates-guide-t-authoring
+  // proofs/arch/templates/authoring.md#^templates-guide-t-display-intro
+  // proofs/arch/templates/authoring.md#^templates-guide-t-display-authoring
   it("emits template discovery and authoring guidance beside the television skill", () => {
     const output = mkdtempSync(path.join(os.tmpdir(), "tv-template-guidance-"));
     TEMP_DIRS.push(output);
@@ -176,12 +178,16 @@ describe("skills build", () => {
     expect(skill).toContain("tv templates path");
     expect(skill).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
     expect(skill).toContain("[template authoring guidance](./templates.md)");
+    for (const option of ["--width", "--height", "--full-screen"]) expect(skill).toContain(option);
     for (const phrase of ["--home", "manifest.json", "name", "description", "version", "index.html", "data.json", "README.md", "thumbnail.png", "tv templates list", "tv templates path", "minimum version", "backed up", "replaced"]) {
       expect(guide, phrase).toContain(phrase);
     }
     expect(guide).toMatch(/README\.md[^.]*copied/);
     expect(guide).toContain("The `manifest.json`, `data.json`, and `thumbnail.png` stay with the template");
     expect(guide).not.toMatch(/created artifact[^.]*template origin/i);
+    expect(guide).toContain("display");
+    for (const field of ["width", "height", "fullScreen"]) expect(guide).toContain(field);
+    expect(guide).toContain("default starting size");
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle

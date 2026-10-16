@@ -44,7 +44,9 @@ None beyond the stages above.
 
 | Stage | Status |
 |---|---|
-| Proofs | In progress |
-| Implementation, red/green TDD | Not started |
+| Proofs | Done: 7 proofs at `5e95062`; review round 1 PASS with three non-blocking findings, applied with the implementation (its review is the follow-up review) |
+| Implementation, red/green TDD | In progress, one slice |
 | Full verification | Not started |
 | PR description | Not started |
+
+- Open: `npm run type-check` in `storybook/` reports 3 errors in `.storybook/preview.ts` (the icon frame import and the adopted-styles loop). They predate the display options work and are on this branch's head; fix before merge.

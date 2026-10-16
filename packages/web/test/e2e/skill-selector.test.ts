@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { TelevisionClient } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, TelevisionClient } from "@telepath-computer/television-shared";
 import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
 import { APPLICATION_SHELL_STATES, waitForApplicationRender } from "../../../../test/helpers/application-readiness.ts";
 import { configureTestMotion, createArtifactFile } from "./helpers.ts";
@@ -237,6 +237,40 @@ test("click and Return create after selected tab or in empty channel; failures p
     await openTemplates(page);
     await page.getByRole("combobox", { name: "Search templates" }).press("Escape");
     await expect(page.locator(".templates-popover")).not.toHaveAttribute("open", "");
+  } finally {
+    await product.dispose();
+  }
+});
+
+// proofs/product/templates.md#^templates-ac-display-ui
+test("Templates popover uses manifest display and shared defaults without sending display", async ({ page, baseURL }) => {
+  const product = await launchProductServer({ auth: true });
+  try {
+    const folder = template(product.home, "sized", "Sized");
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({
+      name: "Sized", description: "Ready to use", version: "1.0.0",
+      display: { width: 360, fullScreen: true },
+    }));
+    const client = new TelevisionClient(product.serverURL, { token: product.token });
+    const channelID = (await client.channels.list()).channels[0]!.id;
+    let requestBody: Record<string, unknown> | undefined;
+    page.on("request", (request) => {
+      if (request.url().endsWith("/templates/artifacts") && request.method() === "POST") {
+        requestBody = request.postDataJSON() as Record<string, unknown>;
+      }
+    });
+
+    await openApp(page, product, baseURL);
+    await openTemplates(page);
+    await page.locator(".template-tile").click();
+    await expect.poll(async () => (await client.channels.get({ channelID })).channel.layout).toHaveLength(1);
+    const layout = (await client.channels.get({ channelID })).channel.layout;
+    expect(layout[0]).toMatchObject({
+      geometry: { kind: "single", full_screen: true }, size: { width: 360, height: DEFAULT_PAGE_SIZE.height },
+    });
+    await expect(page.locator(".stage .page[selected]")).toHaveAttribute("full-screen", "");
+    expect(requestBody).toMatchObject({ templateID: "sized", channelID, source: "ui" });
+    expect(requestBody).not.toHaveProperty("display");
   } finally {
     await product.dispose();
   }

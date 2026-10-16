@@ -720,6 +720,64 @@ describe("CLI product spine acceptance", () => {
     expect(urlResult.stdout).toMatch(/^Artifact \S+ created\.\nTelevision registered https:\/\/example\.com\/\.\n$/);
   });
 
+  // proofs/product/cli.md#^cli-ac-create-display
+  it("creates a path artifact at its requested starting size and full-screen state", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-create-display-");
+    const target = await channel("Sized", 0);
+    const file = path.join(home, "sized.html");
+    writeFileSync(file, "<!doctype html><title>Sized</title>");
+
+    const result = await tv(["create-artifact", "--channel", target.id, "--path", file, "--title", "Sized",
+      "--width", "612.5", "--height", "481", "--full-screen", "--no-focus"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    const artifactID = /^Artifact (\S+) created\./.exec(result.stdout)?.[1];
+    expect(artifactID).toBeTruthy();
+    const layout = JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout;
+    expect(layout).toEqual([{
+      artifactIds: [artifactID], geometry: { kind: "single", full_screen: true }, size: { width: 612.5, height: 481 },
+    }]);
+  });
+
+  // proofs/product/cli.md#^cli-ac-create-display-invalid
+  it("rejects an invalid creation width before any path artifact is created", async () => {
+    const { home, channel, tv, api } = await seededServer("television-cli-create-display-invalid-");
+    const target = await channel("Unchanged", 0);
+    const file = path.join(home, "sized.html");
+    writeFileSync(file, "<!doctype html><title>Sized</title>");
+    const before = await api("GET", "/artifacts");
+
+    const result = await tv(["create-artifact", "--channel", target.id, "--path", file, "--title", "Sized",
+      "--width", "0", "--no-focus"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toContain("--width");
+    expect(result.stderr).toContain("Television ships the `television` skill");
+    expect(await api("GET", "/artifacts")).toEqual(before);
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
+  });
+
+  // proofs/product/templates.md#^templates-ac-display-cli
+  it("lets a template creation option override only its own display value", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-display-");
+    const target = await channel("Template display", 0);
+    const folder = authorTemplate(home, "sized");
+    const manifest = path.join(folder, "manifest.json");
+    writeFileSync(manifest, JSON.stringify({ name: "Sized", description: "A page", version: "1.0.0",
+      display: { width: 360, height: 420, fullScreen: true } }));
+
+    const result = await tv(["create-artifact", "--channel", target.id, "--template", "sized",
+      "--width", "500.5", "--no-full-screen", "--no-focus"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    const artifactID = /^Artifact (\S+) created\./.exec(result.stdout)?.[1];
+    expect(artifactID).toBeTruthy();
+    const expected = [{ artifactIds: [artifactID], geometry: { kind: "single", full_screen: false },
+      size: { width: 500.5, height: 420 } }];
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual(expected);
+    writeFileSync(manifest, JSON.stringify({ name: "Sized", description: "A page", version: "1.0.0",
+      display: { width: 100, height: 100, fullScreen: true } }));
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual(expected);
+  });
+
   // proofs/product/cli.md#^cli-ac-template-commands
   it("resolves templates path without reading an invalid config file", async () => {
     const home = makeTempDir("television-cli-template-path-", dirs);

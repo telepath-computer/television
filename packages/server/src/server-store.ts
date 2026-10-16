@@ -22,6 +22,7 @@ import {
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
   type ArtifactTemplate,
+  type ArtifactDisplayOptions,
   type CreateTemplateArtifactResult,
 } from "@telepath-computer/television-shared";
 import { ulid } from "ulid";
@@ -465,15 +466,16 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     channelID: string;
     path?: string;
     url?: string;
+    display?: ArtifactDisplayOptions;
   } & ArtifactPlacement, telemetryContext?: TelemetryClientContext | null): Artifact {
-    const { before, after, ...fields } = input;
+    const { before, after, display, ...fields } = input;
     const channel = this.requireChannel(fields.channelID);
     const created = this.createKindArtifact({ ...fields, id: this.newID() });
     const previousLayout = channel.layout;
     // Checked before the record is saved, so a rejected placement saves nothing.
     const nextLayout = placePage(
       channel,
-      { artifactIds: [created.id], geometry: { ...DEFAULT_PAGE_GEOMETRY }, size: { ...DEFAULT_PAGE_SIZE } },
+      newArtifactPage(created.id, display),
       { before, after },
     );
 
@@ -509,6 +511,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     channelID: string;
     title?: string;
     data?: unknown;
+    display?: ArtifactDisplayOptions;
     before?: string;
     after?: string;
     source: "cli" | "ui";
@@ -516,12 +519,13 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     const channel = this.requireChannel(input.channelID);
     const title = input.title ?? input.template.name;
     const placement = { before: input.before, after: input.after };
+    const display: ArtifactDisplayOptions = {
+      width: input.display?.width ?? input.template.display?.width,
+      height: input.display?.height ?? input.template.display?.height,
+      fullScreen: input.display?.fullScreen ?? input.template.display?.fullScreen,
+    };
     // Check placement and starting data before creating a destination.
-    placePage(channel, {
-      artifactIds: ["pending-template-artifact"],
-      geometry: { ...DEFAULT_PAGE_GEOMETRY },
-      size: { ...DEFAULT_PAGE_SIZE },
-    }, placement);
+    placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
     let startingValue: JSONValue | undefined;
     if (Object.hasOwn(input, "data")) {
       startingValue = input.data as JSONValue;
@@ -578,9 +582,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     }
 
     try {
-      channel.layout = placePage(channel, {
-        artifactIds: [id], geometry: { ...DEFAULT_PAGE_GEOMETRY }, size: { ...DEFAULT_PAGE_SIZE },
-      }, placement);
+      channel.layout = placePage(channel, newArtifactPage(id, display), placement);
       this.persistChannel(channel);
       this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel }));
     } catch (error) {
@@ -2004,6 +2006,17 @@ function storeOf(artifact: Artifact | undefined): string | undefined {
 
 function shareOf(artifact: Artifact | undefined): ArtifactShareLink | undefined {
   return artifact?.kind === "path" ? artifact.share : undefined;
+}
+
+function newArtifactPage(artifactID: string, display?: ArtifactDisplayOptions): TabPage {
+  return {
+    artifactIds: [artifactID],
+    geometry: { ...DEFAULT_PAGE_GEOMETRY, full_screen: display?.fullScreen ?? DEFAULT_PAGE_GEOMETRY.full_screen },
+    size: {
+      width: display?.width ?? DEFAULT_PAGE_SIZE.width,
+      height: display?.height ?? DEFAULT_PAGE_SIZE.height,
+    },
+  };
 }
 
 /**

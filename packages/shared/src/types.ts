@@ -79,11 +79,20 @@ export type NewArtifact =
     };
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
+
+/** Starting page values supplied with artifact creation, in reference pixels. */
+export interface ArtifactDisplayOptions {
+  width?: number;
+  height?: number;
+  fullScreen?: boolean;
+}
+
 export interface ArtifactTemplate {
   id: string;
   name: string;
   description: string;
   version: string;
+  display?: ArtifactDisplayOptions;
   hasData: boolean;
   hasThumbnail: boolean;
   path: string;
@@ -99,6 +108,7 @@ export interface CreateTemplateArtifactRequest {
   channelID: string;
   title?: string;
   data?: JSONValue;
+  display?: ArtifactDisplayOptions;
   before?: string;
   after?: string;
   source: "cli" | "ui";

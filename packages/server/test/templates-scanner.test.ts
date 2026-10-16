@@ -77,6 +77,46 @@ describe("artifact template scanner", () => {
     expect(result.templates).toMatchObject([{ id: "linked", hasThumbnail: false }]);
   });
 
+  // proofs/arch/templates/index.md#^templates-t-display-scan
+  it("keeps validated display fields and omits unknown manifest fields", () => {
+    const root = path.join(home(), "templates");
+    template(root, "without-display");
+    template(root, "partial", {
+      name: "Partial", description: "A page", version: "1.0.0", ignored: "root",
+      display: { width: 360.5, fullScreen: false, futureOption: "ignored" },
+    });
+
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.errors).toEqual([]);
+    expect(scan.templates.find(({ id }) => id === "without-display")).not.toHaveProperty("display");
+    expect(scan.templates.find(({ id }) => id === "partial")).toMatchObject({
+      display: { width: 360.5, fullScreen: false },
+    });
+    expect(scan.templates.find(({ id }) => id === "partial")).not.toHaveProperty("ignored");
+    expect(scan.templates.find(({ id }) => id === "partial")?.display).toEqual({ width: 360.5, fullScreen: false });
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-display-scan
+  it.each([
+    ["display", '"display":null', "display"],
+    ["array display", '"display":[]', "display"],
+    ["width", '"display":{"width":0}', "width"],
+    ["negative height", '"display":{"height":-4}', "height"],
+    ["nonfinite width", '"display":{"width":1e400}', "width"],
+    ["nonnumeric height", '"display":{"height":"large"}', "height"],
+    ["fullScreen", '"display":{"fullScreen":"yes"}', "fullScreen"],
+  ])("rejects invalid %s in a manifest and names its field", (_case, displaySource, field) => {
+    const root = path.join(home(), "templates");
+    const folder = template(root, "invalid");
+    writeFileSync(path.join(folder, "manifest.json"),
+      `{"name":"Invalid","description":"A page","version":"1.0.0",${displaySource}}`);
+
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.templates).toEqual([]);
+    expect(scan.errors).toHaveLength(1);
+    expect(scan.errors[0]).toMatchObject({ folder: "invalid", error: expect.stringContaining(field) });
+  });
+
   // proofs/arch/templates/index.md#^templates-t-scan
   it("rescans current folders, sorts names and IDs in English, and reports a directory read failure", () => {
     const root = path.join(home(), "templates");

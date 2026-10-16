@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSyn
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
-import { TelevisionClient } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, TelevisionClient } from "@telepath-computer/television-shared";
 import { Server } from "../src/server.ts";
 import { telemetryVersion, type BuiltTelemetryEvent } from "../src/telemetry/index.ts";
 import { createServingStore } from "../../../test/helpers/serving-store.ts";
@@ -29,15 +29,15 @@ function template(root: string, id = "sample", data?: unknown): string {
   return folder;
 }
 
-async function start(root: string) {
+async function start(root: string, recordTelemetry = true) {
   const store = createServingStore(root);
   const events: BuiltTelemetryEvent[] = [];
   const server = new Server({
     store, host: "127.0.0.1", port: 0, auth: true,
-    telemetry: {
+    ...(recordTelemetry ? { telemetry: {
       env: { TV_TELEMETRY_TEST: "1" }, version: telemetryVersion("0.1.170"),
       sink: { enqueue: (event) => { events.push(event); } },
-    },
+    } } : {}),
   });
   servers.push(server);
   await server.start();
@@ -127,6 +127,69 @@ describe("template artifact creation", () => {
     }
     const result = await client.templates.create({ templateID: "sample", channelID, source: "cli", data: null });
     expect(store.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: true, value: null });
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-display-resolution
+  it("chooses request, manifest, then default display values independently and keeps them after restart", async () => {
+    const root = home();
+    const complete = template(root, "complete");
+    writeFileSync(path.join(complete, "manifest.json"), JSON.stringify({
+      name: "Complete", description: "A page", version: "1.0.0",
+      display: { width: 360, height: 420, fullScreen: true },
+    }));
+    const partial = template(root, "partial");
+    writeFileSync(path.join(partial, "manifest.json"), JSON.stringify({
+      name: "Partial", description: "A page", version: "1.0.0", display: { width: 240 },
+    }));
+    const { server, channelID, client } = await start(root, false);
+
+    const fromCommand = await client.templates.create({
+      templateID: "complete", channelID, source: "cli", display: { width: 500.5 },
+    });
+    const explicitFalse = await client.templates.create({
+      templateID: "complete", channelID, source: "cli", display: { fullScreen: false },
+    });
+    const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui" });
+    const expected = [
+      { artifactIds: [fromCommand.artifactID], geometry: { kind: "single", full_screen: true }, size: { width: 500.5, height: 420 } },
+      { artifactIds: [explicitFalse.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 360, height: 420 } },
+      { artifactIds: [fromDefaults.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 240, height: DEFAULT_PAGE_SIZE.height } },
+    ];
+    expect((await client.channels.get({ channelID })).channel.layout).toEqual(expected);
+
+    await server.dispose();
+    servers.splice(servers.indexOf(server), 1);
+    const restarted = await start(root, false);
+    expect((await restarted.client.channels.get({ channelID })).channel.layout).toEqual(expected);
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-display-request-invalid
+  it("rejects malformed request display before copying or registering", async () => {
+    const root = home();
+    template(root);
+    const { store, server, channelID } = await start(root, false);
+    const base = { templateID: "sample", channelID, source: "cli" };
+    const invalid = [
+      { ...base, display: [] },
+      { ...base, display: { width: 0 } },
+      { ...base, display: { height: -1 } },
+      { ...base, display: { fullScreen: "yes" } },
+    ];
+    for (const body of invalid) {
+      const result = await request(server.httpServer).post("/templates/artifacts")
+        .set("Authorization", `Bearer ${store.authToken}`).send(body).expect(400);
+      expect(result.body.error).toBeTruthy();
+    }
+    const nonfinite = await request(server.httpServer).post("/templates/artifacts")
+      .set("Authorization", `Bearer ${store.authToken}`)
+      .set("Content-Type", "application/json")
+      .send(`{"templateID":"sample","channelID":"${channelID}","source":"cli","display":{"width":1e400}}`)
+      .expect(400);
+    expect(nonfinite.body.error).toBeTruthy();
+    expect(readdirSync(path.join(root, "artifacts"))).toEqual([]);
+    expect(store.listArtifacts()).toEqual([]);
+    expect(store.getChannel(channelID)?.channel.layout).toEqual([]);
+    expect(existsSync(path.join(root, "resources"))).toBe(false);
   });
 
   // proofs/arch/templates/index.md#^templates-t-copy
