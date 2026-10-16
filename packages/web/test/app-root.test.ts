@@ -347,7 +347,7 @@ describe("root shell composition and readiness (^ap-ac-markup-smoke)", () => {
         expect(main.children[0].classList.contains("top-bar")).toBe(true);
         expect(main.children[1].classList.contains("stage")).toBe(true);
         expect(main.querySelector(":scope > .top-bar > .tab-strip")).not.toBeNull();
-        expect(main.querySelector(":scope > .top-bar > .top-bar-controls > .skill-trigger"))
+        expect(main.querySelector(":scope > .top-bar > .top-bar-controls > .templates-trigger"))
           .not.toBeNull();
         expect(main.querySelector(":scope > .stage > .filmstrip")).not.toBeNull();
       }

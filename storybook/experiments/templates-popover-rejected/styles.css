@@ -1,0 +1,320 @@
+/* Rejected designs for the Templates popover, kept for reference.
+   Originally the Templates popover's interior. The panel's box, placement and dismissal
+   are the popover's ([[ui/foundation/popover/index.md]]); these styles own
+   the search bar, the list of templates and the list of
+   templates with errors. */
+
+.rejected-templates-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 380px;
+  max-height: 520px;
+  overflow: hidden;
+}
+
+/* The search bar opens the panel and names it. It is muted like an
+   artifact's title bar ([[ui/app/artifact-frame/artifact-frame.frame]]),
+   with its field borderless on the bar and a rule between it and the list. */
+.rejected-templates-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-12);
+  background: var(--frame-titlebar-background);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.rejected-templates-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-md);
+  color: var(--color-text);
+  outline: none;
+}
+
+/* Alternative: a heading naming the panel, above the search field. */
+.rejected-templates-heading {
+  margin: 0;
+  padding: var(--space-12) var(--space-12) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.rejected-templates-intro {
+  margin: 0;
+  padding: var(--space-2) var(--space-12) var(--space-2);
+  /* The description size: a touch smaller than body text. */
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+/* Alternative: a muted, bordered search field inside the panel's own
+   surface, with no bar behind it and no rule under it. */
+.rejected-templates-search-field {
+  position: relative;
+  padding: var(--space-8) var(--space-10) var(--space-4);
+  background: none;
+  border-bottom: none;
+}
+
+.rejected-templates-search-field tv-icon {
+  position: absolute;
+  left: calc(var(--space-10) + var(--space-8));
+  top: calc(50% + (var(--space-8) - var(--space-4)) / 2);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.rejected-templates-search.rejected-templates-search-field input {
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--frame-titlebar-background);
+  padding: var(--control-padding);
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  font-size: var(--control-font-size);
+}
+
+.rejected-templates-search.rejected-templates-search-field input:focus-visible {
+  outline: var(--outline-focus);
+}
+
+.rejected-templates-body {
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.rejected-templates-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A row is one option: activating it creates the artifact. */
+.rejected-template-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: var(--space-10);
+  width: 100%;
+  padding: var(--space-6);
+  border-radius: calc(var(--panel-radius) - var(--space-4));
+  cursor: default;
+}
+
+/* One highlight, the menu's: the arrow keys, the pointer and typing all move
+   it, so hover has no tint of its own. */
+.rejected-template-row[data-highlighted] {
+  background: var(--option-background-highlighted);
+}
+
+.rejected-template-row:active {
+  background: var(--option-background-active);
+}
+
+.rejected-template-image {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.rejected-template-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rejected-template-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rejected-template-name {
+  min-width: 0;
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rejected-template-description {
+  /* A touch larger than the small text size, between it and body text. */
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  /* Up to two lines, then cut off. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.rejected-templates-empty {
+  margin: 0;
+  padding: var(--space-16) var(--space-10);
+  text-align: center;
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.rejected-templates-section {
+  margin-top: var(--space-6);
+  padding: var(--space-6) var(--space-6) var(--space-2);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+}
+
+.rejected-template-invalid {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-6);
+}
+
+.rejected-template-invalid tv-icon {
+  flex: none;
+  width: 24px;
+  margin-top: 0.15em;
+  color: var(--color-alert);
+  display: flex;
+  justify-content: center;
+}
+
+.rejected-template-invalid .rejected-template-name {
+  font-weight: var(--font-weight-semibold);
+}
+
+.rejected-template-invalid .rejected-template-description {
+  white-space: normal;
+}
+
+/* Alternative: tiles. The panel gets more room; each template is a rounded
+   rectangle holding a flat card, with a fine edge and a soft shadow, and its
+   name underneath. The rectangle takes the menu's highlight tint when
+   highlighted, by the pointer or the arrow keys, and its pressed tint while
+   pressed. */
+.rejected-templates-popover-tiles[open] {
+  width: 400px;
+  max-height: 560px;
+  padding: var(--space-8);
+}
+
+.rejected-templates-popover-tiles .rejected-templates-body {
+  padding: var(--space-20) var(--space-12) var(--space-24);
+}
+
+.rejected-templates-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.rejected-template-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-8) var(--space-8);
+  border-radius: var(--panel-radius);
+  cursor: default;
+}
+
+.rejected-template-tile[data-highlighted] {
+  background: var(--option-background-highlighted);
+}
+
+.rejected-template-tile[data-pressed],
+.rejected-template-tile:active {
+  background: var(--option-background-active);
+}
+
+.rejected-template-tile-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Portrait, narrower than its rectangle, so the card has room around it. */
+  width: 76%;
+  aspect-ratio: 4 / 5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 28px;
+  box-shadow:
+    0 0 0 0.5px oklch(0% 0 0 / 12%),
+    0 1px 2px oklch(0% 0 0 / 6%),
+    0 2px 8px oklch(0% 0 0 / 6%);
+}
+
+.rejected-template-tile-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+}
+
+
+.rejected-template-tile-name {
+  max-width: 100%;
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Rejected: tiles tilted in 3D, each leaning back and turned a degree or
+   two, alternating, with stronger shadows. */
+.rejected-templates-popover-tilted .rejected-templates-tiles {
+  gap: var(--space-20) var(--space-16);
+}
+
+.rejected-templates-popover-tilted .rejected-template-tile {
+  padding: 0;
+  background: none;
+}
+
+.rejected-templates-popover-tilted .rejected-template-tile-card {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  box-shadow:
+    0 1px 1px oklch(0% 0 0 / 8%),
+    0 4px 8px oklch(0% 0 0 / 10%),
+    0 10px 20px oklch(0% 0 0 / 8%);
+  outline: 1px solid oklch(0% 0 0 / 6%);
+  transform: perspective(600px) rotateX(8deg) rotate(-2deg);
+}
+
+.rejected-templates-popover-tilted .rejected-template-tile:nth-child(even) .rejected-template-tile-card {
+  transform: perspective(600px) rotateX(8deg) rotate(1.5deg);
+}
+
+.rejected-templates-popover-tilted .rejected-template-tile:nth-child(3n) .rejected-template-tile-card {
+  transform: perspective(600px) rotateX(8deg) rotate(-1deg);
+}

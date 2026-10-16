@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import postcss from "postcss";
@@ -163,6 +163,44 @@ function runBuildExpectFailure(scriptPath: string, cwd: string): string {
 }
 
 describe("skills build", () => {
+  // proofs/arch/templates/authoring.md#^templates-guide-t-intro
+  // proofs/arch/templates/authoring.md#^templates-guide-t-authoring
+  it("emits template discovery and authoring guidance beside the television skill", () => {
+    const output = mkdtempSync(path.join(os.tmpdir(), "tv-template-guidance-"));
+    TEMP_DIRS.push(output);
+    runBuild(path.join(REPO_ROOT, "packages/skills/scripts/build.mjs"), REPO_ROOT, { TV_SKILLS_DIST_DIR: output });
+    const skill = readDistFile(output, "television", "SKILL.md");
+    const guide = readDistFile(output, "television", "templates.md");
+    expect(skill).toContain("tv templates list");
+    expect(skill).toContain("tv create-artifact --template");
+    expect(skill).toContain("tv templates path");
+    expect(skill).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
+    expect(skill).toContain("[template authoring guidance](./templates.md)");
+    for (const phrase of ["--home", "manifest.json", "name", "description", "version", "index.html", "data.json", "README.md", "thumbnail.png", "tv templates list", "tv templates path", "minimum version", "backed up", "replaced"]) {
+      expect(guide, phrase).toContain(phrase);
+    }
+    expect(guide).toMatch(/README\.md[^.]*copied/);
+    expect(guide).toContain("The `manifest.json`, `data.json`, and `thumbnail.png` stay with the template");
+    expect(guide).not.toMatch(/created artifact[^.]*template origin/i);
+  });
+
+  // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
+  // proofs/arch/templates/authoring.md#^templates-guide-t-intro
+  it("ships one television skill whose guidance uses the current creation command and shipped skill set", () => {
+    const output = mkdtempSync(path.join(os.tmpdir(), "tv-skill-guidance-current-"));
+    TEMP_DIRS.push(output);
+    runBuild(path.join(REPO_ROOT, "packages/skills/scripts/build.mjs"), REPO_ROOT, { TV_SKILLS_DIST_DIR: output });
+    expect(readdirSync(output)).toEqual(["television"]);
+    for (const name of ["SKILL.md", "theming.md", "resources.md", "templates.md"]) {
+      const guidance = readDistFile(output, "television", name);
+      expect(guidance, name).not.toMatch(/create-(?:path|url)-artifact/);
+      expect(guidance, name).not.toMatch(/\btv-(?:calendar|table|tasks)\b/);
+      expect(guidance, name).not.toMatch(/matching skill|speciali[sz]ed artifact skill/i);
+    }
+    expect(readDistFile(output, "television", "SKILL.md")).toContain("tv create-artifact --path");
+    expect(readDistFile(output, "television", "SKILL.md")).toContain("tv create-artifact --url");
+  });
+
   // proofs/arch/cli/index.md#^cli-t-skill-placement-wording
   it("television skill describes placing artifacts before or after another without saying page", () => {
     const skillsDistRoot = mkdtempSync(path.join(os.tmpdir(), "tv-skills-dist-"));
@@ -184,32 +222,31 @@ describe("skills build", () => {
     expect(guidance).not.toMatch(/\bpages?\b/i);
   });
 
-  it("builds the manifest collection with television theming guidance and specialist artifacts", () => {
-    const skillsDistRoot = mkdtempSync(path.join(os.tmpdir(), "tv-skills-dist-"));
-    TEMP_DIRS.push(skillsDistRoot);
+  // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
+  it("builds only television for agents and separates calendar and task components for onboarding", () => {
+    const skillsDistRoot = path.join(REPO_ROOT, "packages/skills/dist");
+    const onboardingDistRoot = path.join(REPO_ROOT, "packages/skills/onboarding-dist");
+    execFileSync("npm", ["--workspace", "@telepath-computer/television-skills", "run", "build"], { cwd: REPO_ROOT, stdio: "pipe" });
 
-    runBuild(path.join(REPO_ROOT, "packages", "skills", "scripts", "build.mjs"), REPO_ROOT, {
-      TV_SKILLS_DIST_DIR: skillsDistRoot,
-    });
+    expect(JSON.parse(readFileSync(path.join(REPO_ROOT, "packages/skills/skills.json"), "utf8")).skills).toEqual(["television"]);
+    expect(readdirSync(skillsDistRoot)).toEqual(["television"]);
 
     expect(existsSync(path.join(skillsDistRoot, "television", "SKILL.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "theming.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "resources.md"))).toBe(true);
+    expect(existsSync(path.join(skillsDistRoot, "television", "templates.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "house-style.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "cli-capabilities.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "artifact-workflow.md"))).toBe(false);
 
-    expect(existsSync(path.join(skillsDistRoot, "tv-calendar", "SKILL.md"))).toBe(true);
-    expect(existsSync(path.join(skillsDistRoot, "tv-calendar", "calendar.js"))).toBe(true);
-    expect(existsSync(path.join(skillsDistRoot, "tv-calendar", "calendar.css"))).toBe(true);
-    expect(existsSync(path.join(skillsDistRoot, "tv-calendar", "house-style.md"))).toBe(false);
-
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "SKILL.md"))).toBe(true);
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "house-style.md"))).toBe(false);
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "example"))).toBe(false);
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "docs"))).toBe(false);
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "src"))).toBe(false);
-    expect(existsSync(path.join(skillsDistRoot, "tv-table", "package.json"))).toBe(false);
+    expect(readdirSync(onboardingDistRoot).sort()).toEqual(["tv-calendar", "tv-tasks"]);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-calendar/calendar.js"))).toBe(true);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-calendar/calendar.css"))).toBe(true);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-tasks/task.js"))).toBe(true);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-tasks/task.css"))).toBe(true);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-calendar/SKILL.md"))).toBe(false);
+    expect(existsSync(path.join(onboardingDistRoot, "tv-tasks/SKILL.md"))).toBe(false);
+    expect(existsSync(path.join(skillsDistRoot, "tv-table"))).toBe(false);
 
     expect(existsSync(path.join(skillsDistRoot, "tv-theme"))).toBe(false);
     const retiredThemeSource = path.join(
@@ -257,6 +294,7 @@ describe("skills build", () => {
     expect(televisionSkill).not.toContain("scroll and highlight the artifact");
     expect(televisionSkill).not.toContain("remove its card from its channel");
     expect(televisionSkill).not.toContain("removes its registry record and its card from the channel");
+    // proofs/arch/making-skills.md#^making-skills-t-authored-app-version
     expect(televisionSkill).toContain(
       '/canonical/v2/styles.css?authoredForAppVersion=<version>',
     );
@@ -271,6 +309,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("advisory authoring context");
     expect(televisionSkill).toContain("[theming guidance](./theming.md)");
     expect(televisionSkill).toContain("[resource guidance](./resources.md)");
+    expect(televisionSkill).toContain("[template authoring guidance](./templates.md)");
 
     const htmlGuidance = readFileSync(
       path.join(
@@ -287,6 +326,7 @@ describe("skills build", () => {
     const compatibility = canonicalCompatibilityFixture();
     const publicTokens = publicFoundationTokens();
     const iconNames = publicIconNames();
+    // proofs/arch/canonical.md#^cn-t-skill-guidance
     expect(publicTokens).toEqual([...compatibility.tokens["canonical-v2"]!].sort());
     expect(iconNames).toHaveLength(101);
 
@@ -317,8 +357,8 @@ describe("skills build", () => {
       for (const token of retiredTokens) expect(guidance, token).not.toContain(token);
     }
     const artifactSkillStylesheets = [
-      readDistFile(skillsDistRoot, "tv-calendar", "calendar.css"),
-      readDistFile(skillsDistRoot, "tv-tasks", "task.css"),
+      readDistFile(onboardingDistRoot, "tv-calendar", "calendar.css"),
+      readDistFile(onboardingDistRoot, "tv-tasks", "task.css"),
     ];
     for (const stylesheet of artifactSkillStylesheets) {
       const executableCSS = stylesheet.replace(/\/\*[\s\S]*?\*\//g, "");
@@ -395,21 +435,6 @@ describe("skills build", () => {
     expect(televisionSkill).not.toContain("800px");
     expect(televisionSkill).not.toContain("--persist-uninstall");
 
-    const artifactCalendarSkill = readDistFile(skillsDistRoot, "tv-calendar", "SKILL.md");
-    expect(artifactCalendarSkill).toMatch(/^---\nname: tv-calendar\ndescription: .+\n---/);
-    expect(artifactCalendarSkill).not.toContain("/skills/artifact-calendar/calendar.css");
-    expect(artifactCalendarSkill).not.toContain("/skills/artifact-calendar/calendar.js");
-    expect(artifactCalendarSkill).toContain("Know the main `television` skill first.");
-    expect(artifactCalendarSkill).toContain("Re-read it only if it is not already in your context or you know it changed.");
-    expect(artifactCalendarSkill).not.toContain("house-style.md");
-
-    const artifactTableSkill = readDistFile(skillsDistRoot, "tv-table", "SKILL.md");
-    expect(artifactTableSkill).toMatch(/^---\nname: tv-table\ndescription: .+\n---/);
-    expect(artifactTableSkill).toContain("Know the main `television` skill first.");
-    expect(artifactTableSkill).toContain("Re-read it only if it is not already in your context or you know it changed.");
-    expect(artifactTableSkill).not.toContain("house-style.md");
-
-    const artifactTasksSkill = readDistFile(skillsDistRoot, "tv-tasks", "SKILL.md");
     const sidebarViewSkill = readFileSync(
       path.join(REPO_ROOT, "packages", "skills", "skills", "tv-sidebar-view", "SKILL.md"),
       "utf8",
@@ -418,9 +443,6 @@ describe("skills build", () => {
       "For a running server, read the exact release `version` from `tv status`; " +
       "when working in a Television checkout, read the exact version from the checkout root `package.json`.";
     for (const skill of [
-      artifactTasksSkill,
-      artifactCalendarSkill,
-      artifactTableSkill,
       sidebarViewSkill,
     ]) {
       expect(skill).toContain("/canonical/v2/styles.css?authoredForAppVersion=<version>");
@@ -429,11 +451,7 @@ describe("skills build", () => {
       expect(skill).toContain(APP_VERSION_PASSTHROUGH);
       expect(skill).toContain(NONRELEASE_VERSION_GUIDANCE);
     }
-    const artifactTasksCSS = readDistFile(skillsDistRoot, "tv-tasks", "task.css");
-    expect(artifactTasksSkill).toContain("Television's frame already names the artifact");
-    expect(artifactTasksSkill).toContain("frame title doesn't say");
-    expect(artifactTasksSkill).not.toContain("Television card");
-    expect(artifactTasksSkill).not.toContain("card name");
+    const artifactTasksCSS = readDistFile(onboardingDistRoot, "tv-tasks", "task.css");
     expect(artifactTasksCSS).toContain("artifact frame supplies the chrome around the document");
     expect(artifactTasksCSS).not.toContain("card chrome");
 

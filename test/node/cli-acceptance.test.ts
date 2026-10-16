@@ -42,12 +42,13 @@ function cliEnvironment(overrides: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return { ...env, ...overrides };
 }
 
-async function runNodeEntry(entryPath: string, args: string[], options: { env?: NodeJS.ProcessEnv; cwd?: string } = {}): Promise<CLIResult> {
+async function runNodeEntry(entryPath: string, args: string[], options: { env?: NodeJS.ProcessEnv; cwd?: string; input?: string } = {}): Promise<CLIResult> {
   const owned = spawnOwnedProcess(process.execPath, [entryPath, ...args], {
     cwd: options.cwd ?? REPO_ROOT,
     env: options.env ?? cliEnvironment(),
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: [options.input === undefined ? "ignore" : "pipe", "pipe", "pipe"],
   });
+  if (options.input !== undefined) owned.child.stdin?.end(options.input);
   let stdout = "";
   let stderr = "";
   owned.child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
@@ -71,7 +72,7 @@ async function runNodeEntry(entryPath: string, args: string[], options: { env?: 
   }
 }
 
-async function runBuiltCLI(args: string[], options: { env?: NodeJS.ProcessEnv; cwd?: string; cliPath?: string } = {}): Promise<CLIResult> {
+async function runBuiltCLI(args: string[], options: { env?: NodeJS.ProcessEnv; cwd?: string; cliPath?: string; input?: string } = {}): Promise<CLIResult> {
   return runNodeEntry(options.cliPath ?? BUILT_CLI, args, options);
 }
 
@@ -258,7 +259,7 @@ describe("CLI product spine acceptance", () => {
     expect(result.signal).toBeNull();
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(`Television server at http://localhost:${running.port} rejected the request as unauthorized. Check the token in ${path.join(clientHome, "state", "token")}.`);
-    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(result.stderr).toContain("Television ships the `television` skill");
   });
 
   // [[product/cli.md#^cli-ac-links-unreachable]]: a TCP forwarder keeps the
@@ -529,10 +530,10 @@ describe("CLI product spine acceptance", () => {
     expect(result.signal).toBeNull();
     expect(result.stdout).toBe("");
     expect(result.stderr).toMatch(new RegExp(
-      `^Channel not found: ${channelID}\\nTelevision ships bundled skills\\.`,
+      `^Channel not found: ${channelID}\\nTelevision ships the .* skill`,
     ));
-    expect(result.stderr).toContain("The main skill is `television`");
-    expect(result.stderr).toContain("Install all bundled skills with `tv skills install <path>`");
+    expect(result.stderr).toContain("keep its guidance available");
+    expect(result.stderr).toContain("Install it with `tv skills install <path>`");
   });
 
 
@@ -563,9 +564,170 @@ describe("CLI product spine acceptance", () => {
       return { id: created.id as string, artifactIDs };
     };
     const layout = async (channelID: string) => (await api("GET", `/channels/${encodeURIComponent(channelID)}`)).channel.layout;
-    const tv = (args: string[]) => runBuiltCLI(["--home", storagePath, ...args, "--port", String(running.port)]);
-    return { running, token, api, channel, layout, tv };
+    const tv = (args: string[], input?: string) => runBuiltCLI(["--home", storagePath, ...args, "--port", String(running.port)], { input });
+    return { home: storagePath, running, token, api, channel, layout, tv };
   }
+
+  function authorTemplate(home: string, id: string): string {
+    const folder = path.join(home, "templates", id);
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Authored Example", description: "A test page", version: "1.0.0" }));
+    writeFileSync(path.join(folder, "index.html"), '<!doctype html><title>Authored Example</title><script src="support.js"></script>');
+    writeFileSync(path.join(folder, "support.js"), "window.example = true;\n");
+    writeFileSync(path.join(folder, "README.md"), "Adapt this copy.\n");
+    writeFileSync(path.join(folder, "data.json"), '{"message":"from template"}');
+    return folder;
+  }
+
+  // proofs/arch/cli/index.md#^cli-bundled-template-resolution
+  it("installs packaged Example before the first templates list in a fresh home", async () => {
+    const { home, tv } = await seededServer("television-cli-bundled-template-");
+    const result = await tv(["templates", "list"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    const scan = JSON.parse(result.stdout);
+    expect(scan.templates).toContainEqual(expect.objectContaining({ id: "example", name: "Example", path: path.join(home, "templates", "example") }));
+    expect(scan.errors).toEqual([]);
+    expect(existsSync(path.join(home, "templates/example/index.html"))).toBe(true);
+  });
+
+  // proofs/product/templates.md#^templates-ac-discovery
+  // proofs/product/templates.md#^templates-ac-cli-refusal
+  it("rescans authored templates and refuses an invalid or removed folder", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-scan-");
+    const target = await channel("Templates", 0);
+    const valid = authorTemplate(home, "custom");
+    const broken = path.join(home, "templates", "broken");
+    mkdirSync(broken);
+    writeFileSync(path.join(broken, "index.html"), "<!doctype html><title>Broken</title>");
+    const first = JSON.parse((await tv(["templates", "list"])).stdout);
+    expect(first.templates).toContainEqual(expect.objectContaining({ id: "custom", path: valid }));
+    expect(first.errors).toContainEqual(expect.objectContaining({ folder: "broken", error: expect.any(String) }));
+    const rejected = await tv(["create-artifact", "--channel", target.id, "--template", "broken", "--no-focus"]);
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stdout).toBe("");
+    expect(rejected.stderr).toContain(first.errors.find((entry: { folder: string }) => entry.folder === "broken").error);
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
+    writeFileSync(path.join(broken, "manifest.json"), JSON.stringify({ name: "Repaired", description: "Now valid", version: "1.0.0" }));
+    expect(JSON.parse((await tv(["templates", "list"])).stdout).templates).toContainEqual(expect.objectContaining({ id: "broken", name: "Repaired" }));
+    rmSync(broken, { recursive: true });
+    const absent = await tv(["create-artifact", "--channel", target.id, "--template", "broken", "--no-focus"]);
+    expect(absent.exitCode).toBe(1);
+    expect(absent.stdout).toBe("");
+    expect(absent.stderr).toMatch(/not found/i);
+  });
+
+  // proofs/product/templates.md#^templates-ac-cli-create
+  it("creates an independent template copy with seeded store and ordinary artifact lifecycle", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-create-");
+    const target = await channel("Templates", 0);
+    const source = authorTemplate(home, "custom");
+    const created = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--title", "Chosen title", "--no-focus"]);
+    expect(created.exitCode, created.stderr).toBe(0);
+    const match = /^Artifact (\S+) created\.\nTelevision registered (.+)\.\n$/.exec(created.stdout);
+    expect(match).not.toBeNull();
+    const [, artifactID, copy] = match!;
+    expect(copy).toMatch(new RegExp(`^${home}/artifacts/`));
+    expect(readFileSync(path.join(copy!, "index.html"), "utf8")).toBe(readFileSync(path.join(source, "index.html"), "utf8"));
+    expect(readFileSync(path.join(copy!, "support.js"), "utf8")).toBe(readFileSync(path.join(source, "support.js"), "utf8"));
+    expect(readFileSync(path.join(copy!, "README.md"), "utf8")).toBe("Adapt this copy.\n");
+    expect(JSON.parse((await tv(["resource", "json", "get", "--artifact", artifactID!])).stdout).value).toEqual({ message: "from template" });
+    writeFileSync(path.join(copy!, "support.js"), "window.changed = true;\n");
+    expect(readFileSync(path.join(source, "support.js"), "utf8")).toBe("window.example = true;\n");
+    expect((await tv(["update-artifact", "--id", artifactID!, "--title", "Retitled"])).exitCode).toBe(0);
+    const artifact = JSON.parse((await tv(["get-artifact", "--id", artifactID!])).stdout).artifact;
+    expect(artifact).toMatchObject({ id: artifactID, title: "Retitled" });
+    expect(path.resolve(artifact.path)).toBe(copy);
+    expect(typeof artifact.store).toBe("string");
+    const storeFile = path.join(home, "resources", "json", artifact.store, "content.json");
+    const storedValue = readFileSync(storeFile, "utf8");
+    expect((await tv(["delete-artifact", "--id", artifactID!])).exitCode).toBe(0);
+    expect(existsSync(copy!)).toBe(true);
+    expect(readFileSync(storeFile, "utf8")).toBe(storedValue);
+  });
+
+  // proofs/product/cli.md#^cli-ac-template-stdin
+  it("reads piped stdin as replacement starting data in a built CLI process", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-stdin-");
+    const target = await channel("Templates", 0);
+    authorTemplate(home, "custom");
+    const created = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--data-file", "-", "--no-focus"], '{"message":"from stdin"}');
+    expect(created.exitCode, created.stderr).toBe(0);
+    const artifactID = /^Artifact (\S+) created\./.exec(created.stdout)![1]!;
+    expect(JSON.parse((await tv(["get-artifact", "--id", artifactID])).stdout).artifact.title).toBe("Authored Example");
+    expect(JSON.parse((await tv(["resource", "json", "get", "--artifact", artifactID])).stdout).value).toEqual({ message: "from stdin" });
+  });
+
+  // proofs/product/templates.md#^templates-ac-cli-post-copy-failure
+  it("reports a failed store seed without creation success lines and leaves the copy for inspection", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-seed-failure-");
+    const target = await channel("Templates", 0);
+    const source = authorTemplate(home, "custom");
+    rmSync(path.join(home, "resources"), { recursive: true, force: true });
+    writeFileSync(path.join(home, "resources"), "obstruction");
+    const result = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--no-focus"]);
+    expect(result.exitCode).toBe(1);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toMatch(/Template store write for \S+ in (\S+) could not be confirmed/);
+    const [, artifactID, copy] = /Template store write for (\S+) in (\S+) could not be confirmed/.exec(result.stderr)!;
+    expect(existsSync(path.join(copy!, "index.html"))).toBe(true);
+    expect(path.resolve(JSON.parse((await tv(["get-artifact", "--id", artifactID!])).stdout).artifact.path)).toBe(copy);
+    expect(readFileSync(path.join(source, "data.json"), "utf8")).toBe('{"message":"from template"}');
+  });
+
+  // proofs/product/cli.md#^cli-ac-create-artifact
+  it("prints common creation output before focus and retains it when focus fails", async () => {
+    const { home, running, token, channel, tv } = await seededServer("television-cli-create-focus-");
+    const a = await channel("A", 0);
+    const b = await channel("B", 0);
+    authorTemplate(home, "custom");
+    const eventsURL = new URL("/events", running.startupURL);
+    eventsURL.protocol = "ws:";
+    eventsURL.search = new URLSearchParams({ token }).toString();
+    const ws = new WebSocket(eventsURL);
+    await new Promise<void>((resolve, reject) => { ws.once("open", resolve); ws.once("error", reject); });
+    const signal = new Promise<any>((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Timed out waiting for artifact-focus")), 5_000);
+      ws.on("message", (data) => {
+        const event = JSON.parse(String(data));
+        if (event.type !== "artifact-focus") return;
+        clearTimeout(timeout);
+        resolve(event);
+      });
+    });
+    const focused = await tv(["create-artifact", "--channel", b.id, "--template", "custom", "--focus-artifact"]);
+    expect(focused.exitCode, focused.stderr).toBe(0);
+    const createdID = /^Artifact (\S+) created\./.exec(focused.stdout)![1]!;
+    const printedCopy = /^Artifact \S+ created\.\nTelevision registered (.+)\.\n$/.exec(focused.stdout)![1]!;
+    expect(path.resolve(JSON.parse((await tv(["get-artifact", "--id", createdID])).stdout).artifact.path)).toBe(printedCopy);
+    expect(await signal).toMatchObject({ artifactID: createdID, channelID: b.id });
+    ws.close();
+
+    expect((await tv(["focus-channel", "--channel", a.id])).exitCode).toBe(0);
+    rmSync(path.join(home, "state/display.json"), { force: true });
+    mkdirSync(path.join(home, "state/display.json"));
+    const failedFocus = await tv(["create-artifact", "--channel", b.id, "--template", "custom", "--focus-artifact"]);
+    expect(failedFocus.exitCode).toBe(1);
+    const failedID = /^Artifact (\S+) created\./.exec(failedFocus.stdout)![1]!;
+    expect(failedFocus.stdout).toMatch(/^Artifact \S+ created\.\nTelevision registered .+\.\n$/);
+    expect(failedFocus.stderr).toContain("Internal Server Error");
+    expect(JSON.parse((await tv(["get-artifact", "--id", failedID])).stdout).artifact.id).toBe(failedID);
+
+    const pathTarget = path.join(home, "plain.md");
+    writeFileSync(pathTarget, "# Plain\n");
+    const pathResult = await tv(["create-artifact", "--channel", b.id, "--path", pathTarget, "--title", "Plain", "--no-focus"]);
+    expect(pathResult.stdout).toMatch(/^Artifact \S+ created\.\nTelevision registered .+plain\.md\.\n$/);
+    const urlResult = await tv(["create-artifact", "--channel", b.id, "--url", " https://example.com/ ", "--title", "Link", "--no-focus"]);
+    expect(urlResult.stdout).toMatch(/^Artifact \S+ created\.\nTelevision registered https:\/\/example\.com\/\.\n$/);
+  });
+
+  // proofs/product/cli.md#^cli-ac-template-commands
+  it("resolves templates path without reading an invalid config file", async () => {
+    const home = makeTempDir("television-cli-template-path-", dirs);
+    writeFileSync(path.join(home, "config.json"), "not JSON");
+    const result = await runBuiltCLI(["--home", home, "templates", "path"]);
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(result.stdout).toBe(`${JSON.stringify({ templatesPath: path.join(home, "templates") })}\n`);
+  });
 
   // Spec: [[product/cli.md#^cli-ac-reposition-artifact|reposition-artifact acceptance]].
   it("reposition-artifact changes a page's size, full-screen state, and position through the built CLI and real server", async () => {
@@ -601,7 +763,7 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("--position must be from 1 to 2");
-    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(result.stderr).toContain("Television ships the `television` skill");
     expect(await layout(home.id)).toEqual(before);
   });
 
@@ -657,7 +819,7 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("Channel not found: missing-channel");
-    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(result.stderr).toContain("Television ships the `television` skill");
     expect(await layout(source.id)).toEqual(before);
   });
   // Spec: [[product/cli.md#^cli-ac-before-after|placement acceptance]].
@@ -672,10 +834,10 @@ describe("CLI product spine acceptance", () => {
         .map((page) => page.artifactIds[0]);
 
     const created = await tv([
-      "create-url-artifact", "--channel", home.id, "--title", "New", "--url", "https://example.com/new", "--after", a, "--no-focus",
+      "create-artifact", "--channel", home.id, "--title", "New", "--url", "https://example.com/new", "--after", a, "--no-focus",
     ]);
     expect(created.exitCode).toBe(0);
-    const added = /URL artifact (\S+) created\./.exec(created.stdout)![1]!;
+    const added = /Artifact (\S+) created\./.exec(created.stdout)![1]!;
     expect(await order()).toEqual([a, added, b]);
 
     expect((await tv(["move-artifact", "--id", x, "--channel", home.id, "--before", a, "--no-focus"])).exitCode).toBe(0);
@@ -696,12 +858,12 @@ describe("CLI product spine acceptance", () => {
     const artifactsBefore = (await api("GET", "/artifacts")).artifacts;
     const layoutBefore = await layout(home.id);
     const rejected = await tv([
-      "create-path-artifact", "--channel", home.id, "--title", "Note", "--path", target, "--before", elsewhere, "--no-focus",
+      "create-artifact", "--channel", home.id, "--title", "Note", "--path", target, "--before", elsewhere, "--no-focus",
     ]);
     expect(rejected.exitCode).toBe(1);
     expect(rejected.stdout).toBe("");
     expect(rejected.stderr).toContain(`Artifact ${elsewhere} is not on channel ${home.id}.`);
-    expect(rejected.stderr).toContain("Television ships bundled skills.");
+    expect(rejected.stderr).toContain("Television ships the `television` skill");
     expect((await api("GET", "/artifacts")).artifacts).toEqual(artifactsBefore);
     expect(await layout(home.id)).toEqual(layoutBefore);
   });
@@ -713,7 +875,7 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("tv list-artifacts --bogus does not support --bogus.");
-    expect(result.stderr).toContain("Television ships bundled skills.");
+    expect(result.stderr).toContain("Television ships the `television` skill");
   });
 
   // Spec: [[product/cli.md#^cli-ac-current-recovery-pointer|current recovery guidance acceptance]].
@@ -723,9 +885,9 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(
-      "The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
+      "Television ships the `television` skill — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
     );
-    expect(result.stderr).toContain("Additional `tv-*` skills cover specialized artifact types.");
+    expect(result.stderr).not.toContain("Additional `tv-*` skills cover specialized artifact types.");
     expect(result.stderr).not.toContain("specialized artifact types and theming");
   });
 
@@ -745,7 +907,7 @@ describe("CLI product spine acceptance", () => {
       expect(result.stderr.startsWith(`This version of Television does not accept ${named}. Server settings`), `${label}\n${result.stderr}`).toBe(true);
       expect(result.stderr, label).toContain("  --auth                       ->  tv config set auth true (the default)\n");
       expect(result.stderr, label).toContain("rerun tv serve --persist to update an installed service.");
-      expect(result.stderr, label).toContain("https://television.run/install.md\nTelevision ships bundled skills.");
+      expect(result.stderr, label).toContain("https://television.run/install.md\nTelevision ships the `television` skill");
     }
     expect(existsSync(home)).toBe(false);
   });
@@ -790,7 +952,7 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain(`Could not reach Television server at http://localhost:${port}:`);
-    expect(result.stderr).not.toContain("Television ships bundled skills.");
+    expect(result.stderr).not.toContain("Television ships the `television` skill");
   });
 
   // Spec: [[product/cli.md#^cli-ac-unauthorized|token-rejection acceptance]].
@@ -872,28 +1034,6 @@ describe("CLI product spine acceptance", () => {
     });
   });
 
-  // Spec: [[product/cli.md#^cli-ac-stale-theme-skill-cleanup|stale standalone-theme cleanup acceptance]].
-  it("removes a stale tv-theme directory through the built CLI process boundary", async () => {
-    const storagePath = makeTempDir("television-cli-acceptance-stale-theme-storage-", dirs);
-    const destination = makeTempDir("television-cli-acceptance-stale-theme-destination-", dirs);
-    const packagedSkills = path.join(REPO_ROOT, "packages", "cli", "dist", "skills");
-    const manifestSkillNames = readBundledSkillNames();
-    mkdirSync(path.join(destination, "tv-theme", "nested"), { recursive: true });
-    writeFileSync(path.join(destination, "tv-theme", "nested", "stale.txt"), "stale\n");
-
-    const result = await runBuiltCLI(["--home", storagePath, "skills", "install", destination]);
-
-    expect(result.exitCode).toBe(0);
-    expect(result.stderr).toBe("");
-    expect(result.stdout).toContain(`Copied ${manifestSkillNames.length} bundled Television skill(s):`);
-    expect(existsSync(path.join(destination, "tv-theme"))).toBe(false);
-    expectByteIdenticalTree(packagedSkills, destination);
-    expect(readFileSync(path.join(destination, "television", "SKILL.md"), "utf8")).toContain("./theming.md");
-    expect(readFileSync(path.join(destination, "television", "theming.md"), "utf8")).toContain(
-      "# Authoring Television themes",
-    );
-  });
-
   // Spec: [[product/cli.md#^cli-ac-skills-copy|packaged skills-copy acceptance]].
   it("copies the packaged bundled skills through the built CLI process boundary", async () => {
     const storagePath = makeTempDir("television-cli-acceptance-skills-storage-", dirs);
@@ -905,9 +1045,10 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toBe("");
     expect(result.stdout).toContain(`Copied ${manifestSkillNames.length} bundled Television skill(s):`);
-    expect(installedSkillNames).toEqual([...manifestSkillNames].sort());
-    expect(installedSkillNames).toContain("television");
+    expect(manifestSkillNames).toEqual(["television"]);
+    expect(installedSkillNames).toEqual(manifestSkillNames);
     expectByteIdenticalTree(path.join(REPO_ROOT, "packages", "cli", "dist", "skills"), destination);
+    expect(readdirSync(path.join(destination, "television")).sort()).toEqual(["SKILL.md", "resources.md", "templates.md", "theming.md"]);
 
     const installedTelevisionSkill = readFileSync(path.join(destination, "television", "SKILL.md"), "utf8");
     expect(installedTelevisionSkill).toContain("# HTML artifact style");
@@ -924,10 +1065,7 @@ describe("CLI product spine acceptance", () => {
     expect(installedTelevisionSkill).not.toContain("scroll and highlight the artifact");
     expect(installedTelevisionSkill).not.toContain("remove its card from its channel");
 
-    const installedTasksSkill = readFileSync(path.join(destination, "tv-tasks", "SKILL.md"), "utf8");
-    expect(installedTasksSkill).toContain("/canonical/v2/styles.css?authoredForAppVersion=<version>");
-    expect(installedTasksSkill).toContain("Television's frame already names the artifact");
-    expect(installedTasksSkill).not.toContain("Television card");
+    expect(installedTelevisionSkill).toContain("./templates.md");
 
     const installedTheming = readFileSync(path.join(destination, "television", "theming.md"), "utf8");
     expect(installedTelevisionSkill).toContain("./theming.md");
@@ -943,7 +1081,28 @@ describe("CLI product spine acceptance", () => {
     expect(installedTheming).not.toContain("tv state");
   });
 
-  // Spec: [[product/cli.md#^cli-ac-default-home|default-home selection]].
+  // proofs/product/cli.md#^cli-ac-skills-preserve-existing
+  // proofs/arch/cli/index.md#^cli-skills-preserve-existing
+  it("keeps existing skills and extra television files while updating bundled files", async () => {
+    const storagePath = makeTempDir("television-cli-acceptance-skills-preserve-home-", dirs);
+    const destination = makeTempDir("television-cli-acceptance-skills-preserve-destination-", dirs);
+    mkdirSync(path.join(destination, "unrelated-skill"));
+    mkdirSync(path.join(destination, "television"));
+    writeFileSync(path.join(destination, "unrelated-skill", "keep.txt"), "keep skill\n");
+    writeFileSync(path.join(destination, "television", "extra.txt"), "keep file\n");
+    writeFileSync(path.join(destination, "television", "SKILL.md"), "old guidance\n");
+
+    const result = await runBuiltCLI(["--home", storagePath, "skills", "install", destination]);
+
+    expect(result.exitCode, result.stderr).toBe(0);
+    expect(readdirSync(destination).sort()).toEqual(["television", "unrelated-skill"]);
+    expect(readFileSync(path.join(destination, "unrelated-skill", "keep.txt"), "utf8")).toBe("keep skill\n");
+    expect(readFileSync(path.join(destination, "television", "extra.txt"), "utf8")).toBe("keep file\n");
+    expect(readFileSync(path.join(destination, "television", "SKILL.md")))
+      .toEqual(readFileSync(path.join(REPO_ROOT, "packages/cli/dist/skills/television/SKILL.md")));
+  });
+
+  // proofs/product/cli.md#^cli-ac-default-home
   it("selects the default home from the operating-system home and ~/.tv-home", async () => {
     const operatingSystemHome = makeTempDir("television-cli-acceptance-os-home-", dirs);
     const otherHome = makeTempDir("television-cli-acceptance-other-home-", dirs);
@@ -961,6 +1120,9 @@ describe("CLI product spine acceptance", () => {
       const themesPath = await runBuiltCLI([...args, "themes-path"], { env });
       expect(themesPath.exitCode, themesPath.stderr).toBe(0);
       expect(themesPath.stdout).toBe(`${JSON.stringify({ themesPath: path.join(home, "themes") })}\n`);
+      const templatesPath = await runBuiltCLI([...args, "templates", "path"], { env });
+      expect(templatesPath.exitCode, templatesPath.stderr).toBe(0);
+      expect(templatesPath.stdout).toBe(`${JSON.stringify({ templatesPath: path.join(home, "templates") })}\n`);
     };
 
     await expectHome([], path.join(operatingSystemHome, ".television"));
@@ -996,8 +1158,8 @@ describe("CLI product spine acceptance", () => {
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr.startsWith(`Config file ${configPath} is not valid JSON: `), result.stderr).toBe(true);
-    expect(result.stderr).toContain("\nTelevision ships bundled skills.");
-    expect(result.stderr).toContain("Install all bundled skills with `tv skills install <path>`");
+    expect(result.stderr).toContain("\nTelevision ships the `television` skill");
+    expect(result.stderr).toContain("Install it with `tv skills install <path>`");
     expect(readFileSync(configPath, "utf8")).toBe(malformed);
   });
 });

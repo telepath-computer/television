@@ -1,5 +1,5 @@
 ---
-description: Mental model, when to create artifacts, how Television's bundled skills fit together, and where the admin guide lives. Read for channel, artifact, and CLI work, and before installing, upgrading, or reconfiguring Television.
+description: Mental model, when to create artifacts, where to find template, resource, and theme guidance, and where the admin guide lives. Read for channel, artifact, and CLI work, and before installing, upgrading, or reconfiguring Television.
 ---
 
 # Television
@@ -9,6 +9,8 @@ Television is a persistent artifact channel for agents.
 Load this skill when you need to create, update, inspect, focus, delete, or otherwise manage Television channels and artifacts.
 
 Read the [theming guidance](./theming.md) when creating, revising, or bringing an installed theme up to date.
+
+When a person asks for an artifact, check `tv templates list` and consider whether an available artifact template fits, including a request described as a “macro” or “stock artifact.” Use `tv create-artifact --template` to create from one. `tv templates path` shows the selected home's template folder. Read the [template authoring guidance](./templates.md) when creating, changing, or fixing a template.
 
 An artifact can keep data in a *JSON store*, a small database that Television keeps on its server, inspired by Firebase's Realtime Database. It keeps the data durably, shares it live with every client viewing the artifact, and lets you read and write it through the `tv` CLI. `localStorage`, cookies and IndexedDB do not work in artifacts, because artifacts run under the CSP sandbox. Touching them, or `sessionStorage`, throws `SecurityError`, so code that cannot avoid touching them, such as a library, has to catch the exception. Television offers no storage that stays in one browser. A Markdown artifact can also act as shared, synchronized, editable state, but only within Television: through a share link it is read-only, unlike a JSON store, and it lacks the presentational flexibility and interactivity of HTML. An artifact's state can also live in a third-party API or another external service it integrates with. Which fits depends on the artifact's design, its use and the person, so you decide; for a to-do list, the standard choice is a JSON store. Read the [resource guidance](./resources.md) when an artifact needs to keep state, or when the person mentions JSON stores or resources.
 
@@ -59,7 +61,7 @@ Television artifacts point to one of three shapes:
 - **Directory** — a folder with `index.html` plus sibling assets.
 - **URL** — an external `http(s)://` page or local web app URL.
 
-Register files and directories with `tv create-path-artifact`; register URLs with `tv create-url-artifact`. See `artifact-workflow.md` for choosing a shape and authoring the underlying content.
+Register files and directories with `tv create-artifact --path`; register URLs with `tv create-artifact --url`. See `artifact-workflow.md` for choosing a shape and authoring the underlying content.
 
 ### User-facing framing
 
@@ -92,12 +94,10 @@ Television's npm releases collect anonymous, content-free telemetry by default t
 
 If the user wants to opt out, you turn telemetry off for them by running `tv telemetry disable` against the running server (`tv telemetry enable` turns it back on); `tv status` reports the current telemetry state. The command needs a live server. Television also honors the standard `DO_NOT_TRACK` environment variable when it is set, but `tv telemetry disable` is the intended way to opt out. Install- and upgrade-time telemetry duties — the disclosure to give the user and the server's `installedByAgent` setting — are covered in the admin guide (see the Administration section above).
 
-## Related skills
+## Installing this skill
 
-Television guidance is split across bundled skills.
+The bundled agent skill is `television`. It covers channels, focus, artifact decisions, and the `tv` CLI, with linked guidance for themes, templates, and resources. Keep it available; re-read it when it has changed or is missing from your context.
 
-- Use this skill for channels, focus, artifact decisions, and the `tv` CLI. Required means the knowledge is required, not that you must re-read it before every Television action.
-- Install the bundled Television skills into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i` before artifact authoring work.
-- For specialized HTML work, load the matching skill such as `tv-calendar` or `tv-table`.
+Install it into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i` before artifact authoring work.
 
 `markdown editor UI recovery` remains out of scope for the current Television workflow.

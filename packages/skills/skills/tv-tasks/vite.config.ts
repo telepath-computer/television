@@ -4,32 +4,28 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { createTelevisionLicensePlugin } from "../../../../scripts/licenses/vite-plugin.mjs";
 
-// Bundles the skill-local web components (src/task.ts, which pulls in due.ts and
-// @rupertsworld/event-target) into dist/task.js. task.css is a standalone
-// stylesheet the components don't import, so it's copied — not bundled —
-// alongside SKILL.md.
+// Bundles the task browser components for the onboarding bake. task.css is a
+// standalone stylesheet the components do not import, so it is copied beside
+// task.js.
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
+const outputRoot = path.resolve(process.env.TV_ONBOARDING_COMPONENTS_DIST_DIR ?? path.join(packageDir, "../../onboarding-dist"));
 
 export default defineConfig({
   root: packageDir,
   plugins: [
-    createTelevisionLicensePlugin({ surface: "skill:tv-tasks" }),
+    createTelevisionLicensePlugin({ surface: "onboarding:tasks" }),
     {
       name: "copy-skill-assets",
       closeBundle() {
         copyFileSync(
-          path.join(packageDir, "SKILL.md"),
-          path.join(packageDir, "dist", "SKILL.md"),
-        );
-        copyFileSync(
           path.join(packageDir, "src", "task.css"),
-          path.join(packageDir, "dist", "task.css"),
+          path.join(outputRoot, "tv-tasks/task.css"),
         );
       },
     },
   ],
   build: {
-    outDir: path.resolve(packageDir, "dist"),
+    outDir: path.join(outputRoot, "tv-tasks"),
     emptyOutDir: true,
     // Skill output ships as readable source — agents and humans read these
     // files (and may inline them into artifacts); no minification.

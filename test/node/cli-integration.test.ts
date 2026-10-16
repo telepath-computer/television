@@ -127,7 +127,7 @@ describe("CLI node integration artifact workflow", () => {
     const stdout = new BufferOutput();
     const stderr = new BufferOutput();
     const exitCode = await runCLI([
-      "create-path-artifact",
+      "create-artifact",
       "--channel", channel.id,
       "--title", "CLI HTML",
       "--path", target,
@@ -138,7 +138,7 @@ describe("CLI node integration artifact workflow", () => {
 
     expect(stderr.toString()).toBe("");
     expect(exitCode).toBe(0);
-    expect(stdout.toString()).toContain("Path artifact");
+    expect(stdout.toString()).toMatch(/^Artifact \S+ created\.\nTelevision registered .+\.\n$/);
     const artifact = store.listArtifacts()[0];
     expect(artifact).toMatchObject({ kind: "path", title: "CLI HTML", path: target });
 
@@ -159,7 +159,7 @@ describe("CLI node integration artifact workflow", () => {
     const channel = store.listChannels()[0]!;
 
     const exitCode = await runCLI([
-      "create-path-artifact",
+      "create-artifact",
       "--channel", channel.id,
       "--title", "CLI Directory",
       "--path", targetDir,
@@ -193,7 +193,7 @@ describe("CLI node integration artifact workflow", () => {
     expect(JSON.parse(statusOut.toString())).toMatchObject({ healthy: true, serverURL: `http://localhost:${port}` });
 
     const createOut = new BufferOutput();
-    expect(await runCLI(["create-path-artifact", "--channel", channel.id, "--title", "First", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: createOut, stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "First", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: createOut, stderr: new BufferOutput() })).toBe(0);
     const artifact = store.listArtifacts()[0]!;
 
     expect(await runCLI(["update-artifact", "--id", artifact.id, "--title", "Updated", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
@@ -222,7 +222,7 @@ describe("CLI node integration artifact workflow", () => {
     expect(missingErr.toString()).toContain("does not exist or is not readable");
 
     // URL artifacts repoint with --url through the same real server.
-    expect(await runCLI(["create-url-artifact", "--channel", channel.id, "--title", "Link", "--url", "https://example.com/first", "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "Link", "--url", "https://example.com/first", "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     const urlArtifact = store.listArtifacts().find((candidate) => candidate.kind === "url")!;
     expect(await runCLI(["update-artifact", "--id", urlArtifact.id, "--url", "https://example.com/second", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     const urlOut = new BufferOutput();
@@ -250,8 +250,8 @@ describe("CLI node integration artifact workflow", () => {
     const created = store.listChannels().find((channel) => channel.name === "Scratch")!;
     expect(createOut.toString()).toContain(created.id);
 
-    expect(await runCLI(["create-path-artifact", "--channel", created.id, "--title", "Path", "--path", pathTarget, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
-    expect(await runCLI(["create-url-artifact", "--channel", created.id, "--title", "URL", "--url", urlTarget, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", created.id, "--title", "Path", "--path", pathTarget, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", created.id, "--title", "URL", "--url", urlTarget, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     const referencedArtifacts = store.listArtifacts();
     expect(referencedArtifacts.map((artifact) => artifact.kind).sort()).toEqual(["path", "url"]);
 
@@ -287,10 +287,10 @@ describe("CLI node integration artifact workflow", () => {
       focusEvents.push({ artifactID: focus.artifactID, channelID: focus.channelID });
     });
 
-    expect(await runCLI(["create-path-artifact", "--channel", channel.id, "--title", "Quiet", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "Quiet", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     expect(focusEvents).toEqual([]);
 
-    expect(await runCLI(["create-url-artifact", "--channel", channel.id, "--title", "Focused", "--url", "https://example.com", "--focus-artifact", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "Focused", "--url", "https://example.com", "--focus-artifact", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     const focused = store.listArtifacts().find((artifact) => artifact.kind === "url")!;
     expect(focusEvents).toEqual([{ artifactID: focused.id, channelID: channel.id }]);
   });
@@ -370,7 +370,7 @@ describe("CLI node integration artifact workflow", () => {
     expect(await runCLI(["set-theme", "missing", "--port", String(port), "--home", storagePath], { stdout: missingOut, stderr: missingErr })).toBe(1);
     expect(missingOut.toString()).toBe("");
     expect(missingErr.toString()).toContain("Theme not found: missing");
-    expect(missingErr.toString()).toContain("Television ships bundled skills");
+    expect(missingErr.toString()).toContain("Television ships the `television` skill");
     expect(store.getActiveThemeName()).toBe(exactThemeID);
   });
 
@@ -383,9 +383,9 @@ describe("CLI node integration artifact workflow", () => {
 
     const createOut = new BufferOutput();
     expect(await runCLI([
-      "create-url-artifact", "--channel", channel.id, "--title", "Remote", "--url", "https://example.com", "--no-focus", "--port", String(port), "--home", storagePath,
+      "create-artifact", "--channel", channel.id, "--title", "Remote", "--url", "https://example.com", "--no-focus", "--port", String(port), "--home", storagePath,
     ], { stdout: createOut, stderr: new BufferOutput() })).toBe(0);
-    expect(createOut.toString()).toContain("URL artifact");
+    expect(createOut.toString()).toBe(`Artifact ${store.listArtifacts()[0]!.id} created.\nTelevision registered https://example.com.\n`);
 
     const listOut = new BufferOutput();
     expect(await runCLI(["list-artifacts", "--port", String(port), "--home", storagePath], { stdout: listOut, stderr: new BufferOutput() })).toBe(0);
@@ -453,7 +453,7 @@ describe("CLI node integration artifact workflow", () => {
     const { server: first, port } = await startTestServer(servers, firstStore);
     const channel = firstStore.listChannels()[0]!;
 
-    expect(await runCLI(["create-path-artifact", "--channel", channel.id, "--title", "Persisted", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "Persisted", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout: new BufferOutput(), stderr: new BufferOutput() })).toBe(0);
     await first.dispose();
     servers.splice(servers.indexOf(first), 1);
 
@@ -739,7 +739,7 @@ describe("CLI node integration artifact workflow", () => {
     ]);
 
     const stdout = new BufferOutput();
-    expect(await runCLI(["create-path-artifact", "--channel", channel.id, "--title", "Event", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout, stderr: new BufferOutput() })).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", channel.id, "--title", "Event", "--path", target, "--no-focus", "--port", String(port), "--home", storagePath], { stdout, stderr: new BufferOutput() })).toBe(0);
     await new Promise((resolve) => setTimeout(resolve, 50));
     first.close(); second.close();
 

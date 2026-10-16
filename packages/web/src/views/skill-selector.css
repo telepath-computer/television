@@ -1,87 +1,171 @@
-/* The panel is the popover ([[ui/foundation/popover/index.md]]) — chrome,
-   placement and dismissal are the element's — so these styles own only the
-   interior: the panel's size and room, the section heading, the card grid,
-   and the per-card copy-prompt placement. */
-
-.skill-popover {
-  width: 500px;
-  padding: var(--space-16);
+/* Interior styles derived by hand from the Templates popover pilot. */
+.templates-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  max-height: 560px;
+  overflow: hidden;
+  padding: var(--space-8) var(--space-8) 0;
 }
 
-.skill-heading {
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text);
-  padding: 0 var(--space-2) var(--space-4);
-}
-
-.skill-intro {
+.templates-heading {
   margin: 0;
-  padding: 0 var(--space-2) var(--space-12);
-  font-size: var(--text-sm);
-  line-height: 1.4;
+  padding: var(--space-12) var(--space-12) 0;
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.templates-intro {
+  margin: 0;
+  padding: var(--space-2) var(--space-12) var(--space-2);
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.templates-search {
+  position: relative;
+  display: block;
+  padding: var(--space-8) var(--space-10) var(--space-4);
   color: var(--color-text-muted);
 }
 
-.skill-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-20);
+.templates-search tv-icon {
+  position: absolute;
+  left: calc(var(--space-10) + var(--space-8));
+  top: calc(50% + (var(--space-8) - var(--space-4)) / 2);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
-.skill-card {
+.templates-search input {
+  width: 100%;
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  background: var(--frame-titlebar-background);
+  padding: var(--control-padding);
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  font-size: var(--control-font-size);
+  color: var(--color-text);
+}
+
+.templates-search input:focus-visible { outline: var(--outline-focus); }
+
+.templates-body {
+  overflow-y: auto;
+  padding: var(--space-20) var(--space-12) calc(var(--space-24) + var(--space-8));
+}
+
+.templates-body:has(> .templates-invalid:last-child, > .templates-folder-error:last-child) {
+  padding-bottom: calc(var(--space-12) + var(--space-8));
+}
+
+.templates-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.template-tile {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-8) var(--space-8);
   min-width: 0;
+  border-radius: var(--panel-radius);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-/* The image fills a stable frame; neutral ground remains visible while its
-   committed bytes load. */
-.skill-thumb {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--panel-radius);
+.template-tile[data-highlighted] { background: var(--option-background-highlighted); }
+.template-tile[data-pressed], .template-tile:active { background: var(--option-background-active); }
+
+.template-tile-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76%;
+  aspect-ratio: 4 / 5;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: 28px;
+  box-shadow: 0 0 0 0.5px oklch(0% 0 0 / 12%), 0 1px 2px oklch(0% 0 0 / 6%), 0 2px 8px oklch(0% 0 0 / 6%);
 }
 
-.skill-thumb img {
-  position: absolute;
-  inset: 0;
+.template-tile-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: top;
   display: block;
+  -webkit-user-drag: none;
 }
 
-.skill-name {
-  font-size: var(--text-md);
-  font-weight: var(--font-weight-semibold);
+.template-tile-name {
+  max-width: 100%;
+  font-size: round(calc(var(--text-base) * 13 / 14), 1px);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text);
-  margin-top: var(--space-6);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.skill-desc {
-  font-size: var(--text-sm);
-  line-height: 1.35;
+.templates-empty {
+  margin: 0;
+  padding: var(--space-16) var(--space-10);
+  text-align: center;
+  font-size: var(--text-md);
   color: var(--color-text-muted);
-  margin: var(--space-2) 0 var(--space-6);
 }
 
-/* The card's copy button is the composed copy-button surface; its swap is
-   owned there. Here we only place and compact it for the dense card (copy-button
-   leaves placement, intent, and size to the caller): pinned to the card's
-   bottom (so buttons align across a row), left-aligned, at content height. */
-.skill-card button.copy-button {
-  align-self: flex-start;
-  margin-top: auto;
-  height: auto;
-  min-height: 0;
-  padding: var(--space-2) var(--space-6);
-  font-size: var(--text-sm);
+.templates-folder-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-10);
+  border-radius: var(--panel-radius);
+  background: var(--color-surface-muted);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.templates-folder-error tv-icon, .template-invalid tv-icon {
+  flex: none;
+  margin-top: 0.15em;
+  color: var(--color-alert);
+}
+
+.templates-invalid {
+  list-style: none;
+  margin: var(--space-16) 0 0;
+  padding: var(--space-4);
+  border-radius: var(--panel-radius);
+  background: var(--color-surface-muted);
+}
+
+.template-invalid {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-8);
+  padding: var(--space-6);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.template-invalid-text { display: flex; flex-direction: column; min-width: 0; }
+.template-invalid-folder {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
 }

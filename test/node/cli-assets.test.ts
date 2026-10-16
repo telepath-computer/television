@@ -8,6 +8,7 @@ import {
   resolveCanonicalDir,
   resolveOnboardingContentPath,
   resolveBundledThemesPath,
+  resolveBundledTemplatesPath,
   resolveSdkDir,
   resolveStaticDir,
 } from "../../packages/cli/src/index.ts";
@@ -34,6 +35,7 @@ type BuiltAssetResolvers = {
   resolveCanonicalDir: Resolver;
   resolveOnboardingContentPath: Resolver;
   resolveBundledThemesPath: Resolver;
+  resolveBundledTemplatesPath: Resolver;
   resolveBundledSkillsRoot: Resolver;
   resolveSdkDir: Resolver;
 };
@@ -122,6 +124,15 @@ describe("full CLI build asset copies", () => {
     expectByteIdenticalTree(source, path.join(CLI_DIST, "themes"));
   });
 
+  // proofs/arch/templates/bundled-installation.md#^templates-install-t-build
+  // proofs/arch/cli/index.md#^cli-build-templates-copy
+  // The e2e:node preCommand runs the real CLI build, including the server build.
+  it("ships the complete bundled Example tree byte-for-byte through both builds", () => {
+    const source = path.join(REPO_ROOT, "packages/server/assets/templates");
+    expectByteIdenticalTree(source, path.join(REPO_ROOT, "packages/server/dist/templates"));
+    expectByteIdenticalTree(source, path.join(CLI_DIST, "templates"));
+  });
+
   it("copies every built bundled skill byte-for-byte", () => {
     expectByteIdenticalTree(
       path.join(REPO_ROOT, "packages/skills/dist"),
@@ -181,6 +192,15 @@ const resolverCases: Array<{
     builtPath: path.join(CLI_DIST, "themes"),
     devResolver: resolveBundledThemesPath,
     devPath: path.join(REPO_ROOT, "packages/server/assets/themes"),
+  },
+  // proofs/arch/cli/index.md#^cli-resolve-templates-success
+  {
+    name: "bundled artifact templates",
+    builtResolver: builtResolvers.resolveBundledTemplatesPath,
+    builtPath: path.join(CLI_DIST, "templates"),
+    devResolver: resolveBundledTemplatesPath,
+    devPath: path.join(REPO_ROOT, "packages/server/assets/templates"),
+    requiredChildren: ["example/manifest.json", "example/index.html"],
   },
   {
     name: "bundled skills",

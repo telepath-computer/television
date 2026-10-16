@@ -1,4 +1,4 @@
-*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
+*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, artifact templates, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
 
 # CLI
 
@@ -32,8 +32,8 @@ The visible command surface is:
 |---|---|
 | `tv serve` | Start the server in the foreground, install it as a persisted service, or uninstall that service. |
 | `tv config` | Show the effective settings of the selected home, or change settings in its config file. |
-| `tv create-path-artifact` | Register an existing local markdown/HTML file or indexed directory on a channel. |
-| `tv create-url-artifact` | Register an `http(s)` URL on a channel. |
+| `tv create-artifact` | Create an artifact from a local path, an `http(s)` URL, or an artifact template. |
+| `tv templates` | List artifact templates and invalid folders, or print the selected home's templates directory. |
 | `tv update-artifact` | Update an artifact title or repoint its path/URL. |
 | `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
 | `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
@@ -74,13 +74,13 @@ A *directive error* is a usage error that the CLI itself detects while parsing a
 The CLI appends this recovery pointer to mistakes detected by CLI parsing or CLI validation, to shared-client local validation errors, and to HTTP status errors, unless the message already contains it:
 
 ```text
-Television ships bundled skills. The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming. Re-read it only if it is not already in context or you know the installed skill changed. Additional `tv-*` skills cover specialized artifact types. Install all bundled skills with `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.
+Television ships the `television` skill — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming. Re-read it only if it is not already in context or you know the installed skill changed. Install it with `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.
 ```
 
 Examples of directive errors include:
 
 ```text
-Unknown tv command: data-dir.
+Unknown tv command: example-command.
 tv list-artifacts --bogus does not support --bogus.
 tv set-theme requires <theme>.
 tv update-artifact requires at least one of --title, --path, or --url.
@@ -90,7 +90,7 @@ tv update-artifact accepts --path or --url, not both; an artifact's kind is immu
 Focus-directive errors explain the required choice and append the bundled-skills recovery pointer. They do not point to `tv help` as a separate recovery path. For example:
 
 ```text
-tv create-path-artifact requires exactly one of --focus-artifact or --no-focus. Television separates state changes from focus; choose whether to show the result now or keep focus unchanged.
+tv create-artifact requires exactly one of --focus-artifact or --no-focus. Television separates state changes from focus; choose whether to show the result now or keep focus unchanged.
 ```
 
 Connection failures do not append the recovery pointer. They print:
@@ -109,11 +109,13 @@ Output formatting is currently inconsistent and depends on the command. Successf
 |---|---|
 | `tv config show` | `{ "home": string, "configPath": string, "configFileExists": boolean, "settings": { "port": number, "listen": string[], "auth": boolean, "installedByAgent": string \| null } }` |
 | `tv themes-path` | `{ "themesPath": string }` |
+| `tv templates path` | `{ "templatesPath": string }` |
+| `tv templates list` | `{ "templates": [...], "errors": [...] }` |
 | `tv list-channels` | `{ "channels": [...] }` |
 | `tv get-channel` | `{ "channel": ..., "artifacts": [...] }` |
 | `tv get-artifact` | `{ "artifact": ... }` |
 | `tv list-artifacts` | `{ "artifacts": [...] }` |
-| `tv focus-status` | `{ "activeChannelID": string \| null, "activeThemeName": string \| null, "acpEnabled": boolean }` |
+| `tv focus-status` | `{ "activeChannelID": string, "activeThemeName": string \| null, "acpEnabled": boolean }` |
 | `tv status` | `{ "home": string, "serverURL": string, "healthy": boolean, "version"?: string, "bindAddresses"?: string[], "port"?: number, "telemetry"?: { "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }, "daemon"?: { "installed": boolean, "running": boolean } }` |
 | `tv telemetry enable` and `tv telemetry disable` | `{ "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }` |
 | `tv stop` and `tv serve --persist-uninstall` | `{ "status": "stopped" }` |
@@ -126,7 +128,7 @@ When a command's stdout is an interactive terminal, each link it prints is a ter
 
 ### The Television home
 
-A *Television home* is the directory that holds one Television installation: its optional config file and all the state and content the server keeps, including the bearer token, channels, artifacts, installed themes, onboarding and telemetry state, and logs. The server and every `tv` command that works with an installation resolve its home by the same rule and read the same config file. A command that selects the same home as a running server therefore uses that server's settings, provided the server started after the config file last changed ([startup snapshot](#^cli-config-snapshot)). ^cli-home
+A *Television home* is the directory that holds one Television installation: its optional config file and all the state and content the server keeps, including the bearer token, channels, artifacts, installed themes and artifact templates, onboarding and telemetry state, and logs. The server and every `tv` command that works with an installation resolve its home by the same rule and read the same config file. A command that selects the same home as a running server therefore uses that server's settings, provided the server started after the config file last changed ([startup snapshot](#^cli-config-snapshot)). ^cli-home
 
 Each invocation selects one home: the global `--home <path>` option when it is supplied, otherwise the *default home*. The default home is the directory that `~/.tv-home` names when that file exists, and otherwise `.television` in the operating-system home directory of the user running `tv`. ^cli-home-selection
 
@@ -207,7 +209,7 @@ A missing file and `{}` both leave every setting at its default, so an ordinary 
 
 A present config file must be readable JSON whose top level is an object containing only the four keys above, each with a valid value. A command that reads an invalid file fails before it starts a server or contacts one. Its error names the config file's path and the specific problem; it is a CLI validation error, so it carries the recovery pointer described under [Command model, help, version, and recovery text](#Command model, help, version, and recovery text). Television never falls back to defaults, environment variables, or the valid part of the file after finding the file invalid. ^cli-config-invalid
 
-`tv serve`, `tv serve --persist`, `tv config set`, `tv config show`, and every command that contacts the server read the config file. `tv themes-path`, `tv stop`, `tv serve --persist-uninstall`, and `tv skills install` use the home without reading its config file, so they keep working while the file is invalid.
+`tv serve`, `tv serve --persist`, `tv config set`, `tv config show`, and every command that contacts the server read the config file. `tv themes-path`, `tv templates path`, `tv stop`, `tv serve --persist-uninstall`, and `tv skills install` use the home without reading its config file, so they keep working while the file is invalid.
 
 A server reads the config file once, when it starts, and never writes it. Editing the file does not change a running server: rerun foreground `tv serve`, or rerun `tv serve --persist` for the installed service, to apply the change. Each local command reads the file when it runs, so between an edit and that restart a command can use settings the running server has not adopted. ^cli-config-snapshot
 
@@ -251,7 +253,7 @@ Neither command contacts a server.
 
 ### Connecting to the server
 
-Commands that contact a server — the artifact, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
+Commands that contact a server — artifact creation and other artifact commands, `tv templates list`, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
 
 These commands read the bearer token from `<home>/state/token`, trimming surrounding whitespace. A missing or empty token file means the command sends no bearer token. If a token-protected server returns `401`, the CLI prints:
 
@@ -397,7 +399,7 @@ The first-initialization notice and its eligibility are owned by [the telemetry 
 
 `tv list-channels` prints `{ "channels": [...] }`.
 
-`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. The channel's `layout` is its tab pages in order, from left to right: each page with its artifact IDs, its `full_screen` state, and its `size` in reference pixels ([arch/layout/index.md#^ly-model](../arch/layout/index.md#^ly-model)). This is how an agent reads a channel's arrangement. With no `--channel`, the command auto-selects when exactly one channel exists. With zero or multiple channels and no `--channel`, the command reports the channel-selection problem directly. With multiple channels, the error says that `channelID` is required and lists the available channels by name and ID. With zero channels, the error says that `channelID` is required and that there are no available channels. The error does not say the server could not be reached. ^cli-get-channel-layout
+`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. The channel's `layout` is its tab pages in order, from left to right: each page with its artifact IDs, its `full_screen` state, and its `size` in reference pixels ([arch/layout/index.md#^ly-model](../arch/layout/index.md#^ly-model)). This is how an agent reads a channel's arrangement. With no `--channel`, the command auto-selects when exactly one channel exists. With multiple channels and no `--channel`, the command reports the channel-selection problem directly: the error says that `channelID` is required and lists the available channels by name and ID. The error does not say the server could not be reached. ^cli-get-channel-layout
 
 `tv create-channel --name <name> (--focus-channel|--no-focus)` creates an empty channel. Exactly one focus directive is required. `--focus-channel` sets persistent channel focus to the new channel; `--no-focus` leaves focus unchanged. Success prints:
 
@@ -417,7 +419,7 @@ When `<id>` does not name a channel, the command exits `1` and prints this error
 Channel not found: <channel-id>
 ```
 
-`tv remove-channel --channel <id>` deletes the channel and deletes the artifact registry records referenced by that channel. It does not touch the files, directories, or URLs those artifacts pointed at. With no referenced artifacts, success prints:
+`tv remove-channel --channel <id>` deletes the channel and deletes the artifact registry records referenced by that channel. It does not touch the files, directories, or URLs those artifacts pointed at. Deleting the last channel follows the [channel replacement rule](./channels.md#^ch-delete-selection). With no referenced artifacts, success prints:
 
 ```text
 Channel <channel-id> deleted:
@@ -441,45 +443,44 @@ Channel <channel-id> deleted:
 
 ## Artifact commands
 
-Television artifacts are registry records that point at external content. The CLI and server store pointer metadata; they do not copy, own, delete, or mutate the file, directory, or URL target. Deleting an artifact registry record never removes or mutates the path or URL target. ^e5b85571
+`tv create-artifact` with `--path` or `--url` registers content without copying it. [Creating from an artifact template](./templates.md#^artifact-template-result) first copies a template into the home's artifacts directory. Deleting any artifact registry record never removes or mutates the path or URL target. ^e5b85571
+
+### Creating an artifact
+
+```bash
+tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
+```
+
+Exactly one of `--path`, `--url`, and `--template` is required. `--title` is required with a path or URL; with a template, it defaults to the template's name. `--data` and `--data-file` are allowed only with `--template`. A missing or multiple source, a missing required title, or data supplied with a path or URL is a directive error before any creation request. `--channel` and exactly one focus directive are required, with no focus default. `--focus-artifact` sends a transient artifact-focus nudge after creation; `--no-focus` leaves focus unchanged. The new artifact goes at the end of the channel's order unless `--before` or `--after` places it beside another artifact ([placement](#^cli-before-after)). ^cli-create-artifact
+
+Every source prints the same two lines on success:
+
+```text
+Artifact <artifact-id> created.
+Television registered <registered-target>.
+```
+
+`<registered-target>` is the trimmed path for `--path`, the trimmed URL for `--url`, or the new copied folder path for `--template`.
+
+For every source, the CLI prints those lines before sending the focus request when `--focus-artifact` is given. If that request fails, the artifact remains created, those lines remain on stdout, and the command prints the focus error to stderr and exits `1`.
 
 ### Path artifact creation
 
-`tv create-path-artifact` creates a path artifact on a channel:
-
-```bash
-tv create-path-artifact --channel <id> --title <title> --path <path> [--before <artifact-id>|--after <artifact-id>] (--focus-artifact|--no-focus)
-```
-
-The CLI trims surrounding whitespace from `--path` before sending it to the server. The server accepts absolute markdown files ending in `.md` or `.markdown`, absolute HTML files ending in `.htm` or `.html`, and absolute directories with a root `index.html` or `index.htm`. A trailing separator on a directory path is optional. The server validates that the target exists and is readable from the server host. Stored directory paths end with a trailing separator; stored file paths do not.
-
-The new artifact goes at the end of the channel's order, or beside another artifact when `--before` or `--after` names one ([#^cli-before-after](#^cli-before-after)).
-
-Exactly one focus directive is required. `--focus-artifact` creates the artifact and sends a transient artifact-focus nudge for it. `--no-focus` creates the artifact without changing focus. Success prints:
-
-```text
-Path artifact <artifact-id> created.
-Television registered <trimmed-path>.
-```
+With `--path`, the CLI trims surrounding whitespace before sending the path to the server. The server accepts absolute markdown files ending in `.md` or `.markdown`, absolute HTML files ending in `.htm` or `.html`, and absolute directories with a root `index.html` or `index.htm`. A trailing separator on a directory path is optional. The server validates that the target exists and is readable from the server host. Stored directory paths end with a trailing separator; stored file paths do not.
 
 ### URL artifact creation
 
-`tv create-url-artifact` creates a URL artifact on a channel:
+With `--url`, the CLI trims surrounding whitespace before sending the URL to the server and before printing the confirmation. The URL must be `http://` or `https://` after trimming and server validation.
 
-```bash
-tv create-url-artifact --channel <id> --title <title> --url <url> [--before <artifact-id>|--after <artifact-id>] (--focus-artifact|--no-focus)
-```
+### Artifact template commands
 
-The CLI trims surrounding whitespace from `--url` before sending it to the server and before printing the confirmation. The URL must be `http://` or `https://` after trimming and server validation.
+`tv templates list` scans the selected home's artifact templates through the running server and prints the full [scan result](../arch/templates/index.md#^artifact-template-scan) as compact JSON. Each valid entry supplies `id`, `name`, `description`, `version`, `hasData`, and `path` (the absolute folder path); `errors` contains invalid folders and their messages. The list reflects folder changes on each invocation. ^cli-templates-list
 
-The new artifact goes at the end of the channel's order, or beside another artifact when `--before` or `--after` names one ([#^cli-before-after](#^cli-before-after)).
+With `--template`, `tv create-artifact` creates an [ordinary folder path artifact](./templates.md#^artifact-template-result). The template ID is matched exactly. `--data` takes JSON text as one argument; `--data-file` reads JSON text from a file, with `-` meaning standard input. The two options cannot be combined, following the [JSON store CLI value rule](./resources/json-store.md#^js-cli). When either is supplied, its value replaces the template's `data.json`, including when that value is `null`. The CLI checks that the text parses as JSON and that the value fits the [JSON store's 1 MiB limit](../arch/resources/json-store.md#^js-arch-limits) before making any creation request. The server checks the selected starting value and placement before creating anything ([template preflight](../arch/templates/index.md#^artifact-template-preflight)). ^cli-create-artifact-template
 
-Exactly one focus directive is required. `--focus-artifact` creates the artifact and sends a transient artifact-focus nudge for it. `--no-focus` creates the artifact without changing focus. Success prints:
+If [template creation fails after copying starts](./templates.md#^artifact-template-data), the CLI prints the server's error to stderr and exits `1` without printing the creation success lines. The error names the copied folder path, names the artifact ID whenever it may have been registered, and says which step could not be confirmed, so the caller can inspect what remains before retrying.
 
-```text
-URL artifact <artifact-id> created.
-Television registered <trimmed-url>.
-```
+`tv templates path` prints `<home>/templates` as compact JSON, for example `{"templatesPath":"/home/me/.television/templates"}`. It reads neither the config file nor a server, so an author can use it while the server is stopped. ^cli-template-directory
 
 ### Metadata, listing, and deletion
 
@@ -532,7 +533,7 @@ The command reads the channel and then sends its whole new arrangement. If an ar
 Channel <channel-id> changed before artifact <artifact-id> could be repositioned, so nothing changed. Run the command again.
 ```
 
-`--before <artifact-id>` places an artifact immediately before the named artifact in the channel's order, which is to its left, and `--after <artifact-id>` places it immediately after, to its right. The other artifacts keep their order. `tv create-path-artifact`, `tv create-url-artifact`, `tv move-artifact`, and `tv reposition-artifact` accept them, and each accepts at most one of the two. The named artifact must be on the channel the artifact is placed on: the `--channel` channel for the creation commands and `tv move-artifact`, and the artifact's own channel for `tv reposition-artifact`. When the named artifact is not on that channel, or no artifact has that ID, the command exits `1`, changes nothing, and prints this error before the standard bundled-skills recovery pointer: ^cli-before-after
+`--before <artifact-id>` places an artifact immediately before the named artifact in the channel's order, which is to its left, and `--after <artifact-id>` places it immediately after, to its right. The other artifacts keep their order. `tv create-artifact` accepts them for every source; `tv move-artifact` and `tv reposition-artifact` also accept them. Each command accepts at most one of the two. The named artifact must be on the channel the artifact is placed on: the `--channel` channel for creation and `tv move-artifact`, and the artifact's own channel for `tv reposition-artifact`. When the named artifact is not on that channel, or no artifact has that ID, the command exits `1`, changes nothing, and prints this error before the standard bundled-skills recovery pointer: ^cli-before-after
 
 ```text
 Artifact <named-artifact-id> is not on channel <channel-id>.
@@ -628,7 +629,7 @@ The command reads neither the config file nor a server, so its answer does not d
 
 `tv skills` manages the bundled skill collection. `tv skills --help` lists the `install` subcommand and gives destination examples: `~/.openclaw/skills`, `~/.hermes/skills`, and `~/.agents/skills`.
 
-`tv skills install <path> [--installed-by-agent <agent-runtime-harness-name>]` copies every bundled Television skill directory into the destination agent skills folder. The destination folder is created if needed. For each bundled skill, an existing destination directory with the same name is removed before the current bundled copy is written. The direct installation also removes `<path>/tv-theme` when present, so a standalone theming skill from an earlier bundle cannot remain beside the `television` skill that carries current theming guidance. Success prints:
+Both forms of `tv skills install` leave previously installed skills in place. `tv skills install <path> [--installed-by-agent <agent-runtime-harness-name>]` copies the bundled `television` skill into the destination agent skills folder, creating that folder if needed. It updates same-named files without deleting other files. Success prints:
 
 ```text
 Copied <N> bundled Television skill(s):
@@ -637,7 +638,7 @@ Copied <N> bundled Television skill(s):
   to:   <destination-path>
 ```
 
-The bundled skill collection is defined by the skills build manifest at `packages/skills/skills.json`. The CLI ships and installs exactly the skill directories listed there. The manifest always includes `television`, the primary skill named by the CLI's recovery guidance.
+The bundled skill collection is defined by [the skills build manifest](../arch/making-skills.md#the-bundle). The CLI ships and installs exactly the skill directories listed there.
 
 The *external skills installer* is Vercel's third-party `skills` package, whose terminal interface Television neither designs nor controls. Television uses it only as a convenience for browsing and installing the bundled collection interactively. `tv skills install -i [--installed-by-agent <agent-runtime-harness-name>]` launches the current Node executable with `skills/bin/cli.mjs add <bundled-skills-root>`. Passing both `-i` and a destination path is refused with:
 
@@ -659,13 +660,11 @@ After a direct or interactive install succeeds, the CLI makes a content-free, be
 
 `tv` does not run repository tests. Use the canonical runner from [test-runner.md](../arch/test-runner/test-runner.md) for test execution.
 
-The CLI does not expose these historical command names: `create-artifact`, `create-markdown-artifact`, `create-web-bundle-artifact`, `edit-artifact`, `commit-artifact`, `abandon-artifact`, `attach-artifact`, `detach-artifact`, `restore-artifact`, `list-pending-artifacts`, `make-attestation-nonce`, `data-dir`, or `storage-path`. These are retired or legacy names from earlier implementations and documentation; pinning their absence prevents them from silently returning. Each fails with `Unknown tv command: <name>.`
-
 Commands that contact the server do not accept `--server`. `list-artifacts` does not accept `--unplaced`. `focus-channel`, `update-channel`, and `remove-channel` use `--channel`, not `--id`. `focus-artifact` uses `--id` and does not accept `--channel`.
 
 ## Packaged startup behavior
 
-A built CLI ships the onboarding content tree and passes it into every serving store when the tree can be resolved. The user-visible installation behavior, including fresh installs, upgrades, and a missing bundle, is owned and acceptance-tested by [product/onboarding/onboarding-channels.md](./onboarding/onboarding-channels.md). The CLI packaging and resolver contract is owned by [arch/cli/index.md#Build and packaged asset layout](../arch/cli/index.md#Build and packaged asset layout).
+A built CLI ships the onboarding content tree and the [bundled artifact templates](../arch/templates/bundled-installation.md), and passes each into every serving store when its tree can be resolved. The user-visible onboarding behavior, including fresh installs, upgrades, and a missing bundle, is owned and acceptance-tested by [product/onboarding/onboarding-channels.md](./onboarding/onboarding-channels.md). The CLI packaging and resolver contract is owned by [arch/cli/index.md#Build and packaged asset layout](../arch/cli/index.md#Build and packaged asset layout).
 
 ## Testing
 

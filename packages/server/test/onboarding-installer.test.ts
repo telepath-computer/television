@@ -215,18 +215,21 @@ describe("Onboarding installer", () => {
       expect(second.getChannel(existing.id)).toBeDefined();
     });
 
-    it("deleting all installed channels yields Default on the next boot, never a reinstall", () => {
+    it("deleting all installed channels keeps the replacement on the next boot, never a reinstall", () => {
       const storagePath = storage();
       const installed = boot(storagePath, "two-channels");
       for (const channel of installed.listChannels()) {
         installed.removeChannel(channel.id);
       }
+      const replacement = installed.listChannels()[0]!;
+      expect(replacement.name).toBe("New channel");
       installed.dispose();
 
       const next = boot(storagePath, "two-channels");
       const channels = next.listChannels();
       expect(channels).toHaveLength(1);
-      expect(channels[0]!.name).toBe("Default");
+      expect(channels[0]!.id).toBe(replacement.id);
+      expect(channels[0]!.name).toBe("New channel");
       expect(channels[0]!.layout).toEqual([]);
       expect(next.listArtifacts()).toEqual([]);
     });
@@ -860,7 +863,7 @@ describe("Onboarding installer", () => {
       stores.splice(stores.indexOf(next), 1);
       const afterDeletion = boot(storagePath, "ordered-artifacts");
       expect(afterDeletion.listChannels()).toHaveLength(1);
-      expect(afterDeletion.listChannels()[0]!.name).toBe("Default");
+      expect(afterDeletion.listChannels()[0]!.name).toBe("New channel");
       expect(afterDeletion.listChannels()[0]!.onboarding).toBeUndefined();
       expect(afterDeletion.listArtifacts()).toEqual([]);
     });
@@ -1139,6 +1142,7 @@ describe("Onboarding installer", () => {
       const recorder: ServerStoreTelemetryHooks = {
         appearanceModeChanged: () => {},
         artifactCreated: () => calls.push("artifactCreated"),
+        templateUsed: () => calls.push("templateUsed"),
         artifactUpdated: () => calls.push("artifactUpdated"),
         artifactDeleted: () => calls.push("artifactDeleted"),
         channelCreated: () => calls.push("channelCreated"),

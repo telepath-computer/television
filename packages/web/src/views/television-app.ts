@@ -526,6 +526,7 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
       <main class="app-main">
         ${TopBarView(application, snapshot, {
           connectionOwner: options.connectionOwner,
+          templateConnection: options.connectionOwner?.connection,
           updatePresentation: options.updatePresentation,
           desktopRecommendation: options.desktopRecommendation,
           desktopUpdate: options.desktopUpdate,

@@ -6,9 +6,9 @@ description: Artifact work — markdown files, HTML files/directories, URL point
 
 Read this document for Television artifact work: creating files, registering path or URL artifacts, arranging and moving artifacts, deleting, and updating titles.
 
-If you need bundled Television authoring skills installed first, copy them into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i`.
+If you need the bundled `television` skill installed first, copy it into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i`.
 
-If you are authoring a specialized HTML artifact, read the matching skill after this one — for example `tv-calendar` or `tv-table`.
+When an artifact template fits the request, use `tv create-artifact --template` after checking `tv templates list`. The [template authoring guidance](./templates.md) covers editing or creating a template.
 
 ## Choosing the artifact kind
 
@@ -18,7 +18,7 @@ Television has three artifact shapes. Pick the one that fits the result:
 - **Directory** — a folder on disk containing `index.html` plus sibling assets (CSS, JS, images, additional pages). Use when the artifact needs richer structure: custom stylesheets, scripts, images, or multi-page navigation.
 - **URL** — an external `http(s)://` web page or web app, or a locally running web server (e.g. `http://localhost:3000`). Use for remote pages, local web apps the agent does not manage, or any live web resource. Do not use URL artifacts for content Television should manage the lifecycle of — use a path artifact instead.
 
-Single files and directories are both registered with `tv create-path-artifact`. URL artifacts use `tv create-url-artifact`.
+Single files and directories are both registered with `tv create-artifact --path`. URL artifacts use `tv create-artifact --url`.
 
 Within path artifacts, choose the content shape:
 
@@ -49,7 +49,7 @@ Always tell the user where you put the file.
 
 ## Accepted path targets
 
-`tv create-path-artifact` accepts three path shapes:
+`tv create-artifact --path` accepts three path shapes:
 
 - **Single markdown file** ending in `.md` or `.markdown`
 - **Single HTML file** ending in `.htm` or `.html`
@@ -104,7 +104,7 @@ Avoid:
 
 - multi-paragraph progress reports or long retrospective narration during execution
 - verbose bullet lists for routine workflow steps (use bullets only when the user explicitly asks)
-- workflow jargon ("calling create-path-artifact", "registering the path artifact") unless the user is debugging Television itself
+- workflow jargon ("calling create-artifact", "registering the path artifact") unless the user is debugging Television itself
 
 ## Markdown path artifacts
 
@@ -112,7 +112,7 @@ Avoid:
 2. Register it:
 
    ```bash
-   tv create-path-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/file.md --focus-artifact
+   tv create-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/file.md --focus-artifact
    ```
 
 Rules:
@@ -128,13 +128,13 @@ HTML can be a single file or a directory bundle.
 Single-file example:
 
 ```bash
-tv create-path-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/report.html --focus-artifact
+tv create-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/report.html --focus-artifact
 ```
 
 Directory example (trailing slash optional):
 
 ```bash
-tv create-path-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/dashboard --focus-artifact
+tv create-artifact --channel "<channel-id>" --title "Artifact title" --path /absolute/path/to/dashboard --focus-artifact
 ```
 
 A directory artifact needs root `index.html` or `index.htm`. Keep sibling assets relative so they resolve through the artifact proxy:
@@ -218,7 +218,7 @@ tv delete-artifact --id "<artifact-id>"
 URL artifacts point at external `http(s)://` pages.
 
 ```bash
-tv create-url-artifact --channel "<channel-id>" --title "Artifact title" --url https://example.com --no-focus
+tv create-artifact --channel "<channel-id>" --title "Artifact title" --url https://example.com --no-focus
 ```
 
 Rules:
@@ -248,7 +248,7 @@ Choose the line whose host the recipient can actually reach:
 - Never emit a loopback host (`127.0.0.1` or `localhost`) for sharing; that points at the recipient's own machine.
 - If no line has a host the recipient can reach, tell the user so instead of inventing a share link.
 
-The recipient adds the link with `tv create-url-artifact`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
+The recipient adds the link with `tv create-artifact --url`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
 
 Markdown artifacts shared this way render as read-only HTML. Anyone with the share link can read the artifact's content with no token at all, because the share ID alone authorizes the read.
 

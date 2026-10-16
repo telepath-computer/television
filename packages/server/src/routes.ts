@@ -1,5 +1,5 @@
 import express, { type Request, type RequestHandler, type Response } from "express";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { parseClientTelemetryMetaHeader, TELEVISION_CLIENT_META_HEADER, type Tel
 import type { TelemetryStatus } from "./telemetry/index.ts";
 import { serveArtifactProxy } from "./artifact-proxy.ts";
 import { serveMarkdownContent } from "./markdown.ts";
+import { getTemplatesDir, readableTemplateThumbnail, scanTemplatesDirectory, TemplateCreationError } from "./templates.ts";
 import type { ArtifactPollCadence } from "@telepath-computer/television-artifact/browser";
 
 /** Home-directory file that turns on browser demo mode. */
@@ -72,6 +73,15 @@ const createArtifactBodySchema = z
   ])
   .refine((value) => value.before === undefined || value.after === undefined, { message: ONE_PLACEMENT_MESSAGE });
 
+const createTemplateArtifactBodySchema = z.object({
+  templateID: z.string(),
+  channelID: z.string(),
+  title: z.string().optional(),
+  data: z.unknown().optional(),
+  ...placementFields,
+  source: z.enum(["cli", "ui"]),
+}).strict();
+
 const moveArtifactBodySchema = z
   .object({ channelID: z.string({ error: "channelID is required" }).min(1, "channelID is required"), ...placementFields })
   .refine((value) => value.before === undefined || value.after === undefined, { message: ONE_PLACEMENT_MESSAGE });
@@ -114,6 +124,7 @@ const HTTP_NO_CONTENT = 204;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
+const HTTP_INTERNAL_SERVER_ERROR = 500;
 const HTTP_SERVICE_UNAVAILABLE = 503;
 
 function sendError(res: Response, status: number, message: string): void {
@@ -180,6 +191,7 @@ export function registerRoutes(
 
   app.use("/channels", telemetryMiddleware);
   app.use("/artifacts", telemetryMiddleware);
+  app.use("/templates", telemetryMiddleware);
   app.use("/display", telemetryMiddleware);
   app.use("/themes", telemetryMiddleware);
   app.use("/markdown", telemetryMiddleware);
@@ -212,6 +224,52 @@ export function registerRoutes(
 
   app.get("/themes", ...auth, (_req, res) => {
     res.json(store.getThemeRegistry());
+  });
+
+  app.get("/templates", ...auth, (_req, res) => {
+    res.json(scanTemplatesDirectory(getTemplatesDir(store.storagePath)));
+  });
+
+  app.post("/templates/artifacts", ...auth, (req, res) => {
+    const parsed = createTemplateArtifactBodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      sendError(res, HTTP_BAD_REQUEST, parsed.error.issues[0]?.message ?? "Invalid request body");
+      return;
+    }
+    const scan = scanTemplatesDirectory(getTemplatesDir(store.storagePath));
+    const template = scan.templates.find((candidate) => candidate.id === parsed.data.templateID);
+    if (!template) {
+      const error = scan.errors.find((candidate) => candidate.folder === parsed.data.templateID)
+        ?? scan.errors.find((candidate) => candidate.folder === null);
+      sendError(res, error?.folder === null ? HTTP_INTERNAL_SERVER_ERROR : error ? HTTP_BAD_REQUEST : HTTP_NOT_FOUND,
+        error?.error ?? `Template not found: ${parsed.data.templateID}`);
+      return;
+    }
+    try {
+      const result = store.createTemplateArtifact({ ...parsed.data, template }, telemetryContext(req));
+      res.status(HTTP_CREATED).json(result);
+    } catch (error) {
+      if (error instanceof TemplateCreationError) {
+        sendError(res, HTTP_INTERNAL_SERVER_ERROR, error.message);
+        return;
+      }
+      handleStoreError(res, error, "Failed to create template artifact");
+    }
+  });
+
+  app.get("/templates/:id/thumbnail.png", ...auth, (req: Request<{ id: string }>, res) => {
+    const scan = scanTemplatesDirectory(getTemplatesDir(store.storagePath));
+    const template = scan.templates.find((candidate) => candidate.id === req.params.id);
+    const thumbnail = template && readableTemplateThumbnail(template.path);
+    if (!thumbnail) {
+      sendError(res, HTTP_NOT_FOUND, `Template thumbnail not found: ${req.params.id}`);
+      return;
+    }
+    try {
+      res.type("png").send(readFileSync(thumbnail));
+    } catch {
+      sendError(res, HTTP_NOT_FOUND, `Template thumbnail not found: ${req.params.id}`);
+    }
   });
 
   app.post("/themes/refresh", ...auth, (req, res) => {

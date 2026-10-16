@@ -240,11 +240,14 @@ export class ApplicationService extends EventTarget<
 
   async deleteChannel(channelId: string): Promise<void> {
     this.#assertNotDisposed();
+    const deletingLastChannel = this.#state.channels.size === 1 && this.#state.channels.has(channelId);
     await this.#writeWithAmbiguousRecovery(
       this.#connectionOwner.connection.client.channels.remove({
         channelID: channelId,
       }),
-      () => this.#recoverChannelAndDisplayFromServer(channelId),
+      () => deletingLastChannel
+        ? this.#recoverChannelCollectionAndDisplayFromServer()
+        : this.#recoverChannelAndDisplayFromServer(channelId),
     );
   }
 
@@ -470,20 +473,7 @@ export class ApplicationService extends EventTarget<
         return { channels, display };
       },
       ({ channels, display }) => {
-        const recoveredIds = new Set(channels.map(({ id }) => id));
-        for (const channelId of this.#state.channels.keys()) {
-          if (recoveredIds.has(channelId)) continue;
-          this.pendingPageWrites.delete(channelId);
-          this.#selectedPageArtifactIds.delete(channelId);
-          this.#state.channels.delete(channelId);
-        }
-        for (const channel of channels) {
-          if (this.#state.channels.has(channel.id)) continue;
-          this.#state.channels.set(channel.id, {
-            channel: cloneChannel(channel),
-            artifacts: new Map(),
-          });
-        }
+        this.#applyRecoveredChannelCollection(channels);
         this.#applyRecoveredDisplay(display);
       },
     );
@@ -505,13 +495,36 @@ export class ApplicationService extends EventTarget<
           readMissingAsNull(() => client.channels.get({ channelID: channelId })),
           client.display.get(),
         ]);
-        return { detail, display };
+        const focusedId = display.focusedChannelId;
+        const focusKnown = focusedId !== null && (
+          focusedId === channelId ? detail !== null : this.#state.channels.has(focusedId)
+        );
+        const channels = focusKnown ? null : (await client.channels.list()).channels;
+        return { detail, display, channels };
       },
-      ({ detail, display }) => {
-        this.#applyRecoveredChannel(channelId, detail);
+      ({ detail, display, channels }) => {
+        if (channels === null) this.#applyRecoveredChannel(channelId, detail);
+        else this.#applyRecoveredChannelCollection(channels);
         this.#applyRecoveredDisplay(display);
       },
     );
+  }
+
+  #applyRecoveredChannelCollection(channels: readonly Channel[]): void {
+    const recoveredIds = new Set(channels.map(({ id }) => id));
+    for (const channelId of this.#state.channels.keys()) {
+      if (recoveredIds.has(channelId)) continue;
+      this.pendingPageWrites.delete(channelId);
+      this.#selectedPageArtifactIds.delete(channelId);
+      this.#state.channels.delete(channelId);
+    }
+    for (const channel of channels) {
+      if (this.#state.channels.has(channel.id)) continue;
+      this.#state.channels.set(channel.id, {
+        channel: cloneChannel(channel),
+        artifacts: new Map(),
+      });
+    }
   }
 
   #applyRecoveredDisplay(display: DisplayState): void {

@@ -24,7 +24,7 @@ import type { TabPage } from "@telepath-computer/television-shared";
 // Bake script coverage (proofs/arch/onboarding/bake.md): every
 // assertion drives the real script — spawned as a real process with real argv
 // and exit codes — with no mocks: the real render pipeline, really-built
-// skill assets (the real skills build runs when dist is absent), and the real
+// onboarding component assets (the real component build runs when its output is absent), and the real
 // validator. The root options are the sanctioned fixture mechanism: --root
 // points at disposable content trees; --designs/--skills-dist at fixture
 // roots where a scenario needs authored designs. No test writes the
@@ -34,7 +34,7 @@ const REPO_ROOT = path.resolve(process.cwd());
 const SCRIPT = path.join(REPO_ROOT, "scripts", "bake-onboarding.mjs");
 const PRODUCTION_ASSETS = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-channels");
 const DESIGN_ROOT = path.join(REPO_ROOT, "specs", "ui", "onboarding-artifacts");
-const SKILLS_DIST = path.join(REPO_ROOT, "packages", "skills", "dist");
+const SKILLS_DIST = path.join(REPO_ROOT, "packages", "skills", "onboarding-dist");
 const DATE_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-relative-dates.js");
 const TODO_MODULE = path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-company-todos.js");
 const VALIDATOR = path.join(REPO_ROOT, "packages", "server", "scripts", "validate-onboarding.mjs");
@@ -313,7 +313,7 @@ beforeAll(() => {
   }
   const missing = [...needed].filter((skill) => !existsSync(path.join(SKILLS_DIST, skill)));
   if (missing.length > 0) {
-    const build = spawnSync("node", [path.join(REPO_ROOT, "packages", "skills", "scripts", "build.mjs")], {
+    const build = spawnSync("npm", ["--workspace", "@telepath-computer/television-skills", "run", "build"], {
       encoding: "utf8",
       cwd: path.join(REPO_ROOT, "packages", "skills"),
     });

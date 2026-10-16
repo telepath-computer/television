@@ -45,6 +45,7 @@ type SpecCLIServerOptions = {
   bundledViewsPath?: string;
   onboardingContentPath?: string;
   bundledThemesPath?: string;
+  bundledTemplatesPath?: string;
   sdkDir?: string;
   acpProfile?: ACPAgentProfile;
   launchMode: LaunchMode;
@@ -69,6 +70,7 @@ interface SpecCLIEnvironment {
   resolveBundledViewsPath: () => string | undefined;
   resolveOnboardingContentPath: () => string | undefined;
   resolveBundledThemesPath: () => string | undefined;
+  resolveBundledTemplatesPath: () => string | undefined;
   resolveBundledSkillsRoot: () => string | undefined;
   resolveSdkDir: () => string | undefined;
   resourceBindings: boolean;

@@ -13,7 +13,7 @@ This spec owns the *resource layer*: the part of Television every resource type 
 | this spec | the layer, as above |
 | [sdk.md](./sdk.md) | the browser module at `/sdk/v1/resources.js`: its build, serving, the layer's functions, the connection status and the connection client |
 | [json-store.md](./json-store.md) | the `json` type: paths, values and operations, write application, transactions, subscriptions, local writes in the SDK, its content file and limits, and its CLI verbs |
-| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill, and the `tv-tasks` skill's use of a JSON store |
+| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill |
 
 The *resource SDK* is the browser module; the *page connection* is defined below.
 

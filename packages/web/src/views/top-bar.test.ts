@@ -161,12 +161,12 @@ describe("top-bar markup (^top-ac-markup-smoke)", () => {
       expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(row.titles);
 
       const controls = bar!.querySelector<HTMLElement>(":scope > .top-bar-controls")!;
-      expect(controls.children[0]?.classList.contains("skill-trigger")).toBe(true);
-      expect(controls.children[1]?.classList.contains("skill-popover")).toBe(true);
+      expect(controls.children[0]?.classList.contains("templates-trigger")).toBe(true);
+      expect(controls.children[1]?.classList.contains("templates-popover")).toBe(true);
       const settingsTrigger = controls.querySelector<HTMLElement>(".settings-trigger")!;
       expect(controls.children[2]).toBe(settingsTrigger);
       expect(settingsTrigger.nextElementSibling?.classList.contains("settings-popover")).toBe(true);
-      expect(controls.querySelectorAll(".skill-trigger")).toHaveLength(1);
+      expect(controls.querySelectorAll(".templates-trigger")).toHaveLength(1);
       expect(controls.querySelectorAll(".settings-trigger")).toHaveLength(1);
       expect(controls.querySelectorAll(".update-bell")).toHaveLength(row.notice ? 1 : 0);
       expect(controls.querySelectorAll(".update-popover")).toHaveLength(row.notice ? 1 : 0);
@@ -178,6 +178,8 @@ describe("top-bar markup (^top-ac-markup-smoke)", () => {
   }
 });
 
+// Contract: proofs/ui/app/top-bar/index.md#^top-ac-lead-markup.
+// The mocked DOM forfeits browser layout and native interaction to the linked browser assertions.
 describe("top-bar lead markup (^top-ac-lead-markup)", () => {
   it("renders open-sidebar, collapsed-channel, open-switcher, and no-channel poses", async () => {
     const host = document.createElement("div");
@@ -249,10 +251,12 @@ describe("top-bar lead markup (^top-ac-lead-markup)", () => {
     expect(popover.querySelectorAll('.channel[aria-selected="true"]')).toHaveLength(1);
     expect(popover.querySelector('.channel[aria-selected="true"]')?.textContent?.trim())
       .toBe("Recent channel");
+    expect(popover.querySelectorAll(".channel[role='option']")).toHaveLength(2);
     expect(popover.querySelectorAll(".channel-menu-trigger")).toHaveLength(2);
     expect(popover.querySelectorAll("tv-menu")).toHaveLength(2);
-    expect(popover.querySelector(".channel-menu-trigger")?.getAttribute("aria-haspopup"))
-      .toBe("menu");
+    for (const trigger of popover.querySelectorAll(".channel-menu-trigger")) {
+      expect(trigger.getAttribute("aria-haspopup")).toBe("menu");
+    }
 
     const footer = popover.querySelector<HTMLElement>(":scope > .channel-switcher-pop-footer")!;
     const create = footer.querySelector<HTMLButtonElement>(":scope > .channel-create")!;

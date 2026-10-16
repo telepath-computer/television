@@ -1,4 +1,4 @@
-*What a channel is to a user: identity, creation, renaming, deletion, pinning, ordering, and how one channel is the focused one everywhere.*
+*What a channel is to a user: identity, creation, renaming, deletion and last-channel replacement, pinning, ordering, and how one channel is the focused one everywhere.*
 
 **Status:** implemented redesign product authority. TV-549 tracks the caller-supplied-id gap stated below.
 
@@ -34,7 +34,7 @@ A channel's name is the user's to change at any time. The name is server state: 
 
 Deleting a channel is permanent, and confirms before acting (the confirmation dialog is [ui/app/sidebar/index.md](../ui/app/sidebar/index.md)'s). Deleting a channel hard-deletes the channel's metadata and every artifact registry record referenced by it; artifact removals complete before the channel removal is announced. Television never deletes or mutates the filesystem paths or remote URLs those artifact records point to. ^ch-delete-semantics
 
-When the focused channel is deleted, the app lands on the first remaining pinned channel; if there are no pinned channels, the first unpinned one; if there are no channels at all, the no-channels empty state (its design is the stage's — [ui/app/stage/index.md](../ui/app/stage/index.md)). ^ch-delete-selection
+When the focused channel is deleted, the app lands on the first remaining pinned channel; if there are no pinned channels, the first unpinned one. Deleting the last channel creates a new empty, unpinned channel named "New channel" and focuses it. A serving Television always has a focused channel. ^ch-delete-selection
 
 ## Pinning and ordering
 
@@ -62,4 +62,3 @@ Deletion acceptance must use the real confirmation and inspect the real server s
 Every shared-state acceptance case must use two connected clients, with the change reaching the second client without a reload.
 
 Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), the [channel-state architecture spec](../arch/channel-state/index.md) owns real HTTP and websocket evidence that artifact removals precede channel removal and that the resulting pin and focus changes arrive in order. The [app shell](../ui/app/index.md#connection-states) owns the disconnected state across the whole shell. The [channel-sidebar UI](../ui/app/sidebar/index.md) owns its controls, drag behavior, and motion. This spec does not require duplicate tests for event ordering, disconnection, or sidebar interaction.
-

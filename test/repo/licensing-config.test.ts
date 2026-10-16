@@ -42,12 +42,13 @@ afterEach(() => {
 });
 
 describe("licensing configuration", () => {
+  // proofs/arch/licensing.md#^licensing-t-generator-contract
   test("declares package topology in one module", () => {
     expect(includedLicenseSurfaces("cli")).toEqual([
       "cli",
       "sdk:resources",
-      "skill:tv-calendar",
-      "skill:tv-tasks",
+      "onboarding:calendar",
+      "onboarding:tasks",
       "view:markdown",
       "web",
     ]);

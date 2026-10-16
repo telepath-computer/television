@@ -2,8 +2,8 @@ export type LicenseSurfaceDeclaration =
   | { surface: "cli"; producesInventory: true; packageDirectory: "packages/cli" }
   | { surface: "desktop"; producesInventory: true; packageDirectory: "packages/desktop" }
   | { surface: "sdk:resources"; producesInventory: true; parentSurface: "cli" }
-  | { surface: "skill:tv-calendar"; producesInventory: true; parentSurface: "cli" }
-  | { surface: "skill:tv-tasks"; producesInventory: true; parentSurface: "cli" }
+  | { surface: "onboarding:calendar"; producesInventory: true; parentSurface: "cli" }
+  | { surface: "onboarding:tasks"; producesInventory: true; parentSurface: "cli" }
   | { surface: "source"; producesInventory: false }
   | { surface: "view:markdown"; producesInventory: true; parentSurface: "cli" }
   | { surface: "web"; producesInventory: true; parentSurface: "cli" };
