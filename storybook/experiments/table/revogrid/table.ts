@@ -6,7 +6,7 @@ import type { ColumnRegular, ColumnDataSchemaModel } from "@revolist/revogrid";
 import { displayValue, gridColumn, rowHeader, type GridRow } from "./cells";
 import { inputEditor, pillEditor } from "./editors";
 import { fieldIcon } from "./field-icons";
-import { convertValue, TableModel, type TableChange } from "./model";
+import { convertValue, newId, TableModel, type TableChange } from "./model";
 
 export interface TableArgs {
   theme: "light" | "dark";
@@ -101,7 +101,7 @@ class TableController {
     this.configureGrid();
     this.page.append(this.toolbar, this.grid);
     if (args.changeLog) this.buildChangePanel();
-    this.menuTrigger.id = `rg-menu-anchor-${crypto.randomUUID()}`;
+    this.menuTrigger.id = `rg-menu-anchor-${newId()}`;
     this.menuTrigger.className = "rg-floating-anchor";
     this.menuTrigger.type = "button";
     this.menuTrigger.setAttribute("aria-label", "Table menu");

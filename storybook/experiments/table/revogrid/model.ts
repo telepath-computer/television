@@ -34,6 +34,14 @@ type HistoryEntry = { forward: TableChange; inverse: TableChange };
 const colors: SelectOption["color"][] = ["blue", "green", "purple", "orange", "pink", "yellow", "red", "neutral"];
 
 /** Normalize user input before a cell enters the model. */
+// A random id. crypto.randomUUID exists only in secure contexts, and
+// Television serves artifacts over plain HTTP on the tailnet, so this uses
+// getRandomValues, which every context has.
+export function newId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 export function convertValue(input: unknown, column: Column): CellValue {
   if (input === null || input === undefined || input === "") return null;
   if (column.type === "checkbox") return input === true || input === "true" || input === "1" || input === "yes";
@@ -291,7 +299,7 @@ export class TableModel {
   }
 
   /** Produce a stable id for inserted rows or columns. */
-  id(prefix: string): string { return `${prefix}-${crypto.randomUUID()}`; }
+  id(prefix: string): string { return `${prefix}-${newId()}`; }
 
   /** Choose an unused option color, rotating through the foundation hues. */
   optionColor(column: Column): SelectOption["color"] { return colors[(column.options?.length ?? 0) % colors.length]; }
