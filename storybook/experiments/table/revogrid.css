@@ -1,0 +1,57 @@
+/* RevoGrid themed with Television's tokens. Only RevoGrid's own custom
+   properties are set, on its host element, so nothing here depends on the
+   grid's internal markup. */
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.table-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.table-page header {
+  padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-16, 16px);
+}
+
+.table-page h1 {
+  margin: 0 0 var(--space-8, 8px);
+}
+
+.table-page .lede {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+.table-page revo-grid {
+  flex: 1;
+  min-height: 0;
+  font-variant-numeric: tabular-nums;
+
+  --revo-grid-font-family: var(--font-sans);
+  --revo-grid-font-size: var(--text-base);
+  --revo-grid-background: var(--color-surface);
+  --revo-grid-foreground: var(--color-text);
+  --revo-grid-text: var(--color-text);
+  --revo-grid-border: var(--color-border);
+  --revo-grid-divider: var(--color-border);
+  --revo-grid-cell-border: var(--color-border);
+  --revo-grid-cell-padding: 0 var(--space-12, 12px);
+  --revo-grid-row-hover: var(--color-surface-muted);
+  --revo-grid-focused-bg: var(--color-surface-muted);
+  --revo-grid-primary: var(--color-primary);
+  --revo-grid-selection-border: var(--color-primary);
+
+  --revo-grid-header-bg: var(--color-surface);
+  --revo-grid-header-color: var(--color-text-muted);
+  --revo-grid-header-border: var(--color-border);
+  --revo-grid-header-font-size: var(--text-sm);
+  --revo-grid-header-font-weight: var(--font-weight-normal);
+  --revo-grid-header-text-transform: uppercase;
+  --revo-grid-header-padding: 0 var(--space-12, 12px);
+}

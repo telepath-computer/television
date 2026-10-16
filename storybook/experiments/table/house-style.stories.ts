@@ -1,6 +1,5 @@
-// Stories for the Table artifact template, while its design is worked out.
-// "House style" is the starting point: the example page from the former
-// tv-table skill, rendered with the stylesheet artifacts receive.
+// A Table template prototype: the example page from the former tv-table
+// skill, rendered with the stylesheet artifacts receive. Static, not editable.
 
 import "../../../specs/ui/foundation/index.css";
 import houseStyleExample from "../../../packages/skills/skills/tv-table/example/index.html?raw";
@@ -12,11 +11,10 @@ const styles = [...houseStyleExample.matchAll(/<style>([\s\S]*?)<\/style>/g)].ma
 const body = /<body[^>]*>([\s\S]*)<\/body>/.exec(houseStyleExample)?.[1] ?? "";
 
 export default {
-  title: "Templates/Table",
+  title: "Experiments/Table/House style",
   parameters: { layout: "fullscreen" },
 };
 
-export const HouseStyle = {
-  name: "House style",
+export const Static = {
   render: () => `${body}<style>${styles}</style>`,
 };

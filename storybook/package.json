@@ -10,6 +10,7 @@
     "type-check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@revolist/revogrid": "4.29.0",
     "@storybook/addon-docs": "10.6.2",
     "@storybook/html-vite": "10.6.2",
     "frameset": "^0.17.1",
