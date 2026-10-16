@@ -1,5 +1,5 @@
 /* The Checklist template's page: a sheet of paper on a slightly darker desk,
-   with a title, ruled rows of items and an add field. Built only from the
+   with a title, rows of items and an add field. Built only from the
    foundation's tokens, so it follows the active theme and appearance. */
 
 body {
@@ -23,8 +23,6 @@ body {
   border-radius: 2px;
   min-height: 640px;
   box-shadow: var(--shadow-sm);
-  /* The ruling: a faint line under every row, lighter than a border. */
-  --checklist-rule: color-mix(in oklch, var(--color-border), transparent 40%);
 }
 
 /* In the dark appearance the muted surface is the lighter one, so the sheet
@@ -68,7 +66,6 @@ body {
   min-height: 44px;
   padding: var(--space-10) 0;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--checklist-rule);
   font-size: var(--text-lg);
   line-height: 1.4;
 }
@@ -137,7 +134,6 @@ body {
 
 .checklist-add {
   color: var(--color-text-muted);
-  border-bottom: none;
 }
 
 .checklist-add tv-icon {
