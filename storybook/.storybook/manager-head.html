@@ -8,4 +8,16 @@
   button[aria-label="Settings"]::after {
     display: none;
   }
+
+  /* Start the sidebar at the search field: no logo row. The settings menu goes
+     with it; its keyboard shortcuts still work. */
+  /* Storybook's own styles load after this file, so these need !important. */
+  .sidebar-header {
+    display: none !important;
+  }
+
+  .sidebar-item,
+  .sidebar-item * {
+    font-size: 13px !important;
+  }
 </style>
