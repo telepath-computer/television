@@ -14,18 +14,34 @@ body {
   height: 100vh;
 }
 
-.table-page header {
-  padding: var(--space-32, 32px) var(--space-32, 32px) var(--space-16, 16px);
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  padding: var(--space-6, 6px) var(--space-8, 8px);
+  border-bottom: 0.5px solid var(--color-border);
+  background: var(--color-surface-muted);
 }
 
-.table-page h1 {
-  margin: 0 0 var(--space-8, 8px);
-}
-
-.table-page .lede {
-  margin: 0;
+.table-count {
+  margin-left: auto;
+  padding: 0 var(--space-8, 8px);
   color: var(--color-text-muted);
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
+}
+
+/* The rename field sits over the column name being renamed. */
+.column-rename {
+  position: fixed;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 var(--space-12, 12px);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.table-page .cell-number {
+  text-align: right;
 }
 
 .table-page revo-grid {
@@ -47,11 +63,13 @@ body {
   --revo-grid-primary: var(--color-primary);
   --revo-grid-selection-border: var(--color-primary);
 
-  --revo-grid-header-bg: var(--color-surface);
-  --revo-grid-header-color: var(--color-text-muted);
+  --revo-grid-header-bg: var(--color-surface-muted);
+  --revo-grid-row-headers-bg: var(--color-surface-muted);
+  --revo-grid-row-headers-color: var(--color-text-muted);
+  --revo-grid-header-color: var(--color-text);
   --revo-grid-header-border: var(--color-border);
   --revo-grid-header-font-size: var(--text-sm);
-  --revo-grid-header-font-weight: var(--font-weight-normal);
-  --revo-grid-header-text-transform: uppercase;
+  --revo-grid-header-font-weight: var(--font-weight-medium);
+  --revo-grid-header-text-transform: none;
   --revo-grid-header-padding: 0 var(--space-12, 12px);
 }
