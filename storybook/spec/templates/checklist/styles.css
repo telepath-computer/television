@@ -1,0 +1,156 @@
+/* The Checklist template's page: a sheet of paper on a slightly darker desk,
+   with a title, ruled rows of items and an add field. Built only from the
+   foundation's tokens, so it follows the active theme and appearance. */
+
+body {
+  margin: 0;
+}
+
+.checklist-page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: var(--space-32) var(--space-16);
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.checklist-sheet {
+  box-sizing: border-box;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--space-48) var(--space-48) var(--space-32);
+  background: var(--color-surface);
+  border-radius: 2px;
+  min-height: 640px;
+  box-shadow: var(--shadow-sm);
+  /* The ruling: a faint line under every row, lighter than a border. */
+  --checklist-rule: color-mix(in oklch, var(--color-border), transparent 40%);
+}
+
+/* In the dark appearance the muted surface is the lighter one, so the sheet
+   takes it and the desk the plain surface: the sheet still sits above. */
+:where([data-theme="dark"]) .checklist-page {
+  background: var(--color-surface);
+}
+
+:where([data-theme="dark"]) .checklist-sheet {
+  background: var(--color-surface-muted);
+}
+
+.checklist-title {
+  margin: 0;
+  padding-bottom: var(--space-16);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.checklist-title:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-muted);
+}
+
+.checklist-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-item,
+.checklist-add {
+  display: grid;
+  grid-template-columns: 1.125em minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--space-12);
+  min-height: 44px;
+  padding: var(--space-10) 0;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--checklist-rule);
+  font-size: var(--text-lg);
+  line-height: 1.4;
+}
+
+/* The box, drawn like the foundation's checklist marker and seated on the
+   item's first line. */
+.checklist-check {
+  appearance: none;
+  position: relative;
+  width: 1.125em;
+  height: 1.125em;
+  margin: 0;
+  translate: 0 0.16em;
+  border: var(--control-border);
+  border-radius: var(--control-radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+.checklist-check:checked {
+  background: var(--checkbox-color);
+  border-color: var(--checkbox-color);
+}
+
+.checklist-check:checked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface);
+  mask: var(--icon-check) center / 80% no-repeat;
+}
+
+.checklist-check:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.checklist-text {
+  outline: none;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.checklist-item[data-done] .checklist-text {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.08em;
+}
+
+/* The row being edited is marked only by its caret and a faint wash. */
+.checklist-item[data-editing] {
+  background: linear-gradient(to right, transparent, var(--color-surface-muted) 8%, var(--color-surface-muted) 92%, transparent);
+}
+
+.checklist-remove {
+  align-self: center;
+  color: var(--color-text-muted);
+  opacity: 0;
+}
+
+.checklist-item:hover .checklist-remove,
+.checklist-item[data-editing] .checklist-remove,
+.checklist-remove:focus-visible {
+  opacity: 1;
+}
+
+.checklist-add {
+  color: var(--color-text-muted);
+  border-bottom: none;
+}
+
+.checklist-add tv-icon {
+  translate: 0 0.16em;
+}
+
+.checklist-add-input {
+  all: unset;
+  font: inherit;
+  color: var(--color-text);
+}
+
+.checklist-add-input::placeholder {
+  color: var(--color-text-muted);
+}
