@@ -13,7 +13,10 @@
     "@revolist/revogrid": "4.29.0",
     "@storybook/addon-docs": "10.6.2",
     "@storybook/html-vite": "10.6.2",
+    "@types/tabulator-tables": "6.3.6",
+    "ag-grid-community": "36.2.0",
     "frameset": "^0.17.1",
-    "storybook": "10.6.2"
+    "storybook": "10.6.2",
+    "tabulator-tables": "6.6.1"
   }
 }
