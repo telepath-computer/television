@@ -7,6 +7,7 @@ import "./table-grid.css";
 import "./table-grid.ts";
 import { copyTable, empty, expenses, largeTable, projectTracker, wideTable, type TableData } from "../data.ts";
 import type { TableGrid, GridOptions } from "./table-grid.ts";
+import { newId } from "./dom.ts";
 
 interface Args {
   theme: "light" | "dark";
@@ -124,7 +125,7 @@ export const ChangeLog = {
       grid.makeChange({ type: "cell", rowId: "task-1", columnId: "points", value: 5 });
       grid.makeChange({
         type: "row-insert",
-        row: { id: crypto.randomUUID(), cells: { title: "Review artifact table" } },
+        row: { id: newId(), cells: { title: "Review artifact table" } },
         index: 1,
       });
       grid.makeChange({

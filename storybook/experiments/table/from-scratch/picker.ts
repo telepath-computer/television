@@ -3,7 +3,7 @@
 
 import type { CellValue, Column, OptionColor } from "../data.ts";
 import { pill } from "./cell-rendering.ts";
-import { button, element, icon } from "./dom.ts";
+import { button, element, icon, newId } from "./dom.ts";
 import type { TableChange } from "./model.ts";
 
 const colors: OptionColor[] = [
@@ -114,7 +114,7 @@ export function buildSelectPicker(config: SelectPickerConfig): HTMLElement {
         const color = colors.find((candidate) => !used.has(candidate))
           ?? colors[(fresh.options?.length ?? 0) % colors.length];
         const option = {
-          id: crypto.randomUUID(),
+          id: newId(),
           label: filter.value.trim(),
           color,
         };

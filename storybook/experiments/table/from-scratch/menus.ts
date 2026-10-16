@@ -2,6 +2,7 @@
 // which menu is present; this module builds one menu against its trigger.
 
 import type { Column, Row } from "../data.ts";
+import { newId } from "./dom.ts";
 
 /** One action or separator in a table context menu. */
 export interface ContextMenuItem {
@@ -100,7 +101,7 @@ export function createContextMenu(
   trigger: HTMLElement,
   items: ContextMenuItem[],
 ): HTMLElement {
-  if (!trigger.id) trigger.id = `tg-menu-trigger-${crypto.randomUUID()}`;
+  if (!trigger.id) trigger.id = `tg-menu-trigger-${newId()}`;
 
   const menu = document.createElement("tv-menu");
   menu.className = "tg-context-menu";

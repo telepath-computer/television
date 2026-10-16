@@ -4,7 +4,7 @@
 import type { CellValue, Column, ColumnType, OptionColor, Row, TableData } from "../data.ts";
 import { applyChange, type TableChange } from "./model.ts";
 import { cellLabel, makeView, parseValue, sameViewOrder, type TableView, type ViewItem } from "./view.ts";
-import { button, element } from "./dom.ts";
+import { button, element, newId } from "./dom.ts";
 import { numberPrecisionByColumn, renderCellContent } from "./cell-rendering.ts";
 import { renderToolbar } from "./toolbar.ts";
 import { buildSelectPicker } from "./picker.ts";
@@ -73,7 +73,7 @@ export class TableGrid extends HTMLElement {
   private columnMenuElement?: HTMLElement;
   private rowMenuElement?: HTMLElement;
   private rowRenderingConfig?: RowRenderingConfig;
-  private idPrefix = `tg-${crypto.randomUUID().slice(0, 8)}`;
+  private idPrefix = `tg-${newId().slice(0, 8)}`;
   private selection = new SelectionController({
     root: this,
     getTable: () => this.table,
@@ -520,7 +520,7 @@ export class TableGrid extends HTMLElement {
         const index = this.table.rows.findIndex((item) => item.id === row.id);
         this.commit({
           type: "row-insert",
-          row: { id: crypto.randomUUID(), cells: structuredClone(row.cells) },
+          row: { id: newId(), cells: structuredClone(row.cells) },
           index: index + 1,
         }, true);
       },
@@ -760,7 +760,7 @@ export class TableGrid extends HTMLElement {
 
   private insertRow(index: number, edit = false): void {
     const row: Row = {
-      id: crypto.randomUUID(),
+      id: newId(),
       cells: Object.fromEntries(this.table.columns.map((column) => [column.id, null])),
     };
     if (edit) this.view.filter = undefined;
@@ -786,7 +786,7 @@ export class TableGrid extends HTMLElement {
   private duplicateColumn(columnId: string): void {
     const column = this.column(columnId);
     if (!column) return;
-    const id = crypto.randomUUID();
+    const id = newId();
     const index = this.table.columns.findIndex((item) => item.id === columnId) + 1;
     const cells = Object.fromEntries(
       this.table.rows.map((row) => [row.id, structuredClone(row.cells[columnId] ?? null)]),
@@ -814,7 +814,7 @@ export class TableGrid extends HTMLElement {
     const panel = this.panelAt(anchor);
     buildColumnPanel(panel, (name, type) => {
       const column: Column = {
-        id: crypto.randomUUID(),
+        id: newId(),
         name,
         type,
         width: 160,
@@ -841,7 +841,7 @@ export class TableGrid extends HTMLElement {
     const labels = [...new Set(this.table.rows.map((row) => cellLabel(row.cells[column.id], column)).filter(Boolean))];
     if (type === "select" || type === "multiselect") {
       next.options = labels.map((label, index) => ({
-        id: crypto.randomUUID(),
+        id: newId(),
         label,
         color: colors[index % colors.length],
       }));

@@ -32,3 +32,11 @@ export function button(label: string, iconName?: string, className?: string): HT
   if (!iconOnly) node.append(document.createTextNode(label));
   return node;
 }
+
+// A random id. crypto.randomUUID exists only in secure contexts, and
+// Television serves artifacts over plain HTTP on the tailnet, so this uses
+// getRandomValues, which every context has.
+export function newId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
