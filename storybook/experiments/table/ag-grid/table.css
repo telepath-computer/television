@@ -1,0 +1,73 @@
+/* Only the prototype's own chrome and cell renderers use selectors here.
+   AG Grid's internal elements are styled through Theming API parameters. */
+.ag-table-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  min-height: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.ag-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex: none;
+  min-height: 42px;
+  padding: var(--space-6) var(--space-12);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.ag-table-toolbar button,
+.ag-table-toolbar input {
+  flex: none;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--control-radius);
+  background: var(--control-background);
+  color: var(--color-text);
+  font: var(--font-weight-medium) var(--text-sm) var(--font-sans);
+}
+
+.ag-table-toolbar button { padding: 0 var(--space-8); cursor: pointer; }
+.ag-table-toolbar button:hover { background: var(--control-background-hover); }
+.ag-table-toolbar button:focus-visible,
+.ag-table-toolbar input:focus-visible { outline: var(--outline-focus); outline-offset: 1px; }
+.ag-table-toolbar input { width: 170px; padding: 0 var(--space-8); }
+.ag-table-toolbar input::placeholder { color: var(--color-text-muted); }
+.ag-table-grid { flex: 1; min-height: 0; width: 100%; }
+.ag-table-finding { margin-left: var(--space-8); color: var(--color-text-muted); font-size: var(--text-sm); }
+
+.ag-table-pills { display: inline-flex; align-items: center; gap: var(--space-4); min-height: 100%; }
+.ag-table-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 var(--space-8);
+  border-radius: var(--radius-pill);
+  background: var(--neutral-alpha-10);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+.ag-table-pill-red { background: var(--red-alpha-15); color: var(--red-700); }
+.ag-table-pill-orange { background: var(--orange-alpha-15); color: var(--orange-700); }
+.ag-table-pill-yellow { background: var(--yellow-alpha-15); color: var(--yellow-700); }
+.ag-table-pill-green { background: var(--green-alpha-15); color: var(--green-700); }
+.ag-table-pill-blue { background: var(--blue-alpha-15); color: var(--blue-700); }
+.ag-table-pill-purple { background: var(--purple-alpha-15); color: var(--purple-700); }
+.ag-table-pill-pink { background: var(--pink-alpha-15); color: var(--pink-700); }
+
+[data-theme="dark"] .ag-table-pill-red { color: var(--red-300); }
+[data-theme="dark"] .ag-table-pill-orange { color: var(--orange-300); }
+[data-theme="dark"] .ag-table-pill-yellow { color: var(--yellow-300); }
+[data-theme="dark"] .ag-table-pill-green { color: var(--green-300); }
+[data-theme="dark"] .ag-table-pill-blue { color: var(--blue-300); }
+[data-theme="dark"] .ag-table-pill-purple { color: var(--purple-300); }
+[data-theme="dark"] .ag-table-pill-pink { color: var(--pink-300); }
