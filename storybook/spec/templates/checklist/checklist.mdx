@@ -39,7 +39,9 @@ Each item's remove button appears when the pointer is over the item or it is bei
 
 ## Changes from elsewhere
 
-The page updates live when an agent or another viewer changes the checklist. A change to the item the person is editing does not replace what they are typing: their text wins, and is saved when they type or leave the item. Changes to the title and to other items show at once.
+The page updates live when an agent or another viewer changes the checklist. Changes to the title and to other items show at once.
+
+While a person is editing an item, their screen keeps showing their own text, whatever arrives for that item. Their text saves as they type, so when two writers change the same item, the last one wins; when the person leaves the item, it shows the stored value. If the item is removed elsewhere while they edit it, it stays on their screen: typing on, or leaving it with text, writes it back whole, with its place and done state, so the later edit wins. Left empty, it stays removed.
 
 ## Read-only
 
