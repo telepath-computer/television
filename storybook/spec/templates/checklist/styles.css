@@ -46,7 +46,12 @@ body {
   overflow-wrap: anywhere;
 }
 
-.checklist-title:empty::before {
+.checklist-title-text {
+  display: block;
+  outline: none;
+}
+
+.checklist-title-text:empty::before {
   content: attr(data-placeholder);
   color: var(--color-text-muted);
 }

@@ -29,18 +29,23 @@ interface Args {
   readOnly: boolean;
 }
 
-const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: boolean) => readOnly
-  ? html`
+// Each control is named after its item's text, so assistive technology can
+// tell which item a box or button belongs to; a blank item is "Empty item".
+const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: boolean) => {
+  const name = text.trim() === "" ? "Empty item" : text;
+  return readOnly
+    ? html`
   <li class="checklist-item"${done ? html` data-done` : ""}>
-    <input type="checkbox" class="checklist-check" aria-label="Done" disabled${done ? html` checked` : ""}>
+    <input type="checkbox" class="checklist-check" aria-label="${name}" disabled${done ? html` checked` : ""}>
     <span class="checklist-text">${text}</span>
   </li>`
-  : html`
+    : html`
   <li class="checklist-item"${done ? html` data-done` : ""}${editing ? html` data-editing` : ""}>
-    <input type="checkbox" class="checklist-check" aria-label="Done"${done ? html` checked` : ""}>
+    <input type="checkbox" class="checklist-check" aria-label="${name}"${done ? html` checked` : ""}>
     <span class="checklist-text" contenteditable="plaintext-only" role="textbox" aria-label="Item ${index + 1}">${text}</span>
-    <button class="checklist-remove" variant="ghost" icon aria-label="Remove item" title="Remove item">${icon({ name: "close" })}</button>
+    <button class="checklist-remove" variant="ghost" icon aria-label="Remove ${name}" title="Remove item">${icon({ name: "close" })}</button>
   </li>`;
+};
 
 const render = ({ theme, title, items, editing, adding, readOnly }: Args) => {
   // Stories share one document, so each sets the theme it shows.
@@ -49,8 +54,8 @@ const render = ({ theme, title, items, editing, adding, readOnly }: Args) => {
   <main class="checklist-page">
     <article class="checklist-sheet"${readOnly ? html` data-read-only` : ""}>
       ${readOnly
-        ? html`<h1 class="checklist-title" data-placeholder="Untitled">${title}</h1>`
-        : html`<h1 class="checklist-title" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</h1>`}
+        ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
+        : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
       <ul class="checklist-items">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
       ${readOnly ? "" : html`
       <label class="checklist-add">
