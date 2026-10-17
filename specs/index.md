@@ -143,8 +143,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
       - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
-    - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories and a stylesheet in `storybook/spec/templates-popover/`, with its MDX prose page beside this file.*
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
@@ -180,9 +178,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **skills/**
     - **sidebar-view/**
       - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*
-  - **templates/**
-    - **checklist/**
-      - `index.md` (7 lines) — *UI spec: the bundled Checklist template page, whose interaction, markup, and styling are piloted in Storybook.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

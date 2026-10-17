@@ -1,11 +1,13 @@
 import { Meta, Canvas } from "@storybook/addon-docs/blocks";
-import * as Stories from "../../../../storybook/spec/templates/checklist/checklist.stories.ts";
+import * as Stories from "../../../storybook/spec/templates/checklist/checklist.stories.ts";
 
 <Meta of={Stories} />
 
 # Checklist template
 
 The Checklist template makes an artifact that is a single list of things to tick off, laid out like a sheet of paper. Each story on this page is one state of its page; its markup and styles are the spec for that state. This page states the behaviour the stories cannot show.
+
+The stories and their stylesheet are in `storybook/spec/templates/checklist/`. Together with this page they are the authority for the page's interaction, markup and styling. Production page styles are derived from that stylesheet by hand and checked against the stories by eye; no automated stylesheet-copy or conformance check applies yet. The [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store) owns the data and what each change writes, and the [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
 
 <Canvas of={Stories.WithItems} />
 

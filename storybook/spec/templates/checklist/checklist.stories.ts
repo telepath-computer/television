@@ -1,5 +1,5 @@
 // The Checklist template's spec: each story is one state of its page, with its
-// markup written here. The prose is specs/ui/templates/checklist/checklist.mdx;
+// markup written here. The prose is specs/ui/templates/checklist.mdx;
 // the styles are styles.css, beside this file.
 
 import "../../../../specs/ui/foundation/index.css";
