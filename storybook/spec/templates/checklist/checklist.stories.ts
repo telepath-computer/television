@@ -27,6 +27,9 @@ interface Args {
   // The page's access to its store is read-only, as through a read-only
   // share link.
   readOnly: boolean;
+  // A note at the top of the sheet: while the page cannot reach its server,
+  // or briefly after a save was refused. Null shows none.
+  status: string | null;
 }
 
 // Each control is named after its item's text, so assistive technology can
@@ -47,12 +50,13 @@ const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: b
   </li>`;
 };
 
-const render = ({ theme, title, items, editing, adding, readOnly }: Args) => {
+const render = ({ theme, title, items, editing, adding, readOnly, status }: Args) => {
   // Stories share one document, so each sets the theme it shows.
   document.documentElement.dataset.theme = theme;
   return html`
   <main class="checklist-page">
     <article class="checklist-sheet"${readOnly ? html` data-read-only` : ""}>
+      ${status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`}
       ${readOnly
         ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
         : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
@@ -79,7 +83,7 @@ export default {
   title: "Spec/Templates/Checklist",
   parameters: { layout: "fullscreen" },
   render,
-  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false } satisfies Args,
+  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null } satisfies Args,
 };
 
 // What a person sees after creating a Checklist from the Templates popover.
@@ -118,5 +122,11 @@ export const ManyItems = {
 
 // Opened through a read-only share link.
 export const ReadOnly = { name: "Read-only", args: { readOnly: true } };
+
+// The page cannot reach its server: read-only until it reconnects.
+export const Disconnected = { args: { readOnly: true, status: "Reconnecting…" } };
+
+// A save was refused and its change reverted.
+export const SaveFailed = { name: "Save failed", args: { status: "Couldn't save that change." } };
 
 export const Dark = { args: { theme: "dark" } };

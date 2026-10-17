@@ -49,6 +49,14 @@ When the page can only read its store, as through a read-only share link, the ti
 
 <Canvas of={Stories.ReadOnly} />
 
+## Saving
+
+Changes save as the person makes them, through the artifact's store. While the page cannot reach its server, it is read-only, as below, keeping what it shows, with "Reconnecting…" in muted text at the top of the sheet; it becomes editable again by itself once it reconnects. If a save is refused, that change goes back to the stored value and "Couldn't save that change." shows in the same place for a few seconds.
+
+<Canvas of={Stories.Disconnected} />
+
+<Canvas of={Stories.SaveFailed} />
+
 ## A long list
 
 The sheet grows with the list, and the page scrolls.

@@ -35,6 +35,12 @@ body {
   background: var(--color-surface-muted);
 }
 
+.checklist-status {
+  margin: calc(-1 * var(--space-24)) 0 var(--space-16);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
 .checklist-title {
   margin: 0;
   padding-bottom: var(--space-16);
