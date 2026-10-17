@@ -14,11 +14,10 @@ test("the authored theme reference covers current application authorities", () =
     // The document root marker is owned by the app composition prose.
     "specs/ui/app/index.md",
     ...globSync("specs/ui/app/**/*", { cwd: root })
-      .filter(file => /\.(frame|css)$/.test(file))
-      .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
-    // The retired frame above is replaced by this pilot's authored states.
+      .filter(file => /\.(frame|css)$/.test(file)),
+    // The Templates popover is specified by its Storybook pilot.
     "storybook/spec/templates-popover/templates-popover.stories.ts",
-    "storybook/spec/templates-popover/templates-popover.mdx",
+    "specs/ui/app/templates-popover.mdx",
     "storybook/spec/templates-popover/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);

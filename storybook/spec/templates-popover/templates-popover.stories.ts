@@ -7,10 +7,10 @@ import "../../../specs/ui/foundation/tokens/app.css";
 import "./styles.css";
 import { html, Html } from "../../lib/html.ts";
 import iconFrame from "../../../specs/ui/foundation/icons/icon.frame";
-import calendarImage from "../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
-import tableImage from "../../../specs/ui/app/skill-selector/thumbnails/table.png";
-import checklistImage from "../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import markdownImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import calendarImage from "./thumbnails/calendar.png";
+import tableImage from "./thumbnails/table.png";
+import checklistImage from "./thumbnails/tasks.png";
+import markdownImage from "./thumbnails/markdown.png";
 
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
