@@ -51,7 +51,8 @@ const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: b
 };
 
 const render = ({ theme, title, items, editing, adding, readOnly, status }: Args) => {
-  // Stories share one document, so each sets the theme it shows.
+  // The theme goes on the document, as in an artifact. Docs pages render each
+  // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
   return html`
   <main class="checklist-page">
@@ -81,7 +82,8 @@ const groceries: Item[] = [
 
 export default {
   title: "Spec/Templates/Checklist",
-  parameters: { layout: "fullscreen" },
+  // On the docs page each story renders in its own frame, as a page of its own.
+  parameters: { layout: "fullscreen", docs: { story: { inline: false, height: "720px" } } },
   render,
   args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null } satisfies Args,
 };
