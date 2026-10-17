@@ -7,7 +7,7 @@ import frameset from "frameset/vite";
 const tailscaleRemote = process.env.TAILSCALE_REMOTE === "1";
 
 const config: StorybookConfig = {
-  stories: ["../spec/**/*.mdx", "../spec/**/*.stories.@(js|ts)", "../production/**/*.stories.@(js|ts)", "../experiments/**/*.stories.@(js|ts)"],
+  stories: ["../../specs/**/*.mdx", "../spec/**/*.mdx", "../spec/**/*.stories.@(js|ts)", "../production/**/*.stories.@(js|ts)", "../experiments/**/*.stories.@(js|ts)"],
   // The docs add-on renders each spec's .mdx prose beside its stories.
   addons: ["@storybook/addon-docs"],
   framework: {

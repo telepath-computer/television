@@ -144,7 +144,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
     - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
+      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories and a stylesheet in `storybook/spec/templates-popover/`, with its MDX prose page beside this file.*
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**

@@ -1,6 +1,6 @@
 // The Templates popover's spec: each story is one state, with its markup
-// written here. The prose is templates-popover.mdx and the styles are
-// styles.css, both beside this file.
+// written here. The prose is specs/ui/app/skill-selector/templates-popover.mdx;
+// the styles are styles.css, beside this file.
 
 import "../../../specs/ui/foundation/index.css";
 import "../../../specs/ui/foundation/tokens/app.css";
