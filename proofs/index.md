@@ -6,15 +6,15 @@ Generated from the first-line description of every proof by `scripts/specs-index
 
 - **product/**
   - `artifact-navigation.md` (34 lines) — *How the promises in Artifact navigation are proven.*
-  - `artifacts.md` (60 lines) — *How the promises in Artifacts are proven.*
+  - `artifacts.md` (71 lines) — *How the promises in Artifacts are proven.*
   - `channels.md` (29 lines) — *How the promises in Channels are proven.*
-  - `cli.md` (116 lines) — *How the promises in CLI are proven.*
+  - `cli.md` (122 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
   - `licensing.md` (33 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (30 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (91 lines) — *How the promises in Telemetry are proven.*
-  - `templates.md` (27 lines) — *Proves artifact-template discovery and creation at the CLI and browser boundaries.*
+  - `templates.md` (34 lines) — *Proves artifact-template discovery and creation at the CLI and browser boundaries.*
   - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
   - `update-notifications.md` (88 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
   - `versioning.md` (27 lines) — *How Television's release versions are proven where users receive them: the packed CLI package and the desktop upload directory built from the same commit, the built `tv` process and running server, update details, and the native About panel in the desktop product's Mac install check.*
@@ -38,12 +38,12 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
     - `reload-navigation.md` (97 lines) — *How the promises in Reload and navigation are proven.*
   - **artifacts/**
-    - `index.md` (5 lines) — *Proves artifact record shapes, create and update inputs, and transparency across storage, HTTP results, events, and restart.*
+    - `index.md` (44 lines) — *Proves artifact record shapes, create and update inputs, and transparency across storage, HTTP results, events, and restart.*
   - **channel-state/**
     - `index.md` (55 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
-    - `index.md` (284 lines) — *How the promises in CLI architecture are proven.*
+    - `index.md` (292 lines) — *How the promises in CLI architecture are proven.*
     - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
@@ -55,7 +55,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `runtime.md` (21 lines) — *How the Electron runtime's promises are proven: exact-version declarations, runtime validity over authored package and runtime trees, and a real cold installation on a Node release known to truncate one.*
     - `updates.md` (28 lines) — *How desktop updates are proven: main-process and preload contracts with Electron and the update runtime replaced by recording mocks, the real Electron app with the runtime in its simulation mode, and the desktop product's update check, which presses the restart in a candidate build on a real Mac.*
   - **layout/**
-    - `index.md` (60 lines) — *How the promises in Layout (architecture) are proven.*
+    - `index.md` (67 lines) — *How the promises in Layout (architecture) are proven.*
     - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
     - `bake.md` (85 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
@@ -64,7 +64,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `installer.md` (52 lines) — *How the promises in Onboarding installer are proven.*
   - **resources/**
     - `guidance.md` (27 lines) — *How the resource guidance is proven at the built skill boundary: the `resources.md` document and its pointer in the `television` skill, what it teaches and leaves out while the bindings flag is off, how it speaks of Firebase, and its complete example running as written in a real browser.*
-    - `index.md` (90 lines) — *How the resource layer's architecture is proven: validation, storage files, the first write's order, loading on first use and startup recovery over a real filesystem, artifacts' stores and share links, serving under a share ID, both route families and requests from other origins against a running server, the page connection's access and ordering rules, events, artifact deletion, the bindings flag, and the CLI integration.*
+    - `index.md` (92 lines) — *How the resource layer's architecture is proven: validation, storage files, the first write's order, loading on first use and startup recovery over a real filesystem, artifacts' stores and share links, serving under a share ID, both route families and requests from other origins against a running server, the page connection's access and ordering rules, events, artifact deletion, the bindings flag, and the CLI integration.*
     - `json-store.md` (66 lines) — *How the JSON store's architecture is proven: the shared module's path, value and write rules as contracts, the content file, the server's write application, durability failures, transactions and subscriptions against a running server, the SDK's local-write model and reconnection in a real browser, and the `tv resource json` CLI integration.*
     - `sdk.md` (44 lines) — *How the resource SDK is proven: its build contents and serving over real HTTP, and its behavior as the server serves it, in a real browser on a plain-HTTP origin that is not `localhost`, against a running server.*
   - **telemetry/**
@@ -78,10 +78,10 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sessions.md` (31 lines) — *How the promises in Telemetry sessions are proven.*
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **templates/**
-    - `authoring.md` (20 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
+    - `authoring.md` (24 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
     - `bundled-installation.md` (26 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
     - `bundled-templates.md` (19 lines) — *Proves the shipped Example template's package, initial value, and live page behavior.*
-    - `index.md` (38 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
+    - `index.md` (46 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (60 lines) — *How the promises in Blaxel Test Shards are proven.*
@@ -118,7 +118,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **app/**
     - `index.md` (67 lines) — *How the promises in App (UI) are proven.*
     - **artifact-frame/**
-      - `index.md` (32 lines) — *How the promises in Artifact frame (UI) are proven.*
+      - `index.md` (45 lines) — *Proves artifact-frame content and actions, transparent hover and focus behavior, and the bounded window-edge regression.*
     - **copy-button/**
       - `index.md` (32 lines) — *How the promises in Copy button (UI) are proven.*
     - **desktop-upgrade-gate/**
@@ -132,7 +132,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **skill-selector/**
       - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **stage/**
-      - `index.md` (47 lines) — *How the promises in Stage (UI) are proven.*
+      - `index.md` (58 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
