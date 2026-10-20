@@ -252,7 +252,7 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 | `create-artifact --url` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, display?, before?, after? })`. |
 | `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, display?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the copied folder path for the success output. |
 | `templates list` | `client.templates.list()`; print the [scan result](../../product/cli.md#^cli-templates-list). |
-| `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim() })`. |
+| `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim(), transparent? })`. |
 | `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
 | `get-artifact` | `client.artifacts.get({ artifactID })`. |
 | `reposition-artifact` | `client.channels.list()` to find the channel whose layout holds the artifact, then `client.channels.update({ channelID, layout })` with that channel's layout, changed only in the page that holds the artifact. A page moved by `--position` is removed from the list and inserted at index `n − 1`; one moved by `--before` or `--after` is removed and inserted immediately before or after the page holding the named artifact. The CLI checks the options, including that the position is within the channel's page count and that the named artifact is on the channel, before the update, so a rejected command sends no update. When the update is refused with HTTP 409 because the channel's membership changed after the list, the command reports the product's changed-channel error rather than the server's message. |
@@ -277,7 +277,9 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 
 After any `create-artifact` source succeeds, the CLI prints the [common creation output](../../product/cli.md#^cli-create-artifact) and calls `client.display.focus({ artifactID })` only when focus was requested.
 
-For each creation source, the CLI checks the [display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, and `--no-full-screen` as `fullScreen: false`. It omits fields with no corresponding option.
+For each creation source, the CLI checks the [display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, `--no-full-screen` as `fullScreen: false`, `--transparent` as `transparent: true`, and `--no-transparent` as `transparent: false`. It omits fields with no corresponding option.
+
+For `update-artifact`, the transparency options map to the same boolean values in the top-level `transparent` update field, following the [artifact-record contract](../artifacts/index.md#^ar-transparent). The CLI omits that field when neither option was supplied.
 
 Every link the CLI prints — the connect links `tv serve` and `tv serve --persist` print, `tv links` output and the share links `tv share-artifact` prints — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 

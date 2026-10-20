@@ -1,0 +1,17 @@
+/* Canvas staging, shared by the stories and the prose-page demonstration.
+   The fine grid and broad stripes make backdrop blur visible. */
+.artifact-frame-preview {
+  display: grid;
+  place-items: center;
+  padding: var(--space-32);
+  background:
+    linear-gradient(90deg, #26423b40 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(#26423b40 1px, transparent 1px) 0 0 / 24px 24px,
+    repeating-linear-gradient(135deg, #c9d8cf 0 56px, #97b5ad 56px 112px, #dfc8a9 112px 168px);
+}
+
+.artifact-frame-preview-size {
+  width: 420px;
+  max-width: 100%;
+  height: 280px;
+}

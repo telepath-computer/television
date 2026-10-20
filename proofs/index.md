@@ -37,6 +37,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `markdown-tables-buffer.md` (31 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
     - `reload-navigation.md` (97 lines) — *How the promises in Reload and navigation are proven.*
+  - **artifacts/**
+    - `index.md` (5 lines) — *Proves artifact record shapes, create and update inputs, and transparency across storage, HTTP results, events, and restart.*
   - **channel-state/**
     - `index.md` (55 lines) — *How the promises in Channel and client state (architecture) are proven.*
   - **cli/**

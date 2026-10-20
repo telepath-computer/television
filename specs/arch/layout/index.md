@@ -1,4 +1,4 @@
-*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](./migration.md)'s.*
+*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus creation display options, the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](./migration.md)'s.*
 
 **Status:** implemented redesign authority.
 
@@ -8,7 +8,7 @@ Every channel remembers what it is showing: which artifacts are open and how the
 
 ## What this owns
 
-This spec owns the **layout data model** — the `TabPage` list and its types — its **stored-format versioning**, and the **semantics of layout updates**. It deliberately does not own:
+This spec owns the **layout data model** — the `TabPage` list and its types — its **stored-format versioning**, the **semantics of layout updates**, and the creation display-options type and value rules. The [artifact-record spec](../artifacts/index.md) owns the record fields selected by those options. It deliberately does not own:
 
 - The version-1 format and the migration from it — its companion, [arch/layout/migration.md](./migration.md).
 
@@ -44,6 +44,7 @@ type ArtifactDisplayOptions = {
   width?: number;
   height?: number;
   fullScreen?: boolean;
+  transparent?: boolean;
 };
 ```
 
@@ -57,7 +58,7 @@ The one-artifact-per-page limit is a stage-1 UI-layer constraint, not a property
 
 `full_screen` is a mode over the page's size, not a size of its own: `true` shows the page at the stage's complete page box, and leaving the mode returns to what `size` renders ([ui/app/stage/index.md](../../ui/app/stage/index.md), Full-screen). Entering and leaving the mode never changes `size`. ^ly-fullscreen-mode
 
-An artifact creation request can supply `display?: ArtifactDisplayOptions` for its new page. This includes the path and URL `POST /artifacts` request and the [template creation request](../templates/index.md#creating-an-artifact). Each supplied width and height must be a finite positive number; `fullScreen` must be a boolean. The server rejects invalid values before creating an artifact. The selected values become the page's `size` and `geometry.full_screen`; after [template resolution](../../product/templates.md#^artifact-template-display-options), each absent size uses the shared default ([#^ly-page-size](#^ly-page-size)) and absent `fullScreen` is `false`. ^ly-creation-display
+An artifact creation request can supply `display?: ArtifactDisplayOptions` for the artifact and its new page. This includes the [path and URL creation request](../artifacts/index.md#create-and-update-inputs) and the [template creation request](../templates/index.md#creating-an-artifact). Each supplied width and height must be a finite positive number; `fullScreen` and `transparent` must be booleans. The server rejects invalid values before creating an artifact. After [template resolution](../../product/templates.md#^artifact-template-display-options), each absent size uses the shared default ([#^ly-page-size](#^ly-page-size)), and absent `fullScreen` is `false`. Width, height, and `fullScreen` become the page's `size` and `geometry.full_screen`; the [artifact-record contract](../artifacts/index.md#^ar-transparent) owns the default and storage of `transparent`. ^ly-creation-display
 
 There is no stage-1 pane tree, stored split ratio, page-splitting operation, or unnamed multi-artifact placeholder. Later layout kinds and their interactions are stage-2 work; they extend `PageGeometry` when their actual requirements exist. ^ly-no-splits
 

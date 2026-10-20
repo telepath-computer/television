@@ -34,7 +34,7 @@ The visible command surface is:
 | `tv config` | Show the effective settings of the selected home, or change settings in its config file. |
 | `tv create-artifact` | Create an artifact from a local path, an `http(s)` URL, or an artifact template. |
 | `tv templates` | List artifact templates and invalid folders, or print the selected home's templates directory. |
-| `tv update-artifact` | Update an artifact title or repoint its path/URL. |
+| `tv update-artifact` | Update an artifact title or transparency setting, or repoint its path/URL. |
 | `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
 | `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
 | `tv move-artifact` | Move an artifact to another channel. |
@@ -83,7 +83,7 @@ Examples of directive errors include:
 Unknown tv command: example-command.
 tv list-artifacts --bogus does not support --bogus.
 tv set-theme requires <theme>.
-tv update-artifact requires at least one of --title, --path, or --url.
+tv update-artifact requires at least one of --title, --path, --url, --transparent, or --no-transparent.
 tv update-artifact accepts --path or --url, not both; an artifact's kind is immutable.
 ```
 
@@ -119,6 +119,8 @@ Output formatting is currently inconsistent and depends on the command. Successf
 | `tv status` | `{ "home": string, "serverURL": string, "healthy": boolean, "version"?: string, "bindAddresses"?: string[], "port"?: number, "telemetry"?: { "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }, "daemon"?: { "installed": boolean, "running": boolean } }` |
 | `tv telemetry enable` and `tv telemetry disable` | `{ "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }` |
 | `tv stop` and `tv serve --persist-uninstall` | `{ "status": "stopped" }` |
+
+Artifact metadata printed by `tv get-artifact`, `tv list-artifacts`, and `tv get-channel` passes through the [record's transparency field](../arch/artifacts/index.md#^ar-transparent).
 
 Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text, and `tv links` prints one connect link per line. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
@@ -448,12 +450,12 @@ Channel <channel-id> deleted:
 ### Creating an artifact
 
 ```bash
-tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--width <px>] [--height <px>] [--full-screen | --no-full-screen] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
+tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--width <px>] [--height <px>] [--full-screen | --no-full-screen] [--transparent | --no-transparent] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
 ```
 
 Exactly one of `--path`, `--url`, and `--template` is required. `--title` is required with a path or URL; with a template, it defaults to the template's name. `--data` and `--data-file` are allowed only with `--template`. A missing or multiple source, a missing required title, or data supplied with a path or URL is a directive error before any creation request. `--channel` and exactly one focus directive are required, with no focus default. `--focus-artifact` sends a transient artifact-focus nudge after creation; `--no-focus` leaves focus unchanged. The new artifact goes at the end of the channel's order unless `--before` or `--after` places it beside another artifact ([placement](#^cli-before-after)). ^cli-create-artifact
 
-For every source, `--width` and `--height` set the artifact's starting size in reference pixels; either may be given alone. `--full-screen` starts it in full-screen mode, and `--no-full-screen` starts it out of that mode. The [layout display rule](../arch/layout/index.md#^ly-creation-display) governs valid size values. Giving both full-screen options or an invalid size is a directive error, and nothing is created. With `--template`, each supplied option takes precedence over the template's [display options](./templates.md#^artifact-template-display-options). The size remains beneath full-screen mode, so leaving that mode returns the artifact to its starting size unless it has been resized. ^cli-create-display
+For every source, `--width` and `--height` set the artifact's starting size in reference pixels; either may be given alone. `--full-screen` starts it in full-screen mode, and `--no-full-screen` starts it out of that mode. `--transparent` enables [transparency](./artifacts.md#^af-transparent), and `--no-transparent` turns it off. The [layout display rule](../arch/layout/index.md#^ly-creation-display) governs valid size values. Giving both full-screen options, both transparency options, or an invalid size is a directive error, and nothing is created. With `--template`, each supplied option takes precedence over the template's [display options](./templates.md#^artifact-template-display-options). The size remains beneath full-screen mode, so leaving that mode returns the artifact to its starting size unless it has been resized. ^cli-create-display
 
 Every source prints the same two lines on success:
 
@@ -486,7 +488,9 @@ If [template creation fails after copying starts](./templates.md#^artifact-templ
 
 ### Metadata, listing, and deletion
 
-`tv update-artifact --id <id> [--title <title>] [--path <path>] [--url <url>]` updates an artifact in place. At least one of `--title`, `--path`, or `--url` is required. `--path` and `--url` are mutually exclusive because an artifact's kind is immutable. `--path` repoints a path artifact and follows the same target rules as path creation. `--url` repoints a URL artifact to an `http(s)` URL. The CLI trims `--path` and `--url` before sending the update. Success prints:
+`tv update-artifact --id <id> [--title <title>] [--path <path>] [--url <url>] [--transparent | --no-transparent]` updates an artifact in place. At least one of `--title`, `--path`, `--url`, `--transparent`, or `--no-transparent` is required. `--path` and `--url` are mutually exclusive because an artifact's kind is immutable. `--path` repoints a path artifact and follows the same target rules as path creation. `--url` repoints a URL artifact to an `http(s)` URL. The CLI trims `--path` and `--url` before sending the update.
+
+Either transparency option is sufficient on its own and applies to both path and URL artifacts. `--transparent` enables transparency, and `--no-transparent` turns it off; omitting both preserves the current setting. Giving both is a directive error before any update request, and nothing changes. Success prints:
 
 ```text
 Artifact <artifact-id> updated.
