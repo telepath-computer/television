@@ -135,9 +135,11 @@ export function validateTemplatePackage(folder: string, id: string): { template?
             display[key] = value;
           }
         }
-        if (Object.hasOwn(fields, "fullScreen")) {
-          if (typeof fields.fullScreen !== "boolean") errors.push("manifest display.fullScreen must be a boolean");
-          else display.fullScreen = fields.fullScreen;
+        for (const key of ["fullScreen", "transparent"] as const) {
+          if (!Object.hasOwn(fields, key)) continue;
+          const value = fields[key];
+          if (typeof value !== "boolean") errors.push(`manifest display.${key} must be a boolean`);
+          else display[key] = value;
         }
       }
     }

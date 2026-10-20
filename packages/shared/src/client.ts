@@ -371,6 +371,7 @@ export class ArtifactClient {
     if (input.title !== undefined) body.title = input.title;
     if (input.path !== undefined) body.path = input.path;
     if (input.url !== undefined) body.url = input.url;
+    if (input.transparent !== undefined) body.transparent = input.transparent;
     return this.#http.requestJSON<{ artifact: Artifact }>(
       "PATCH",
       `/artifacts/${encodeURIComponent(input.artifactID)}`,

@@ -8,6 +8,7 @@ export {
   type AppearanceMode,
   type ArtifactTemplate,
   type ArtifactDisplayOptions,
+  type ArtifactPatch,
   type ArtifactTemplateScan,
   type ArtifactRemovalResult,
   type Channel,

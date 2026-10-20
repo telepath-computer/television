@@ -18,6 +18,7 @@ import {
   type ArtifactRemovalResult,
   type MoveArtifactResult,
   type ArtifactPlacement,
+  type ArtifactPatch,
   type StoreDomainEvent,
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
@@ -152,9 +153,9 @@ function isThemeJavaScriptConsentIds(value: unknown): value is string[] {
     new Set(value).size === value.length;
 }
 
-/** Mirrors ArtifactPatch's complete title/path/url metadata surface. */
+/** Compares the metadata fields that ArtifactPatch can change, including transparency. */
 function hasSameArtifactMetadata(left: Artifact, right: Artifact): boolean {
-  if (left.kind !== right.kind || left.title !== right.title) return false;
+  if (left.kind !== right.kind || left.title !== right.title || left.transparent !== right.transparent) return false;
   return left.kind === "path" && right.kind === "path"
     ? left.path === right.path
     : left.kind === "url" && right.kind === "url" && left.url === right.url;
@@ -470,7 +471,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   } & ArtifactPlacement, telemetryContext?: TelemetryClientContext | null): Artifact {
     const { before, after, display, ...fields } = input;
     const channel = this.requireChannel(fields.channelID);
-    const created = this.createKindArtifact({ ...fields, id: this.newID() });
+    const created = this.createKindArtifact({ ...fields, id: this.newID(), transparent: display?.transparent });
     const previousLayout = channel.layout;
     // Checked before the record is saved, so a rejected placement saves nothing.
     const nextLayout = placePage(
@@ -523,6 +524,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       width: input.display?.width ?? input.template.display?.width,
       height: input.display?.height ?? input.template.display?.height,
       fullScreen: input.display?.fullScreen ?? input.template.display?.fullScreen,
+      transparent: input.display?.transparent ?? input.template.display?.transparent,
     };
     // Check placement and starting data before creating a destination.
     placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
@@ -568,7 +570,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     const id = this.newID();
     let artifact: Artifact;
     try {
-      const created = this.createKindArtifact({ id, kind: "path", title, path: destination });
+      const created = this.createKindArtifact({ id, kind: "path", title, path: destination, transparent: display.transparent });
       const saved = this.saveArtifactRecord(created, `registering template artifact ${id}`);
       artifact = saved.artifact;
       this._artifacts.set(id, artifact);
@@ -600,7 +602,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return { artifactID: id, path: destination };
   }
 
-  updateArtifact(input: { artifactID: string; fields: { title?: string; path?: string; url?: string } }, telemetryContext?: TelemetryClientContext | null): Artifact {
+  updateArtifact(input: { artifactID: string; fields: ArtifactPatch }, telemetryContext?: TelemetryClientContext | null): Artifact {
     const artifact = this._artifacts.get(input.artifactID);
     if (!artifact) {
       throw new NotFoundError(`Artifact not found: ${input.artifactID}`, { entityType: "artifact", entityID: input.artifactID });
@@ -635,6 +637,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       }
       pointerChanged = url !== artifact.url;
       updated = { ...updated, url } as Artifact;
+    }
+
+    if (input.fields.transparent !== undefined) {
+      const { transparent: _transparent, ...opaque } = updated;
+      updated = input.fields.transparent ? { ...opaque, transparent: true } : opaque;
     }
 
     if (updated === artifact) return artifact;
@@ -1428,6 +1435,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     title: string;
     path?: string;
     url?: string;
+    transparent?: boolean;
   }): Artifact {
     switch (input.kind) {
       case "path": {
@@ -1438,7 +1446,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
           throw new InvalidRequestError("path artifacts cannot set url");
         }
         const artifactPath = this.normalizeArtifactPath(input.path.trim());
-        return createArtifact({ id: input.id, kind: "path", title: input.title, path: artifactPath });
+        return createArtifact({ id: input.id, kind: "path", title: input.title, path: artifactPath, transparent: input.transparent });
       }
       case "url": {
         if (input.url === undefined) {
@@ -1451,7 +1459,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
         if (!isExternalArtifactURL(url)) {
           throw new InvalidRequestError(`url must be an absolute http(s) URL: ${url}`);
         }
-        return createArtifact({ id: input.id, kind: "url", title: input.title, url });
+        return createArtifact({ id: input.id, kind: "url", title: input.title, url, transparent: input.transparent });
       }
     }
   }

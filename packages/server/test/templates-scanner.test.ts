@@ -78,6 +78,7 @@ describe("artifact template scanner", () => {
   });
 
   // proofs/arch/templates/index.md#^templates-t-display-scan
+  // proofs/arch/templates/index.md#^templates-t-transparent-scan
   it("keeps validated display fields and omits unknown manifest fields", () => {
     const root = path.join(home(), "templates");
     template(root, "without-display");
@@ -85,6 +86,12 @@ describe("artifact template scanner", () => {
       name: "Partial", description: "A page", version: "1.0.0", ignored: "root",
       display: { width: 360.5, fullScreen: false, futureOption: "ignored" },
     });
+    for (const transparent of [true, false]) {
+      template(root, `transparent-${transparent}`, {
+        name: "Transparency", description: "A page", version: "1.0.0",
+        display: { height: 420, fullScreen: true, transparent, futureOption: "ignored" },
+      });
+    }
 
     const scan = scanTemplatesDirectory(root);
     expect(scan.errors).toEqual([]);
@@ -94,9 +101,14 @@ describe("artifact template scanner", () => {
     });
     expect(scan.templates.find(({ id }) => id === "partial")).not.toHaveProperty("ignored");
     expect(scan.templates.find(({ id }) => id === "partial")?.display).toEqual({ width: 360.5, fullScreen: false });
+    for (const transparent of [true, false]) {
+      expect(scan.templates.find(({ id }) => id === `transparent-${transparent}`)?.display)
+        .toEqual({ height: 420, fullScreen: true, transparent });
+    }
   });
 
   // proofs/arch/templates/index.md#^templates-t-display-scan
+  // proofs/arch/templates/index.md#^templates-t-transparent-scan
   it.each([
     ["display", '"display":null', "display"],
     ["array display", '"display":[]', "display"],
@@ -105,6 +117,9 @@ describe("artifact template scanner", () => {
     ["nonfinite width", '"display":{"width":1e400}', "width"],
     ["nonnumeric height", '"display":{"height":"large"}', "height"],
     ["fullScreen", '"display":{"fullScreen":"yes"}', "fullScreen"],
+    ["string transparency", '"display":{"transparent":"true"}', "transparent"],
+    ["numeric transparency", '"display":{"transparent":1}', "transparent"],
+    ["null transparency", '"display":{"transparent":null}', "transparent"],
   ])("rejects invalid %s in a manifest and names its field", (_case, displaySource, field) => {
     const root = path.join(home(), "templates");
     const folder = template(root, "invalid");

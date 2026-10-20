@@ -810,6 +810,14 @@ function resolveFocusDirective(
   return shouldFocus;
 }
 
+/** Resolve parser-reported flags, preserving omission and conflicting spellings. */
+function resolveTransparencyDirective(flags: ReadonlySet<boolean>, commandName: string): boolean | undefined {
+  if (flags.size > 1) {
+    throw createDirectiveError(`tv ${commandName} accepts --transparent or --no-transparent, not both.`);
+  }
+  return flags.size === 0 ? undefined : flags.has(true);
+}
+
 function formatArtifactRemovalResult(result: ArtifactRemovalResult): string[] {
   switch (result.outcome) {
     case "deleted": {
@@ -1380,6 +1388,8 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       });
     });
 
+  // Parser events distinguish options from values such as a title of "--transparent".
+  const creationTransparencyFlags = new Set<boolean>();
   program
     .command("create-artifact")
     .description("Create an artifact from an existing path, an http(s) URL, or a copied artifact template")
@@ -1394,6 +1404,10 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .option("--height <px>", "Starting height in reference pixels; finite and positive")
     .option("--full-screen", "Start the artifact in full-screen mode")
     .option("--no-full-screen", "Start the artifact out of full-screen mode")
+    .option("--transparent", "Enable artifact transparency")
+    .option("--no-transparent", "Turn off artifact transparency")
+    .on("option:transparent", () => creationTransparencyFlags.add(true))
+    .on("option:no-transparent", () => creationTransparencyFlags.add(false))
     .option("--focus-artifact", "Focus the new artifact after creation")
     .option("--no-focus", "Create the artifact in the background without changing focus")
     .option("--before <artifact-id>", PLACE_BEFORE_HELP)
@@ -1415,11 +1429,13 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       const width = opts.width === undefined ? undefined : parseArtifactDimension("--width", opts.width, "create-artifact");
       const height = opts.height === undefined ? undefined : parseArtifactDimension("--height", opts.height, "create-artifact");
       const fullScreen = fullScreenFlags.length === 0 ? undefined : fullScreenFlags[0] === "--full-screen";
-      const display = width === undefined && height === undefined && fullScreen === undefined
+      const transparent = resolveTransparencyDirective(creationTransparencyFlags, "create-artifact");
+      const display = width === undefined && height === undefined && fullScreen === undefined && transparent === undefined
         ? {} : { display: {
             ...(width !== undefined ? { width } : {}),
             ...(height !== undefined ? { height } : {}),
             ...(fullScreen !== undefined ? { fullScreen } : {}),
+            ...(transparent !== undefined ? { transparent } : {}),
           } };
       const shouldFocus = resolveFocusDirective(argv, "create-artifact", "--focus-artifact");
       const placement = resolvePlacement("create-artifact", opts);
@@ -1466,19 +1482,25 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .description("Print the artifact templates directory of the selected home as JSON")
     .action(() => writeJSON(env.stdout, { templatesPath: path.join(resolveHome(), "templates") }));
 
+  const updateTransparencyFlags = new Set<boolean>();
   program
     .command("update-artifact")
     .description(
-      "Update artifact metadata in place: --title on any artifact, --path to repoint a path artifact, --url to repoint a URL artifact. ID and kind are immutable. The server validates the new pointer; for path artifacts the target must exist (trailing separator optional) and the content watcher follows it.",
+      "Update artifact metadata in place: --title and transparency on any artifact, --path to repoint a path artifact, --url to repoint a URL artifact. ID and kind are immutable. The server validates the new pointer; for path artifacts the target must exist (trailing separator optional) and the content watcher follows it.",
     )
     .requiredOption("--id <id>", "Artifact ID")
     .option("--title <title>", "New title")
     .option("--path <path>", "New absolute path for a path artifact: markdown/HTML file or indexed directory (trailing separator optional)")
     .option("--url <url>", "New http(s) URL for a URL artifact")
+    .option("--transparent", "Enable artifact transparency")
+    .option("--no-transparent", "Turn off artifact transparency")
+    .on("option:transparent", () => updateTransparencyFlags.add(true))
+    .on("option:no-transparent", () => updateTransparencyFlags.add(false))
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .action(async (opts: { id: string; title?: string; path?: string; url?: string; port?: number }) => {
-      if (opts.title === undefined && opts.path === undefined && opts.url === undefined) {
-        throw createDirectiveError("tv update-artifact requires at least one of --title, --path, or --url.");
+      const transparent = resolveTransparencyDirective(updateTransparencyFlags, "update-artifact");
+      if (opts.title === undefined && opts.path === undefined && opts.url === undefined && transparent === undefined) {
+        throw createDirectiveError("tv update-artifact requires at least one of --title, --path, --url, --transparent, or --no-transparent.");
       }
       if (opts.path !== undefined && opts.url !== undefined) {
         throw createDirectiveError("tv update-artifact accepts --path or --url, not both; an artifact's kind is immutable.");
@@ -1489,6 +1511,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
         ...(opts.title !== undefined ? { title: opts.title } : {}),
         ...(opts.path !== undefined ? { path: opts.path.trim() } : {}),
         ...(opts.url !== undefined ? { url: opts.url.trim() } : {}),
+        ...(transparent !== undefined ? { transparent } : {}),
       });
       writeLine(env.stdout, `Artifact ${opts.id} updated.`);
     });

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import request from "supertest";
 import { DEFAULT_PAGE_SIZE, TelevisionClient } from "@telepath-computer/television-shared";
+import type { Artifact } from "@telepath-computer/television-artifact";
 import { Server } from "../src/server.ts";
 import { telemetryVersion, type BuiltTelemetryEvent } from "../src/telemetry/index.ts";
 import { createServingStore } from "../../../test/helpers/serving-store.ts";
@@ -130,43 +131,92 @@ describe("template artifact creation", () => {
   });
 
   // proofs/arch/templates/index.md#^templates-t-display-resolution
+  // proofs/arch/templates/index.md#^templates-t-transparent-resolution
   it("chooses request, manifest, then default display values independently and keeps them after restart", async () => {
     const root = home();
-    const complete = template(root, "complete");
+    const complete = template(root, "complete", { seeded: true });
     writeFileSync(path.join(complete, "manifest.json"), JSON.stringify({
       name: "Complete", description: "A page", version: "1.0.0",
-      display: { width: 360, height: 420, fullScreen: true },
+      display: { width: 360, height: 420, fullScreen: true, transparent: true },
     }));
-    const partial = template(root, "partial");
+    const partial = template(root, "partial", { seeded: true });
     writeFileSync(path.join(partial, "manifest.json"), JSON.stringify({
       name: "Partial", description: "A page", version: "1.0.0", display: { width: 240 },
     }));
+    const opaque = template(root, "opaque", { seeded: true });
+    writeFileSync(path.join(opaque, "manifest.json"), JSON.stringify({
+      name: "Opaque", description: "A page", version: "1.0.0", display: { transparent: false },
+    }));
     const { server, channelID, client } = await start(root, false);
+    const scan = await client.templates.list();
+    expect(scan.errors).toEqual([]);
+    expect(scan.templates.find(({ id }) => id === "complete")?.display).toEqual({
+      width: 360, height: 420, fullScreen: true, transparent: true,
+    });
+    expect(scan.templates.find(({ id }) => id === "opaque")?.display).toEqual({ transparent: false });
 
     const fromCommand = await client.templates.create({
       templateID: "complete", channelID, source: "cli", display: { width: 500.5 },
     });
     const explicitFalse = await client.templates.create({
-      templateID: "complete", channelID, source: "cli", display: { height: 333, fullScreen: false },
+      templateID: "complete", channelID, source: "cli", display: { height: 333, fullScreen: false, transparent: false },
     });
     const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui" });
+    const fromFalse = await client.templates.create({ templateID: "opaque", channelID, source: "ui" });
+    const explicitTrue = await client.templates.create({
+      templateID: "opaque", channelID, source: "cli", display: { transparent: true },
+    });
     const expected = [
       { artifactIds: [fromCommand.artifactID], geometry: { kind: "single", full_screen: true }, size: { width: 500.5, height: 420 } },
       { artifactIds: [explicitFalse.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 360, height: 333 } },
       { artifactIds: [fromDefaults.artifactID], geometry: { kind: "single", full_screen: false }, size: { width: 240, height: DEFAULT_PAGE_SIZE.height } },
+      { artifactIds: [fromFalse.artifactID], geometry: { kind: "single", full_screen: false }, size: DEFAULT_PAGE_SIZE },
+      { artifactIds: [explicitTrue.artifactID], geometry: { kind: "single", full_screen: false }, size: DEFAULT_PAGE_SIZE },
     ];
     expect((await client.channels.get({ channelID })).channel.layout).toEqual(expected);
+    const records: Artifact[] = [];
+    for (const [created, title, enabled] of [
+      [fromCommand, "Complete", true], [explicitFalse, "Complete", false],
+      [fromDefaults, "Partial", false], [fromFalse, "Opaque", false], [explicitTrue, "Opaque", true],
+    ] as const) {
+      const { artifact } = await client.artifacts.get({ artifactID: created.artifactID });
+      expect(artifact).toEqual({
+        id: created.artifactID, kind: "path", path: `${created.path}${path.sep}`, title,
+        store: expect.any(String), ...(enabled ? { transparent: true } : {}),
+      });
+      records.push(artifact);
+    }
+    const checkRecords = async (current: TelevisionClient) => {
+      const snapshot = await current.channels.get({ channelID });
+      expect(snapshot.channel.layout).toEqual(expected);
+      expect(snapshot.artifacts).toEqual(records);
+      expect((await current.artifacts.list({ channelID })).artifacts).toEqual(records);
+      for (const record of records) {
+        expect((await current.artifacts.get({ artifactID: record.id })).artifact).toEqual(record);
+        expect((await current.artifacts.list()).artifacts).toContainEqual(record);
+        expect(JSON.parse(readFileSync(path.join(root, "state", "artifacts", `${record.id}.json`), "utf8"))).toEqual(record);
+      }
+      expect(JSON.parse(readFileSync(path.join(root, "state", "channels", `${channelID}.json`), "utf8")).layout).toEqual(expected);
+    };
+    await checkRecords(client);
 
     await server.dispose();
     servers.splice(servers.indexOf(server), 1);
     const restarted = await start(root, false);
-    expect((await restarted.client.channels.get({ channelID })).channel.layout).toEqual(expected);
+    await checkRecords(restarted.client);
+    for (const record of records) {
+      expect(restarted.store.resources.json.get({ artifactID: record.id }, "")).toEqual({ exists: true, value: { seeded: true } });
+    }
   });
 
   // proofs/arch/templates/index.md#^templates-t-display-request-invalid
+  // proofs/arch/templates/index.md#^templates-t-transparent-request-invalid
   it("rejects malformed request display before copying or registering", async () => {
     const root = home();
-    template(root);
+    const folder = template(root);
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({
+      name: "Sample", description: "A page", version: "1.0.0", display: { transparent: true },
+    }));
     const { store, server, channelID } = await start(root, false);
     const base = { templateID: "sample", channelID, source: "cli" };
     const invalid = [
@@ -174,6 +224,7 @@ describe("template artifact creation", () => {
       { ...base, display: { width: 0 } },
       { ...base, display: { height: -1 } },
       { ...base, display: { fullScreen: "yes" } },
+      ...["true", 1, null].map((transparent) => ({ ...base, display: { transparent } })),
     ];
     for (const body of invalid) {
       const result = await request(server.httpServer).post("/templates/artifacts")

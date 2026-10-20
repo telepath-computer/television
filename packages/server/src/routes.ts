@@ -50,6 +50,7 @@ const artifactDisplaySchema = z.object({
   width: z.number().finite().positive().optional(),
   height: z.number().finite().positive().optional(),
   fullScreen: z.boolean().optional(),
+  transparent: z.boolean().optional(),
 }).strict();
 
 const createPathArtifactSchema = z
@@ -100,11 +101,12 @@ const patchArtifactSchema = z
     title: z.string().optional(),
     path: z.string().optional(),
     url: z.string().optional(),
+    transparent: z.boolean().optional(),
   })
   .strict()
   .refine(
-    (value) => value.title !== undefined || value.path !== undefined || value.url !== undefined,
-    { message: "At least one of title, path, or url must be provided" },
+    (value) => value.title !== undefined || value.path !== undefined || value.url !== undefined || value.transparent !== undefined,
+    { message: "At least one of title, path, url, or transparent must be provided" },
   );
 
 const patchDisplaySchema = z

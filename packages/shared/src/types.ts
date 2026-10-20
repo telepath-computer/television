@@ -80,11 +80,12 @@ export type NewArtifact =
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
 
-/** Starting page values supplied with artifact creation, in reference pixels. */
+/** Starting artifact transparency and page size (in reference pixels) and mode. */
 export interface ArtifactDisplayOptions {
   width?: number;
   height?: number;
   fullScreen?: boolean;
+  transparent?: boolean;
 }
 
 export interface ArtifactTemplate {
@@ -163,6 +164,7 @@ export type ArtifactPatch = {
   title?: string;
   path?: string;
   url?: string;
+  transparent?: boolean;
 };
 
 /** Input DTO for `PATCH /channels/:id`. */

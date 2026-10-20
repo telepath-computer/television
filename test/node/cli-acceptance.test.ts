@@ -757,25 +757,100 @@ describe("CLI product spine acceptance", () => {
   });
 
   // proofs/product/templates.md#^templates-ac-display-cli
+  // proofs/product/templates.md#^templates-ac-transparent-cli
   it("lets a template creation option override only its own display value", async () => {
     const { home, channel, tv } = await seededServer("television-cli-template-display-");
     const target = await channel("Template display", 0);
     const folder = authorTemplate(home, "sized");
     const manifest = path.join(folder, "manifest.json");
     writeFileSync(manifest, JSON.stringify({ name: "Sized", description: "A page", version: "1.0.0",
-      display: { width: 360, height: 420, fullScreen: true } }));
+      display: { width: 360, height: 420, fullScreen: true, transparent: true } }));
 
     const result = await tv(["create-artifact", "--channel", target.id, "--template", "sized",
-      "--width", "500.5", "--no-full-screen", "--no-focus"]);
+      "--width", "500.5", "--no-full-screen", "--no-transparent", "--no-focus"]);
     expect(result.exitCode, result.stderr).toBe(0);
     const artifactID = /^Artifact (\S+) created\./.exec(result.stdout)?.[1];
     expect(artifactID).toBeTruthy();
     const expected = [{ artifactIds: [artifactID], geometry: { kind: "single", full_screen: false },
       size: { width: 500.5, height: 420 } }];
     expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual(expected);
+    const opaque = await tv(["get-artifact", "--id", artifactID!]);
+    expect(opaque.exitCode, opaque.stderr).toBe(0);
+    expect(JSON.parse(opaque.stdout).artifact).not.toHaveProperty("transparent");
+    const update = await tv(["update-artifact", "--id", artifactID!, "--transparent"]);
+    expect(update.exitCode, update.stderr).toBe(0);
+    expect(update.stdout).toBe(`Artifact ${artifactID} updated.\n`);
     writeFileSync(manifest, JSON.stringify({ name: "Sized", description: "A page", version: "1.0.0",
-      display: { width: 100, height: 100, fullScreen: true } }));
+      display: { width: 100, height: 100, fullScreen: true, transparent: false } }));
+    const transparent = await tv(["get-artifact", "--id", artifactID!]);
+    expect(transparent.exitCode, transparent.stderr).toBe(0);
+    expect(JSON.parse(transparent.stdout).artifact.transparent).toBe(true);
     expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual(expected);
+  });
+
+  // proofs/product/cli.md#^cli-ac-transparent
+  it("creates and updates transparency for both artifact kinds through the built CLI and printed metadata", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-transparency-");
+    const target = await channel("Transparency", 0);
+    const file = path.join(home, "transparent.html");
+    writeFileSync(file, "<!doctype html><title>Transparency</title>");
+    for (const pointer of [{ kind: "path", path: file }, { kind: "url", url: "https://example.com/" }] as const) {
+      const value = pointer.kind === "path" ? pointer.path : pointer.url;
+      const created = await tv(["create-artifact", "--channel", target.id, `--${pointer.kind}`, value,
+        "--title", "Original", ...(pointer.kind === "path" ? ["--transparent"] : []), "--no-focus"]);
+      expect(created.exitCode, created.stderr).toBe(0);
+      const id = /^Artifact (\S+) created\./.exec(created.stdout)?.[1];
+      expect(id).toBeTruthy();
+      expect(created.stdout).toBe(`Artifact ${id} created.\nTelevision registered ${value}.\n`);
+
+      const read = async (title: string, enabled: boolean) => {
+        const expected = { ...pointer, id, title, ...(enabled ? { transparent: true } : {}) };
+        const individual = await tv(["get-artifact", "--id", id!]);
+        expect(individual.exitCode, individual.stderr).toBe(0);
+        expect(JSON.parse(individual.stdout).artifact).toEqual(expected);
+        for (const args of [["list-artifacts"], ["get-channel", "--channel", target.id]]) {
+          const result = await tv(args);
+          expect(result.exitCode, result.stderr).toBe(0);
+          expect(JSON.parse(result.stdout).artifacts.find((artifact: { id: string }) => artifact.id === id)).toEqual(expected);
+        }
+      };
+      await read("Original", pointer.kind === "path");
+      for (const enabled of [false, true]) {
+        const update = await tv(["update-artifact", "--id", id!, enabled ? "--transparent" : "--no-transparent"]);
+        expect(update.exitCode, update.stderr).toBe(0);
+        expect(update.stdout).toBe(`Artifact ${id} updated.\n`);
+        await read("Original", enabled);
+      }
+      const rename = await tv(["update-artifact", "--id", id!, "--title", "Renamed"]);
+      expect(rename.exitCode, rename.stderr).toBe(0);
+      expect(rename.stdout).toBe(`Artifact ${id} updated.\n`);
+      await read("Renamed", true);
+    }
+  });
+
+  // proofs/product/cli.md#^cli-ac-transparent-invalid
+  it("rejects conflicting transparency flags through the built create and update commands without changing state", async () => {
+    const { home, channel, tv, api, layout } = await seededServer("television-cli-transparency-invalid-");
+    const target = await channel("Unchanged", 1);
+    const file = path.join(home, "unchanged.html");
+    writeFileSync(file, "<!doctype html><title>Unchanged</title>");
+    const before = await api("GET", "/artifacts");
+    const beforeLayout = await layout(target.id);
+    const record = path.join(home, "state", "artifacts", `${target.artifactIDs[0]}.json`);
+    const beforeBytes = readFileSync(record, "utf8");
+    for (const args of [
+      ["create-artifact", "--channel", target.id, "--path", file, "--title", "Conflict", "--no-focus"],
+      ["update-artifact", "--id", target.artifactIDs[0]!, "--title", "Must not change"],
+    ]) {
+      const result = await tv([...args, "--transparent", "--no-transparent"]);
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain("--transparent or --no-transparent, not both");
+      expect(result.stderr).toContain("Television ships the `television` skill");
+      expect(await api("GET", "/artifacts")).toEqual(before);
+      expect(await layout(target.id)).toEqual(beforeLayout);
+      expect(readFileSync(record, "utf8")).toBe(beforeBytes);
+    }
   });
 
   // proofs/product/cli.md#^cli-ac-template-commands

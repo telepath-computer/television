@@ -278,6 +278,10 @@ describe("target page layout server boundary", () => {
       { ...pathBody, display: { height: "large" } },
       { ...urlBody, display: { height: -4 } },
       { ...urlBody, display: { fullScreen: 1 } },
+      // proofs/arch/layout/index.md#^ly-ac-create-transparent-invalid
+      { ...pathBody, display: { transparent: "true" } },
+      { ...urlBody, display: { transparent: 1 } },
+      { ...pathBody, display: { transparent: null } },
     ]) {
       await request(running.server.httpServer).post("/artifacts").set(auth(running.token)).send(body).expect(400);
     }
