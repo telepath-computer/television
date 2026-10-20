@@ -18,7 +18,7 @@ Agents use [`tv templates list`, `tv create-artifact --template`, and `tv templa
 
 ## Bundled artifact templates
 
-Television ships the Example artifact template. [Bundled template content](../arch/templates/bundled-templates.md) owns its starting data and page behavior. On serving boot, it installs a bundled template if its ID has never been handled in this home. After handling, an absent folder stays absent as a user deletion. An existing valid template at or above that bundled template's minimum version is preserved, including user edits; one that is invalid or below the minimum is backed up and replaced. A minimum rises only when compatibility requires it, so a routine bundled improvement does not overwrite a usable installed copy. [Bundled installation](../arch/templates/bundled-installation.md) owns the version and backup contracts. ^artifact-template-bundled
+Television ships bundled artifact templates; [bundled template content](../arch/templates/bundled-templates.md) lists them and owns their starting data and page behavior. On serving boot, it installs a bundled template if its ID has never been handled in this home. After handling, an absent folder stays absent as a user deletion. An existing valid template at or above that bundled template's minimum version is preserved, including user edits; one that is invalid or below the minimum is backed up and replaced. A minimum rises only when compatibility requires it, so a routine bundled improvement does not overwrite a usable installed copy. [Bundled installation](../arch/templates/bundled-installation.md) owns the version and backup contracts. ^artifact-template-bundled
 
 ## Scope
 
