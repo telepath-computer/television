@@ -1,42 +1,26 @@
-/* The Checklist template's page: a sheet of paper on a slightly darker desk,
-   with a title, rows of items and an add field. Built only from the
-   foundation's tokens, so it follows the active theme and appearance. */
+/* The Checklist template's page: a title, rows of items and an add field on
+   the plain surface. Built only from the foundation's tokens, so it follows
+   the active theme and appearance. */
 
 body {
   margin: 0;
-}
-
-.checklist-page {
-  box-sizing: border-box;
-  min-height: 100vh;
-  padding: var(--space-32) var(--space-16);
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   color: var(--color-text);
 }
 
-.checklist-sheet {
+/* The page's content, in one centred column on the plain surface. */
+.checklist-page {
   box-sizing: border-box;
-  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  max-width: 656px;
+  min-height: 100vh;
   margin: 0 auto;
   padding: var(--space-48) var(--space-48) var(--space-32);
-  background: var(--color-surface);
-  border-radius: 2px;
-  min-height: 640px;
-  box-shadow: var(--shadow-sm);
 }
 
-/* In the dark appearance the muted surface is the lighter one, so the sheet
-   takes it and the desk the plain surface: the sheet still sits above. */
-:where([data-theme="dark"]) .checklist-page {
-  background: var(--color-surface);
-}
-
-:where([data-theme="dark"]) .checklist-sheet {
-  background: var(--color-surface-muted);
-}
-
-/* A strip along the bottom of the page, over the desk and sheet, ruled off
-   at its top. The page leaves room for it, so it never covers the last row. */
+/* A strip along the bottom of the page, ruled off at its top. The page
+   leaves room for it, so it never covers the last row. */
 .checklist-status {
   position: fixed;
   inset: auto 0 0;
@@ -53,21 +37,11 @@ body {
   padding-bottom: var(--space-64);
 }
 
-/* Narrower than the sheet and its margins (560 + 2 × 16 pixels), the sheet
-   fills the page edge to edge. */
-@media (width < 592px) {
+/* In a narrow artifact the margins shrink. */
+@media (width < 480px) {
   .checklist-page {
-    padding: 0;
-  }
-
-  .checklist-sheet {
-    max-width: none;
-    min-height: 100vh;
     padding: var(--space-32) var(--space-24) var(--space-24);
-    border-radius: 0;
-    box-shadow: none;
   }
-
 }
 
 .checklist-title {
@@ -196,16 +170,14 @@ body {
   font-size: var(--text-lg);
 }
 
-/* Data the page cannot read: an error page, centred on the desk. */
+/* Data the page cannot read: an error page, centred in the page. */
 .checklist-unreadable {
-  box-sizing: border-box;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-8);
-  min-height: calc(100vh - 2 * var(--space-32));
-  padding: var(--space-32);
   text-align: center;
 }
 

@@ -59,9 +59,7 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
   // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
   if (loading) return html`
-  <main class="checklist-page">
-    <article class="checklist-sheet"></article>
-  </main>`;
+  <main class="checklist-page"></main>`;
   if (unreadable) return html`
   <main class="checklist-page">
     <section class="checklist-unreadable">
@@ -71,19 +69,17 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
     </section>
   </main>`;
   return html`
-  <main class="checklist-page">
-    <article class="checklist-sheet"${readOnly ? html` data-read-only` : ""}>
-      ${readOnly
-        ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
-        : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
-      <ul class="checklist-items">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
-      ${readOnly && items.length === 0 ? html`<p class="checklist-empty">No items</p>` : ""}
-      ${readOnly ? "" : html`
-      <label class="checklist-add">
-        ${icon({ name: "add" })}
-        <input class="checklist-add-input" type="text" placeholder="Add an item" aria-label="Add an item" value="${adding}">
-      </label>`}
-    </article>
+  <main class="checklist-page"${readOnly ? html` data-read-only` : ""}>
+    ${readOnly
+      ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
+      : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
+    <ul class="checklist-items">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
+    ${readOnly && items.length === 0 ? html`<p class="checklist-empty">No items</p>` : ""}
+    ${readOnly ? "" : html`
+    <label class="checklist-add">
+      ${icon({ name: "add" })}
+      <input class="checklist-add-input" type="text" placeholder="Add an item" aria-label="Add an item" value="${adding}">
+    </label>`}
     ${status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`}
   </main>`;
 };
@@ -191,7 +187,7 @@ export const Unreadable = { args: { unreadable: true } };
 
 export const Dark = { args: { theme: "dark" } };
 
-// An artifact narrower than the sheet and its margins.
+// A narrow artifact: the margins shrink.
 export const Narrow = {
   globals: { viewport: { value: "narrow", isRotated: false } },
   parameters: { docs: { story: { height: "640px" } } },
