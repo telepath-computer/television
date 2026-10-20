@@ -562,9 +562,9 @@ test("a value that breaks the store contract, or no value, shows the error page,
 });
 
 // proofs/ui/templates/calendar/index.md#^calendar-ac-unavailable
-test("stored data the server reports unavailable shows the error page, and the calendar returns once it can be read", async ({ page }) => {
+test("stored data the server reports unavailable shows the error page, and the calendar returns once it can be read", async ({ page, baseURL }) => {
   // The page is opened through a proxy that follows the server across restarts.
-  const proxy = await product.appURL("http://127.0.0.1:9");
+  const proxy = await product.appURL(baseURL!);
   const artifactID = await openCalendar(page, week, {
     address: async (id) => new URL(`/artifact/${id}/index.html`, proxy).toString(),
   });
