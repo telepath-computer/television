@@ -15,7 +15,7 @@ The stories and their stylesheet are in `storybook/spec/templates-popover/`. Tog
 
 ## Opening
 
-Opening the popover scans the templates folder again and shows every valid template as a tile in a grid, with its image and name. The search field is focused and empty, and no tile is highlighted. The popover is placed as the popover spec places any panel. Near the navbar's trailing end, there is not room to align its left edge with the button's, so its right edge aligns with the button's instead.
+Opening the popover shows the [valid templates returned by discovery](../../arch/templates/index.md#^artifact-template-scan) as tiles in a grid, with their images and names. The search field is focused and empty, and no tile is highlighted. The popover is placed as the popover spec places any panel. Near the navbar's trailing end, there is not room to align its left edge with the button's, so its right edge aligns with the button's instead.
 
 ## Searching
 
@@ -53,11 +53,11 @@ Tiles are not draggable, and their images and names cannot be selected as text.
 
 ## Creating an artifact
 
-Pressing Return creates an artifact from the highlighted template; clicking a tile creates one from that tile's template. The artifact is created in the focused channel, to the right of the tab selected in this browser, or as the channel's only page when it has none, and is then focused. The popover closes. If creation fails, the popover still closes and no error is shown; focus and the selected tab stay as they were. Return with no tile highlighted does nothing. Escape closes the popover without creating anything.
+Pressing Return creates an artifact from the highlighted template; clicking a tile creates one from that tile's template. Creation follows the [template placement and focus rule](../../product/templates.md#^artifact-template-popover). The popover closes. If creation fails, the popover still closes and no error is shown; focus and the selected tab stay as they were. Return with no tile highlighted does nothing. Escape closes the popover without creating anything.
 
 ## Images
 
-A template's image is `thumbnail.png` in its folder: optional, portrait, ideally 4:5, such as 400 by 500 pixels. The tile crops it to fill the card from the top. Its size never makes a template invalid, and it is not copied into the artifact. Without one, the tile shows a placeholder.
+The [optional template image](../../arch/templates/index.md#^artifact-template-package) is ideally portrait, 4:5, such as 400 by 500 pixels. The tile crops it to fill the card from the top. Without an image, the tile shows a placeholder.
 
 <Canvas of={Stories.WithoutImage} />
 

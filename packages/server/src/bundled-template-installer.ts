@@ -20,7 +20,7 @@ interface BundledTemplateState {
   installedTemplateIDs: string[];
 }
 
-/** Test hook declared in proofs/arch/templates/bundled-installation.md. */
+/** Tests replace state-file writes through this interface. */
 export interface BundledTemplateStateOperations {
   writeFileSync: typeof writeFileSync;
   renameSync: typeof renameSync;
