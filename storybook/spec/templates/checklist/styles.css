@@ -200,6 +200,11 @@ body {
   font-size: var(--text-lg);
 }
 
+/* Story only: stands in for the pointer over the second item. */
+.checklist-story-hover .checklist-item:nth-child(2) .checklist-remove {
+  opacity: 1;
+}
+
 /* Story only: stands in for a narrow artifact. */
 .checklist-story-narrow {
   container-type: inline-size;

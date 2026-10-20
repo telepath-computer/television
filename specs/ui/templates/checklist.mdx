@@ -21,6 +21,8 @@ A new artifact from the template has the title "Checklist" and no items. The add
 
 Until the checklist's data first arrives, the sheet is blank: no title, items or add field, and no loading message, since the data normally arrives at once. If the page cannot reach its server, it says so as in [Saving](#saving).
 
+<Canvas of={Stories.Loading} />
+
 ## The title
 
 The title is edited in place: clicking it puts the caret in it, and the text saves as the person types. Return in the title adds a new, empty item at the top of the list and puts the caret in it, so typing a title and pressing Return goes straight to the first item. An empty item left without text is removed, as below. A title cleared to nothing shows "Untitled" in muted text until something is typed. The title is one line: several lines pasted into it are joined with spaces.
@@ -39,13 +41,27 @@ Clicking the box ticks or unticks an item. A done item stays where it is, its te
 
 <Canvas of={Stories.EditingItem} />
 
+<Canvas of={Stories.NewEmptyItem} />
+
+A done item's text can be edited too; it stays muted and struck through while it is.
+
+<Canvas of={Stories.EditingDoneItem} />
+
 Backspace in an empty item removes it and puts the caret at the end of the item above. With no item above, as when it is the only item, Backspace does nothing. Up on an item's first line moves the caret to the item above, and Down on its last line to the item below; Up from the first item goes to the title, and Down from the last item to the add field. Cmd-Return, or Ctrl-Return outside macOS, ticks or unticks the item being edited and leaves the caret where it is.
 
 Pasting several lines makes one item per line, skipping blank lines. In the add field, each line is added at the end of the list, in order. In an item, the first line is inserted at the caret and each further line becomes a new item below it, in order, with the caret at the end of the last one.
 
 The list is flat: items cannot be nested. There is no action to clear done items; a person removes them one at a time, or an agent removes them through the store.
 
-Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. The keyboard focus then moves to the next item's text, or to the item above when there is no next item, or to the add field when the list is now empty. A removed item cannot be brought back from the page; within a field, the browser's own undo applies. Long items wrap, with the box beside their first line.
+Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. The keyboard focus then moves to the next item's text, or to the item above when there is no next item, or to the add field when the list is now empty. A removed item cannot be brought back from the page; within a field, the browser's own undo applies.
+
+<Canvas of={Stories.Hovering} />
+
+Each box and remove button can be reached with Tab; Space ticks or unticks the box that has the focus, which shows the focus ring.
+
+<Canvas of={Stories.KeyboardFocus} />
+
+Long items wrap, with the box beside their first line.
 
 <Canvas of={Stories.LongItems} />
 

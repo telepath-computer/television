@@ -32,6 +32,8 @@ interface Args {
   status: string | null;
   // The stored data as a whole cannot be read.
   unreadable: boolean;
+  // The checklist's data has not arrived yet.
+  loading: boolean;
 }
 
 // Each control is named after its item's text, so assistive technology can
@@ -52,10 +54,14 @@ const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: b
   </li>`;
 };
 
-const render = ({ theme, title, items, editing, adding, readOnly, status, unreadable }: Args) => {
+const render = ({ theme, title, items, editing, adding, readOnly, status, unreadable, loading }: Args) => {
   // The theme goes on the document, as in an artifact. Docs pages render each
   // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
+  if (loading) return html`
+  <main class="checklist-page">
+    <article class="checklist-sheet"></article>
+  </main>`;
   if (unreadable) return html`
   <main class="checklist-page">
     <article class="checklist-sheet" data-read-only>
@@ -95,7 +101,7 @@ export default {
   // On the docs page each story renders in its own frame, as a page of its own.
   parameters: { layout: "fullscreen", docs: { story: { inline: false, height: "720px" } } },
   render,
-  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null, unreadable: false } satisfies Args,
+  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null, unreadable: false, loading: false } satisfies Args,
 };
 
 // What a person sees after creating a Checklist from the Templates popover.
@@ -103,8 +109,38 @@ export const New = { args: { title: "Checklist", items: [] } };
 
 export const WithItems = { name: "With items" };
 
+// Before the checklist's data first arrives.
+export const Loading = { args: { loading: true } };
+
 // The second item's text has the caret.
 export const EditingItem = { name: "Editing an item", args: { editing: 1 } };
+
+// Return in "Oat milk" added an empty item below it, which has the caret.
+export const NewEmptyItem = {
+  name: "A new, empty item",
+  args: {
+    editing: 2,
+    items: [groceries[0], groceries[1], { text: "", done: false }, ...groceries.slice(2)],
+  },
+};
+
+// A done item's text has the caret; it stays muted and struck through.
+export const EditingDoneItem = { name: "Editing a done item", args: { editing: 0 } };
+
+// The pointer is over the second item, which shows its remove button. Stories
+// cannot hold the pointer, so a story-only class stands in for :hover.
+export const Hovering = {
+  name: "Pointer over an item",
+  decorators: [(story: () => Html) => html`<div class="checklist-story-hover">${story()}</div>`],
+};
+
+// The second item's box has the keyboard focus, as after Tab.
+export const KeyboardFocus = {
+  name: "Keyboard focus on a box",
+  play: ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    canvasElement.querySelectorAll<HTMLInputElement>(".checklist-check")[1]?.focus();
+  },
+};
 
 // Text typed into the add field, before Return adds it.
 export const Adding = { args: { adding: "Tomatoes" } };
