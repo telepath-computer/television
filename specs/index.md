@@ -88,7 +88,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `sessions.md` (51 lines) — *The telemetry session module: server-side per-client session state, the content-free client activity signal, server-managed UUIDv7 `$session_id` minting and lazy rotation, and how every event is attributed to a session so PostHog derives sessions natively.*
     - `sink.md` (63 lines) — *The telemetry sink: the PostHog transport, its bounded in-memory buffer, fire-and-forget delivery that never blocks or crashes the server, and the platform operations (region, key, agent access).*
   - **templates/**
-    - `authoring.md` (15 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
+    - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
     - `bundled-templates.md` (34 lines) — *The bundled Checklist artifact template: its ID, manifest, store contract, write scope, thumbnail, and adapting-agent guidance.*
     - `index.md` (88 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
