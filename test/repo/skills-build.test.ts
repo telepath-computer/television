@@ -188,6 +188,11 @@ describe("skills build", () => {
     expect(guide).toContain("display");
     for (const field of ["width", "height", "fullScreen"]) expect(guide).toContain(field);
     expect(guide).toContain("default starting size");
+    expect(skill).toContain("An artifact template is a reusable folder");
+    expect(guide).toMatch(/index\.html[^.]*HTML artifact page[^.]*SKILL\.md/);
+    expect(guide).toMatch(/naming guidance[^.]*template ID/);
+    expect(guide).toContain("[resource guidance](./resources.md)");
+    expect(guide).toMatch(/README\.md[^.]*[\s\S]*store's shape/);
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
