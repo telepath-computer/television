@@ -25,7 +25,7 @@ Decisions:
 Further decisions, October 16–17, 2026, recorded in the pilot (`specs/ui/templates/checklist.mdx`):
 
 8. When two writers change the same item, the last write wins. An item removed elsewhere while being edited is written back whole if the person keeps typing or leaves it with text; left empty, it stays removed.
-9. While the page cannot reach its server it is read-only with "Reconnecting…" at the top; a refused save reverts that change and shows "Couldn't save that change." for a few seconds.
+9. While the page cannot reach its server it is read-only with "Reconnecting…" (at the top; location superseded by 22); a refused save reverts that change and shows "Couldn't save that change." for a few seconds.
 
 Settled by Rupert on October 19, 2026, recorded in the pilot:
 

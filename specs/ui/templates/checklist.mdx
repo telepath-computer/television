@@ -22,25 +22,27 @@ A new artifact from the template has the title "Checklist" and no items. The add
 
 ## Opening a checklist
 
-Until the checklist's data first arrives, the page is blank: no title, items or add field, and no loading message, since the data normally arrives at once. If the page cannot reach its server, it says so as in [Saving](#saving).
+Until the checklist's data first arrives, the page is blank: no title, items or add field, and no loading message, since the data normally arrives at once. If the page cannot reach its server, it says so in the strip described in [Saving](#saving), over the blank page.
 
 <Artifact><Canvas of={Stories.Loading} /></Artifact>
 
+<Artifact><Canvas of={Stories.LoadingDisconnected} /></Artifact>
+
 ## The title
 
-The title is edited in place: clicking it puts the caret in it, and the text saves as the person types. Return in the title adds a new, empty item at the top of the list and puts the caret in it, so typing a title and pressing Return goes straight to the first item. An empty item left without text is removed, as below. A title cleared to nothing shows "Untitled" in muted text until something is typed. The title is one line: several lines pasted into it are joined with spaces.
+The title is edited in place: clicking it puts the caret in it, and the text saves as the person types. Return in the title adds a new, empty item at the top of the list and puts the caret in it, so typing a title and pressing Return goes straight to the first item. An empty item left without text is removed, as below. A title cleared to nothing shows "Untitled" in muted text until something is typed. The title is one line: Shift-Return acts as Return, and several lines pasted into it are joined with spaces.
 
 <Artifact><Canvas of={Stories.Untitled} /></Artifact>
 
 ## Adding an item
 
-Typing in the add field and pressing Return adds the text as a new item at the end of the list, not done, and clears the field, which keeps the focus for the next item. Return on a field that is empty or holds only spaces does nothing.
+Typing in the add field and pressing Return adds the text as a new item at the end of the list, not done, and clears the field, which keeps the focus for the next item. Return on a field that is empty or holds only whitespace does nothing.
 
 <Artifact><Canvas of={Stories.Adding} /></Artifact>
 
 ## Items
 
-Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types; the item being edited is marked only by its caret and its remove button, with no highlight. Return in an item adds a new, empty item directly below it and puts the caret there, so a list can be typed one line after another. An item whose text is cleared and then left is removed; an item holding only spaces counts as empty. Each item is one line of text, wrapped to fit: Shift-Return acts as Return. Text saves as typed, spaces included.
+Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types; the item being edited is marked only by its caret and its remove button, with no highlight. Return in an item adds a new, empty item directly below it and puts the caret there, so a list can be typed one line after another. An item whose text is cleared and then left is removed; an item holding only whitespace counts as empty. Each item is one line of text, wrapped to fit: Shift-Return acts as Return. Text saves as typed, spaces included. Line breaks in text an agent wrote show as spaces.
 
 <Artifact><Canvas of={Stories.EditingItem} /></Artifact>
 
@@ -84,7 +86,7 @@ A read-only checklist with no items shows its title and "No items" in muted text
 
 ## Saving
 
-Changes save as the person makes them, through the artifact's store. While the page cannot reach its server, it is read-only, as below, keeping what it shows, with "Reconnecting…" in muted text in a strip along the bottom of the page, ruled off by a line at its top; it becomes editable again by itself once it reconnects. If a save is refused, that change goes back to the stored value and "Couldn't save that change." shows in the same place for a few seconds.
+Changes save as the person makes them, through the artifact's store. While the page cannot reach its server, it is read-only, as below, keeping what it shows, with "Reconnecting…" in muted text in a strip along the bottom of the page, ruled off by a line at its top; it becomes editable again by itself once it reconnects. If a save is refused, that change goes back to the stored value and "Couldn't save that change." shows in the same place for a few seconds. The strip shows over whatever the page is showing, including the blank page before the data arrives and the error page below.
 
 <Artifact><Canvas of={Stories.Disconnected} /></Artifact>
 
@@ -92,9 +94,9 @@ Changes save as the person makes them, through the artifact's store. While the p
 
 ## Data the page cannot read
 
-Agents write the checklist's data by hand, so it can break the [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store). The page never rewrites data it cannot read.
+Agents write the checklist's data by hand, so it can break the [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store), which says what counts as valid. The page never rewrites data it cannot read.
 
-The page reads the data whole or not at all. The data breaks the contract when it is not an object, its `title` is not text, its `items` is not an object, or any item is not an object with text `text`, true-or-false `done` and numeric `order`; fields the contract does not name are ignored. Then, instead of the checklist, the page shows an error page: centred in the page, a warning icon in a ruled circle, "This checklist can't be shown", and below it, in muted text, "Its saved data isn't in the form this page reads. Ask your agent to check it." Nothing on it can be edited.
+The page reads the data whole or not at all. When the value breaks the contract, when the store has no value, as after an agent removes it, or when the server reports the store's saved data unavailable, the page shows an error page instead of the checklist: centred in the page, a warning icon in a ruled circle, "This checklist can't be shown", and below it, in muted text, "Its saved data isn't in the form this page reads. Ask your agent to check it." Nothing on it can be edited. The error page is an alert, so a person using a screen reader hears it when it replaces the checklist.
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
 

@@ -58,15 +58,17 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
   // The theme goes on the document, as in an artifact. Docs pages render each
   // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
+  const strip = status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`;
   if (loading) return html`
-  <main class="checklist-page"></main>`;
+  <main class="checklist-page">${strip}</main>`;
   if (unreadable) return html`
   <main class="checklist-page">
-    <section class="checklist-unreadable">
+    <section class="checklist-unreadable" role="alert">
       <span class="checklist-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
       <h1 class="checklist-unreadable-title">This checklist can't be shown</h1>
       <p class="checklist-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
     </section>
+    ${strip}
   </main>`;
   return html`
   <main class="checklist-page"${readOnly ? html` data-read-only` : ""}>
@@ -80,8 +82,21 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
       ${icon({ name: "add" })}
       <input class="checklist-add-input" type="text" placeholder="Add an item" aria-label="Add an item" value="${adding}">
     </label>`}
-    ${status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`}
+    ${strip}
   </main>`;
+};
+
+// Stories that show the caret or focus put it there when they render.
+type Play = { canvasElement: HTMLElement };
+const caretAtEnd = (index: number) => ({ canvasElement }: Play) => {
+  const text = canvasElement.querySelectorAll<HTMLElement>(".checklist-text")[index];
+  if (!text) return;
+  text.focus();
+  getSelection()?.selectAllChildren(text);
+  getSelection()?.collapseToEnd();
+};
+const focusAddField = ({ canvasElement }: Play) => {
+  canvasElement.querySelector<HTMLInputElement>(".checklist-add-input")?.focus();
 };
 
 const groceries: Item[] = [
@@ -113,15 +128,18 @@ export default {
 };
 
 // What a person sees after creating a Checklist from the Templates popover.
-export const New = { args: { title: "Checklist", items: [] } };
+export const New = { args: { title: "Checklist", items: [] }, play: focusAddField };
 
 export const WithItems = { name: "With items" };
 
 // Before the checklist's data first arrives.
 export const Loading = { args: { loading: true } };
 
+// Before the data arrives, and the page cannot reach its server.
+export const LoadingDisconnected = { name: "Loading, disconnected", args: { loading: true, status: "Reconnecting…" } };
+
 // The second item's text has the caret.
-export const EditingItem = { name: "Editing an item", args: { editing: 1 } };
+export const EditingItem = { name: "Editing an item", args: { editing: 1 }, play: caretAtEnd(1) };
 
 // Return in "Oat milk" added an empty item below it, which has the caret.
 export const NewEmptyItem = {
@@ -130,21 +148,22 @@ export const NewEmptyItem = {
     editing: 2,
     items: [groceries[0], groceries[1], { text: "", done: false }, ...groceries.slice(2)],
   },
+  play: caretAtEnd(2),
 };
 
 // A done item's text has the caret; it stays muted and struck through.
-export const EditingDoneItem = { name: "Editing a done item", args: { editing: 0 } };
+export const EditingDoneItem = { name: "Editing a done item", args: { editing: 0 }, play: caretAtEnd(0) };
 
 // The second item's box has the keyboard focus, as after Tab.
 export const KeyboardFocus = {
   name: "Keyboard focus on a box",
-  play: ({ canvasElement }: { canvasElement: HTMLElement }) => {
+  play: ({ canvasElement }: Play) => {
     canvasElement.querySelectorAll<HTMLInputElement>(".checklist-check")[1]?.focus();
   },
 };
 
 // Text typed into the add field, before Return adds it.
-export const Adding = { args: { adding: "Tomatoes" } };
+export const Adding = { args: { adding: "Tomatoes" }, play: focusAddField };
 
 // The title was cleared.
 export const Untitled = { args: { title: "" } };
