@@ -276,3 +276,6 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 4c1ea175c3ac5d794163350dcb12f3a17f4cda38302e291c26aac6d0237accc1 -->
 <!-- app-reference-source: storybook/spec/templates-popover/templates-popover.mdx sha256: e39f5b8b71fa7986dcbaae5447952429120837d479533a02d53e715c8388fea8 -->
 <!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->
+<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 5a252bbc2ee44d19bac57ae3bc4658844d37ddd04fe99ecec38041aaa508056a -->
+<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.mdx sha256: 5edf9be33d32c15d37f006bb56e1a18292b28ac8ad937ff80e8e9d05f55e0b69 -->
+<!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 9e0f98f410d2c0427b2880e929c2b935e955fb901d42549f1c390513d3274338 -->

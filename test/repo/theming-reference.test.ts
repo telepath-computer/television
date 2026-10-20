@@ -20,6 +20,10 @@ test("the authored theme reference covers current application authorities", () =
     "storybook/spec/templates-popover/templates-popover.stories.ts",
     "storybook/spec/templates-popover/templates-popover.mdx",
     "storybook/spec/templates-popover/styles.css",
+    // Artifact-frame authority adds its transparent states to the base frame.
+    "storybook/spec/artifact-frame/artifact-frame.stories.ts",
+    "storybook/spec/artifact-frame/artifact-frame.mdx",
+    "storybook/spec/artifact-frame/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);
   const contents = sources.map(([, source, digest]) => {

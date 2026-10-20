@@ -10,6 +10,7 @@ import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import {
   configureTestMotion,
   createArtifactFile,
+  startMotionObservation,
 } from "../../../web/test/e2e/helpers.ts";
 import {
   desktopE2EOrigin,
@@ -564,7 +565,11 @@ test("path and shared URL webviews adopt live transparency and retain it after m
       } | null>;
     };
     const expectFrame = async (artifactID: string, transparent: boolean): Promise<void> => {
+      // Selection starts a Web Animation even with CSS motion disabled. Wait
+      // for the filmstrip to settle before measuring native guest click points.
+      const motion = await startMotionObservation(page, ".stage");
       await selectArtifact(page, artifactID);
+      await motion.settle();
       await page.mouse.move(0, 0);
       const frame = pageFor(page, artifactID).locator(".artifact-view");
       if (transparent) await expect(frame).toHaveClass(/artifact-frame-transparent/);

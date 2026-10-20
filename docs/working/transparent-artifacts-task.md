@@ -21,8 +21,8 @@ Working record for the transparent artifacts change on `feat/transparent-artifac
 | Proof derivation | Done: 11 proofs; one spec finding (creation with `false`) resolved by restoring "Only `true` is ever stored" in `^ar-transparent` |
 | Proof convergence | Done: round 1 PASS, no findings |
 | Plan (if more than one slice) | Done: two slices; round 1 PASS, no findings |
-| Implementation, red/green TDD | Slice 1: done; review round 1 PASS at `f9e426c`, follow-up round 2 PASS at `80f100c`. Slice 2 in progress |
-| Integrated result and full verification | Integrated code/proof review and regression validation in progress; theme-authority correction pending; provider-compliant full gate pending |
+| Implementation, red/green TDD | Slice 1: done; review round 1 PASS at `f9e426c`, follow-up round 2 PASS at `80f100c`. Slice 2: implemented; integrated code, visual, architecture, test-correction and guidance reviews PASS |
+| Integrated result and full verification | Requested local regression and static checks passed. Theme-authority conflict resolved by the supplied spec correction. Full gate blocked by missing Blaxel repository-read credentials and the prohibition on pushing |
 | Draft PR | Not started. Merge needs Rupert's go-ahead |
 
 ## Follow-ups outside this change
@@ -82,7 +82,7 @@ Additional validation:
 
 | Command | Actual results |
 |---|---|
-| `npm test -- local --surface unit:artifact,unit:shared,unit:cli,unit:server` | First run overlapped the new parser regressions before the fix: 1,557 P / 4 F / 1 skipped. Corrected rerun: 1,561 P / 0 F / 1 skipped (artifact 67, shared 110, CLI 303, server 1,081). |
+| `npm test -- local --surface unit:artifact,unit:shared,unit:cli,unit:server` | First run overlapped the new parser regressions before the fix: 1,557 P / 4 F / 1 skipped. Corrected rerun: 1,561 P / 0 F / 1 skipped (artifact 110, shared 67, CLI 303, server 1,081). |
 | `npm test -- local --file test/node/cli-integration.test.ts --grep 'round-trips pointer artifacts\|server and CLI round-trip through status'` | 2 P / 16 filtered |
 | `npm run type-check` | First exit 2: missing `ArtifactPatch` barrel export. Export added; rerun exit 0. |
 | `npm run lint` | First exit 2: generated onboarding file disappeared during a concurrent acceptance build. Rerun after builds: exit 0. |
@@ -148,3 +148,76 @@ The first full `npm test -- local --file packages/web/test/e2e/artifact-view.tes
 The corrected full frame browser file passes all 20 tests without retries or skips (`.test-runs/2026-10-20T19-38-39-659Z-p23235-r09e6d49662c2cf56/summary.json`); the optional Firefox project is unavailable on this host. The full frame view-contract file passes all 88 tests (`.test-runs/2026-10-20T19-41-25-684Z-p38547-r82ad63c6fd827ba9/summary.json`). Remaining requested files and surfaces are running sequentially.
 
 Independent integrated code review returned PASS on the completed implementation, tests, guidance, proof citations and all nine screenshots. It confirmed closure of the motion-target finding and the title-bar overlay assertion. No further slice-1 integration defect was found. It explicitly leaves feature convergence blocked on the pending theme-authority correction and final validation. The implementation is being checkpointed under Rupert's authorization; this is not a claim that full verification or all deferred obligations are complete.
+
+Checkpoint commit: `2434269` — “Transparent artifacts: render frames and cover browser and Electron”. Created with the configured identity, path-limited staging and no attribution trailer; not pushed.
+
+`npm run verify -- --no-publish` ran on that clean committed checkpoint and exited 2 before tests. The host marker selected Blaxel, whose capability preflight stopped at `blaxel-github-token`: A repository-root `.blaxel-gh-token` file or `BLAXEL_TV_GH_TOKEN` is required so sandbox workers can fetch the repository. The setup spec identifies its source as the corporate 1Password item “Television Blaxel sharded test runner github PAT”. No remote test was dispatched. Once credentials exist, remote verification also requires the implementation commit reachable from `origin`; `2434269` is unpushed. Rupert prohibited pushes, and no local full-verification bypass was requested or used. `--no-publish` suppresses attestation writes. Log: `/tmp/transparent-s2-verify.log`.
+
+The slice-1 surface rerun passes 1,561 tests with one existing skip and no retries: artifact 110, shared 67, CLI 303, server 1,081. The server skip is the privileged-port refusal case because this host cannot stage `EACCES`/`EPERM`. The prior slice-1 record had artifact/shared counts transposed; the original normalized report confirms 110/67, and the wording above is corrected. The complete spawned CLI acceptance file passes all 41 tests with no retries or skips.
+
+The combined `unit:root,unit:browser-app` run exits 1: root 444 passed / 1 failed / 1 skipped; browser-app 573 passed / 1 skipped. The sole failure is the already-known theme-reference authority conflict. The two standing skips are the isolated-lifecycle guardrail acceptance case (TV-597) and the fake ACP bridge disconnect case (TV-186). No retries, recovered flakes, process leaks or infrastructure failures. Report: `.test-runs/2026-10-20T19-54-02-915Z-p74151-r0b7d0a246aaabf9d/summary.json`.
+
+Existing UI safeguards remain active: the root run passes all 3 tests in `ui-style-source.test.ts` and all 3 in `ui-style-delivery.test.ts`, alongside 6 measure-crossing tests and the UI module-shape check. The opaque window-edge file passes all 15 cases. No new automatic stylesheet-copy or markup-conformance test was added for the Storybook transparent states; their prescribed visual review is recorded above.
+
+The full browser surface in the requested `e2e:browser-app,e2e:desktop` run completed with 304 first-attempt passes, one recovered retry and one skip (15.1 minutes of Playwright test time). The recovered case is the existing `theme.test.ts` test “PATCH /display activeThemeName reloads mounted artifact iframes so canonical styles pick up the new theme”: its first attempt's `locator.evaluate` ran while the iframe navigation destroyed its execution context at line 306; its one retry passed. No feature code change was made for that unrelated timing failure. The skipped Chromium case is “Firefox system appearance follows emulated preference in the same cross-origin iframe”, explicitly owned by Firefox; the optional Firefox project is unavailable on this host. The 85-test Electron surface is still running.
+
+The requested full browser/Electron command exits 0 under the canonical retry rules: browser 304 first-attempt passes + 1 recovered retry + 1 skip; Electron 84 first-attempt passes + 1 recovered retry, no skips. No process leaks or infrastructure failures. Report: `.test-runs/2026-10-20T19-57-46-205Z-p84685-rdf1326b228d15570/summary.json`.
+
+The Electron retry belonged to the new transparency walk, so it was investigated before close-out. Its first native click left the document output at `Ready`. `selectArtifact` waits for selected attributes, but stage centring then runs a Web Animation that the standing CSS-motion override does not disable. The new test measured guest click coordinates while that filmstrip could still move. Its `expectFrame` helper now starts the existing motion observer before selection and waits for animation, scroll and frame settlement before measuring. It still sends one native click; no retry, sleep, timeout increase or mocked action was added. Independent review returned PASS and confirmed that the acceptance proof remains intact. `npm test -- local --file packages/desktop/test/e2e/artifact-view-webview-wheel.test.ts --retries 0` passes all 3 tests with no retries or skips (`.test-runs/2026-10-20T20-21-15-406Z-p171752-r402a929eb927514c/summary.json`). A full Electron-surface run with retries disabled follows.
+
+During final checks, an external edit to `specs/arch/themes/authoring.md` added delegated Storybook stories, MDX and stylesheets to the current-authority source list. This resolves the recorded conflict; the implementation did not choose or write that rule. Freshness work resumed against the updated governing text. The existing retired Templates frame substitution remains unchanged.
+
+The first static-check pass completed successfully: `npm run type-check` exit 0; `npm run lint` exit 0; `npx vitest run test/repo/spec-links.test.ts` 8 passed; `npm run specs:index` indexed 141 specs and 124 proofs. These will be repeated after the final test/fingerprint edits.
+
+Freshness TDD is complete under the corrected authority. `npm test -- local --file test/repo/theming-reference.test.ts` first failed its one test because 27 sources were recorded while the corrected assertion required 30. After reviewing the three artifact-frame Storybook authorities and recording their hashes, the same command passed 1 test. Both runs had no skips or retries. Reports: `.test-runs/2026-10-20T20-22-48-325Z-p177080-r439dcef7faf5441f/summary.json` and `.test-runs/2026-10-20T20-23-25-841Z-p178717-rf990d95557337e56/summary.json`. The proof now explicitly includes delegated authorities, exact enumeration and matching fingerprints.
+
+Independent final guidance review returned PASS: the supplied spec amendment resolves the conflict; the list adds exactly the three artifact-frame authorities while retaining the base sources; all hashes match; the reference agrees with the frame and stage specs; and the proof correctly combines bounded automated checks with semantic review. A proposed external Codex review resume was rejected by automatic approval review for possible private-code egress without explicit authorization. It was not retried or bypassed; the existing in-session independent reviewer completed the read-only review instead.
+
+Every slice-2 proof now names its evidence:
+
+| Assertion | Implementing evidence |
+|---|---|
+| `af-ac-transparent` | Browser: `artifact-view-wheel.test.ts`, “path and shared URL frames adopt live transparency and retain it after moves and restart (^af-ac-transparent)”. Electron: `artifact-view-webview-wheel.test.ts`, the corresponding “path and shared URL webviews…” test. |
+| `af-ui-ac-transparent-state` | `packages/web/test/artifact-view.test.ts`, “selects transparency from path and URL metadata in full-screen=%s without changing the document”, both parameter values. |
+| `af-ui-ac-transparent-hover` | `packages/web/test/e2e/artifact-view.test.ts`, suite “transparent frame hover (^af-ui-ac-transparent-hover)”: “fades on pointer entry and exit, overlays a stable document, and hides keyboard controls after exit”; “holds the visible bar and usable menu outside the frame until dismissal”; “applies reduced-motion entry and exit immediately without transitions”. |
+| `af-ui-ac-window-edges` (retained) | `window-edge-rims.test.ts`: “window rim theme decorations accept complete overrides and inactive frames retain their edge”; “window rims retain fractional paint and iframe input at DPR1” and “…DPR2”; “canonical panels share complete paints and independent borders in light” and “…dark”. |
+| `st-ac-transparent-input` | `stage.test.ts`, “stage transparent background input (^st-ac-transparent-input) > a press over a transparent background document control selects once and only a later press activates it”. |
+| `st-ac-selection-motion` (retained) | `stage.test.ts`, “stage selection motion (^st-ac-selection-motion) > background presses centre adjacent and nonadjacent pages in the same authored time without recreating documents”. |
+| `templates-ac-transparent-ui` | `skill-selector.test.ts`, “Templates popover creates a focused transparent frame from manifest defaults without sending display (^templates-ac-transparent-ui)”. |
+| `theme-authoring-t-app-shell-freshness` | `test/repo/theming-reference.test.ts`, “the authored theme reference covers current application authorities”, plus the independent reference review. |
+| Existing theme bundle assertions | `test/repo/skills-build.test.ts`, “builds only television for agents and separates calendar and task components for onboarding”. All nine inherited rows now cite this actual test name. |
+
+All feature proof placeholders and comment obligations are closed. Full provider-compliant verification remains the only deferred close-out obligation; the local surfaces do not substitute for it.
+
+## Completed local validation
+
+The table records every complete-file/surface and static command in the sequential validation batches, including the first failed root run and the later repeats. Targeted red/green commands and harness failures are recorded above. `P`, `F`, and `S` mean passed, failed, and skipped; recovered tests are included in the passed count.
+
+| Command | Actual result |
+|---|---|
+| `npm test -- local --file packages/web/test/e2e/artifact-view.test.ts` | Exit 0; e2e:browser-app: 20 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/web/test/artifact-view.test.ts` | Exit 0; unit:browser-app: 88 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/web/test/e2e/stage.test.ts` | Exit 0; e2e:browser-app: 21 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/web/test/e2e/artifact-view-wheel.test.ts` | Exit 0; e2e:browser-app: 6 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts` | Exit 0; e2e:browser-app: 8 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/desktop/test/e2e/artifact-view-webview-wheel.test.ts` | Exit 0; e2e:desktop: 3 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --file packages/web/test/e2e/window-edge-rims.test.ts` | Exit 0; e2e:browser-app: 15 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --surface unit:artifact,unit:shared,unit:cli,unit:server` | Exit 0; unit:artifact: 110 P / 0 F / 0 S; 0 retries, 0 recovered; unit:cli: 303 P / 0 F / 0 S; 0 retries, 0 recovered; unit:shared: 67 P / 0 F / 0 S; 0 retries, 0 recovered; unit:server: 1081 P / 0 F / 1 S; 0 retries, 0 recovered |
+| `npm test -- local --file test/node/cli-acceptance.test.ts` | Exit 0; e2e:node: 41 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --surface unit:root,unit:browser-app` | Exit 1; unit:root: 444 P / 1 F / 1 S; 0 retries, 0 recovered; unit:browser-app: 573 P / 0 F / 1 S; 0 retries, 0 recovered |
+| `npm test -- local --surface e2e:browser-app,e2e:desktop` | Exit 0; e2e:browser-app: 305 P / 0 F / 1 S; 1 retries, 1 recovered; e2e:desktop: 85 P / 0 F / 0 S; 1 retries, 1 recovered |
+| `npm run type-check` | Exit 0; passed |
+| `npm run lint` | Exit 0; passed |
+| `npx vitest run test/repo/spec-links.test.ts` | Exit 0; 8 P / 0 F / 0 S |
+| `npm run specs:index` | Exit 0; 141 specs and 124 proofs indexed |
+| `npm test -- local --surface e2e:desktop --retries 0` | Exit 0; e2e:desktop: 85 P / 0 F / 0 S; 0 retries, 0 recovered |
+| `npm test -- local --surface unit:root,unit:browser-app` | Exit 0; unit:root: 445 P / 0 F / 1 S; 0 retries, 0 recovered; unit:browser-app: 573 P / 0 F / 1 S; 0 retries, 0 recovered |
+| `npm run type-check` | Exit 0; passed |
+| `npm run lint` | Exit 2; ENOENT while scanning .agents; stopped before checking code |
+| `npx vitest run test/repo/spec-links.test.ts` | Exit 0; 8 P / 0 F / 0 S |
+| `npm run specs:index` | Exit 0; 141 specs and 124 proofs indexed |
+| `npm run lint` | Exit 0; passed |
+
+The final Electron surface passed all 85 tests with retries disabled and no skips. The final root/browser-app unit run passed 445 and 573 tests respectively, each with its one standing skip; no retries. Type-check, spec links and index generation passed on repetition. The first final lint run exited 2 because `.agents` disappeared during directory enumeration; the directory existed on inspection and the unchanged rerun passed. No lint configuration or code was changed for that transient filesystem error. No completed validation run reported leaked processes or infrastructure failures.
+
+The reviewed implementation and proof work is complete. The optional Firefox project was unavailable; Chromium skipped its Firefox-owned appearance assertion. The server privileged-port skip, root lifecycle-guardrail skip (TV-597), and browser-unit ACP-disconnect skip (TV-186) are the existing conditions described above. The full provider-compliant gate still requires the missing Blaxel repository-read token and an authorized pushed revision. No push or local bypass was performed.
