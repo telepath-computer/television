@@ -164,6 +164,14 @@ export const KeyboardFocus = {
   },
 };
 
+// The second item's remove button has the keyboard focus, as after Tab.
+export const RemoveFocus = {
+  name: "Keyboard focus on a remove button",
+  play: ({ canvasElement }: Play) => {
+    canvasElement.querySelectorAll<HTMLButtonElement>(".checklist-remove")[1]?.focus();
+  },
+};
+
 // Text typed into the add field, before Return adds it.
 export const Adding = { args: { adding: "Tomatoes" }, play: focusAddField };
 
