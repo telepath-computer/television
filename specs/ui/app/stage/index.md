@@ -78,7 +78,6 @@ The gesture is pointer-only, inheriting the shell's desktop input boundary ([ui/
 - Releasing keeps the size the drag ended at. A drag changes an axis only as far as it actually moved the page: an axis whose rendered size ends where it began — an outward pull on a page already held at a bound — leaves the size unchanged.
 - A drag can be cancelled: by Escape while it runs; by the platform taking the pointer away — a browser pointer cancellation, or an unexpected loss of pointer capture; or by the stage's page box changing while the drag runs — a window resized under the gesture. Cancellation abandons the resize: the page returns to the size the drag began at, and an armed snap never fires.
 - A live drag never animates. A size change that is not a drag morphs on the page's transition ([ui/app/stage/stage.frame](./stage.frame)).
-- While a drag runs, the resized page's artifact frame carries `data-resizing`, and loses it when the drag ends or is cancelled. A [transparent frame](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) shows its border throughout, so the page's bounds stay visible during the drag.
 
 ### Handles
 
@@ -86,6 +85,7 @@ The gesture is pointer-only, inheriting the shell's desktop input boundary ([ui/
 - An edge's band is [measures.yml#handles.edge_band_px](./measures.yml#handles.edge_band_px) thick, centred on the edge.
 - A corner reaches down both its adjoining edges as an L, never a filled square — [measures.yml#handles.corner_reach_px](./measures.yml#handles.corner_reach_px) along each, with arms [measures.yml#handles.corner_thickness_px](./measures.yml#handles.corner_thickness_px) thick — so a grab near a corner takes both axes while the edge beyond the L's arms takes one.
 - Each handle shows the cursor of the directions it drags.
+- While the pointer is on one of a page's handles, and for the whole of a resize drag wherever the pointer goes, the page's artifact frame carries `data-resize-active`. It loses the marker when the pointer leaves the handles with no drag running, and when a drag ends or is cancelled. A [transparent frame](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) shows its hovered state for that time.
 - Handles never overlap controls: the frame lays out its controls clear of the bands, and a combination of measures that puts a band over a control is an invalid state.
 
 ### Bounds

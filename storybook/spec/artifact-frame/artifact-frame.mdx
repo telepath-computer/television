@@ -31,9 +31,7 @@ While the frame's menu is open, the frame keeps its hovered state whether or not
 
 The hovered story forces the pointer state with `data-hovered`; moving the pointer over the resting story produces the same result.
 
-While its page is being resized, a transparent frame shows its border for the whole drag, whether or not the pointer is over it, so its bounds stay visible. The stage marks that frame with `data-resizing` for as long as the drag runs ([page sizing](../../../specs/ui/app/stage/index.md#page-sizing)). The border is the opaque frame's edge; the frost and title bar follow hover as usual.
-
-<Canvas of={Stories.TransparentResizing} />
+The frame also takes its hovered state, the one shown above, while the stage's resize cursor is active for its page: whenever the pointer is in the band where the page's edges can be grabbed, and for the whole of a resize drag, whether or not the pointer is over the frame. The stage marks the frame with `data-resize-active` for that time ([handles](../../../specs/ui/app/stage/index.md#handles)). There is no separate resizing look.
 
 This demonstration alternates between rest and hover every two seconds, using the same fade. Pointer hover still works.
 
