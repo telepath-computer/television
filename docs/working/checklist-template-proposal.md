@@ -39,8 +39,10 @@ Settled by Rupert on October 19, 2026, recorded in the pilot:
 
 Settled by Rupert on October 19, 2026, after a completeness check of the spec:
 
-17. Data that breaks the store contract has error states. Unreadable as a whole: "This checklist can't be shown", read-only. Partly unreadable: the readable parts show and stay editable, with "Part of this checklist can't be shown." at the top. The page never rewrites what it cannot read.
+17. The page reads the data whole or not at all. Data that breaks the store contract anywhere shows an error page instead of the checklist: centred on the desk, a warning icon, "This checklist can't be shown" and a muted line asking the person's agent to check it. The page never rewrites what it cannot read.
 18. Defaults for spaces and line breaks: an item holding only spaces counts as empty; text saves as typed; the title and each item are one line, Shift-Return acts as Return, and lines pasted into the title are joined with spaces.
 19. Until the data first arrives, the sheet is blank, with no loading message.
 20. After the remove button, focus moves to the next item, else the item above, else the add field. A removed item cannot be brought back from the page in the first version.
 21. No drag to reorder in the first version.
+22. "Reconnecting…" and "Couldn't save that change." show in a strip along the bottom of the page, ruled off by a 1px line in the border colour.
+23. Each story's frame is the artifact: 640 by 800 at the starting size, 360 by 640 for a narrow artifact. Stories hold only the page's own markup, since conformance tests compare against them; there is no hover story.

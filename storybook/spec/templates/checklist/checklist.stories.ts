@@ -27,10 +27,10 @@ interface Args {
   // The page's access to its store is read-only, as through a read-only
   // share link.
   readOnly: boolean;
-  // A note at the top of the sheet: while the page cannot reach its server,
-  // or briefly after a save was refused. Null shows none.
+  // A note in a strip along the bottom of the page: while the page cannot
+  // reach its server, or briefly after a save was refused. Null shows none.
   status: string | null;
-  // The stored data as a whole cannot be read.
+  // The stored data breaks the store contract.
   unreadable: boolean;
   // The checklist's data has not arrived yet.
   loading: boolean;
@@ -64,15 +64,15 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
   </main>`;
   if (unreadable) return html`
   <main class="checklist-page">
-    <article class="checklist-sheet" data-read-only>
-      <h1 class="checklist-title">This checklist can't be shown</h1>
-      <p class="checklist-unreadable">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
-    </article>
+    <section class="checklist-unreadable">
+      <span class="checklist-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
+      <h1 class="checklist-unreadable-title">This checklist can't be shown</h1>
+      <p class="checklist-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </section>
   </main>`;
   return html`
   <main class="checklist-page">
     <article class="checklist-sheet"${readOnly ? html` data-read-only` : ""}>
-      ${status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`}
       ${readOnly
         ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
         : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
@@ -84,6 +84,7 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
         <input class="checklist-add-input" type="text" placeholder="Add an item" aria-label="Add an item" value="${adding}">
       </label>`}
     </article>
+    ${status === null ? "" : html`<p class="checklist-status" role="status">${status}</p>`}
   </main>`;
 };
 
@@ -96,10 +97,21 @@ const groceries: Item[] = [
   { text: "Coffee beans", done: false },
 ];
 
+// Each story's frame is the artifact: the template's starting size, or a
+// narrow artifact. On the docs page each story renders in its own frame.
+const viewports = {
+  artifact: { name: "Artifact, starting size", styles: { width: "640px", height: "800px" }, type: "desktop" },
+  narrow: { name: "Narrow artifact", styles: { width: "360px", height: "640px" }, type: "mobile" },
+};
+
 export default {
   title: "Spec/Templates/Checklist",
-  // On the docs page each story renders in its own frame, as a page of its own.
-  parameters: { layout: "fullscreen", docs: { story: { inline: false, height: "720px" } } },
+  parameters: {
+    layout: "fullscreen",
+    viewport: { options: viewports },
+    docs: { story: { inline: false, height: "800px" } },
+  },
+  globals: { viewport: { value: "artifact", isRotated: false } },
   render,
   args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null, unreadable: false, loading: false } satisfies Args,
 };
@@ -126,13 +138,6 @@ export const NewEmptyItem = {
 
 // A done item's text has the caret; it stays muted and struck through.
 export const EditingDoneItem = { name: "Editing a done item", args: { editing: 0 } };
-
-// The pointer is over the second item, which shows its remove button. Stories
-// cannot hold the pointer, so a story-only class stands in for :hover.
-export const Hovering = {
-  name: "Pointer over an item",
-  decorators: [(story: () => Html) => html`<div class="checklist-story-hover">${story()}</div>`],
-};
 
 // The second item's box has the keyboard focus, as after Tab.
 export const KeyboardFocus = {
@@ -180,18 +185,14 @@ export const Disconnected = { args: { readOnly: true, status: "Reconnecting…" 
 // A save was refused and its change reverted.
 export const SaveFailed = { name: "Save failed", args: { status: "Couldn't save that change." } };
 
-// The stored data is not in the form the page reads, as after an agent
-// overwrote it with something else.
+// The stored data breaks the store contract, as after an agent wrote an item
+// without its done state.
 export const Unreadable = { args: { unreadable: true } };
-
-// Some items, left out, break the store contract; the title is fine.
-export const PartlyUnreadable = { name: "Partly unreadable", args: { status: "Part of this checklist can't be shown." } };
 
 export const Dark = { args: { theme: "dark" } };
 
-// An artifact narrower than the sheet and its margins. The page follows the
-// width of its nearest size container, which in an artifact is the body; the
-// wrapper here stands in for a narrow artifact and is not part of the markup.
+// An artifact narrower than the sheet and its margins.
 export const Narrow = {
-  decorators: [(story: () => Html) => html`<div class="checklist-story-narrow">${story()}</div>`],
+  globals: { viewport: { value: "narrow", isRotated: false } },
+  parameters: { docs: { story: { height: "640px" } } },
 };

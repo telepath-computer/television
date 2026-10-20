@@ -2,10 +2,8 @@
    with a title, rows of items and an add field. Built only from the
    foundation's tokens, so it follows the active theme and appearance. */
 
-/* The body is the size container, so the page follows the artifact's width. */
 body {
   margin: 0;
-  container-type: inline-size;
 }
 
 .checklist-page {
@@ -37,15 +35,27 @@ body {
   background: var(--color-surface-muted);
 }
 
+/* A strip along the bottom of the page, over the desk and sheet, ruled off
+   at its top. The page leaves room for it, so it never covers the last row. */
 .checklist-status {
-  margin: calc(-1 * var(--space-24)) 0 var(--space-16);
+  position: fixed;
+  inset: auto 0 0;
+  margin: 0;
+  padding: var(--space-8) var(--space-16);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+  text-align: center;
+}
+
+.checklist-page:has(.checklist-status) {
+  padding-bottom: var(--space-64);
 }
 
 /* Narrower than the sheet and its margins (560 + 2 × 16 pixels), the sheet
    fills the page edge to edge. */
-@container (width < 592px) {
+@media (width < 592px) {
   .checklist-page {
     padding: 0;
   }
@@ -58,9 +68,6 @@ body {
     box-shadow: none;
   }
 
-  .checklist-status {
-    margin-top: calc(-1 * var(--space-16));
-  }
 }
 
 .checklist-title {
@@ -136,7 +143,7 @@ body {
 }
 
 .checklist-check:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: var(--outline-focus);
   outline-offset: 2px;
 }
 
@@ -189,21 +196,39 @@ body {
   font-size: var(--text-lg);
 }
 
+/* Data the page cannot read: an error page, centred on the desk. */
 .checklist-unreadable {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: calc(100vh - 2 * var(--space-32));
+  padding: var(--space-32);
+  text-align: center;
+}
+
+.checklist-unreadable-icon {
+  display: grid;
+  place-items: center;
+  width: var(--space-64);
+  height: var(--space-64);
+  margin-bottom: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.checklist-unreadable-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.checklist-unreadable-text {
+  max-width: 28em;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: var(--text-lg);
-}
-
-/* Story only: stands in for the pointer over the second item. */
-.checklist-story-hover .checklist-item:nth-child(2) .checklist-remove {
-  opacity: 1;
-}
-
-/* Story only: stands in for a narrow artifact. */
-.checklist-story-narrow {
-  container-type: inline-size;
-  width: 360px;
-  margin: 0 auto;
-  outline: 1px solid var(--color-border);
 }
