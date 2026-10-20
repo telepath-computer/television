@@ -2,8 +2,10 @@
    with a title, rows of items and an add field. Built only from the
    foundation's tokens, so it follows the active theme and appearance. */
 
+/* The body is the size container, so the page follows the artifact's width. */
 body {
   margin: 0;
+  container-type: inline-size;
 }
 
 .checklist-page {
@@ -39,6 +41,26 @@ body {
   margin: calc(-1 * var(--space-24)) 0 var(--space-16);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+/* Narrower than the sheet and its margins (560 + 2 × 16 pixels), the sheet
+   fills the page edge to edge. */
+@container (width < 592px) {
+  .checklist-page {
+    padding: 0;
+  }
+
+  .checklist-sheet {
+    max-width: none;
+    min-height: 100vh;
+    padding: var(--space-32) var(--space-24) var(--space-24);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .checklist-status {
+    margin-top: calc(-1 * var(--space-16));
+  }
 }
 
 .checklist-title {
@@ -163,4 +185,19 @@ body {
 
 .checklist-add-input::placeholder {
   color: var(--color-text-muted);
+}
+
+.checklist-empty {
+  margin: 0;
+  padding: var(--space-6) 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-lg);
+}
+
+/* Story only: stands in for a narrow artifact. */
+.checklist-story-narrow {
+  container-type: inline-size;
+  width: 360px;
+  margin: 0 auto;
+  outline: 1px solid var(--color-border);
 }

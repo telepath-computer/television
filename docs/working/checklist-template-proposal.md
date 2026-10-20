@@ -1,6 +1,6 @@
 # The Checklist artifact template — proposal
 
-**Status:** settled by Rupert on October 16, 2026; open questions remain (below). The template mechanism is in draft PR #38 with one placeholder template, Example. This change replaces Example with the Checklist as the bundled template.
+**Status:** settled by Rupert on October 16 and 19, 2026; no open questions. The template mechanism is in draft PR #38 with one placeholder template, Example. This change replaces Example with the Checklist as the bundled template.
 
 The template is an ordinary template folder: `manifest.json`, an `index.html` page, a `data.json` starting value for the artifact's JSON store, a `README.md` for an agent adapting the copy, and a portrait `thumbnail.png` (4:5, about 400 by 500 pixels), a screenshot of the page with sample data. The page reads its store through the resource SDK and updates live when an agent writes with `tv resource json`.
 
@@ -27,14 +27,12 @@ Further decisions, October 16–17, 2026, recorded in the pilot (`specs/ui/templ
 8. When two writers change the same item, the last write wins. An item removed elsewhere while being edited is written back whole if the person keeps typing or leaves it with text; left empty, it stays removed.
 9. While the page cannot reach its server it is read-only with "Reconnecting…" at the top; a refused save reverts that change and shows "Couldn't save that change." for a few seconds.
 
-## Open questions
+Settled by Rupert on October 19, 2026, recorded in the pilot:
 
-Proposed answers, awaiting Rupert:
-
-1. Backspace in an empty item removes it and puts the caret at the end of the item above.
-2. Up and Down move the caret to the item above or below at an item's first or last line.
-3. Pasting several lines into an item or the add field makes one item per line.
-4. Cmd- or Ctrl-Return ticks or unticks the item being edited; there is no nesting.
-5. When the artifact is narrower than the sheet and its margins, the sheet fills the page edge to edge.
-6. An empty checklist opened read-only shows the title and a muted "No items".
-7. No "Clear done" action in the first version.
+10. Backspace in an empty item removes it and puts the caret at the end of the item above. With no item above, as when it is the only item, it does nothing.
+11. Up and Down move the caret to the item above or below at an item's first or last line; Up from the first item goes to the title, Down from the last item to the add field.
+12. Pasting several lines into an item or the add field makes one item per line, skipping blank lines.
+13. Cmd- or Ctrl-Return ticks or unticks the item being edited. Items cannot be nested.
+14. When the artifact is narrower than the sheet and its margins, the sheet fills the page edge to edge.
+15. An empty checklist opened read-only shows the title and a muted "No items".
+16. No "Clear done" action in the first version.

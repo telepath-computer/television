@@ -35,6 +35,12 @@ Clicking the box ticks or unticks an item. A done item stays where it is, its te
 
 <Canvas of={Stories.EditingItem} />
 
+Backspace in an empty item removes it and puts the caret at the end of the item above. With no item above, as when it is the only item, Backspace does nothing. Up on an item's first line moves the caret to the item above, and Down on its last line to the item below; Up from the first item goes to the title, and Down from the last item to the add field. Cmd-Return, or Ctrl-Return outside macOS, ticks or unticks the item being edited and leaves the caret where it is.
+
+Pasting several lines makes one item per line, skipping blank lines. In the add field, each line is added at the end of the list, in order. In an item, the first line is inserted at the caret and each further line becomes a new item below it, in order, with the caret at the end of the last one.
+
+The list is flat: items cannot be nested. There is no action to clear done items; a person removes them one at a time, or an agent removes them through the store.
+
 Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. Long items wrap, with the box beside their first line.
 
 <Canvas of={Stories.LongItems} />
@@ -51,6 +57,10 @@ When the page can only read its store, as through a read-only share link, the ti
 
 <Canvas of={Stories.ReadOnly} />
 
+A read-only checklist with no items shows its title and "No items" in muted text.
+
+<Canvas of={Stories.EmptyReadOnly} />
+
 ## Saving
 
 Changes save as the person makes them, through the artifact's store. While the page cannot reach its server, it is read-only, as below, keeping what it shows, with "Reconnecting…" in muted text at the top of the sheet; it becomes editable again by itself once it reconnects. If a save is refused, that change goes back to the stored value and "Couldn't save that change." shows in the same place for a few seconds.
@@ -64,6 +74,12 @@ Changes save as the person makes them, through the artifact's store. While the p
 The sheet grows with the list, and the page scrolls.
 
 <Canvas of={Stories.ManyItems} />
+
+## A narrow artifact
+
+When the artifact is narrower than the sheet and its margins, the sheet fills the page edge to edge, without its shadow or the desk around it.
+
+<Canvas of={Stories.Narrow} />
 
 ## Appearance
 

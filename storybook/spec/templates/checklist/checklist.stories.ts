@@ -62,6 +62,7 @@ const render = ({ theme, title, items, editing, adding, readOnly, status }: Args
         ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
         : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
       <ul class="checklist-items">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
+      ${readOnly && items.length === 0 ? html`<p class="checklist-empty">No items</p>` : ""}
       ${readOnly ? "" : html`
       <label class="checklist-add">
         ${icon({ name: "add" })}
@@ -125,6 +126,9 @@ export const ManyItems = {
 // Opened through a read-only share link.
 export const ReadOnly = { name: "Read-only", args: { readOnly: true } };
 
+// A read-only checklist with no items.
+export const EmptyReadOnly = { name: "Empty, read-only", args: { readOnly: true, items: [] } };
+
 // The page cannot reach its server: read-only until it reconnects.
 export const Disconnected = { args: { readOnly: true, status: "Reconnecting…" } };
 
@@ -132,3 +136,10 @@ export const Disconnected = { args: { readOnly: true, status: "Reconnecting…" 
 export const SaveFailed = { name: "Save failed", args: { status: "Couldn't save that change." } };
 
 export const Dark = { args: { theme: "dark" } };
+
+// An artifact narrower than the sheet and its margins. The page follows the
+// width of its nearest size container, which in an artifact is the body; the
+// wrapper here stands in for a narrow artifact and is not part of the markup.
+export const Narrow = {
+  decorators: [(story: () => Html) => html`<div class="checklist-story-narrow">${story()}</div>`],
+};
