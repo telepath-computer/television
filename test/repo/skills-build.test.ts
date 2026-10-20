@@ -773,6 +773,13 @@ describe("skills build", () => {
     expect(frameReference).toContain("300ms");
     expect(frameReference).toContain("leave keyboard navigation");
     expect(frameReference).toContain("Reduced motion makes both changes immediate");
+    // proofs/arch/themes/authoring.md#^theme-authoring-t-transparent-frame-guidance
+    for (const guidance of [
+      "`data-resizing`", "release or cancellation", "native border and both edge paints",
+      "`.artifact-frame-clip::before`", "`.artifact-title-bar::before`", "opacity",
+      "fixed-position menu", "containing block", "stacking context", "stage handles",
+      "positioned content", "tree order", "frame opacity and blur independently",
+    ]) expect(frameReference).toContain(guidance);
     const stageReference = televisionTheming.split("### Stage and pages")[1]!.split("### Artifact frame and its menu")[0]!;
     expect(stageReference).toContain("A background page with a transparent frame leaves the wallpaper unblurred");
     expect(stageReference).toContain("still scales the page and fades and blurs its artifact content");

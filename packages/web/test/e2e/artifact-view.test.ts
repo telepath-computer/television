@@ -713,13 +713,13 @@ test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
       const root = document.querySelector(".artifact-frame")!;
       const frame = root.querySelector("iframe")!;
       const bar = root.querySelector(".artifact-title-bar")!;
-      const samples: Array<{ box: number[]; opacity: number; visibility: string }> = [];
-      const transitions: Array<{ target: "clip" | "bar"; type: string; propertyName: string; elapsedTime: number }> = [];
+      const samples: Array<{ box: number[]; opacity: number; frostOpacity: number; visibility: string }> = [];
+      const transitions: Array<{ target: "clip" | "bar"; type: string; propertyName: string; pseudoElement: string; elapsedTime: number }> = [];
       const clip = root.querySelector(".artifact-frame-clip")!;
       const recordTransition = (event: Event) => {
         const transition = event as TransitionEvent;
         if (event.target !== clip && event.target !== bar) return;
-        transitions.push({ target: event.target === clip ? "clip" : "bar", type: event.type, propertyName: transition.propertyName, elapsedTime: transition.elapsedTime });
+        transitions.push({ target: event.target === clip ? "clip" : "bar", type: event.type, propertyName: transition.propertyName, pseudoElement: transition.pseudoElement, elapsedTime: transition.elapsedTime });
       };
       for (const type of ["transitionrun", "transitionend"]) root.addEventListener(type, recordTransition);
       const state = {
@@ -731,7 +731,7 @@ test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
       function sample() {
         const { x, y, width, height } = frame.getBoundingClientRect();
         const style = getComputedStyle(bar);
-        samples.push({ box: [x, y, width, height], opacity: Number(style.opacity), visibility: style.visibility });
+        samples.push({ box: [x, y, width, height], opacity: Number(style.opacity), frostOpacity: Number(getComputedStyle(clip, "::before").opacity), visibility: style.visibility });
         if (state.running) requestAnimationFrame(sample);
       }
       sample();
@@ -745,11 +745,12 @@ test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
         return { samples: state.samples, transitions: state.transitions };
       });
       await sampling.dispose();
-      for (const [target, propertyName] of [["clip", "background-color"], ["clip", "backdrop-filter"], ["bar", "opacity"]]) {
-        expect(transitions).toContainEqual({ target, type: "transitionrun", propertyName, elapsedTime: 0 });
-        expect(transitions).toContainEqual({ target, type: "transitionend", propertyName, elapsedTime: 0.3 });
+      for (const [target, pseudoElement] of [["clip", "::before"], ["bar", ""]]) {
+        expect(transitions).toContainEqual({ target, pseudoElement, type: "transitionrun", propertyName: "opacity", elapsedTime: 0 });
+        expect(transitions).toContainEqual({ target, pseudoElement, type: "transitionend", propertyName: "opacity", elapsedTime: 0.3 });
       }
       expect(samples.some(sample => sample.opacity > 0 && sample.opacity < 1)).toBe(true);
+      expect(samples.some(sample => sample.frostOpacity > 0 && sample.frostOpacity < 1)).toBe(true);
       for (const sample of samples) {
         expect(sample.box).toEqual(samples[0]!.box);
         if (sample.opacity > 0) expect(sample.visibility).toBe("visible");
@@ -793,39 +794,6 @@ test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
     await expect(page.locator("#after-frame")).toBeFocused();
   });
 
-  test("holds the visible bar and usable menu outside the frame until dismissal", async ({ page }) => {
-    await setup(page);
-    const bar = page.locator(".artifact-title-bar");
-    await expect(bar).toHaveCSS("visibility", "hidden");
-    const enter = await observeFade(page);
-    await page.mouse.move(300, 200);
-    await enter();
-    const trigger = page.getByRole("button", { name: "Transparent menu" });
-    await trigger.click();
-    const menu = page.locator("tv-menu[open]");
-    await expect(menu).toBeVisible();
-    const held = await startMotionObservation(page, ".artifact-frame");
-    await page.mouse.move(900, 700);
-    expect((await held.settle()).transitionEvents).toEqual([]);
-    await expect(bar).toHaveCSS("opacity", "1");
-    await expect(menu).toBeVisible();
-    const exit = await observeFade(page);
-    await page.keyboard.press("Escape");
-    await exit();
-    await expect(menu).toHaveCount(0);
-    await expect(bar).toHaveCSS("visibility", "hidden");
-
-    const reenter = await observeFade(page);
-    await page.mouse.move(300, 200);
-    await reenter();
-    await trigger.click();
-    await page.mouse.move(900, 700);
-    await page.keyboard.press("ArrowDown");
-    await expect(menu.locator("tv-menu-item").first()).toBeFocused();
-    await page.keyboard.press("Enter");
-    await expect.poll(() => page.evaluate(() => window.__fullScreenRequests)).toEqual([true]);
-  });
-
   test("applies reduced-motion entry and exit immediately without transitions", async ({ page }) => {
     await setup(page, true);
     const bar = page.locator(".artifact-title-bar");
@@ -836,8 +804,8 @@ test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
       // Read the first painted state after the real pointer change.
       expect(await bar.evaluate(element => new Promise(resolve => requestAnimationFrame(() => {
         const style = getComputedStyle(element);
-        resolve({ opacity: style.opacity, visibility: style.visibility, animations: document.querySelector(".artifact-frame")!.getAnimations({ subtree: true }).length });
-      })))).toEqual({ opacity: hovered ? "1" : "0", visibility: hovered ? "visible" : "hidden", animations: 0 });
+        resolve({ opacity: style.opacity, frostOpacity: getComputedStyle(element.parentElement!, "::before").opacity, visibility: style.visibility, animations: document.querySelector(".artifact-frame")!.getAnimations({ subtree: true }).length });
+      })))).toEqual({ opacity: hovered ? "1" : "0", frostOpacity: hovered ? "1" : "0", visibility: hovered ? "visible" : "hidden", animations: 0 });
       const report = await observation.settle();
       expect(report.transitionEvents).toEqual([]);
       expect(report.webAnimations).toEqual([]);

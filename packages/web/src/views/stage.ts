@@ -453,6 +453,7 @@ export class Stage extends View<[
       leftFullScreen: false,
     };
     stage.setAttribute("resizing", "");
+    pageElement.querySelector(".artifact-frame")?.setAttribute("data-resizing", "");
     handle.addEventListener("pointermove", this.#onResizePointerMove);
     handle.addEventListener("pointerup", this.#onResizePointerUp);
     handle.addEventListener("pointercancel", this.#onResizePointerCancel);
@@ -619,6 +620,7 @@ export class Stage extends View<[
     // Flush the settled box while the no-transition drag rule still applies.
     gesture.pageElement.getBoundingClientRect();
     gesture.stage.removeAttribute("resizing");
+    gesture.pageElement.querySelector(".artifact-frame")?.removeAttribute("data-resizing");
     this.#centreSelectedPage(
       gesture.filmstrip,
       gesture.pageKey,
