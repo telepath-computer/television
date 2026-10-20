@@ -415,7 +415,8 @@ test.describe("stage transparent background input (^st-ac-transparent-input)", (
 
     await control.click();
     await expect(document.locator("#activations")).toHaveText("1");
-    expect(await report(page)).toMatchObject({
+    // The iframe reports the pointer press to its parent asynchronously via postMessage.
+    await expect.poll(() => report(page)).toMatchObject({
       selectionCalls: [{ channelID: "channel-stage", artifactID: "artifact-a" }],
       artifactPresses: ["artifact-a"],
       pageUpdateCalls: [],
