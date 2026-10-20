@@ -77,8 +77,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (290 lines) — *The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with the artifact record's fields and save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
     - `json-store.md` (200 lines) — *The JSON store architecture: the `json` resource type's content file, path and value rules, limits, how the server applies writes and server-filled values, push keys, the transaction protocol, subscriptions, the SDK's functions and its local-write model, durability failures, and the `tv resource json` CLI integration.*
     - `sdk.md` (101 lines) — *The resource SDK: the browser module the server serves at `/sdk/v1/resources.js` — its build and packaging, how it is served, how it finds its artifact from an artifact ID or share ID, the layer's functions and error shape, the page's access level, handles, the connection status, and the client side of the page connection.*
-  - **skills/**
-    - `sidebar-view.md` (33 lines) — *Arch spec: the tv-sidebar-view skill's bundle facts — where it keeps the sidebar width, event stance, known gaps against its ui spec, and how each shipped file was derived.*
   - **telemetry/**
     - `client-signals.md` (69 lines) — *The client telemetry signal: the generic, content-free client→server envelope over the `/events` websocket by which a client reports a telemetry-worthy moment it alone can observe, the light per-event validation that backstops the no-UGC call-site policy, and the forwarding rule into the chokepoint.*
     - `client.md` (42 lines) — *The client telemetry agent (browser + Electron): the anonymous client id, a single standard client metadata payload attached to all communications, engagement detection and the content-free activity signal, and the fact that the client is unaware of the telemetry setting.*
@@ -175,9 +173,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (345 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
-  - **skills/**
-    - **sidebar-view/**
-      - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

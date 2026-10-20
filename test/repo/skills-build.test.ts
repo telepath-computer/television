@@ -441,22 +441,6 @@ describe("skills build", () => {
     expect(televisionSkill).not.toContain("800px");
     expect(televisionSkill).not.toContain("--persist-uninstall");
 
-    const sidebarViewSkill = readFileSync(
-      path.join(REPO_ROOT, "packages", "skills", "skills", "tv-sidebar-view", "SKILL.md"),
-      "utf8",
-    );
-    const appVersionDiscovery =
-      "For a running server, read the exact release `version` from `tv status`; " +
-      "when working in a Television checkout, read the exact version from the checkout root `package.json`.";
-    for (const skill of [
-      sidebarViewSkill,
-    ]) {
-      expect(skill).toContain("/canonical/v2/styles.css?authoredForAppVersion=<version>");
-      for (const token of retiredTokens) expect(skill, token).not.toContain(token);
-      expect(skill.split(appVersionDiscovery)).toHaveLength(2);
-      expect(skill).toContain(APP_VERSION_PASSTHROUGH);
-      expect(skill).toContain(NONRELEASE_VERSION_GUIDANCE);
-    }
     const artifactTasksCSS = readDistFile(onboardingDistRoot, "tv-tasks", "task.css");
     expect(artifactTasksCSS).toContain("artifact frame supplies the chrome around the document");
     expect(artifactTasksCSS).not.toContain("card chrome");

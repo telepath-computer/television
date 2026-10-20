@@ -65,8 +65,6 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (90 lines) — *How the resource layer's architecture is proven: validation, storage files, the first write's order, loading on first use and startup recovery over a real filesystem, artifacts' stores and share links, serving under a share ID, both route families and requests from other origins against a running server, the page connection's access and ordering rules, events, artifact deletion, the bindings flag, and the CLI integration.*
     - `json-store.md` (66 lines) — *How the JSON store's architecture is proven: the shared module's path, value and write rules as contracts, the content file, the server's write application, durability failures, transactions and subscriptions against a running server, the SDK's local-write model and reconnection in a real browser, and the `tv resource json` CLI integration.*
     - `sdk.md` (44 lines) — *How the resource SDK is proven: its build contents and serving over real HTTP, and its behavior as the server serves it, in a real browser on a plain-HTTP origin that is not `localhost`, against a running server.*
-  - **skills/**
-    - `sidebar-view.md` (21 lines) — *How the sidebar-view skill's architecture is proven: the surface proof's walk proves where the sidebar width is kept, and the spec's other facts order no tests.*
   - **telemetry/**
     - `client-signals.md` (27 lines) — *How the promises in Telemetry client signals are proven.*
     - `client.md` (33 lines) — *How the promises in Telemetry client agent are proven.*
@@ -163,9 +161,6 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
-  - **skills/**
-    - **sidebar-view/**
-      - `index.md` (21 lines) — *How the sidebar-view skill's surface is proven: its resizable sidebar's shared width, walked in a real browser against a running server, while the skill's other points stay untested as a prototype's.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**
