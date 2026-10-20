@@ -36,3 +36,11 @@ Settled by Rupert on October 19, 2026, recorded in the pilot:
 14. When the artifact is narrower than the sheet and its margins, the sheet fills the page edge to edge.
 15. An empty checklist opened read-only shows the title and a muted "No items".
 16. No "Clear done" action in the first version.
+
+Settled by Rupert on October 19, 2026, after a completeness check of the spec:
+
+17. Data that breaks the store contract has error states. Unreadable as a whole: "This checklist can't be shown", read-only. Partly unreadable: the readable parts show and stay editable, with "Part of this checklist can't be shown." at the top. The page never rewrites what it cannot read.
+18. Defaults for spaces and line breaks: an item holding only spaces counts as empty; text saves as typed; the title and each item are one line, Shift-Return acts as Return, and lines pasted into the title are joined with spaces.
+19. Until the data first arrives, the sheet is blank, with no loading message.
+20. After the remove button, focus moves to the next item, else the item above, else the add field. A removed item cannot be brought back from the page in the first version.
+21. No drag to reorder in the first version.

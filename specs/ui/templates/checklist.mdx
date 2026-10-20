@@ -17,21 +17,25 @@ A new artifact from the template has the title "Checklist" and no items. The add
 
 <Canvas of={Stories.New} />
 
+## Opening a checklist
+
+Until the checklist's data first arrives, the sheet is blank: no title, items or add field, and no loading message, since the data normally arrives at once. If the page cannot reach its server, it says so as in [Saving](#saving).
+
 ## The title
 
-The title is edited in place: clicking it puts the caret in it, and the text saves as the person types. Return in the title adds a new, empty item at the top of the list and puts the caret in it, so typing a title and pressing Return goes straight to the first item. An empty item left without text is removed, as below. A title cleared to nothing shows "Untitled" in muted text until something is typed.
+The title is edited in place: clicking it puts the caret in it, and the text saves as the person types. Return in the title adds a new, empty item at the top of the list and puts the caret in it, so typing a title and pressing Return goes straight to the first item. An empty item left without text is removed, as below. A title cleared to nothing shows "Untitled" in muted text until something is typed. The title is one line: several lines pasted into it are joined with spaces.
 
 <Canvas of={Stories.Untitled} />
 
 ## Adding an item
 
-Typing in the add field and pressing Return adds the text as a new item at the end of the list, not done, and clears the field, which keeps the focus for the next item. Return on an empty field does nothing.
+Typing in the add field and pressing Return adds the text as a new item at the end of the list, not done, and clears the field, which keeps the focus for the next item. Return on a field that is empty or holds only spaces does nothing.
 
 <Canvas of={Stories.Adding} />
 
 ## Items
 
-Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types. Return in an item adds a new, empty item directly below it and puts the caret there, so a list can be typed one line after another. An item whose text is cleared and then left is removed.
+Clicking the box ticks or unticks an item. A done item stays where it is, its text muted and struck through. Clicking an item's text edits it in place, saving as the person types. Return in an item adds a new, empty item directly below it and puts the caret there, so a list can be typed one line after another. An item whose text is cleared and then left is removed; an item holding only spaces counts as empty. Each item is one line of text, wrapped to fit: Shift-Return acts as Return. Text saves as typed, spaces included.
 
 <Canvas of={Stories.EditingItem} />
 
@@ -41,7 +45,7 @@ Pasting several lines makes one item per line, skipping blank lines. In the add 
 
 The list is flat: items cannot be nested. There is no action to clear done items; a person removes them one at a time, or an agent removes them through the store.
 
-Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. Long items wrap, with the box beside their first line.
+Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. The keyboard focus then moves to the next item's text, or to the item above when there is no next item, or to the add field when the list is now empty. A removed item cannot be brought back from the page; within a field, the browser's own undo applies. Long items wrap, with the box beside their first line.
 
 <Canvas of={Stories.LongItems} />
 
@@ -68,6 +72,20 @@ Changes save as the person makes them, through the artifact's store. While the p
 <Canvas of={Stories.Disconnected} />
 
 <Canvas of={Stories.SaveFailed} />
+
+## Data the page cannot read
+
+Agents write the checklist's data by hand, so it can break the [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store). The page never rewrites data it cannot read.
+
+When the data as a whole is unreadable, as when it is not an object or its `items` is missing or not an object, the sheet shows "This checklist can't be shown" and, in muted text, "Its saved data isn't in the form this page reads. Ask your agent to check it." The page is read-only while this lasts.
+
+<Canvas of={Stories.Unreadable} />
+
+When only parts are unreadable, the rest shows and stays editable. A title that is not text shows as "Untitled". An item is unreadable when it is not an object, or its `text` is not text, its `done` is not true or false, or its `order` is not a number; it is left out. While anything is left out or the title is unreadable, "Part of this checklist can't be shown." shows in muted text at the top of the sheet. "Reconnecting…" and "Couldn't save that change." take its place while they show.
+
+<Canvas of={Stories.PartlyUnreadable} />
+
+Both states follow the data live: once an agent fixes it, the page shows it as normal.
 
 ## A long list
 

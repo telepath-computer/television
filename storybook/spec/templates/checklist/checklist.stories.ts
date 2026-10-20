@@ -30,6 +30,8 @@ interface Args {
   // A note at the top of the sheet: while the page cannot reach its server,
   // or briefly after a save was refused. Null shows none.
   status: string | null;
+  // The stored data as a whole cannot be read.
+  unreadable: boolean;
 }
 
 // Each control is named after its item's text, so assistive technology can
@@ -50,10 +52,17 @@ const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: b
   </li>`;
 };
 
-const render = ({ theme, title, items, editing, adding, readOnly, status }: Args) => {
+const render = ({ theme, title, items, editing, adding, readOnly, status, unreadable }: Args) => {
   // The theme goes on the document, as in an artifact. Docs pages render each
   // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
+  if (unreadable) return html`
+  <main class="checklist-page">
+    <article class="checklist-sheet" data-read-only>
+      <h1 class="checklist-title">This checklist can't be shown</h1>
+      <p class="checklist-unreadable">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </article>
+  </main>`;
   return html`
   <main class="checklist-page">
     <article class="checklist-sheet"${readOnly ? html` data-read-only` : ""}>
@@ -86,7 +95,7 @@ export default {
   // On the docs page each story renders in its own frame, as a page of its own.
   parameters: { layout: "fullscreen", docs: { story: { inline: false, height: "720px" } } },
   render,
-  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null } satisfies Args,
+  args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null, unreadable: false } satisfies Args,
 };
 
 // What a person sees after creating a Checklist from the Templates popover.
@@ -134,6 +143,13 @@ export const Disconnected = { args: { readOnly: true, status: "Reconnecting…" 
 
 // A save was refused and its change reverted.
 export const SaveFailed = { name: "Save failed", args: { status: "Couldn't save that change." } };
+
+// The stored data is not in the form the page reads, as after an agent
+// overwrote it with something else.
+export const Unreadable = { args: { unreadable: true } };
+
+// Some items, left out, break the store contract; the title is fine.
+export const PartlyUnreadable = { name: "Partly unreadable", args: { status: "Part of this checklist can't be shown." } };
 
 export const Dark = { args: { theme: "dark" } };
 
