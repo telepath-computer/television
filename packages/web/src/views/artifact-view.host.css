@@ -26,18 +26,14 @@
 .artifact-frame.artifact-frame-transparent {
   overflow: visible;
   background: transparent;
+  border-color: transparent;
   outline: none;
   box-shadow: none;
 }
 
-/* The frame's border and two edge paints withdraw with its surface, and return
-   while its page is being resized so the frame's bounds stay visible. */
-.artifact-frame.artifact-frame-transparent:not([data-resizing]) {
-  border-color: transparent;
-}
-
-.artifact-frame.artifact-frame-transparent:not([data-resizing])::before,
-.artifact-frame.artifact-frame-transparent:not([data-resizing])::after {
+/* The frame's two edge paints withdraw with its surface. */
+.artifact-frame.artifact-frame-transparent::before,
+.artifact-frame.artifact-frame-transparent::after {
   display: none;
 }
 
@@ -102,12 +98,14 @@
   position: relative;
 }
 
-/* An open menu holds the hover state, so the bar keeps its menu visible. */
-.artifact-frame.artifact-frame-transparent:is(:hover, :has(tv-menu[open])) > .artifact-frame-clip::before {
+/* The stage's data-resize-active holds the hovered state while the pointer is on the page's resize handles
+   or a resize drag runs, and an open menu holds it so the bar never hides the
+   menu it contains. */
+.artifact-frame.artifact-frame-transparent:is(:hover, [data-resize-active], :has(tv-menu[open])) > .artifact-frame-clip::before {
   opacity: 1;
 }
 
-.artifact-frame.artifact-frame-transparent:is(:hover, :has(tv-menu[open])) > .artifact-frame-clip > .artifact-title-bar {
+.artifact-frame.artifact-frame-transparent:is(:hover, [data-resize-active], :has(tv-menu[open])) > .artifact-frame-clip > .artifact-title-bar {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;

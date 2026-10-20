@@ -775,7 +775,9 @@ describe("skills build", () => {
     expect(frameReference).toContain("Reduced motion makes both changes immediate");
     // proofs/arch/themes/authoring.md#^theme-authoring-t-transparent-frame-guidance
     for (const guidance of [
-      "`data-resizing`", "release or cancellation", "native border and both edge paints",
+      "`data-resize-active`", "outer band", "resize drag", "wherever the pointer goes",
+      "release or cancellation", "neither condition holds", "same frost and title bar",
+      "native border and both edge paints remain hidden",
       "`.artifact-frame-clip::before`", "`.artifact-title-bar::before`", "opacity",
       "fixed-position menu", "containing block", "stacking context", "stage handles",
       "positioned content", "tree order", "frame opacity and blur independently",
