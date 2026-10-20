@@ -64,8 +64,8 @@ interface CreateTemplateArtifactRequest {
   title?: string;
   data?: JSONValue; // presence replaces data.json, including when the value is null
   display?: ArtifactDisplayOptions; // supplied fields override the template's display
-  before?: string;
-  after?: string;
+  before?: string; // an artifact ID: place the new page immediately before it (layout placement)
+  after?: string;  // an artifact ID: place the new page immediately after it; at most one of the two
   source: "cli" | "ui";
 }
 
@@ -75,7 +75,16 @@ interface CreateTemplateArtifactResult {
 }
 ```
 
-The authenticated `GET /templates` returns `ArtifactTemplateScan`; `POST /templates/artifacts` accepts `CreateTemplateArtifactRequest` and returns `CreateTemplateArtifactResult`. Authenticated `GET /templates/<template-id>/thumbnail.png` resolves the URL-encoded ID against a fresh scan and serves its readable `thumbnail.png` as `image/png`, or returns not found when the template is invalid or has no readable thumbnail. It does not serve a symbolic link whose real location is outside the template folder, following the [folder-artifact boundary](../../product/artifacts.md#^af-folder-files). The shared client exposes these routes as `TelevisionClient.templates.list()`, `TelevisionClient.templates.create(input)`, and `TelevisionClient.templates.thumbnail(id)`. The app fetches thumbnail bytes through the shared client only when `hasThumbnail` is true, so the request carries the token. These routes use the server token and send no CORS headers, as other application control routes do ([isolation](../artifact-frame/isolation.md#^iso-routes)). ^artifact-template-thumbnail-route
+The authenticated `GET /templates` returns `ArtifactTemplateScan`; `POST /templates/artifacts` accepts `CreateTemplateArtifactRequest` and returns `CreateTemplateArtifactResult`. Authenticated `GET /templates/<template-id>/thumbnail.png` resolves the URL-encoded ID against a fresh scan and serves its readable `thumbnail.png` as `image/png`, or returns not found when the template is invalid or has no readable thumbnail. It does not serve a symbolic link whose real location is outside the template folder, following the [folder-artifact boundary](../../product/artifacts.md#^af-folder-files). The shared client exposes them as `TelevisionClient.templates`, one method per route, typed below. The app fetches thumbnail bytes through the shared client only when `hasThumbnail` is true, so the request carries the token. These routes use the server token and send no CORS headers, as other application control routes do ([isolation](../artifact-frame/isolation.md#^iso-routes)). ^artifact-template-thumbnail-route
+
+```ts
+interface TemplateClient {
+  list(): Promise<ArtifactTemplateScan>; // GET /templates
+  create(input: CreateTemplateArtifactRequest): Promise<CreateTemplateArtifactResult>; // POST /templates/artifacts
+  thumbnail(id: string): Promise<Uint8Array>; // GET /templates/<id>/thumbnail.png
+}
+// On TelevisionClient: readonly templates: TemplateClient
+```
 
 For creation from the Templates popover, the client sends the artifact in that browser's selected tab as `after`. It omits placement when the channel has no tabs, so the new artifact becomes its only page ([tab pages](../../product/tab-pages.md#^tp-model)).
 
