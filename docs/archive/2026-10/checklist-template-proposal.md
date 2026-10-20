@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch feat/artifact-template-checklist.** The proposal for the bundled Checklist template, settled with Rupert on October 16 and 19, 2026; the template was built as its final decisions describe, with decision 14 superseded by 24 and decision 9's location by 22. It holds the numbered rulings behind the design, including what the first version leaves out (drag to reorder, nesting, clearing done items), and the earlier choices later decisions replaced, which the specs do not record.
+
 # The Checklist artifact template — proposal
 
 **Status:** settled by Rupert on October 16 and 19, 2026; no open questions. The template mechanism is in draft PR #38 with one placeholder template, Example. This change replaces Example with the Checklist as the bundled template.
