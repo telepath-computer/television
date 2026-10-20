@@ -6,7 +6,7 @@ Proves [specs/arch/ui/conformance.md](../../../specs/arch/ui/conformance.md).
 
 ## Coverage model
 
-[Foundation architecture](./foundation.md) and [UI architecture](./index.md) describe the active stylesheet-copy and delivery checks. [Checklist byte identity](../../ui/templates/checklist/index.md#^checklist-ui-t-styles) and [copied-page delivery](../templates/bundled-templates.md#^templates-checklist-t-delivery) add the template-specific route; these are pending implementation. The [Templates popover proof](../../ui/app/templates-popover/index.md) records its explicit exception from automated stylesheet-copy and conformance checks.
+[Foundation architecture](./foundation.md) and [UI architecture](./index.md) describe the active stylesheet-copy and delivery checks. [Checklist byte identity](../../ui/templates/checklist/index.md#^checklist-ui-t-styles) and [copied-page delivery](../templates/checklist.md#^templates-checklist-t-delivery) add the template-specific route; these are pending implementation. The [Templates popover proof](../../ui/app/templates-popover/index.md) records its explicit exception from automated stylesheet-copy and conformance checks.
 
 The automated structural comparison, selector checks over posed production states, and detection of surfaces missing that coverage are deferred by the spec's [TV-649 release exception](../../../specs/arch/ui/conformance.md#release-exception-for-tv-649). They have no implemented coverage here. Existing behavior tests and implementation and visual review remain required; they do not establish that the deferred automated checks exist.
 

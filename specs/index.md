@@ -90,7 +90,8 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **templates/**
     - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (40 lines) — *The bundled Checklist artifact template: its ID, manifest, store contract, write scope, thumbnail, and adapting-agent guidance.*
+    - `bundled-templates.md` (11 lines) — *The bundled artifact template inventory and shared rules.*
+    - `checklist.md` (36 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*

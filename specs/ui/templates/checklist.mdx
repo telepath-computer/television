@@ -12,7 +12,7 @@ export const Artifact = ({ width = "640px", children }) => <div style={{ width, 
 
 The Checklist template makes an artifact that is a single list of things to tick off: a title, the items and an add field in one centred column on the plain surface. Each story on this page is one state of the page, and the template's page must pass a [UI conformance](../../arch/ui/conformance.md) check against every one of them. The prose states the behaviour the stories cannot show.
 
-The [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store) owns the data and what each change writes, and the [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
+The [store contract](../../arch/templates/checklist.md#^bundled-artifact-template-checklist-store) owns the data and what each change writes, and the [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
 
 <Artifact><Canvas of={Stories.WithItems} /></Artifact>
 
@@ -98,7 +98,7 @@ Changes save as the person makes them, through the artifact's store. While the p
 
 ## Data the page cannot read
 
-Agents write the checklist's data by hand, so it can break the [store contract](../../arch/templates/bundled-templates.md#^bundled-artifact-template-checklist-store), which says what counts as valid. The page never rewrites data it cannot read.
+Agents write the checklist's data by hand, so it can break the [store contract](../../arch/templates/checklist.md#^bundled-artifact-template-checklist-store), which says what counts as valid. The page never rewrites data it cannot read.
 
 The page reads the data whole or not at all. When the value breaks the contract, when the store has no value, as after an agent removes it, or when the server reports the store's saved data unavailable, the page shows an error page instead of the checklist: centred in the page, a warning icon in a ruled circle, "This checklist can't be shown", and below it, in muted text, "Its saved data isn't in the form this page reads. Ask your agent to check it." Nothing on it can be edited. The error page is an alert, so a person using a screen reader hears it when it replaces the checklist.
 

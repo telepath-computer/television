@@ -78,7 +78,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **templates/**
     - `authoring.md` (20 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
     - `bundled-installation.md` (28 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
-    - `bundled-templates.md` (53 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
+    - `bundled-templates.md` (27 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
+    - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (38 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
@@ -163,7 +164,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **templates/**
     - **checklist/**
-      - `index.md` (60 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and the packaged stylesheet copy.*
+      - `index.md` (62 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and the packaged stylesheet copy.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**
