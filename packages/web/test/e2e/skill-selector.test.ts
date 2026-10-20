@@ -276,6 +276,45 @@ test("Templates popover uses manifest display and shared defaults without sendin
   }
 });
 
+// proofs/product/templates.md#^templates-ac-transparent-ui
+test("Templates popover creates a focused transparent frame from manifest defaults without sending display (^templates-ac-transparent-ui)", async ({ page, baseURL }) => {
+  test.setTimeout(60_000);
+  const product = await launchProductServer({ auth: true });
+  try {
+    const folder = template(product.home, "overlay", "Overlay");
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({
+      name: "Overlay", description: "Transparent document", version: "1.0.0",
+      display: { width: 360, transparent: true },
+    }));
+    const client = new TelevisionClient(product.serverURL, { token: product.token });
+    const channelID = (await client.channels.list()).channels[0]!.id;
+    await openApp(page, product, baseURL);
+    await openTemplates(page);
+    const requested = page.waitForRequest((request) => request.url().endsWith("/templates/artifacts") && request.method() === "POST");
+    await page.getByRole("option", { name: "Overlay" }).click();
+    const request = (await requested).postDataJSON() as Record<string, unknown>;
+    expect(request).toMatchObject({ templateID: "overlay", channelID, source: "ui" });
+    expect(request).not.toHaveProperty("display");
+    await expect(page.locator(".templates-popover")).not.toHaveAttribute("open", "");
+    await expect.poll(async () => (await client.channels.get({ channelID })).channel.layout).toHaveLength(1);
+    const layout = (await client.channels.get({ channelID })).channel.layout[0]!;
+    expect(layout).toMatchObject({
+      geometry: { kind: "single", full_screen: false },
+      size: { width: 360, height: DEFAULT_PAGE_SIZE.height },
+    });
+    const artifactID = layout.artifactIds[0]!;
+    expect((await client.artifacts.get({ artifactID })).artifact).toMatchObject({ id: artifactID, transparent: true });
+    const selected = page.locator(`.stage .page[data-page-key="${artifactID}"]`);
+    await expect(selected).toHaveAttribute("selected", "");
+    await expect(selected.locator("iframe").contentFrame().locator("h1")).toHaveText("Overlay");
+    await page.mouse.move(0, 0);
+    await expect(selected.locator(".artifact-view")).toHaveClass(/artifact-frame-transparent/);
+    await expect(selected.locator(".artifact-title-bar")).toHaveCSS("visibility", "hidden");
+  } finally {
+    await product.dispose();
+  }
+});
+
 test("failed focus request leaves the prior page selected (^templates-ui-ac-create)", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {

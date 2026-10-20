@@ -21,13 +21,13 @@ Working record for the transparent artifacts change on `feat/transparent-artifac
 | Proof derivation | Done: 11 proofs; one spec finding (creation with `false`) resolved by restoring "Only `true` is ever stored" in `^ar-transparent` |
 | Proof convergence | Done: round 1 PASS, no findings |
 | Plan (if more than one slice) | Done: two slices; round 1 PASS, no findings |
-| Implementation, red/green TDD | Slice 1: independent review round 1 PASS at `f9e426c` (two nonblocking findings); refusal-test refinement at `80f100c` in follow-up review. Slice 2 in progress |
-| Integrated result and full verification | Not started |
+| Implementation, red/green TDD | Slice 1: done; review round 1 PASS at `f9e426c`, follow-up round 2 PASS at `80f100c`. Slice 2 in progress |
+| Integrated result and full verification | Integrated code/proof review and regression validation in progress; theme-authority correction pending; provider-compliant full gate pending |
 | Draft PR | Not started. Merge needs Rupert's go-ahead |
 
 ## Follow-ups outside this change
 
-- Pre-existing: `tv create-artifact` and `tv update-artifact` still detect `--full-screen` / `--no-full-screen` by scanning raw argv, so a title of `--full-screen` turns full-screen on. Transparency uses parser option events instead; full-screen could adopt the same approach in a separate change. Raised by the slice 1 review (P3).
+- Pre-existing: `tv create-artifact` and `tv reposition-artifact` still detect `--full-screen` / `--no-full-screen` by scanning raw argv, so an option value spelled `--full-screen`, such as a title, turns full-screen on. Transparency uses parser option events instead; full-screen could adopt the same approach in a separate change. Raised by the slice 1 review (P3).
 
 ## Comment obligation
 
@@ -99,3 +99,52 @@ Frame/stage rendering, browser/Electron transparency acceptance, the popover tra
 The full affected file, `npm test -- local --file test/node/cli-integration.test.ts`, passes all 18 tests after the citation correction, with no retries, skipped tests, leaked processes, or infrastructure failures. `npx vitest run test/repo/spec-links.test.ts` passes all 8 tests. `npm run specs:index` regenerates 141 spec entries and 124 proof entries.
 
 The three authorized commits separate approved specs and Storybook, proof design and working documents, then slice-1 code/tests and their evidence citations. Each staged tree is exported to a temporary directory and checked with the spec-links test before committing, so unstaged files cannot supply missing references. The required artifact-proof declaration and its generated index entry accompany the new spec; all proof assertions follow in the second commit.
+
+## Slice 2 implementation
+
+Work continues from `be358af` on October 20, 2026. Production frames use the existing metadata replacement path and existing descendant menu state. Stage wallpaper treatment can follow the direct-child frame class without adding retained state to `Stage`.
+
+One authority conflict is pending Rupert's decision: the plan requires Storybook authorities in the theme-reference fingerprints, while `specs/arch/themes/authoring.md` Testing permits only app `.frame`/`.css` files plus the app index and rejects additional entries. The freshness change is paused. A concrete correction was proposed to include current authorities delegated by the app UI specs; other work continues independently.
+
+Initial frame-state TDD: `npm test -- local --file packages/web/test/artifact-view.test.ts --grep 'selects transparency'` first stopped in sandbox preflight (npm unavailable; zero tests). The escalated rerun failed as intended: 2 failed, 86 filtered, because true metadata did not add `artifact-frame-transparent`, in both ordinary and full-screen contexts. No retries. Report: `.test-runs/2026-10-20T19-12-16-670Z-p4003634-r4f94527c58c7563b/summary.json`.
+
+The existing developer marker is present. The host also has `~/.tvdev-use-blaxel`; full verification will use its normal provider and will stop before any required push. The Storybook on port 6012 remains untouched.
+
+Frame motion red: `npm test -- local --file packages/web/test/e2e/artifact-view.test.ts --grep 'transparent frame hover' --retries 0` failed all 3 new tests as intended: the title bar remained visible at rest. No retries or process leaks; Chromium ran, while the optional Firefox project was unavailable. Report: `.test-runs/2026-10-20T19-13-19-952Z-p4013644-r8493905229cdc714/summary.json`.
+
+Theme guidance red/green: the existing proof named a test that has been renamed. Two sandbox attempts stopped at preflight; an escalated stale-name filter selected zero tests (12 filtered), so that run is not credited. With the actual name, `npm test -- local --file test/repo/skills-build.test.ts --grep 'builds only television for agents and separates calendar and task components for onboarding'` failed on the absent transparent-frame selector (1 failed, 11 filtered), then passed after updating the reference (1 passed, 11 filtered). The full `npm test -- local --file test/repo/skills-build.test.ts` passed all 12 tests. The unchanged `npm test -- local --file test/repo/theming-reference.test.ts` failed its one test on the new selector absent from recorded authorities; that is the pending spec conflict above. No retries or recovered flakes. The final full skills report is `.test-runs/2026-10-20T19-19-06-663Z-p4068519-re88a735074c02040/summary.json`; freshness is `.test-runs/2026-10-20T19-19-09-463Z-p4069106-r6d1e3405dadb606e/summary.json`.
+
+The frame-state targeted green command passes: 2 passed, 86 filtered, no retries (`.test-runs/2026-10-20T19-25-32-919Z-p4123680-raca1a0317413e5c0/summary.json`). Production selects one class from metadata and carries Storybook-derived transparent styles in the existing host stylesheet, with an iframe/webview selector and no change to webview display. The stage exception is one direct-child `:has` rule in its existing host stylesheet. Base stylesheet copies and their imports are unchanged.
+
+The independent read-only reviewer runs `gpt-6-astra` at `xhigh` through the Codex skill in a separate session, `01a15ac5-6297-7352-a3be-2f816b625ee3`. Native agent capacity was exhausted; no review result is claimed yet.
+
+Acceptance TDD (all targeted commands use `--retries 0`):
+
+| Command after `npm test -- local` | Actual results |
+|---|---|
+| `--file packages/web/test/e2e/artifact-view-wheel.test.ts --grep af-ac-transparent` | Sandbox preflight: zero tests. First escalated run: 1 failed during initial navigation (30s), not a behavioral red. |
+| `--file packages/web/test/e2e/skill-selector.test.ts --grep templates-ac-transparent-ui` | Sandbox preflight: zero tests. First escalated run: 1 failed on missing class, with global 30s timeout also expiring. |
+| `--surface e2e:browser-app --grep 'af-ac-transparent\|templates-ac-transparent-ui'` | Valid red: 2 failed on missing transparent class; no retries. |
+| `--file packages/desktop/test/e2e/artifact-view-webview-wheel.test.ts --grep af-ac-transparent` | Sandbox preflight: zero tests. First two escalated runs: 1 failed each at the existing 8s launch bound, not behavioral reds. The new test now opens the real built app from its isolated product server, avoiding cold Vite compilation. Rerun: valid red, 1 failed on missing class. Green: 1 passed, no skips/retries, 37.4s test / 1m12s overall. |
+| `--file packages/web/test/e2e/stage.test.ts --grep st-ac-transparent-input` | Sandbox preflight: zero tests. Escalated red: 1 failed on missing transparent class. |
+| `--surface e2e:browser-app --grep 'transparent frame hover\|st-ac-transparent-input\|af-ac-transparent\|templates-ac-transparent-ui'` | 5 passed, 1 failed, no retries. Browser acceptance, popover, stage, pointer fade and reduced motion passed. Menu test incorrectly assumed pointer opening focused its first option; corrected the real keyboard sequence to ArrowDown before Enter. |
+
+Browser combined report: `.test-runs/2026-10-20T19-25-52-701Z-p4129546-rfa47bbec4637870f/summary.json`. Electron green: `.test-runs/2026-10-20T19-28-29-551Z-p4160028-ra051c62dc9c2edbf/summary.json`.
+
+Preliminary independent review found one coverage defect: bubbled transition events did not identify the clip versus title bar. The test now records exact event targets for clip background/backdrop and bar opacity. The reviewer confirmed the pending theme-authority conflict and found no new slice-1 integration defect. Final review remains pending.
+
+Visual review used the existing Storybook at port 6012 without restarting it. Screenshots and temporary scripts are under `/tmp/transparent-s2-visual/`, outside the checkout. `node /tmp/transparent-s2-visual/storybook.mjs` and `node /tmp/transparent-s2-visual/production.mjs` both completed successfully. Production mounted its real frame, with the same authored clock document, theme, 420×280 box and patterned staging wallpaper as the stories. Side-by-side review of `story-{opaque,transparent-at-rest,transparent-hovered}.png` and matching `production-*.png` found matching surface, rim, shadow, corners, tint, blur and title-bar placement. Rest has no visible outer frame; hover frosts the clip and overlays the bar, with the clock unchanged. The transparent document bounds exactly match the 420×280 frame in both states.
+
+`production-stage-backgrounds.png` compares transparent background `a`, selected opaque `b`, and opaque background `c` on patterned wallpaper with visible theme blur. The transparent page leaves the wallpaper grid sharp while its document fades and blurs; the opaque background page blurs the wallpaper rectangle. Both background pages retain scale, artifact fade and artifact blur. Temporary visual measurements recorded `none` versus `blur(24px)` backdrop treatment, and `blur(2px)` / opacity `0.55` for both background artifacts; these are review evidence, not new automated styling assertions. `electron-local.png` and `electron-shared.png` show authored opaque panels over the transparent frames. Frame and webview bounds both measured about 694.203125×826.96875, with guest viewport 694×827; no oversized paint or collapsed webview was visible. Capture instrumentation was removed from the tests.
+
+The motion-target sensitivity check temporarily removed only the production clip transition and restored the stylesheet in `finally`. `npm test -- local --file packages/web/test/e2e/artifact-view.test.ts --grep 'fades on pointer entry and exit' --retries 0` failed its one test as intended: the recorded bar-opacity events could not satisfy the missing clip-background transition. No retries. Report: `.test-runs/2026-10-20T19-32-16-480Z-p4186606-r96ae68494854702d/summary.json`.
+
+The feature citation audit checked all added proof lines against source declarations. It corrected three remaining inherited citations: the invalid-create names in `ar-t-targets`, the two real-resource test names in `rs-arch-t-artifact-record`, and the five parameterized opaque window-edge tests. All 68 quoted names resolve to declarations (including suite/test paths and parameterized titles); no changed proof retains `(test to be written)`. The `store`/`share` comment obligation remains closed. `git diff --check -- proofs` passes.
+
+The independent architecture check found no issues: artifact metadata is the sole setting owner; the frame derives its presentation state; CSS owns hover, menu retention and reduced motion; and stage derives only its wallpaper-backdrop exception. No new state, service, timer, event or dependency crossing was introduced.
+
+The first full `npm test -- local --file packages/web/test/e2e/artifact-view.test.ts` run reported 19 passed / 1 failed, with two retries (three failed attempts of the menu test). ArrowDown focused the real custom menu item, but Playwright's role locator did not resolve its `ElementInternals` role. The test now uses the existing `tv-menu-item` locator to assert that focus. The focused rerun, `npm test -- local --file packages/web/test/e2e/artifact-view.test.ts --grep 'holds the visible bar' --retries 0`, passed its one test with no retries. Full-file validation is running again. The pointer test also explicitly checks that the shown bar overlaps the document at its bottom edge.
+
+The corrected full frame browser file passes all 20 tests without retries or skips (`.test-runs/2026-10-20T19-38-39-659Z-p23235-r09e6d49662c2cf56/summary.json`); the optional Firefox project is unavailable on this host. The full frame view-contract file passes all 88 tests (`.test-runs/2026-10-20T19-41-25-684Z-p38547-r82ad63c6fd827ba9/summary.json`). Remaining requested files and surfaces are running sequentially.
+
+Independent integrated code review returned PASS on the completed implementation, tests, guidance, proof citations and all nine screenshots. It confirmed closure of the motion-target finding and the title-bar overlay assertion. No further slice-1 integration defect was found. It explicitly leaves feature convergence blocked on the pending theme-authority correction and final validation. The implementation is being checkpointed under Rupert's authorization; this is not a claim that full verification or all deferred obligations are complete.

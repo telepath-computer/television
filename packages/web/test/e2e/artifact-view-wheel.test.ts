@@ -22,6 +22,7 @@ import {
   createArtifactFile,
 } from "./helpers.ts";
 import type { Page } from "@playwright/test";
+import { startStableFrontProxy } from "../../../../test/helpers/stable-front-proxy.ts";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 
@@ -501,4 +502,87 @@ test.describe("artifact frame browser product outcomes", () => {
       await product.dispose();
     }
   });
+});
+
+// proofs/product/artifacts.md#^af-ac-transparent
+test("path and shared URL frames adopt live transparency and retain it after moves and restart (^af-ac-transparent)", async ({ page, baseURL }) => {
+  test.setTimeout(90_000);
+  if (!baseURL) throw new Error("Expected Playwright baseURL");
+  const product = await launchProductServer({ auth: true });
+  const sharedOrigin = await startStableFrontProxy(product.serverURL);
+  try {
+    let client = new TelevisionClient(product.serverURL, { token: product.token });
+    const channelID = await focusedChannelID(client);
+    const target = (await client.channels.create({ name: "Transparent destination" })).channel;
+    const artifactPath = createArtifactFile(product.home, "transparent-document", `<!doctype html>
+      <style>
+        html, body { background: transparent; margin: 0; }
+        #authored-panel { background: rgb(23, 47, 89); color: white; padding: 24px; }
+      </style>
+      <section id="authored-panel">Authored opaque panel</section>
+      <button onclick="document.querySelector('output').textContent = 'Clicked'">Interact</button>
+      <output>Ready</output>`, "html");
+    const local = (await client.artifacts.create({ channelID, kind: "path", title: "Local overlay", path: artifactPath })).artifact;
+    const share = await client.resources.share({ artifactID: local.id });
+    const remote = (await client.artifacts.create({
+      channelID, kind: "url", title: "Shared overlay", url: new URL(share.path, sharedOrigin.url).href,
+      display: { transparent: true },
+    })).artifact;
+    const address = new URL(appIndexURL(await product.appURL(baseURL)));
+    address.searchParams.set("token", product.token);
+    await page.goto(address.href, { waitUntil: "domcontentloaded" });
+    await waitForApplicationRender(page, APPLICATION_SHELL_STATES, 15_000);
+    await configureTestMotion(page);
+    await expect(page.locator("#app")).toHaveAttribute("data-app-state", "connected");
+    const appDocument = await page.locator("#app").elementHandle();
+    if (!appDocument) throw new Error("Expected application document");
+
+    const expectFrame = async (artifactID: string, transparent: boolean): Promise<void> => {
+      await selectArtifact(page, artifactID);
+      await page.mouse.move(0, 0);
+      const frame = pageFor(page, artifactID).locator(".artifact-view");
+      if (transparent) await expect(frame).toHaveClass(/artifact-frame-transparent/);
+      else await expect(frame).not.toHaveClass(/artifact-frame-transparent/);
+      await expect(frame.locator(".artifact-title-bar")).toHaveCSS("visibility", transparent ? "hidden" : "visible");
+      await expect(frameFor(page, artifactID).locator("#authored-panel")).toHaveCSS("background-color", "rgb(23, 47, 89)");
+      await expect(frameFor(page, artifactID).locator("#authored-panel")).toHaveText("Authored opaque panel");
+    };
+    await expectFrame(local.id, false);
+    await expectFrame(remote.id, true);
+    await client.artifacts.update({ artifactID: local.id, transparent: true });
+    await expectFrame(local.id, true);
+    await client.artifacts.update({ artifactID: remote.id, transparent: false });
+    await expectFrame(remote.id, false);
+    await client.artifacts.update({ artifactID: remote.id, transparent: true });
+    await expectFrame(remote.id, true);
+    expect(await appDocument.evaluate((element) => element.isConnected)).toBe(true);
+
+    for (const artifact of [local, remote]) {
+      await expectFrame(artifact.id, true);
+      await frameFor(page, artifact.id).getByRole("button", { name: "Interact" }).click();
+      await expect(frameFor(page, artifact.id).locator("output")).toHaveText("Clicked");
+      await expect(frameFor(page, artifact.id).locator("body")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await client.artifacts.move({ artifactID: artifact.id, channelID: target.id });
+    }
+    await client.display.patch({ focusedChannelId: target.id });
+    for (const artifact of [local, remote]) await expectFrame(artifact.id, true);
+
+    await product.restart();
+    sharedOrigin.setTarget(product.serverURL);
+    client = new TelevisionClient(product.serverURL, { token: product.token });
+    await expect(page.locator("#app")).toHaveAttribute("data-app-state", "connected", { timeout: 20_000 });
+    // A server-originated update after boot proves the app reconnected before
+    // inspecting the retained frames; the DOM alone could still be stale.
+    await client.artifacts.update({ artifactID: local.id, title: "Reconnected overlay" });
+    await expect(tabFor(page, local.id)).toContainText("Reconnected overlay");
+    for (const artifact of [local, remote]) {
+      expect((await client.artifacts.get({ artifactID: artifact.id })).artifact).toMatchObject({ id: artifact.id, transparent: true });
+      await expectFrame(artifact.id, true);
+    }
+    expect((await client.channels.get({ channelID: target.id })).channel.layout.flatMap((entry) => entry.artifactIds)).toEqual([local.id, remote.id]);
+    expect((await fetch(new URL(share.path, sharedOrigin.url))).status).toBe(200);
+  } finally {
+    await sharedOrigin.dispose();
+    await product.dispose();
+  }
 });

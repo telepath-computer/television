@@ -1,10 +1,13 @@
 import { chromium, expect, test } from "@playwright/test";
 import { bridgeScriptSource } from "@telepath-computer/television-artifact/browser";
+import { configureTestMotion, startMotionObservation } from "./helpers.ts";
 
 declare global {
   interface Window {
     __fixtureReady?: boolean;
     setArtifact?: (artifact: unknown) => void;
+    setDocumentURL?: (url: string) => void;
+    __fullScreenRequests?: boolean[];
     setApplication?: (application: unknown) => void;
     RequestError?: new (message: string, fields: { serverURL: string; status?: number }) => Error;
     __navigationKeys?: string[];
@@ -684,3 +687,160 @@ test.describe("artifact rendering dispatcher", () => {
     await popup.close();
   });
 })
+
+// proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-hover
+// The fixture replaces only application services. Document loading, pointer,
+// keyboard, menu elements and CSS motion all run in the browser.
+test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {
+  async function setup(page: import("@playwright/test").Page, reducedMotion = false) {
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await page.emulateMedia({ reducedMotion: reducedMotion ? "reduce" : "no-preference" });
+    await page.goto("/packages/web/test/e2e/fixtures/artifact-view-dispatcher.html");
+    await page.waitForFunction(() => window.__fixtureReady === true);
+    await page.evaluate(() => {
+      window.setDocumentURL!("/packages/web/test/e2e/fixtures/transparent-document.html");
+      window.setArtifact!({ id: "transparent", kind: "path", path: "/tmp/transparent.html", title: "Transparent", transparent: true });
+    });
+    await expect(page.frameLocator(".artifact-view iframe").getByRole("button")).toBeVisible();
+    await configureTestMotion(page, { allowCSSMotion: true });
+  }
+
+  // Sample every animation frame, so fixed document bounds and delayed hiding
+  // are checked during the fade as well as at its endpoints.
+  async function observeFade(page: import("@playwright/test").Page) {
+    const motion = await startMotionObservation(page, ".artifact-frame");
+    const sampling = await page.evaluateHandle(() => {
+      const root = document.querySelector(".artifact-frame")!;
+      const frame = root.querySelector("iframe")!;
+      const bar = root.querySelector(".artifact-title-bar")!;
+      const samples: Array<{ box: number[]; opacity: number; visibility: string }> = [];
+      const transitions: Array<{ target: "clip" | "bar"; type: string; propertyName: string; elapsedTime: number }> = [];
+      const clip = root.querySelector(".artifact-frame-clip")!;
+      const recordTransition = (event: Event) => {
+        const transition = event as TransitionEvent;
+        if (event.target !== clip && event.target !== bar) return;
+        transitions.push({ target: event.target === clip ? "clip" : "bar", type: event.type, propertyName: transition.propertyName, elapsedTime: transition.elapsedTime });
+      };
+      for (const type of ["transitionrun", "transitionend"]) root.addEventListener(type, recordTransition);
+      const state = {
+        samples, transitions, running: true,
+        cleanup() {
+          for (const type of ["transitionrun", "transitionend"]) root.removeEventListener(type, recordTransition);
+        },
+      };
+      function sample() {
+        const { x, y, width, height } = frame.getBoundingClientRect();
+        const style = getComputedStyle(bar);
+        samples.push({ box: [x, y, width, height], opacity: Number(style.opacity), visibility: style.visibility });
+        if (state.running) requestAnimationFrame(sample);
+      }
+      sample();
+      return state;
+    });
+    return async () => {
+      await motion.settle({ requireMotion: true });
+      const { samples, transitions } = await sampling.evaluate(state => {
+        state.running = false;
+        state.cleanup();
+        return { samples: state.samples, transitions: state.transitions };
+      });
+      await sampling.dispose();
+      for (const [target, propertyName] of [["clip", "background-color"], ["clip", "backdrop-filter"], ["bar", "opacity"]]) {
+        expect(transitions).toContainEqual({ target, type: "transitionrun", propertyName, elapsedTime: 0 });
+        expect(transitions).toContainEqual({ target, type: "transitionend", propertyName, elapsedTime: 0.3 });
+      }
+      expect(samples.some(sample => sample.opacity > 0 && sample.opacity < 1)).toBe(true);
+      for (const sample of samples) {
+        expect(sample.box).toEqual(samples[0]!.box);
+        if (sample.opacity > 0) expect(sample.visibility).toBe("visible");
+      }
+      return samples[0]!.box;
+    };
+  }
+
+  test("fades on pointer entry and exit, overlays a stable document, and hides keyboard controls after exit", async ({ page }) => {
+    await setup(page);
+    const bar = page.locator(".artifact-title-bar");
+    const trigger = page.getByRole("button", { name: "Transparent menu" });
+    const documentButton = page.frameLocator(".artifact-view iframe").getByRole("button");
+    await expect(bar).toHaveCSS("visibility", "hidden");
+    await documentButton.focus();
+    await page.keyboard.press("Tab");
+    await expect(page.locator("#after-frame")).toBeFocused();
+
+    const enter = await observeFade(page);
+    await page.mouse.move(300, 200);
+    const box = await enter();
+    const barBox = await bar.boundingBox();
+    if (!barBox) throw new Error("Expected the visible title bar to have a box");
+    expect(barBox.y).toBeGreaterThan(box[1]!);
+    expect(barBox.y).toBeLessThan(box[1]! + box[3]!);
+    expect(barBox.y + barBox.height).toBe(box[1]! + box[3]!);
+    await expect(bar).toHaveCSS("opacity", "1");
+    await documentButton.focus();
+    await page.keyboard.press("Tab");
+    await expect(trigger).toBeFocused();
+    await documentButton.click();
+    await expect(documentButton).toHaveText("Activated");
+
+    const exit = await observeFade(page);
+    await page.mouse.move(900, 700);
+    expect(await exit()).toEqual(box);
+    await expect(bar).toHaveCSS("opacity", "0");
+    await expect(bar).toHaveCSS("visibility", "hidden");
+    await documentButton.focus();
+    await page.keyboard.press("Tab");
+    await expect(page.locator("#after-frame")).toBeFocused();
+  });
+
+  test("holds the visible bar and usable menu outside the frame until dismissal", async ({ page }) => {
+    await setup(page);
+    const bar = page.locator(".artifact-title-bar");
+    await expect(bar).toHaveCSS("visibility", "hidden");
+    const enter = await observeFade(page);
+    await page.mouse.move(300, 200);
+    await enter();
+    const trigger = page.getByRole("button", { name: "Transparent menu" });
+    await trigger.click();
+    const menu = page.locator("tv-menu[open]");
+    await expect(menu).toBeVisible();
+    const held = await startMotionObservation(page, ".artifact-frame");
+    await page.mouse.move(900, 700);
+    expect((await held.settle()).transitionEvents).toEqual([]);
+    await expect(bar).toHaveCSS("opacity", "1");
+    await expect(menu).toBeVisible();
+    const exit = await observeFade(page);
+    await page.keyboard.press("Escape");
+    await exit();
+    await expect(menu).toHaveCount(0);
+    await expect(bar).toHaveCSS("visibility", "hidden");
+
+    const reenter = await observeFade(page);
+    await page.mouse.move(300, 200);
+    await reenter();
+    await trigger.click();
+    await page.mouse.move(900, 700);
+    await page.keyboard.press("ArrowDown");
+    await expect(menu.locator("tv-menu-item").first()).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => page.evaluate(() => window.__fullScreenRequests)).toEqual([true]);
+  });
+
+  test("applies reduced-motion entry and exit immediately without transitions", async ({ page }) => {
+    await setup(page, true);
+    const bar = page.locator(".artifact-title-bar");
+    await expect(bar).toHaveCSS("visibility", "hidden");
+    for (const hovered of [true, false]) {
+      const observation = await startMotionObservation(page, ".artifact-frame");
+      await page.mouse.move(hovered ? 300 : 900, hovered ? 200 : 700);
+      // Read the first painted state after the real pointer change.
+      expect(await bar.evaluate(element => new Promise(resolve => requestAnimationFrame(() => {
+        const style = getComputedStyle(element);
+        resolve({ opacity: style.opacity, visibility: style.visibility, animations: document.querySelector(".artifact-frame")!.getAnimations({ subtree: true }).length });
+      })))).toEqual({ opacity: hovered ? "1" : "0", visibility: hovered ? "visible" : "hidden", animations: 0 });
+      const report = await observation.settle();
+      expect(report.transitionEvents).toEqual([]);
+      expect(report.webAnimations).toEqual([]);
+    }
+  });
+});

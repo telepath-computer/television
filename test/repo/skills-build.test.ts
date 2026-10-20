@@ -764,6 +764,19 @@ describe("skills build", () => {
         expect(televisionTheming).toContain(line);
       }
     }
+    // proofs/arch/themes/authoring.md#^theme-authoring-t-shipped-guidance
+    const frameReference = televisionTheming.split("### Artifact frame and its menu")[1]!.split("### Settings")[0]!;
+    expect(frameReference).toContain(".artifact-frame.artifact-frame-transparent");
+    expect(frameReference).toContain("square document corners");
+    expect(frameReference).toContain("full document height");
+    expect(frameReference).toContain(":has(tv-menu[open])");
+    expect(frameReference).toContain("300ms");
+    expect(frameReference).toContain("leave keyboard navigation");
+    expect(frameReference).toContain("Reduced motion makes both changes immediate");
+    const stageReference = televisionTheming.split("### Stage and pages")[1]!.split("### Artifact frame and its menu")[0]!;
+    expect(stageReference).toContain("A background page with a transparent frame leaves the wallpaper unblurred");
+    expect(stageReference).toContain("still scales the page and fades and blurs its artifact content");
+    expect(stageReference).toContain("press selects the page without activating its document or frame controls");
     for (const obsolete of ["Create a new skill", "tv-theme-", "null theme"]) {
       expect(televisionTheming).not.toContain(obsolete);
     }

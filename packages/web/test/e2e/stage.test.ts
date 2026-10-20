@@ -380,6 +380,49 @@ test.describe("stage selection motion (^st-ac-selection-motion)", () => {
   });
 });
 
+test.describe("stage transparent background input (^st-ac-transparent-input)", () => {
+  test("a press over a transparent background document control selects once and only a later press activates it", async ({ page }) => {
+    await page.setViewportSize({ width: 3_000, height: 900 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto(`${FIXTURE}?transparent=artifact-a`);
+    await waitForStage(page, true);
+    await capture(page);
+
+    const background = page.locator('.page[data-page-key="artifact-a"]');
+    const frame = background.locator(".artifact-frame");
+    // State readiness ensures this input walk exercises the transparent frame.
+    await expect(frame).toHaveClass(/artifact-frame-transparent/);
+    await expect(background).not.toHaveAttribute("selected");
+    const document = background.frameLocator("iframe");
+    const control = document.getByRole("button", { name: "Activate document" });
+    const controlBox = await control.boundingBox();
+    if (!controlBox) throw new Error("Expected the background document control to have a box");
+    const observation = await startMotionObservation(page, ".stage");
+    await page.mouse.click(
+      controlBox.x + controlBox.width / 2,
+      controlBox.y + controlBox.height / 2,
+    );
+    await observation.settle({ requireMotion: true });
+
+    expect(await report(page)).toMatchObject({
+      selectedArtifactID: "artifact-a",
+      selectionCalls: [{ channelID: "channel-stage", artifactID: "artifact-a" }],
+      pageUpdateCalls: [],
+      artifactPresses: [],
+    });
+    await expect(document.locator("#activations")).toHaveText("0");
+    await expect(page.locator("tv-menu[open]")).toHaveCount(0);
+
+    await control.click();
+    await expect(document.locator("#activations")).toHaveText("1");
+    expect(await report(page)).toMatchObject({
+      selectionCalls: [{ channelID: "channel-stage", artifactID: "artifact-a" }],
+      artifactPresses: ["artifact-a"],
+      pageUpdateCalls: [],
+    });
+  });
+});
+
 test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
   test("replaces the complete filmstrip and centres the arriving channel in one motionless paint", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });

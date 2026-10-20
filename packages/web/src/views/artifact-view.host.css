@@ -20,3 +20,68 @@
 .artifact-view > .artifact-frame-clip > iframe.artifact-content {
   display: block;
 }
+
+/* Transparent states follow storybook/spec/artifact-frame/styles.css. The
+   document selector also covers Electron guests without changing their display. */
+.artifact-frame.artifact-frame-transparent {
+  overflow: visible;
+  background: transparent;
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+/* The frame's two edge paints withdraw with its surface. */
+.artifact-frame.artifact-frame-transparent::before,
+.artifact-frame.artifact-frame-transparent::after {
+  display: none;
+}
+
+/* The hover surface sits on the clip box, keeping the frame's own transition
+   list free for the stage's background-page fade. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip {
+  overflow: visible;
+  backdrop-filter: blur(0px);
+  transition: background-color 300ms ease, backdrop-filter 300ms ease;
+}
+
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > :is(iframe, webview) {
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Taking the bar out of flow leaves the document at its full height during
+   both directions of the fade. Hidden controls leave keyboard navigation. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  border-radius: 0 0 var(--frame-radius) var(--frame-radius);
+  /* Frosted: a light tint of the usual band over a blur of the document behind it. */
+  background: color-mix(in oklch, var(--frame-titlebar-background) 55%, transparent);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms ease, visibility 0s linear 300ms;
+}
+
+/* An open menu holds the hover state so the bar keeps its menu visible. */
+.artifact-frame.artifact-frame-transparent:is(:hover, :has(tv-menu[open])) > .artifact-frame-clip {
+  background: var(--neutral-alpha-10);
+  backdrop-filter: blur(8px);
+}
+
+.artifact-frame.artifact-frame-transparent:is(:hover, :has(tv-menu[open])) > .artifact-frame-clip > .artifact-title-bar {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip,
+  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar {
+    transition: none;
+  }
+}
