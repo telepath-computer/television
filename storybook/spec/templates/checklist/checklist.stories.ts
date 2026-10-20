@@ -75,7 +75,7 @@ const render = ({ theme, title, items, editing, adding, readOnly, status, unread
     ${readOnly
       ? html`<h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled">${title}</span></h1>`
       : html`<h1 class="checklist-title"><span class="checklist-title-text" contenteditable="plaintext-only" role="textbox" aria-label="Title" data-placeholder="Untitled">${title}</span></h1>`}
-    <ul class="checklist-items">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
+    <ul class="checklist-items" role="list">${items.map((it, i) => item(it, i, i === editing, readOnly))}</ul>
     ${readOnly && items.length === 0 ? html`<p class="checklist-empty">No items</p>` : ""}
     ${readOnly ? "" : html`
     <label class="checklist-add">
