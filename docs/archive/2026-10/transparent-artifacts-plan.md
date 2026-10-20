@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch `feat/transparent-artifacts`.** This was the implementation plan for transparent artifacts, followed as written in two slices; it is the one view of how the record, CLI and template work was split from the frame and stage rendering, and why. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Transparent artifacts implementation plan
 
 Implement the approved specs and converged proofs on `feat/transparent-artifacts`, based on `613bb48`. The [task record](transparent-artifacts-task.md) records approval, implementation status, and validation. This document defines the two implementation slices.
