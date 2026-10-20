@@ -2,7 +2,7 @@
 
 # Artifact template architecture
 
-Television reads artifact templates from the selected home's `templates/` directory. This spec defines the folder contract, the result of a scan, and how using a template produces an artifact. [Product behavior](../../product/templates.md) owns what people and agents can rely on; [bundled installation](./bundled-installation.md) owns how Television places its own templates in that directory; [bundled template content](./bundled-templates.md) owns the shipped example.
+Television reads artifact templates from the selected home's `templates/` directory. This spec defines the folder contract, the result of a scan, and how using a template produces an artifact. [Product behavior](../../product/templates.md) owns what people and agents can rely on; [bundled installation](./bundled-installation.md) owns how Television places its own templates in that directory; [bundled template content](./bundled-templates.md) owns the shipped templates.
 
 ## Installed folder contract
 

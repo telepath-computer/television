@@ -78,7 +78,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **templates/**
     - `authoring.md` (20 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
     - `bundled-installation.md` (26 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
-    - `bundled-templates.md` (19 lines) — *Proves the shipped Example template's package, initial value, and live page behavior.*
+    - `bundled-templates.md` (21 lines) — *Proves the shipped Example and Calendar templates' packages, starting values, and live page behavior.*
     - `index.md` (38 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
@@ -161,6 +161,9 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
+  - **templates/**
+    - **calendar/**
+      - `index.md` (49 lines) — *Proves the Calendar template page's layout, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

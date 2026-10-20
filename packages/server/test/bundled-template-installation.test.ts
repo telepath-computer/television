@@ -66,9 +66,12 @@ afterEach(() => {
 describe("bundled artifact template package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-example-t-package
   // proofs/arch/templates/bundled-templates.md#^templates-example-t-no-display
-  it("declares the sole Example with its minimum version, manifest, starting data, and adapting guidance", () => {
-    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["example"]);
-    expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([{ id: "example", minimumVersion: "1.0.0" }]);
+  it("declares Example with its minimum version, manifest, starting data, and adapting guidance", () => {
+    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["example", "calendar"]);
+    expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([
+      { id: "example", minimumVersion: "1.0.0" },
+      { id: "calendar", minimumVersion: "1.0.0" },
+    ]);
     const folder = path.join(sourceRoot, "example");
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest).toEqual({
@@ -80,8 +83,34 @@ describe("bundled artifact template package", () => {
       .toContain("The page shows the `message` string in this artifact's JSON store; use `tv resource json` to change it.");
   });
 
+  // proofs/arch/templates/bundled-templates.md#^templates-calendar-t-package
+  it("declares Calendar with its manifest, empty starting store, adapting guidance, and the spec stylesheet", () => {
+    const folder = path.join(sourceRoot, "calendar");
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    expect(manifest).toEqual({
+      name: "Calendar",
+      description: "Show one to seven days of live events, including all-day events and highlighted moments.",
+      version: "1.0.0",
+    });
+    expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ events: {} });
+    const readme = readFileSync(path.join(folder, "README.md"), "utf8");
+    for (const guidance of ["`startDate`", "`days`", "`events/<key>`", "`allDay`", "`attendees`", "`highlight`", "tv resource json set", "tv-calendar"]) {
+      expect(readme).toContain(guidance);
+    }
+    // The page carries the spec stylesheet byte for byte, linked from the page
+    // after the canonical stylesheet.
+    expect(readFileSync(path.join(folder, "styles.css")))
+      .toEqual(readFileSync(path.join(packageRoot, "../../storybook/spec/templates/calendar/styles.css")));
+    const page = readFileSync(path.join(folder, "index.html"), "utf8");
+    const stylesheets = [...page.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map(([, href]) => href);
+    expect(stylesheets).toEqual(["/canonical/v2/styles.css?authoredForAppVersion=1.5.4", "./styles.css"]);
+    const thumbnail = readFileSync(path.join(folder, "thumbnail.png"));
+    expect(thumbnail.subarray(1, 4).toString()).toBe("PNG");
+    expect([thumbnail.readUInt32BE(16), thumbnail.readUInt32BE(20)]).toEqual([400, 500]);
+  });
+
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-validate
-  it("accepts only the valid Example at or above its minimum version", () => {
+  it("accepts only the valid bundled templates at or above their minimum versions", () => {
     expect(runValidator(sourceRoot).status).toBe(0);
     const expectRefused = (root: string, diagnostic: RegExp) => {
       const result = runValidator(root);
@@ -117,7 +146,8 @@ describe("bundled artifact template serving installation", () => {
     expect(existsSync(path.join(home, "templates/example"))).toBe(false);
     servingBoot(home);
     expect(files(path.join(home, "templates/example"))).toEqual(files(path.join(sourceRoot, "example")));
-    expect(JSON.parse(readFileSync(statePath(home), "utf8"))).toEqual({ version: 1, installedTemplateIDs: ["example"] });
+    expect(files(path.join(home, "templates/calendar"))).toEqual(files(path.join(sourceRoot, "calendar")));
+    expect(JSON.parse(readFileSync(statePath(home), "utf8"))).toEqual({ version: 1, installedTemplateIDs: ["calendar", "example"] });
     rmSync(path.join(home, "templates/example"), { recursive: true });
     servingBoot(home);
     expect(existsSync(path.join(home, "templates/example"))).toBe(false);
@@ -156,7 +186,7 @@ describe("bundled artifact template serving installation", () => {
     expect(existsSync(path.join(templates, "example"))).toBe(true);
     expect(existsSync(prior)).toBe(false);
     expect(existsSync(staged)).toBe(false);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example"]);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example"]);
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-boot
@@ -168,7 +198,7 @@ describe("bundled artifact template serving installation", () => {
     const edited = snapshotRegularFiles(installed);
     servingBoot(home);
     expect(snapshotRegularFiles(installed)).toEqual(edited);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example"]);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example"]);
     writeFileSync(path.join(installed, "manifest.json"), JSON.stringify({ name: "Example", description: "edited", version: "2.0.0" }));
     const newer = snapshotRegularFiles(installed);
     servingBoot(home);
@@ -239,11 +269,14 @@ describe("bundled artifact template serving installation", () => {
         return renameSync(from, to);
       },
     });
-    expect(calls).toHaveLength(2);
-    const temporary = calls[0]!.slice("write:".length);
-    expect(path.dirname(temporary)).toBe(path.dirname(statePath(home)));
-    expect(calls[1]).toBe(`rename:${temporary}:${statePath(home)}`);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example", "older-bundle"]);
+    // Each handled ID records the state with one write and one rename.
+    expect(calls).toHaveLength(2 * BUNDLED_ARTIFACT_TEMPLATE_IDS.length);
+    for (let index = 0; index < calls.length; index += 2) {
+      const temporary = calls[index]!.slice("write:".length);
+      expect(path.dirname(temporary)).toBe(path.dirname(statePath(home)));
+      expect(calls[index + 1]).toBe(`rename:${temporary}:${statePath(home)}`);
+    }
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example", "older-bundle"]);
     expect(JSON.parse(readFileSync(oldLink, "utf8")).installedTemplateIDs).toEqual(["older-bundle"]);
   });
 
@@ -269,7 +302,7 @@ describe("bundled artifact template serving installation", () => {
       writeFileSync(filename, bytes) { retryCalls.push(`write:${filename}`); return writeFileSync(filename, bytes); },
       renameSync(from, to) { retryCalls.push(`rename:${from}:${to}`); return renameSync(from, to); },
     });
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example"]);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example"]);
     const temporary = retryCalls[0]?.slice("write:".length);
     expect(temporary).toBeDefined();
     expect(path.dirname(temporary!)).toBe(path.dirname(statePath(home)));
@@ -292,12 +325,13 @@ describe("bundled artifact template serving installation", () => {
     expect(readFileSync(path.join(installed, "index.html"), "utf8")).toBe("old page");
     expect(snapshotRegularFiles(installed)).toEqual(former);
     expect(existsSync(socketPath)).toBe(true);
-    expect(existsSync(statePath(home))).toBe(false);
+    // A failure for one ID leaves the others handled.
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar"]);
     expect(readdirSync(path.join(home, "templates")).filter((name) => name.startsWith(".example.backup."))).toEqual([]);
     await new Promise<void>((resolve) => socket.close(() => resolve()));
     rmSync(socketPath, { force: true });
     servingBoot(home);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example"]);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example"]);
     expect(readFileSync(path.join(installed, "index.html"), "utf8")).not.toBe("old page");
   });
 
@@ -318,7 +352,7 @@ describe("bundled artifact template serving installation", () => {
     expect(warning).toHaveBeenCalled();
     expect(readFileSync(path.join(installed, "manifest.json"))).toEqual(previous);
     expect(snapshotRegularFiles(installed)).toEqual(former);
-    expect(existsSync(statePath(home))).toBe(false);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar"]);
     const backup = readdirSync(path.join(home, "templates"))
       .find((name) => /^\.example\.backup\.\d{4}-\d\d-\d\d-\d\d-\d\d-\d\d$/.test(name));
     expect(backup).toBeDefined();
@@ -326,7 +360,7 @@ describe("bundled artifact template serving installation", () => {
     await new Promise<void>((resolve) => socket.close(() => resolve()));
     rmSync(socketPath, { force: true });
     servingBoot(home, source);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["example"]);
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "example"]);
     expect(readFileSync(path.join(installed, "manifest.json"))).not.toEqual(previous);
   });
 });

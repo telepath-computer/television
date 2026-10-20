@@ -1,4 +1,5 @@
 import type { Preview } from "@storybook/html-vite";
+import "./docs.css";
 import { Html } from "../lib/html.ts";
 import iconFrame from "../../specs/ui/foundation/icons/icon.frame";
 

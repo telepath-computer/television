@@ -192,7 +192,7 @@ specs/
   arch/                   modules and contracts
     *.md                  cross-cutting concerns owned by no single module or domain
     <module-or-domain>/   module- or domain-specific specs
-  ui/                     rendered UI authority, one directory per surface
+  ui/                     rendered UI authority, one directory or MDX file per surface
 proofs/
   index.md                generated index — one line per proof
   product/                proofs mirroring specs/product/
