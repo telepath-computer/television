@@ -1,13 +1,16 @@
 .artifact-frame.artifact-frame-transparent {
   overflow: visible;
   background: transparent;
-  border-color: transparent;
   outline: none;
   box-shadow: none;
 }
 
-/* The frame's two edge paints withdraw with its surface, and return while its
-   page is being resized so the frame's bounds stay visible. */
+/* The frame's border and two edge paints withdraw with its surface, and return
+   while its page is being resized so the frame's bounds stay visible. */
+.artifact-frame.artifact-frame-transparent:not([data-resizing]) {
+  border-color: transparent;
+}
+
 .artifact-frame.artifact-frame-transparent:not([data-resizing])::before,
 .artifact-frame.artifact-frame-transparent:not([data-resizing])::after {
   display: none;
@@ -15,11 +18,13 @@
 
 /* The frost is painted by layers beneath the clip box and the title bar, never
    by an ancestor of the menu: a backdrop filter makes its element the box that
-   positions fixed descendants, which would carry the menu off its trigger. The
-   layers' own transitions leave the frame's transition list to the stage. */
+   positions fixed descendants, which would carry the menu off its trigger. No
+   stacking context is added either, so the menu still stacks above the stage's
+   resize handles. Each layer comes first in its box, and the content after it
+   is positioned, so it paints over the layer. The layers' own transitions leave
+   the frame's transition list to the stage. */
 .artifact-frame.artifact-frame-transparent > .artifact-frame-clip {
   position: relative;
-  isolation: isolate;
   overflow: visible;
 }
 
@@ -27,7 +32,6 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
   border-radius: inherit;
   background: var(--neutral-alpha-10);
   backdrop-filter: blur(8px);
@@ -37,6 +41,7 @@
 }
 
 .artifact-frame.artifact-frame-transparent > .artifact-frame-clip > iframe {
+  position: relative;
   background: transparent;
   border-radius: 0;
 }
@@ -51,7 +56,6 @@
   margin: 0;
   border-radius: 0 0 var(--frame-radius) var(--frame-radius);
   background: transparent;
-  isolation: isolate;
   opacity: 0;
   visibility: hidden;
   transition: opacity 300ms ease, visibility 0s linear 300ms;
@@ -62,11 +66,15 @@
   content: "";
   position: absolute;
   inset: 0;
-  z-index: -1;
   border-radius: inherit;
   background: color-mix(in oklch, var(--frame-titlebar-background) 55%, transparent);
   backdrop-filter: blur(12px);
   pointer-events: none;
+}
+
+/* The bar's controls paint over its frost; the menu keeps its own fixed position. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar > :not(tv-menu) {
+  position: relative;
 }
 
 /* data-hovered poses the same state as the pointer for a static story. An open
