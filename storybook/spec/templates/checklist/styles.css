@@ -152,11 +152,6 @@ body {
   text-decoration-thickness: 0.08em;
 }
 
-/* The row being edited is marked only by its caret and a faint wash. */
-.checklist-item[data-editing] {
-  background: linear-gradient(to right, transparent, var(--color-surface-muted) 8%, var(--color-surface-muted) 92%, transparent);
-}
-
 .checklist-remove {
   align-self: center;
   color: var(--color-text-muted);
