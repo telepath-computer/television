@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -268,6 +268,7 @@ describe("target page layout server boundary", () => {
     writeFileSync(target, "<!doctype html><title>New page</title>");
     const running = await start(fixture);
     const recordPath = channelPath(fixture.storagePath, fixture.ordinary.id);
+    const artifactRecordsDir = path.join(fixture.storagePath, "state", "artifacts");
     const beforeBytes = readFileSync(recordPath, "utf8");
     const beforeArtifacts = await request(running.server.httpServer).get("/artifacts").set(auth(running.token)).expect(200);
     const pathBody = { kind: "path", path: target, title: "Path", channelID: fixture.ordinary.id };
@@ -283,13 +284,17 @@ describe("target page layout server boundary", () => {
       { ...urlBody, display: { transparent: 1 } },
       { ...pathBody, display: { transparent: null } },
     ]) {
+      const beforeRecords = readdirSync(artifactRecordsDir).sort();
       await request(running.server.httpServer).post("/artifacts").set(auth(running.token)).send(body).expect(400);
+      expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
     }
     for (const body of [pathBody, urlBody]) {
+      const beforeRecords = readdirSync(artifactRecordsDir).sort();
       await request(running.server.httpServer).post("/artifacts").set(auth(running.token))
         .set("Content-Type", "application/json")
         .send(`${JSON.stringify(body).slice(0, -1)},"display":{"width":1e400}}`)
         .expect(400);
+      expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
     }
     const afterArtifacts = await request(running.server.httpServer).get("/artifacts").set(auth(running.token)).expect(200);
     expect(afterArtifacts.body).toEqual(beforeArtifacts.body);

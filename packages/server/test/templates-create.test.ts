@@ -218,6 +218,7 @@ describe("template artifact creation", () => {
       name: "Sample", description: "A page", version: "1.0.0", display: { transparent: true },
     }));
     const { store, server, channelID } = await start(root, false);
+    const artifactRecordsDir = path.join(root, "state", "artifacts");
     const base = { templateID: "sample", channelID, source: "cli" };
     const invalid = [
       { ...base, display: [] },
@@ -227,15 +228,19 @@ describe("template artifact creation", () => {
       ...["true", 1, null].map((transparent) => ({ ...base, display: { transparent } })),
     ];
     for (const body of invalid) {
+      const beforeRecords = readdirSync(artifactRecordsDir).sort();
       const result = await request(server.httpServer).post("/templates/artifacts")
         .set("Authorization", `Bearer ${store.authToken}`).send(body).expect(400);
+      expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
       expect(result.body.error).toBeTruthy();
     }
+    const beforeRecords = readdirSync(artifactRecordsDir).sort();
     const nonfinite = await request(server.httpServer).post("/templates/artifacts")
       .set("Authorization", `Bearer ${store.authToken}`)
       .set("Content-Type", "application/json")
       .send(`{"templateID":"sample","channelID":"${channelID}","source":"cli","display":{"width":1e400}}`)
       .expect(400);
+    expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
     expect(nonfinite.body.error).toBeTruthy();
     expect(readdirSync(path.join(root, "artifacts"))).toEqual([]);
     expect(store.listArtifacts()).toEqual([]);
