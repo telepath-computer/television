@@ -21,9 +21,13 @@ Working record for the transparent artifacts change on `feat/transparent-artifac
 | Proof derivation | Done: 11 proofs; one spec finding (creation with `false`) resolved by restoring "Only `true` is ever stored" in `^ar-transparent` |
 | Proof convergence | Done: round 1 PASS, no findings |
 | Plan (if more than one slice) | Done: two slices; round 1 PASS, no findings |
-| Implementation, red/green TDD | Slice 1 implementation and requested validation pass. Inherited proof citation corrected. Slice 2 pending |
+| Implementation, red/green TDD | Slice 1: independent review round 1 PASS at `f9e426c` (two nonblocking findings); refusal-test refinement at `80f100c` in follow-up review. Slice 2 in progress |
 | Integrated result and full verification | Not started |
 | Draft PR | Not started. Merge needs Rupert's go-ahead |
+
+## Follow-ups outside this change
+
+- Pre-existing: `tv create-artifact` and `tv update-artifact` still detect `--full-screen` / `--no-full-screen` by scanning raw argv, so a title of `--full-screen` turns full-screen on. Transparency uses parser option events instead; full-screen could adopt the same approach in a separate change. Raised by the slice 1 review (P3).
 
 ## Comment obligation
 
