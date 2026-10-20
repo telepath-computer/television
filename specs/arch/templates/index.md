@@ -25,7 +25,17 @@ interface ArtifactTemplateManifest {
   version: string;     // a valid Semantic Versioning 2.0.0 version
   display?: ArtifactDisplayOptions; // the layout type and its value rules
 }
+```
 
+`ArtifactDisplayOptions` and its value rules are [the layout's](../layout/index.md#^ly-creation-display). An invalid `display`, or an invalid field in it, invalidates the folder, with an error naming that field. Unknown fields both at the manifest root and inside `display` are accepted and omitted from the validated record.
+
+An artifact template is valid when `manifest.json` is readable JSON matching `ArtifactTemplateManifest`; `index.html` is a readable file at the folder root; and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/skill-selector/index.md) owns how it is shown and its recommended dimensions. ^artifact-template-package
+
+## Discovery
+
+A scan reads every template folder and returns:
+
+```ts
 interface ArtifactTemplate extends ArtifactTemplateManifest {
   id: string;
   hasData: boolean;
@@ -38,12 +48,6 @@ interface ArtifactTemplateScan {
   errors: { folder: string | null; error: string }[];
 }
 ```
-
-`ArtifactDisplayOptions` and its value rules are [the layout's](../layout/index.md#^ly-creation-display). An invalid `display`, or an invalid field in it, invalidates the folder, with an error naming that field. Unknown fields both at the manifest root and inside `display` are accepted and omitted from the validated record.
-
-An artifact template is valid when `manifest.json` is readable JSON matching `ArtifactTemplateManifest`; `index.html` is a readable file at the folder root; and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/skill-selector/index.md) owns how it is shown and its recommended dimensions. ^artifact-template-package
-
-## Discovery
 
 Every request to list artifact templates and every opening of the Templates popover scans folders directly inside `<home>/templates/` again. There is no stored registry. The scanner ignores dot-prefixed folders, including backups, and ordinary files at that level. Each other folder produces either one `ArtifactTemplate` or one error naming all defects found. Valid records sort by display name and then ID, using `localeCompare` with `"en"`; folder errors sort by folder name in the same locale. A failure to read the templates directory produces an error with `folder: null`. ^artifact-template-scan
 
