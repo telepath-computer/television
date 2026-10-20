@@ -78,6 +78,7 @@ The gesture is pointer-only, inheriting the shell's desktop input boundary ([ui/
 - Releasing keeps the size the drag ended at. A drag changes an axis only as far as it actually moved the page: an axis whose rendered size ends where it began — an outward pull on a page already held at a bound — leaves the size unchanged.
 - A drag can be cancelled: by Escape while it runs; by the platform taking the pointer away — a browser pointer cancellation, or an unexpected loss of pointer capture; or by the stage's page box changing while the drag runs — a window resized under the gesture. Cancellation abandons the resize: the page returns to the size the drag began at, and an armed snap never fires.
 - A live drag never animates. A size change that is not a drag morphs on the page's transition ([ui/app/stage/stage.frame](./stage.frame)).
+- While a drag runs, the resized page's artifact frame carries `data-resizing`, and loses it when the drag ends or is cancelled. A [transparent frame](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) shows its border throughout, so the page's bounds stay visible during the drag.
 
 ### Handles
 

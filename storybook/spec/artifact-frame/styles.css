@@ -6,18 +6,34 @@
   box-shadow: none;
 }
 
-/* The frame's two edge paints withdraw with its surface. */
-.artifact-frame.artifact-frame-transparent::before,
-.artifact-frame.artifact-frame-transparent::after {
+/* The frame's two edge paints withdraw with its surface, and return while its
+   page is being resized so the frame's bounds stay visible. */
+.artifact-frame.artifact-frame-transparent:not([data-resizing])::before,
+.artifact-frame.artifact-frame-transparent:not([data-resizing])::after {
   display: none;
 }
 
-/* The hover surface sits on the clip box, keeping the frame's own transition
-   list free for the stage's background-page fade. */
+/* The frost is painted by layers beneath the clip box and the title bar, never
+   by an ancestor of the menu: a backdrop filter makes its element the box that
+   positions fixed descendants, which would carry the menu off its trigger. The
+   layers' own transitions leave the frame's transition list to the stage. */
 .artifact-frame.artifact-frame-transparent > .artifact-frame-clip {
+  position: relative;
+  isolation: isolate;
   overflow: visible;
-  backdrop-filter: blur(0px);
-  transition: background-color 300ms ease, backdrop-filter 300ms ease;
+}
+
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--neutral-alpha-10);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
 }
 
 .artifact-frame.artifact-frame-transparent > .artifact-frame-clip > iframe {
@@ -34,19 +50,29 @@
   bottom: 0;
   margin: 0;
   border-radius: 0 0 var(--frame-radius) var(--frame-radius);
-  /* Frosted: a light tint of the usual band over a blur of the document behind it. */
-  background: color-mix(in oklch, var(--frame-titlebar-background) 55%, transparent);
-  backdrop-filter: blur(12px);
+  background: transparent;
+  isolation: isolate;
   opacity: 0;
   visibility: hidden;
   transition: opacity 300ms ease, visibility 0s linear 300ms;
 }
 
+/* Frosted: a light tint of the usual band over a blur of the document behind it. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in oklch, var(--frame-titlebar-background) 55%, transparent);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
 /* data-hovered poses the same state as the pointer for a static story. An open
    menu holds the state, so the bar never hides the menu it contains. */
-.artifact-frame.artifact-frame-transparent:is(:hover, [data-hovered], :has(tv-menu[open])) > .artifact-frame-clip {
-  background: var(--neutral-alpha-10);
-  backdrop-filter: blur(8px);
+.artifact-frame.artifact-frame-transparent:is(:hover, [data-hovered], :has(tv-menu[open])) > .artifact-frame-clip::before {
+  opacity: 1;
 }
 
 .artifact-frame.artifact-frame-transparent:is(:hover, [data-hovered], :has(tv-menu[open])) > .artifact-frame-clip > .artifact-title-bar {
@@ -56,7 +82,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip,
+  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip::before,
   .artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar {
     transition: none;
   }

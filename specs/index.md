@@ -146,7 +146,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **skill-selector/**
       - `index.md` (7 lines) — *UI spec: the Templates navbar popover, specified by Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
     - **stage/**
-      - `index.md` (136 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
+      - `index.md` (137 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
       - `index.md` (30 lines) — *UI spec: the system modal — the dialog that interrupts Television while it cannot use a server, its contents by state.*
     - **tab-strip/**

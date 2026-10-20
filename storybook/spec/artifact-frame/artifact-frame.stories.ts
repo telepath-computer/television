@@ -15,13 +15,14 @@ interface Args {
   title: string;
   transparent: boolean;
   hovered: boolean;
+  resizing: boolean;
 }
 
 // Markup copied from specs/ui/app/artifact-frame/artifact-frame.frame,
 // with no navigation history and the artifact menu closed. Importing that
 // frame above supplies its styles; styles.css adds only the transparent state.
-const artifactFrame = ({ src, title, transparent, hovered }: Args) => html`
-  <div class="artifact-frame${transparent ? " artifact-frame-transparent" : ""}"${hovered ? html` data-hovered` : ""}>
+const artifactFrame = ({ src, title, transparent, hovered, resizing }: Args) => html`
+  <div class="artifact-frame${transparent ? " artifact-frame-transparent" : ""}"${hovered ? html` data-hovered` : ""}${resizing ? html` data-resizing` : ""}>
     <div class="artifact-frame-clip">
       <iframe src="${src}" title="${title}"></iframe>
       <footer class="artifact-title-bar">
@@ -55,6 +56,7 @@ export default {
     title: "Clock",
     transparent: false,
     hovered: false,
+    resizing: false,
   } satisfies Args,
 };
 
@@ -63,3 +65,5 @@ export const Opaque = {};
 export const TransparentAtRest = { args: { transparent: true } };
 
 export const TransparentHovered = { args: { transparent: true, hovered: true } };
+
+export const TransparentResizing = { args: { transparent: true, resizing: true } };
