@@ -93,7 +93,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
     - `test-runner.md` (75 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
-    - `authoring.md` (35 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
+    - `authoring.md` (37 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*
     - `delivery.md` (87 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
@@ -118,7 +118,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **app/**
     - `index.md` (67 lines) — *How the promises in App (UI) are proven.*
     - **artifact-frame/**
-      - `index.md` (45 lines) — *Proves artifact-frame content and actions, transparent hover and focus behavior, and the bounded window-edge regression.*
+      - `index.md` (47 lines) — *Proves artifact-frame content and actions, transparent frost motion and menu placement in the stage, and the bounded window-edge regression.*
     - **copy-button/**
       - `index.md` (32 lines) — *How the promises in Copy button (UI) are proven.*
     - **desktop-upgrade-gate/**
@@ -132,7 +132,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **skill-selector/**
       - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **stage/**
-      - `index.md` (58 lines) — *How the promises in Stage (UI) are proven.*
+      - `index.md` (64 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
