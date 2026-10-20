@@ -6,7 +6,7 @@ This spec governs the machinery that verifies production UI against `specs/ui/`.
 
 ## What conformance means
 
-A surface's states are the named poses its spec defines: template-argument sets for a frame, or embedded Storybook stories for an MDX spec. Production state representations are irrelevant to the enumeration. For every spec surface, in every state its spec defines:
+A surface's states are the named poses its spec defines: template-argument sets for a frame, or the stories exported by the story module an MDX spec names, each with its args, globals, parameters and `play` setup. Production state representations are irrelevant to the enumeration. For every spec surface, in every state its spec defines:
 
 - **Structure.** The production render equals the spec state render, normalized to remove what cannot affect the rendered result — comments, insignificant whitespace, attribute order, and what HTML parsing canonicalizes; nothing else. Any other difference is a conformance failure unless it is a declared exemption.
 - **Style.** The spec's stylesheets are the styles production carries (byte identity), each through the delivery route the surface's architecture specifies, and every selector in the surface's spec stylesheet matches the production render in at least one posed state.
@@ -35,7 +35,7 @@ Style application is not computed at runtime: with sheets byte-identical and del
 
 Each spec surface has a conformance test in `packages/web/test/conformance/`: an ordinary vitest file that mounts the production view (shallow render-only service fakes, in the manner of the e2e fixture pages), poses each specified state, and asserts conformance. It carries the surface's pose data and exemption list.
 
-- Surfaces mount individually, in a wrapper supplying the ancestor context their staging frame defines (size, tokens). A parent surface's comparison stops at a child surface's root; the complete app is posed only by the app-shell test.
+- Surfaces mount individually, in a wrapper supplying the ancestor context their staging frame defines (size, tokens), or for an MDX surface the viewport its story sets. Focus and selection a story's `play` function sets are set the same way on the production mount before comparing. A parent surface's comparison stops at a child surface's root; the complete app is posed only by the app-shell test.
 - A spec surface with no conformance test is itself a conformance failure. Spec artifacts with styles but no template (ambient element styling, foundation) have nothing structural to compare; byte identity and the selector checks of the surfaces using them cover what they specify. The copies under a frozen canonical version are not surfaces and have no conformance test; what a version renders from them is governed by [canonical's version-directory contract](../canonical.md#the-version-directory).
 - An exemption permits exactly one difference, specific values included: an entry exempting an attribute's absence in the spec render exempts it for the one value production renders, not for any value.
 - Normalization, comparison, and exemption matching are implemented once, in a shared helper module the suite owns; the tests use it and never restate those semantics. A test that hand-rolls its own comparison does not count as conformance coverage.

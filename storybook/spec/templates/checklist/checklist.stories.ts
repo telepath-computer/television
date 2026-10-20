@@ -96,7 +96,9 @@ const caretAtEnd = (index: number) => ({ canvasElement }: Play) => {
   getSelection()?.collapseToEnd();
 };
 const focusAddField = ({ canvasElement }: Play) => {
-  canvasElement.querySelector<HTMLInputElement>(".checklist-add-input")?.focus();
+  const input = canvasElement.querySelector<HTMLInputElement>(".checklist-add-input");
+  input?.focus();
+  input?.setSelectionRange(input.value.length, input.value.length);
 };
 
 const groceries: Item[] = [
@@ -203,6 +205,9 @@ export const SaveFailed = { name: "Save failed", args: { status: "Couldn't save 
 // The stored data breaks the store contract, as after an agent wrote an item
 // without its done state.
 export const Unreadable = { args: { unreadable: true } };
+
+// Unreadable data, and the page cannot reach its server.
+export const UnreadableDisconnected = { name: "Unreadable, disconnected", args: { unreadable: true, status: "Reconnecting…" } };
 
 export const Dark = { args: { theme: "dark" } };
 

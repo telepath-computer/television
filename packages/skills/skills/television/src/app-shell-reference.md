@@ -270,5 +270,5 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 8ccd1d15f9f29d5cf099f1686fe9cfc8eeee976745302f80842223cd1de10bef -->
 <!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 1e6ee631d2dc85511a1ce5b894691c0422192455536f4ec37e0f446aa58ef00c -->
-<!-- app-reference-source: specs/ui/app/templates-popover.mdx sha256: 712f06981c00cb77fab0fb1256b6a4e846d860c99bbb9ccd31266c54316f2cf8 -->
+<!-- app-reference-source: specs/ui/app/templates-popover.mdx sha256: 4360bc823a2fa2c22da1dff6fd5753ffb182bc95dfdf88d39b7f3b2a753e57b7 -->
 <!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->
