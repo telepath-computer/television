@@ -6,9 +6,9 @@ description: Artifact work — markdown files, HTML files/directories, URL point
 
 Read this document for Television artifact work: creating files, registering path or URL artifacts, arranging and moving artifacts, deleting, and updating titles.
 
-If you need the bundled `television` skill installed first, copy it into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i`.
+If you need the bundled `television` skill installed first, follow [Installing this skill](./SKILL.md#installing-this-skill).
 
-When an artifact template fits the request, use `tv create-artifact --template` after checking `tv templates list`. The [template authoring guidance](./templates.md) covers editing or creating a template.
+For artifact templates, read the [template guidance](./templates.md).
 
 ## Choosing the artifact kind
 

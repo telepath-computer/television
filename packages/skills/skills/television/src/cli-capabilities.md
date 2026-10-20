@@ -10,14 +10,7 @@ Use this document when you need to reason about what the `tv` CLI can do, which 
 
 The `television` skill is the primary guidance surface for Television channels, focus, and artifact work. Keep that guidance available; re-read it only if it is not already in context or you know it changed.
 
-Install the bundled `television` skill with either:
-
-```bash
-tv skills install ~/.openclaw/skills
-tv skills install ~/.hermes/skills
-tv skills install ~/.agents/skills
-tv skills install -i
-```
+For installation, follow [Installing this skill](./SKILL.md#installing-this-skill).
 
 `tv help` is normal CLI help plus routing pointers.
 

@@ -88,10 +88,10 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `sessions.md` (51 lines) — *The telemetry session module: server-side per-client session state, the content-free client activity signal, server-managed UUIDv7 `$session_id` minting and lazy rotation, and how every event is attributed to a session so PostHog derives sessions natively.*
     - `sink.md` (63 lines) — *The telemetry sink: the PostHog transport, its bounded in-memory buffer, fire-and-forget delivery that never blocks or crashes the server, and the platform operations (region, key, agent access).*
   - **templates/**
-    - `authoring.md` (15 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
+    - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
     - `bundled-templates.md` (29 lines) — *The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
-    - `index.md` (88 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
+    - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
     - `blaxel-testshards.md` (131 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
@@ -142,7 +142,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
     - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
+      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, specified by Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**

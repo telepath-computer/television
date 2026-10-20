@@ -17,7 +17,6 @@ const icon = (params: { name: string; size?: string }): Html =>
 
 interface Template {
   name: string;
-  // Without an image, the tile shows a placeholder.
   image?: string;
 }
 
@@ -28,17 +27,12 @@ interface InvalidTemplate {
 
 interface Args {
   open: boolean;
-  // The text in the search field.
   search: string;
-  // The templates that match the search, in grid order.
   templates: Template[];
-  // The highlighted tile's index, or null when no tile is highlighted.
   highlighted: number | null;
-  // The index of the tile being pressed, or null. In the app it is the
-  // pointer's press; stories set it to show the state.
+  // In the app this is the pointer's press; stories set it to show the state.
   pressed: number | null;
   invalid: InvalidTemplate[];
-  // The error when the templates folder itself cannot be read, or null.
   folderError: string | null;
 }
 

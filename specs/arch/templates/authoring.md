@@ -6,7 +6,7 @@ The `television` skill tells agents that reusable artifact templates exist, and 
 
 ## Skill introduction
 
-The primary `SKILL.md`, built from `packages/skills/skills/television/src/skill-intro.md`, says in one sentence what an artifact template is and names `tv templates list`, `tv create-artifact --template`, and `tv templates path`. It tells an agent to check `tv templates list` when a person asks for an artifact and to consider whether an available template fits, including requests described as a “macro” or “stock artifact.” It points to `templates.md` for a request to create, change, or fix a template. It tells agents to pass `--width`, `--height`, or `--full-screen` to `tv create-artifact` when the request calls for particular display options. ^artifact-template-skill-intro
+The primary `SKILL.md`, built from `packages/skills/skills/television/src/skill-intro.md`, says in one sentence what an artifact template is and names `tv templates list`, `tv create-artifact --template`, and `tv templates path`. It tells an agent to check `tv templates list` when a person asks for an artifact and to consider whether an available template fits, including requests described as a “macro” or “stock artifact.” It points to `templates.md` for a request to create, change, or fix a template. It tells agents to pass `--width`, `--height`, `--full-screen`, or `--no-full-screen` to `tv create-artifact` when the request calls for particular display options. ^artifact-template-skill-intro
 
 ## Authoring document
 

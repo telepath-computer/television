@@ -192,7 +192,7 @@ describe("skills build", () => {
     expect(guide).toMatch(/index\.html[^.]*HTML artifact page[^.]*HTML artifact style[^.]*SKILL\.md/);
     expect(guide).toMatch(/naming guidance[^.]*template ID/);
     expect(guide).toContain("[resource guidance](./resources.md)");
-    expect(guide).toMatch(/README\.md[^.]*[\s\S]*store's shape/);
+    expect(guide).toMatch(/README\.md[^.]*[\s\S]*store shape/);
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
