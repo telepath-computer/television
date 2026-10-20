@@ -10,7 +10,7 @@ Load this skill when you need to create, update, inspect, focus, delete, or othe
 
 Read the [theming guidance](./theming.md) when creating, revising, or bringing an installed theme up to date.
 
-When a person asks for an artifact, check `tv templates list` and consider whether an available artifact template fits, including a request described as a “macro” or “stock artifact.” Use `tv create-artifact --template` to create from one. `tv templates path` shows the selected home's template folder. Read the [template authoring guidance](./templates.md) when creating, changing, or fixing a template.
+An artifact template is a reusable folder that Television copies to make a new artifact. When a person asks for an artifact, check `tv templates list` and consider whether an available artifact template fits, including a request described as a “macro” or “stock artifact.” Use `tv create-artifact --template` to create from one. `tv templates path` shows the selected home's template folder. Read the [template authoring guidance](./templates.md) when creating, changing, or fixing a template.
 
 When the request calls for a particular starting size or full-screen state, pass `--width`, `--height`, `--full-screen`, or `--no-full-screen` to `tv create-artifact` for any source.
 
