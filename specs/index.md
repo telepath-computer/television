@@ -12,7 +12,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
 - `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
-- `terms.md` (201 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- `terms.md` (202 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (135 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
@@ -77,8 +77,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (290 lines) — *The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with the artifact record's fields and save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
     - `json-store.md` (200 lines) — *The JSON store architecture: the `json` resource type's content file, path and value rules, limits, how the server applies writes and server-filled values, push keys, the transaction protocol, subscriptions, the SDK's functions and its local-write model, durability failures, and the `tv resource json` CLI integration.*
     - `sdk.md` (101 lines) — *The resource SDK: the browser module the server serves at `/sdk/v1/resources.js` — its build and packaging, how it is served, how it finds its artifact from an artifact ID or share ID, the layer's functions and error shape, the page's access level, handles, the connection status, and the client side of the page connection.*
-  - **skills/**
-    - `sidebar-view.md` (33 lines) — *Arch spec: the tv-sidebar-view skill's bundle facts — where it keeps the sidebar width, event stance, known gaps against its ui spec, and how each shipped file was derived.*
   - **telemetry/**
     - `client-signals.md` (69 lines) — *The client telemetry signal: the generic, content-free client→server envelope over the `/events` websocket by which a client reports a telemetry-worthy moment it alone can observe, the light per-event validation that backstops the no-UGC call-site policy, and the forwarding rule into the chokepoint.*
     - `client.md` (42 lines) — *The client telemetry agent (browser + Electron): the anonymous client id, a single standard client metadata payload attached to all communications, engagement detection and the content-free activity signal, and the fact that the client is unaware of the telemetry setting.*
@@ -177,9 +175,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (345 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
-  - **skills/**
-    - **sidebar-view/**
-      - `index.md` (24 lines) — *UI spec: the sidebar-view skill's surface — a master–detail artifact whose sidebar navigates views authored within the artifact; its interaction, markup, and styling.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

@@ -13,7 +13,6 @@ packages/skills/
       src/html-artifact-style.md
       src/theming.md
     tv-calendar/
-    tv-sidebar-view/       # non-shipping prototype, omitted from skills.json
     tv-table/
     tv-tasks/
   scripts/

@@ -60,7 +60,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## App shell and channels
 
 - *channel* — the workspace unit a person keeps their work in, listed by the channel sidebar. Owned by [product/channels.md](product/channels.md); its sidebar presentation by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
-- *channel sidebar* — the narrow region down the window's left listing channels; always qualified — never bare "sidebar", a word the `tv-sidebar-view` artifact skill also uses. Owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
+- *channel sidebar* — the narrow region down the window's left listing channels; always qualified, never bare "sidebar". Owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
 - *channel switcher* — the collapsed navbar's trigger wearing the open channel's name, opening the channel switcher popover. Owned by [ui/app/top-bar/index.md](ui/app/top-bar/index.md).
 - *channel switcher popover* — the popover composing the channel list while the channel sidebar is collapsed. Owned by [ui/app/top-bar/index.md](ui/app/top-bar/index.md).
 - *pinned channels* — the channel sidebar's first group, in the order the user arranges them. Display owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md); pinning semantics by [product/channels.md](product/channels.md).
