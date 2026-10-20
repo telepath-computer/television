@@ -129,7 +129,6 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
     - `index.md` (117 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
-    - `templates-popover.mdx` (68 lines) — *UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
     - **artifact-frame/**
       - `index.md` (66 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**
@@ -142,6 +141,8 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
       - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
+    - **skill-selector/**
+      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**

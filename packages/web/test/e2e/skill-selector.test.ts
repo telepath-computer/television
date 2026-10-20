@@ -40,7 +40,7 @@ async function openTemplates(page: Page): Promise<void> {
 test("fresh authenticated scan, images, errors, and empty states (^templates-ui-ac-open)", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {
-    const calendar = path.resolve("../../storybook/spec/templates-popover/thumbnails/calendar.png");
+    const calendar = path.resolve("../../specs/ui/app/skill-selector/thumbnails/calendar.png");
     template(product.home, "calendar", "Calendar", "A weekly view", calendar);
     template(product.home, "example", "Example");
     const broken = template(product.home, "broken", "Broken");
