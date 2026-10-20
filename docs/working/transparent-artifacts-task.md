@@ -22,7 +22,7 @@ Working record for the transparent artifacts change on `feat/transparent-artifac
 | Proof convergence | Done: round 1 PASS, no findings |
 | Plan (if more than one slice) | Done: two slices; round 1 PASS, no findings |
 | Implementation, red/green TDD | Slice 1: done; review round 1 PASS at `f9e426c`, follow-up round 2 PASS at `80f100c`. Slice 2: implemented; integrated code, visual, architecture, test-correction and guidance reviews PASS |
-| Integrated result and full verification | Requested local regression and static checks passed. Theme-authority conflict resolved by the supplied spec correction. Full gate blocked by missing Blaxel repository-read credentials and the prohibition on pushing |
+| Integrated result and full verification | Integrated review: round 1 PASS at `9f5d021` (one nonblocking stale-citation finding, fixed in `b704d90`), round 2 PASS at `b704d90`. Local regression and static checks passed. Theme-authority spec correction approved by Rupert. Full gate waits on pushing the branch; the Blaxel token is supplied through `op run --env-file=/root/env/television-e2e.env.op` |
 | Draft PR | Not started. Merge needs Rupert's go-ahead |
 
 ## Follow-ups outside this change
