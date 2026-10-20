@@ -23,13 +23,13 @@ As with every spec, a UI spec is separate from the codebase, and the codebase is
 
 A UI spec makes no claims about the implementation itself — it binds **what must render**, never **how the code must be shaped**; code shape is an arch spec's authority ([arch/ui/index.md](arch/ui/index.md) for the UI's own architecture). Any technology that produces the specified output conforms, and an implementation can be rewritten freely so long as it still does.
 
-Binding prose lives in the markdown files alone. What binds in the other artifacts is their content — the markup and style declarations in a frame, the values in a yml, and the outputs of explicitly designated motion functions. Comments in those files are descriptive context only: they say what a thing is, and commit nothing — claims, decisions, and rationale belong in the owning spec's prose.
+Binding prose lives in the primary spec document alone. What binds in the other artifacts is their content — the Storybook stories embedded by an MDX spec and the stylesheet they use, the markup and style declarations in a frame, the values in a yml, and the outputs of explicitly designated motion functions. Comments in those files are descriptive context only: they say what a thing is, and commit nothing — claims, decisions, and rationale belong in the prose of the owning spec.
 
 ## UI spec structure
 
 ### Spec document
 
-A UI spec is a primary spec document — an ordinary spec (`index.md`, the usual convention for a spec directory). It can point to zero or more *reference frames*, each assumed as rendered truth for the part of the surface the spec signifies with it.
+A UI spec has one primary spec document: ordinarily an `index.md` in a directory for the surface, or a single MDX file for the surface. An MDX spec embeds Storybook stories with `Canvas` blocks. Prose in the MDX file binds like markdown prose; each embedded story is one state of the surface, and the stylesheet used by the stories is the spec stylesheet for the surface. The one-line description that builds the spec index follows the MDX import, `Meta`, and export preamble and precedes the first heading. An `index.md` spec can point to zero or more *reference frames*, each assumed as rendered truth for the part of the surface the spec signifies with it.
 
 A linked artifact is spec — presumed authoritative — and the primary spec says what it is: which states a frame demonstrates, and how the implementation is held to it. Unless it says otherwise, the holding is exact within what a frame binds (below): everything the frame states must render as written, and structure or styling it does not state is a divergence — permitted only as a declared exemption, never at the implementation's discretion.
 
@@ -55,7 +55,7 @@ A frame computes only what Liquid can say — interpolation, conditionals, loops
 
 ### Styling
 
-Styling lives in the `style:` block of the frame, written against the markup below it, so each piece of the surface is one self-contained file. Foundation styling — the tokens and the shared element vocabulary ([ui/foundation/index.md](ui/foundation/index.md)) — is delivered to every document separately; a frame states only what the surface adds.
+Within a frame, styling lives in the `style:` block, written against the markup below it, so each piece of the surface is one self-contained file. Foundation styling — the tokens and the shared element vocabulary ([ui/foundation/index.md](ui/foundation/index.md)) — is delivered to every document separately; a frame states only what the surface adds.
 
 ### Content
 

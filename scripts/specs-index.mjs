@@ -2,14 +2,16 @@
 /**
  * Generate specs/index.md and, once the proof tree exists, proofs/index.md.
  *
- * The first line of every indexed document must be a single italic sentence:
- * `*One sentence.*` That sentence becomes the index entry.
+ * Every indexed document must have a single italic description sentence:
+ * `*One sentence.*` Markdown puts it on the first line; UI MDX puts it after
+ * the Storybook preamble and before the first heading. That sentence becomes
+ * the index entry.
  *
  * Run: npm run specs:index
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
@@ -18,35 +20,37 @@ const DESCRIPTION_PATTERN = /^\*(.+)\*\s*$/;
 const ALWAYS_DIRS = ["product", "arch"];
 const DIR_ORDER = ["product", "arch"];
 
-function isUISpecProse(rootDir, file, directoryHasIndex) {
+function isIndexedDocument(rootDir, file, directoryHasIndex, allowUiMdx) {
   const segments = relative(rootDir, file).split(sep);
-  if (segments[0] !== "ui") return true;
-  return directoryHasIndex;
+  const extension = extname(file);
+  if (extension === ".mdx") return allowUiMdx && segments[0] === "ui";
+  if (extension !== ".md") return false;
+  return segments[0] !== "ui" || directoryHasIndex;
 }
 
-function walkDocuments(rootDir, directory, indexPath) {
+function walkDocuments(rootDir, directory, indexPath, allowUiMdx) {
   const out = [];
   const entries = readdirSync(directory, { withFileTypes: true });
   const directoryHasIndex = entries.some((entry) => entry.isFile() && entry.name === "index.md");
   for (const entry of entries) {
     const full = join(directory, entry.name);
     if (entry.isDirectory()) {
-      out.push(...walkDocuments(rootDir, full, indexPath));
-    } else if (
-      entry.name.endsWith(".md")
-      && full !== indexPath
-      && isUISpecProse(rootDir, full, directoryHasIndex)
-    ) {
+      out.push(...walkDocuments(rootDir, full, indexPath, allowUiMdx));
+    } else if (full !== indexPath && isIndexedDocument(rootDir, full, directoryHasIndex, allowUiMdx)) {
       out.push(full);
     }
   }
   return out;
 }
 
-function firstLineDescription(content, relativePath, rootDir) {
-  const newline = content.indexOf("\n");
-  const firstLine = newline === -1 ? content : content.slice(0, newline);
-  const match = firstLine.match(DESCRIPTION_PATTERN);
+function documentDescription(content, relativePath, rootDir) {
+  const lines = content.split(/\r?\n/);
+  const firstHeading = lines.findIndex((line) => /^#{1,6}\s/.test(line));
+  const candidates = relativePath.endsWith(".mdx")
+    ? lines.slice(0, firstHeading === -1 ? lines.length : firstHeading)
+    : lines.slice(0, 1);
+  const description = candidates.find((line) => DESCRIPTION_PATTERN.test(line));
+  const match = description?.match(DESCRIPTION_PATTERN);
   if (!match) return null;
   const fromDir = dirname(relativePath);
   return match[1].trim().replace(/\]\(([^)\s]+)\)/g, (whole, href) => {
@@ -118,11 +122,11 @@ function indexConfiguration(repoRoot, kind) {
     rootDir,
     indexPath: join(rootDir, "index.md"),
     description: isSpecs
-      ? "*Generated index of the Television spec set; the first line of each spec is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*"
+      ? "*Generated index of the Television spec set; the description line of each spec is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*"
       : "*Generated index of the Television proof set; the first line of each proof is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*",
     title: isSpecs ? "Spec Index" : "Proof Index",
     introduction: isSpecs
-      ? "Generated from the first-line description of every spec by `scripts/specs-index.mjs`, mirroring the `specs/` folder tree. See `spec-policy.md` for the description requirement and `spec-docs.md` for what belongs outside `specs/`."
+      ? "Generated from the description line of every spec by `scripts/specs-index.mjs`, mirroring the `specs/` folder tree. See `spec-policy.md` for the description requirement and `spec-docs.md` for what belongs outside `specs/`."
       : "Generated from the first-line description of every proof by `scripts/specs-index.mjs`, mirroring the `proofs/` folder tree. See `../specs/spec-policy.md` for proof authority and layout.",
     missingDescription: isSpecs ? "specs" : "proofs",
   };
@@ -133,6 +137,7 @@ function renderIndex(configuration) {
     configuration.rootDir,
     configuration.rootDir,
     configuration.indexPath,
+    configuration.kind === "specs",
   ).sort((left, right) => left.localeCompare(right));
   const errors = [];
   const root = newNode();
@@ -141,9 +146,12 @@ function renderIndex(configuration) {
   for (const full of files) {
     const content = readFileSync(full, "utf8");
     const relativePath = relative(configuration.rootDir, full);
-    const description = firstLineDescription(content, relativePath, configuration.rootDir);
+    const description = documentDescription(content, relativePath, configuration.rootDir);
     if (description === null) {
-      errors.push(`${relativePath}: first line is not a valid italic description (expected \`*One sentence.*\`)`);
+      const location = relativePath.endsWith(".mdx")
+        ? "preamble has no valid italic description before the first heading"
+        : "first line is not a valid italic description";
+      errors.push(`${relativePath}: ${location} (expected \`*One sentence.*\`)`);
       continue;
     }
     insert(root, relativePath.split(sep), { lines: countLines(content), description });
@@ -153,7 +161,7 @@ function renderIndex(configuration) {
   if (errors.length > 0) {
     const detail = errors.map((error) => `  - ${error}`).join("\n");
     throw new Error(
-      `${configuration.kind}:index failed — these ${configuration.missingDescription} are missing or malforming the required first-line description:\n${detail}\nSee specs/spec-policy.md: the first line of every indexed document is its index entry.`,
+      `${configuration.kind}:index failed — these ${configuration.missingDescription} are missing or malforming the required description:\n${detail}\nSee specs/spec-policy.md and specs/spec-ui.md for description placement.`,
     );
   }
 

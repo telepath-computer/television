@@ -127,14 +127,14 @@ Generated from the first-line description of every proof by `scripts/specs-index
       - `index.md` (27 lines) — *How the promises in Settings (UI) are proven.*
     - **sidebar/**
       - `index.md` (36 lines) — *How the promises in Channel sidebar (UI) are proven.*
-    - **skill-selector/**
-      - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **stage/**
       - `index.md` (47 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
       - `index.md` (37 lines) — *How the promises in Tab strip (UI) are proven.*
+    - **templates-popover/**
+      - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **top-bar/**
       - `index.md` (62 lines) — *How the promises in Navbar (UI) are proven.*
     - **update-notification/**

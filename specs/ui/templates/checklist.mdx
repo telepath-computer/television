@@ -6,6 +6,8 @@ import * as Stories from "../../../storybook/spec/templates/checklist/checklist.
 {/* Each story's frame is drawn at the artifact's width, as its viewport sets it. */}
 export const Artifact = ({ width = "640px", children }) => <div style={{ width, maxWidth: "100%" }}>{children}</div>;
 
+*UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
+
 # Checklist template
 
 The Checklist template makes an artifact that is a single list of things to tick off: a title, the items and an add field in one centred column on the plain surface. Each story on this page is one state of the page, and the template's page must pass a [UI conformance](../../arch/ui/conformance.md) check against every one of them. The prose states the behaviour the stories cannot show.

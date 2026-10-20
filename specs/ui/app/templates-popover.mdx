@@ -3,11 +3,13 @@ import * as Stories from "../../../storybook/spec/templates-popover/templates-po
 
 <Meta of={Stories} />
 
+*UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
+
 # Templates popover
 
 The navbar's Templates button opens a popover for creating an artifact from an artifact template. Each story on this page is one state of the popover; its markup and styles are the spec for that state. This page states the behaviour the stories cannot show.
 
-The stories and their stylesheet are in `storybook/spec/templates-popover/`. Together with this page they are the authority for the popover's interaction, markup and styling. Production popover styles are derived from that stylesheet by hand and checked against the stories by eye; no automated stylesheet-copy or conformance check applies yet. The [product spec](../../product/templates.md#^artifact-template-popover) owns the feature promise and [template architecture](../../arch/templates/index.md#^artifact-template-scan) owns the scan result. The `skill-selector` folder beside this page holds the retired skills popover's frame and content, which do not specify this surface; its `thumbnails/` are sample images the stories use.
+The stories and their stylesheet are in `storybook/spec/templates-popover/`. Together with this page they are the authority for the popover's interaction, markup and styling. Production popover styles are derived from that stylesheet by hand and checked against the stories by eye; no automated stylesheet-copy or conformance check applies yet. The [product spec](../../product/templates.md#^artifact-template-popover) owns the feature promise and [template architecture](../../arch/templates/index.md#^artifact-template-scan) owns the scan result. Sample images used by the stories are in `storybook/spec/templates-popover/thumbnails/`.
 
 <Canvas of={Stories.Open} />
 
