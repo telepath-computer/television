@@ -613,8 +613,6 @@ test("theme settings persist rendered app and artifact outcomes through a built-
   browser,
   baseURL,
 }) => {
-  // Package watching, cross-surface appearance and restart share this acceptance walk.
-  test.slow();
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const context = await browser.newContext({ colorScheme: null });
   const page = await context.newPage();
