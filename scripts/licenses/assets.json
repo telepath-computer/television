@@ -27,7 +27,8 @@
       "packages/web/src/elements/icon.ts",
       "packages/canonical/frozen/v1/components.js",
       "packages/web/src/elements/select.svg",
-      "specs/ui/foundation/icons/select.svg"
+      "specs/ui/foundation/icons/select.svg",
+      "packages/server/assets/templates/checklist/index.html"
     ],
     "components": [
       {
@@ -41,8 +42,10 @@
       "web",
       "view:markdown",
       "source",
-      "desktop"
-    ]
+      "desktop",
+      "cli"
+    ],
+    "noticesFolder": "packages/server/assets/templates/checklist"
   },
   {
     "id": "nord-theme",

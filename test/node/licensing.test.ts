@@ -326,9 +326,9 @@ describe("shipped package licensing", () => {
       [path.join(packedCLI, "dist/onboarding/productivity/company-todos", noticeName), tasksExpected],
       [sdkNotices.built, sdkExpected],
       [path.join(packedCLI, "dist/sdk/v1", noticeName), sdkExpected],
-      ...themeFolderNotices().flatMap(({ folder, text }) => [
+      ...bundledFolderNotices().flatMap(({ folder, text }) => [
         [path.join(repoRoot, folder, noticeName), text],
-        [path.join(packedCLI, "dist/themes", path.basename(folder), noticeName), text],
+        [path.join(packedCLI, "dist", path.relative(bundledAssetsSource, folder), noticeName), text],
       ] as const),
     ] as const;
     for (const [file, expected] of locations) {
@@ -342,7 +342,9 @@ describe("shipped package licensing", () => {
       ...listFiles(desktopUpload).filter((file) => path.basename(file) === noticeName),
       ...Object.values(sourceNotices).filter((file) => existsSync(file)),
       ...[sdkNotices.built].filter((file) => existsSync(file)),
-      ...listFiles(path.join(repoRoot, bundledThemesSource)).filter((file) => path.basename(file) === noticeName),
+      ...[bundledThemesSource, bundledTemplatesSource]
+        .flatMap((folder) => listFiles(path.join(repoRoot, folder)))
+        .filter((file) => path.basename(file) === noticeName),
     ];
     const expectedNoticeFiles = locations.filter(([, expected]) => expected !== null).map(([file]) => file);
     expect(noticeFiles.sort()).toEqual(expectedNoticeFiles.sort());
@@ -440,13 +442,16 @@ describe("Vite licensing outputs", () => {
 
 type ServeChild = ChildProcessByStdio<null, Readable, Readable>;
 
-const bundledThemesSource = "packages/server/assets/themes";
+const bundledAssetsSource = "packages/server/assets";
+const bundledThemesSource = `${bundledAssetsSource}/themes`;
+const bundledTemplatesSource = `${bundledAssetsSource}/templates`;
 
-/** The bundled theme folders that owe a notices file, selected from the asset manifest and never from the files present. */
-function themeFolderNotices(): { folder: string; text: string }[] {
+/** Bundled folders that owe notices, selected from the asset manifest and never from the files present. */
+function bundledFolderNotices(): { folder: string; text: string }[] {
   const owed = renderFolderNotices({ assets: loadAssetManifest({ root: repoRoot }) })
-    .filter(({ folder }) => path.dirname(folder) === bundledThemesSource);
+    .filter(({ folder }) => [bundledThemesSource, bundledTemplatesSource].includes(path.dirname(folder)));
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledThemesSource}/nord`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/checklist`);
   return owed;
 }
 

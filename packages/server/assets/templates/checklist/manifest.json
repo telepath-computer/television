@@ -1,0 +1,9 @@
+{
+  "name": "Checklist",
+  "description": "A list of items to tick off and edit.",
+  "version": "1.0.0",
+  "display": {
+    "width": 640,
+    "height": 800
+  }
+}

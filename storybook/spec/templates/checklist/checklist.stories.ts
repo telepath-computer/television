@@ -190,11 +190,13 @@ export const LongItems = {
   },
 };
 
+const completionInterval = 3;
+
 export const ManyItems = {
   name: "Many items",
   args: {
     title: "Spring cleaning",
-    items: Array.from({ length: 28 }, (_, i) => ({ text: `Task ${i + 1}`, done: i % 3 === 0 })),
+    items: Array.from({ length: 28 }, (_, i) => ({ text: `Task ${i + 1}`, done: i % completionInterval === 0 })),
   },
 };
 
