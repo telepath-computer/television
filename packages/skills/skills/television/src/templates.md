@@ -8,7 +8,7 @@ Each folder needs a `manifest.json` object with three non-empty fields: `name` a
 
 Add an optional `display` object to `manifest.json` when the default starting size or full-screen state does not suit the template. Its optional `width` and `height` are finite positive numbers of reference pixels; `fullScreen` is an optional boolean. A `tv create-artifact` display option overrides the corresponding manifest value for that creation.
 
-A template's `index.html` is an HTML artifact page: write it by the artifact workflow and authoring guidance in `SKILL.md`. Name the folder by that workflow's naming guidance, since the folder name is the template ID. The manifest's `name` is the title people see in the Templates picker and the default title of each created artifact.
+A template's `index.html` is an HTML artifact page: write it by the Artifact workflow and HTML artifact style sections of `SKILL.md`. Name the folder by that workflow's naming guidance, since the folder name is the template ID. The manifest's `name` is the title people see in the Templates picker and the default title of each created artifact.
 
 Write a `README.md` when the adapting agent needs context. When the template has starting data, describe the store's shape there: each field's type and whether the page or an agent writes it. The [resource guidance](./resources.md) covers the store itself. The README.md is copied into each new artifact. The `manifest.json`, `data.json`, and `thumbnail.png` stay with the template. The created artifact is an ordinary folder artifact and does not record where its contents came from.
 

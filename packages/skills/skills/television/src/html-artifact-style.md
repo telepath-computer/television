@@ -51,8 +51,11 @@ body {
 
 ## Canonical tokens
 
-Use these public custom properties in artifact-authored CSS. Include a literal
-fallback when the artifact should remain readable without the canonical sheet:
+Use these public custom properties in artifact-authored CSS. The tokens are what
+make an artifact follow the person's theme and their light or dark appearance: a
+literal color for text, a background or a border stays fixed whatever theme is
+active. Include a literal fallback when the artifact should remain readable
+without the canonical sheet:
 
 ```css
 .panel {
