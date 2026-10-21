@@ -10,14 +10,7 @@ Use this document when you need to reason about what the `tv` CLI can do, which 
 
 The `television` skill is the primary guidance surface for Television channels, focus, and artifact work. Keep that guidance available; re-read it only if it is not already in context or you know it changed.
 
-Install bundled Television skills with either:
-
-```bash
-tv skills install ~/.openclaw/skills
-tv skills install ~/.hermes/skills
-tv skills install ~/.agents/skills
-tv skills install -i
-```
+For installation, follow [Installing this skill](./SKILL.md#installing-this-skill).
 
 `tv help` is normal CLI help plus routing pointers.
 
@@ -35,7 +28,7 @@ tv help <command>
 Commands group into four intents:
 
 - **Channel and display commands** — create, inspect, rename, remove, or switch channels, or change the active display theme (`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`).
-- **Artifact creation commands** — register path or URL artifacts (`create-path-artifact`, `create-url-artifact`).
+- **Artifact creation and template commands** — register a path or URL, or copy a template with `create-artifact`; find templates with `templates list` and `templates path`.
 - **Artifact management commands** — inspect, retitle, repoint, focus, list, arrange, move, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `reposition-artifact`, `move-artifact`, `focus-artifact`).
 - **Server and environment commands** — operate on the Television server and its home (`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`).
 
@@ -45,7 +38,7 @@ When the CLI rejects a command, follow the directive it prints rather than guess
 
 Each `tv` command works with one Television home, the directory that holds an installation's config file, token, channels, artifacts, themes, and logs. A command uses the home given with `--home <path>`, otherwise the path written in `~/.tv-home`, otherwise `~/.television`. `--home` applies only to the command that receives it, so when you work with a home other than the default, pass the same `--home` to every command. The server and commands share the settings in the home's optional `config.json`; `tv config show` prints the selected home and its effective settings.
 
-`tv status` reports the selected home, server health, and, when supported, system service status. Commands that contact the server connect to `localhost` on the config file's port, with the token from `<home>/state/token`; there is no `--server` option. They take `--port <number>` only when the config file sets port `0`, and then require it, using the port from the server's startup URL. `tv themes-path` prints the home's themes directory.
+`tv status` reports the selected home, server health, and, when supported, system service status. Commands that contact the server connect to `localhost` on the config file's port, with the token from `<home>/state/token`; there is no `--server` option. They take `--port <number>` only when the config file sets port `0`, and then require it, using the port from the server's startup URL. `tv themes-path` prints the themes directory and `tv templates path` prints the artifact templates directory without contacting the server.
 
 Starting, installing, upgrading, or reconfiguring the server — `tv serve`, `tv config set`, listeners, auth and tokens, ports, the persistent service (`--persist`), stopping and uninstalling (`tv stop`) — is administrator work covered by the deployed admin guide, not this skill. Before doing any of it, fetch the full raw guide as described in the Administration section of this skill; do not work from the command names alone or from a summary.
 
@@ -80,7 +73,7 @@ Important consequence: creating something does not by itself answer whether the 
 Create commands require an explicit focus decision.
 
 - `tv create-channel` requires exactly one of `--focus-channel` or `--no-focus`
-- `tv create-path-artifact` and `tv create-url-artifact` require exactly one of `--focus-artifact` or `--no-focus`
+- `tv create-artifact`, whether given `--path`, `--url`, or `--template`, requires exactly one of `--focus-artifact` or `--no-focus`
 
 If you omit that decision, the CLI rejects the command. Dedicated `focus-channel` and `focus-artifact` commands can also move attention later as separate steps.
 

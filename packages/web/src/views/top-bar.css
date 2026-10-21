@@ -35,7 +35,7 @@
 
 /* The stage's own controls, as opposed to the tabs, which are the channel's:
    the tabs travel on a channel change and the controls stay put. Stage one
-   holds the skill selector, settings and the optional update bell in this row. */
+   holds the artifact control, settings and the optional update bell in this row. */
 .top-bar-controls {
   grid-column: 3;
   justify-self: end;

@@ -18,9 +18,13 @@ import {
   type ArtifactRemovalResult,
   type MoveArtifactResult,
   type ArtifactPlacement,
+  type ArtifactPatch,
   type StoreDomainEvent,
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
+  type ArtifactTemplate,
+  type ArtifactDisplayOptions,
+  type CreateTemplateArtifactResult,
 } from "@telepath-computer/television-shared";
 import { ulid } from "ulid";
 import {
@@ -78,7 +82,7 @@ import {
   getTokenPath,
 } from "./artifact-paths.ts";
 import { runRedesignStorageMigration } from "./redesign-storage-migration.ts";
-import { isResourceID, isResourceRefusal, resourceError } from "@telepath-computer/television-shared/resources";
+import { checkJsonLimits, isResourceID, isResourceRefusal, resourceError, validateJsonValue, type JSONValue } from "@telepath-computer/television-shared/resources";
 import { ResourceLayer, unknownOutcome } from "./resources/layer.ts";
 import {
   UncertainWriteError,
@@ -102,6 +106,9 @@ import {
   writeBundledThemeStateFile,
 } from "./bundled-theme-installer.ts";
 import { artifactRealLocation } from "./artifact-location.ts";
+import { randomTemplateSuffix, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
+import { getTemplatesDir } from "./templates.ts";
+import { runBundledTemplateInstallation, type BundledTemplateStateOperations } from "./bundled-template-installer.ts";
 
 const JSON_INDENT_SPACES = 2;
 const LAYOUT_VERSION = 2 as const;
@@ -146,9 +153,9 @@ function isThemeJavaScriptConsentIds(value: unknown): value is string[] {
     new Set(value).size === value.length;
 }
 
-/** Mirrors ArtifactPatch's complete title/path/url metadata surface. */
+/** Compares the metadata fields that ArtifactPatch can change, including transparency. */
 function hasSameArtifactMetadata(left: Artifact, right: Artifact): boolean {
-  if (left.kind !== right.kind || left.title !== right.title) return false;
+  if (left.kind !== right.kind || left.title !== right.title || left.transparent !== right.transparent) return false;
   return left.kind === "path" && right.kind === "path"
     ? left.path === right.path
     : left.kind === "url" && right.kind === "url" && left.url === right.url;
@@ -214,6 +221,8 @@ export interface ServerStoreOptions {
   onboardingContentPath?: string;
   /** Root of the bundled installed-theme package tree, when one resolved. */
   bundledThemesPath?: string;
+  /** Root of bundled artifact-template packages, when one resolved. */
+  bundledTemplatesPath?: string;
   /**
    * `true` = serving construction: full bootstrap including onboarding
    * migration/install, the default-channel invariant, display state, and
@@ -233,6 +242,10 @@ export interface ServerStoreOptions {
    * (proofs/arch/resources/index.md, Test hooks). Production uses `ulid`.
    */
   generateID?: () => string;
+  /** Test hook for destination collision behavior; production draws random base-36 suffixes. */
+  generateTemplateSuffix?: () => string;
+  /** Filesystem operations at the bundled-template state-write seam. */
+  bundledTemplateStateOperations?: BundledTemplateStateOperations;
 }
 
 export class ServerStore extends EventTarget<StoreDomainEvent> {
@@ -256,6 +269,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   private readonly shareOwners = new Map<string, string>();
   private readonly recordStorage: ResourceStorageOperations;
   private readonly generateID: () => string;
+  private readonly generateTemplateSuffix: () => string;
   private readonly artifactChannels = new Map<string, string>();
   private readonly contentWatchers = new Map<string, ContentWatcher>();
   private readonly contentWatchDebounceTimers = new Map<string, NodeJS.Timeout>();
@@ -266,6 +280,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   private readonly bundledViewsPath: string | undefined;
   private readonly onboardingContentPath: string | undefined;
   private readonly bundledThemesPath: string | undefined;
+  private readonly bundledTemplatesPath: string | undefined;
   private readonly serving: boolean;
   // True only while the constructor's install phase runs: content watchers
   // must not start before the final bootstrap step
@@ -291,8 +306,12 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.bundledThemesPath = options.bundledThemesPath === undefined
       ? undefined
       : path.resolve(options.bundledThemesPath);
+    this.bundledTemplatesPath = options.bundledTemplatesPath === undefined
+      ? undefined
+      : path.resolve(options.bundledTemplatesPath);
     this.recordStorage = options.resourceStorageOperations ?? nodeResourceStorageOperations;
     this.generateID = options.generateID ?? ulid;
+    this.generateTemplateSuffix = options.generateTemplateSuffix ?? randomTemplateSuffix;
     if (this.serving) {
       runRedesignStorageMigration(this.storagePath);
     }
@@ -371,9 +390,17 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       this.storagePath,
       this.bundledThemesPath,
     );
+    runBundledTemplateInstallation(
+      this.storagePath,
+      this.bundledTemplatesPath,
+      options.bundledTemplateStateOperations,
+    );
     this.refreshThemeRegistry();
     if (!this.loadDisplayState()) {
       this.initializeDisplayState();
+    } else if (this.getFocusedChannelId() === null) {
+      this.focusedChannelId = this.pickDeletionSuccessorChannelID(this.pinnedChannelIds);
+      this.persistDisplayState();
     }
     this.completeDefaultThemeSelection(bundledThemeState);
     this.displayStateReady = true;
@@ -432,7 +459,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return [...this._artifacts.values()];
   }
 
-  /** Create a new artifact and append its default page to the owning channel. */
+  /** Create a new artifact and append its page to the owning channel. */
   /** Creates an artifact with a generated ID; nothing that creates an artifact supplies its ID (specs/product/artifacts.md#^af-artifact-id). */
   createArtifact(input: {
     kind: ArtifactKind;
@@ -440,15 +467,16 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     channelID: string;
     path?: string;
     url?: string;
+    display?: ArtifactDisplayOptions;
   } & ArtifactPlacement, telemetryContext?: TelemetryClientContext | null): Artifact {
-    const { before, after, ...fields } = input;
+    const { before, after, display, ...fields } = input;
     const channel = this.requireChannel(fields.channelID);
-    const created = this.createKindArtifact({ ...fields, id: this.newID() });
+    const created = this.createKindArtifact({ ...fields, id: this.newID(), transparent: display?.transparent });
     const previousLayout = channel.layout;
     // Checked before the record is saved, so a rejected placement saves nothing.
     const nextLayout = placePage(
       channel,
-      { artifactIds: [created.id], geometry: { ...DEFAULT_PAGE_GEOMETRY }, size: { ...DEFAULT_PAGE_SIZE } },
+      newArtifactPage(created.id, display),
       { before, after },
     );
 
@@ -467,8 +495,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     this.artifactChannels.set(artifact.id, channel.id);
     this.startWatchingArtifactContent(artifact);
     this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: channel.id, artifact }));
-    // Clients add a created artifact at the end; the update carries its place.
-    if (before !== undefined || after !== undefined) {
+    // Clients synthesize a default appended page; send the saved layout when placement or display was supplied.
+    if (before !== undefined || after !== undefined || display !== undefined) {
       this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel }));
     }
     this.emitTelemetry((hooks) => hooks.artifactCreated(artifact, telemetryContext));
@@ -477,7 +505,104 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return artifact;
   }
 
-  updateArtifact(input: { artifactID: string; fields: { title?: string; path?: string; url?: string } }, telemetryContext?: TelemetryClientContext | null): Artifact {
+  /** Preserve every created part if template creation fails after copying starts. */
+  createTemplateArtifact(input: {
+    template: ArtifactTemplate;
+    templateID: string;
+    channelID: string;
+    title?: string;
+    data?: unknown;
+    display?: ArtifactDisplayOptions;
+    before?: string;
+    after?: string;
+    source: "cli" | "ui";
+  }, telemetryContext?: TelemetryClientContext | null): CreateTemplateArtifactResult {
+    const channel = this.requireChannel(input.channelID);
+    const title = input.title ?? input.template.name;
+    const placement = { before: input.before, after: input.after };
+    const display: ArtifactDisplayOptions = {
+      width: input.display?.width ?? input.template.display?.width,
+      height: input.display?.height ?? input.template.display?.height,
+      fullScreen: input.display?.fullScreen ?? input.template.display?.fullScreen,
+      transparent: input.display?.transparent ?? input.template.display?.transparent,
+    };
+    // Check placement and starting data before creating a destination.
+    placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
+    let startingValue: JSONValue | undefined;
+    if (Object.hasOwn(input, "data")) {
+      startingValue = input.data as JSONValue;
+    } else if (input.template.hasData) {
+      try {
+        startingValue = JSON.parse(readFileSync(path.join(input.template.path, "data.json"), "utf8")) as JSONValue;
+      } catch (error) {
+        throw new InvalidRequestError(`Template starting data cannot be read: ${errorMessage(error)}`);
+      }
+    }
+    if (startingValue !== undefined || Object.hasOwn(input, "data")) {
+      try {
+        validateJsonValue(startingValue);
+        checkJsonLimits(startingValue);
+      } catch (error) {
+        throw new InvalidRequestError(`Invalid template starting data: ${errorMessage(error)}`);
+      }
+    }
+
+    const copiesDir = getAgentArtifactsDir(this.storagePath);
+    let destination: string;
+    for (;;) {
+      destination = path.join(copiesDir, templateFolderName(title, this.generateTemplateSuffix()));
+      if (!existsSync(destination)) break;
+    }
+    try {
+      mkdirSync(destination);
+      for (const entry of readdirSync(input.template.path)) {
+        if (entry === "manifest.json" || entry === "data.json" || entry === "thumbnail.png") continue;
+        cpSync(path.join(input.template.path, entry), path.join(destination, entry), {
+          recursive: true,
+          verbatimSymlinks: true,
+        });
+      }
+      relinkCopiedTemplateSymlinks(input.template.path, destination);
+    } catch (error) {
+      throw new TemplateCreationError(`Template copy into ${destination} could not be confirmed: ${errorMessage(error)}`);
+    }
+
+    const id = this.newID();
+    let artifact: Artifact;
+    try {
+      const created = this.createKindArtifact({ id, kind: "path", title, path: destination, transparent: display.transparent });
+      const saved = this.saveArtifactRecord(created, `registering template artifact ${id}`);
+      artifact = saved.artifact;
+      this._artifacts.set(id, artifact);
+      this.artifactChannels.set(id, channel.id);
+      this.startWatchingArtifactContent(artifact);
+      this.dispatchEvent(new ArtifactCreatedEvent("artifact-created", { channelID: channel.id, artifact }));
+      this.emitTelemetry((hooks) => hooks.artifactCreated(artifact, telemetryContext));
+      if (saved.uncertain) throw saved.uncertain;
+    } catch (error) {
+      throw new TemplateCreationError(`Template registration for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
+    }
+
+    try {
+      channel.layout = placePage(channel, newArtifactPage(id, display), placement);
+      this.persistChannel(channel);
+      this.dispatchEvent(new ChannelUpdatedEvent("channel-updated", { channel }));
+    } catch (error) {
+      throw new TemplateCreationError(`Template channel layout for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
+    }
+
+    if (startingValue !== undefined || Object.hasOwn(input, "data")) {
+      try {
+        this.resources.json.write({ artifactID: id }, { kind: "set", path: "", value: startingValue! });
+      } catch (error) {
+        throw new TemplateCreationError(`Template store write for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
+      }
+    }
+    this.emitTelemetry((hooks) => hooks.templateUsed(input.templateID, input.source, telemetryContext));
+    return { artifactID: id, path: destination };
+  }
+
+  updateArtifact(input: { artifactID: string; fields: ArtifactPatch }, telemetryContext?: TelemetryClientContext | null): Artifact {
     const artifact = this._artifacts.get(input.artifactID);
     if (!artifact) {
       throw new NotFoundError(`Artifact not found: ${input.artifactID}`, { entityType: "artifact", entityID: input.artifactID });
@@ -512,6 +637,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       }
       pointerChanged = url !== artifact.url;
       updated = { ...updated, url } as Artifact;
+    }
+
+    if (input.fields.transparent !== undefined) {
+      const { transparent: _transparent, ...opaque } = updated;
+      updated = input.fields.transparent ? { ...opaque, transparent: true } : opaque;
     }
 
     if (updated === artifact) return artifact;
@@ -754,10 +884,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
 
     if (input.focusedChannelId !== undefined) {
       if (input.focusedChannelId === null) {
-        if (this.channels.size !== 0) {
-          throw new InvalidRequestError("focusedChannelId cannot be null while channels exist");
-        }
-        nextFocusedChannelId = null;
+        throw new InvalidRequestError("focusedChannelId cannot be null while channels exist");
       } else {
         nextFocusedChannelId = this.requireChannel(input.focusedChannelId).id;
       }
@@ -983,12 +1110,10 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     const artifactResults = artifactIDs.map((artifactID) =>
       this.deleteArtifactWithCause(artifactID, "channel_deleted", telemetryContext)
     );
-    const metadataPath = path.join(this.channelsDir, `${channel.id}.json`);
-    rmSync(metadataPath, { force: true });
-    this.channels.delete(channel.id);
+    if (this.channels.size === 1) this.createReplacementChannel();
 
     const nextFocusedChannelId = previousFocusedChannelId === channel.id
-      ? this.pickDeletionSuccessorChannelID(nextPinnedChannelIds)
+      ? this.pickDeletionSuccessorChannelID(nextPinnedChannelIds, channel.id)
       : previousFocusedChannelId;
     const pinnedChannelsChanged = !sameIds(nextPinnedChannelIds, this.pinnedChannelIds);
     const focusedChannelChanged = nextFocusedChannelId !== previousFocusedChannelId;
@@ -1004,7 +1129,6 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       this.focusedChannelId = nextFocusedChannelId;
     }
 
-    this.dispatchEvent(new ChannelRemovedEvent("channel-removed", { channelID: channelID }));
     if (pinnedChannelsChanged) {
       this.dispatchEvent(
         new PinnedChannelsChangedEvent("pinned-channels-changed", {
@@ -1017,6 +1141,10 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
         new ChannelChangedEvent("channel-changed", { channelID: nextFocusedChannelId }),
       );
     }
+    const metadataPath = path.join(this.channelsDir, `${channel.id}.json`);
+    rmSync(metadataPath, { force: true });
+    this.channels.delete(channel.id);
+    this.dispatchEvent(new ChannelRemovedEvent("channel-removed", { channelID: channelID }));
     this.emitTelemetry((hooks) => hooks.channelDeleted(channel, telemetryContext));
     return { channelID: channelID, metadataPath, artifactResults };
   }
@@ -1307,6 +1435,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     title: string;
     path?: string;
     url?: string;
+    transparent?: boolean;
   }): Artifact {
     switch (input.kind) {
       case "path": {
@@ -1317,7 +1446,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
           throw new InvalidRequestError("path artifacts cannot set url");
         }
         const artifactPath = this.normalizeArtifactPath(input.path.trim());
-        return createArtifact({ id: input.id, kind: "path", title: input.title, path: artifactPath });
+        return createArtifact({ id: input.id, kind: "path", title: input.title, path: artifactPath, transparent: input.transparent });
       }
       case "url": {
         if (input.url === undefined) {
@@ -1330,7 +1459,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
         if (!isExternalArtifactURL(url)) {
           throw new InvalidRequestError(`url must be an absolute http(s) URL: ${url}`);
         }
-        return createArtifact({ id: input.id, kind: "url", title: input.title, url });
+        return createArtifact({ id: input.id, kind: "url", title: input.title, url, transparent: input.transparent });
       }
     }
   }
@@ -1468,6 +1597,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     mkdirSync(this.channelsDir, { recursive: true });
     mkdirSync(this.artifactsDir, { recursive: true });
     mkdirSync(getThemesDir(this.storagePath), { recursive: true });
+    mkdirSync(getTemplatesDir(this.storagePath), { recursive: true });
     mkdirSync(getAgentArtifactsDir(this.storagePath), { recursive: true });
   }
 
@@ -1582,20 +1712,30 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return firstChannel.id;
   }
 
-  private pickDeletionSuccessorChannelID(pinnedChannelIds: readonly string[]): string | null {
+  private pickDeletionSuccessorChannelID(pinnedChannelIds: readonly string[], excludedID?: string): string | null {
     for (const channelID of pinnedChannelIds) {
-      if (this.channels.has(channelID)) {
+      if (channelID !== excludedID && this.channels.has(channelID)) {
         return channelID;
       }
     }
 
     let newestChannelID: string | null = null;
     for (const channelID of this.channels.keys()) {
+      if (channelID === excludedID) continue;
       if (newestChannelID === null || channelID.localeCompare(newestChannelID) > 0) {
         newestChannelID = channelID;
       }
     }
     return newestChannelID;
+  }
+
+  /** A deletion replacement is ordinary channel state, without a user-create telemetry event. */
+  private createReplacementChannel(): Channel {
+    const channel: Channel = { id: ulid(), name: "New channel", layout: [] };
+    this.channels.set(channel.id, channel);
+    this.persistChannel(channel);
+    this.dispatchEvent(new ChannelCreatedEvent("channel-created", { channel }));
+    return channel;
   }
 
   private loadOrCreateAuthToken(): string {
@@ -1874,6 +2014,17 @@ function storeOf(artifact: Artifact | undefined): string | undefined {
 
 function shareOf(artifact: Artifact | undefined): ArtifactShareLink | undefined {
   return artifact?.kind === "path" ? artifact.share : undefined;
+}
+
+function newArtifactPage(artifactID: string, display?: ArtifactDisplayOptions): TabPage {
+  return {
+    artifactIds: [artifactID],
+    geometry: { ...DEFAULT_PAGE_GEOMETRY, full_screen: display?.fullScreen ?? DEFAULT_PAGE_GEOMETRY.full_screen },
+    size: {
+      width: display?.width ?? DEFAULT_PAGE_SIZE.width,
+      height: display?.height ?? DEFAULT_PAGE_SIZE.height,
+    },
+  };
 }
 
 /**

@@ -1,4 +1,4 @@
-*The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, build assets, and service integration.*
+*The `packages/cli` module and packaged `tv` binary: source-module contracts, home and config resolution, command runtime boundaries, bundled assets, and service integration.*
 
 # CLI architecture
 
@@ -43,6 +43,7 @@ export function resolveBundledViewsPath(): string | undefined;
 export function resolveCanonicalDir(): string | undefined;
 export function resolveOnboardingContentPath(): string | undefined;
 export function resolveBundledThemesPath(): string | undefined;
+export function resolveBundledTemplatesPath(): string | undefined;
 export function resolveBundledSkillsRoot(): string | undefined;
 export function resolveSdkDir(): string | undefined;
 
@@ -89,6 +90,7 @@ export type CLIServerOptions = {
   bundledViewsPath?: string;
   onboardingContentPath?: string;
   bundledThemesPath?: string;
+  bundledTemplatesPath?: string;
   sdkDir?: string;
   acpProfile?: ACPAgentProfile;
   launchMode: LaunchMode;
@@ -113,6 +115,7 @@ export interface CLIEnvironment {
   resolveBundledViewsPath: () => string | undefined;
   resolveOnboardingContentPath: () => string | undefined;
   resolveBundledThemesPath: () => string | undefined;
+  resolveBundledTemplatesPath: () => string | undefined;
   resolveBundledSkillsRoot: () => string | undefined;
   resolveSdkDir: () => string | undefined;
   /** The bindings flag; RESOURCE_BINDINGS_ENABLED by default, and only tests replace it. */
@@ -245,9 +248,11 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 
 | Command | Client call(s) |
 |---|---|
-| `create-path-artifact` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, before?, after? })`; if focused, `client.display.focus({ artifactID })`. |
-| `create-url-artifact` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, before?, after? })`; if focused, `client.display.focus({ artifactID })`. |
-| `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim() })`. |
+| `create-artifact --path` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, display?, before?, after? })`. |
+| `create-artifact --url` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, display?, before?, after? })`. |
+| `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, display?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the copied folder path for the success output. |
+| `templates list` | `client.templates.list()`; print the [scan result](../../product/cli.md#^cli-templates-list). |
+| `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim(), transparent? })`. |
 | `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
 | `get-artifact` | `client.artifacts.get({ artifactID })`. |
 | `reposition-artifact` | `client.channels.list()` to find the channel whose layout holds the artifact, then `client.channels.update({ channelID, layout })` with that channel's layout, changed only in the page that holds the artifact. A page moved by `--position` is removed from the list and inserted at index `n − 1`; one moved by `--before` or `--after` is removed and inserted immediately before or after the page holding the named artifact. The CLI checks the options, including that the position is within the channel's page count and that the named artifact is on the channel, before the update, so a rejected command sends no update. When the update is refused with HTTP 409 because the channel's membership changed after the list, the command reports the product's changed-channel error rather than the server's message. |
@@ -270,6 +275,12 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 | `resource` and its subcommands | The calls the [resource architecture](../resources/index.md#^rs-cli-integration) and the [JSON store architecture](../resources/json-store.md#^js-arch-cli) define. |
 | `share-artifact`, `unshare-artifact` | The calls the [resource architecture](../resources/index.md#^rs-share-cli-integration) defines. |
 
+After any `create-artifact` source succeeds, the CLI prints the [common creation output](../../product/cli.md#^cli-create-artifact) and calls `client.display.focus({ artifactID })` only when focus was requested.
+
+For each creation source, the CLI checks the [display options](../../product/cli.md#^cli-create-display) before making a request. It passes supplied values in `display` using the [creation display type](../layout/index.md#^ly-creation-display): `--width` as `width`, `--height` as `height`, `--full-screen` as `fullScreen: true`, `--no-full-screen` as `fullScreen: false`, `--transparent` as `transparent: true`, and `--no-transparent` as `transparent: false`. It omits fields with no corresponding option.
+
+For `update-artifact`, the transparency options map to the same boolean values in the top-level `transparent` update field, following the [artifact-record contract](../artifacts/index.md#^ar-transparent). The CLI omits that field when neither option was supplied.
+
 Every link the CLI prints — the connect links `tv serve` and `tv serve --persist` print, `tv links` output and the share links `tv share-artifact` prints — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 
 The health response may supply an exact release version. `tv status` copies that value unchanged, including the `0.0.0` development sentinel, and omits `version` when the health response does not supply the field. Other health fields pass through unchanged.
@@ -289,7 +300,7 @@ Help and user-facing command documentation describe `none` as using no theme, wi
 5. resolves the optional ACP agent profile and checks that its command is available before starting the server;
 6. prints `PORT_ZERO_WARNING` to stderr when foreground `tv serve` reads config port `0`.
 
-Foreground `tv serve` calls `env.createServer` with a `CLIServerOptions` value: `home`; the settings' `listen`, `port`, `auth`, and `installedByAgent`; the resolved static, canonical, bundled-view, onboarding, bundled-theme, and [resource SDK](../resources/sdk.md#^sdk-packaging) paths; the optional ACP profile; `launchMode`; and the environment's `resourceBindings`. `launchMode` is `"daemon"` only when `TELEVISION_LAUNCH_MODE=daemon`; every other value resolves to `"cli"`. The production `createServer` constructs a `ServerStore` whose `storagePath` is `home`, passes bundled view, onboarding, and bundled-theme paths when present, and always sets `installOnboardingChannels: true`. It passes `sdkDir` to `Server` when present, and `resourceBindings` always. It passes `auth` to `Server` explicitly, including the config default `true`, because the `Server` constructor's own default is tokenless. It passes the launch mode and optional installed-by agent value into the server's telemetry options. `Server` and `ServerStore` keep their constructor options, so package tests and embedders construct isolated servers directly without a home or config file. ^cli-serve-adapter
+Foreground `tv serve` calls `env.createServer` with a `CLIServerOptions` value: `home`; the settings' `listen`, `port`, `auth`, and `installedByAgent`; the resolved static, canonical, bundled-view, onboarding, bundled-theme, bundled-template, and [resource SDK](../resources/sdk.md#^sdk-packaging) paths; the optional ACP profile; `launchMode`; and the environment's `resourceBindings`. `launchMode` is `"daemon"` only when `TELEVISION_LAUNCH_MODE=daemon`; every other value resolves to `"cli"`. The production `createServer` constructs a `ServerStore` whose `storagePath` is `home`, passes bundled view, onboarding, bundled-theme, and bundled-template paths when present, and always sets `installOnboardingChannels: true`. It passes `sdkDir` to `Server` when present, and `resourceBindings` always. It passes `auth` to `Server` explicitly, including the config default `true`, because the `Server` constructor's own default is tokenless. It passes the launch mode and optional installed-by agent value into the server's telemetry options. `Server` and `ServerStore` keep their constructor options, so package tests and embedders construct isolated servers directly without a home or config file. ^cli-serve-adapter
 
 After `server.start()` succeeds, `tv serve` prints its [startup output](../../product/cli.md#^cli-startup-links). When `env.stdout.isTTY` is `true`, it prints a connect link for each of `server.getOrigins()`, carrying `server.getAuthToken()` only when `auth === true`. Under config port `0`, `Server.start()` binds the first listener to an operating-system-chosen port and reuses that port for every other listener, so the origins carry the acquired port. Otherwise it prints the `tv links` line, whose command carries `--home <home>` with the absolute home when the invocation chose the home, with `--home` or with the storage path of the [transitional service path](../../product/cli.md#^cli-retired-service-compat), and `--port <server.getListeningPort()>` when config port is `0`; a home whose path holds a character outside letters, digits and `_@%+=:,./-` is single-quoted for a POSIX shell. A hidden `--print-links` flag, which help does not list, makes `tv serve` and `tv serve --persist` print the links whatever stdout is. The repository's tests pass it to find a server they start ([test-runner recipe](../test-runner/test-runner.md#^test-dynamic-ports)); it is not a product option. The command then registers `SIGINT` and `SIGTERM` handlers via `env.onSignal`; the first signal calls `server.dispose(signal)`, and later signals during shutdown are ignored.
 
@@ -338,13 +349,13 @@ Once a server answers, the CLI prints `Television service installed.` and then, 
 
 ## Commands that do not contact the server
 
-`tv themes-path` resolves the home and prints `{ "themesPath": path.join(home, "themes") }`. `tv config show` prints the `readTelevisionConfig(home)` result with an absent `installedByAgent` rendered as `null`. `tv config set` parses its pairs and calls `updateTelevisionConfig(home, changes)`, then prints the product's confirmation with the returned `configPath`. None of these commands, `tv stop`, `tv serve --persist-uninstall`, or `tv skills install` constructs a client or accepts a client `--port`; of them, only `tv config show` and `tv config set` read the config file. ^cli-home-only-commands
+`tv themes-path` resolves the home and prints `{ "themesPath": path.join(home, "themes") }`. `tv templates path` resolves it and prints `{ "templatesPath": path.join(home, "templates") }`. `tv config show` prints the `readTelevisionConfig(home)` result with an absent `installedByAgent` rendered as `null`. `tv config set` parses its pairs and calls `updateTelevisionConfig(home, changes)`, then prints the product's confirmation with the returned `configPath`. None of these commands, `tv stop`, `tv serve --persist-uninstall`, or `tv skills install` constructs a client or accepts a client `--port`; of them, only `tv config show` and `tv config set` read the config file. ^cli-home-only-commands
 
 ## Bundled skills boundary
 
 `resolveBundledSkillsRoot()` finds Television's bundled skill collection, not the external installer covered by the product spec's [interactive external installer exception](../../product/cli.md#^cli-installer-exception). In a built CLI, it resolves `./skills` relative to the real path of `process.argv[1]`. In development, it resolves `packages/skills/dist` relative to the CLI package.
 
-`tv skills install <path>` copies only child directories of the bundled skill root, sorted by directory name. It creates the destination root, removes any existing destination directory for each skill with `rmSync(..., { recursive: true, force: true })`, and copies the bundled directory recursively. Before reporting success it also removes `<path>/tv-theme` recursively when present, as required by the product's [bundled-skill install contract](../../product/cli.md#bundled-skill-commands); that path is the migration target for the standalone theming bundle, not a member of the current skills manifest. If the destination root exists and is not a directory, the command throws.
+`tv skills install <path>` copies the bundled `television` directory into `<path>/television/`. It creates the destination root and copies recursively over same-named files without removing existing files or directories, including other installed skills. If the destination root exists and is not a directory, the command throws.
 
 `tv skills install -i` resolves the external Vercel `skills` package binary (`skills/bin/cli.mjs`) and spawns:
 
@@ -358,7 +369,7 @@ with stdio inherited. A non-zero child status throws `skills add <bundled-root> 
 
 After a successful direct copy, the CLI derives `agentType` with `deriveAgentTypeFromPath(destinationRoot)`; interactive mode uses `"interactive-install"`. It calls `env.emitSkillInstalledTelemetry` with the resolved home as `storagePath`, CLI version, agent type, optional installed-by agent value, and current environment. The call is best-effort and bounded to one second: rejection or timeout prints nothing and cannot fail the completed install. Failed copy or installer paths do not emit. Event meaning and content constraints are owned by the telemetry product spec's [event list](../../product/telemetry.md#What we measure) and [property definitions](../../product/telemetry.md#What we record about each event).
 
-The skills workspace build reads the explicit manifest `packages/skills/skills.json`, builds or copies only the listed skills into `packages/skills/dist/<name>/`, validates each emitted `SKILL.md`, and reports but ignores unlisted source directories. The CLI package build copies that manifest-produced `dist/` tree, so packaged skill membership is controlled by the manifest rather than directory discovery.
+The skills workspace build follows [making skills](../making-skills.md#the-bundle): `packages/skills/dist/` contains only manifest members, while `packages/skills/onboarding-dist/` holds the calendar and task browser components for the bake. The CLI package build copies the manifest-listed skill directories into `dist/skills/`, so packaged skill membership is controlled by the manifest rather than directory discovery.
 
 ## Experimental ACP agent wiring
 
@@ -384,9 +395,9 @@ The foreground startup mechanics are defined in [#Server process boundary](#Serv
 10. copies the missing-artifact view to `dist/views/artifact-missing/`;
 11. copies every canonical artifact version to `dist/canonical/`, and the server's built [resource SDK](../resources/sdk.md#^sdk-build) tree, `packages/server/dist/sdk/`, to `dist/sdk/`;
 12. verifies that `packages/server/dist/onboarding/onboarding-channels.json` exists, then copies the whole server onboarding content tree to `dist/onboarding/`;
-13. copies the validated server bundled-theme tree to `dist/themes/`;
-14. copies the manifest-produced skill bundles to `dist/skills/`;
-15. replaces the preliminary notices with the aggregate generated from the CLI, web, bundled-view, and skill inventories while preserving the per-directory notices inside copied outputs;
+13. copies the validated server bundled-theme tree to `dist/themes/` and bundled artifact templates to `dist/templates/`;
+14. copies the manifest-listed skill bundle to `dist/skills/`;
+15. replaces the preliminary notices with the aggregate generated from the CLI, web, bundled-view, and onboarding-component inventories while preserving the per-directory notices inside copied outputs;
 16. copies the repository-root `LICENSE` to `packages/cli/LICENSE`, byte-identically.
 
 The licensing inventory, notice aggregation, and license propagation mechanics are owned by [arch/licensing.md](../licensing.md). This section records their placement in the CLI build so the package-layout contract remains complete.
@@ -399,6 +410,7 @@ __TV_VIEWS_DIR__ = "./views";
 __TV_CANONICAL_DIR__ = "./canonical";
 __TV_ONBOARDING_CONTENT_DIR__ = "./onboarding";
 __TV_BUNDLED_THEMES_DIR__ = "./themes";
+__TV_BUNDLED_TEMPLATES_DIR__ = "./templates";
 __TV_SDK_DIR__ = "./sdk";
 __TV_TELEMETRY_BUILD__ = process.env.TV_NPM_RELEASE === "1" ? "production" : "development";
 __TV_VERSION__ = packageJson.version;
@@ -411,11 +423,11 @@ The version flags append the baked commit only when it is a non-empty string and
 
 `inspectTelemetryBuildConfig(env, options)` exposes the baked telemetry-build marker, the current environment suppression reason, and the selected PostHog project as a build diagnostic. Build-marker selection follows [telemetry release build configuration](../telemetry/sink.md#Behavior and operations); direct source execution has no baked telemetry marker and reports `null`.
 
-The onboarding content schema, source tree, and server build validation remain owned by [arch/onboarding/content.md](../onboarding/content.md). This spec owns the CLI build's copy into `dist/onboarding/`, the build-time path constant, and the runtime resolver that hands that directory to the serving store. [Bundled theme installation](../themes/bundled-installation.md) owns the corresponding theme source, package copies, resolver, and store handoff. The [resource SDK spec](../resources/sdk.md) owns the SDK's source, its build into the server package, and how the server serves it; this spec owns the CLI build's copy into `dist/sdk/`, its path constant, and the resolver that hands the directory to the server.
+The onboarding content schema, source tree, and server build validation remain owned by [arch/onboarding/content.md](../onboarding/content.md). This spec owns the CLI build's copy into `dist/onboarding/`, the build-time path constant, and the runtime resolver that hands that directory to the serving store. [Bundled theme installation](../themes/bundled-installation.md) owns the corresponding theme source, package copies, resolver, and store handoff. [Bundled artifact template installation](../templates/bundled-installation.md) owns the template source, validation, and installation; this spec owns the CLI package copy, resolver, and store handoff. The [resource SDK spec](../resources/sdk.md) owns the SDK's source, its build into the server package, and how the server serves it; this spec owns the CLI build's copy into `dist/sdk/`, its path constant, and the resolver that hands the directory to the server.
 
 The external Vercel `skills` package is not bundled; it remains a runtime dependency so the packaged CLI can resolve its executable.
 
-`build.mjs --outfile <path>` builds only a standalone executable bundle at the requested path. It does not copy renderer, view, canonical, SDK, onboarding, theme, or skill assets, and it does not claim a shipped-surface inventory, notices tree, or package-root license copy. Tests use this mode when they need a binary outside the repository tree.
+`build.mjs --outfile <path>` builds only a standalone executable bundle at the requested path. It does not copy renderer, view, canonical, SDK, onboarding, theme, artifact-template, or skill assets, and it does not claim a shipped-surface inventory, notices tree, or package-root license copy. Tests use this mode when they need a binary outside the repository tree.
 
 `build-views.mjs` reads `packages/cli/bundled-views.json`, builds each declared view workspace, copies the workspace `dist/` to `packages/cli/dist/views/<view-id>/`, and fails unless `manifest.json` exists at the destination. The current bundled view manifest maps `markdown` to `packages/view-markdown`.
 
@@ -428,6 +440,7 @@ The exported asset resolvers follow this contract:
 | `resolveCanonicalDir()` | `realpath(dirname(process.argv[1]))/canonical` when it exists. | `packages/server/dist/canonical` when it exists. |
 | `resolveOnboardingContentPath()` | `realpath(dirname(process.argv[1]))/onboarding` when it exists. | `packages/server/assets/onboarding-channels` when it exists. |
 | `resolveBundledThemesPath()` | `realpath(dirname(process.argv[1]))/themes` when it exists. | `packages/server/assets/themes` when it exists. |
+| `resolveBundledTemplatesPath()` | `realpath(dirname(process.argv[1]))/templates` when it exists. | `packages/server/assets/templates` when it exists. |
 | `resolveBundledSkillsRoot()` | `realpath(dirname(process.argv[1]))/skills` when it exists. | `packages/skills/dist` when it exists. |
 | `resolveSdkDir()` | `realpath(dirname(process.argv[1]))/sdk` when it exists. | `packages/server/dist/sdk` when it exists. |
 
@@ -477,7 +490,7 @@ When testing or manually exercising server-backed commands, pass `--home <temp-d
 
 The persisted-service paths — install, reinstall, an install whose server does not answer, stop, and uninstall — are proven by the `daemon-acceptance` suite, which [arch/test-runner/test-runner.md](../test-runner/test-runner.md) owns (Production daemon acceptance suite). That suite is not part of `verify` or CI: a developer runs it by hand, on a designated developer host. ^cli-persist-suite-note
 
-Help is proven for top-level help and the `create-path-artifact`, `list-artifacts`, `update-channel`, and `set-theme` pages: those checks pin where the agent routing note appears ([product/cli.md](../../product/cli.md), Command model, help, version, and recovery text) and the option text those checks name. Checking every other subcommand's page would repeat them without catching another plausible, consequential failure.
+Help is proven for top-level help and the `create-artifact`, `list-artifacts`, `update-channel`, and `set-theme` pages: those checks pin where the agent routing note appears ([product/cli.md](../../product/cli.md), Command model, help, version, and recovery text) and the option text those checks name. Checking every other subcommand's page would repeat them without catching another plausible, consequential failure.
 
 No spawned CLI test covers a wildcard `listen` address. The config reader validates each `listen` item as an IPv4 address, and the CLI hands the same values, unchanged, to the server constructor, which resolves them with `resolveBindAddresses`; wildcard resolution, the wildcard listener and the expansion of `0.0.0.0` into origins are therefore proven on the server side and compose across that handoff ([arch/testing-policy.md#Compositional coverage across clean seams](../testing-policy.md#Compositional coverage across clean seams)). The product CLI proof's multi-listener acceptance ([proofs/product/cli.md#^cli-ac-multi-listener-success](../../../proofs/product/cli.md#^cli-ac-multi-listener-success)) covers foreground serve with several specific addresses.
 

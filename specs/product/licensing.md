@@ -25,20 +25,19 @@ A *shipped surface* is a part of Television through which the project delivers c
 - the [desktop application](./desktop-app.md), which ToDesktop builds;
 - the browser client;
 - the markdown view;
-- the `tv-calendar` skill;
-- the `tv-tasks` skill;
+- the calendar and task browser components copied into baked onboarding artifacts;
 - the resource SDK, which the server serves to artifact pages;
 - the public source repository. ^licensing-source-surface
 
 The implementation mapping — surface identifiers, build inventories, and CLI aggregation — is owned by [the architecture spec](../arch/licensing.md#^licensing-declared-surfaces) and must follow this list. The list is a reviewed product decision: adding or removing a product area that redistributes third-party material starts with a change here.
 
-Only `tv-calendar` and `tv-tasks` among Television's four bundled skills ship JavaScript. The `television` bundle — including its `SKILL.md`, `theming.md` and `resources.md` guidance — and `tv-table` carry only first-party instructions, so they need no licensing-framework surface. This distinction is explicit because a directory or package count cannot determine which skills require licensing attention.
+The only bundled skill, `television`, carries first-party guidance and needs no separate licensing-framework surface. The calendar and task components still reach users through the onboarding artifacts, so their browser bundles remain on the list.
 
 The [resource SDK](../arch/resources/sdk.md) is on the list because its push-key generator is adapted from the Firebase JavaScript SDK ([adapted code](#^licensing-adapted-code)); the rest of the module is Television's own code.
 
-Across the listed areas, third-party material arrives through bundled executables and browser code, prebuilt onboarding artifacts, installed skill files, bundled themes, and *vendored assets*: material tracked in Television's source tree rather than consumed as package dependencies, whether copied in unchanged or adapted into Television's own files. A clone of the public repository delivers vendored assets before any build runs, which is why the repository is a surface in its own right. The vendored-asset manifest and its contents are owned by [arch/licensing.md](../arch/licensing.md).
+Across the listed areas, third-party material arrives through bundled executables and browser code, prebuilt onboarding artifacts, bundled themes, and *vendored assets*: material tracked in Television's source tree rather than consumed as package dependencies, whether copied in unchanged or adapted into Television's own files. A clone of the public repository delivers vendored assets before any build runs, which is why the repository is a surface in its own right. The vendored-asset manifest and its contents are owned by [arch/licensing.md](../arch/licensing.md).
 
-The promise: **every shipped surface that redistributes third-party material carries that material's license and attribution**, as its license requires (for the permissive licenses we accept, that means the real upstream copyright and permission notices — never placeholder boilerplate — and, for licenses that require it, the license text). A user who receives a Television artifact has received, with it, the notices for the third-party packages inside it — including a skill or a bundled theme after Television has copied it out of the package. ^licensing-notices-promise
+The promise: **every shipped surface that redistributes third-party material carries that material's license and attribution**, as its license requires (for the permissive licenses we accept, that means the real upstream copyright and permission notices — never placeholder boilerplate — and, for licenses that require it, the license text). A user who receives a Television artifact has received, with it, the notices for the third-party packages inside it — including a baked onboarding artifact or a bundled theme after Television has copied it out of the package. ^licensing-notices-promise
 
 **A bundled theme that includes externally licensed material redistributes third-party material.** The material can be anything a theme carries: a color scheme, an image, a font, code. Color values taken from a licensed upstream project, such as Nord, count: Television treats them as a substantial portion of that project. Television attributes each such material in three places: ^licensing-theme-material
 
@@ -115,5 +114,4 @@ Published-package acceptance must build and inspect the real npm tarball for the
 
 Browser-surface acceptance must fetch the [stable notices URL](../arch/licensing.md#^licensing-vite-intermediate) from a running Television server, and resource-SDK acceptance must fetch [the SDK's notices](../arch/licensing.md#^licensing-sdk-notices) from one the same way. Acceptance of Electron as an [upstream aggregate](#^licensing-electron-aggregate) is the desktop application's [license-file check](./desktop-app.md#Testing), which finds Electron's license files in the built app.
 
-Acceptance of the [reader](#^licensing-notices-audience), [existence](#^licensing-notices-when), and [ignored-package](#^licensing-ignored-silent-routes) promises must inspect all real generated outputs together: the committed repository-root notices, the packed CLI tarball, the desktop upload directory, every built view and skill directory, every bundled theme folder that owes a notices file, and the notices served with the browser client.
-
+Acceptance of the [reader](#^licensing-notices-audience), [existence](#^licensing-notices-when), and [ignored-package](#^licensing-ignored-silent-routes) promises must inspect all real generated outputs together: the committed repository-root notices, the packed CLI tarball, the desktop upload directory, every built view and onboarding component directory, every bundled theme folder that owes a notices file, and the notices served with the browser client.

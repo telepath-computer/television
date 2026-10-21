@@ -17,6 +17,7 @@ A **page** is the box one artifact is shown in ([product/tab-pages.md#^tp-one-ar
 - Exactly one page is **selected**, and it rests centred in the stage. Selecting another page slides the filmstrip until that page is centred ([Selection](#selection)).
 - A page carries a width and a height, set by dragging its edges ([Page sizing](#page-sizing)). Its contents set its lower bound — the artifact's minimum width and height ([Bounds](#bounds)) — and full-screen is a mode over the size ([Full-screen](#full-screen)).
 - Every other page is a **background page**, shown receded without artifact shadows (styling in [ui/app/stage/stage.frame](./stage.frame)) and inert: its artifact, and everything on its frame, takes no input. Pressing it selects it, and that is the only interaction a background page takes.
+- A background page holding a [transparent artifact](../../../product/artifacts.md#^af-transparent) does not blur the wallpaper behind it, so no frosted rectangle appears where its frame would be. Its artifact still recedes as on any background page: the page shrinks, and the artifact fades and takes the theme's background-page blur.
 - The filmstrip moves only when the selection changes, or when the channel's order changes and the selected page must be centred again ([#^st-remote-reorder](#^st-remote-reorder)). There is no free scrolling: swiping or wheeling across pages does nothing. ^st-selection-only
 - Moving the selection never reloads a page's document ([product/artifacts.md#^af-tab-continuity](../../../product/artifacts.md#^af-tab-continuity)).
 - Changing channels swaps the filmstrip for the new channel's pages at once; no motion plays between channels. Every stateful view in the discarded filmstrip is disconnected before any view in the arriving filmstrip becomes active, so subscriptions, global listeners, and owned resources are released. Lit's `keyed()` directive must not own this replacement boundary: it resets the part's committed value before clearing and causes nested views to miss `disconnected()`, retaining view references and event handlers as a memory leak and allowing discarded views to process later events. A one-item `repeat()` keyed by channel ID provides channel identity through Lit's disconnect-aware child-part removal path. ^st-channel-redraw
@@ -84,6 +85,7 @@ The gesture is pointer-only, inheriting the shell's desktop input boundary ([ui/
 - An edge's band is [measures.yml#handles.edge_band_px](./measures.yml#handles.edge_band_px) thick, centred on the edge.
 - A corner reaches down both its adjoining edges as an L, never a filled square — [measures.yml#handles.corner_reach_px](./measures.yml#handles.corner_reach_px) along each, with arms [measures.yml#handles.corner_thickness_px](./measures.yml#handles.corner_thickness_px) thick — so a grab near a corner takes both axes while the edge beyond the L's arms takes one.
 - Each handle shows the cursor of the directions it drags.
+- The page's artifact frame carries `data-resize-active` while either holds: the pointer is on one of the page's handles, or a resize drag runs, wherever the pointer goes. It loses the marker only when neither holds, so a drag that ends or is cancelled with the pointer still on a handle keeps it. A [transparent frame](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) shows its hovered state for that time.
 - Handles never overlap controls: the frame lays out its controls clear of the bands, and a combination of measures that puts a band over a control is an invalid state.
 
 ### Bounds
@@ -106,11 +108,11 @@ Dragging a corner to the stage's extents snaps the page into full-screen mode ([
 
 ## The empty channel
 
-A channel with no pages shows the empty-channel message specified by [stage.frame](./stage.frame) and [content.yml](./content.yml). When no channel exists, the stage shows neither pages nor the empty-channel message.
+A channel with no pages shows the empty-channel message specified by [stage.frame](./stage.frame) and [content.yml](./content.yml).
 
 ## Testing
 
-Under [What a UI surface's suite is responsible for](../../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the stage's no-channel, empty-channel, and populated branches. The no-channel branch must show neither pages nor the empty-channel message. The empty-channel branch must show the authored message without pages. The populated branch must show each supplied page and artifact frame exactly once and in the supplied order. It must mark selection and `full_screen` exactly as supplied.
+Under [What a UI surface's suite is responsible for](../../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the stage's empty-channel and populated branches. The empty-channel branch must show the authored message without pages. The populated branch must show each supplied page and artifact frame exactly once and in the supplied order. It must mark selection and `full_screen` exactly as supplied.
 
 When channels change, the suite must prove that every discarded artifact view disconnects and releases its global frame-message subscription before any arriving view becomes active. After repeated channel changes in a real browser, discarded artifact views and frames must be eligible for garbage collection while the current channel remains rendered. The garbage-collection result proves that the stage lifecycle does not strongly retain discarded artifact views or frames. It does not prove that total process memory stays constant or that unrelated subsystems contain no leaks.
 
@@ -132,5 +134,4 @@ Under the same rule, [tab-page acceptance](../../../product/tab-pages.md#Testing
 
 Under [Tests are the validation mechanism](../../../arch/testing-policy.md#Tests are the validation mechanism), the [tab strip](../tab-strip/index.md) owns its unmodified arrow-key behavior and the edge scrolling that runs while a tab drag is held. [Keyboard-navigation architecture](../../../arch/ui/keyboard-navigation.md#Testing) owns the proof that a pointer press and the application navigation chord enter the same page-selection operation. [Keyboard-navigation product acceptance](../../../product/keyboard-navigation.md#Testing) owns the chord's rendered outcomes, including when a tab holds focus. This surface does not require another rendered comparison of pointer selection with keyboard selection.
 
-Under the same rule, the [app shell](../index.md#Testing) owns the integrated presentation when there is no channel or when the focused channel has no pages. This surface's suite proves only the stage branches described above. It does not repeat the app shell's complete presentations for no channel and an empty channel.
-
+Under the same rule, the [app shell](../index.md#Testing) owns the integrated presentation when the focused channel has no pages. This surface's suite proves only the stage branches described above. It does not repeat the app shell's complete presentation for an empty channel.

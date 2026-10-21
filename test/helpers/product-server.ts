@@ -56,6 +56,8 @@ export interface LaunchProductServerOptions {
    * installation path without changing launches that intentionally omit it.
    */
   bundledThemesBundle?: string;
+  /** Bundled artifact-template tree for this isolated CLI runtime. */
+  bundledTemplatesBundle?: string;
   /**
    * Extra environment for the served process, applied over the test runner's.
    * Browser demo mode acceptance sets `HOME` to a temporary directory so the
@@ -84,6 +86,7 @@ function getSourceCLIEntry(): string {
 function getCLIEntryWithBundles(options: {
   onboardingBundle?: string;
   bundledThemesBundle?: string;
+  bundledTemplatesBundle?: string;
 }): { cliEntry: string; dispose: () => void } {
   const sharedEntry = getSourceCLIEntry();
   const runDir = mkdtempSync(path.join(os.tmpdir(), "television-product-e2e-bundle-"));
@@ -93,6 +96,9 @@ function getCLIEntryWithBundles(options: {
   }
   if (options.bundledThemesBundle !== undefined) {
     cpSync(options.bundledThemesBundle, path.join(runDir, "themes"), { recursive: true });
+  }
+  if (options.bundledTemplatesBundle !== undefined) {
+    cpSync(options.bundledTemplatesBundle, path.join(runDir, "templates"), { recursive: true });
   }
   return {
     cliEntry: path.join(runDir, path.basename(sharedEntry)),
@@ -162,13 +168,16 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
   writeHomeConfig(home, options.auth ? { port: 0 } : { port: 0, auth: false });
   const { TELEVISION_ACP_AGENT: _ignoredAgent, ...inheritedEnv } = process.env;
   const env = { ...inheritedEnv, ...options.env };
-  let bundledRuntime = options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined
+  let bundledRuntime = options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined || options.bundledTemplatesBundle !== undefined
     ? getCLIEntryWithBundles({
         ...(options.onboardingBundle !== undefined
           ? { onboardingBundle: options.onboardingBundle }
           : {}),
         ...(options.bundledThemesBundle !== undefined
           ? { bundledThemesBundle: options.bundledThemesBundle }
+          : {}),
+        ...(options.bundledTemplatesBundle !== undefined
+          ? { bundledTemplatesBundle: options.bundledTemplatesBundle }
           : {}),
       })
     : undefined;

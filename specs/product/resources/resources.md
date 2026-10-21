@@ -32,7 +32,7 @@ The first write gives an own store this description, which never contains the ar
 Store owned by an artifact, created at its first write.
 ```
 
-Deleting an artifact removes its record, and with it its share link. The artifact's files stay on disk, and so does its store, which still records the deleted artifact as its owner. To recover, an agent registers the files as a new artifact and copies the old store's data into the new artifact's store: it finds the old store with `tv resource list`, which reports each store's owner, deleted artifacts included, reads it with `tv resource json get --resource <resource-id>`, or reads the store's content file directly, and writes the data with `tv resource json set --artifact <new-id> --file <path>`. ^rs-artifact-deleted
+Deleting an artifact removes its record, and with it its share link. The artifact's files stay on disk, and so does its store, which still records the deleted artifact as its owner. To recover, an agent registers the files as a new artifact with [`tv create-artifact --path`](../cli.md#Path artifact creation) and copies the old store's data into the new artifact's store: it finds the old store with `tv resource list`, which reports each store's owner, deleted artifacts included, reads it with `tv resource json get --resource <resource-id>`, or reads the store's content file directly, and writes the data with `tv resource json set --artifact <new-id> --file <path>`. ^rs-artifact-deleted
 
 ## Status
 

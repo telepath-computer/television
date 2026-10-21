@@ -3,8 +3,6 @@ title: Application
 params:
   channels:
     description: the channels with their pinned marks, passed to the sidebar; each carries its tabs, and the open channel's feed the top bar and the stage as its pages
-  no_channel:
-    description: "no channel exists at all, passed to the stage: the ground stays blank"
   selected:
     description: the one open channel, passed to the sidebar
   selected_tab:
@@ -16,7 +14,7 @@ params:
   collapsed:
     type: boolean
     default: false
-    description: "the channel sidebar is collapsed: the shell renders without it, and the navbar opens with the expand control and, while a channel is open, the channel switcher"
+    description: "the channel sidebar is collapsed: the shell renders without it, and the navbar opens with the expand control and channel switcher"
   sidebar_transition:
     type: boolean
     default: false
@@ -90,7 +88,7 @@ style: |
     {% assign lead_visible = collapsed %}
     {% if sidebar_transition %}{% assign lead_visible = true %}{% endif %}
     {% render './top-bar/top-bar', tabs: open_channel.tabs, selected: selected_tab, show_notice: show_notice, collapsed: lead_visible, channel: open_channel.name, switcher_open: switcher_open, channels: channels, selected_channel: selected %}
-    {% render './stage/stage', pages: open_channel.tabs, selected: selected_tab, full_screen: full_screen, no_channel: no_channel %}
+    {% render './stage/stage', pages: open_channel.tabs, selected: selected_tab, full_screen: full_screen %}
   </main>
   {% if sidebar_transition %}
   <button class="sidebar-motion-toggle" variant="ghost" icon aria-label="Collapse sidebar">

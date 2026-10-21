@@ -303,7 +303,7 @@ test("theme consent opt-out reload restores open Settings once", async ({
   }
 });
 
-test("settings and skills retain native light dismissal", async ({ page, baseURL }) => {
+test("settings and templates retain native light dismissal", async ({ page, baseURL }) => {
   const storagePath = mkdtempSync(path.join(os.tmpdir(), "tv-settings-dismissal-"));
   const store = createServingStore(storagePath);
   const server = new Server({ store, host: "127.0.0.1", port: 0, auth: false });
@@ -318,12 +318,12 @@ test("settings and skills retain native light dismissal", async ({ page, baseURL
 
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(popoverOpen(page, "#settings-popover")).toBeVisible();
-    await page.getByRole("button", { name: "Artifact skills" }).click();
+    await page.getByRole("button", { name: "Templates" }).click();
     await expect(popoverOpen(page, "#settings-popover")).toHaveCount(0);
-    await expect(popoverOpen(page, "#skills-popover")).toBeVisible();
+    await expect(popoverOpen(page, ".templates-popover")).toBeVisible();
 
     await page.locator("#outside").click();
-    await expect(popoverOpen(page, "#skills-popover")).toHaveCount(0);
+    await expect(popoverOpen(page, ".templates-popover")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(popoverOpen(page, "#settings-popover")).toBeVisible();

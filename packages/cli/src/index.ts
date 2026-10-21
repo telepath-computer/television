@@ -44,9 +44,12 @@ import type {
 import { TelevisionClient, ValidationError, buildConnectURL, type ArtifactPlacement, type TabPage, type TelemetryStatus } from "@telepath-computer/television-shared";
 import {
   ACCESS_LEVELS,
+  JSON_STORE_MAX_BYTES,
   RESOURCE_BINDINGS_ENABLED,
   generatePushKey,
   isResourceRefusal,
+  jsonByteLength,
+  validateJsonValue,
   type AccessLevel,
   type JSONValue,
   type ResourceBinding,
@@ -72,6 +75,7 @@ export type CLIServerOptions = {
   bundledViewsPath?: string;
   onboardingContentPath?: string;
   bundledThemesPath?: string;
+  bundledTemplatesPath?: string;
   sdkDir?: string;
   acpProfile?: ACPAgentProfile;
   launchMode: LaunchMode;
@@ -96,6 +100,7 @@ export interface CLIEnvironment {
   resolveBundledViewsPath: () => string | undefined;
   resolveOnboardingContentPath: () => string | undefined;
   resolveBundledThemesPath: () => string | undefined;
+  resolveBundledTemplatesPath: () => string | undefined;
   resolveBundledSkillsRoot: () => string | undefined;
   resolveSdkDir: () => string | undefined;
   /** The bindings flag; RESOURCE_BINDINGS_ENABLED by default, and only tests replace it. */
@@ -121,7 +126,7 @@ const LOOPBACK_IPV4 = "127.0.0.1";
 const CONFIG_KEYS = ["port", "listen", "auth", "installedByAgent"] as const;
 const HTTP_UNAUTHORIZED_STATUS = 401;
 const HTTP_CONFLICT_STATUS = 409;
-const HELP_POINTER = "Television ships bundled skills. The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming. Re-read it only if it is not already in context or you know the installed skill changed. Additional `tv-*` skills cover specialized artifact types. Install all bundled skills with `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.";
+const HELP_POINTER = "Television ships the `television` skill — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming. Re-read it only if it is not already in context or you know the installed skill changed. Install it with `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.";
 export const PORT_ZERO_WARNING = "WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port in the startup output.";
 const TELEMETRY_NOTICE = "Fully anonymized telemetry is enabled by default. Opt out: tv telemetry disable.";
 const TOKENLESS_WARNING_OPENING = "WARNING: running without an auth token. Tokenless mode is insecure for typical setups — be sure you mean to run without authentication.";
@@ -161,6 +166,7 @@ declare const __TV_VIEWS_DIR__: string | undefined;
 declare const __TV_CANONICAL_DIR__: string | undefined;
 declare const __TV_ONBOARDING_CONTENT_DIR__: string | undefined;
 declare const __TV_BUNDLED_THEMES_DIR__: string | undefined;
+declare const __TV_BUNDLED_TEMPLATES_DIR__: string | undefined;
 declare const __TV_SDK_DIR__: string | undefined;
 declare const __TV_TELEMETRY_BUILD__: string | undefined;
 declare const __TV_VERSION__: string | undefined;
@@ -371,8 +377,7 @@ function buildAgentHelpNote(): string {
     "Agent workflow note:",
     "  The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
     "  Re-read it only if it is not already in context or you know the installed skill changed.",
-    "  Additional `tv-*` skills cover specialized artifact types.",
-    "  Install all bundled skills: `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.",
+    "  Install the bundled `television` skill: `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.",
   ].join("\n");
 }
 
@@ -384,8 +389,7 @@ function buildArtifactWorkflowHelpNote(includeHTMLNote: boolean): string {
     "  Re-read it only if it is not already in context or you know the installed skill changed.",
   ];
   if (includeHTMLNote) {
-    lines.push("  Additional `tv-*` skills cover specialized artifact types.");
-    lines.push("  Install all bundled skills: `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.");
+    lines.push("  Install the bundled `television` skill: `tv skills install <path>` (e.g. ~/.openclaw/skills) or `tv skills install -i`.");
   }
   return lines.join("\n");
 }
@@ -697,6 +701,17 @@ export function resolveBundledThemesPath(): string | undefined {
   return existsSync(devPath) ? devPath : undefined;
 }
 
+/** Resolve the bundled artifact-template tree for serving bootstrap. */
+export function resolveBundledTemplatesPath(): string | undefined {
+  if (typeof __TV_BUNDLED_TEMPLATES_DIR__ === "string" && process.argv[1]) {
+    const entryDir = path.dirname(realpathSync(process.argv[1]));
+    const resolved = path.resolve(entryDir, __TV_BUNDLED_TEMPLATES_DIR__);
+    return existsSync(resolved) ? resolved : undefined;
+  }
+  const devPath = path.resolve(getDevPackageDir(), "../server/assets/templates");
+  return existsSync(devPath) ? devPath : undefined;
+}
+
 /**
  * Resolve the resource SDK tree (`sdk/v1/resources.js`) that the server serves
  * (specs/arch/cli/index.md, build and packaged asset layout). Built CLI:
@@ -732,7 +747,6 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   }
 
   mkdirSync(destinationRoot, { recursive: true });
-  rmSync(path.join(destinationRoot, "tv-theme"), { recursive: true, force: true });
 
   const copied: Array<{ name: string; sourcePath: string; destinationPath: string }> = [];
   const entries = readdirSync(bundledSkillsRoot, { withFileTypes: true })
@@ -742,7 +756,6 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   for (const entry of entries) {
     const sourcePath = path.join(bundledSkillsRoot, entry.name);
     const destinationPath = path.join(destinationRoot, entry.name);
-    rmSync(destinationPath, { recursive: true, force: true });
     cpSync(sourcePath, destinationPath, { recursive: true });
     copied.push({ name: entry.name, sourcePath, destinationPath });
   }
@@ -750,11 +763,11 @@ function copyBundledSkillsToDestination(bundledSkillsRoot: string, destinationRo
   return copied;
 }
 
-/** A width or height for `tv reposition-artifact`: a finite, positive number of reference pixels. */
-function parseArtifactDimension(option: "--width" | "--height", value: string): number {
+/** A creation or reposition width/height in finite, positive reference pixels. */
+function parseArtifactDimension(option: "--width" | "--height", value: string, command = "reposition-artifact"): number {
   const parsed = value.trim() === "" ? Number.NaN : Number(value);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw createDirectiveError(`tv reposition-artifact ${option} must be a finite, positive number of reference pixels; got ${value}.`);
+    throw createDirectiveError(`tv ${command} ${option} must be a finite, positive number of reference pixels; got ${value}.`);
   }
   return parsed;
 }
@@ -795,6 +808,14 @@ function resolveFocusDirective(
     );
   }
   return shouldFocus;
+}
+
+/** Resolve parser-reported flags, preserving omission and conflicting spellings. */
+function resolveTransparencyDirective(flags: ReadonlySet<boolean>, commandName: string): boolean | undefined {
+  if (flags.size > 1) {
+    throw createDirectiveError(`tv ${commandName} accepts --transparent or --no-transparent, not both.`);
+  }
+  return flags.size === 0 ? undefined : flags.has(true);
 }
 
 function formatArtifactRemovalResult(result: ArtifactRemovalResult): string[] {
@@ -943,6 +964,7 @@ function createEnvironment(environment: Partial<CLIEnvironment>): CLIEnvironment
             ...(options.bundledViewsPath ? { bundledViewsPath: options.bundledViewsPath } : {}),
             ...(options.onboardingContentPath ? { onboardingContentPath: options.onboardingContentPath } : {}),
             ...(options.bundledThemesPath ? { bundledThemesPath: options.bundledThemesPath } : {}),
+            ...(options.bundledTemplatesPath ? { bundledTemplatesPath: options.bundledTemplatesPath } : {}),
             installOnboardingChannels: true,
           }),
           listen: options.listen,
@@ -985,6 +1007,8 @@ function createEnvironment(environment: Partial<CLIEnvironment>): CLIEnvironment
       environment.resolveOnboardingContentPath ?? (() => resolveOnboardingContentPath()),
     resolveBundledThemesPath:
       environment.resolveBundledThemesPath ?? (() => resolveBundledThemesPath()),
+    resolveBundledTemplatesPath:
+      environment.resolveBundledTemplatesPath ?? (() => resolveBundledTemplatesPath()),
     resolveBundledSkillsRoot:
       environment.resolveBundledSkillsRoot ?? (() => resolveBundledSkillsRoot()),
     resolveSdkDir: environment.resolveSdkDir ?? (() => resolveSdkDir()),
@@ -1222,6 +1246,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     const disclose = resolveTelemetryLaunchMode(process.env) !== "daemon" && shouldDiscloseTelemetry(home, process.env);
     const onboardingContentPath = env.resolveOnboardingContentPath();
     const bundledThemesPath = env.resolveBundledThemesPath();
+    const bundledTemplatesPath = env.resolveBundledTemplatesPath();
     const sdkDir = env.resolveSdkDir();
     const server = env.createServer({
       home,
@@ -1234,6 +1259,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       bundledViewsPath: env.resolveBundledViewsPath(),
       ...(onboardingContentPath !== undefined ? { onboardingContentPath } : {}),
       ...(bundledThemesPath !== undefined ? { bundledThemesPath } : {}),
+      ...(bundledTemplatesPath !== undefined ? { bundledTemplatesPath } : {}),
       ...(sdkDir !== undefined ? { sdkDir } : {}),
       launchMode: resolveTelemetryLaunchMode(process.env),
       ...(profile ? { acpProfile: profile } : {}),
@@ -1362,87 +1388,119 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       });
     });
 
+  // Parser events distinguish options from values such as a title of "--transparent".
+  const creationTransparencyFlags = new Set<boolean>();
   program
-    .command("create-path-artifact")
-    .description(
-      "Create a path artifact that points at an existing absolute markdown or HTML file, or at a directory with a root index.html/index.htm (trailing separator optional; the server detects file vs directory on disk). Television records the pointer only; HTML and directory targets are read-only, and markdown targets are written through only by in-UI editor saves via PUT /markdown/<id>.",
-    )
+    .command("create-artifact")
+    .description("Create an artifact from an existing path, an http(s) URL, or a copied artifact template")
     .requiredOption("--channel <id>", "Target channel ID")
-    .requiredOption("--title <title>", "Artifact title")
-    .requiredOption("--path <path>", "Absolute path to an existing markdown/HTML file or indexed directory (trailing separator optional)")
+    .option("--path <path>", "Absolute path to an existing markdown/HTML file or indexed directory (trailing separator optional)")
+    .option("--url <url>", "http(s) URL")
+    .option("--template <id>", "Artifact template folder ID")
+    .option("--title <title>", "Artifact title; defaults to the template name when using --template")
+    .option("--data <json>", "Starting JSON value for a template artifact")
+    .option("--data-file <path>", "File containing starting JSON for a template artifact; - reads standard input")
+    .option("--width <px>", "Starting width in reference pixels; finite and positive")
+    .option("--height <px>", "Starting height in reference pixels; finite and positive")
+    .option("--full-screen", "Start the artifact in full-screen mode")
+    .option("--no-full-screen", "Start the artifact out of full-screen mode")
+    .option("--transparent", "Enable artifact transparency")
+    .option("--no-transparent", "Turn off artifact transparency")
+    .on("option:transparent", () => creationTransparencyFlags.add(true))
+    .on("option:no-transparent", () => creationTransparencyFlags.add(false))
     .option("--focus-artifact", "Focus the new artifact after creation")
     .option("--no-focus", "Create the artifact in the background without changing focus")
     .option("--before <artifact-id>", PLACE_BEFORE_HELP)
     .option("--after <artifact-id>", PLACE_AFTER_HELP)
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .addHelpText("after", buildArtifactWorkflowHelpNote(true))
-    .action(async (opts: { channel: string; title: string; path: string; before?: string; after?: string; port?: number }) => {
-      const shouldFocus = resolveFocusDirective(argv, "create-path-artifact", "--focus-artifact");
-      const placement = resolvePlacement("create-path-artifact", opts);
-      const artifactPath = opts.path.trim();
-      const client = createAuthenticatedClient(opts);
-      const { artifact } = await client.artifacts.create({
-        kind: "path",
-        path: artifactPath,
-        title: opts.title,
-        channelID: opts.channel,
-        ...placement,
-      });
-      if (shouldFocus) {
-        await client.display.focus({ artifactID: artifact.id });
+    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
+      const sourceCount = [opts.path, opts.url, opts.template].filter((value) => value !== undefined).length;
+      if (sourceCount !== 1) throw createDirectiveError("tv create-artifact requires exactly one of --path, --url, or --template.");
+      if (opts.template === undefined && opts.title === undefined) throw createDirectiveError("tv create-artifact requires --title with --path or --url.");
+      if (opts.template === undefined && (opts.data !== undefined || opts.dataFile !== undefined)) {
+        throw createDirectiveError("tv create-artifact accepts --data and --data-file only with --template.");
       }
-
-      writeLine(env.stdout, `Path artifact ${artifact.id} created.`);
-      writeLine(env.stdout, `Television registered ${artifactPath}.`);
+      if (opts.data !== undefined && opts.dataFile !== undefined) throw createDirectiveError("tv create-artifact accepts --data or --data-file, not both.");
+      const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
+      if (new Set(fullScreenFlags).size > 1) {
+        throw createDirectiveError("tv create-artifact accepts --full-screen or --no-full-screen, not both.");
+      }
+      const width = opts.width === undefined ? undefined : parseArtifactDimension("--width", opts.width, "create-artifact");
+      const height = opts.height === undefined ? undefined : parseArtifactDimension("--height", opts.height, "create-artifact");
+      const fullScreen = fullScreenFlags.length === 0 ? undefined : fullScreenFlags[0] === "--full-screen";
+      const transparent = resolveTransparencyDirective(creationTransparencyFlags, "create-artifact");
+      const display = width === undefined && height === undefined && fullScreen === undefined && transparent === undefined
+        ? {} : { display: {
+            ...(width !== undefined ? { width } : {}),
+            ...(height !== undefined ? { height } : {}),
+            ...(fullScreen !== undefined ? { fullScreen } : {}),
+            ...(transparent !== undefined ? { transparent } : {}),
+          } };
+      const shouldFocus = resolveFocusDirective(argv, "create-artifact", "--focus-artifact");
+      const placement = resolvePlacement("create-artifact", opts);
+      let data: JSONValue | undefined;
+      if (opts.data !== undefined || opts.dataFile !== undefined) {
+        let source = opts.data;
+        if (opts.dataFile === "-") source = await readStandardInput();
+        else if (opts.dataFile !== undefined) {
+          try { source = readFileSync(opts.dataFile, "utf8"); }
+          catch (error) { throw createDirectiveError(`tv create-artifact could not read ${opts.dataFile}: ${error instanceof Error ? error.message : String(error)}`); }
+        }
+        let parsed: unknown;
+        try { parsed = JSON.parse(source!); }
+        catch (error) { throw createDirectiveError(`tv create-artifact received a value that is not JSON: ${error instanceof Error ? error.message : String(error)}`); }
+        try { validateJsonValue(parsed); }
+        catch (error) { throw createDirectiveError(`tv create-artifact received an invalid store value: ${error instanceof Error ? error.message : String(error)}`); }
+        data = parsed;
+        if (jsonByteLength(data) > JSON_STORE_MAX_BYTES) throw createDirectiveError(`A store's value is at most ${JSON_STORE_MAX_BYTES} bytes of compact JSON.`);
+      }
+      const client = createAuthenticatedClient(opts);
+      let artifactID: string;
+      let registeredTarget: string;
+      if (opts.template !== undefined) {
+        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
+        artifactID = created.artifactID;
+        registeredTarget = created.path;
+      } else {
+        const pointer = opts.path !== undefined ? { kind: "path" as const, path: opts.path.trim() } : { kind: "url" as const, url: opts.url!.trim() };
+        const { artifact } = await client.artifacts.create({ ...pointer, title: opts.title!, channelID: opts.channel, ...display, ...placement });
+        artifactID = artifact.id;
+        registeredTarget = pointer.kind === "path" ? pointer.path : pointer.url;
+      }
+      writeLine(env.stdout, `Artifact ${artifactID} created.`);
+      writeLine(env.stdout, `Television registered ${registeredTarget}.`);
+      if (shouldFocus) await client.display.focus({ artifactID });
     });
 
-  program
-    .command("create-url-artifact")
-    .description(
-      "Create a URL artifact that points at an absolute http(s) URL. Television records the pointer only and does not own or modify the remote page.",
-    )
-    .requiredOption("--channel <id>", "Target channel ID")
-    .requiredOption("--title <title>", "Artifact title")
-    .requiredOption("--url <url>", "http(s) URL")
-    .option("--focus-artifact", "Focus the new artifact after creation")
-    .option("--no-focus", "Create the artifact in the background without changing focus")
-    .option("--before <artifact-id>", PLACE_BEFORE_HELP)
-    .option("--after <artifact-id>", PLACE_AFTER_HELP)
+  const templatesCommand = program.command("templates").description("List and locate artifact templates");
+  templatesCommand.command("list")
+    .description("Scan artifact templates in the selected home as JSON")
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
-    .addHelpText("after", buildArtifactWorkflowHelpNote(true))
-    .action(async (opts: { channel: string; title: string; url: string; before?: string; after?: string; port?: number }) => {
-      const shouldFocus = resolveFocusDirective(argv, "create-url-artifact", "--focus-artifact");
-      const placement = resolvePlacement("create-url-artifact", opts);
-      const artifactURL = opts.url.trim();
-      const client = createAuthenticatedClient(opts);
-      const { artifact } = await client.artifacts.create({
-        kind: "url",
-        url: artifactURL,
-        title: opts.title,
-        channelID: opts.channel,
-        ...placement,
-      });
-      if (shouldFocus) {
-        await client.display.focus({ artifactID: artifact.id });
-      }
+    .action(async (opts: { port?: number }) => writeJSON(env.stdout, await createAuthenticatedClient(opts).templates.list()));
+  templatesCommand.command("path")
+    .description("Print the artifact templates directory of the selected home as JSON")
+    .action(() => writeJSON(env.stdout, { templatesPath: path.join(resolveHome(), "templates") }));
 
-      writeLine(env.stdout, `URL artifact ${artifact.id} created.`);
-      writeLine(env.stdout, `Television registered ${artifactURL}.`);
-    });
-
+  const updateTransparencyFlags = new Set<boolean>();
   program
     .command("update-artifact")
     .description(
-      "Update artifact metadata in place: --title on any artifact, --path to repoint a path artifact, --url to repoint a URL artifact. ID and kind are immutable. The server validates the new pointer; for path artifacts the target must exist (trailing separator optional) and the content watcher follows it.",
+      "Update artifact metadata in place: --title and transparency on any artifact, --path to repoint a path artifact, --url to repoint a URL artifact. ID and kind are immutable. The server validates the new pointer; for path artifacts the target must exist (trailing separator optional) and the content watcher follows it.",
     )
     .requiredOption("--id <id>", "Artifact ID")
     .option("--title <title>", "New title")
     .option("--path <path>", "New absolute path for a path artifact: markdown/HTML file or indexed directory (trailing separator optional)")
     .option("--url <url>", "New http(s) URL for a URL artifact")
+    .option("--transparent", "Enable artifact transparency")
+    .option("--no-transparent", "Turn off artifact transparency")
+    .on("option:transparent", () => updateTransparencyFlags.add(true))
+    .on("option:no-transparent", () => updateTransparencyFlags.add(false))
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .action(async (opts: { id: string; title?: string; path?: string; url?: string; port?: number }) => {
-      if (opts.title === undefined && opts.path === undefined && opts.url === undefined) {
-        throw createDirectiveError("tv update-artifact requires at least one of --title, --path, or --url.");
+      const transparent = resolveTransparencyDirective(updateTransparencyFlags, "update-artifact");
+      if (opts.title === undefined && opts.path === undefined && opts.url === undefined && transparent === undefined) {
+        throw createDirectiveError("tv update-artifact requires at least one of --title, --path, --url, --transparent, or --no-transparent.");
       }
       if (opts.path !== undefined && opts.url !== undefined) {
         throw createDirectiveError("tv update-artifact accepts --path or --url, not both; an artifact's kind is immutable.");
@@ -1453,6 +1511,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
         ...(opts.title !== undefined ? { title: opts.title } : {}),
         ...(opts.path !== undefined ? { path: opts.path.trim() } : {}),
         ...(opts.url !== undefined ? { url: opts.url.trim() } : {}),
+        ...(transparent !== undefined ? { transparent } : {}),
       });
       writeLine(env.stdout, `Artifact ${opts.id} updated.`);
     });

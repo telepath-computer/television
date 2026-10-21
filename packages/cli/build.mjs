@@ -112,6 +112,7 @@ const cliBuildResult = await build({
     __TV_CANONICAL_DIR__: JSON.stringify("./canonical"),
     __TV_ONBOARDING_CONTENT_DIR__: JSON.stringify("./onboarding"),
     __TV_BUNDLED_THEMES_DIR__: JSON.stringify("./themes"),
+    __TV_BUNDLED_TEMPLATES_DIR__: JSON.stringify("./templates"),
     __TV_SDK_DIR__: JSON.stringify("./sdk"),
     __TV_TELEMETRY_BUILD__: JSON.stringify(process.env.TV_NPM_RELEASE === "1" ? "production" : "development"),
     __TV_VERSION__: JSON.stringify(packageVersion),
@@ -203,6 +204,15 @@ if (!outfileOverride) {
   rmSync(themesDest, { recursive: true, force: true });
   cpSync(themesSrc, themesDest, { recursive: true });
 
+  // The validated bundled template tree is installed by serving bootstrap.
+  const templatesSrc = path.join(repoRoot, "packages/server/dist/templates");
+  if (!existsSync(path.join(templatesSrc, "example/manifest.json"))) {
+    throw new Error(`Server build produced no bundled artifact template tree at ${templatesSrc}`);
+  }
+  const templatesDest = path.join(distDir, "templates");
+  rmSync(templatesDest, { recursive: true, force: true });
+  cpSync(templatesSrc, templatesDest, { recursive: true });
+
   // Bundled skills. The @telepath-computer/television-skills workspace build
   // (run earlier) produces packages/skills/dist/<name>/.... Copy that tree
   // into the packaged CLI so `tv skills install` can hand the whole
@@ -232,5 +242,6 @@ if (!outfileOverride) {
   process.stdout.write(`  -> ${path.relative(repoRoot, sdkDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, onboardingDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, themesDest)}\n`);
+  process.stdout.write(`  -> ${path.relative(repoRoot, templatesDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, skillsDest)}\n`);
 }

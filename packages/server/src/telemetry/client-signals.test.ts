@@ -26,7 +26,6 @@ const VALID_PROPERTIES: Record<string, Record<string, string>> = {
   update_toast_shown: { server_version: "1.2.3", channel_version: "1.2.4" },
   update_prompt_copy_clicked: { server_version: "1.2.3", channel_version: "1.2.4" },
   desktop_upgrade_gate_shown: { desktop_app_version: "1.2.3", required_desktop_version: "1.2.4" },
-  artifact_skill_prompt_copy_clicked: { artifact_skill: "calendar" },
 };
 
 function signal(event: string, properties?: unknown, overrides: Record<string, unknown> = {}): unknown {
@@ -50,7 +49,6 @@ describe("client signal validation (^t-signal-validation)", () => {
       update_toast_shown: ["channel_version", "server_version"],
       update_prompt_copy_clicked: ["channel_version", "server_version"],
       desktop_upgrade_gate_shown: ["desktop_app_version", "required_desktop_version"],
-      artifact_skill_prompt_copy_clicked: ["artifact_skill"],
     });
   });
 
@@ -143,12 +141,6 @@ describe("client signal validation (^t-signal-validation)", () => {
       validateClientSignal(signal("update_toast_shown", { server_version: "not a version", channel_version: "1.2.3" }), CLIENT_ID),
     ).toBeNull();
     expect(validateClientSignal(signal("client_autoreloaded", { from_version: "1.2.3-beta.1" }), CLIENT_ID)).toBeNull();
-    expect(
-      validateClientSignal(
-        signal("artifact_skill_prompt_copy_clicked", { artifact_skill: "alice-private-skill" }),
-        CLIENT_ID,
-      ),
-    ).toBeNull();
   });
 
   it("rejects non-string property values, including string-coercible ones", () => {

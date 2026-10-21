@@ -521,6 +521,39 @@ describe("artifact-frame view rendering dispatcher", () => {
     window.history.replaceState(null, "", "/");
   });
 
+  // proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-state
+  it.each([false, true])("selects transparency from path and URL metadata in full-screen=%s without changing the document", async (fullScreen) => {
+    const artifacts: Artifact[] = [
+      { id: "transparent-path", kind: "path", title: "Local clock", path: "/tmp/clock.html" },
+      { id: "transparent-url", kind: "url", title: "Shared clock", url: "https://producer.test/artifact/shared/" },
+    ];
+    for (const artifact of artifacts) {
+      for (const initiallyTransparent of [false, true]) {
+        const host = mountFrameContract({
+          artifact: initiallyTransparent ? { ...artifact, transparent: true } : artifact,
+          application: createApplication(),
+          fullScreen,
+        });
+        await flush();
+        const document = frame(host);
+        const target = document.getAttribute("src");
+        const root = host.querySelector(".artifact-frame")!;
+        expect(root.classList.contains("artifact-frame-transparent")).toBe(initiallyTransparent);
+        for (const transparent of [true, false, true]) {
+          host.artifact = transparent ? { ...artifact, transparent: true } : { ...artifact };
+          await flush();
+          expect(root.classList.contains("artifact-frame-transparent")).toBe(transparent);
+          expect(root.hasAttribute("full-screen")).toBe(fullScreen);
+          expect(host.querySelector(".artifact-title")?.textContent).toBe(artifact.title);
+          expect(frame(host)).toBe(document);
+          expect(document.getAttribute("title")).toBe(artifact.title);
+          expect(document.getAttribute("src")).toBe(target);
+        }
+        host.remove();
+      }
+    }
+  });
+
   // proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-pointer-host
   // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-pointer
   it("relays only current artifact pointer input to theme frames in application coordinates", async () => {

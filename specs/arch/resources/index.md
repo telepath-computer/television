@@ -1,4 +1,4 @@
-*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with the artifact record's fields and save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
+*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with artifact-record save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
 
 # Resource architecture
 
@@ -13,7 +13,7 @@ This spec owns the *resource layer*: the part of Television every resource type 
 | this spec | the layer, as above |
 | [sdk.md](./sdk.md) | the browser module at `/sdk/v1/resources.js`: its build, serving, the layer's functions, the connection status and the connection client |
 | [json-store.md](./json-store.md) | the `json` type: paths, values and operations, write application, transactions, subscriptions, local writes in the SDK, its content file and limits, and its CLI verbs |
-| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill, and the `tv-tasks` skill's use of a JSON store |
+| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill |
 
 The *resource SDK* is the browser module; the *page connection* is defined below.
 
@@ -75,19 +75,9 @@ An artifact *has a store* when it is a path artifact whose ID has the form Telev
 
 An artifact's *own store* is the store its record's `store` points to. Its owner is bound to it at `read-write` implicitly, for as long as the pointer stands: the bindings file never holds that binding, and binding and unbinding refuse it with `owner-binding`. The layer reports it among a store's bindings in `info`, among an artifact's stores in `list --artifact` and, with the flag on, among the stores a page's `listResources` and `getResourceInfo` report. A page's opening state and the `bound` and `unbound` events never carry it: it begins with the store's first write and ends with the pointer. ^rs-own-store-binding
 
-**Buffer: the artifact record.** The artifact record and its registry are otherwise code-authoritative (`packages/server/src/server-store.ts`; [product/artifacts.md](../../product/artifacts.md)). This buffer makes authoritative only what the resource layer relies on: ^rs-artifact-record
+**Artifact-record saves.** The [artifact-record spec](../artifacts/index.md#^ar-record) owns the complete record type, including `store` and `share`. This spec owns the save rules that protect the store pointer and share link: ^rs-artifact-record
 
-```ts
-// The artifact record's resource fields; a record without them has no store yet and is not shared.
-interface ArtifactRecordResourceFields {
-  store?: ResourceID;                              // the artifact's store, from its first write
-  share?: { id: string; access: AccessLevel };     // the artifact's share link
-}
-```
-
-- Every rewrite of a record and every deletion of one follows [the storage rule](#^rs-storage), including [the uncertain-save rule](#^rs-arch-uncertain-save): an uncertain rewrite takes the record it reads back as current, and an uncertain deletion that finds the file gone takes the artifact as deleted. A record carries promises to the store's writers and the link's holders, and any rewrite, such as a title change, replaces the whole record, so every record write needs the durability of the data. The server applies one artifact's record changes one at a time, each on the record as it stands after the last.
-- Artifact records have no version. A record without `store` or `share` is valid: it records an artifact whose store has never been written and that has no share link, as does every record an earlier release wrote.
-- The record's API and event shapes carry the two fields as the record does, so a token holder sees an artifact's store's resource ID and its share link.
+Every rewrite of a record and every deletion of one follows [the storage rule](#^rs-storage), including [the uncertain-save rule](#^rs-arch-uncertain-save): an uncertain rewrite takes the record it reads back as current, and an uncertain deletion that finds the file gone takes the artifact as deleted. A record carries promises to the store's writers and the link's holders, and any rewrite, such as a title change, replaces the whole record, so every record write needs the durability of the data. The server applies one artifact's record changes one at a time, each on the record as it stands after the last.
 
 **Share IDs.** A share ID is generated by the artifact ID generator. When the layer loads, it builds its map from share IDs to artifacts from the records the store loads. A newly generated artifact ID or share ID that equals an existing artifact ID or share ID is drawn again, in both directions. ^rs-share-ids
 
@@ -100,7 +90,7 @@ interface ArtifactRecordResourceFields {
 ## Storage
 
 ```text
-<home>/state/artifacts/<artifact-id>.json   the artifact record, with "store" and "share" when it has them
+<home>/state/artifacts/<artifact-id>.json   the artifact record
 <home>/resources/<type>/<resource-id>/
   manifest.json                             the resource's metadata
   …                                         the type's content files, such as a JSON store's content.json

@@ -36,6 +36,9 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## Artifact frame and bridge
 
 - *artifact* — a pointer to content, held externally or generated on the fly, displayed on the stage; where users interact with information and functionality that is not core to Television itself. Owned by [product/artifacts.md](product/artifacts.md).
+- *artifact template* — a reusable folder containing a working HTML page and optional starting data, copied to create an ordinary path artifact. Owned by [product/templates.md](product/templates.md), with its folder and scan contracts in [arch/templates/index.md](arch/templates/index.md). The unqualified *template* under spec terminology means a UI Liquid template, above.
+- *display options* — the width, height, full-screen state, and transparency setting a new artifact starts with, from the creation command, the template's manifest, or the defaults. Owned by [product/templates.md](product/templates.md#^artifact-template-display-options), with the type in [arch/layout/index.md](arch/layout/index.md#^ly-creation-display).
+- *transparent* (artifact) — an artifact whose own document is shown without the usual surface of the frame around it, for overlay-style documents. Owned by [product/artifacts.md](product/artifacts.md#^af-transparent).
 - *document* — an artifact's content as a browser shows it: a page in its own right, with its own styling, scripts, and history, rendered inside Television but not part of Television's own page. Owned by [product/artifacts.md](product/artifacts.md).
 - *icon* — a drawing from the interface's glyph vocabulary: carried by the `tv-icon` element in content, or consumed as a stencil token (`--icon-check`) where a stylesheet rule must draw it. Owned by [ui/foundation/icons/index.md](ui/foundation/icons/index.md).
 - *external page artifact* — an artifact added by an `http:` or `https:` URL that is not a shared artifact's; its URL points at an ordinary web page rather than a Television artifact. Owned by [product/artifacts.md](product/artifacts.md).
@@ -58,7 +61,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## App shell and channels
 
 - *channel* — the workspace unit a person keeps their work in, listed by the channel sidebar. Owned by [product/channels.md](product/channels.md); its sidebar presentation by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
-- *channel sidebar* — the narrow region down the window's left listing channels; always qualified — never bare "sidebar", a word the `tv-sidebar-view` artifact skill also uses. Owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
+- *channel sidebar* — the narrow region down the window's left listing channels; always qualified, never bare "sidebar". Owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md).
 - *channel switcher* — the collapsed navbar's trigger wearing the open channel's name, opening the channel switcher popover. Owned by [ui/app/top-bar/index.md](ui/app/top-bar/index.md).
 - *channel switcher popover* — the popover composing the channel list while the channel sidebar is collapsed. Owned by [ui/app/top-bar/index.md](ui/app/top-bar/index.md).
 - *pinned channels* — the channel sidebar's first group, in the order the user arranges them. Display owned by [ui/app/sidebar/index.md](ui/app/sidebar/index.md); pinning semantics by [product/channels.md](product/channels.md).

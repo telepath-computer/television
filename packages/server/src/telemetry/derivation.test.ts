@@ -22,10 +22,22 @@ import {
   deriveServerConfigProperties,
   deriveThemeProperties,
   deriveThemeSettingsProperties,
+  deriveTemplateUseProperties,
   deriveUserAgentProperties,
   normalizeInstalledByAgent,
 } from "./derivation.ts";
 import { telemetryVersion, THEME_STATES } from "./types.ts";
+
+// proofs/arch/telemetry/derivation.md#^t-template-classify
+describe("template-use telemetry derivation", () => {
+  it.each([
+    ["example", "cli", { source: "cli", template: "example" }],
+    ["custom-private-id", "ui", { source: "ui", template: "custom" }],
+  ] as const)("classifies %s without returning authored content", (id, source, expected) => {
+    expect(deriveTemplateUseProperties(id, source)).toEqual(expected);
+    expect(JSON.stringify(deriveTemplateUseProperties(id, source))).not.toContain("private-id");
+  });
+});
 
 describe("telemetry artifact derivation", () => {
   it.each([
@@ -462,6 +474,7 @@ describe("TV-755 theme settings derivation", () => {
   });
 });
 
+// proofs/arch/telemetry/derivation.md#^t-no-ugc-outputs
 describe("telemetry derivation no-UGC outputs", () => {
   it("returns only classifications, integers, and versions", () => {
     const sourceStrings = [
@@ -469,13 +482,14 @@ describe("telemetry derivation no-UGC outputs", () => {
       "index.html",
       "https://example.com/customer/alice?screen=roadmap",
       "alice-secret-theme",
+      "private-template-id",
       "Roadmap Screen",
       "mystery-client/private-screen-name",
       "custom-skills",
       "inactive-private-theme",
       "7.8.9-private",
     ];
-    const [privatePath, , privateUrl, themeName, , userAgent, customSkillPath] = sourceStrings;
+    const [privatePath, , privateUrl, themeName, templateID, , userAgent, customSkillPath] = sourceStrings;
     const customPort = DEFAULT_SERVER_PORT + 1;
     const outputs = [
       deriveArtifactProperties(createArtifact({ id: "ugc-path", kind: "path", title: "Roadmap Screen", path: privatePath! })),
@@ -494,6 +508,7 @@ describe("telemetry derivation no-UGC outputs", () => {
       deriveClientProperties({ clientApp: "desktop", userAgent, desktopAppVersion: telemetryVersion("0.1.170") }),
       deriveServerConfigProperties({ port: customPort, storagePath: privatePath!, authMode: "none", launchMode: "cli" }),
       deriveThemeProperties({ activeThemeName: themeName!, themeCount: 1 }),
+      deriveTemplateUseProperties(templateID!, "ui"),
       deriveThemeSettingsProperties({
         activeThemeName: themeName!,
         themes: [{
@@ -556,6 +571,7 @@ function isAllowedTelemetryValue(key: string, value: unknown): boolean {
     "custom",
     "daemon",
     "cli",
+    "ui",
     "browser",
     "desktop",
     "windows",

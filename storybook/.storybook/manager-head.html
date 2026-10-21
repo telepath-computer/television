@@ -1,0 +1,11 @@
+<!--
+  Storybook 10.6 shows its "What's new" dot on the settings button even with
+  core.disableWhatsNewNotifications set: the manager reads the setting from the
+  wrong place. Hide the dot until that is fixed upstream.
+-->
+<style>
+  button[aria-label="Settings"]::before,
+  button[aria-label="Settings"]::after {
+    display: none;
+  }
+</style>

@@ -29,7 +29,6 @@ import { configureTestMotion } from "./helpers.ts";
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..");
 const PRODUCTION_ASSETS = path.join(REPO_ROOT, "packages/server/assets/onboarding-channels");
 const DESIGN_ROOT = path.join(REPO_ROOT, "specs/ui/onboarding-artifacts");
-const SKILLS_BUILD = path.join(REPO_ROOT, "packages/skills/scripts/build.mjs");
 const CANONICAL_BUILD = path.join(
   REPO_ROOT,
   "packages/canonical/scripts/build-canonical.mjs",
@@ -58,15 +57,15 @@ test.beforeAll(async () => {
   test.setTimeout(180_000);
   workRoot = mkdtempSync(path.join(os.tmpdir(), "tv-onboarding-skill-assets-"));
   const contentRoot = path.join(workRoot, "onboarding-channels");
-  const skillsDist = path.join(workRoot, "skills-dist");
+  const skillsDist = path.join(workRoot, "onboarding-dist");
   const canonicalOutputRoot = path.join(workRoot, "canonical");
   const canonicalRoot = path.join(canonicalOutputRoot, "v2");
   const sdkRoot = path.join(workRoot, "sdk");
   cpSync(PRODUCTION_ASSETS, contentRoot, { recursive: true });
 
-  execFileSync(process.execPath, [SKILLS_BUILD], {
+  execFileSync("npm", ["--workspace", "@telepath-computer/television-skills", "run", "build"], {
     cwd: REPO_ROOT,
-    env: { ...process.env, TV_SKILLS_DIST_DIR: skillsDist },
+    env: { ...process.env, TV_ONBOARDING_COMPONENTS_DIST_DIR: skillsDist, TV_SKILLS_DIST_DIR: path.join(workRoot, "skills-dist") },
     stdio: "pipe",
   });
   execFileSync(

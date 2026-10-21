@@ -1,5 +1,6 @@
 import type { Artifact } from "@telepath-computer/television-artifact";
 import type { ResourceEvent } from "./resources/types.ts";
+import type { JSONValue } from "./resources/types.ts";
 
 export const TELEVISION_CLIENT_META_HEADER = "X-Television-Client-Meta";
 export const TELEMETRY_ACTIVITY_MESSAGE_TYPE = "telemetry-activity";
@@ -28,8 +29,7 @@ export type ClientSignalEventName =
   | "client_autoreloaded"
   | "update_toast_shown"
   | "update_prompt_copy_clicked"
-  | "desktop_upgrade_gate_shown"
-  | "artifact_skill_prompt_copy_clicked";
+  | "desktop_upgrade_gate_shown";
 
 /**
  * Client → server over the /events websocket, alongside the activity signal.
@@ -79,6 +79,46 @@ export type NewArtifact =
     };
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
+
+/** Starting artifact transparency and page size (in reference pixels) and mode. */
+export interface ArtifactDisplayOptions {
+  width?: number;
+  height?: number;
+  fullScreen?: boolean;
+  transparent?: boolean;
+}
+
+export interface ArtifactTemplate {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  display?: ArtifactDisplayOptions;
+  hasData: boolean;
+  hasThumbnail: boolean;
+  path: string;
+}
+
+export interface ArtifactTemplateScan {
+  templates: ArtifactTemplate[];
+  errors: { folder: string | null; error: string }[];
+}
+
+export interface CreateTemplateArtifactRequest {
+  templateID: string;
+  channelID: string;
+  title?: string;
+  data?: JSONValue;
+  display?: ArtifactDisplayOptions;
+  before?: string;
+  after?: string;
+  source: "cli" | "ui";
+}
+
+export interface CreateTemplateArtifactResult {
+  artifactID: string;
+  path: string;
+}
 /**
  * Where a created or moved artifact goes in its channel's order: immediately
  * before or after a named artifact there, or at the end when neither is given
@@ -124,6 +164,7 @@ export type ArtifactPatch = {
   title?: string;
   path?: string;
   url?: string;
+  transparent?: boolean;
 };
 
 /** Input DTO for `PATCH /channels/:id`. */

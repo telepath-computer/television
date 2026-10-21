@@ -13,7 +13,17 @@ test("the authored theme reference covers current application authorities", () =
   const authorities = [
     // The document root marker is owned by the app composition prose.
     "specs/ui/app/index.md",
-    ...globSync("specs/ui/app/**/*", { cwd: root }).filter(file => /\.(frame|css)$/.test(file)),
+    ...globSync("specs/ui/app/**/*", { cwd: root })
+      .filter(file => /\.(frame|css)$/.test(file))
+      .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
+    // The retired frame above is replaced by this pilot's authored states.
+    "storybook/spec/templates-popover/templates-popover.stories.ts",
+    "storybook/spec/templates-popover/templates-popover.mdx",
+    "storybook/spec/templates-popover/styles.css",
+    // Artifact-frame authority adds its transparent states to the base frame.
+    "storybook/spec/artifact-frame/artifact-frame.stories.ts",
+    "storybook/spec/artifact-frame/artifact-frame.mdx",
+    "storybook/spec/artifact-frame/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);
   const contents = sources.map(([, source, digest]) => {
