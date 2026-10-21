@@ -508,7 +508,12 @@ export class Stage extends View<[
   };
 
   readonly #onResizeCaptureLost = (event: PointerEvent): void => {
-    if (event.pointerId === this.#activeResize?.pointerId) this.#finishResize(false);
+    const gesture = this.#activeResize;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    // Pending capture loss carries the triggering event's position, before
+    // its pointermove can update the gesture.
+    gesture.lastPointer = { x: event.clientX, y: event.clientY };
+    this.#finishResize(false);
   };
 
   readonly #onResizeKeyChange = (event: KeyboardEvent): void => {

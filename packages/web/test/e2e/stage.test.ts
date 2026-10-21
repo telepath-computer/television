@@ -910,6 +910,76 @@ test.describe("stage page sizing", () => {
     }
   }
 
+  test("capture loss delivered at a new position over the grabbed handle retains the transparent hover state (^st-ac-frame-resizing)", async ({ page }) => {
+    await page.setViewportSize({ width: 1_200, height: 900 });
+    await page.goto(`${FIXTURE}?transparent=artifact-b`);
+    await waitForStage(page, true);
+    await (await startMotionObservation(page, ".stage")).settle();
+    await settleStage(page);
+    const before = await report(page);
+    if (!before.geometry) throw new Error("Expected initial page geometry");
+    const frame = page.locator(".page[selected] .artifact-frame");
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("Expected the transparent frame to have a box");
+    const pointer = await resizePointer(page, "right");
+    const outer = { x: pointer.origin.x + 1, y: pointer.origin.y };
+    const away = { x: outer.x, y: 5 };
+    const delivery = await pointer.handle.evaluateHandle(handle => {
+      if (!(handle instanceof HTMLElement)) throw new Error("Expected an HTML resize handle");
+      const events: Array<{ type: string; x: number; y: number; trusted: boolean }> = [];
+      let pointerId: number;
+      handle.addEventListener("pointerdown", event => { pointerId = event.pointerId; }, { once: true });
+      for (const type of ["lostpointercapture", "pointermove", "pointerover", "pointerout"] as const) {
+        handle.addEventListener(type, event => {
+          events.push({ type, x: event.clientX, y: event.clientY, trusted: event.isTrusted });
+        });
+      }
+      return { events, release() { events.length = 0; handle.releasePointerCapture(pointerId); } };
+    });
+    const finishObservation = await observeResizeState(page);
+    await page.mouse.move(outer.x, outer.y);
+    expect(outer.x).toBeGreaterThan(box.x + box.width);
+    expect(away.y).toBeLessThan(box.y);
+    await expect(frame).toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, true);
+    await page.mouse.down();
+    await page.mouse.move(away.x, away.y);
+    await settleStage(page);
+    await expectHandleAt(page, away, false);
+    await expect(page.locator(".stage")).toHaveAttribute("resizing", "");
+    const during = await report(page);
+    expectClose(during.geometry!.page.width, before.geometry.page.width);
+    expectClose(during.geometry!.page.height, before.geometry.page.height);
+
+    // Preserve the page width so capture loss and the following move target
+    // the same handle. No boundary event can repair a stale hover decision.
+    await delivery.evaluate(state => state.release());
+    await page.mouse.move(outer.x, outer.y);
+    const events = await delivery.evaluate(state => state.events);
+    await delivery.dispose();
+    expect(events.map(event => event.type)).toEqual(["lostpointercapture", "pointermove"]);
+    for (const event of events) {
+      expectClose(event.x, outer.x);
+      expectClose(event.y, outer.y);
+      expect(event.trusted).toBe(true);
+    }
+    expect(await pointer.handle.evaluate((handle, point) => document.elementFromPoint(point.x, point.y) === handle, outer)).toBe(true);
+    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+    await expect(frame).toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, true);
+    const restored = await report(page);
+    expect(restored.geometry).toEqual(before.geometry);
+    expect(restored.pageUpdateCalls).toEqual([]);
+    expect(restored.snapOutlined).toBe(false);
+
+    // Check the cancellation before releasing the mouse for cleanup.
+    await page.mouse.up();
+    await page.mouse.move(5, 5);
+    await expect(frame).not.toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, false);
+    await finishObservation();
+  });
+
   test("Option suppresses a live corner magnet and armed release enters full-screen over the settled size", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });
     await page.goto(FIXTURE);
