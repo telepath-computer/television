@@ -16,7 +16,7 @@ describe("bundled Calendar package", () => {
     });
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ events: {} });
     const readme = readFileSync(path.join(folder, "README.md"), "utf8");
-    for (const guidance of ["`startDate`", "`days`", "`events/<key>`", "`allDay`", "`attendees`", "`highlight`", "tv resource json set", "tv-calendar"]) {
+    for (const guidance of ["`startDate`", "`days`", "`visibleHours`", "`events/<key>`", "`allDay`", "`attendees`", "`highlight`", "tv resource json set", "tv-calendar"]) {
       expect(readme).toContain(guidance);
     }
     // The page carries the spec stylesheet byte for byte, linked from the page

@@ -56,6 +56,9 @@ async function openCalendar(page: Page, data: CreateTemplateArtifactRequest["dat
   await page.goto(address);
   if (showsCalendar) await expect(page.locator("calendar-week")).toHaveAttribute("data-ready", "", { timeout: PAGE_READY_TIMEOUT_MS });
   await configureTestMotion(page, { allowCSSMotion });
+  // The events arrive in motion that the CSS-motion override leaves running;
+  // the case starts once it has finished, so what it measures has settled.
+  if (showsCalendar) await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)));
   return created.artifactID;
 }
 
@@ -270,12 +273,19 @@ test("attendees show as many whole names as fit and a count, and refit when the 
 test("one day has one column and shows a highlighted event raised without motion on load", async ({ page }) => {
   const data = structuredClone(day);
   data.events.launch.highlight = true;
+  // Every transition that starts on the page from its first moment.
+  await page.addInitScript(() => {
+    const started: string[] = [];
+    Object.assign(window, { transitionsStarted: started });
+    document.addEventListener("transitionrun", (transition) => started.push(transition.propertyName), true);
+  });
   await openCalendar(page, data, { allowCSSMotion: true });
   await expect(page.locator("calendar-headers > calendar-day")).toHaveCount(1);
   await expect(page.locator("calendar-grid > calendar-column")).toHaveCount(1);
   await expect(page.locator("calendar-headers .weekday")).toHaveText("Wednesday");
   await expect(event(page, "launch")).toHaveAttribute("highlight", "");
   expect(await event(page, "launch").locator(".event-block-inner").evaluate((block) => block.getAnimations().length)).toBe(0);
+  expect(await page.evaluate(() => (window as unknown as { transitionsStarted: string[] }).transitionsStarted)).toEqual([]);
   expect(await event(page, "launch").locator(".event-block-inner").evaluate((block) => getComputedStyle(block).transform)).not.toBe("none");
 });
 
@@ -385,6 +395,134 @@ test("days share the width down to 100 pixels, then scroll sideways under pinned
   await page.locator("calendar-week").evaluate((calendar) => { calendar.scrollLeft = 150; });
   await expect.poll(async () => (await header.boundingBox())!.x).toBeCloseTo(before.header - 150, 0);
   expect((await label.boundingBox())!.x).toBeCloseTo(before.label, 0);
+});
+
+interface HourView {
+  // The height of one hour.
+  hour: number;
+  // The bottom of the pinned day headers and all-day band, and the bottom of
+  // the calendar's visible area.
+  pinned: number;
+  bottom: number;
+  // Each hour label's box; the label is centred on its hour line.
+  labels: { top: number; bottom: number; height: number; line: number }[];
+}
+
+/** Where the hours sit in the calendar's view, in page pixels. */
+const hourView = (page: Page): Promise<HourView> => page.locator("calendar-week").evaluate((calendar) => {
+  const pinned = (calendar.querySelector("calendar-allday") ?? calendar.querySelector("calendar-headers"))!.getBoundingClientRect().bottom;
+  const labels = [...calendar.querySelectorAll(".hour-label")].map((label) => {
+    const { top, bottom, height } = label.getBoundingClientRect();
+    return { top, bottom, height, line: top + height / 2 };
+  });
+  return {
+    hour: calendar.querySelector("calendar-grid")!.getBoundingClientRect().height / 24,
+    pinned,
+    bottom: calendar.getBoundingClientRect().top + calendar.clientHeight,
+    labels,
+  };
+});
+
+/**
+ * Whether the hours from `start` to `end` fill the view below the pinned
+ * rows: the first and last hour labels show whole, with no more than a
+ * label's height to spare at the top and the bottom.
+ */
+async function fillsView(page: Page, start: number, end: number): Promise<boolean> {
+  const { pinned, bottom, labels } = await hourView(page);
+  const first = labels[start]!;
+  const last = labels[end]!;
+  const slack = 2;
+  return first.top >= pinned && first.line - pinned <= first.height + slack
+    && last.bottom <= bottom && bottom - last.line <= last.height + slack;
+}
+
+/** The first hour whose label shows whole below the pinned rows, and where its line sits. */
+async function topHour(page: Page): Promise<{ hour: number; line: number }> {
+  const { pinned, labels } = await hourView(page);
+  const hour = labels.findIndex((label) => label.top >= pinned);
+  return { hour, line: labels[hour]!.line };
+}
+
+const hourHeight = async (page: Page) => (await hourView(page)).hour;
+
+// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+test("stored hours in view fill the height below the pinned rows, and keep filling it when the window resizes", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openCalendar(page, { ...week, visibleHours: { start: 9, end: 18 } });
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+  // The other hours stay above and below the range.
+  await expect(page.locator("calendar-time-axis .hour-label")).toHaveCount(24);
+  expect(await page.locator("calendar-week").evaluate((calendar) => calendar.scrollTop)).toBeGreaterThan(0);
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+  await page.setViewportSize({ width: 1000, height: 960 });
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+});
+
+// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+test("hours in view keep filling the view when the all-day band goes and comes back", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openCalendar(page, { ...week, visibleHours: { start: 9, end: 18 } });
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+  const allDay = Object.entries(week.events).filter(([, value]) => value.allDay);
+  for (const [key] of allDay) await write(page, `events/${key}`, undefined);
+  await expect(page.locator("calendar-allday")).toHaveCount(0);
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+  const [key, value] = allDay[0]!;
+  await write(page, `events/${key}`, value);
+  await expect(page.locator("calendar-allday")).toHaveCount(1);
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+});
+
+// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+test("an hour in view is never shorter than 16 pixels", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 500 });
+  await openCalendar(page, { ...week, visibleHours: { start: 0, end: 24 } });
+  await expect.poll(() => hourHeight(page)).toBeCloseTo(16, 1);
+});
+
+// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+test("hours in view written to an open calendar fill it, and removing them returns the usual hour height with the top hour kept", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openCalendar(page, week);
+  const usual = await hourHeight(page);
+  await write(page, "visibleHours", { start: 9, end: 18 });
+  await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+  expect(await hourHeight(page)).not.toBeCloseTo(usual, 0);
+  const before = await topHour(page);
+  expect(before.hour).toBe(9);
+  await write(page, "visibleHours", undefined);
+  await expect.poll(() => hourHeight(page)).toBeCloseTo(usual, 1);
+  const after = await topHour(page);
+  expect(after.hour).toBe(before.hour);
+  expect(after.line).toBeCloseTo(before.line, 0);
+});
+
+// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours-invalid
+test("hours in view the page cannot read are treated as absent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openCalendar(page, week);
+  const usual = await hourHeight(page);
+  for (const [label, value] of [
+    ["a start that is not a whole hour", { start: 9.5, end: 18 }],
+    ["a start before midnight", { start: -1, end: 18 }],
+    ["an end after midnight", { start: 9, end: 25 }],
+    ["an end equal to the start", { start: 12, end: 12 }],
+    ["an end before the start", { start: 18, end: 9 }],
+    ["no end", { start: 9 }],
+    ["hours written as strings", { start: "9", end: "18" }],
+    ["a list", [9, 18]],
+    ["a string", "9-18"],
+  ] as const) {
+    await test.step(label, async () => {
+      await write(page, "visibleHours", { start: 9, end: 18 });
+      await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
+      await write(page, "visibleHours", value);
+      await expect.poll(() => hourHeight(page)).toBeCloseTo(usual, 1);
+    });
+  }
+  await expect(errorPage(page)).toHaveCount(0);
 });
 
 // proofs/ui/templates/calendar/index.md#^calendar-ac-now

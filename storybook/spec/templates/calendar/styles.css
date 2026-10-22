@@ -712,3 +712,60 @@ calendar-week[data-ready] calendar-event[highlight] .event-block-inner {
     transition: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Range slide                                                         */
+/* ------------------------------------------------------------------ */
+
+/* A new start date slides the days sideways as a view transition. The days
+   and each hour label in view are captured on their own, so the days move
+   while the hour labels stay put; the names apply only while a slide is
+   under way. The old days and the new travel together as one strip, each
+   image dropping its blank gutter, and the strip stays within the days' own
+   area. */
+:root[data-calendar-move] calendar-week {
+  view-transition-name: calendar-days;
+}
+
+:root[data-calendar-move]::view-transition-group(calendar-days) {
+  clip-path: inset(0 0 0 var(--calendar-move-gutter));
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-days),
+:root[data-calendar-move]::view-transition-new(calendar-days) {
+  animation: none;
+  mix-blend-mode: normal;
+  clip-path: inset(0 0 0 var(--calendar-move-gutter));
+}
+
+/* When the month or year changes too, the title is captured on its own: the
+   old title fades out, then the new one fades in, each at its own size, and
+   the two never show together. */
+:root[data-calendar-move="month"] #range-label {
+  view-transition-name: calendar-month;
+}
+
+:root[data-calendar-move]::view-transition-group(calendar-month) {
+  animation: none;
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-month),
+:root[data-calendar-move]::view-transition-new(calendar-month) {
+  inline-size: auto;
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-month) {
+  animation: calendar-month-out 160ms ease both;
+}
+
+:root[data-calendar-move]::view-transition-new(calendar-month) {
+  animation: calendar-month-in 160ms ease 160ms both;
+}
+
+@keyframes calendar-month-out {
+  to { opacity: 0; }
+}
+
+@keyframes calendar-month-in {
+  from { opacity: 0; }
+}

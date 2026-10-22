@@ -6,6 +6,10 @@
 // events. They turn times into the custom properties that place a block on
 // the grid; everything a person reads, such as the time text, the fitted
 // attendee names and an event's overlap column, is written in the story.
+//
+// The motion stories each play one kind of change after rendering, with the
+// motion written in the Motion section below and the view-transition rules
+// in styles.css; each ends in the state after its last change.
 
 import "../../../../specs/ui/foundation/index.css";
 import "./styles.css";
@@ -63,8 +67,11 @@ interface Args {
   allDay: AllDayEvent[];
   events: TimedEvent[];
   // The hour the calendar first scrolls to: an hour before the earliest
-  // timed event, or 8 AM with none.
+  // timed event, or 8 AM with none, or the first hour in view.
   startHour: number;
+  // The hours that fill the view, from `start` up to `end`; absent for
+  // hours of the usual height.
+  visibleHours?: { start: number; end: number };
   // The current time on today's column, or null when today is not shown.
   now: { time: string; label: string } | null;
   // The stored data breaks the store contract, so the page shows its error
@@ -139,7 +146,7 @@ const nowLine = (now: NonNullable<Args["now"]>, days: Day[]) => {
     <div class="now-label" style="--y-fraction: ${fraction(now.time)};"><span>${now.label}</span></div>`;
 };
 
-const render = ({ theme, month, year, days, allDay, events, startHour, now, unreadable }: Args) => {
+const render = ({ theme, month, year, days, allDay, events, startHour, visibleHours, now, unreadable }: Args) => {
   // The theme goes on the document, as in an artifact. Docs pages render each
   // story in its own frame, so stories don't share it.
   document.documentElement.dataset.theme = theme;
@@ -157,7 +164,7 @@ const render = ({ theme, month, year, days, allDay, events, startHour, now, unre
   <header class="masthead">
     <h1 id="range-label">${month} <span class="year">${year}</span></h1>
   </header>
-  <calendar-week id="calendar" days="${days.length}" start-date="${days[0]!.date}" data-ready style="--day-count: ${days.length}; --start-hour: ${startHour};${lanes > 0 ? ` --allday-lane-count: ${lanes};` : ""}">
+  <calendar-week id="calendar" days="${days.length}" start-date="${days[0]!.date}"${visibleHours ? html` start-hour="${visibleHours.start}"` : ""} data-ready style="--day-count: ${days.length}; --start-hour: ${startHour};${lanes > 0 ? ` --allday-lane-count: ${lanes};` : ""}">
     <calendar-headers>${days.map((day, index) => html`
       <calendar-day date="${day.date}"${day.weekend ? html` data-weekend` : ""}${day.today ? html` data-today` : ""} style="--day-index: ${index + 1};"><span class="weekday">${day.weekday}</span><span class="date-num">${Number(day.date.split("-")[2])}</span></calendar-day>`)}
     </calendar-headers>${lanes === 0 ? "" : html`
@@ -182,14 +189,375 @@ const render = ({ theme, month, year, days, allDay, events, startHour, now, unre
 
 type Play = { canvasElement: HTMLElement };
 
+const pinnedHeight = (week: HTMLElement) =>
+  (week.querySelector<HTMLElement>("calendar-headers")?.offsetHeight ?? 0)
+  + (week.querySelector<HTMLElement>("calendar-allday")?.offsetHeight ?? 0);
+
 // On first load the page scrolls the hours so the start hour's line sits
 // just below the day headers and the all-day band.
 const scrollToStartHour = ({ canvasElement }: Play) => {
   const week = canvasElement.querySelector<HTMLElement>("calendar-week")!;
   const marker = week.querySelector<HTMLElement>(".start-hour-marker")!;
-  const pinned = (week.querySelector<HTMLElement>("calendar-headers")?.offsetHeight ?? 0)
-    + (week.querySelector<HTMLElement>("calendar-allday")?.offsetHeight ?? 0);
-  week.scrollTop = marker.getBoundingClientRect().top - week.getBoundingClientRect().top - pinned - START_HOUR_OFFSET_PX;
+  week.scrollTop += marker.getBoundingClientRect().top - week.getBoundingClientRect().top - pinnedHeight(week) - START_HOUR_OFFSET_PX;
+};
+
+// With hours in view, each hour is as tall as fills the height below the
+// pinned rows with the range, leaving room for its first and last labels,
+// and the calendar scrolls to the first.
+const MIN_HOUR_PX = 16;
+
+type Hours = NonNullable<Args["visibleHours"]>;
+
+const hourHeight = (week: HTMLElement) => week.querySelector<HTMLElement>("calendar-grid")!.offsetHeight / HOURS_PER_DAY;
+
+/**
+ * The hour height and scroll that show `hours`; with none, the usual hour
+ * height, keeping the hour at the top of the view where it is.
+ */
+const hoursTarget = (week: HTMLElement, hours: Hours | null) => {
+  if (hours) {
+    const height = Math.max(MIN_HOUR_PX, (week.clientHeight - pinnedHeight(week) - 2 * START_HOUR_OFFSET_PX) / (hours.end - hours.start));
+    return { height, scroll: hours.start * height - START_HOUR_OFFSET_PX };
+  }
+  const topHour = (week.scrollTop + START_HOUR_OFFSET_PX) / hourHeight(week);
+  const shown = week.style.getPropertyValue("--hour-min-height");
+  week.style.removeProperty("--hour-min-height");
+  const height = hourHeight(week);
+  week.style.setProperty("--hour-min-height", shown);
+  return { height, scroll: topHour * height - START_HOUR_OFFSET_PX };
+};
+
+/** Draws the hours at a height, and scrolls them. */
+const setHours = (week: HTMLElement, height: number, scroll: number) => {
+  week.style.setProperty("--hour-min-height", `${height}px`);
+  week.scrollTop = scroll;
+};
+
+/** Sizes and scrolls the hours so the story's hours in view fill it. */
+const fitHours = ({ canvasElement }: Play, hours: Hours) => {
+  const week = canvasElement.querySelector<HTMLElement>("calendar-week")!;
+  const { height, scroll } = hoursTarget(week, hours);
+  setHours(week, height, scroll);
+};
+
+// ------------------------------------------------------------------
+// Motion
+// ------------------------------------------------------------------
+
+// A motion story renders the calendar before a change. Its play function
+// waits, then makes the change an agent's store write would make, and moves
+// it into place; it ends with the calendar settled after the change.
+
+// How long each state shows before the next change.
+const PAUSE_MS = 1200;
+
+const ARRIVE: Keyframe[] = [
+  { opacity: 0, scale: "0.92", translate: "0 6px" },
+  { opacity: 1, scale: "1", translate: "0 0" },
+];
+const ARRIVE_MS = 520;
+const ARRIVE_EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+const STAGGER_MS = 40;
+const STAGGER_MAX_MS = 360;
+
+const LEAVE: Keyframe[] = [
+  { opacity: 1, scale: "1" },
+  { opacity: 0, scale: "0.94" },
+];
+const LEAVE_MS = 260;
+const LEAVE_EASE = "cubic-bezier(0.4, 0, 1, 1)";
+
+const GLIDE_MS = 450;
+// A change smaller than this is not drawn as a glide.
+const MIN_MOVE_PX = 0.5;
+const GLIDE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+const DAY_FADE_MS = 450;
+const DAY_FADE_EASE = "ease";
+
+const SLIDE_MS = 520;
+const SLIDE_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+const HOURS_MS = 520;
+const HOURS_EASE = "cubic-bezier(0.32, 0.72, 0, 1)";
+
+// The day parts that move with their day, keyed by kind and date.
+const DAY_PARTS = "calendar-headers > calendar-day, calendar-allday > calendar-cell, calendar-grid > calendar-column";
+const dayKey = (part: Element) => `${part.localName} ${part.getAttribute("date")}`;
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const settled = async (animations: Animation[]) => { await Promise.allSettled(animations.map((animation) => animation.finished)); };
+const innerOf = (event: Element) => event.querySelector<HTMLElement>(":scope > .event-block > .event-block-inner")!;
+
+/** A CSS cubic-bezier() timing curve as a function of progress, from 0 to 1. */
+const BISECTION_STEPS = 24;
+const timingCurve = (curve: string) => {
+  const [x1, y1, x2, y2] = curve.match(/[\d.]+/g)!.map(Number) as [number, number, number, number];
+  const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
+  const along = (p1: number, p2: number, t: number) =>
+    lerp(lerp(lerp(0, p1, t), lerp(p1, p2, t), t), lerp(lerp(p1, p2, t), lerp(p2, 1, t), t), t);
+  return (progress: number) => {
+    let low = 0;
+    let high = 1;
+    for (let step = 0; step < BISECTION_STEPS; step += 1) {
+      const middle = (low + high) / 2;
+      if (along(x1, x2, middle) < progress) low = middle;
+      else high = middle;
+    }
+    return along(y1, y2, (low + high) / 2);
+  };
+};
+
+interface Box { left: number; top: number; width: number; height: number }
+
+/** Where an element's layout box sits inside a positioned ancestor, ignoring transforms. */
+const offsetIn = (element: HTMLElement, container: Element): Box => {
+  let left = 0;
+  let top = 0;
+  for (let node: Element | null = element; node && node !== container; node = (node as HTMLElement).offsetParent) {
+    left += (node as HTMLElement).offsetLeft;
+    top += (node as HTMLElement).offsetTop;
+  }
+  return { left, top, width: element.offsetWidth, height: element.offsetHeight };
+};
+
+interface Drawn {
+  element: HTMLElement;
+  // Where it is on screen, and its layout box in its container.
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  place: Box;
+  background: string;
+}
+
+const drawn = (element: HTMLElement, sized: HTMLElement = element): Drawn => {
+  const box = sized.getBoundingClientRect();
+  return {
+    element,
+    left: box.left,
+    top: box.top,
+    width: sized.offsetWidth,
+    height: sized.offsetHeight,
+    place: offsetIn(sized, element.parentElement!),
+    background: getComputedStyle(element).backgroundColor,
+  };
+};
+
+/** Where every event and day is drawn now, as the person sees it. */
+const measure = (week: HTMLElement) => ({
+  dayCount: week.querySelectorAll("calendar-headers > calendar-day").length,
+  events: new Map([...week.querySelectorAll<HTMLElement>("calendar-event")].map((event) => [event.dataset.key!, drawn(event, innerOf(event))])),
+  days: new Map([...week.querySelectorAll<HTMLElement>(DAY_PARTS)].map((part) => [dayKey(part), drawn(part)])),
+});
+
+/** Draws the page for `args` in place of the one shown, keeping the scroll position. */
+const redraw = (canvasElement: HTMLElement, args: Args) => {
+  const week = canvasElement.querySelector<HTMLElement>("calendar-week")!;
+  const { scrollTop, scrollLeft } = week;
+  canvasElement.querySelector("main")!.replaceWith(Document.parseHTMLUnsafe(String(render(args))).querySelector("main")!);
+  const next = canvasElement.querySelector<HTMLElement>("calendar-week")!;
+  next.scrollTop = scrollTop;
+  next.scrollLeft = scrollLeft;
+  return next;
+};
+
+/** Pins an element at a layout box inside its positioned container. */
+const pin = (element: HTMLElement, { left, top, width, height }: Box) =>
+  Object.assign(element.style, { position: "absolute", margin: "0", left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
+
+/** Glides an event from where it was drawn to where it now is. */
+const glide = (event: HTMLElement, from: Drawn) => {
+  const inner = innerOf(event);
+  const box = inner.getBoundingClientRect();
+  const to = { left: box.left, top: box.top, width: inner.offsetWidth, height: inner.offsetHeight };
+  const moved = [from.left - to.left, from.top - to.top, from.width - to.width, from.height - to.height].some((delta) => Math.abs(delta) >= MIN_MOVE_PX);
+  if (!moved) return [];
+  return [inner.animate([
+    { translate: `${from.left - to.left}px ${from.top - to.top}px`, width: `${from.width}px`, height: `${from.height}px` },
+    { translate: "0 0", width: `${to.width}px`, height: `${to.height}px` },
+  ], { duration: GLIDE_MS, easing: GLIDE_EASE })];
+};
+
+/** Plays the arrival of new events, in start order. */
+const arrive = (events: HTMLElement[]) => {
+  const ordered = [...events].sort((a, b) => (a.getAttribute("start") ?? "").localeCompare(b.getAttribute("start") ?? ""));
+  const step = ordered.length > 1 ? Math.min(STAGGER_MS, STAGGER_MAX_MS / (ordered.length - 1)) : 0;
+  return ordered.map((event, index) =>
+    innerOf(event).animate(ARRIVE, { duration: ARRIVE_MS, delay: index * step, easing: ARRIVE_EASE, fill: "backwards" }));
+};
+
+/** Draws an event no longer shown where it was, lets it leave, and removes it. */
+const leave = (week: HTMLElement, from: Drawn) => {
+  const container = week.querySelector(`:scope > ${from.element.parentElement!.localName}`);
+  if (!container) return [];
+  const event = from.element;
+  event.removeAttribute("data-key");
+  event.setAttribute("data-leaving", "");
+  Object.assign(event.querySelector<HTMLElement>(".event-block")!.style, { position: "absolute", inset: "0", padding: "0", gridArea: "auto" });
+  pin(innerOf(event), from.place);
+  container.append(event);
+  const animation = innerOf(event).animate(LEAVE, { duration: LEAVE_MS, easing: LEAVE_EASE, fill: "forwards" });
+  void animation.finished.finally(() => event.remove());
+  return [animation];
+};
+
+/**
+ * Moves the days to a new number of days: the days kept glide to their new
+ * columns, the headers keeping their size; new days fade in; and the days no
+ * longer shown fade out where they were.
+ */
+const moveDays = (week: HTMLElement, before: Map<string, Drawn>) => {
+  const animations: Animation[] = [];
+  const shown = new Set<string>();
+  for (const part of week.querySelectorAll<HTMLElement>(DAY_PARTS)) {
+    shown.add(dayKey(part));
+    const from = before.get(dayKey(part));
+    if (!from) {
+      animations.push(part.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DAY_FADE_MS, easing: DAY_FADE_EASE }));
+      continue;
+    }
+    const box = part.getBoundingClientRect();
+    const scale = part.localName === "calendar-day" ? 1 : from.width / box.width;
+    animations.push(part.animate([
+      { translate: `${from.left - box.left}px 0`, scale: `${scale} 1`, transformOrigin: "0 0" },
+      { translate: "0 0", scale: "1 1", transformOrigin: "0 0" },
+    ], { duration: GLIDE_MS, easing: GLIDE_EASE }));
+  }
+  for (const [key, from] of before) {
+    const container = week.querySelector(`:scope > ${from.element.parentElement!.localName}`);
+    if (shown.has(key) || !container) continue;
+    const part = from.element;
+    part.setAttribute("data-leaving", "");
+    Object.assign(part.style, { gridArea: "auto", backgroundColor: from.background });
+    pin(part, from.place);
+    container.append(part);
+    const animation = part.animate([{ opacity: 1 }, { opacity: 0 }], { duration: DAY_FADE_MS, easing: DAY_FADE_EASE, fill: "forwards" });
+    void animation.finished.finally(() => part.remove());
+    animations.push(animation);
+  }
+  return animations;
+};
+
+/**
+ * Changes the page to `args`, as a store write would, and moves the change
+ * into place: events that moved glide, new events arrive, removed events
+ * leave, and a new number of days moves the days. `redrawn` runs on the new
+ * calendar before anything moves.
+ */
+const change = async (canvasElement: HTMLElement, args: Args, redrawn?: (week: HTMLElement) => void) => {
+  if (reducedMotion()) {
+    redrawn?.(redraw(canvasElement, args));
+    return;
+  }
+  const before = measure(canvasElement.querySelector<HTMLElement>("calendar-week")!);
+  const week = redraw(canvasElement, args);
+  redrawn?.(week);
+  const animations: Animation[] = [];
+  const arriving: HTMLElement[] = [];
+  for (const event of week.querySelectorAll<HTMLElement>("calendar-event")) {
+    const from = before.events.get(event.dataset.key!);
+    if (from) animations.push(...glide(event, from));
+    else arriving.push(event);
+  }
+  animations.push(...arrive(arriving));
+  for (const [key, from] of before.events) {
+    if (!week.querySelector(`calendar-event[data-key="${key}"]`)) animations.push(...leave(week, from));
+  }
+  if (before.dayCount !== args.days.length) animations.push(...moveDays(week, before.days));
+  await settled(animations);
+};
+
+// Each hour label in view is captured on its own, so it stays put while the
+// days slide. Labels scrolled away, or under the pinned headers, stay in the
+// days' capture, where the clip hides them.
+const nameHourLabels = (week: HTMLElement, named: boolean) => {
+  const top = week.querySelector("calendar-headers")!.getBoundingClientRect().bottom;
+  const { bottom } = week.getBoundingClientRect();
+  week.querySelectorAll<HTMLElement>(".hour-label").forEach((label, index) => {
+    const box = label.getBoundingClientRect();
+    label.style.viewTransitionName = named && box.top >= top && box.bottom <= bottom ? `calendar-hour-${index}` : "";
+  });
+};
+
+/**
+ * Changes the page to `args`, a new start date `shiftDays` from the one
+ * shown with the same number of days, sliding the days sideways: a move of
+ * up to the days shown slides by that many columns, a longer one by one
+ * width. When the title changes, the old one fades out and the new one in.
+ */
+const slide = async (canvasElement: HTMLElement, args: Args, shiftDays: number) => {
+  if (reducedMotion() || !document.startViewTransition) {
+    redraw(canvasElement, args);
+    return;
+  }
+  const root = document.documentElement;
+  const week = canvasElement.querySelector<HTMLElement>("calendar-week")!;
+  const column = week.querySelector<HTMLElement>("calendar-column")!.offsetWidth;
+  const distance = Math.sign(shiftDays) * Math.min(Math.abs(shiftDays), args.days.length) * column;
+  const titleChanges = canvasElement.querySelector("#range-label")!.textContent !== `${args.month} ${args.year}`;
+  root.style.setProperty("--calendar-move-gutter", getComputedStyle(week).getPropertyValue("--calendar-gutter"));
+  root.dataset.calendarMove = titleChanges ? "month" : "";
+  nameHourLabels(week, true);
+  const transition = document.startViewTransition(() => nameHourLabels(redraw(canvasElement, args), true));
+  await transition.ready;
+  const options = { duration: SLIDE_MS, easing: SLIDE_EASE };
+  root.animate({ transform: ["translateX(0)", `translateX(${-distance}px)`] }, { ...options, pseudoElement: "::view-transition-old(calendar-days)" });
+  root.animate({ transform: [`translateX(${distance}px)`, "translateX(0)"] }, { ...options, pseudoElement: "::view-transition-new(calendar-days)" });
+  await transition.finished;
+  delete root.dataset.calendarMove;
+  root.style.removeProperty("--calendar-move-gutter");
+  nameHourLabels(canvasElement.querySelector<HTMLElement>("calendar-week")!, false);
+};
+
+/**
+ * Changes the hours in view to `hours`, or to the usual hour height with
+ * none: the hours grow or shrink and the view scrolls with them.
+ */
+const moveHours = ({ canvasElement }: Play, hours: Hours | null, startHour: number) => new Promise<void>((resolve) => {
+  const week = canvasElement.querySelector<HTMLElement>("calendar-week")!;
+  if (hours) week.setAttribute("start-hour", String(hours.start));
+  else week.removeAttribute("start-hour");
+  week.style.setProperty("--start-hour", String(hours?.start ?? startHour));
+  const target = hoursTarget(week, hours);
+  const finish = () => {
+    if (hours) setHours(week, target.height, target.scroll);
+    else {
+      week.style.removeProperty("--hour-min-height");
+      week.scrollTop = target.scroll;
+    }
+    resolve();
+  };
+  if (reducedMotion()) {
+    finish();
+    return;
+  }
+  const from = { height: hourHeight(week), scroll: week.scrollTop };
+  const ease = timingCurve(HOURS_EASE);
+  const began = performance.now();
+  const frame = (now: number) => {
+    const progress = Math.min(1, Math.max(0, now - began) / HOURS_MS);
+    const eased = ease(progress);
+    setHours(week, from.height + (target.height - from.height) * eased, from.scroll + (target.scroll - from.scroll) * eased);
+    if (progress < 1) requestAnimationFrame(frame);
+    else finish();
+  };
+  requestAnimationFrame(frame);
+});
+
+// The run playing on each canvas, so that a rerun stops the one before it.
+const runs = new WeakMap<HTMLElement, object>();
+
+/** Plays each change in turn, after a pause, while the story has not been rerun. */
+const playChanges = async (context: Play, changes: ((context: Play) => Promise<void>)[]) => {
+  const run = {};
+  runs.set(context.canvasElement, run);
+  for (const next of changes) {
+    await wait(PAUSE_MS);
+    if (runs.get(context.canvasElement) !== run) return;
+    await next(context);
+  }
 };
 
 // ------------------------------------------------------------------
@@ -260,6 +628,95 @@ const sevenDayAllDay: AllDayEvent[] = [
 
 const fourFortyTwo = { time: "16:42", label: "4:42 PM" };
 
+// The attendees as fitted to the columns of a 1280-pixel artifact, with seven
+// days and with five.
+const sevenDayAttendees = { roadmap: "Alex, Priya, Jordan", design: "Alex, Priya, Jordan, Mei +1", workshop: "Alex, Priya, Jordan, Mei" };
+const fiveDayAttendees = { roadmap: "Alex, Priya, Jordan", design: "Alex, Priya, Jordan, Mei, Sam", workshop: "Alex, Priya, Jordan, Mei" };
+
+// The week's events with their attendees fitted to five columns of a
+// 1280-pixel artifact.
+const wideWeekAttendees: Record<string, string> = {
+  roadmap: "Alex, Priya +1",
+  budget: "Jordan, Alex",
+  design: "Alex, Priya, Jordan, Mei, Sam",
+  workshop: "Alex, Priya, Jordan, Mei",
+};
+const wideWeekEvents = weekEvents.map((event) => (event.key in wideWeekAttendees ? { ...event, attendees: wideWeekAttendees[event.key] } : event));
+
+const NINE_TO_SIX: Hours = { start: 9, end: 18 };
+
+// ------------------------------------------------------------------
+// Example data for motion
+// ------------------------------------------------------------------
+
+// A whole week with no today, as the motion stories start.
+const motionWeek = {
+  days: fullWeek(null),
+  allDay: sevenDayAllDay,
+  events: sevenDayEvents(sevenDayAttendees),
+  now: null,
+};
+
+// The same week's working days.
+const motionWorkingWeek = {
+  days: workingWeek,
+  allDay: sevenDayAllDay,
+  events: sevenDayEvents(fiveDayAttendees).filter((event) => workingWeek.some((day) => event.start.startsWith(day.date))),
+  now: null,
+};
+
+// The retrospective moves to Saturday morning and lengthens, beside the
+// farmers market, which narrows to share the time.
+const retroMoved = motionWeek.events.map((event) => {
+  if (event.key === "retro") return { ...event, start: "2026-11-07T10:00", end: "2026-11-07T11:30", time: range("10:00", "11:30 AM"), overlap: { column: 1, columns: 2 } };
+  if (event.key === "market") return { ...event, overlap: { column: 0, columns: 2 } };
+  return event;
+});
+
+// Weeks for the slide. Each date has its own events, so a day looks the same
+// wherever it is shown.
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const SUNDAY = 0;
+const SATURDAY = 6;
+
+type Plan = Pick<TimedEvent, "title" | "color" | "time" | "detail"> & { from: string; to: string };
+
+const checkIn: Plan = { title: "Team check-in", color: "blue", from: "09:00", to: "09:30", time: "9:00 AM" };
+const weekdayPlans: Plan[] = [
+  { title: "Roadmap review", color: "purple", from: "10:00", to: "11:30", time: range("10:00", "11:30 AM"), detail: "Room 4" },
+  { title: "Customer interview", color: "green", from: "13:00", to: "14:30", time: range("1:00", "2:30 PM"), detail: "Video call" },
+  { title: "Design review", color: "orange", from: "09:30", to: "11:00", time: range("9:30", "11:00 AM"), detail: "Final screens" },
+  { title: "Planning workshop", color: "red", from: "14:00", to: "16:00", time: range("2:00", "4:00 PM"), detail: "Main hall" },
+  { title: "Lunch with Sam", color: "yellow", from: "12:30", to: "13:30", time: range("12:30", "1:30 PM") },
+  { title: "Budget call", color: "blue", from: "11:00", to: "12:00", time: range("11:00 AM", "12:00 PM"), detail: "Video call" },
+];
+const weekendPlans: Plan[] = [
+  { title: "Farmers market", color: "yellow", from: "09:30", to: "11:00", time: range("9:30", "11:00 AM") },
+  { title: "Hike", color: "blue", from: "13:00", to: "16:00", time: range("1:00", "4:00 PM"), detail: "Ridge trail" },
+  { title: "Brunch", color: "orange", from: "10:30", to: "12:00", time: range("10:30 AM", "12:00 PM") },
+];
+
+const isoDate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+/** Seven days from a Monday, each with the events of its date. */
+const weekFrom = (monday: string) => {
+  const first = new Date(`${monday}T12:00:00`);
+  const dates = Array.from({ length: WEEKDAYS.length }, (_, index) => new Date(first.getFullYear(), first.getMonth(), first.getDate() + index));
+  const days: Day[] = dates.map((date) => ({
+    date: isoDate(date),
+    weekday: WEEKDAYS[date.getDay()]!,
+    ...(date.getDay() === SUNDAY || date.getDay() === SATURDAY ? { weekend: true } : {}),
+  }));
+  const events = dates.flatMap((date): TimedEvent[] => {
+    const weekend = date.getDay() === SUNDAY || date.getDay() === SATURDAY;
+    const plans = weekend ? [weekendPlans[date.getDate() % weekendPlans.length]!] : [checkIn, weekdayPlans[date.getDate() % weekdayPlans.length]!];
+    return plans.map(({ from, to, ...plan }, index) => ({ key: `${isoDate(date)}-${index}`, ...plan, start: `${isoDate(date)}T${from}`, end: `${isoDate(date)}T${to}` }));
+  });
+  return { month: MONTHS[first.getMonth()]!, year: String(first.getFullYear()), days, allDay: [], events, now: null };
+};
+
 // Each story's frame is the artifact: the shared starting size, a full-screen
 // artifact, or a narrow one. On the docs page each story renders in its own
 // frame.
@@ -275,6 +732,18 @@ const sized = (viewport: keyof typeof viewports) => ({
   parameters: { docs: { story: { height: viewports[viewport].styles.height } } },
 });
 
+const defaults: Args = {
+  theme: "light",
+  month: "November",
+  year: "2026",
+  days: workingWeek,
+  allDay: weekAllDay,
+  events: weekEvents,
+  startHour: DEFAULT_START_HOUR,
+  now: null,
+  unreadable: false,
+};
+
 export default {
   title: "Spec/Templates/Calendar",
   parameters: {
@@ -285,17 +754,7 @@ export default {
   globals: { viewport: { value: "artifact", isRotated: false } },
   render,
   play: scrollToStartHour,
-  args: {
-    theme: "light",
-    month: "November",
-    year: "2026",
-    days: workingWeek,
-    allDay: weekAllDay,
-    events: weekEvents,
-    startHour: DEFAULT_START_HOUR,
-    now: null,
-    unreadable: false,
-  } satisfies Args,
+  args: defaults,
 };
 
 // Five working days with all-day, timed, overlapping and short events.
@@ -330,7 +789,7 @@ export const SevenDays = {
   args: {
     days: fullWeek("2026-11-05"),
     allDay: sevenDayAllDay,
-    events: sevenDayEvents({ roadmap: "Alex, Priya, Jordan", design: "Alex, Priya, Jordan, Mei +1", workshop: "Alex, Priya, Jordan, Mei" }),
+    events: sevenDayEvents(sevenDayAttendees),
     now: fourFortyTwo,
   },
 };
@@ -395,3 +854,114 @@ export const Unreadable = { args: { unreadable: true }, play: () => {} };
 // The error page in the dark appearance.
 export const UnreadableDark = { name: "Unreadable, dark", args: { unreadable: true, theme: "dark" }, play: () => {} };
 
+// The working week with 9 AM to 6 PM filling a wide artifact.
+export const VisibleHours = {
+  name: "Hours in view",
+  ...sized("wide"),
+  args: { events: wideWeekEvents, startHour: NINE_TO_SIX.start, visibleHours: NINE_TO_SIX },
+  // The hours take their height, and the first scroll lands on the start hour.
+  play: (context: Play) => {
+    fitHours(context, NINE_TO_SIX);
+    scrollToStartHour(context);
+  },
+};
+
+// ------------------------------------------------------------------
+// Motion stories
+// ------------------------------------------------------------------
+
+// The calendar opens on an empty week; then its data arrives, and the events
+// arrive in order of start time.
+export const EventsArriving = {
+  name: "Events arriving",
+  ...sized("wide"),
+  args: { ...motionWeek, allDay: [], events: [] },
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      ({ canvasElement }) => change(canvasElement, { ...defaults, ...motionWeek }, () => scrollToStartHour(context)),
+    ]);
+  },
+};
+
+// The customer interview is removed.
+export const EventLeaving = {
+  name: "An event leaving",
+  ...sized("wide"),
+  args: motionWeek,
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      ({ canvasElement }) => change(canvasElement, { ...defaults, ...motionWeek, events: motionWeek.events.filter((event) => event.key !== "interview") }),
+    ]);
+  },
+};
+
+// The retrospective moves from Friday to Saturday, later and longer, and
+// the farmers market beside it narrows to share the time.
+export const EventMoving = {
+  name: "An event moving",
+  ...sized("wide"),
+  args: motionWeek,
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      ({ canvasElement }) => change(canvasElement, { ...defaults, ...motionWeek, events: retroMoved }),
+    ]);
+  },
+};
+
+const slideWeeks = { first: weekFrom("2026-11-02"), next: weekFrom("2026-11-09"), later: weekFrom("2026-12-14") };
+const WEEK_DAYS = 7;
+const FIVE_WEEKS_DAYS = 35;
+
+// `startDate` moves a week later, and the days slide one width to the left.
+// Then it moves five weeks later: the days still slide one width, and the
+// month changes.
+export const NewRangeOfDays = {
+  name: "A new range of days",
+  ...sized("wide"),
+  args: slideWeeks.first,
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      ({ canvasElement }) => slide(canvasElement, { ...defaults, ...slideWeeks.next }, WEEK_DAYS),
+      ({ canvasElement }) => slide(canvasElement, { ...defaults, ...slideWeeks.later }, FIVE_WEEKS_DAYS),
+    ]);
+  },
+};
+
+// `days` changes from seven to five: the weekend fades out and its events
+// leave as the working days widen. Then it changes back to seven: the
+// working days narrow, and the weekend fades in with its events arriving.
+export const NewNumberOfDays = {
+  name: "A new number of days",
+  ...sized("wide"),
+  args: motionWeek,
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      ({ canvasElement }) => change(canvasElement, { ...defaults, ...motionWorkingWeek }),
+      ({ canvasElement }) => change(canvasElement, { ...defaults, ...motionWeek }),
+    ]);
+  },
+};
+
+const NOON_TO_FIVE: Hours = { start: 12, end: 17 };
+
+// `visibleHours` is added as 9 AM to 6 PM, changed to noon to 5 PM, and
+// removed, which returns the hours to their usual height with noon kept at
+// the top.
+export const NewRangeOfHours = {
+  name: "A new range of hours",
+  ...sized("wide"),
+  args: motionWeek,
+  play: async (context: Play) => {
+    scrollToStartHour(context);
+    await playChanges(context, [
+      (next) => moveHours(next, NINE_TO_SIX, DEFAULT_START_HOUR),
+      (next) => moveHours(next, NOON_TO_FIVE, DEFAULT_START_HOUR),
+      (next) => moveHours(next, null, DEFAULT_START_HOUR),
+    ]);
+  },
+};

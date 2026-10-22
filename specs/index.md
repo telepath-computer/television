@@ -91,7 +91,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
     - `bundled-templates.md` (12 lines) — *The bundled artifact template inventory and shared rules.*
-    - `calendar.md` (34 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
+    - `calendar.md` (37 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `checklist.md` (36 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
@@ -177,7 +177,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **templates/**
-    - `calendar.mdx` (103 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
+    - `calendar.mdx` (165 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
     - `checklist.mdx` (127 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*

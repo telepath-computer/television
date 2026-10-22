@@ -55,8 +55,8 @@ function isDate(value) {
 /**
  * Whether the store value as a whole follows the store contract: an object
  * whose `events` is an object. A value that does not is shown as the error
- * page. A `startDate` or `days` the page cannot read is treated as absent,
- * and an unreadable event is left out.
+ * page. A `startDate`, `days` or `visibleHours` the page cannot read is
+ * treated as absent, and an unreadable event is left out.
  */
 function isReadable(value) {
   return isObject(value) && isObject(value.events);
@@ -109,8 +109,10 @@ function describeRange(startDate, days) {
   return sameMonth ? format.formatToParts(start) : format.formatRangeToParts(start, end);
 }
 
+const rangeLabelKeyOf = (parts) => parts.map((part) => `${part.type}:${part.value}`).join("|");
+
 function renderRangeLabel(parts) {
-  const key = parts.map((part) => `${part.type}:${part.value}`).join("|");
+  const key = rangeLabelKeyOf(parts);
   if (rangeLabelKey === key) return;
   rangeLabelKey = key;
   rangeLabel.replaceChildren(...parts.map((part) => {
@@ -128,7 +130,8 @@ let sliding = null;
 let latest = null;
 
 /**
- * Shows the calendar for a store value that follows the store contract. A
+ * Shows the calendar for a store value that follows the store contract. The
+ * first data replaces the empty week at once, and its events then arrive. A
  * new start date, with the same number of days, slides there once the
  * calendar is showing data.
  */
@@ -138,9 +141,16 @@ function render(store) {
   const days = isDayCount(store.days) ? store.days : MAX_DAYS;
   const startDate = startingDate(store.startDate, days);
   const previousStart = calendar.getAttribute("start-date");
-  if (showsData && calendar.hasAttribute("data-ready") && previousStart !== null && previousStart !== startDate && calendar.getAttribute("days") === String(days)) {
+  if (!showsData) {
+    const motion = calendar.motion;
+    calendar.motion = false;
+    showRange(days, startDate);
+    calendar.updateNow();
+    calendar.motion = motion;
+  } else if (calendar.hasAttribute("data-ready") && previousStart !== null && previousStart !== startDate && calendar.getAttribute("days") === String(days)) {
     const shift = Math.round((new Date(`${startDate}T12:00:00`) - new Date(`${previousStart}T12:00:00`)) / 86_400_000);
-    sliding = slide(calendar, shift, days, () => {
+    const titleChanges = rangeLabelKeyOf(describeRange(startDate, days)) !== rangeLabelKey;
+    sliding = slide(calendar, { shiftDays: shift, dayCount: days, titleChanges }, () => {
       calendar.sliding = true;
       apply(latest);
       calendar.updateNow();
@@ -183,11 +193,17 @@ function apply(store) {
     changed = true;
   }
 
+  const rangeChanged = showRange(days, startDate);
+  if (changed && !rangeChanged) calendar.refreshEvents();
+}
+
+/** Shows a range of days and its title; returns whether the range changed. */
+function showRange(days, startDate) {
   const rangeChanged = calendar.getAttribute("days") !== String(days) || calendar.getAttribute("start-date") !== startDate;
   setAttributeIfChanged(calendar, "days", String(days));
   setAttributeIfChanged(calendar, "start-date", startDate);
   renderRangeLabel(describeRange(startDate, days));
-  if (changed && !rangeChanged) calendar.refreshEvents();
+  return rangeChanged;
 }
 
 /** Puts the calendar, or the error page, in the main element. */
@@ -215,23 +231,26 @@ function showValue(value) {
 }
 
 // ------------------------------------------------------------------
-// Hours in view (prototype)
+// Hours in view
 // ------------------------------------------------------------------
 
-// `startHour` and `endHour`, whole hours from 0 to 24, choose the hours that
-// fill the view: the hours grow or shrink so that range fits the height, and
-// the view scrolls to its start. Every hour stays, so the rest of the day
-// scrolls into view. Without them, hours keep their usual height.
+// `visibleHours` chooses the hours that fill the view: the hours grow or
+// shrink so that range fits the height below the pinned rows, and the view
+// scrolls to its start. Every hour stays, so the rest of the day scrolls into
+// view. Without it, hours keep their usual height.
 const HOURS = 24;
 // Room above the first hour and below the last, so their labels show whole.
 const LABEL_ROOM_PX = 12;
 const MIN_HOUR_PX = 16;
 const ZOOM_MS = 520;
-let hoursKey = null;
+// The hours in view now, or null for the usual hour height.
+let hoursInView = null;
 let zoomFrame = 0;
 
+/** The hours a store value asks for, or null when `visibleHours` is absent or breaks the store contract. */
 function hoursOf(store) {
-  const { startHour: start, endHour: end } = store;
+  if (!isObject(store.visibleHours)) return null;
+  const { start, end } = store.visibleHours;
   return Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= HOURS && start < end ? { start, end } : null;
 }
 
@@ -258,7 +277,7 @@ function setHours(height, scroll) {
   calendar.scrollTop = scroll;
 }
 
-/** The ease of the other motion, cubic-bezier(0.32, 0.72, 0, 1), as a function of progress. */
+/** The curve the glides use, cubic-bezier(0.32, 0.72, 0, 1), as a function of progress. */
 function ease(progress) {
   const [x1, y1, x2, y2] = [0.32, 0.72, 0, 1];
   const curve = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
@@ -274,19 +293,22 @@ function ease(progress) {
 
 /** Shows the hours a store value asks for, moving there when `animate`. */
 function showHours(hours, animate) {
-  const key = hours ? `${hours.start}-${hours.end}` : null;
-  if (key === hoursKey) return;
-  hoursKey = key;
+  if (hours?.start === hoursInView?.start && hours?.end === hoursInView?.end) return;
+  hoursInView = hours;
   // The calendar's own first scroll lands on the start hour too.
   if (hours) calendar.setAttribute("start-hour", String(hours.start));
   else calendar.removeAttribute("start-hour");
+  // A change part-way through moves on from the hours as they are drawn.
   cancelAnimationFrame(zoomFrame);
-  requestAnimationFrame(() => {
+  zoomFrame = requestAnimationFrame(() => {
     const target = hoursTarget(hours);
     const finish = () => {
-      if (target.usual) calendar.style.removeProperty("--hour-min-height");
-      else setHours(target.height, target.scroll);
-      if (target.usual) calendar.scrollTop = target.scroll;
+      if (!target.usual) {
+        setHours(target.height, target.scroll);
+        return;
+      }
+      calendar.style.removeProperty("--hour-min-height");
+      calendar.scrollTop = target.scroll;
     };
     if (!animate || !motionAllowed()) {
       finish();
@@ -295,7 +317,7 @@ function showHours(hours, animate) {
     const from = { height: hourHeight(), scroll: calendar.scrollTop };
     const began = performance.now();
     const frame = (now) => {
-      const progress = Math.min(1, (now - began) / ZOOM_MS);
+      const progress = Math.min(1, Math.max(0, now - began) / ZOOM_MS);
       const eased = ease(progress);
       setHours(from.height + (target.height - from.height) * eased, from.scroll + (target.scroll - from.scroll) * eased);
       if (progress < 1) zoomFrame = requestAnimationFrame(frame);
@@ -307,11 +329,36 @@ function showHours(hours, animate) {
 
 // A new size keeps the chosen hours filling the view.
 new ResizeObserver(() => {
-  if (hoursKey === null) return;
-  const [start, end] = hoursKey.split("-").map(Number);
-  const target = hoursTarget({ start, end });
+  if (hoursInView === null) return;
+  const target = hoursTarget(hoursInView);
   setHours(target.height, target.scroll);
 }).observe(calendar);
+
+// When the all-day band comes, goes or changes height, the chosen hours move
+// to fill the new height below it.
+let fittedPinned = null;
+let observedBand = null;
+
+function refitHours() {
+  const pinned = pinnedHeight();
+  if (pinned === fittedPinned) return;
+  fittedPinned = pinned;
+  if (hoursInView === null) return;
+  const hours = hoursInView;
+  hoursInView = null;
+  showHours(hours, calendar.hasAttribute("data-ready"));
+}
+
+const bandObserver = new ResizeObserver(refitHours);
+new MutationObserver(() => {
+  const band = calendar.querySelector(":scope > calendar-allday");
+  if (band !== observedBand) {
+    if (observedBand) bandObserver.unobserve(observedBand);
+    if (band) bandObserver.observe(band);
+    observedBand = band;
+  }
+  refitHours();
+}).observe(calendar, { childList: true });
 
 function showError() {
   showsData = false;
