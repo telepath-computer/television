@@ -18,8 +18,8 @@ Working record for `feat/linked-templates`, branched from `feat/artifact-templat
 | Spec convergence | Done: round 1 PASS, three refinements applied, follow-up round 2 PASS with no new findings; committed at `bf195c7` |
 | Proof derivation | Complete for all 26 affected product, architecture and UI specs at `bf195c7`; 61 assertions remain `(test to be written)`; no ambiguous expected results found |
 | Proof convergence | Done: round 1 FAIL, round 2 FAIL, round 3 PASS with one generated-count fix applied |
-| Plan | Not started |
-| Implementation, red/green TDD | Not started |
+| Plan | Done: four slices; plan review round 1 PASS with no findings |
+| Implementation, red/green TDD | Slice 1 in progress |
 | Integrated result and full verification | Not started |
 | Pull request | Not opened |
 
