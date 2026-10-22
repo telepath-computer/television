@@ -62,7 +62,7 @@ or copy `packages/skills/dist/<name>/` there directly.
   source fragments under `src/` into `dist/SKILL.md` and emits the supporting
   `theming.md`, `resources.md`, and `templates.md` guides.
 
-The `tv-calendar` and `tv-tasks` source folders remain here for their browser
+The `tv-calendar` and `tv-tasks` source folders provide browser
 components. They build into `onboarding-dist/` and are not installed as agent
 skills. The `tv-table` source is also not part of the shipped skill collection.
 

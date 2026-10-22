@@ -129,6 +129,7 @@ describe("full CLI build asset copies", () => {
   // The e2e:node preCommand runs the real CLI build, including the server build.
   it("ships the complete bundled template tree byte-for-byte through both builds", () => {
     const source = path.join(REPO_ROOT, "packages/server/assets/templates");
+    expect(readdirSync(source)).toEqual(["checklist"]);
     expectByteIdenticalTree(source, path.join(REPO_ROOT, "packages/server/dist/templates"));
     expectByteIdenticalTree(source, path.join(CLI_DIST, "templates"));
   });
@@ -200,7 +201,7 @@ const resolverCases: Array<{
     builtPath: path.join(CLI_DIST, "templates"),
     devResolver: resolveBundledTemplatesPath,
     devPath: path.join(REPO_ROOT, "packages/server/assets/templates"),
-    requiredChildren: ["example/manifest.json", "example/index.html"],
+    requiredChildren: ["checklist/manifest.json", "checklist/index.html"],
   },
   {
     name: "bundled skills",

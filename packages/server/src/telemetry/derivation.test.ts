@@ -31,7 +31,11 @@ import { telemetryVersion, THEME_STATES } from "./types.ts";
 // proofs/arch/telemetry/derivation.md#^t-template-classify
 describe("template-use telemetry derivation", () => {
   it.each([
-    ["example", "cli", { source: "cli", template: "example" }],
+    ["checklist", "cli", { source: "cli", template: "checklist" }],
+    ["checklist", "ui", { source: "ui", template: "checklist" }],
+    ["example", "cli", { source: "cli", template: "custom" }],
+    ["Checklist", "ui", { source: "ui", template: "custom" }],
+    ["CHECKLIST", "cli", { source: "cli", template: "custom" }],
     ["custom-private-id", "ui", { source: "ui", template: "custom" }],
   ] as const)("classifies %s without returning authored content", (id, source, expected) => {
     expect(deriveTemplateUseProperties(id, source)).toEqual(expected);

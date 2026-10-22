@@ -90,7 +90,9 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **templates/**
     - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (63 lines) — *The bundled Example and Calendar artifact templates: their IDs, manifests, starting store values and store contracts, pages, and adapting-agent guidance.*
+    - `bundled-templates.md` (12 lines) — *The bundled artifact template inventory and shared rules.*
+    - `calendar.md` (34 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
+    - `checklist.md` (36 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
@@ -129,6 +131,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
     - `index.md` (117 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - `templates-popover.mdx` (68 lines) — *UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
     - **artifact-frame/**
       - `index.md` (66 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**
@@ -141,8 +144,6 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
       - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
-    - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, whose spec is piloted as Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
     - **stage/**
       - `index.md` (135 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
@@ -177,6 +178,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **templates/**
     - `calendar.mdx` (103 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
+    - `checklist.mdx` (127 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

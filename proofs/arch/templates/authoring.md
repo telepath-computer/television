@@ -6,7 +6,7 @@ Proves [specs/arch/templates/authoring.md](../../../specs/arch/templates/authori
 
 ## Coverage model
 
-The real skills build is the boundary: checks read its emitted `SKILL.md` and `templates.md`, then a guidance review checks that the instructions agree with the template and installation specs. This proves that an agent receives the document and the decisions it needs, including how to request starting display options and when to put them in a manifest. It does not repeat scanner or creation tests. [Making skills](../making-skills.md) owns general bundle membership and installation. No mechanism is mocked; the build input files are fixtures.
+The real skills build is the boundary: checks read its emitted `SKILL.md` and `templates.md`, then a guidance review checks that the instructions agree with the template and installation specs. This proves that an agent receives the document and the decisions it needs, including how to request starting display options and when to put them in a manifest. It does not repeat scanner or creation tests. Optional-image guidance follows the [Templates popover MDX spec](../../../specs/ui/app/templates-popover.mdx); the mandatory Checklist thumbnail and its adapting-agent README are covered by [Checklist architecture](./checklist.md). [Making skills](../making-skills.md) owns general bundle membership and installation. No mechanism is mocked; the build input files are fixtures.
 
 ## Test hooks
 

@@ -77,8 +77,10 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **templates/**
     - `authoring.md` (20 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
-    - `bundled-installation.md` (26 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
-    - `bundled-templates.md` (21 lines) — *Proves the shipped Example and Calendar templates' packages, starting values, and live page behavior.*
+    - `bundled-installation.md` (28 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
+    - `bundled-templates.md` (17 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
+    - `calendar.md` (18 lines) — *Proves the bundled Calendar package and its live page delivery.*
+    - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (38 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
@@ -96,7 +98,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `delivery.md` (87 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
   - **ui/**
-    - `conformance.md` (15 lines) — *How production UI conformance is checked while automated markup comparison is scheduled for TV-649.*
+    - `conformance.md` (19 lines) — *How production UI conformance is checked while automated markup comparison is scheduled for TV-649.*
     - `elements.md` (21 lines) — *How the promises in Elements are proven.*
     - `foundation.md` (32 lines) — *How the promises in Foundation architecture are proven.*
     - `index.md` (29 lines) — *How the promises in UI architecture are proven.*
@@ -127,14 +129,14 @@ Generated from the first-line description of every proof by `scripts/specs-index
       - `index.md` (27 lines) — *How the promises in Settings (UI) are proven.*
     - **sidebar/**
       - `index.md` (36 lines) — *How the promises in Channel sidebar (UI) are proven.*
-    - **skill-selector/**
-      - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **stage/**
       - `index.md` (47 lines) — *How the promises in Stage (UI) are proven.*
     - **system-modal/**
       - `index.md` (27 lines) — *Coverage of the dialog shown while Television cannot use its server, with real input for blocking behavior and native Electron dragging.*
     - **tab-strip/**
       - `index.md` (37 lines) — *How the promises in Tab strip (UI) are proven.*
+    - **templates-popover/**
+      - `index.md` (24 lines) — *Proves the Templates popover's search, highlight, creation, error, and accessibility behavior.*
     - **top-bar/**
       - `index.md` (62 lines) — *How the promises in Navbar (UI) are proven.*
     - **update-notification/**
@@ -164,6 +166,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **templates/**
     - **calendar/**
       - `index.md` (49 lines) — *Proves the Calendar template page's layout, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server.*
+    - **checklist/**
+      - `index.md` (62 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and the packaged stylesheet copy.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

@@ -192,7 +192,7 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
 </tv-popover>
 ```
 
-`.templates-popover` holds a fixed heading and search above the scrolling `.templates-body`. `.templates-grid` arranges the tiles in three columns. `.template-tile[data-highlighted]` and `.template-tile[data-pressed]` use the shared option tints; `.template-tile-card` crops a thumbnail or holds the artifact icon, and `.template-tile-name` truncates a long name. The search field stays focused while arrows move the active option. `.templates-empty` replaces the grid when no template matches, and `.templates-folder-error` replaces it when the folder cannot be read. `.templates-invalid` lists folder errors below the grid.
+`.templates-popover` holds a fixed heading and search above the scrolling `.templates-body`. `.templates-grid` arranges the tiles in three columns. `.template-tile[data-highlighted]` and `.template-tile[data-pressed]` use the shared option tints; `.template-tile-card` crops a thumbnail or holds the artifact icon, and `.template-tile-name` truncates a long name. `.templates-empty` replaces the grid when no template matches, and `.templates-folder-error` replaces it when the folder cannot be read. `.templates-invalid` lists folder errors below the grid.
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
@@ -266,9 +266,9 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: cbf92c6747eb93e6b8b16249062973c0209d0706b15f1a9d3b021af5f943f7c9 -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 71317d61da9f7185c93e3b5834a7a9bb65c26edbd562f44d2954d4880eb3558a -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 8ccd1d15f9f29d5cf099f1686fe9cfc8eeee976745302f80842223cd1de10bef -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 883d11f4d4fb0537a36fc63e88c70441b6f52f0c2fb9ae3ad21fb6abc9072bb6 -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.mdx sha256: 43753d5b97ab4632d5edc1db9a196ff707126ebdff55c7f007425a52eda05221 -->
+<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 3dbae1626a6335d1d0e5bd1bdbf6ff47cef7b0f8a617301abee54d7d35662a9c -->
+<!-- app-reference-source: specs/ui/app/templates-popover.mdx sha256: e80de3b35f036152251c1b4681ddc28b1b0fe9527dbea835ea16fae32195e8fd -->
 <!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->

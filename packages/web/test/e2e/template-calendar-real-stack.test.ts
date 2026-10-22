@@ -104,7 +104,7 @@ test("a new Calendar shows this week from Monday with today and the now line, an
   expect(errors).toEqual([]);
 });
 
-// proofs/arch/templates/bundled-templates.md#^templates-calendar-ac-live
+// proofs/arch/templates/calendar.md#^templates-calendar-ac-live
 test("a spawned tv write adds an event to the open page", async ({ page }) => {
   const artifactID = await openCalendar(page, week);
   await expect(page.locator('link[href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4"]')).toHaveCount(1);
