@@ -11,6 +11,7 @@
 // --column-span and --column-count on each calendar-event.
 import "./calendar-time-axis.js";
 import { createAttendeesLine, setAttendees } from "./calendar-attendees.js";
+import { leave, measure, motionAllowed, play } from "./calendar-motion.js";
 const HOUR_COUNT = 24;
 const DEFAULT_START_HOUR = 8;
 const NOW_LINE_INTERVAL_MS = 60_000;
@@ -32,6 +33,10 @@ const ALL_DAY_PLACEMENT_PROPERTIES = ["--day-start", "--day-span", "--lane-index
 /** Owns the day chrome and places authored calendar-event children. */
 class CalendarWeekElement extends HTMLElement {
   static observedAttributes = ["days", "start-date", "start-hour"];
+  /** Whether changes move into place; the page turns this on once it has drawn. */
+  motion = false;
+  /** Set while the page slides to a new range, which moves everything itself. */
+  sliding = false;
   #allDay = null;
   #days = 0;
   #grid = null;
@@ -192,6 +197,7 @@ class CalendarWeekElement extends HTMLElement {
     }
   }
   changed() {
+    const before = this.motion && !this.sliding && motionAllowed() ? measure(this) : null;
     const previousScrollTop = this.#didInitialScroll ? this.scrollTop : null;
     const events = this.#collectEvents();
     const range = resolveVisibleRange(this.startDate, this.days);
@@ -225,6 +231,7 @@ class CalendarWeekElement extends HTMLElement {
     this.#routeEvents(placements, range, allDayLaneCount);
     this.#renderNowLine();
     if (previousScrollTop !== null) this.scrollTop = previousScrollTop;
+    if (before) play(this, before);
     if (!this.#didInitialScroll) {
       this.#didInitialScroll = true;
       this.#scrollStartHourIntoView();
@@ -245,6 +252,19 @@ class CalendarWeekElement extends HTMLElement {
     this.#updateNeeded = true;
     this.#requestUpdate();
   }
+
+  /** Removes an event, letting it fade out first when it is on screen. */
+  removeEvent(event) {
+    const parent = event.parentElement?.localName;
+    if (this.motion && !this.sliding && motionAllowed() && (parent === "calendar-grid" || parent === "calendar-allday")) leave(event);
+    else event.remove();
+    this.refreshEvents();
+  }
+
+  /** Applies a pending update now rather than at the end of the task. */
+  updateNow() {
+    if (this.#updateScheduled) this.#flushUpdate();
+  }
   #scrollStartHourIntoView() {
     requestAnimationFrame(() => {
       const target = this.#grid?.querySelector(":scope > .start-hour-marker");
@@ -259,7 +279,7 @@ class CalendarWeekElement extends HTMLElement {
     });
   }
   #collectEvents() {
-    return Array.from(this.querySelectorAll("calendar-event")).sort((left, right) =>
+    return Array.from(this.querySelectorAll("calendar-event:not([data-leaving])")).sort((left, right) =>
       (left.getAttribute("start") ?? "").localeCompare(right.getAttribute("start") ?? "")
       || (left.dataset.key ?? "").localeCompare(right.dataset.key ?? ""));
   }

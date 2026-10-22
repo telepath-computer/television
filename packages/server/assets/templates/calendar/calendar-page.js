@@ -7,6 +7,7 @@
 // empty store. It never writes to the store.
 import "./calendar-event.js";
 import "./calendar-week.js";
+import { motionAllowed, slide } from "./calendar-motion.js";
 import { getStore, onConnectionStatusChanged, onValue, ref } from "/sdk/v1/resources.js";
 
 const main = document.querySelector("main");
@@ -121,8 +122,39 @@ function renderRangeLabel(parts) {
   }));
 }
 
-/** Shows the calendar for a store value that follows the store contract. */
+// While the calendar slides to a new start date, the newest value waits here
+// and is drawn when the slide swaps the days.
+let sliding = null;
+let latest = null;
+
+/**
+ * Shows the calendar for a store value that follows the store contract. A
+ * new start date, with the same number of days, slides there once the
+ * calendar is showing data.
+ */
 function render(store) {
+  latest = store;
+  if (sliding) return;
+  const days = isDayCount(store.days) ? store.days : MAX_DAYS;
+  const startDate = startingDate(store.startDate, days);
+  const previousStart = calendar.getAttribute("start-date");
+  if (showsData && calendar.hasAttribute("data-ready") && previousStart !== null && previousStart !== startDate && calendar.getAttribute("days") === String(days)) {
+    const shift = Math.round((new Date(`${startDate}T12:00:00`) - new Date(`${previousStart}T12:00:00`)) / 86_400_000);
+    sliding = slide(calendar, shift, days, () => {
+      calendar.sliding = true;
+      apply(latest);
+      calendar.updateNow();
+      calendar.sliding = false;
+    });
+    if (sliding) {
+      sliding.updateCallbackDone.finally(() => { sliding = null; });
+      return;
+    }
+  }
+  apply(store);
+}
+
+function apply(store) {
   const days = isDayCount(store.days) ? store.days : MAX_DAYS;
   const startDate = startingDate(store.startDate, days);
   const valid = Object.entries(store.events).filter(([, event]) => validEvent(event));
@@ -133,7 +165,7 @@ function render(store) {
   // remaining event node and never scrolls again after its first layout.
   for (const [key, previous] of rendered) {
     if (nextKeys.has(key)) continue;
-    previous.element.remove();
+    calendar.removeEvent(previous.element);
     rendered.delete(key);
     changed = true;
   }
@@ -171,6 +203,7 @@ function showValue(value) {
   }
   showCalendar(true);
   render(value);
+  showHours(hoursOf(value), showsData && calendar.hasAttribute("data-ready"));
   if (showsData) return;
   // The first data, or data after the error page: the hours scroll to an
   // hour before the earliest event, as on first load. Highlight motion starts
@@ -181,13 +214,114 @@ function showValue(value) {
   requestAnimationFrame(() => { calendar.dataset.ready = ""; });
 }
 
+// ------------------------------------------------------------------
+// Hours in view (prototype)
+// ------------------------------------------------------------------
+
+// `startHour` and `endHour`, whole hours from 0 to 24, choose the hours that
+// fill the view: the hours grow or shrink so that range fits the height, and
+// the view scrolls to its start. Every hour stays, so the rest of the day
+// scrolls into view. Without them, hours keep their usual height.
+const HOURS = 24;
+// Room above the first hour and below the last, so their labels show whole.
+const LABEL_ROOM_PX = 12;
+const MIN_HOUR_PX = 16;
+const ZOOM_MS = 520;
+let hoursKey = null;
+let zoomFrame = 0;
+
+function hoursOf(store) {
+  const { startHour: start, endHour: end } = store;
+  return Number.isInteger(start) && Number.isInteger(end) && start >= 0 && end <= HOURS && start < end ? { start, end } : null;
+}
+
+const hourHeight = () => (calendar.querySelector("calendar-grid")?.offsetHeight ?? 0) / HOURS;
+const pinnedHeight = () => (calendar.querySelector("calendar-headers")?.offsetHeight ?? 0) + (calendar.querySelector("calendar-allday")?.offsetHeight ?? 0);
+
+/** The hour height and scroll that show the given hours, or the usual hour height with the top hour kept. */
+function hoursTarget(hours) {
+  if (hours) {
+    const height = Math.max(MIN_HOUR_PX, (calendar.clientHeight - pinnedHeight() - 2 * LABEL_ROOM_PX) / (hours.end - hours.start));
+    return { height, scroll: hours.start * height - LABEL_ROOM_PX };
+  }
+  const current = hourHeight();
+  const topHour = (calendar.scrollTop + LABEL_ROOM_PX) / current;
+  const inline = calendar.style.getPropertyValue("--hour-min-height");
+  calendar.style.removeProperty("--hour-min-height");
+  const height = hourHeight();
+  if (inline) calendar.style.setProperty("--hour-min-height", inline);
+  return { height, scroll: topHour * height - LABEL_ROOM_PX, usual: true };
+}
+
+function setHours(height, scroll) {
+  calendar.style.setProperty("--hour-min-height", `${height}px`);
+  calendar.scrollTop = scroll;
+}
+
+/** The ease of the other motion, cubic-bezier(0.32, 0.72, 0, 1), as a function of progress. */
+function ease(progress) {
+  const [x1, y1, x2, y2] = [0.32, 0.72, 0, 1];
+  const curve = (a, b, t) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+  let low = 0;
+  let high = 1;
+  for (let step = 0; step < 24; step += 1) {
+    const middle = (low + high) / 2;
+    if (curve(x1, x2, middle) < progress) low = middle;
+    else high = middle;
+  }
+  return curve(y1, y2, (low + high) / 2);
+}
+
+/** Shows the hours a store value asks for, moving there when `animate`. */
+function showHours(hours, animate) {
+  const key = hours ? `${hours.start}-${hours.end}` : null;
+  if (key === hoursKey) return;
+  hoursKey = key;
+  // The calendar's own first scroll lands on the start hour too.
+  if (hours) calendar.setAttribute("start-hour", String(hours.start));
+  else calendar.removeAttribute("start-hour");
+  cancelAnimationFrame(zoomFrame);
+  requestAnimationFrame(() => {
+    const target = hoursTarget(hours);
+    const finish = () => {
+      if (target.usual) calendar.style.removeProperty("--hour-min-height");
+      else setHours(target.height, target.scroll);
+      if (target.usual) calendar.scrollTop = target.scroll;
+    };
+    if (!animate || !motionAllowed()) {
+      finish();
+      return;
+    }
+    const from = { height: hourHeight(), scroll: calendar.scrollTop };
+    const began = performance.now();
+    const frame = (now) => {
+      const progress = Math.min(1, (now - began) / ZOOM_MS);
+      const eased = ease(progress);
+      setHours(from.height + (target.height - from.height) * eased, from.scroll + (target.scroll - from.scroll) * eased);
+      if (progress < 1) zoomFrame = requestAnimationFrame(frame);
+      else finish();
+    };
+    zoomFrame = requestAnimationFrame(frame);
+  });
+}
+
+// A new size keeps the chosen hours filling the view.
+new ResizeObserver(() => {
+  if (hoursKey === null) return;
+  const [start, end] = hoursKey.split("-").map(Number);
+  const target = hoursTarget({ start, end });
+  setHours(target.height, target.scroll);
+}).observe(calendar);
+
 function showError() {
   showsData = false;
   showCalendar(false);
 }
 
-// Until the data arrives, the calendar of a new, empty store.
+// Until the data arrives, the calendar of a new, empty store. Changes after
+// it move into place, including the events of the first data.
 render({ events: {} });
+calendar.motion = true;
 
 // The SDK resubscribes a listener when the page reconnects, so the page
 // catches up by itself. A listener that receives an error is removed; the
