@@ -13,7 +13,7 @@ The supporting artifacts, each authoritative:
 
 The `.frame` is the authoritative rendered truth for this surface.
 
-Conformance of the implementation to these artifacts is automated ([arch/ui/conformance.md](../../../arch/ui/conformance.md)); the assertions below prove the surface's behavior.
+The implementation is held to these artifacts by stylesheet-copy and delivery checks and visual review, as [spec migration](../../../spec-migration.md) records; the assertions below prove the surface's behavior.
 
 ## Interaction
 

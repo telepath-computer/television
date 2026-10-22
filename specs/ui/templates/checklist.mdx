@@ -10,7 +10,7 @@ export const Artifact = ({ width = "640px", children }) => <div style={{ width, 
 
 # Checklist template
 
-The Checklist template makes an artifact that is a single list of things to tick off: a title, the items and an add field in one centred column on the plain surface. Each story on this page is one state of the page, and the template's page must pass a [UI conformance](../../arch/ui/conformance.md) check against every one of them. The prose states the behaviour the stories cannot show.
+The Checklist template makes an artifact that is a single list of things to tick off: a title, the items and an add field in one centred column on the plain surface. Each story on this page is one state of the page, and the template's page must pass a [UI conformance](../../spec-ui.md#conformance) check against every one of them. The prose states the behaviour the stories cannot show.
 
 The [store contract](../../arch/templates/checklist.md#^bundled-artifact-template-checklist-store) owns the data and what each change writes, and the [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
 
@@ -63,6 +63,8 @@ The list is flat: items cannot be nested. There is no action to clear done items
 Each item's remove button appears when the pointer is over the item or it is being edited, and removes the item. The keyboard focus then moves to the next item's text, or to the item above when there is no next item, or to the add field when the list is now empty. A removed item cannot be brought back from the page; within a field, the browser's own undo applies.
 
 Each box and remove button can be reached with Tab; Space ticks or unticks the box that has the focus, which shows the focus ring.
+
+A screen reader can tell which item each control belongs to. The items are announced as a list. Each box is named after its item's text, and each remove button is "Remove" followed by that text; an item with no text is named "Empty item". The title is a text box named "Title", each item's text a text box named "Item" and its position, such as "Item 2", and the add field is named "Add an item".
 
 <Artifact><Canvas of={Stories.KeyboardFocus} /></Artifact>
 

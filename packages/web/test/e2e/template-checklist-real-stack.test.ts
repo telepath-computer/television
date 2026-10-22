@@ -107,7 +107,7 @@ test("new Checklist from the popover persists its seed, display, additions and i
   expect(responses.some(response => response.url.includes("/canonical/v2/styles.css"))).toBe(true);
   expect(responses.some(response => response.url.includes("/sdk/v1/resources.js"))).toBe(true);
   expect(responses.find(response => /\/artifact\/.*\/styles.css$/.test(response.url))?.body)
-    .toEqual(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/spec/templates/checklist/styles.css")));
+    .toEqual(readFileSync(path.resolve(import.meta.dirname, "../../../server/assets/templates/checklist/styles.css")));
   renameSync(path.join(h.home, "templates/checklist"), path.join(h.home, "checklist-outside-discovery"));
   await page.reload();
   const reloaded = await h.frame(page, id);
@@ -301,6 +301,14 @@ test("real clipboard paste appends lines and inserts at an item caret in order",
 test("accessible checkbox and remove controls work by keyboard and preserve removal focus", async ({ page }) => {
   const id = await open(page);
   await expect(page.getByRole("list")).toHaveCount(1); await expect(page.getByRole("listitem")).toHaveCount(3);
+  await expect(title(page)).toHaveAccessibleName("Title");
+  await expect(add(page)).toHaveAccessibleName("Add an item");
+  for (const [index, name] of ["Apples", "Bread", "Coffee"].entries()) {
+    await expect(text(page, index)).toHaveRole("textbox");
+    await expect(text(page, index)).toHaveAccessibleName(`Item ${index + 1}`);
+    await expect(page.getByRole("checkbox").nth(index)).toHaveAccessibleName(name);
+    await expect(page.getByRole("button", { name: `Remove ${name}`, exact: true })).toHaveCount(1);
+  }
   await title(page).focus(); await page.keyboard.press("Tab");
   await expect(page.getByRole("checkbox", { name: "Apples", exact: true })).toBeFocused();
   await page.keyboard.press("Space"); await expect.poll(() => h.read(id, "items/a/done")).toBe(true);
@@ -313,6 +321,7 @@ test("accessible checkbox and remove controls work by keyboard and preserve remo
   }
   await page.locator(".checklist-item").nth(1).hover(); await page.getByRole("button", { name: "Remove Bread", exact: true }).click();
   await expect(text(page, 1)).toBeFocused(); await expect(text(page, 1)).toHaveText("Coffee");
+  await expect(text(page, 1)).toHaveAccessibleName("Item 2");
   await expect.poll(() => texts(id)).toEqual(["Apples", "Coffee"]);
   expect(writes().at(-1)).toEqual({ kind: "remove", path: "items/b" });
   await page.getByRole("button", { name: "Remove Coffee", exact: true }).click();
@@ -328,6 +337,7 @@ test("accessible checkbox and remove controls work by keyboard and preserve remo
   await expect(page.getByRole("button", { name: "Remove Empty item", exact: true })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(text(page, 0)).toBeFocused(); await expect(text(page, 0)).toHaveText("Next");
+  await expect(text(page, 0)).toHaveAccessibleName("Item 1");
   await expect.poll(() => texts(id)).toEqual(["Next"]);
 });
 

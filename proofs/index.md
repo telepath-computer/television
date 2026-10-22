@@ -98,7 +98,6 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `delivery.md` (87 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
   - **ui/**
-    - `conformance.md` (19 lines) — *How production UI conformance is checked while automated markup comparison is scheduled for TV-649.*
     - `elements.md` (21 lines) — *How the promises in Elements are proven.*
     - `foundation.md` (32 lines) — *How the promises in Foundation architecture are proven.*
     - `index.md` (29 lines) — *How the promises in UI architecture are proven.*
@@ -167,7 +166,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **calendar/**
       - `index.md` (53 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server.*
     - **checklist/**
-      - `index.md` (62 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and the packaged stylesheet copy.*
+      - `index.md` (79 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**
