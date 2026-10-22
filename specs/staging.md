@@ -24,7 +24,7 @@ A **prototyping frame** renders a spec frame inline and wires it: each component
 
 ## Staging code
 
-Workshop wiring may measure a frame, apply an [executable motion reference](spec-ui.md#motion-and-interactivity) to its DOM, and provide playback or progress controls. The wiring binds nothing; the reference retains its specified authority. Simulation css and DOM added around a spec render — scroll spacers, injected handles, wrappers — are labelled as staging and carry the reason they exist.
+Workshop wiring may measure a frame, apply a UI spec's executable motion reference to its DOM, and provide playback or progress controls. The wiring binds nothing; the reference retains its specified authority. Simulation css and DOM added around a spec render — scroll spacers, injected handles, wrappers — are labelled as staging and carry the reason they exist.
 
 - Staging never restates a value the spec authors — it reads it (`drag.yml` imported as data), so every number exists in exactly one place.
 - A fresh render poses its state: transitions are held off until the posed values have painted, or entry animates from defaults.

@@ -30,15 +30,30 @@ export default {
     executionGroup("e2e:node", "e2e: node", 3, [
       surface("e2e:node", "vitest", "test/node/vitest.config.ts", { kind: "e2e", roots: ["test/node"], excludeRoots: ["test/node/daemon-acceptance.test.ts"], tags: ["node"], preflight: ["node", "playwright-chromium", "playwright-firefox"], preCommand: ["node", "scripts/licenses/build-suite.mjs"] }),
     ]),
+    // Resolve Playwright from the root toolchain, not a workspace peer dependency.
     executionGroup("e2e:browser-app", "e2e: web", 5, [
-      surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
+      surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { cwd: ".", package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts", "packages/web/test/e2e/template-checklist-conformance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
     ]),
     // These files boot product servers per test; sharing a Playwright invocation
     // with a parallel worker starves those servers on 2-vCPU CI runners
     // (specs/arch/test-runner/github-ci.md, worker counts). Their one-worker
     // surface runs every product-server acceptance serially.
     executionGroup("e2e:browser-app-real-stack", "e2e: web real-stack", 7, [
-      surface("e2e:browser-app-real-stack", "playwright", "packages/web/playwright.real-stack.config.ts", { kind: "e2e", roots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app-real-stack", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
+      surface("e2e:browser-app-real-stack", "playwright", "packages/web/playwright.real-stack.config.ts", { cwd: ".", kind: "e2e", roots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app-real-stack", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
+    ]),
+    executionGroup("e2e:checklist-conformance", "e2e: Checklist conformance", 16, [
+      surface("e2e:checklist-conformance", "playwright", "packages/web/playwright.checklist-conformance.config.ts", {
+        cwd: ".",
+        package: "@telepath-computer/television-web",
+        kind: "e2e",
+        roots: ["packages/web/test/e2e/template-checklist-conformance.test.ts"],
+        preflight: ["node", "playwright-chromium"],
+        tags: ["browser"],
+        preCommand: ["node", "scripts/test/build-checklist-conformance.mjs"],
+        services: [
+          { id: "checklist-storybook", kind: "vite", config: "config/vite.checklist-storybook.ts", publishUrlEnv: "TV_CHECKLIST_STORYBOOK_URL" },
+        ],
+      }),
     ]),
     executionGroup("e2e:artifact", "e2e: artifact", 6, [
       surface("e2e:artifact", "playwright", "packages/artifact/test/e2e/playwright.config.ts", {
@@ -126,6 +141,7 @@ function surface(id, runner, config, options) {
     id,
     runner,
     config,
+    cwd: options.cwd,
     kind: options.kind,
     package: options.package ?? null,
     roots: options.roots ?? [],

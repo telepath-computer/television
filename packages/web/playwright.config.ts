@@ -13,14 +13,14 @@ if (!firefoxAvailable) {
   console.warn("Playwright Firefox is unavailable; skipping the Firefox project.");
 }
 
-// Owned by e2e:browser-app-real-stack (playwright.real-stack.config.ts),
-// which serializes tests that boot product servers.
+// Dedicated surfaces serialize tests that boot product servers.
 const realStackTests = [
   "**/appearance-delivery.test.ts",
   "**/onboarding-browser.test.ts",
   "**/path-artifact-real-stack-coverage.test.ts",
   "**/sidebar-collapse.test.ts",
   "**/sidebar-resize.test.ts",
+  "**/template-checklist-conformance.test.ts",
   "**/template-checklist-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];

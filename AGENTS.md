@@ -4,7 +4,7 @@ Read the governing specs before making changes. Start with the links below.
 
 ## UI conformance
 
-The automated markup-comparison system remains deferred until after release in [TV-649](specs/arch/ui/conformance.md#release-exception-for-tv-649). Existing stylesheet-copy, browser and verification assertions remain active. Do not revert UI specifications to match a nonconforming implementation.
+Production UI is compared with its spec stories, state by state, by the [conformance test](specs/spec-ui.md#conformance); [spec migration](specs/spec-migration.md) lists the surfaces not yet under it. Do not revert UI specifications to match a nonconforming implementation.
 
 ## Team developer telemetry marker
 
@@ -40,7 +40,7 @@ Follow [spec policy’s ownership rules](specs/spec-policy.md#Slop-free zone) an
 
 `specs/arch/updates/update-channel.json` is the master copy of the public update channel at `https://television.run/update-channel.json`. The [update-channel spec](specs/arch/updates/update-channel.md#^channel-master-copy) defines how it is published and when a pull request must update it.
 
-UI work follows the [UI conformance spec](specs/arch/ui/conformance.md). Test requirements are owned by the testing specs below.
+UI work follows the [UI spec rules](specs/spec-ui.md). Test requirements are owned by the testing specs below.
 
 ## Shared branches
 

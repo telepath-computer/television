@@ -15,5 +15,12 @@ export default {
       command: ["node", "scripts/licenses/build-suite.mjs"],
       coversPreCommands: ["e2e:node", "e2e:browser-app", "e2e:browser-app-real-stack", "e2e:view-markdown", "e2e:desktop", "e2e:server"],
     },
+    {
+      // The products above supply production artifacts; Storybook completes
+      // the conformance pre-command without rebuilding those products.
+      id: "storybook",
+      command: ["npm", "--workspace", "@telepath-computer/storybook", "run", "build"],
+      coversPreCommands: ["e2e:checklist-conformance"],
+    },
   ],
 };

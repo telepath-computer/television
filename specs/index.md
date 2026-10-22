@@ -6,10 +6,10 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
 
 - `reviewer-checklist.md` (20 lines) — *Review questions that restate the spec policies, for use when reviewing any spec or change.*
 - `spec-docs.md` (62 lines) — *The repository docs folder: guides, working documents, and the archive; what each holds, what standing it has, and the pre-merge docs prep that moves documents from working to archived.*
-- `spec-migration.md` (57 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
+- `spec-migration.md` (58 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
 - `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
-- `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
+- `spec-ui.md` (38 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
 - `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
 - `terms.md` (202 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
@@ -109,7 +109,6 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `delivery.md` (156 lines) — *Theme delivery: how the selected installed package reaches application and artifact documents and combines with the shared appearance preference.*
     - `index.md` (158 lines) — *Theme architecture: installed package validation, the in-memory registry, shared display and main-JavaScript-consent contracts, control APIs, events, and privacy-preserving telemetry.*
   - **ui/**
-    - `conformance.md` (44 lines) — *The UI conformance machinery: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
     - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
     - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
     - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*
@@ -176,7 +175,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **templates/**
-    - `checklist.mdx` (127 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
+    - `checklist.mdx` (129 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

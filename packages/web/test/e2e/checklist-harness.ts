@@ -8,8 +8,8 @@ import { APPLICATION_SHELL_STATES, waitForApplicationRender } from "../../../../
 import { NetworkProxy } from "../../../server/test/e2e/network-proxy.ts";
 import { configureTestMotion } from "./helpers.ts";
 
-const TEST_HOST = "tv-sdk.test";
-const bundle = path.resolve(import.meta.dirname, "../../../server/assets/templates");
+export const TEST_HOST = "tv-sdk.test";
+export const TEMPLATES_BUNDLE = path.resolve(import.meta.dirname, "../../../server/assets/templates");
 
 export const CHECKLIST_LAUNCH = { args: [`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
 
@@ -28,7 +28,7 @@ export class ChecklistHarness {
   }
 
   static async start(): Promise<ChecklistHarness> {
-    const product = await launchProductServer({ auth: true, cleanupHome: false, bundledTemplatesBundle: bundle });
+    const product = await launchProductServer({ auth: true, cleanupHome: false, bundledTemplatesBundle: TEMPLATES_BUNDLE });
     let proxy: NetworkProxy | undefined;
     try {
       proxy = await NetworkProxy.start(Number(new URL(product.serverURL).port));
@@ -149,7 +149,7 @@ export class ChecklistHarness {
     await this.product.dispose();
     edit?.(this.home);
     this.product = await launchProductServer({
-      home: this.home, cleanupHome: false, auth: true, bundledTemplatesBundle: bundle,
+      home: this.home, cleanupHome: false, auth: true, bundledTemplatesBundle: TEMPLATES_BUNDLE,
     });
     this.proxy.retarget(Number(new URL(this.product.serverURL).port));
   }

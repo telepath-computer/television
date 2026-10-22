@@ -31,12 +31,6 @@ describe("bundled Checklist package", () => {
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ title: "Checklist", items: {} });
   });
 
-  // proofs/ui/templates/checklist/index.md#^checklist-ui-t-styles
-  it("copies the authoritative Checklist stylesheet byte for byte", () => {
-    const specification = readFileSync(path.resolve(import.meta.dirname, "../../../storybook/spec/templates/checklist/styles.css"));
-    expect(readFileSync(path.join(folder, "styles.css"))).toEqual(specification);
-  });
-
   // proofs/arch/templates/checklist.md#^templates-checklist-t-thumbnail
   it("decodes a complete portrait PNG with a 4 to 5 aspect ratio", () => {
     const image = PNG.sync.read(readFileSync(path.join(folder, "thumbnail.png")));

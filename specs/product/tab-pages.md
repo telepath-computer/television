@@ -57,5 +57,5 @@ Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are t
 
 [Artifact acceptance](./artifacts.md#Testing) owns document continuity through tab switching; this spec does not repeat it. [Keyboard navigation](./keyboard-navigation.md#Testing) owns the navigation chord and points to the architecture proof that the chord and pointer input use the same page-selection operation. This spec requires no additional acceptance measure to show that the two inputs use the same operation.
 
-The [tab-strip UI](../ui/app/tab-strip/index.md#The tab) specifies each tab as a pill that contains only its label. Conformance to the tab template ([arch/ui/conformance.md](../arch/ui/conformance.md)), rather than this spec's acceptance, establishes that tabs have no menu, rename, or close controls. This spec's acceptance in a real browser covers the Delete and Backspace behavior.
+The [tab-strip UI](../ui/app/tab-strip/index.md#The tab) specifies each tab as a pill that contains only its label. The tab template, rather than this spec's acceptance, establishes that tabs have no menu, rename, or close controls. This spec's acceptance in a real browser covers the Delete and Backspace behavior.
 

@@ -36,8 +36,6 @@ interface Args {
   loading: boolean;
 }
 
-// Each control is named after its item's text, so assistive technology can
-// tell which item a box or button belongs to; a blank item is "Empty item".
 const item = ({ text, done }: Item, index: number, editing: boolean, readOnly: boolean) => {
   const name = text.trim() === "" ? "Empty item" : text;
   return readOnly
