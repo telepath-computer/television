@@ -30,13 +30,15 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *back pressure* — learnings from implementation that flow back up the chain into spec changes; welcome, and cleaned up rather than left as a gap. Owned by `spec-policy.md`.
 - *spec gate* — the gate that begins the autonomous phase: every spec delta has converged under independent agent review, with human review handled as `spec-policy.md` requires. Owned by `spec-workflow.md`.
 - *surface* (UI) — a distinct part of the user interface. Owned by `spec-ui.md`.
-- *template* (UI) — a Liquid file owning authoritative markup for a surface or any part of it: declared parameters (`{% doc %}` with `@param` annotations), then pure markup; imports its styling and content; does no computation. Owned by `spec-ui.md`.
-- *UI spec* — a surface's spec under `specs/ui/` (prose, optionally with templates, styles, and content): the exclusive authority for that surface's interaction, markup, and styling. Owned by `spec-ui.md`.
+- *template* (UI, retained format) — a Liquid file specifying markup for a surface or part of it under an existing UI spec. These contracts remain in force until redesign, per [spec-ui.md](spec-ui.md).
+- *UI spec* — the exclusive authority for appearance and interaction under `specs/ui/`: an MDX spec whose prose and story appearance bind, with existing frame and template contracts retained until redesign. Owned by [spec-ui.md](spec-ui.md).
 
 ## Artifact frame and bridge
 
 - *artifact* — a pointer to content, held externally or generated on the fly, displayed on the stage; where users interact with information and functionality that is not core to Television itself. Owned by [product/artifacts.md](product/artifacts.md).
-- *artifact template* — a reusable folder containing a working HTML page and optional starting data, copied to create an ordinary path artifact. Owned by [product/templates.md](product/templates.md), with its folder and scan contracts in [arch/templates/index.md](arch/templates/index.md). The unqualified *template* under spec terminology means a UI Liquid template, above.
+- *artifact template* — an installed folder that supplies a shared page or a URL for creating an ordinary artifact, with optional copying for folder templates. Owned by [product/templates.md](product/templates.md), with its folder and scan contracts in [arch/templates/index.md](arch/templates/index.md). The unqualified *template* under spec terminology means a UI Liquid template, above.
+- *dataSchema* — an optional member of the artifact template manifest containing a JSON Schema for the store value; it guides agents and validates caller data at creation. Owned by [arch/templates/index.md](arch/templates/index.md#^artifact-template-schema).
+- *Toolbox* — the place in the app that lists artifact templates. Owned by [ui/app/toolbox.mdx](ui/app/toolbox.mdx).
 - *display options* — the width, height, full-screen state, and transparency setting a new artifact starts with, from the creation command, the template's manifest, or the defaults. Owned by [product/templates.md](product/templates.md#^artifact-template-display-options), with the type in [arch/layout/index.md](arch/layout/index.md#^ly-creation-display).
 - *transparent* (artifact) — an artifact whose own document is shown without the usual surface of the frame around it, for overlay-style documents. Owned by [product/artifacts.md](product/artifacts.md#^af-transparent).
 - *document* — an artifact's content as a browser shows it: a page in its own right, with its own styling, scripts, and history, rendered inside Television but not part of Television's own page. Owned by [product/artifacts.md](product/artifacts.md).

@@ -28,11 +28,13 @@ tv help <command>
 Commands group into four intents:
 
 - **Channel and display commands** — create, inspect, rename, remove, or switch channels, or change the active display theme (`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`).
-- **Artifact creation and template commands** — register a path or URL, or copy a template with `create-artifact`; find templates with `templates list` and `templates path`.
+- **Artifact creation and template commands** — register a path or URL, or use a template with `create-artifact`; choose templates with `templates list`, inspect their full validated records with `templates show <id>`, and find installed folders with `templates path`.
 - **Artifact management commands** — inspect, retitle, repoint, focus, list, arrange, move, or delete existing artifacts (`delete-artifact`, `get-artifact`, `list-artifacts`, `update-artifact`, `reposition-artifact`, `move-artifact`, `focus-artifact`).
 - **Server and environment commands** — operate on the Television server and its home (`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`).
 
 When the CLI rejects a command, follow the directive it prints rather than guessing flags.
+
+With `create-artifact --template`, folder templates link to their installed page files by default, with a separate store for each artifact; URL templates create URL artifacts without stores. Link when only data needs changing. `templates list` returns only `id`, `name`, `description`, and optional `url`; `url` identifies a URL template. Read `templates show <id>` for the installed folder `path`, version, and optional display options, icons, or `dataSchema` before editing or preparing data. Both commands always scan again; app cache fields such as `hasIcon` are omitted. Add `--copy` when creating an artifact that needs its own page-file changes. For an existing linked artifact, copy its folder and run `tv update-artifact --id <id> --path <copy>`; its store stays. Never edit an installed template for a request about one artifact. When asked to change a template, explain that every artifact linked to it receives the change. The [template guidance](./templates.md) covers caller-supplied starting data, manifest `dataSchema`, icons, and compatible template changes.
 
 ### Server operation notes
 
@@ -110,7 +112,7 @@ These are illustrative, not exhaustive. When the language is ambiguous or unusua
 
 ## Channel placement
 
-Artifact creation commands require `--channel` because new artifacts need immediate channel membership. `tv move-artifact --id <id> --channel <target> (--focus-artifact|--no-focus)` moves an existing artifact to another channel. It stays the same artifact, so its ID, its store, and its share link keep working, and it keeps the size and full-screen state it had. Creating a second artifact with the same `--path` or `--url` on the other channel instead shows the content in both places, as two artifacts with separate stores.
+Artifact creation commands require `--channel` because new artifacts need immediate channel membership. `tv move-artifact --id <id> --channel <target> (--focus-artifact|--no-focus)` moves an existing artifact to another channel. It stays the same artifact, so its ID, its store, and its share link keep working, and it keeps the size and full-screen state it had. Creating a second artifact with the same `--path` or `--url` on the other channel instead shows the content in both places as two artifacts. Path artifacts have separate stores; URL artifacts have none on this server.
 
 A created or moved artifact goes at the end of the channel's order unless you name a neighbour: `--before <artifact-id>` puts it immediately to the left of that artifact, and `--after <artifact-id>` immediately to its right. Use at most one of the two. The named artifact must already be on that channel; otherwise nothing changes and the command reports an error. Moving an artifact to the channel it is already on changes nothing unless you give `--before` or `--after`; then it moves beside the artifact you name.
 

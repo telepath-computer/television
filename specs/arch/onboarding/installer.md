@@ -1,6 +1,6 @@
-*The onboarding installer and serving bootstrap order: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, the default-channel invariant, and the placement of bundled theme and artifact-template handling.*
+*The onboarding installer and serving bootstrap order: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, the default-channel invariant, and the placement of bundled theme and artifact-template handling and the watched template cache.*
 
-**Status:** adopted installer and migration authority; implementation conforms.
+**Status:** adopted installer and migration authority. Watched template-cache startup is a draft addition; implementation does not yet conform to that addition.
 
 # Onboarding installer
 
@@ -158,11 +158,11 @@ The bootstrap sequence for a **serving** boot is: ^bootstrap-sequence
 3. Snapshot the no-content condition for the focus rule.
 4. Run onboarding state migration, then the install loop (when a content root resolved and the onboarding config is usable).
 5. Apply the default-channel invariant.
-6. Apply [bundled-theme handling](../themes/bundled-installation.md#serving-boot-installation) and [bundled artifact template handling](../templates/bundled-installation.md#serving-boot), then scan the theme registry.
+6. Apply [bundled-theme handling](../themes/bundled-installation.md#serving-boot-installation) and [bundled artifact template handling](../templates/bundled-installation.md#serving-boot), then scan the theme registry and initialize the [watched template cache](../templates/index.md#^artifact-template-cache).
 7. Load or initialize display state. If the bundled-theme state says the one-time default-theme decision is pending and Clouds has been handled, assign valid installed Clouds only when `activeThemeName` is null, preserve any non-null value for the decision, and record completion. Then persist `activeThemeName: null` when a non-null value is absent from the registry, and apply the focus rule.
-8. Start the ordinary content and theme watchers.
+8. Start the ordinary artifact-content and active-theme watchers; the template watcher starts with its cache in step 6.
 
-A **token-only (non-serving) construction** — the path `tv serve --persist` uses to read or create the auth token before installing the daemon, and any other store construction that will not serve — captures step 1 and performs only step 2's ordinary directory, token, and metadata setup; it does not run the pre-serve migration. It creates the directory structure and token but **no channels, no display state, and no onboarding install**. Default-channel setup belongs exclusively to the [default-channel invariant](#^default-screen) on serving boots; a token-only construction must not leave a phantom channel behind for the first real serve to find. ^token-only-boot
+A **token-only (non-serving) construction** — the path `tv serve --persist` uses to read or create the auth token before installing the daemon, and any other store construction that will not serve — captures step 1 and performs only step 2's ordinary directory, token, and metadata setup; it does not run the pre-serve migration. It creates the directory structure and token but **no channels, no display state, and no onboarding install**. It starts no template scan cache or watcher. Default-channel setup belongs exclusively to the [default-channel invariant](#^default-screen) on serving boots; a token-only construction must not leave a phantom channel behind for the first real serve to find. ^token-only-boot
 
 The installer runs **inside the constructor, before telemetry hooks attach**, so onboarding channel/artifact creation emits no CRUD telemetry — intentional: installs are server-generated, not user actions ([no install telemetry](../../product/onboarding/onboarding-channels.md#^no-install-telemetry)). The `dataDirCreated` capture (step 1) and install/upgrade derivation ([identity.md](../telemetry/identity.md)) are untouched: the state-file path stays on the marker list, and the installer runs after that capture. ^telemetry-silence
 

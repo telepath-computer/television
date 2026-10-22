@@ -1,8 +1,8 @@
-*The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
+*The bundled Example artifact template: its ID, manifest with dataSchema, empty-state message, and agent guidance.*
 
 # Bundled artifact template
 
-Television ships one [bundled artifact template](../../product/templates.md#^artifact-template-bundled). It follows the ordinary [folder and copy contract](./index.md#^artifact-template-package); [bundled installation](./bundled-installation.md) owns when an installed copy is kept or replaced.
+Television ships one [bundled artifact template](../../product/templates.md#^artifact-template-bundled). It follows the ordinary [folder contract](./index.md#^artifact-template-package); [bundled installation](./bundled-installation.md) owns when an installed copy is kept or replaced.
 
 | Folder ID | Manifest `name` | Manifest `description` | Initial `version` | Minimum installed version |
 |---|---|---|---|---|
@@ -12,18 +12,17 @@ The bundled source manifest for Example declares no `display`.
 
 `BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['example']`; [telemetry](../telemetry/derivation.md#^artifact-template-telemetry-derivation) uses this closed vocabulary. ^bundled-artifact-template-inventory
 
-Its `data.json` seeds the artifact's [own JSON store](../../product/resources/resources.md#^rs-own-store) with this value:
+The manifest omits `url`. Each new artifact starts with an unwritten store unless the caller supplies data. The manifest declares this `dataSchema`, following the [template schema contract](./index.md#^artifact-template-schema):
 
-```ts
-interface ExampleData {
-  message: string;
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": { "message": { "type": "string" } },
+  "required": ["message"]
 }
 ```
 
-```json
-{"message":"Hello from a template."}
-```
+The page loads the canonical Television stylesheet as the `television` skill describes. It reads `message` through the [resource SDK](../resources/sdk.md) and displays it as text, including an empty string. When no string is available, it displays “Hello from a template.” without writing to the store. It subscribes to store changes, so an agent write with [`tv resource json`](../../product/resources/json-store.md#^js-cli) updates the open page. The person makes no edits in the page. ^bundled-artifact-template-example
 
-The page loads Television's canonical stylesheet as the `television` skill describes. It reads `message` through the [resource SDK](../resources/sdk.md) and shows it as text. It subscribes to store changes, so an agent's [`tv resource json`](../../product/resources/json-store.md#^js-cli) write updates the open page. The person makes no edits in the page. ^bundled-artifact-template-example
-
-Its `README.md` tells an adapting agent: “The page shows the `message` string in this artifact's JSON store; use `tv resource json` to change it.”
+Its `README.md` explains that `message` is a string in the store belonging to each artifact, that `tv resource json` changes that message, and that an agent must copy or detach before changing page files for only one artifact.

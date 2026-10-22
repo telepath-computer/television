@@ -61,7 +61,7 @@ type ArtifactPatch = {
 };
 ```
 
-`ArtifactDisplayOptions` and its input value rules belong to [layout](../layout/index.md#^ly-creation-display), as does [placement](../layout/index.md#^ly-placement). Template creation uses its own [request contract](../templates/index.md#creating-an-artifact) and produces the same path record.
+`ArtifactDisplayOptions` and its input value rules belong to [layout](../layout/index.md#^ly-creation-display), as does [placement](../layout/index.md#^ly-placement). Template creation uses its own [request contract](../templates/index.md#creating-an-artifact) and produces an ordinary path or URL record.
 
 Creation and repointing follow the [path](../../product/cli.md#path-artifact-creation) and [URL](../../product/cli.md#url-artifact-creation) target rules, including normalization of the stored pointer.
 

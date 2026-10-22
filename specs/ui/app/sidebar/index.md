@@ -8,7 +8,7 @@ The channel sidebar lists *channels* — the things a person keeps their work in
 
 **Status:** implemented stage-one channel-sidebar authority. Channel semantics are owned by [channels.md](../../../product/channels.md). The production implementation renders the permanent ordered rows, shared scrolling, menus, selection, native rename, drag choreography including held-edge scrolling, and native titlebar movement.
 
-Parameters are rendering inputs only: the caller supplies the channel list with its pinned marks, in arranged-then-created order, and the template derives the two groups — computation within what Liquid can say ([spec-ui.md](../../../spec-ui.md)). Nothing here specifies where channels live, whether a pin is personal or shared, or what marks a channel as activated — those belong to the channels product spec ([channels.md](../../../product/channels.md)).
+Parameters are rendering inputs only: the caller supplies the channel list with its pinned marks, in arranged-then-created order, and the template derives the two groups — computation within what Liquid can say. Nothing here specifies where channels live, whether a pin is personal or shared, or what marks a channel as activated — those belong to the channels product spec ([channels.md](../../../product/channels.md)).
 
 ## Markup and styling
 
