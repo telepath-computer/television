@@ -1,15 +1,15 @@
-*Generated index of the Television spec set; the first line of each spec is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*
+*Generated index of the Television spec set; the description line of each spec is its entry. Rebuild with `npm run specs:index`. Do not hand-edit.*
 
 # Spec Index
 
-Generated from the first-line description of every spec by `scripts/specs-index.mjs`, mirroring the `specs/` folder tree. See `spec-policy.md` for the description requirement and `spec-docs.md` for what belongs outside `specs/`.
+Generated from the description line of every spec by `scripts/specs-index.mjs`, mirroring the `specs/` folder tree. See `spec-policy.md` for the description requirement and `spec-docs.md` for what belongs outside `specs/`.
 
 - `reviewer-checklist.md` (20 lines) — *Review questions that restate the spec policies, for use when reviewing any spec or change.*
 - `spec-docs.md` (62 lines) — *The repository docs folder: guides, working documents, and the archive; what each holds, what standing it has, and the pre-merge docs prep that moves documents from working to archived.*
-- `spec-migration.md` (58 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
+- `spec-migration.md` (59 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
 - `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
-- `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
+- `spec-ui.md` (38 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
 - `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
 - `terms.md` (203 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
@@ -92,7 +92,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - **templates/**
     - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (29 lines) — *The bundled Example artifact template: its ID, manifest, starting store value, page behavior, and adapting-agent guidance.*
+    - `bundled-templates.md` (11 lines) — *The bundled artifact template inventory and shared rules.*
+    - `checklist.md` (36 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
@@ -110,7 +111,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `delivery.md` (156 lines) — *Theme delivery: how the selected installed package reaches application and artifact documents and combines with the shared appearance preference.*
     - `index.md` (158 lines) — *Theme architecture: installed package validation, the in-memory registry, shared display and main-JavaScript-consent contracts, control APIs, events, and privacy-preserving telemetry.*
   - **ui/**
-    - `conformance.md` (44 lines) — *The UI conformance machinery: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
     - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
     - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
     - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*
@@ -131,6 +131,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
     - `index.md` (117 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - `templates-popover.mdx` (68 lines) — *UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
     - **artifact-frame/**
       - `index.md` (68 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**
@@ -143,8 +144,6 @@ Generated from the first-line description of every spec by `scripts/specs-index.
       - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
-    - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec: the Templates navbar popover, specified by Storybook stories, an MDX page and a stylesheet in `storybook/spec/templates-popover/`.*
     - **stage/**
       - `index.md` (137 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
@@ -177,6 +176,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `index.md` (345 lines) — *UI spec: four designed onboarding channels and their artifacts — the design-source markup, styling, content, and shared conventions.*
   - **setup/**
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
+  - **templates/**
+    - `checklist.mdx` (129 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

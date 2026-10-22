@@ -1,16 +1,16 @@
 // The Templates popover's spec: each story is one state, with its markup
-// written here. The prose is templates-popover.mdx and the styles are
-// styles.css, both beside this file.
+// written here. The prose is specs/ui/app/templates-popover.mdx;
+// the styles are styles.css, beside this file.
 
 import "../../../specs/ui/foundation/index.css";
 import "../../../specs/ui/foundation/tokens/app.css";
 import "./styles.css";
 import { html, Html } from "../../lib/html.ts";
 import iconFrame from "../../../specs/ui/foundation/icons/icon.frame";
-import calendarImage from "../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
-import tableImage from "../../../specs/ui/app/skill-selector/thumbnails/table.png";
-import checklistImage from "../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import markdownImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import calendarImage from "./thumbnails/calendar.png";
+import tableImage from "./thumbnails/table.png";
+import checklistImage from "./thumbnails/tasks.png";
+import markdownImage from "./thumbnails/markdown.png";
 
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
@@ -85,15 +85,14 @@ const render = ({ open, search, templates, highlighted, pressed, invalid, folder
   </div>`;
 };
 
-// Sample templates, as a person or agent might add them. They show the grid
-// with real thumbnails; they are not templates Television ships.
+// Sample templates show the grid with real thumbnails.
 const calendar: Template = { name: "Calendar", image: calendarImage };
 
 const templates: Template[] = [
   calendar,
+  { name: "Checklist", image: checklistImage },
   { name: "Markdown", image: markdownImage },
   { name: "Table", image: tableImage },
-  { name: "Checklist", image: checklistImage },
 ];
 
 export default {
@@ -133,10 +132,10 @@ export const FolderUnreadable = {
   args: { templates: [], folderError: "EACCES: permission denied, scandir '/home/me/.television/templates'" },
 };
 
-export const WithoutImage = { args: { templates: [calendar, { name: "Example" }] } };
+export const WithoutImage = { args: { templates: [calendar, { name: "Notebook" }] } };
 
 export const LongName = {
-  args: { templates: [calendar, { name: "A template with a much longer name than usual", image: markdownImage }] },
+  args: { templates: [{ name: "A template with a much longer name than usual", image: markdownImage }, calendar] },
 };
 
 export const WithErrors = {
@@ -178,7 +177,7 @@ export const ManyTemplates = {
       { name: "Packing list", image: checklistImage },
       { name: "Contacts", image: tableImage },
       { name: "Habits", image: checklistImage },
-      { name: "Example" },
-    ],
+      { name: "Notebook" },
+    ].sort((a, b) => a.name.localeCompare(b.name, "en")),
   },
 };

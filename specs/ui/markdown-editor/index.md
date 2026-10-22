@@ -32,4 +32,4 @@ The stylesheet crosses byte-identically into the Markdown view package and is im
 
 ## Testing
 
-The production copy and import route participate in the existing byte-identity and delivery checks. Their crossing registry and completeness scan include this standalone UI surface rather than limiting discovery to the foundation, app, and theme trees. Exact visual styling remains the stylesheet’s authority and is judged in implementation and visual review under the [TV-649 release exception](../../arch/ui/conformance.md#release-exception-for-tv-649); tests do not duplicate its declaration values.
+The production copy and import route participate in the existing byte-identity and delivery checks. Their crossing registry and completeness scan include this standalone UI surface rather than limiting discovery to the foundation, app, and theme trees. Exact visual styling remains the stylesheet’s authority and is judged in implementation and visual review until this surface moves under [conformance](../../spec-ui.md#conformance), as [spec migration](../../spec-migration.md) records; tests do not duplicate its declaration values.

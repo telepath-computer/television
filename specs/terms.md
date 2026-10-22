@@ -31,7 +31,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *spec gate* — the gate that begins the autonomous phase: every spec delta has converged under independent agent review, with human review handled as `spec-policy.md` requires. Owned by `spec-workflow.md`.
 - *surface* (UI) — a distinct part of the user interface. Owned by `spec-ui.md`.
 - *template* (UI) — a Liquid file owning authoritative markup for a surface or any part of it: declared parameters (`{% doc %}` with `@param` annotations), then pure markup; imports its styling and content; does no computation. Owned by `spec-ui.md`.
-- *UI spec* — a surface's spec under `specs/ui/` (prose, optionally with templates, styles, and content): the exclusive authority for that surface's interaction, markup, and styling. Owned by `spec-ui.md`.
+- *UI spec* — a surface's spec under `specs/ui/` (prose, optionally with templates, styles, and content): the exclusive authority for that surface's appearance and interaction. Owned by `spec-ui.md`.
 
 ## Artifact frame and bridge
 

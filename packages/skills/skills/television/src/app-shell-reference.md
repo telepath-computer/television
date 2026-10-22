@@ -274,11 +274,11 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: cbf92c6747eb93e6b8b16249062973c0209d0706b15f1a9d3b021af5f943f7c9 -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 71317d61da9f7185c93e3b5834a7a9bb65c26edbd562f44d2954d4880eb3558a -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
-<!-- app-reference-source: specs/ui/app/index.md sha256: 8ccd1d15f9f29d5cf099f1686fe9cfc8eeee976745302f80842223cd1de10bef -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 4c1ea175c3ac5d794163350dcb12f3a17f4cda38302e291c26aac6d0237accc1 -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.mdx sha256: e39f5b8b71fa7986dcbaae5447952429120837d479533a02d53e715c8388fea8 -->
+<!-- app-reference-source: specs/ui/app/index.md sha256: 2ed83918afa8b8759ccda4fa57aa228e8e931fbfc74f9d0b526719f740f00942 -->
+<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 3dbae1626a6335d1d0e5bd1bdbf6ff47cef7b0f8a617301abee54d7d35662a9c -->
+<!-- app-reference-source: specs/ui/app/templates-popover.mdx sha256: e80de3b35f036152251c1b4681ddc28b1b0fe9527dbea835ea16fae32195e8fd -->
 <!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 5a252bbc2ee44d19bac57ae3bc4658844d37ddd04fe99ecec38041aaa508056a -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.mdx sha256: 096623dfcbba5e1fede34112133a2d3f37bade8a4a2745f24993c73176ae219d -->

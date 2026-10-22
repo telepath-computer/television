@@ -1,19 +1,17 @@
-*Proves the shipped Example template's package, initial value, and live page behavior.*
+*Proves the bundled artifact template inventory against the source manifests and exported IDs.*
 
-# Bundled artifact template — proof
+# Bundled artifact templates — proof
 
 Proves [specs/arch/templates/bundled-templates.md](../../../specs/arch/templates/bundled-templates.md).
 
 ## Coverage model
 
-The package check reads the real Example source, including its manifest's absence of `display`. A browser opens an artifact created from it against a running server and real resource store, then an agent-style `tv resource json` write changes the visible text. This walks the only bundled page's main use without mocking its resource connection. The ordinary copy, seed, and default display rules are covered by [template architecture](./index.md) and [layout creation](../layout/index.md#^ly-ac-create-appends); build membership and minimum versions are covered by [bundled installation](./bundled-installation.md). Visual polish is judged in browser review.
+Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist package coverage](./checklist.md) owns display size, starting data, page delivery, and guidance; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
 
 ## Test hooks
 
-No production test hook is needed.
+The inventory contract reads the actual bundled files and exported IDs; it replaces no production dependency.
 
-## Assertions
+## Inventory
 
-- **Contract** (real bundled source and manifest): Under [the specified behavior](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the closed bundled-ID tuple is `['example']`, the folder's name, description, initial and minimum versions match the spec, `data.json` contains the specified `message`, and `README.md` gives the adapting agent the store command and field meaning. *(policy-grade test: `packages/server/test/bundled-template-installation.test.ts`, cases tagged `^templates-example-t-package`)* ^templates-example-t-package
-- **Contract** (real bundled Example manifest on disk; no mocks or test hooks): Under [the bundled template spec](../../../specs/arch/templates/bundled-templates.md#bundled-artifact-template), the source manifest has no `display` property. *(policy-grade test: `packages/server/test/bundled-template-installation.test.ts` “declares the sole Example with its minimum version, manifest, starting data, and adapting guidance”)* ^templates-example-t-no-display
-- **Acceptance** (real browser → running server → copied Example artifact and resource store; no mocks except the standard CSS-motion override, which forfeits motion only): Under [the specified behavior](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-example), the page loads the canonical stylesheet, shows the seeded message as text, and changes the open page when a spawned `tv resource json` command writes another message; the page itself provides no edit action. *(policy-grade test: `packages/web/test/e2e/template-example-real-stack.test.ts`, cases tagged `^templates-example-ac-live`)* ^templates-example-ac-live
+- **Contract** (real source folders, manifests, and exported inventory; no mocks): Under [the inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the only bundled ID is `checklist`, the readonly tuple is `['checklist']`, the inventory records minimum installed version `1.0.0`, and the manifest declares `Checklist`, `A list of items to tick off and edit.`, and version `1.0.0`. *(policy-grade test: `packages/server/test/checklist-template.test.ts`, “ships only Checklist with its exact inventory identity and minimum version”)* ^templates-bundled-t-inventory

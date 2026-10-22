@@ -8,13 +8,13 @@ The *navbar* contains the artifact tabs and application controls. It currently s
 
 ## Markup and styling
 
-[top-bar.frame](./top-bar.frame) defines the navbar, including the collapsed-sidebar controls and channel switcher popover. It reserves the Templates trigger position; the trigger's and its popover's markup and styling are the [Templates popover's](../skill-selector/index.md).
+[top-bar.frame](./top-bar.frame) defines the navbar, including the collapsed-sidebar controls and channel switcher popover. It reserves the Templates trigger position; the trigger's and its popover's markup and styling are the [Templates popover's](../templates-popover.mdx).
 
 ## Composition
 
 The navbar passes the supplied tabs to the [tab strip](../tab-strip/index.md) in order. Changing channels replaces the tabs immediately while keeping the application controls mounted.
 
-The trailing controls place the [Templates trigger](../skill-selector/index.md) before [Settings](../settings/index.md).
+The trailing controls place the [Templates trigger](../templates-popover.mdx) before [Settings](../settings/index.md).
 
 ## The lead group
 

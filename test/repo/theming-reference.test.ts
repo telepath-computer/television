@@ -6,6 +6,20 @@ import { expect, test } from "vitest";
 const root = path.resolve(import.meta.dirname, "../..");
 const referencePath = "packages/skills/skills/television/src/app-shell-reference.md";
 
+// An MDX spec binds the story module it imports and the surface stylesheet
+// that module imports; foundation stylesheets under specs/ are not its own.
+function mdxAuthorities(mdx: string): string[] {
+  const resolve = (from: string, specifier: string) =>
+    path.relative(root, path.resolve(root, path.dirname(from), specifier));
+  const storyImport = /import \* as \w+ from "([^"]+\.stories\.ts)"/.exec(readFileSync(path.join(root, mdx), "utf8"));
+  if (!storyImport) return [mdx];
+  const stories = resolve(mdx, storyImport[1]!);
+  const styles = [...readFileSync(path.join(root, stories), "utf8").matchAll(/^import "([^"]+\.css)";/gm)]
+    .map(([, specifier]) => resolve(stories, specifier!))
+    .filter(file => !file.startsWith("specs/"));
+  return [mdx, stories, ...styles];
+}
+
 // spec: proofs/arch/themes/authoring.md#^theme-authoring-t-app-shell-freshness
 test("the authored theme reference covers current application authorities", () => {
   const reference = readFileSync(path.join(root, referencePath), "utf8");
@@ -14,12 +28,8 @@ test("the authored theme reference covers current application authorities", () =
     // The document root marker is owned by the app composition prose.
     "specs/ui/app/index.md",
     ...globSync("specs/ui/app/**/*", { cwd: root })
-      .filter(file => /\.(frame|css)$/.test(file))
-      .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
-    // The retired frame above is replaced by this pilot's authored states.
-    "storybook/spec/templates-popover/templates-popover.stories.ts",
-    "storybook/spec/templates-popover/templates-popover.mdx",
-    "storybook/spec/templates-popover/styles.css",
+      .filter(file => /\.(frame|css)$/.test(file)),
+    ...globSync("specs/ui/app/**/*.mdx", { cwd: root }).flatMap(mdxAuthorities),
     // Artifact-frame authority adds its transparent states to the base frame.
     "storybook/spec/artifact-frame/artifact-frame.stories.ts",
     "storybook/spec/artifact-frame/artifact-frame.mdx",

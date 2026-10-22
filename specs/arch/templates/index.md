@@ -2,7 +2,7 @@
 
 # Artifact template architecture
 
-Television reads artifact templates from the selected home's `templates/` directory. This spec defines the folder contract, the result of a scan, and how using a template produces an artifact. [Product behavior](../../product/templates.md) owns what people and agents can rely on; [bundled installation](./bundled-installation.md) owns how Television places its own templates in that directory; [bundled template content](./bundled-templates.md) owns the shipped example.
+Television reads artifact templates from the selected home's `templates/` directory. This spec defines the folder contract, the result of a scan, and how using a template produces an artifact. [Product behavior](../../product/templates.md) owns what people and agents can rely on; [bundled installation](./bundled-installation.md) owns how Television places its own templates in that directory; [the bundled inventory](./bundled-templates.md) lists the shipped templates; [Checklist](./checklist.md) owns its package and store contract.
 
 ## Installed folder contract
 
@@ -29,7 +29,7 @@ interface ArtifactTemplateManifest {
 
 `ArtifactDisplayOptions` and its value rules are [the layout's](../layout/index.md#^ly-creation-display). An invalid `display`, or an invalid field in it, invalidates the folder, with an error naming that field. Unknown fields both at the manifest root and inside `display` are accepted and omitted from the validated record.
 
-An artifact template is valid when `manifest.json` is readable JSON matching `ArtifactTemplateManifest`; `index.html` is a readable file at the folder root; and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/skill-selector/index.md) owns how it is shown and its recommended dimensions. ^artifact-template-package
+An artifact template is valid when `manifest.json` is readable JSON matching `ArtifactTemplateManifest`; `index.html` is a readable file at the folder root; and `data.json`, when present, parses as JSON and satisfies the store's [value rules](../resources/json-store.md#^js-arch-values) and [1 MiB limit](../resources/json-store.md#^js-arch-limits). If its parsed value exceeds that limit, the folder is invalid and its error says so. Presence of `data.json` alone determines `hasData`; the manifest has no data flag. An optional `thumbnail.png` is the template's image; it stays in this folder, and its absence, size, or shape never invalidates the template. `hasThumbnail` is true only when that file is readable and its real location is inside the template folder's real location; it does not validate the image contents. The [Templates UI spec](../../ui/app/templates-popover.mdx) owns how it is shown and its recommended dimensions. ^artifact-template-package
 
 ## Discovery
 

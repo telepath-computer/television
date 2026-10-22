@@ -24,5 +24,9 @@
     "marked": "17.0.5",
     "ulid": "3.0.2",
     "vite": "6.4.3"
+  },
+  "devDependencies": {
+    "@telepath-computer/conform": "file:../../../../../conform-builds/telepath-computer-conform-0.2.0.tgz",
+    "playwright": "1.64.1"
   }
 }
