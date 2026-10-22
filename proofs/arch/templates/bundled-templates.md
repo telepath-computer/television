@@ -1,4 +1,4 @@
-*Proves the shipped Example template's package, initial value, and live page behavior.*
+*Proves the bundled Example manifest and its live page behavior with an unwritten or caller-supplied store.*
 
 # Bundled artifact template — proof
 
@@ -6,14 +6,21 @@ Proves [specs/arch/templates/bundled-templates.md](../../../specs/arch/templates
 
 ## Coverage model
 
-The package check reads the real Example source, including its manifest's absence of `display`. A browser opens an artifact created from it against a running server and real resource store, then an agent-style `tv resource json` write changes the visible text. This walks the only bundled page's main use without mocking its resource connection. The ordinary copy, seed, and default display rules are covered by [template architecture](./index.md) and [layout creation](../layout/index.md#^ly-ac-create-appends); build membership and minimum versions are covered by [bundled installation](./bundled-installation.md). Visual polish is judged in browser review.
+A contract reads the actual bundled files and checks the closed inventory and manifest schema.
+One real-browser journey uses the installed Example through a production creation request and the served resource SDK.
+It proves the empty-state default without a write, live agent updates, an empty string and non-string/missing data.
+These few value changes reuse the open page and real CLI, rather than creating separate browser journeys.
+The page has no edit action; the README explains how agents change data and detach before changing one page.
+[Template architecture](./index.md) owns schema validation and creation mechanics, and [bundled installation](./bundled-installation.md) owns the build and boot crossings.
+Template revision compatibility is assessed against retained accepted data during content review; Television does not compare schemas or migrate stores.
+Only the standing CSS-motion override is allowed in the browser; it forfeits motion, which this page does not promise.
 
 ## Test hooks
 
-No production test hook is needed.
+No production test hook is needed; temporary homes and caller/store values are fixtures.
 
 ## Assertions
 
-- **Contract** (real bundled source and manifest): Under [the specified behavior](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the closed bundled-ID tuple is `['example']`, the folder's name, description, initial and minimum versions match the spec, `data.json` contains the specified `message`, and `README.md` gives the adapting agent the store command and field meaning. *(policy-grade test: `packages/server/test/bundled-template-installation.test.ts`, cases tagged `^templates-example-t-package`)* ^templates-example-t-package
-- **Contract** (real bundled Example manifest on disk; no mocks or test hooks): Under [the bundled template spec](../../../specs/arch/templates/bundled-templates.md#bundled-artifact-template), the source manifest has no `display` property. *(policy-grade test: `packages/server/test/bundled-template-installation.test.ts` “declares the sole Example with its minimum version, manifest, starting data, and adapting guidance”)* ^templates-example-t-no-display
-- **Acceptance** (real browser → running server → copied Example artifact and resource store; no mocks except the standard CSS-motion override, which forfeits motion only): Under [the specified behavior](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-example), the page loads the canonical stylesheet, shows the seeded message as text, and changes the open page when a spawned `tv resource json` command writes another message; the page itself provides no edit action. *(policy-grade test: `packages/web/test/e2e/template-example-real-stack.test.ts`, cases tagged `^templates-example-ac-live`)* ^templates-example-ac-live
+- **Contract** (bundled source files → package content check; no mocks): under [inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory) and [Example content](../../../specs/arch/templates/bundled-templates.md#bundled-artifact-template), the tuple is `['example']`; the ID, name, description, initial/minimum versions and exact `dataSchema` agree with the spec; `url` and starting data are absent. The README explains the per-artifact message, resource command and copy/detach rule. *(test to be written)* ^templates-example-t-package
+- **Contract** (real source manifest; no mocks): under [Example content](../../../specs/arch/templates/bundled-templates.md#bundled-artifact-template), the manifest omits `display`. *(policy-grade test: `packages/server/test/bundled-template-installation.test.ts`, “declares the sole Example with its minimum version, manifest, starting data, and adapting guidance”, no-display check only)* ^templates-example-t-no-display
+- **Acceptance** (real browser → running server → installed Example and SDK, with built `tv resource json` commands): under [page behavior](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-example), a linked Example with an unwritten store loads the canonical stylesheet and displays “Hello from a template.” while the store remains unwritten. Caller data renders on a separately seeded creation; live CLI writes change the open page. HTML-like text stays text, an empty string displays empty, and absent/non-string `message` displays the default without writing it. The page provides no edit action. No mocks except CSS-motion disablement. *(test to be written)* ^templates-example-ac-live
