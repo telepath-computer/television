@@ -763,3 +763,59 @@ The prior CLI, shared, browser, acceptance, assets, skills-build and conformance
 The task-owned `/tmp/tv-s5-async` directory was removed after checking that no process retained it. Canonical reports and small logs remain. No `npm run verify`, dependency installation, host CLI installation/link, commit or push occurred. The final independent review was PASS at exact `xhigh`; the original rejection/rewrite blocker is resolved.
 
 The corrected source/test/proof/spec manifest, excluding this record, is `scratch/slice5-async-final-tree.json`, SHA-256 `a92f54ab26e6a86ed83207d22f756990442640149d7f9f3151223802d2d7722e`. It supersedes the incomplete handoff manifest while retaining it as history.
+
+### Whole-branch simplify and sanity pass — October 23, 2026
+
+Reviewed `54cd365..17e6e73` against the copy-only specs at `f6c0a63` and the approved root `$async` clarification. Changes remain uncommitted on `feat/toolbox`; specs and stories are unchanged. This pass uses the complexity-inoculation and cold-reader guidance. The prior task entries remain history, not requirements.
+
+Mechanical changes:
+
+- Server/shared: removed the synchronous creation route's unnecessary async/await, redundant dot-directory checks, an unused containment-helper export and a duplicate import; corrected telemetry ownership wording.
+- Tests: removed the unshipped `--copy` rejection/help and retired-guidance assertions, an unused thumbnail fixture/assertion, and an unused deferred-promise reject callback. Renamed copied image fixtures and a misleading starting-data variable. Display and failure tests now use their existing `data.json` fixtures without redundant caller-data overrides; the failure helper no longer needs an options argument. Corrected the stdin test title and its proof citation. The 377-line browser acceptance file moved from `skill-selector.test.ts` to `toolbox-acceptance.test.ts` without changing its contents.
+- Guidance/proofs: removed linked/detach and retired-test wording, updated current browser citations, aligned the uncertain-write assertion with the common starting-value path, and documented the Toolbox footer. The focused theme-reference check exposed stale fingerprints for the Toolbox story, MDX and stylesheet; after reviewing those authorities against the reference, refreshed the three fingerprints. No authority bytes were edited.
+
+The cleanup changes 44 added / 53 deleted lines outside this record, excluding the unchanged 377-line file move: production 6/8, tests 19/27, guidance and proofs 19/18. It removes one CLI test case; other assertion changes retain positive contract coverage.
+
+Kept the ordinary artifact watcher, copied-symlink repair, icon path boundaries, schema validation, template-cache observation/recovery and response-order guards: each still serves the current contracts. Symlink repair predates this branch. Toolbox CSS remains byte-identical to the authoritative story stylesheet, with no unused classes found. Kept the explicitly retained historical frame, thumbnails and routing assets, historical working documents, and measured timing-baseline entries; the latter are regenerated from actual complete Blaxel measurements. Kept failure/starting-data and ordinary shared-folder resource journeys because they prove current promises.
+
+Judgment raised: `packages/web/package.json` and the lockfile reference a Conform tarball outside the checkout (`../../../../../conform-builds/telepath-computer-conform-0.2.0.tgz`). Recommend selecting a portable published or repository-contained dependency before sharing the branch. No dependency source was guessed or changed.
+
+The production simplification reader and a separate GPT-6 Astra reviewer at exact `xhigh` found no remaining mechanical issue after corrections. Independent final verdict: PASS for this cleanup; the dependency-source decision remains raised. Neither reviewer ran tests. Validation uses serialized canonical local invocations with fresh temporary homes under `/tmp/tv-tb-pass`, outside Vite's watched checkout. The developer telemetry marker was already present. Exact commands and results follow below. All requested final selections passed.
+
+
+#### Validation results
+
+Final owning selections plus the theme-reference check passed **2,248 tests, with two existing skips and no failures** on the uncommitted tree above `17e6e73a4a59a153479725e35d77f0d006b9a576`. The server skip cannot stage privileged-port permission denial on this host; the browser-app skip is the standing ACP fake-server disconnect case. Targeted checks preceded the owning suites. Browser tests used Chromium with retries disabled; Firefox is unavailable.
+
+Two intermediate failures remain recorded. The first theme-reference check failed on stale Toolbox authority fingerprints; the reviewed guidance/fingerprint correction passed its focused rerun and the later skills build. The first full server run passed 1,157 tests, failed the unchanged JSON-store message-limit case after 31.04 seconds (its configured limit is 30 seconds), and skipped the existing privileged-port case. That case passed unchanged in isolation; the subsequent full server run passed 1,158 tests with the same skip. No assertion or timeout was weakened. All 20 canonical runs, including those failures, recorded zero runner-recovered flakes, process leaks and infrastructure failures; the manual server rerun is separate from that automatic-retry count.
+
+Each run-directory output in the commands below points to its canonical `summary.json`, `results.json` and native reports. `scratch/toolbox-sanity/reports.json` collects the exact invocation, report directory, status and counts for all runs. Times are UTC on October 23. Filtered tests were not executed.
+
+| UTC start | Command (`TMPDIR=/tmp/tv-tb-pass` for every row) | Result |
+|---|---|---|
+| 19:21:37 | `npm test -- local --surface unit:server --grep template --run-dir-output scratch/toolbox-sanity/target-server.run` | unit:server: 127 passed, 1032 filtered |
+| 19:24:30 | `npm test -- local --file packages/server/test/templates-failures.test.ts --run-dir-output scratch/toolbox-sanity/target-failures.run` | unit:server: 6 passed |
+| 19:24:38 | `npm test -- local --file packages/cli/test/cli.test.ts --grep 'template\|unsupported' --run-dir-output scratch/toolbox-sanity/target-cli.run` | unit:cli: 75 passed, 212 filtered |
+| 19:24:45 | `npm test -- local --file test/repo/skills-build.test.ts --grep 'emits template discovery and authoring guidance' --run-dir-output scratch/toolbox-sanity/target-guidance.run` | unit:root: 1 passed, 11 filtered |
+| 19:24:48 | `npm test -- local --file test/repo/theming-reference.test.ts --run-dir-output scratch/toolbox-sanity/theming-reference.run` | unit:root: 0 passed, 1 failed |
+| 19:26:23 | `npm test -- local --file packages/web/test/template-cache.test.ts --run-dir-output scratch/toolbox-sanity/target-cache.run` | unit:browser-app: 5 passed |
+| 19:26:26 | `npm test -- local --file test/node/cli-acceptance.test.ts --grep 'reads piped stdin' --retries 0 --run-dir-output scratch/toolbox-sanity/target-stdin.run` | e2e:node: 1 passed, 44 filtered |
+| 19:26:52 | `npm test -- local --file test/repo/theming-reference.test.ts --run-dir-output scratch/toolbox-sanity/theming-reference-2.run` | unit:root: 1 passed |
+| 19:26:55 | `npm test -- local --file packages/web/test/e2e/toolbox-acceptance.test.ts --retries 0 --run-dir-output scratch/toolbox-sanity/target-browser.run` | e2e:browser-app: 10 passed |
+| 19:29:08 | `npm test -- local --surface unit:server --run-dir-output scratch/toolbox-sanity/server.run` | unit:server: 1157 passed, 1 failed, 1 skipped |
+| 19:34:53 | `npm test -- local --file packages/server/test/resources/json-store-server.test.ts --grep 'applies a set of placeholders' --run-dir-output scratch/toolbox-sanity/resource-limit.run` | unit:server: 1 passed, 9 filtered |
+| 19:35:32 | `npm test -- local --surface unit:server --run-dir-output scratch/toolbox-sanity/server-2.run` | unit:server: 1158 passed, 1 skipped |
+| 19:41:04 | `npm test -- local --surface unit:cli,unit:shared,unit:browser-app --run-dir-output scratch/toolbox-sanity/clients.run` | unit:cli: 310 passed; unit:shared: 67 passed; unit:browser-app: 586 passed, 1 skipped |
+| 19:43:35 | `npm test -- local --file test/node/cli-acceptance.test.ts --retries 0 --run-dir-output scratch/toolbox-sanity/cli-acceptance.run` | e2e:node: 45 passed |
+| 19:47:36 | `npm test -- local --file test/node/cli-assets.test.ts --retries 0 --run-dir-output scratch/toolbox-sanity/cli-assets.run` | e2e:node: 24 passed |
+| 19:48:49 | `npm test -- local --file test/repo/skills-build.test.ts --run-dir-output scratch/toolbox-sanity/skills-build.run` | unit:root: 12 passed |
+| 19:49:09 | `npm test -- local --file test/repo/spec-links.test.ts --run-dir-output scratch/toolbox-sanity/spec-links.run` | unit:root: 8 passed |
+| 19:49:20 | `npm test -- local --surface e2e:browser-app --grep '(toolbox-acceptance\|toolbox\|template-cache)\.test\.ts' --retries 0 --run-dir-output scratch/toolbox-sanity/browser.run` | e2e:browser-app: 15 passed |
+| 19:52:59 | `npm test -- local --surface e2e:toolbox-conformance --retries 0 --run-dir-output scratch/toolbox-sanity/conformance.run` | e2e:toolbox-conformance: 19 passed |
+| 19:57:04 | `npm test -- local --surface e2e:browser-app-real-stack --grep '(templates-real-stack\|template-example-real-stack)\.test\.ts' --retries 0 --run-dir-output scratch/toolbox-sanity/real-stack.run` | e2e:browser-app-real-stack: 3 passed |
+
+`npm run type-check` and `npm run lint` passed both initially and again after the final test-helper/title edits; final logs are `scratch/toolbox-sanity/type-check-final.log` and `scratch/toolbox-sanity/lint-final.log`. `cmp storybook/spec/toolbox/styles.css packages/web/src/views/toolbox.css`, the no-diff check for specs/stories/dependency manifests, and `git diff --check` passed. Existing bundle-size and Storybook/Vite dynamic-import warnings did not fail checks.
+
+The source/test/proof/guidance manifest is `scratch/toolbox-sanity/final-tree.json`, SHA-256 `e2a45a19a44649caec8c9681e3a16d6975fe16b93796ef027fac77610c86c576`. It excludes this task record and matches the final bytes. The Git tree reported by the runner is the committed HEAD tree, not a snapshot of the working edits.
+
+Removed `/tmp/tv-tb-pass` after confirming no process retained that `TMPDIR`. Canonical reports and small logs/manifests remain for review. No full `npm run verify`, checkout dependency installation, host CLI installation/link, commit or push was performed. The work remains on the requested branch at the requested HEAD, ready for review of the cleanup and the separately raised dependency-source decision; this is not a claim of full merge validation.

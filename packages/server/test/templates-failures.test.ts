@@ -43,9 +43,9 @@ async function start(root: string, overrides: ServingStoreOverrides = {}) {
   return { store, server, channelID, events };
 }
 
-function create(server: Server, token: string, channelID: string, options: { data?: unknown } = {}) {
+function create(server: Server, token: string, channelID: string) {
   return request(server.httpServer).post("/templates/artifacts")
-    .set("Authorization", `Bearer ${token}`).send({ templateID: "sample", channelID, source: "cli", ...options });
+    .set("Authorization", `Bearer ${token}`).send({ templateID: "sample", channelID, source: "cli" });
 }
 
 function destination(error: string): string {
@@ -117,7 +117,7 @@ describe("template creation keeps partial results", () => {
     template(root, true);
     const { store, server, channelID, events } = await start(root);
     writeFileSync(path.join(root, "resources"), "obstructed");
-    const response = await create(server, store.authToken, channelID, { data: { seeded: true } }).expect(500);
+    const response = await create(server, store.authToken, channelID).expect(500);
     expect(response.body.error).toMatch(/store write/i);
     const artifact = store.listArtifacts()[0]!;
     expect(response.body.error).toContain(artifact.id);
@@ -148,7 +148,7 @@ describe("template creation keeps partial results", () => {
       },
     };
     const { store, server, channelID, events } = await start(root, { resourceStorageOperations: storage });
-    const response = await create(server, store.authToken, channelID, { data: { seeded: true } }).expect(500);
+    const response = await create(server, store.authToken, channelID).expect(500);
     expect(response.body.error).toMatch(/store write/i);
     const artifact = store.listArtifacts()[0]!;
     expect(response.body.error).toContain(artifact.id);
@@ -170,7 +170,7 @@ describe("template creation keeps partial results", () => {
       rmSync(obstruction, { recursive: true });
       if (step === "registration") writeFileSync(obstruction, "obstructed");
       else mkdirSync(obstruction);
-      const response = await create(server, store.authToken, channelID, {}).expect(500);
+      const response = await create(server, store.authToken, channelID).expect(500);
       expect(response.body.error).toContain(target);
       expect(response.body.error).toContain(step);
       expect(response.body.error).toMatch(/[0-9A-HJKMNP-TV-Z]{26}/);

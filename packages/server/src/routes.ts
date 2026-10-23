@@ -241,7 +241,7 @@ export function registerRoutes(
     res.json(store.templateCache!.get(req.query.fresh === "true"));
   });
 
-  app.post("/templates/artifacts", ...auth, async (req, res) => {
+  app.post("/templates/artifacts", ...auth, (req, res) => {
     const parsed = createTemplateArtifactBodySchema.safeParse(req.body);
     if (!parsed.success) {
       sendError(res, HTTP_BAD_REQUEST, parsed.error.issues[0]?.message ?? "Invalid request body");
@@ -257,7 +257,7 @@ export function registerRoutes(
       return;
     }
     try {
-      const result = await store.createTemplateArtifact({ ...parsed.data, template }, telemetryContext(req));
+      const result = store.createTemplateArtifact({ ...parsed.data, template }, telemetryContext(req));
       res.status(HTTP_CREATED).json(result);
     } catch (error) {
       if (error instanceof TemplateCreationError) {
@@ -274,7 +274,7 @@ export function registerRoutes(
     if (!scan.watching) {
       // Exact immediate-directory IDs only; the caller never supplies a file path.
       const id = req.params.id;
-      if (id && id !== "." && id !== ".." && path.basename(id) === id && !id.startsWith(".")) {
+      if (id && path.basename(id) === id && !id.startsWith(".")) {
         const folder = path.join(store.storagePath, "templates", id);
         try {
           template = lstatSync(folder).isDirectory() ? validateTemplatePackage(folder, id).template : undefined;

@@ -571,7 +571,6 @@ describe("artifact template CLI commands", () => {
     ["multiple sources", ["--path", "/tmp/note.md", "--template", "example"]],
     ["path without title", ["--path", "/tmp/note.md"]],
     ["URL without title", ["--url", "https://example.com"]],
-    ["unsupported copy option", ["--template", "example", "--copy"]],
     ["data with path", ["--path", "/tmp/note.md", "--title", "Note", "--data", "null"]],
     ["data file with URL", ["--url", "https://example.com", "--title", "Link", "--data-file", "-"]],
   ] as const)("refuses %s before any creation request", async (_reason, options) => {
@@ -901,8 +900,6 @@ describe("CLI artifact command surface", () => {
     const stdout = new BufferOutput();
     expect(await runCLI(["help", "create-artifact"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
     expect(stdout.toString()).toContain("--focus-artifact");
-    // proofs/arch/cli/index.md#^cli-t-template-create
-    expect(stdout.toString()).not.toContain("--copy");
     // proofs/arch/cli/index.md#^cli-t-create-display-help
     for (const option of ["--width <px>", "--height <px>", "--full-screen", "--no-full-screen"]) {
       expect(stdout.toString()).toContain(option);

@@ -22,8 +22,7 @@ export const TELEMETRY_SIGNAL_MESSAGE_TYPE = "telemetry-signal";
 /**
  * The subset of the closed telemetry vocabulary that clients may signal
  * (specs/arch/telemetry/client-signals.md). Firing semantics (when and how
- * often each fires) are owned by the update-notifications or skill-selector
- * feature specs.
+ * often each fires) are owned by the update-notifications specs.
  */
 export type ClientSignalEventName =
   | "client_autoreloaded"

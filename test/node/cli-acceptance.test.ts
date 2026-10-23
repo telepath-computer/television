@@ -652,7 +652,7 @@ describe("CLI product spine acceptance", () => {
   });
 
   // proofs/product/cli.md#^cli-ac-template-stdin
-  it("reads piped stdin as replacement starting data in a copied built CLI process", async () => {
+  it("reads piped stdin through the built CLI as replacement starting data for a copied artifact", async () => {
     const { home, channel, tv } = await seededServer("television-cli-template-stdin-");
     const target = await channel("Templates", 0);
     const source = authorTemplate(home, "custom");

@@ -107,9 +107,8 @@ import {
   writeBundledThemeStateFile,
 } from "./bundled-theme-installer.ts";
 import { artifactRealLocation } from "./artifact-location.ts";
-import { randomTemplateSuffix, readTemplateData, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
+import { getTemplatesDir, randomTemplateSuffix, readTemplateData, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
 import { TemplateCache } from "./template-cache.ts";
-import { getTemplatesDir } from "./templates.ts";
 import { validateTemplateData } from "./template-schema.ts";
 import { runBundledTemplateInstallation, type BundledTemplateOperations } from "./bundled-template-installer.ts";
 

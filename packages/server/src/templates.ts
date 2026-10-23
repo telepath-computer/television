@@ -53,7 +53,7 @@ export function randomTemplateSuffix(): string {
   return randomInt(SUFFIX_RADIX ** SUFFIX_LENGTH).toString(SUFFIX_RADIX).padStart(SUFFIX_LENGTH, "0");
 }
 
-export function isContainedPath(root: string, candidate: string): boolean {
+function isContainedPath(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }

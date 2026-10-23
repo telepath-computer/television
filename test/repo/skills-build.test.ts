@@ -184,7 +184,6 @@ describe("skills build", () => {
     for (const document of [intro, capabilities, guide]) {
       expect(document).toMatch(/\]\(\.\/templates\.md\)|^# Artifact templates/);
       expect(document).toMatch(/cop(?:y|ies|ied)/i);
-      expect(document).not.toMatch(/--copy|detach|schema compatibility|linked artifact/i);
       expect(document).toMatch(/edit[^.]*copied page files[^.]*one artifact/i);
       expect(document).toMatch(/template[^\n]*only artifacts created afterwards/i);
     }

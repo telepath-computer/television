@@ -4,9 +4,8 @@ import { TemplateCache } from "../src/services/template-cache.ts";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  let reject!: (error: Error) => void;
-  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
-  return { promise, resolve, reject };
+  const promise = new Promise<T>((yes) => { resolve = yes; });
+  return { promise, resolve };
 }
 function scan(ids = ["one"], watching = true): ArtifactTemplateScan {
   return { templates: ids.map((id) => ({ id, name: id, description: "Page", version: "1.0.0", path: `/templates/${id}`, hasIcon: true })), errors: [], watching };

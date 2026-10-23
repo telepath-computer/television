@@ -6,7 +6,7 @@ Proves [specs/arch/making-skills.md](../../specs/arch/making-skills.md).
 
 ## Coverage model
 
-Designed skill surfaces follow their owning UI proofs: MDX surfaces use story conformance and retained frame/template surfaces keep [their conformance contract](./ui/conformance.md). This changes no bundle-membership promise. [Template guidance](./templates/authoring.md) carries the linked/copy/detach instructions through the real build; this proof retains the general packaging checks.
+Designed skill surfaces follow their owning UI proofs: MDX surfaces use story conformance and retained frame/template surfaces keep [their conformance contract](./ui/conformance.md). This changes no bundle-membership promise. [Template guidance](./templates/authoring.md) carries template-copy and artifact-snapshot guidance through the real build; this proof retains the general packaging checks.
 
 ### Shipped-content evidence
 

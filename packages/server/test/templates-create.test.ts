@@ -27,7 +27,7 @@ function template(root: string, id = "sample", data?: unknown): string {
   writeFileSync(path.join(folder, "index.html"), "<!doctype html><title>Sample</title>");
   writeFileSync(path.join(folder, "README.md"), "Adapt this page.");
   writeFileSync(path.join(folder, "helper.js"), "export const answer = 42;");
-  writeFileSync(path.join(folder, "thumbnail.png"), "image");
+  writeFileSync(path.join(folder, "image.png"), "image");
   if (data !== undefined) writeFileSync(path.join(folder, "data.json"), JSON.stringify(data));
   return folder;
 }
@@ -70,7 +70,6 @@ describe("template artifact creation", () => {
       { ...base, templateID: 1 },
       { ...base, channelID: 1 },
       { ...base, title: 1 },
-
       { ...base, before: 1 },
       { ...base, after: 1 },
       { ...base, extra: "invalid" },
@@ -95,12 +94,12 @@ describe("template artifact creation", () => {
     template(root, "example", { message: "private starting value" });
     const custom = template(root, "private-custom-id");
     const privateName = "Private catalog name QX7";
-    const privateImage = "Private thumbnail bytes YZ9";
+    const privateImage = "Private image bytes YZ9";
     writeFileSync(path.join(custom, "manifest.json"), JSON.stringify({
       name: privateName, description: "A private template", version: "1.0.0",
       dataSchema: { description: "Private schema content AB9", type: "object" },
     }));
-    writeFileSync(path.join(custom, "thumbnail.png"), privateImage);
+    writeFileSync(path.join(custom, "image.png"), privateImage);
     const { channelID, client, events } = await start(root);
     await client.templates.create({ templateID: "example", channelID, source: "cli", data: { message: "private starting value" } });
     await client.templates.create({ templateID: "private-custom-id", channelID, source: "ui", title: "Private display title" });
@@ -136,8 +135,8 @@ describe("template artifact creation", () => {
       expect(readdirSync(path.join(root, "artifacts"))).toEqual([]);
       expect(store.listArtifacts().map(({ id }) => id)).toEqual([otherArtifact.id]);
     }
-    const empty = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
-    expect(store.resources.json.get({ artifactID: empty.artifactID }, "")).toEqual({ exists: true, value: { template: true } });
+    const fromTemplate = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
+    expect(store.resources.json.get({ artifactID: fromTemplate.artifactID }, "")).toEqual({ exists: true, value: { template: true } });
     const result = await client.templates.create({ templateID: "sample", channelID, source: "cli", data: null });
     expect(store.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: true, value: null });
   });
@@ -168,15 +167,15 @@ describe("template artifact creation", () => {
     expect(scan.templates.find(({ id }) => id === "opaque")?.display).toEqual({ transparent: false });
 
     const fromCommand = await client.templates.create({
-      templateID: "complete", channelID, source: "cli", data: { seeded: true }, display: { width: 500.5 },
+      templateID: "complete", channelID, source: "cli", display: { width: 500.5 },
     });
     const explicitFalse = await client.templates.create({
-      templateID: "complete", channelID, source: "cli", data: { seeded: true }, display: { height: 333, fullScreen: false, transparent: false },
+      templateID: "complete", channelID, source: "cli", display: { height: 333, fullScreen: false, transparent: false },
     });
-    const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui", data: { seeded: true } });
-    const fromFalse = await client.templates.create({ templateID: "opaque", channelID, source: "ui", data: { seeded: true } });
+    const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui" });
+    const fromFalse = await client.templates.create({ templateID: "opaque", channelID, source: "ui" });
     const explicitTrue = await client.templates.create({
-      templateID: "opaque", channelID, source: "cli", data: { seeded: true }, display: { transparent: true },
+      templateID: "opaque", channelID, source: "cli", display: { transparent: true },
     });
     const urlFolder = template(root, "url");
     writeFileSync(path.join(urlFolder, "manifest.json"), JSON.stringify({
@@ -303,7 +302,7 @@ describe("template artifact creation", () => {
     ] as const;
     for (const [created, value] of values) {
       expect(created).toEqual({ artifactID: expect.any(String), path: expect.stringMatching(`${root}/artifacts/`) });
-      for (const filename of ["index.html", "README.md", "helper.js", "thumbnail.png", "nested/data.json", "nested/manifest.json"]) {
+      for (const filename of ["index.html", "README.md", "helper.js", "image.png", "nested/data.json", "nested/manifest.json"]) {
         expect(readFileSync(path.join(created.path!, filename))).toEqual(readFileSync(path.join(folder, filename)));
       }
       for (const filename of ["manifest.json", "data.json"]) expect(existsSync(path.join(created.path!, filename))).toBe(false);

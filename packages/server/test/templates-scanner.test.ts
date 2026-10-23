@@ -36,7 +36,6 @@ describe("artifact template scanner", () => {
       name: "Sample", description: "A sample page", version: "1.2.3-alpha.1+build.7", ignored: "not returned",
     });
     writeFileSync(path.join(valid, "data.json"), "null");
-    writeFileSync(path.join(valid, "thumbnail.png"), Buffer.from([137, 80, 78, 71]));
     template(root, ".backup");
     writeFileSync(path.join(root, "ordinary-file"), "ignored");
     const broken = template(root, "broken", { name: " ", description: "", version: "v1" });
@@ -85,7 +84,6 @@ describe("artifact template scanner", () => {
     for (const record of scan.templates) {
       expect(record).not.toHaveProperty("data");
       expect(record).not.toHaveProperty("hasData");
-      expect(record).not.toHaveProperty("hasThumbnail");
     }
   });
 
