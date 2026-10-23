@@ -1,6 +1,6 @@
 *The onboarding installer and serving bootstrap order: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, the default-channel invariant, and the placement of bundled theme and artifact-template handling and the watched template cache.*
 
-**Status:** adopted installer and migration authority. Watched template-cache startup is a draft addition; implementation does not yet conform to that addition.
+**Status:** adopted installer and migration authority.
 
 # Onboarding installer
 

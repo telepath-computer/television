@@ -25,7 +25,7 @@ Evidence below covers creation, discovery and icons; browser cache evidence is r
 - `ServerOptions.telemetry.sink` may record complete events instead of sending them to PostHog; real delivery belongs to [the sink proof](../telemetry/sink.md#^t-posthog-lands).
 - The [resource storage adapter](../resources/index.md#test-hooks) may fail the directory flush after a first-write rename; production uses Node filesystem operations. This forfeits a real failing disk, which cannot be induced deterministically; the resource proof carries normal real I/O.
 - `generateTemplateSuffix` may return a known sequence to force a collision; production generates random base-36 suffixes. Randomness itself is not claimed.
-- Cache contracts may inject a scan function, the shared watcher factory and debounce scheduler; production uses the real scanner, shared content watcher and timers. These are planned test affordances, not claims that those hooks already exist.
+- Cache contracts may inject a scan function, the shared watcher factory and debounce scheduler; production uses the real scanner, shared content watcher and timers.
 - Client-cache contracts may supply a recording shared client and event source with controlled completion order; production uses the authenticated connection. A transport gate in browser seams may delay real HTTP responses without changing their bytes; it forfeits ordinary timing only. The fallback acceptance may abort one list request and make the server watcher factory fail; these exceptional mocks forfeit actual network/kernel failure generation, not the real retry and refresh paths.
 
 ## Validation and discovery
