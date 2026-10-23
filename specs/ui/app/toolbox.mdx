@@ -20,7 +20,7 @@ Opening clears and focuses the search field, starts with no highlighted row, and
 <Canvas of={Stories.BeforeFirstList} />
 <Canvas of={Stories.Open} />
 
-The panel is 300px wide and at most 480px high, reduced as needed to fit the window. The search field has the label “Search toolbox” and placeholder “Search toolbox…”, a muted background, no border or focus ring, 5px vertical padding and standard horizontal control padding, with space for the search icon. Each row has a 20px icon, a 12px gap and the name only, at `--text-base` with medium weight and 7px vertical padding. Row icons, and the warning icon in the error summary and folder error, share one 20px column centred under the search icon (the warning icon is 16px, centred in that column), so their text lines up with the item names. The entire row activates the item; a long name truncates visually and remains complete in its accessible name. ^toolbox-layout
+The panel is 300px wide and at most 480px high, reduced as needed to fit the window. A footer below the scrolling area says what the Toolbox is for and how to add to it: “Ask your agent to add artifacts to your toolbox, then reuse them anywhere.” in muted text, separated from the area above by a muted rule across the full panel width. It is shown in every state and does not scroll. Adding from the app itself is a later change. The search field has the label “Search toolbox” and placeholder “Search toolbox…”, a muted background, no border or focus ring, 5px vertical padding and standard horizontal control padding, with space for the search icon. Each row has a 20px icon, a 12px gap and the name only, at `--text-base` with medium weight and 7px vertical padding. Row icons, and the warning icon in the error summary and folder error, share one 20px column centred under the search icon (the warning icon is 16px, centred in that column), so their text lines up with the item names. The entire row activates the item; a long name truncates visually and remains complete in its accessible name. The gap between the search field and the first row belongs to the scrolling area, so when the list scrolls, rows pass directly under the field; at the top of the list the gap is kept. ^toolbox-layout
 
 <Canvas of={Stories.LongName} />
 <Canvas of={Stories.ManyItems} />
@@ -61,7 +61,7 @@ The default icon is the first Unicode code point of the name, uppercased without
 
 ## Empty and error states
 
-An empty directory shows “Nothing here yet. Ask your agent to add an artifact template.” If folders exist but none are valid, the panel shows only the error summary below. With no search matches, show `Nothing matches “{query}”.` using the query as text. ^toolbox-empty
+An empty directory shows “Nothing here yet.” If folders exist but none are valid, the panel shows only the error summary below. With no search matches, show `Nothing matches “{query}”.` using the query as text. ^toolbox-empty
 
 <Canvas of={Stories.NoTemplates} />
 <Canvas of={Stories.OnlyErrors} />

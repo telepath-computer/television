@@ -19,7 +19,7 @@ Working record for `feat/linked-templates`, branched from `feat/artifact-templat
 | Proof derivation | Complete for all 26 affected product, architecture and UI specs at `bf195c7`; 61 assertions remain `(test to be written)`; no ambiguous expected results found |
 | Proof convergence | Done: round 1 FAIL, round 2 FAIL, round 3 PASS with one generated-count fix applied |
 | Plan | Done: four slices; plan review round 1 PASS with no findings |
-| Implementation, red/green TDD | Slices 1–3 committed (`4ede94e`, `d17b041`, `f0fa323`). Slice 4 independent review found one partial-copy recovery defect. The correction is implemented red-first; the installer file, server suite and type-check pass. All five proof citations remain in place; supervisor re-review is pending |
+| Implementation, red/green TDD | All four planned slices committed through `10a8f3a`. The Toolbox layout and blank-store guidance follow-up is implemented and validated, with scoped independent review passing; it remains uncommitted. See the final validation entry below. |
 | Integrated result and full verification | Slice checks complete; independent integrated review and full verification pending with the supervisor |
 | Pull request | Not opened |
 
@@ -633,3 +633,45 @@ Additional validation on the final source/test bytes:
 All six canonical runs above recorded zero recovered flakes, process leaks and infrastructure failures. The red failures were expected test failures. The server suite passed on its first run of this correction; no additional intermittent failure occurred. Small filesystem probes established the socket ordering for the revised fixture; their temporary directories were removed. Installer fixture homes and sockets were cleaned by the tests. No full `npm run verify`, commit, push, package installation, host CLI install/link or host-home server occurred.
 
 **Remaining baseline versus the plan:** no allocated linked-template test failure remains in the selected checks. The reported partial-copy defect is corrected and the required suites pass; independent re-review and full verification still belong to the supervisor. Earlier browser limitations and intermittent failures remain documented above. The guidance and all other slice 4 source/test/proof bytes still match the original handoff manifest. Final `git diff --check` passed, and all source/test/proof hashes match the review manifest.
+
+
+### Toolbox layout and blank-store guidance follow-up — October 23, 2026
+
+**Complete within the requested scope; uncommitted and unpushed.** Work stayed in `/root/workspace/dev/television/feat/linked-templates` on `feat/linked-templates`, HEAD `10a8f3afe6d56ababcdd034bce5c809b125343a4`. The final approved design has a fixed footer in every state: “Ask your agent to add artifacts to your toolbox, then reuse them anywhere.” The empty-directory message is “Nothing here yet.” The search gap belongs to the scrolling body. Production renders that design, and `toolbox.css` is byte-identical to the approved story stylesheet. The four approved spec/story files were not changed by the implementer; their final-design hashes are preserved in `scratch/linked-templates-followup-approved.json`.
+
+Extended the existing [conformance assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-conformance), [browser-input assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-browser-input), and [message assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-messages). Conformance covers the rendered states. The two existing browser tests additionally prove that the initial gap scrolls away, search and footer stay fixed, and the footer survives pending, empty, unmatched and error states. Footer promises cite `toolbox-layout`; no `toolbox-footer` anchor remains. No test file, fixture, hook or test case was added.
+
+Added “Start from a blank store” under “Author a template” in the delivered template guidance. It explains Toolbox creation without data, page controls that write only when a person acts, and an empty message suggesting the agent when the agent supplies content. Moved the existing missing-value, partial-data and no-default-writes instruction into this section without changing it. The [authoring assertion](../../proofs/arch/templates/authoring.md#^templates-guide-t-authoring) and existing real skills-build check cover the instruction reaching the delivered guide; they do not claim to enforce it on arbitrary authored pages.
+
+Independent review used a separate read-only Codex context with GPT-6 Astra at `xhigh`, thread `01a169aa-986e-7270-b482-1410bcd45ab8`. Review of the final approved specs and derived proofs returned PASS. Review of the implementation, tests and proofs also returned PASS with no actionable findings or simplification/architecture changes. Reports are `scratch/codex/toolbox-followup-review/proof-result-final.txt` and `implementation-result.txt`. This is scoped follow-up review, not integrated review of the whole branch.
+
+#### Validation
+
+All test commands below ran locally with the prefix `TMPDIR="$PWD/scratch/linked-templates-followup-tmp"`. Times are UTC on October 23. Each timestamp locates its `.test-runs/2026-10-23T<timestamp>-*/summary.json` and native report; the exact paths and counts are collected in `scratch/linked-templates-followup-validation.json`. Filtered cases are not skips. The runner records dirty HEAD tree `7aab84c8209877218fda22c4d75f6b9c0aa75743`, not a snapshot of the edits.
+
+| UTC start | Exact command after the temporary-directory prefix | Result |
+|---|---|---|
+| 16:57:08 | `npm test -- local --file test/repo/skills-build.test.ts --grep "emits template discovery and authoring guidance"` | Expected red: 1 failed, 11 filtered; blank-store instruction absent |
+| 16:57:08 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --retries 0` | Expected red: 2 failed; scrolling boundary was 6px below the field and footer was absent |
+| 16:58:35 | `npm test -- local --surface e2e:toolbox-conformance --grep "spec-toolbox--open$" --retries 0` | Expected red: 1 failed; missing footer and incorrect clipping/layout |
+| 16:59:15 | `npm test -- local --file test/repo/skills-build.test.ts --grep "emits template discovery and authoring guidance"` | 1 passed, 11 filtered |
+| 16:59:43 | `npm test -- local --file test/repo/skills-build.test.ts` | 12 passed |
+| 16:59:43 | `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed |
+| 17:00:30 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --retries 0` | 2 passed |
+| 17:02:14 | `npm test -- local --surface unit:browser-app` | 586 passed, 1 existing ACP fake-server disconnect skip |
+| 17:02:15 | `npm test -- local --surface e2e:toolbox-conformance --retries 0` | 19 passed: all 18 stories and the MDX documentation check |
+| 17:06:58 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --retries 0` | 10 passed |
+| 17:08:03 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed |
+
+The red runs used unchanged production code and guidance with the final approved stories and extended assertions. Guidance source/test/proof bytes were final from the focused green run onward. Toolbox source/test/proof bytes were final from the browser green run onward. The final manifest of all changed source, test, proof and approved specification files, excluding this task record, is `scratch/linked-templates-followup-final-tree.json`, SHA-256 `05a8b0105998e977991545ece9e047b6318b4096c9b509236e88e0828c286f83`. Closing byte checks matched it and the approved-file manifest.
+
+Additional checks passed:
+
+- `npm run type-check`.
+- `npx eslint packages/web/src/views/toolbox.ts packages/web/test/e2e/toolbox.test.ts test/repo/skills-build.test.ts --max-warnings=0`.
+- `cmp storybook/spec/toolbox/styles.css packages/web/src/views/toolbox.css`.
+- `git diff --check`, including this final record update.
+
+All 11 canonical runs recorded zero recovered flakes, process leaks and infrastructure failures. The only failures were the three intentional red runs. Browser checks used Chromium with retries disabled; Firefox is unavailable on this host. Build warnings about bundle size, canonical CSS resolved at runtime and Storybook/Vite imports did not fail validation. The existing Storybook dev server on port 6106 was left running; conformance used its registered build and temporary test services. No second Storybook dev server was started.
+
+Removed the task-owned temporary directory after confirming no process retained its `TMPDIR`. Canonical reports, small logs and validation manifests remain. No full `npm run verify`, commit, push, package installation or host CLI installation occurred. All selected follow-up checks pass; integrated branch review, full verification and pre-merge docs prep remain with the supervisor.

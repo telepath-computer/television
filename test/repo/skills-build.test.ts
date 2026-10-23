@@ -221,6 +221,11 @@ describe("skills build", () => {
     expect(guide).toMatch(/inspect what remains before retrying/i);
     expect(guide).toMatch(/URL templates[^.]*data options[^.]*--copy[^.]*dataSchema/);
     expect(guide).toMatch(/URL artifact[^.]*without a store/);
+    expect(guide).toMatch(/Toolbox[^.]*no data[^.]*unwritten store/);
+    expect(guide).toMatch(/every folder template[^.]*usable[^.]*unwritten store/i);
+    expect(guide).toMatch(/people fill in[^.]*add content from the page/i);
+    expect(guide).toMatch(/write[^.]*only when[^.]*act/i);
+    expect(guide).toMatch(/content comes from an agent[^.]*nothing[^.]*ask[^.]*agent/i);
     expect(guide).toMatch(/render defaults[^.]*missing fields[^.]*partial data/);
     expect(guide).toMatch(/do not write defaults on load/i);
     expect(guide).toMatch(/without deriving values from `default`/);

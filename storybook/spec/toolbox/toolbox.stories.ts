@@ -76,11 +76,12 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
                 ? html`<p class="toolbox-empty">Nothing matches “${search}”.</p>`
                 : invalid.length > 0
                   ? ""
-                  : html`<p class="toolbox-empty">Nothing here yet. Ask your agent to add an artifact template.</p>`}
+                  : html`<p class="toolbox-empty">Nothing here yet.</p>`}
         ${hasList && folderError === null && invalid.length > 0
           ? html`${items.length > 0 || search.trim() !== "" ? html`<hr class="toolbox-divider">` : ""}${invalidSummary(invalid)}`
           : ""}
       </div>
+      <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
     </tv-popover>
   </div>`;
 };

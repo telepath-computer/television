@@ -13,14 +13,13 @@
   position: relative;
   display: block;
   flex: none;
-  padding-bottom: var(--space-6);
   color: var(--color-text-muted);
 }
 
 .toolbox-search tv-icon {
   position: absolute;
   left: var(--space-8);
-  top: calc(50% - var(--space-3));
+  top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
 }
@@ -46,7 +45,19 @@
 .toolbox-body {
   min-height: 0;
   overflow-y: auto;
-  padding-bottom: var(--space-8);
+  /* The gap below the search field scrolls with the rows, so they pass
+     directly under the field instead of vanishing above a fixed band. */
+  padding: var(--space-6) 0 var(--space-8);
+}
+
+/* Says what the Toolbox is for and how to add to it, below the scrolling rows. */
+.toolbox-footer {
+  flex: none;
+  margin: 0 calc(-1 * var(--space-8));
+  padding: var(--space-8) var(--space-16);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
 }
 
 .toolbox-list {

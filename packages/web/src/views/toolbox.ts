@@ -188,7 +188,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
               `)}
             </ul>
           ` : query.trim() ? html`<p class="toolbox-empty">${`Nothing matches “${query}”.`}</p>`
-            : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet. Ask your agent to add an artifact template.</p>`}
+            : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet.</p>`}
           ${scan && folderError === null && invalid.length ? html`
             ${showList || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
             <div class="toolbox-invalid" role="note">
@@ -197,6 +197,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
             </div>
           ` : nothing}
         </div>
+        <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
       </tv-popover>
     `;
   }

@@ -39,6 +39,14 @@ Add an optional `display` object when the default starting size, full-screen sta
 
 Write a `README.md` when an agent needs context about the data or adapting the page. Describe field types and which values the page and agents write, and point to manifest `dataSchema` when present. Copies include the README with supporting files. Artifacts record no template origin; the path of a linked artifact identifies the installed folder.
 
+### Start from a blank store
+
+Toolbox creation supplies no data, so every folder template must be usable from an unwritten store.
+
+For a template people fill in, let them add content from the page. Write to the store only when they act. If content comes from an agent, show that nothing is there yet and suggest asking the agent.
+
+Treat a missing store value as the empty state and render defaults for missing fields in partial data. **Do not write defaults on load:** such a write can race with an agent write or fail for a read-only share viewer.
+
 ### Fix templates with errors
 
 The Toolbox does not offer a folder that fails validation. It shows a summary instead, such as “3 templates had errors”, and asks the person to have you fix them. When asked:
@@ -66,8 +74,6 @@ When creating a URL template, fetch the best site icon once. Look for an SVG or 
 ### Schema and compatibility
 
 Optional manifest `dataSchema` embeds a JSON Schema Draft 2020-12 schema describing the store value. It is a schema object or boolean, not a file path. References must resolve within that embedded schema; external references are not loaded. An invalid `dataSchema` makes the template invalid. The server validates caller-supplied starting data against it before creation, without deriving values from `default` annotations. Later store writes do not enforce it, so keep the page and agent guidance consistent with the schema.
-
-Treat a missing store value as the empty state and render defaults for missing fields in partial data. **Do not write defaults on load:** such a write can race with an agent write or fail for a read-only share viewer.
 
 When changing a linked template, the new schema must accept every value the previous schema accepted, and the page must still render those values. Existing artifacts keep their data while receiving the changed files. Adding an optional field can still break compatibility if the old schema accepted values that the new field constraints reject. Compatibility is an authoring responsibility; Television neither compares schema versions nor migrates stores.
 
