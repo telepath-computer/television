@@ -12,7 +12,7 @@ The bundled source manifest for Example declares no `display`.
 
 `BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['example']`; [telemetry](../telemetry/derivation.md#^artifact-template-telemetry-derivation) uses this closed vocabulary. ^bundled-artifact-template-inventory
 
-The manifest omits `url`. Each new artifact starts with an unwritten store unless the caller supplies data. The manifest declares this `dataSchema`, following the [template schema contract](./index.md#^artifact-template-schema):
+The manifest omits `url`, and the bundled folder contains no `data.json`. Each new artifact starts with an unwritten store unless the caller supplies data. The manifest declares this `dataSchema`, following the [template schema contract](./index.md#^artifact-template-schema):
 
 ```json
 {
@@ -25,4 +25,4 @@ The manifest omits `url`. Each new artifact starts with an unwritten store unles
 
 The page loads the canonical Television stylesheet as the `television` skill describes. It reads `message` through the [resource SDK](../resources/sdk.md) and displays it as text, including an empty string. When no string is available, it displays “Hello from a template.” without writing to the store. It subscribes to store changes, so an agent write with [`tv resource json`](../../product/resources/json-store.md#^js-cli) updates the open page. The person makes no edits in the page. ^bundled-artifact-template-example
 
-Its `README.md` explains that `message` is a string in the store belonging to each artifact, that `tv resource json` changes that message, and that an agent must copy or detach before changing page files for only one artifact.
+Its `README.md` explains that `message` is a string in the store belonging to each artifact, that `tv resource json` changes that message, and that an agent edits the copied page files directly to change one artifact.

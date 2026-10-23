@@ -1,4 +1,4 @@
-*Artifact template architecture: folder validation, manifest data schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of linked, copied, or URL artifacts.*
+*Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
 
 # Artifact template architecture
 
@@ -10,6 +10,7 @@ Television reads artifact templates from `templates/` in the selected home. This
 <home>/templates/<template-id>/
   manifest.json       required
   index.html          required for a folder template
+  data.json           optional starting store value for a folder template
   README.md           optional agent guidance
   ...                 supporting files, including icons
 ```
@@ -39,17 +40,15 @@ interface ArtifactTemplateManifest {
 
 `JSONValue` is the [JSON store type](../resources/json-store.md#^js-arch-sdk). A manifest must be a readable JSON object matching the fields above, with the forgiving [icon rules](#icon-delivery). `ArtifactDisplayOptions` and its value rules belong to [layout](../layout/index.md#^ly-creation-display). Invalid `display` or an invalid field in it invalidates the folder, with an error naming that field. Unknown fields at the manifest root and inside `display` are accepted and omitted from the validated record.
 
-Without `url`, the template is a folder template and requires a readable root `index.html`. With `url`, the trimmed value must be an absolute HTTP or HTTPS URL; it defines a URL template even if `index.html` is present. URL templates cannot declare `dataSchema`, because URL artifacts have no store. The address field is `url`; adopting the Web App Manifest icon format does not adopt its other fields. ^artifact-template-package
+Without `url`, the template is a folder template and requires a readable root `index.html`. With `url`, the trimmed value must be an absolute HTTP or HTTPS URL; it defines a URL template even if `index.html` is present. A URL template with `data.json` or `dataSchema` is invalid, because URL artifacts have no store. The address field is `url`; adopting the Web App Manifest icon format does not adopt its other fields. ^artifact-template-package
 
-Templates carry no starting data. A folder artifact starts with an unwritten store unless the caller supplies data in the creation request. Caller data must satisfy the [store value rules](../resources/json-store.md#^js-arch-values), [limits including 1 MiB](../resources/json-store.md#^js-arch-limits), and any `dataSchema` below.
+Optional `data.json` at the root of a folder template supplies the starting store value. The scan requires it, when present, to be readable valid JSON satisfying the [store value rules](../resources/json-store.md#^js-arch-values), [limits including 1 MiB](../resources/json-store.md#^js-arch-limits), and any `dataSchema` below. Any failure invalidates the folder and is reported with its other scan errors. Caller data must satisfy the same value rules, limits, and schema.
 
 ### Store schema
 
 Optional manifest `dataSchema` must be a valid [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12/json-schema-core) schema. Omitting `$schema` selects that draft; a declared dialect must be `https://json-schema.org/draft/2020-12/schema`. References resolve only within `dataSchema` itself; Television never loads an external schema or reads the surrounding manifest. A `dataSchema` that fails to compile, including one whose evaluated references do not resolve, invalidates the folder. References inside subschemas that validation never reaches are not checked. Validation uses the [Draft 2020-12 validation vocabulary](https://json-schema.org/draft/2020-12/json-schema-validation); `format` and content-encoding keywords are annotations. Validation neither coerces values nor removes fields, and never derives starting values from `default`. Without a schema, only the store value rules and limits apply. ^artifact-template-schema
 
-The schema describes a store value when one exists. An unwritten store is allowed even if the schema requires fields. The scan validates `dataSchema`; creation validates caller data against it before creating anything. A schema error names the failing schema field or data field (or root) and the reason, including the missing field for a `required` failure, and directs the agent to `tv templates show <id>` for that template. Later writes follow the [JSON store contract](../resources/json-store.md) without template-schema enforcement.
-
-Each new template version must accept every store value the previous schema accepted, and the page must continue to render those values. Linked artifacts keep their stores while the page changes. This is an authoring rule; Television does not compare schema versions or migrate existing store values.
+The schema describes a store value when one exists. An unwritten store is allowed even if the schema requires fields. The scan validates `dataSchema` and checks `data.json` against it when present; creation validates caller data against it before creating anything. A schema error names the failing schema field or data field (or root) and the reason, including the missing field for a `required` failure, and directs the agent to `tv templates show <id>` for that template. Later writes follow the [JSON store contract](../resources/json-store.md) without template-schema enforcement.
 
 ### Icon delivery
 
@@ -83,14 +82,14 @@ interface TemplateSummary {
 // tv templates show <id> → { template: Template }
 interface Template extends TemplateSummary {
   version: string;
-  path: string;        // installed folder, for editing, copying and detaching
+  path: string;        // installed folder, for inspecting and editing the template
   display?: ArtifactDisplayOptions;
   icons?: ArtifactTemplateIcon[]; // usable entries, in manifest order
   dataSchema?: JSONSchema;
 }
 ```
 
-The presence of `url` identifies a URL template; neither record has a `kind` field. `path` is the absolute installed folder path for both folder and URL templates. It is always available through `show`, even when creation registers a URL. `url` is the trimmed manifest address. Ignored icon fields and entries are omitted; with no usable entries, `icons` is omitted. `dataSchema` is present only when declared by a folder template.
+The presence of `url` identifies a URL template; neither record has a `kind` field. `path` is the absolute installed folder path for both folder and URL templates. It is always available through `show`, even when creation registers a URL. Neither record includes starting data; agents read `<path>/data.json` using the `path` from `show`. `url` is the trimmed manifest address. Ignored icon fields and entries are omitted; with no usable entries, `icons` is omitted. `dataSchema` is present only when declared by a folder template.
 
 The scanner reads folders directly inside `<home>/templates/`. It ignores dot-prefixed folders, including backups, and ordinary files at that level. Each other folder produces one valid record or one error naming all defects found. Records sort by display name then ID, using `localeCompare` with `"en"`; folder errors sort by folder name in the same locale. Failure to read the directory produces an error with `folder: null`. ^artifact-template-scan
 
@@ -158,8 +157,7 @@ interface CreateTemplateArtifactRequest {
   templateID: string;
   channelID: string;
   title?: string;
-  data?: JSONValue; // caller-supplied starting value; null is a supplied value
-  copy?: boolean;
+  data?: JSONValue; // presence replaces data.json, including when the value is null
   display?: ArtifactDisplayOptions; // supplied fields override manifest display
   before?: string; // artifact ID: place immediately before it
   after?: string;  // artifact ID: place immediately after it; at most one of the two
@@ -184,18 +182,18 @@ interface TemplateClient {
 
 `POST /templates/artifacts` accepts `CreateTemplateArtifactRequest` and returns `CreateTemplateArtifactResult`. All template routes use the server token and send no CORS headers, like other application control routes ([isolation](../artifact-frame/isolation.md#^iso-routes)).
 
-The CLI sends `source: "cli"`, setting `copy: true` for `--copy` and omitting it otherwise. Toolbox sends `source: "ui"` and omits `copy`, `data`, and `display`. It sends the artifact in the selected tab in that browser as `after`, or omits placement when the channel has no tabs ([Toolbox interaction](../../ui/app/toolbox.mdx#creating-an-artifact)).
+The CLI sends `source: "cli"`. Toolbox sends `source: "ui"` and omits `data` and `display`. It sends the artifact in the selected tab in that browser as `after`, or omits placement when the channel has no tabs ([Toolbox interaction](../../ui/app/toolbox.mdx#creating-an-artifact)).
 
-The route checks request fields at runtime against the contract above. A malformed field receives HTTP `400` with `{ error: string }` before any folder, artifact record, or store is created. A rejected `source` never reaches telemetry. URL templates reject the presence of request `data` or `copy`, including `data: null` or `copy: false`, with the same bad-request response. ^artifact-template-request-validation
+The route checks request fields at runtime against the contract above. A malformed field receives HTTP `400` with `{ error: string }` before any folder, artifact record, or store is created. A rejected `source` never reaches telemetry. URL templates reject the presence of request `data`, including `data: null`, with the same bad-request response. ^artifact-template-request-validation
 
 The CLI parses `--data` or `--data-file` and checks JSON syntax and the 1 MiB limit before sending the request. For a folder template, the server validates any supplied data against the store value rules, limits and optional `dataSchema` before creating a folder, artifact record, or store. Validation failures are bad requests. The server also checks that the channel and template are usable, that at most one of `before` and `after` is given, and that a named artifact is on that channel, following the [placement rule](../../product/cli.md#^cli-before-after), before creating anything. ^artifact-template-preflight
 
 The server validates request `display` against the [display-options contract](../layout/index.md#^ly-creation-display) before creating anything. Each field takes the supplied value, manifest value, or shared default according to the [product precedence rule](../../product/templates.md#^artifact-template-display-options).
 
-For a folder template with `copy` absent or false, the server registers an ordinary path artifact pointing at the installed folder itself. With `copy: true`, it copies the folder into a fresh folder under `<home>/artifacts/` and registers that copy. The copy excludes `manifest.json`; it includes `README.md` and supporting files, including icons that a page may also use. For a URL template, it registers an ordinary URL artifact at the manifest URL. Each artifact takes the manifest name or supplied title.
+For a folder template, the server copies the page and supporting files into a fresh folder under `<home>/artifacts/` and registers an ordinary path artifact pointing at that copy. The copy excludes the root `manifest.json` and `data.json`; it includes `README.md` and supporting files, including icons that a page may also use. Copying uses file-system cloning where available (copy-on-write clone, falling back to an ordinary copy). For a URL template, it registers an ordinary URL artifact at the manifest URL. Each artifact takes the manifest name or supplied title.
 
-The server rechecks placement as it saves the channel layout. Once registration and placement succeed, it writes any caller-supplied starting value at the root of the artifact store through the [resource first-write path](../resources/index.md#^rs-first-write), within this same request. Creation succeeds only when those steps complete and any starting value is durably saved. With no starting data, the store stays unwritten; a URL artifact has no store. A page may load before seeding completes and must handle an empty store.
+For a folder template, supplied request `data`, including `null`, replaces `data.json` entirely, with no merging. Otherwise the server selects the value from `data.json` when present. The server rechecks placement as it saves the channel layout. Once registration and placement succeed, it writes any selected starting value at the root of the artifact store through the [resource first-write path](../resources/index.md#^rs-first-write), within this same request. Creation succeeds only when those steps complete and any starting value is durably saved. With neither source of starting data, the store stays unwritten; a URL artifact has no store. A page may load before seeding completes and must handle an empty store.
 
-Once copying starts, Television removes nothing it created. For linked and URL artifacts, this rule applies from the registration attempt onward. If copying or any later step fails or has an uncertain outcome, including registration, saving the channel layout, or writing starting data under the [uncertain-save rule](../resources/index.md#^rs-arch-uncertain-save), the request fails. Its error names the target: the destination folder for a copy, the installed folder for a link, or the manifest URL. It includes the generated artifact ID whenever registration was attempted and says which step could not be confirmed, so the caller can inspect what remains before retrying. The artifact record carries no template ID or other origin field; a linked artifact identifies the installed template folder through its ordinary `path`. [Ordinary artifact behavior](../../product/artifacts.md) governs it thereafter. ^artifact-template-copy
+Once copying starts, Television removes nothing it created. For URL artifacts, this rule applies from the registration attempt onward. If copying or any later step fails or has an uncertain outcome, including registration, saving the channel layout, or writing starting data under the [uncertain-save rule](../resources/index.md#^rs-arch-uncertain-save), the request fails. Its error names the target: the destination folder for a copy, or the manifest URL. It includes the generated artifact ID whenever registration was attempted and says which step could not be confirmed, so the caller can inspect what remains before retrying. The artifact record carries no template ID or other origin field. [Ordinary artifact behavior](../../product/artifacts.md) governs it thereafter. ^artifact-template-copy
 
 The destination folder name for a copy is made from the title at creation: lowercase the title, replace each run of characters other than ASCII letters and digits with `-`, trim leading and trailing `-`, and use `artifact` if the result is empty. Limit that slug to 60 characters, cutting at the last hyphen within that limit when possible, then trim any trailing hyphen. Append `-` and five random lowercase base-36 characters. If that path already exists, draw another suffix before copying. The artifact title itself is not shortened. Retitling the artifact does not rename the folder. ^artifact-template-copy-name
