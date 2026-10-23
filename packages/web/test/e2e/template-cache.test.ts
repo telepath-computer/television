@@ -42,12 +42,12 @@ async function openApp(page: Page, baseURL: string | undefined, product: Awaited
   await configureTestMotion(page);
 }
 async function toggle(page: Page, open: boolean) {
-  await page.getByRole("button", { name: "Templates", exact: true }).click();
-  if (open) await expect(page.locator(".templates-popover")).toHaveAttribute("open", "");
-  else await expect(page.locator(".templates-popover")).not.toHaveAttribute("open", "");
+  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  if (open) await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
+  else await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
 }
 async function iconText(page: Page) {
-  return page.locator(".template-tile img").evaluate(async (img: HTMLImageElement) => (await fetch(img.src)).text());
+  return page.locator(".toolbox-row img").evaluate(async (img: HTMLImageElement) => (await fetch(img.src)).text());
 }
 function recordRequests(page: Page) {
   const requests: { path: string; token: string | undefined }[] = [];
@@ -66,20 +66,20 @@ test("preloads authenticated icons, opens from cache, observes closed edits and 
     await openApp(page, baseURL, product); await preload;
     const before = requests.length;
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("First");
+    await expect(page.locator(".toolbox-name")).toHaveText("First");
     await expect.poll(() => iconText(page)).toContain('fill="red"');
     expect(requests.length).toBe(before);
     expect(requests.every(({ token }) => token === `Bearer ${product.store.authToken}`)).toBe(true);
     expect(requests.filter(({ path }) => path.endsWith("/icon"))).toHaveLength(1);
     await expect(page.locator("#template-svg-content")).toHaveCount(0);
-    await expect(page.locator(".template-tile img")).toHaveAttribute("src", /^blob:/);
-    await expect.poll(() => page.locator(".template-tile img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(20);
+    await expect(page.locator(".toolbox-row img")).toHaveAttribute("src", /^blob:/);
+    await expect.poll(() => page.locator(".toolbox-row img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(20);
     await toggle(page, false);
     const editedIcon = page.waitForResponse((response) => response.url().endsWith("/icon"));
     template(product.home, "Closed edit", "blue");
     await editedIcon;
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("Closed edit");
+    await expect(page.locator(".toolbox-name")).toHaveText("Closed edit");
     await expect.poll(() => iconText(page)).toContain('fill="blue"');
     await toggle(page, false);
     const events = (product.server as unknown as { events: { wsServer: { clients: Set<{ terminate(): void }> }; getConnectedClientCount(): number } }).events;
@@ -92,7 +92,7 @@ test("preloads authenticated icons, opens from cache, observes closed edits and 
     await reconnectIcon;
     const reloaded = requests.length;
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("Missed edit");
+    await expect(page.locator(".toolbox-name")).toHaveText("Missed edit");
     await expect.poll(() => iconText(page)).toContain('fill="green"');
     expect(requests.length).toBe(reloaded);
     expect(await page.evaluate(() => performance.getEntriesByType("resource").some((entry) => new URL(entry.name).hostname === "example.com"))).toBe(false);
@@ -123,7 +123,7 @@ test("discards delayed real list and icon responses after newer pushes (^templat
     template(product.home, "Newest", "green");
     await product.client.templates.list({ fresh: true });
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("Newest");
+    await expect(page.locator(".toolbox-name")).toHaveText("Newest");
     await expect.poll(() => iconText(page)).toContain('fill="green"');
     const oldListFinished = page.waitForResponse((response) => new URL(response.url()).pathname === "/templates").then((response) => response.finished());
     const oldIconFinished = page.waitForResponse((response) => response.url().endsWith("/icon")).then((response) => response.finished());
@@ -131,7 +131,7 @@ test("discards delayed real list and icon responses after newer pushes (^templat
     await Promise.all([oldListFinished, oldIconFinished]);
     await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
     await page.unrouteAll({ behavior: "wait" });
-    await expect(page.locator(".template-tile-name")).toHaveText("Newest");
+    await expect(page.locator(".toolbox-name")).toHaveText("Newest");
     await expect.poll(() => iconText(page)).toContain('fill="green"');
   } finally { releaseList.resolve(); releaseIcon.resolve(); await product.dispose(); }
 });
@@ -155,23 +155,23 @@ test("retries initial load and refreshes on watcher failure without clearing pri
   try {
     await openApp(page, baseURL, product);
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("First");
+    await expect(page.locator(".toolbox-name")).toHaveText("First");
     expect(requests.filter(({ path }) => path === "/templates")).toHaveLength(2);
     await page.route("**/templates?fresh=true", holdRefresh);
     fail = true;
     template(product.home, "Fallback", "blue");
     failWatcher();
     await refreshStarted.promise;
-    await expect(page.locator(".template-tile-name")).toHaveText("First");
+    await expect(page.locator(".toolbox-name")).toHaveText("First");
     releaseRefresh.resolve();
-    await expect(page.locator(".template-tile-name")).toHaveText("Fallback");
+    await expect(page.locator(".toolbox-name")).toHaveText("Fallback");
     await page.unroute("**/templates?fresh=true", holdRefresh);
     expect(requests.filter(({ path }) => path === "/templates?fresh=true")).toHaveLength(1);
-    await expect(page.locator(".templates-invalid, .templates-folder-error")).toHaveCount(0);
+    await expect(page.locator(".toolbox-invalid, .toolbox-folder-error")).toHaveCount(0);
     await toggle(page, false);
     template(product.home, "Next opening", "green");
     await toggle(page, true);
-    await expect(page.locator(".template-tile-name")).toHaveText("Next opening");
+    await expect(page.locator(".toolbox-name")).toHaveText("Next opening");
     expect(requests.filter(({ path }) => path === "/templates?fresh=true")).toHaveLength(2);
     fail = false;
     await product.client.templates.list({ fresh: true });

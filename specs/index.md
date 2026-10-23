@@ -131,6 +131,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**
     - `index.md` (117 lines) — *UI spec: the app shell — its two interface regions and the noninteractive visual layers that installed themes can place around them.*
+    - `toolbox.mdx` (74 lines) — *UI spec: Toolbox, the navbar popover for finding and activating an item by name.*
     - **artifact-frame/**
       - `index.md` (68 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
     - **copy-button/**

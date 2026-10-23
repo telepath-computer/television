@@ -1448,9 +1448,9 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     })));
     await page.keyboard.press("Escape");
 
-    const templatesButton = page.getByRole("button", { name: "Templates" });
+    const templatesButton = page.getByRole("button", { name: "Toolbox" });
     const templatesBounds = await templatesButton.boundingBox();
-    if (templatesBounds === null) throw new Error("Templates button has no pointer geometry");
+    if (templatesBounds === null) throw new Error("Toolbox button has no pointer geometry");
     const dragEnd = {
       x: Math.round(templatesBounds.x + templatesBounds.width / 2),
       y: Math.round(templatesBounds.y + templatesBounds.height / 2),
@@ -1508,7 +1508,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
       .toEqual(dragMessages);
     expect(await sandboxPointerRecords(page, "overlay")).toEqual(dragMessages);
     await expect(page.locator("#settings-popover[open]")).toHaveCount(0);
-    await expect(page.locator(".templates-popover[open]")).toHaveCount(0);
+    await expect(page.locator(".toolbox-popover[open]")).toHaveCount(0);
 
     await clearSandboxPointerRecords(page);
     await cdp.send("Input.dispatchTouchEvent", {

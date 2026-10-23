@@ -1,0 +1,156 @@
+/* Toolbox contents. Shared foundation styles draw the panel and trigger. */
+.toolbox-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  max-width: calc(100vw - 2 * var(--popover-distance));
+  max-height: 480px;
+  padding: var(--space-8) var(--space-8) 0;
+  overflow: hidden;
+}
+
+.toolbox-search {
+  position: relative;
+  display: block;
+  flex: none;
+  padding-bottom: var(--space-6);
+  color: var(--color-text-muted);
+}
+
+.toolbox-search tv-icon {
+  position: absolute;
+  left: var(--space-8);
+  top: calc(50% - var(--space-3));
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.toolbox-search input {
+  width: 100%;
+  padding: var(--control-padding);
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  border: 0;
+  background: var(--neutral-alpha-10);
+  box-shadow: none;
+}
+
+.toolbox-search input:focus,
+.toolbox-search input:focus-visible {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.toolbox-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-8);
+}
+
+.toolbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toolbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  /* 5px on the left puts the 20px icon's centre under the search icon's. */
+  padding: 7px var(--space-8) 7px 5px;
+  border-radius: var(--control-radius);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.toolbox-row[data-highlighted] {
+  background: var(--option-background-highlighted);
+}
+
+.toolbox-row[data-pressed],
+.toolbox-row:active {
+  background: var(--option-background-active);
+}
+
+.toolbox-icon {
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+.toolbox-letter {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 11.5px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+.toolbox-name {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toolbox-empty {
+  margin: 0;
+  /* About as much space above and below the message as beside it. */
+  padding: var(--space-6) var(--space-8);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.toolbox-folder-error,
+.toolbox-invalid {
+  display: flex;
+  align-items: flex-start;
+  /* The same icon column as the rows, so the warning sits under the search
+     icon and the text lines up with the names. */
+  gap: var(--space-12);
+  padding: var(--space-6) var(--space-8) var(--space-6) 5px;
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* A muted rule separates the error summary from the rows or message above it. */
+.toolbox-divider {
+  margin: var(--space-6) var(--space-8);
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.toolbox-folder-error tv-icon,
+.toolbox-invalid tv-icon {
+  flex: none;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  /* A 16px icon centred on the heading's first line. */
+  margin-top: 2px;
+  color: var(--color-alert);
+}
+
+.toolbox-error-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toolbox-error-folder {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}

@@ -19,14 +19,16 @@ Working record for `feat/linked-templates`, branched from `feat/artifact-templat
 | Proof derivation | Complete for all 26 affected product, architecture and UI specs at `bf195c7`; 61 assertions remain `(test to be written)`; no ambiguous expected results found |
 | Proof convergence | Done: round 1 FAIL, round 2 FAIL, round 3 PASS with one generated-count fix applied |
 | Plan | Done: four slices; plan review round 1 PASS with no findings |
-| Implementation, red/green TDD | Slices 1–2 implemented; slice 2 reconnect review blocker fixed and validated, awaiting independent re-review; slices 3–4 not started |
+| Implementation, red/green TDD | Slices 1–2 committed (`4ede94e`, `d17b041`). Slice 3 review defects fixed and validated; all four requested browser files, Conform and browser units pass. Full browser run exposed an unrelated intermittent tab-drag failure; isolated rerun passed. Awaiting independent re-review. Slice 4 not started |
 | Integrated result and full verification | Not started |
 | Pull request | Not opened |
 
 ## Open obligations
 
-- MDX support in the spec index generator.
-- MDX support in the spec-links mirror checks (`test/repo/spec-links.test.ts`), which reject the `toolbox.mdx` / `toolbox.md` spec–proof pair.
+- Supervisor review of slice 3, then slice 4 bundled recovery and delivered guidance.
+- The pre-existing theme request race is documented below with evidence at `d17b041`; it is outside this slice.
+- The full browser run recorded an intermittent tab-drag timing failure; its unchanged-tree isolated run passed. Details are in the review-corrections entry.
+- Full verification belongs to the supervisor on the committed, pushed tree.
 - Pre-merge docs prep before the work is treated as ready to merge.
 
 ## Validation
@@ -339,3 +341,204 @@ All commands ran in `/root/workspace/dev/television/feat/linked-templates`, on t
 Each test timestamp locates its `.test-runs/2026-10-23T<timestamp>-*/summary.json`; the owning-suite report is `.test-runs/2026-10-23T05-20-13-530Z-p3806290-r1ba2f603cada97d6/summary.json`. All three runs recorded zero recovered flakes, process leaks and infrastructure failures. The intentional regression red was the only failure. Removed the temporary web bundle retained by the owning-suite helper.
 
 The reconnect blocker is fixed and awaits independent re-review. No spec/proof ambiguity, new dependency or other finding arose. The planned slice 3–4 baseline remains unchanged; those checks were not rerun. No full verification, commit, push, installation or host-home server run was performed.
+
+
+### Slice 3 implementation checkpoint — October 23, 2026
+
+**Historical checkpoint: incomplete; superseded by the completion entry below.** Toolbox behavior and MDX repository support are implemented and tested. The required Conform dependency, 18 story comparisons, Storybook/service build wiring and canonical-runner registration are not implemented. The approved plan explicitly requires `@telepath-computer/conform`, and [UI policy](../../specs/spec-ui.md#^ui-conformance-test) says each surface “runs conform on every spec story against production in that state”. That package is absent from the installed dependencies and lockfile. The implementation request also says not to install anything or add a dependency without stopping to report its need and alternative. This conflict was raised while independent work continued; no dependency/install authorization arrived. Ordinary Playwright behavioral tests and copying the approved styles do not satisfy that conformance obligation. No spec or story was changed to resolve the conflict.
+
+Replaced the old grid with a production Toolbox view, a small search/highlight model and a platform shortcut predicate. The navbar supplies its existing template cache and an async creation/focus action. The view uses the approved story styles, cached rows/icons, name-only search, stable highlighted IDs, input focus and active-option semantics, real scrolling, summary/directory messages and Unicode letter defaults. Creation retains linked/URL behavior, selected-tab placement, silent failures and the existing UI telemetry source. Supplied images fall back after decoding errors. The app listener handles Meta+K on macOS and Ctrl+K elsewhere.
+
+Added six cheap state/icon/platform cases, two production-browser consumer contracts, a real Electron shortcut seam and two temporary-tree MDX tooling contracts. Reworked the former skill-selector browser file into ten Toolbox journeys, retaining real successful creation and display/transparency defaults. Retired thumbnail/grid/description, copy/seed-store and scan-on-open expectations. Replaced the seed-write obstruction with channel-layout-save obstruction after registration; added fresh-scan refusal, URL activation and real SVG/PNG/broken-byte icon coverage. Retained the explicitly declared focus-request abort. Navbar, Settings, app-root, theme-product and slice 2 cache tests now address Toolbox; unrelated retained stylesheet checks remain.
+
+The index generator now includes standalone MDX surfaces and their Markdown proofs. Repository checks include MDX links, anchors and test-code citations, map MDX specs to Markdown proofs in both directions, and retain directory-based Markdown UI authority. Regenerated both indexes; only the spec index needed a content change. Theme-reference selection now follows Toolbox while retaining the artifact-frame pilot and historical routing assets.
+
+Thirteen proof placeholders now cite actual tests: ten in `proofs/ui/app/toolbox.md` and the three UI creation/display/transparency assertions in `proofs/product/templates.md`. Navbar proof citations retain their existing test names and now exercise Toolbox composition. `^toolbox-t-conformance` remains explicitly unwritten. Seven placeholders remain across the affected proof tree: this one and six assigned to slice 4.
+
+#### Validation
+
+All commands below ran in this worktree on uncommitted changes based on `d17b04161cb1a438cd37d8372b90bff664f32370` (`feat/linked-templates`). Canonical reports record dirty HEAD tree `fc915594e64399a708723ee8dd35c955695a7f73`; that is not a snapshot of the edits. The final changed source/test/proof/config file manifest, excluding this task record, is SHA-256 `d8b5a0a8f34ad8950aeb02bee9c1fc2c13d0a37eeda913f20510748fb575f362`, in ignored `scratch/linked-templates-slice3-tree.json`. Intermediate dirty snapshots were not retained. The stages below identify which implementation each run exercised; final file/suite runs used the final relevant source/tests, with proof citations completed before the last repository checks. No source or test changed after the final runs.
+
+Each UTC timestamp identifies `.test-runs/2026-10-23T<timestamp>-*/summary.json`, with case-level evidence in its native report. All 32 canonical runs recorded zero recovered flakes, process leaks and infrastructure failures. The unchanged-tree theme rerun below recovered an intermittent failure across separate invocations; the runner does not count that as a recovered flake.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 05:30:05 | `npm test -- local --file packages/web/test/toolbox-state.test.ts` | module-load failure; no tests ran |
+| 05:30:33 | `npm test -- local --file packages/web/test/toolbox-state.test.ts` | 6 passed, 0 failed |
+| 05:31:35 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --test-retries 0` | 0 passed, 2 failed |
+| 05:32:24 | `npm test -- local --file test/repo/spec-documents.test.ts` | module-load failure; no tests ran |
+| 05:33:36 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --retries 0` | 2 passed, 0 failed |
+| 05:34:02 | `npm test -- local --file test/repo/spec-documents.test.ts` | 2 passed, 0 failed |
+| 05:35:45 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --retries 0` | 3 passed, 4 failed |
+| 05:36:39 | `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed, 0 failed |
+| 05:36:40 | `npm test -- local --file test/repo/theming-reference.test.ts` | 1 passed, 0 failed |
+| 05:37:40 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --retries 0` | 8 passed, 2 failed |
+| 05:38:19 | `npm test -- local --file packages/desktop/test/e2e/toolbox.test.ts --retries 0` | 0 passed, 1 failed |
+| 05:40:10 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --grep 'Toolbox opens\|real SVG' --retries 0` | 1 passed, 1 failed |
+| 05:41:07 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --grep 'Toolbox opens' --retries 0` | 1 passed, 0 failed |
+| 05:41:31 | `npm test -- local --surface unit:browser-app` | 583 passed, 3 failed, 1 skipped/filtered |
+| 05:41:44 | `npm test -- local --file packages/desktop/test/e2e/toolbox.test.ts --retries 0` | 1 passed, 0 failed |
+| 05:41:46 | `npm test -- local --file test/repo/spec-documents.test.ts` | 2 passed, 0 failed |
+| 05:42:22 | `npm test -- local --file test/repo/spec-documents.test.ts --grep 'mirrors in both directions'` | 0 passed, 1 failed, 1 skipped/filtered |
+| 05:42:48 | `npm test -- local --file test/repo/spec-documents.test.ts` | 2 passed, 0 failed |
+| 05:42:49 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --retries 0` | 10 passed, 0 failed |
+| 05:42:51 | `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed, 0 failed |
+| 05:43:41 | `npm test -- local --file packages/web/src/views/top-bar.test.ts --grep 'empty strip without a notice'` | 0 passed, 1 failed, 5 skipped/filtered |
+| 05:43:54 | `npm test -- local --file packages/web/src/views/top-bar.test.ts` | 6 passed, 0 failed |
+| 05:43:55 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --retries 0` | 2 passed, 0 failed |
+| 05:44:17 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed, 0 failed |
+| 05:44:45 | `npm test -- local --file packages/web/test/e2e/top-bar.test.ts --retries 0` | 6 passed, 0 failed |
+| 05:44:48 | `npm test -- local --surface unit:browser-app` | 586 passed, 0 failed, 1 skipped/filtered |
+| 05:45:27 | `npm test -- local --file packages/web/test/e2e/settings.test.ts --retries 0` | 4 passed, 0 failed |
+| 05:46:43 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 0 passed, 1 failed |
+| 05:46:45 | `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed, 0 failed |
+| 05:46:50 | `npm test -- local --file test/repo/theming-reference.test.ts` | 1 passed, 0 failed |
+| 05:47:42 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 1 passed, 0 failed |
+| 05:51:55 | `npm test -- local --file test/repo/ui-style-delivery.test.ts` | 3 passed, 0 failed |
+
+The first state and MDX fixture runs were expected missing-module reds, not assertion-level behavior failures. The first browser consumer run failed because the production Toolbox module did not yet exist. Its command mistakenly used `--test-retries 0`, which the root runner did not apply; it ran with the default two retries. Every later browser/Electron command used the correct `--retries 0` selector. The additional MDX regression at 05:42:22 was an assertion-level red: a wrong-extension `proof.mdx` could satisfy the forward mirror. Restricting MDX fallback to spec destinations fixed it; the whole fixture file and both formerly failing repository mirror checks passed.
+
+Intermediate browser failures exposed test assumptions about focus after clicking a non-focusable stage, unscoped option selectors that also selected sidebar options, the canonical trailing slash on linked folder paths, and a partial layout update remaining in memory after its durable save failed. The corrected partial-failure test checks the registered record and unchanged focus/selection throughout. A hidden combobox cannot be located through the default accessibility query after dismissal, so that assertion now uses the input element. One icon journey encountered navigation/reconnection interruption while browser build prerequisites overlapped; its narrow rerun and the later complete ten-test file passed with retries disabled. No icon production workaround was added.
+
+The first Electron run reached the desktop-version gate: the direct app-URL fixture omitted the actual desktop version. The fixture now supplies the package version, disables the helper's default version override and checks `app.getVersion()`; the actual host keyboard crossing then passed. Browser evidence is Chromium because Firefox is unavailable. Electron ran on Linux/Xvfb using the existing harness, whose launch disables the sandbox because this host lacks a configured setuid helper. There is no claim of Windows or macOS acceptance.
+
+The first owning browser-unit suite found three remaining old top-bar selectors. A narrow test reproduced that failure, the selectors were updated, the whole top-bar unit file passed, and the complete browser-unit suite then passed **586 tests with one existing ACP fake-server disconnect skip**.
+
+The affected executable-theme journey first failed at its post-server-restart execution-count assertion (`theme-product-acceptance.test.ts:1794`): five executions instead of four. The Toolbox interactions earlier in the journey passed. The same narrow command passed on an unchanged tree at 05:47:42 with retries disabled. No theme implementation or assertion was changed; the root cause remains unresolved, so this checkpoint does not claim that instability is fixed or that it predates this slice.
+
+Additional exact commands and results:
+
+- `npm run type-check`: initially failed on missing required template fixture fields and a direct untyped import of the JavaScript index generator. Corrected the fixture and exercised the generator through a child Node process. Subsequent runs passed.
+- `npm run type-check && git ls-files -m -o --exclude-standard -- '*.ts' | xargs npx eslint --max-warnings=0`: type-check passed; lint selection failed because it included the deleted `skill-selector.ts`. The existing-file command below passed twice, including the final TypeScript edits.
+- `npm --workspace @telepath-computer/storybook run type-check`: passed.
+- `npm --workspace @telepath-computer/storybook run build`: passed, with the existing empty-production-stories glob and bundle-size warnings. This establishes compilation, not browser rendering of the Toolbox MDX wrapper or story conformance.
+- `npm run specs:index`: passed during implementation and after proof citation edits; regenerated specs and proofs indexes.
+- `npm run type-check && npm run specs:index && git diff --check`: passed on the final source/test/proof tree.
+- `git diff --check`: passed again after this task-record update.
+- Browser/desktop runner prerequisites built web, artifact views, canonical assets and the SDK; desktop execution also used its existing build prerequisite. These were builds, not host installations.
+
+Exact lint invocation:
+
+```sh
+python3 - <<'PY'
+import subprocess
+from pathlib import Path
+files=subprocess.check_output(['git','ls-files','-m','-o','--exclude-standard','--','*.ts'],text=True).splitlines()
+subprocess.run(['node','node_modules/eslint/bin/eslint.js',*[f for f in files if Path(f).is_file()],'--max-warnings=0'],check=True)
+PY
+```
+
+**Remaining baseline versus the plan:** MDX mirror/index failures, theme-reference selection and the exercised UI/cache integration baseline are resolved. The planned slice 3 exit baseline is not met: all 18 Conform comparisons and their delivery/runner wiring remain, and the MDX documentation wrapper has not been verified in a browser. The intermittent theme count failure also remains an explicit finding. Slice 4 still owns bundled replacement recovery and delivered guidance. No spec/proof ambiguity was decided, no dependency was added, and no spec/story/style authority was changed; the sole authority-tree edit is the generated index.
+
+No full `npm run verify`, commit, push, host CLI install/link or host-home server run occurred. The existing Storybook server on port 6106 was left alone. Test-created homes/profiles were cleaned by their fixtures. Removed 17 completed workers' cached temporary source-CLI/web bundles after matching their generated Toolbox assets to this worktree; an initial stricter hash check stopped before deletion because the two versioned web bundles legitimately had different JavaScript hashes. No large ad hoc temporary directory or installation was created. Canonical reports and the small ignored validation manifest remain.
+
+
+### Slice 3 completion — October 23, 2026
+
+**Status: implemented and locally validated; ready for supervisor review.** Rupert authorized the local Conform 0.2.0 tarball and its installation. This supersedes the preceding dependency blocker. Added exactly the requested direct development dependency to `packages/web/package.json`; the lock records Conform and its automatically resolved Playwright 1.64.1 peer/core. No other direct dependency or browser was installed.
+
+The conformance setup follows the read-only Checklist branch (`237aae8`, including `524dc97`'s Blaxel package-selection expectation): a dedicated Chromium config, production mount, built-Storybook Vite service, production Vite service, build prerequisite, canonical surface and prebuilt recipe. Web Playwright invocations run from the repository root so the runner uses its existing toolchain while Conform captures with its own peer. Ordinary browser discovery excludes the conformance file. Workspace-version checks distinguish actual workspace members from externally supplied packages in the same npm scope, as on Checklist.
+
+`e2e:toolbox-conformance` enumerates the built Storybook index, checks that Toolbox stories exist, fails for any unmapped story and compares all 18 states through real input and the proof-declared item service. The comparison includes the trigger and panel in a shared 640×800 outer canvas; only the neutral mount supplies Storybook's 16px padding and the canvas height. Production Toolbox markup/styles are untouched by the test and there is no difference allowlist. The MDX browser check loads its Docs page, finds its prose headings and all 18 embedded story wrappers, and asserts no browser page errors. No story or story stylesheet changed; `toolbox.css` is byte-identical to the approved story stylesheet.
+
+The final `^toolbox-t-conformance` placeholder now cites `toolbox-conformance.test.ts`, “Toolbox conforms: ${id}”, and the MDX wrapper check. Slice 3 has discharged all **14** assigned placeholders: 11 Toolbox and three product UI creation/display/transparency assertions. The earlier checkpoint's remaining-marker count included an unrelated standing `startup-bind-failure.md#^t-unit-content` placeholder (TV-507). The actual linked-templates remainder is **five**, all assigned to slice 4: three bundled-installation and two delivered-guidance assertions. Navbar's inherited assertions remain covered. No spec/proof ambiguity required a decision; the only authority-tree edit remains the generated spec index.
+
+#### Validation
+
+The 23 main-worktree commands below ran on `/root/workspace/dev/television/feat/linked-templates`, branch `feat/linked-templates`, based on `d17b04161cb1a438cd37d8372b90bff664f32370`. The additional 13:46:25 command ran from an isolated `git archive d17b041` snapshot at `scratch/theme-baseline-d17b041`, with existing external dependencies symlinked in; its build failed before testing. That directory was removed. Its report is retained at `scratch/baseline-report-2026-10-23T13-46-25-528Z-p3960777-ra90ed36a423b15b3/`.
+
+The 13:49:45, 13:57:32 and 14:00:13 commands used the normal worktree path temporarily restored to `d17b041`. The diagnostic script checked `git diff --exit-code` before adding test-only observations, temporarily removed the newly installed web peer directory, and restored every saved file byte-for-byte and the peer directory in `finally`. New untracked Toolbox files were unreferenced by the baseline. The first two runs added only request/event/response/execution logging. The third also delayed the two folder-loss requests until restoration executed, then released them and waited for that execution before restarting; it retained the original post-restart assertion. These diagnostic runs are evidence about the existing race, not replacement acceptance tests or full baseline verification.
+
+All other runs used the evolving slice 3 implementation. The final source/test/config/proof manifest, excluding this task record, is SHA-256 `5018fb6c5db9f8f3f1bab999fb654325548468e624721dd5b2cdf9a8f53ac97e`, in `scratch/linked-templates-slice3-final-tree.json`. The complete conformance run, type-check and lint used those final source/test/config bytes before the final proof citation; the final cache, browser-contract, normal theme and spec-links checks include that citation. No implementation or test changed after those runs.
+
+Each timestamp locates `.test-runs/2026-10-23T<timestamp>-*/summary.json`, except the archived failure described above. All 23 main-worktree reports record **zero recovered flakes, process leaks and infrastructure failures**. The isolated archive attempt records one infrastructure failure. All browser runs below disabled retries. The earlier 05:46 theme failure and separate 05:47 pass remain in the preceding ledger; the diagnostic explains the pre-existing race without claiming it is fixed.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 13:36:23 | `npm test -- local --file test/repo/test-runner-provider.test.ts --grep 'selects package surfaces for Blaxel'` | 0 passed, 1 failed, 41 filtered |
+| 13:39:30 | `npm test -- local --surface e2e:toolbox-conformance --grep 'spec-toolbox--open$' --retries 0` | Collection failed; no tests ran |
+| 13:39:41 | `npm test -- local --file test/repo/test-runner-provider.test.ts --grep 'selects package surfaces for Blaxel'` | 1 passed, 0 failed, 41 filtered |
+| 13:40:46 | `npm test -- local --surface e2e:toolbox-conformance --grep 'spec-toolbox--open$' --retries 0` | 0 passed, 1 failed |
+| 13:40:48 | `npm test -- local --file test/repo/package-version-sync.test.ts --grep 'internal @telepath'` | 0 passed, 1 failed, 6 filtered |
+| 13:41:53 | `npm test -- local --surface e2e:toolbox-conformance --grep 'spec-toolbox--open$' --retries 0` | 0 passed, 1 failed |
+| 13:42:06 | `npm test -- local --file test/repo/test-runner-config.test.ts` | 14 passed, 0 failed |
+| 13:42:08 | `npm test -- local --file test/repo/package-version-sync.test.ts` | 7 passed, 0 failed |
+| 13:44:09 | `npm test -- local --surface e2e:toolbox-conformance --grep 'spec-toolbox--open$' --retries 0` | 0 passed, 1 failed |
+| 13:44:11 | `npm test -- local --file test/repo/test-runner-prebuilt.test.ts` | 10 passed, 0 failed |
+| 13:45:24 | `npm test -- local --surface e2e:toolbox-conformance --grep 'spec-toolbox--open$\|documentation' --retries 0` | 1 passed, 1 failed |
+| 13:45:26 | `npm test -- local --file test/repo/test-runner-provider.test.ts` | 42 passed, 0 failed |
+| 13:46:25 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | Baseline archive: prerequisite build failed; no tests ran |
+| 13:47:08 | `npm test -- local --surface e2e:toolbox-conformance --grep documentation --retries 0` | 0 passed, 1 failed |
+| 13:48:45 | `npm test -- local --surface e2e:toolbox-conformance --grep documentation --retries 0` | 0 passed, 1 failed |
+| 13:49:45 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 1 passed, 0 failed; baseline with observation-only logging |
+| 13:51:18 | `npm test -- local --surface e2e:toolbox-conformance --grep documentation --retries 0` | 1 passed, 0 failed |
+| 13:55:12 | `npm test -- local --surface e2e:toolbox-conformance --retries 0` | 19 passed, 0 failed |
+| 13:57:32 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 1 passed, 0 failed; baseline with observation-only logging |
+| 14:00:13 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 1 passed, 0 failed; baseline delayed-request diagnostic, five executions observed |
+| 14:01:51 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed, 0 failed |
+| 14:02:10 | `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed, 0 failed |
+| 14:02:57 | `npm test -- local --file packages/web/test/e2e/toolbox.test.ts --retries 0` | 2 passed, 0 failed |
+| 14:03:33 | `npm test -- local --file packages/web/test/e2e/theme-product-acceptance.test.ts --grep 'executable themes run only' --retries 0` | 1 passed, 0 failed |
+
+The first package-selector run was the expected red for the newly required surface. Initial conformance attempts failed during setup: the registry factory did not forward `cwd`, then assertions used the root Playwright `expect` with Conform's peer-version Locator. Forwarding `cwd` and using the peer locator's waits fixed those errors. Subsequent Open comparisons exposed mismatched outer canvas bounds and an extra fixture background; the shared viewport canvas and plain padded mount resolved them without changing Toolbox or the stories. The MDX selector initially expected an exact heading name, while Storybook's heading-link control contributes to that accessible name; suffix matching fixed it. The final complete surface passed **19 tests: all 18 comparisons plus the documentation wrapper**. The version-sync red was the scope-prefix assumption; Checklist's workspace-membership rule resolved it. No behavioral failure was retried into a passing conformance result.
+
+Additional exact commands and results:
+
+- `npm install --workspace @telepath-computer/television-web --ignore-scripts --no-audit --no-fund`: passed; added three package records (Conform and its peer/core), preserving the existing root Playwright toolchain. This installation is the explicit authorization exception.
+- `npm run type-check`: initially failed on TypeScript's deep generic instantiation for the conformance page-evaluation argument. Passing the authored scan as serialized JSON fixed the compile boundary; the final run passed.
+- The exact Python/ESLint invocation printed in the preceding checkpoint was rerun over all existing changed TypeScript files: passed with `--max-warnings=0`.
+- `npm --workspace @telepath-computer/storybook run type-check`: passed again.
+- `npm run specs:index && git diff --check`: passed after the proof update; `git diff --check` also passed after the final task-record edit.
+- `cmp packages/web/src/views/toolbox.css storybook/spec/toolbox/styles.css && git diff --exit-code -- storybook/spec specs/ui && git diff --name-only -- specs && git diff --check`: passed; only `specs/index.md` was listed.
+- Every conformance invocation ran `node scripts/test/build-toolbox-conformance.mjs` through the canonical runner. The final full run successfully built web/artifact/canonical/SDK artifacts and Storybook, started both registered services and stopped them afterward. Existing missing production-story glob, bundle-size and Vite dynamic-import analysis warnings did not fail the build or browser checks. No second Storybook dev server was started.
+- Baseline wrappers were `python3 scratch/run-theme-baseline.py > scratch/theme-baseline-normal-path-run1.log 2>&1`, the same command with `run2.log`, and `python3 scratch/run-theme-baseline.py --delay-loss-request > scratch/theme-baseline-delayed-loss.log 2>&1`. All completed and verified restoration. The table records their actual canonical test commands and results.
+
+#### Theme execution finding
+
+The race predates this slice. The test at `d17b041` waits for the script URL to change and the count to remain two after moving the theme folder away, but does not wait for the loss-triggered script request to settle before restoring the folder. The route can serve an empty JavaScript entry while absent (HTTP 200), or real bytes if a delayed request arrives after restoration. `refreshThemeScript()` removes the former element; that does not cancel an already-started external script fetch. Consequently the restoration request and the older loss request can both execute, followed by another execution on reconnect.
+
+The controlled baseline diagnostic at 14:00:13 demonstrates this exact ordering in both app pages. In page zero, restoration revision `...6026-45` executes third; after release, older loss revision `...5490-43` executes fourth; reconnect revision `...7787-48` executes fifth. The native report's stdout and `scratch/theme-baseline-delayed-loss.log` retain timestamps and URLs. The unchanged post-restart assertion happened to see four before the fifth arrived, so that diagnostic reports a pass despite recording five. This also exposes the assertion's timing sensitivity. Two observation-only baseline runs passed normally. The final uninstrumented slice 3 run at 14:03:33 passed. The earlier failing run lacked this trace, so its precise request sequence cannot be retrospectively proven, but the same excess execution and its cause are established in pre-slice production code. No theme implementation, timing assertion or diagnostic hook is included in this slice's diff; only Toolbox selectors changed in the retained theme journey.
+
+**Remaining baseline versus the plan:** the MDX mirror/index and theme-reference failures, Toolbox behavior, all 18 comparisons, MDX browser rendering and slice 2 cache journeys are resolved. The previously recorded owning browser-unit run remains 586 passed with one existing ACP fake-server skip; creation, navbar, Settings, Electron, MDX fixture and stylesheet-delivery results remain in the first checkpoint. Only slice 4's bundled replacement recovery and delivered guidance remain in the linked-templates plan. The independent theme race above is an existing finding, not a claim that the whole repository is green. Chromium was exercised; Firefox is unavailable. Full verification and independent review remain with the supervisor.
+
+No commit, push, full `npm run verify`, host CLI install/link or host-home server occurred. The existing port-6106 Storybook server was left alone. Removed the isolated baseline snapshot, restored-source backup and four completed theme-test source-CLI runtime directories after matching their CLI hash and baseline/final web assets. Also removed 18 temporary registry/provider fixtures attributable to the recorded runs. Small ignored diagnostic scripts, logs, manifests and canonical reports remain for review.
+
+
+### Slice 3 review corrections — October 23, 2026
+
+Independent review returned **FAIL**: root-cwd Playwright execution broke two fixture reads, and the watcher-fallback test still selected the retired Templates warning classes. This supersedes the preceding completion handoff.
+
+The correction changes three test lines. Both fixture reads use `new URL(relativePath, import.meta.url)`: the PNG in `skill-selector.test.ts` and the Markdown source in `markdown-editor-integration.test.ts`. The audit of browser tests and shared helpers found no other cwd-dependent fixture reads; remaining file access uses module-relative paths, absolute temporary paths or explicit subprocess cwd. Keeping package cwd would require a wrapper because explicit registry commands execute from the repository root in both the local and planned-shard paths (`scripts/test/cli.mjs`, `scripts/test/planned-shard-worker.mjs`). Two module-relative reads are smaller and preserve the intended root Playwright executable without changing runner machinery.
+
+The watcher-failure assertion now selects `.toolbox-invalid, .toolbox-folder-error`. To demonstrate that it rejects a warning, a temporary negative control created an invalid template directory and refreshed discovery through the real authenticated client. After confirming the actual Toolbox warning appeared, the zero-warning assertion failed with **expected 0, received 1**. The temporary control was then removed. No production behavior, proof assertion, story or stylesheet changed.
+
+#### Validation
+
+Both review findings are fixed; independent re-review remains pending. All runs use `/root/workspace/dev/television/feat/linked-templates`, branch `feat/linked-templates`, uncommitted on `d17b04161cb1a438cd37d8372b90bff664f32370`. The final source/test/config/proof manifest, excluding this task record, is `scratch/linked-templates-slice3-review-final-tree.json`, SHA-256 `c3eb8d28c25bb1dc3855bdeb90ad5af72c52a2172ea7d30035060fdc0b69a5c3`. It differs from the preceding handoff in exactly those three test files.
+
+
+The two ENOENT runs exercised the incoming review tree before these fixes. The warning negative control used the corrected selectors and two module-relative reads plus the temporary invalid-directory setup described above. The targeted green and all three complete surfaces used the final implementation/test bytes identified by the manifest. No source or test changed afterward. Each timestamp identifies `.test-runs/2026-10-23T<timestamp>-*/summary.json` and its native report. All eight runs recorded zero recovered flakes, process leaks and infrastructure failures. The separate tab-drag rerun passed after a failure in the full invocation; that is an intermittent failure across invocations, not a runner-counted recovered flake.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 14:19:53 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --grep 'real SVG and PNG' --retries 0` | 0 passed, 1 failed; expected PNG ENOENT red |
+| 14:20:58 | `npm test -- local --file packages/web/test/e2e/markdown-editor-integration.test.ts --grep 'loads markdown bytes after' --retries 0` | 0 passed, 1 failed; expected Markdown ENOENT red |
+| 14:22:13 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --grep 'retries initial load' --retries 0` | 0 passed, 1 failed; expected warning negative-control red (0 expected, 1 received) |
+| 14:23:22 | `npm test -- local --surface e2e:browser-app --grep 'real SVG and PNG\|loads markdown bytes after\|retries initial load' --retries 0` | 3 passed, 0 failed |
+| 14:24:35 | `npm test -- local --surface e2e:browser-app --retries 0` | 319 passed, 1 failed, 1 skipped; tab-drag assertion at line 1149 |
+| 14:27:46 | `npm test -- local --surface unit:browser-app` | 586 passed, 0 failed, 1 skipped |
+| 14:39:44 | `npm test -- local --file packages/web/test/e2e/tab-strip.test.ts --grep 'cancels a live selection crossing' --retries 0` | 1 passed, 0 failed; unchanged tree, no retry |
+| 14:40:40 | `npm test -- local --surface e2e:toolbox-conformance --retries 0` | 19 passed, 0 failed |
+
+The complete browser surface ran all four requested files successfully: **skill-selector 10, markdown-editor-integration 8, toolbox 2 and template-cache 3** (23 tests, no skips/failures). Conform passed **18 story comparisons plus the MDX wrapper check**. Browser units passed **586**, with the standing ACP fake-server disconnect skip. The browser e2e skip is the existing Firefox-only appearance case in Chromium; Firefox remains unavailable on this host.
+
+The full browser surface is **not claimed green**. Its one failure is `tab-strip.test.ts`, “cancels a live selection crossing when an edge drag takes over scrolling”: the monotonicity assertion passed, but the first and last sampled scroll positions were both zero, so line 1149's strict decrease assertion failed (`0 < 0`). The same case passed alone on the unchanged tree with retries disabled. `git diff --exit-code d17b041 -- packages/web/test/e2e/tab-strip.test.ts packages/web/test/e2e/fixtures/tab-strip.html packages/web/test/e2e/helpers.ts packages/web/src/views/tab-strip.ts packages/web/src/views/tab-strip.css packages/web/src/views/tab-reorder.ts packages/web/src/views/stage.ts packages/web/src/constants.ts` passed. The isolated fixture mounts Stage and TabStrip directly and does not import Toolbox or TopBar; it performs no cwd-relative fixture read. This is a separate timing-sensitive test finding, not either reported review defect. No tab behavior or timing assertion was changed, and the precise scheduling cause is not established. The user-authorized minimum of all affected browser files is green; the full-run failure remains visible for the supervisor rather than being represented as a passing broad result.
+
+Additional validation:
+
+- `npm run type-check`: passed during the negative-control stage and again on the final tree after its removal.
+- `npx eslint packages/web/test/e2e/skill-selector.test.ts packages/web/test/e2e/markdown-editor-integration.test.ts packages/web/test/e2e/template-cache.test.ts --max-warnings=0`: passed during the negative-control stage. The same command followed by `&& git diff --check` passed on the final tree.
+- The conformance surface's registered prerequisite rebuilt production assets and Storybook successfully. Its services completed and stopped normally; the existing Storybook dev server on port 6106 was untouched.
+- `git diff --check`: passed after this final record update. A byte-hash check against `scratch/linked-templates-slice3-review-final-tree.json` confirmed every tested source/test/config/proof file remains unchanged.
+
+No additional dependency, permanent test, proof/spec change or story/style change was needed. The plan's five slice 4 obligations remain unchanged. The two review findings are resolved; the previously documented theme race and this separate tab-drag intermittent failure remain reported limitations. No full verification, commit, push, host CLI installation/link or host-home server occurred. Removed eight completed source-CLI/versioned-web temporary build directories after checking their assets and confirming no process still referenced them. The small ignored negative-control fragment, audit, manifests, logs and canonical reports remain for review.

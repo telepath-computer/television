@@ -20,8 +20,8 @@ const DIR_ORDER = ["product", "arch"];
 
 function isUISpecProse(rootDir, file, directoryHasIndex) {
   const segments = relative(rootDir, file).split(sep);
-  if (segments[0] !== "ui") return true;
-  return directoryHasIndex;
+  if (segments[0] !== "ui" || rootDir.endsWith(`${sep}proofs`)) return true;
+  return file.endsWith(".mdx") || directoryHasIndex;
 }
 
 function walkDocuments(rootDir, directory, indexPath) {
@@ -33,7 +33,7 @@ function walkDocuments(rootDir, directory, indexPath) {
     if (entry.isDirectory()) {
       out.push(...walkDocuments(rootDir, full, indexPath));
     } else if (
-      entry.name.endsWith(".md")
+      /\.mdx?$/.test(entry.name)
       && full !== indexPath
       && isUISpecProse(rootDir, full, directoryHasIndex)
     ) {
