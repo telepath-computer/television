@@ -1,6 +1,8 @@
-import type { ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import { statSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
+import type { AppTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
 import { defaultWatchContentFile, type ContentWatcher, type WatchContentFile } from "./file-watcher.ts";
-import { scanTemplatesDirectory } from "./templates.ts";
+import { scanTemplatesDirectory, selectTemplateIcon } from "./templates.ts";
 
 const SCAN_DEBOUNCE_MS = 75;
 
@@ -9,9 +11,20 @@ interface TemplateCacheOptions {
   watch?: WatchContentFile;
 }
 
+function iconSignature(template: AppTemplate): string | undefined {
+  const icon = selectTemplateIcon(template);
+  if (!icon) return;
+  try {
+    const { size, mtimeMs } = statSync(icon.path);
+    return JSON.stringify([icon.path, size, mtimeMs]);
+  } catch { /* The next scan will reflect a disappearing icon. */ }
+}
+
 /** Serving-home scan and observation. Scans are synchronous, so publication follows read order. */
 export class TemplateCache {
   #snapshot: ArtifactTemplateScan = { templates: [], errors: [], watching: false };
+  #iconSignatures = new Map<string, string | undefined>();
+  #watching = false;
   #watcher: ContentWatcher | null = null;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #disposed = false;
@@ -50,8 +63,15 @@ export class TemplateCache {
   #refresh(): void {
     if (this.#disposed) return;
     const previous = this.#snapshot;
-    this.#snapshot = { ...this.#scan(this.#directory), watching: this.#snapshot.watching };
-    this.#publish(this.#snapshot, [...new Set([...previous.templates, ...this.#snapshot.templates].map(({ id }) => id))]);
+    const next = { ...this.#scan(this.#directory), watching: this.#watching };
+    const before = new Map(previous.templates.map(template => [template.id, template]));
+    const after = new Map(next.templates.map(template => [template.id, template]));
+    const signatures = new Map(next.templates.map(template => [template.id, iconSignature(template)]));
+    const invalidatedIDs = [...new Set([...before.keys(), ...after.keys()])].filter(id =>
+      !isDeepStrictEqual(before.get(id), after.get(id)) || this.#iconSignatures.get(id) !== signatures.get(id));
+    this.#snapshot = next;
+    this.#iconSignatures = signatures;
+    if (invalidatedIDs.length || !isDeepStrictEqual(previous, next)) this.#publish(next, invalidatedIDs);
   }
 
   readonly #schedule = (): void => {
@@ -62,6 +82,7 @@ export class TemplateCache {
 
   #unavailable(error: Error): void {
     if (this.#disposed) return;
+    this.#watching = false;
     console.warn(`Failed to watch templates: ${this.#directory}`, error);
     if (this.#snapshot.watching) {
       this.#snapshot = { ...this.#snapshot, watching: false };
@@ -84,12 +105,12 @@ export class TemplateCache {
         },
         onWatcherRearmed: () => {
           if (!current()) return;
-          this.#snapshot = { ...this.#snapshot, watching: true };
+          this.#watching = true;
           this.#schedule();
         },
       });
       this.#watcher = watcher;
-      this.#snapshot = { ...this.#snapshot, watching: !dead };
+      this.#watching = !dead;
       watcher.on("error", (error) => {
         if (!current()) return;
         this.#watchVersion++;

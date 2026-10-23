@@ -23,6 +23,51 @@ async function flush() { await Promise.resolve(); await Promise.resolve(); }
 async function bytes(cache: TemplateCache, id: string) { return (await fetch(cache.icons.get(id)!)).text(); }
 
 describe("connection template cache (^templates-t-app-cache)", () => {
+  it.each(["push", "full fetch", "reconnect"])("keeps the old image until replacement after %s, then revokes it", async (source) => {
+    const { cache, client } = fixture();
+    await cache.load(); await flush();
+    const old = cache.icons.get("one")!;
+    const replacement = deferred<Awaited<ReturnType<TemplateClient["icon"]>>>();
+    client.icon.mockReturnValueOnce(replacement.promise);
+    if (source === "push") cache.apply({ scan: scan(), invalidatedIDs: ["one"] });
+    else {
+      if (source === "reconnect") {
+        cache.reset();
+        expect(cache.icons.get("one")).toBe(old);
+      }
+      await cache.load();
+    }
+    expect(cache.icons.get("one")).toBe(old);
+    expect(await bytes(cache, "one")).toBe("first");
+    replacement.resolve(icon("replacement")); await flush();
+    expect(await bytes(cache, "one")).toBe("replacement");
+    expect(cache.icons.get("one")).not.toBe(old);
+    await expect(fetch(old)).rejects.toThrow();
+    const current = cache.icons.get("one")!;
+    cache.dispose();
+    expect(cache.icons.size).toBe(0);
+    await expect(fetch(current)).rejects.toThrow();
+  });
+
+  it("removes old icons on replacement failure, missing icons or removed templates", async () => {
+    const { cache, client } = fixture();
+    client.list.mockResolvedValue(scan(["one", "two", "three"]));
+    await cache.load(); await flush();
+    const old = [...cache.icons.values()];
+    const changed = vi.fn();
+    cache.addEventListener("change", changed);
+    client.icon.mockRejectedValueOnce(new Error("missing image"));
+    const next = scan(["one", "two"]);
+    next.templates[1]!.hasIcon = false;
+    cache.apply({ scan: next, invalidatedIDs: ["one"] });
+    expect([...cache.icons.keys()]).toEqual(["one"]);
+    changed.mockClear();
+    await flush();
+    expect(cache.icons.size).toBe(0);
+    expect(changed).toHaveBeenCalledOnce();
+    for (const url of old) await expect(fetch(url)).rejects.toThrow();
+  });
+
   it("preloads icons, retains them while closed, and applies only named push invalidations", async () => {
     const { cache, client } = fixture();
     client.list.mockResolvedValue(scan(["one", "two"]));
@@ -82,6 +127,8 @@ describe("connection template cache (^templates-t-app-cache)", () => {
     expect(await bytes(cache, "two")).toBe("two-old");
 
     cache.reset();
+    expect(await bytes(cache, "one")).toBe("one-old");
+    expect(await bytes(cache, "two")).toBe("two-old");
     const reconnect = deferred<ArtifactTemplateScan>();
     client.list.mockReturnValueOnce(reconnect.promise);
     client.icon.mockImplementation(async (id) => icon(`${id}-new`));

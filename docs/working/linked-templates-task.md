@@ -819,3 +819,25 @@ Each run-directory output in the commands below points to its canonical `summary
 The source/test/proof/guidance manifest is `scratch/toolbox-sanity/final-tree.json`, SHA-256 `e2a45a19a44649caec8c9681e3a16d6975fe16b93796ef027fac77610c86c576`. It excludes this task record and matches the final bytes. The Git tree reported by the runner is the committed HEAD tree, not a snapshot of the working edits.
 
 Removed `/tmp/tv-tb-pass` after confirming no process retained that `TMPDIR`. Canonical reports and small logs/manifests remain for review. No full `npm run verify`, checkout dependency installation, host CLI installation/link, commit or push was performed. The work remains on the requested branch at the requested HEAD, ready for review of the cleanup and the separately raised dependency-source decision; this is not a claim of full merge validation.
+
+### Toolbox icon continuity fix — October 23, 2026
+
+Implemented on `feat/toolbox` above `bd5788faba03d80b6a2d62ee394267a5f7929e39`, leaving the maintainer-approved template-spec edit uncommitted. No remaining spec contradiction was found. The server compares records and private selected-icon path/size/modification-time signatures; unchanged scans publish nothing. Scan errors and watcher recovery still publish without invalidating unchanged icons. The app keeps existing images while invalidated bytes reload, revokes replaced URLs, removes unavailable/failed icons, and retains the requirement to reload every stale icon after reconnect even when a partial push supersedes the list response.
+
+Updated both template and Toolbox proofs. The native watcher test now changes its selected nested icon rather than an unrelated support file, matching the approved event contract. New regression coverage exercises unchanged scans, isolated icon size/mtime changes, error/recovery publication, image retention across pushes/full fetches/reconnects, failure/removal/disposal, and actual Toolbox creation without a letter fallback. The browser test delays replacement icon transport only; creation, scanning, publication, caching and rendering remain real.
+
+Red runs failed as intended: server cache 3 failures, client cache 5 failures, and browser creation 1 failure (both previously loaded images disappeared). After the fix, targeted server cache (7), template routes (6), client cache (9), and browser creation (1) all passed. An independent GPT-6 Astra reviewer at exact `xhigh` passed the approved spec/proof derivation and complete implementation with no findings; the reviewer did not run tests. Final requested validation passed on the uncommitted working tree:
+
+
+| Selection | Result |
+|---|---|
+| `npm test -- local --surface unit:server` | 1,160 passed; 1 existing privileged-port permission skip |
+| `npm test -- local --surface unit:browser-app` | 590 passed; 1 existing ACP fake-server disconnect skip |
+| `npm test -- local --surface e2e:browser-app --grep '(toolbox-acceptance\|toolbox\|template-cache)\.test\.ts' --retries 0` | 16 passed |
+| `npm test -- local --surface e2e:toolbox-conformance --retries 0` | 19 passed: all 18 stories and the MDX check |
+| `npm test -- local --file test/repo/spec-links.test.ts` | 8 passed |
+| `npm run type-check`; `npm run lint` | Both passed |
+
+Exact invocations, run directories and counts for all 12 canonical runs, including the expected reds, are in `scratch/toolbox-icons/reports.json`; each run has a corresponding `.run` pointer and `.log` in that directory. The first red server run used the ordinary system temporary directory; subsequent canonical commands used `TMPDIR=/tmp/tv-icons`. Type-check and lint logs are retained there too. All canonical reports record zero recovered flakes, process leaks and infrastructure failures. Browser runs used Chromium with retries disabled; Firefox is unavailable on this host. Existing bundle-size, runtime canonical-CSS and Storybook/Vite warnings did not fail checks.
+
+The Toolbox stylesheet-copy check and `git diff --check` passed. The approved architecture spec edit is preserved; no further spec or story changes were needed. Removed the task-owned `/tmp/tv-icons` tree after checking that no process retained it. Small logs and canonical reports remain for review. The developer telemetry marker was already present before running Television. No full `npm run verify`, host CLI installation/link, commit or push occurred. This completes the requested fix and validation, not full branch verification or merge preparation.

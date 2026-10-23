@@ -177,7 +177,9 @@ describe("artifact template routes", () => {
     const root = home();
     const folder = template(root, "one");
     mkdirSync(path.join(folder, "nested"));
-    writeFileSync(path.join(folder, "nested", "style.css"), "first");
+    writeFileSync(path.join(folder, "nested", "icon.svg"), "<svg/>");
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ ...manifest, icons: [{ src: "nested/icon.svg" }] }));
     const { server, token } = await start(root);
     const socket = new WebSocket(`${server.getBaseURL().replace("http:", "ws:")}/events?token=${token}`);
     const events: any[] = [];
@@ -187,7 +189,7 @@ describe("artifact template routes", () => {
       await new Promise<void>((resolve) => { socket.once("pong", () => resolve()); socket.ping(); });
       expect(events).toHaveLength(1);
       const edits = () => events.filter((event) => event.type === "templates-changed");
-      writeFileSync(path.join(folder, "nested", "style.css"), "second");
+      writeFileSync(path.join(folder, "nested", "icon.svg"), "<svg>changed icon</svg>");
       await vi.waitFor(() => expect(edits().at(-1)).toMatchObject({ scan: { templates: [{ id: "one" }], watching: true }, invalidatedIDs: ["one"] }));
       template(root, "two");
       await vi.waitFor(() => expect(edits().at(-1)?.scan.templates.map((entry: { id: string }) => entry.id)).toEqual(["one", "two"]));

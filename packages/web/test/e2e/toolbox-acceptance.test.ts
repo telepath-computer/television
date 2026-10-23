@@ -32,6 +32,52 @@ async function openToolbox(page: Page): Promise<void> {
   await expect(page.getByRole("combobox", { name: "Search toolbox" })).toBeFocused();
 }
 
+// proofs/ui/app/toolbox.md#^toolbox-ac-icon-continuity
+test("creating an artifact keeps Toolbox icons in place without letter fallbacks", async ({ page, baseURL }) => {
+  const product = await launchProductServer({ auth: true });
+  let releaseIcons!: () => void;
+  const iconGate = new Promise<void>((resolve) => { releaseIcons = resolve; });
+  try {
+    for (const name of ["Calendar", "Notes"]) {
+      const folder = template(product.home, name.toLowerCase(), name);
+      writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name, description: "Page", version: "1.0.0", icons: [{ src: "icon.svg" }] }));
+      writeFileSync(path.join(folder, "icon.svg"), '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="blue"/></svg>');
+    }
+    await openApp(page, product, baseURL);
+    await openToolbox(page);
+    const images = page.locator(".toolbox-row img");
+    await expect(images).toHaveCount(2);
+    await expect.poll(() => images.evaluateAll((nodes: HTMLImageElement[]) => nodes.every(img => img.complete && img.naturalWidth === 20))).toBe(true);
+    const initial = await images.evaluateAll((nodes: HTMLImageElement[]) => nodes.map(img => img.src));
+    await page.route("**/templates/*/icon", async route => {
+      await iconGate;
+      await route.continue();
+    });
+    await page.evaluate(() => {
+      const state = { fallbacks: 0 };
+      (window as unknown as { __toolboxIcons: typeof state }).__toolboxIcons = state;
+      new MutationObserver((records) => {
+        for (const record of records) for (const node of record.addedNodes) {
+          if (node instanceof Element) state.fallbacks += Number(node.matches(".toolbox-letter")) + node.querySelectorAll(".toolbox-letter").length;
+        }
+      }).observe(document.querySelector(".toolbox-popover")!, { subtree: true, childList: true });
+    });
+    const created = page.waitForResponse(response => response.url().endsWith("/templates/artifacts") && response.request().method() === "POST");
+    await page.getByRole("option", { name: "Calendar", exact: true }).click();
+    expect((await created).ok()).toBe(true);
+    await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
+    await openToolbox(page);
+    await expect(images).toHaveCount(2);
+    expect(await images.evaluateAll((nodes: HTMLImageElement[]) => nodes.map(img => img.src))).toEqual(initial);
+    expect(await page.evaluate(() => (window as unknown as { __toolboxIcons: { fallbacks: number } }).__toolboxIcons.fallbacks)).toBe(0);
+    await expect(page.locator(".toolbox-letter")).toHaveCount(0);
+  } finally {
+    releaseIcons();
+    await page.unrouteAll({ behavior: "wait" });
+    await product.dispose();
+  }
+});
+
 // proofs/ui/app/toolbox.md#^toolbox-ac-open
 // proofs/ui/app/toolbox.md#^toolbox-t-shortcut-seam
 test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", async ({ page, baseURL }) => {

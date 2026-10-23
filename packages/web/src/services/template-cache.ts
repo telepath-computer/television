@@ -9,6 +9,7 @@ export class TemplateCache extends EventTarget<ChangeEvent> {
   #requests = new Map<string, object>();
   #loading: Promise<void> | null = null;
   #needsLoad = true;
+  #invalidateAll = false;
   #open = false;
   #disposed = false;
 
@@ -23,7 +24,7 @@ export class TemplateCache extends EventTarget<ChangeEvent> {
     this.#revision++;
     this.#requests.clear();
     // Reconnect may have missed changes absent from the next push's invalidated IDs.
-    for (const id of this.icons.keys()) this.#removeIcon(id);
+    this.#invalidateAll = true;
     this.#loading = null;
     this.#needsLoad = true;
   }
@@ -64,21 +65,27 @@ export class TemplateCache extends EventTarget<ChangeEvent> {
   #replace(scan: ArtifactTemplateScan, invalidated: string[]): void {
     this.scan = scan;
     this.#needsLoad = false;
+    const refresh = new Set(this.#invalidateAll ? scan.templates.map(({ id }) => id) : invalidated);
+    this.#invalidateAll = false;
     const available = new Set(scan.templates.filter(({ hasIcon }) => hasIcon).map(({ id }) => id));
-    for (const id of new Set([...invalidated, ...this.icons.keys(), ...this.#requests.keys()])) {
-      if (invalidated.includes(id) || !available.has(id)) this.#removeIcon(id);
+    for (const id of new Set([...this.icons.keys(), ...this.#requests.keys()])) {
+      if (!available.has(id)) this.#removeIcon(id);
+      else if (refresh.has(id)) this.#requests.delete(id);
     }
     for (const id of available) {
-      if (this.icons.has(id) || this.#requests.has(id)) continue;
+      if (this.#requests.has(id) || (this.icons.has(id) && !refresh.has(id))) continue;
       const request = {};
       this.#requests.set(id, request);
       void this.#client().icon(id).then(({ bytes, contentType }) => {
         if (this.#disposed || this.#requests.get(id) !== request) return;
-        this.#requests.delete(id);
-        this.icons.set(id, URL.createObjectURL(new Blob([Uint8Array.from(bytes)], { type: contentType })));
+        const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes)], { type: contentType }));
+        this.#removeIcon(id);
+        this.icons.set(id, url);
         this.dispatchEvent(new ChangeEvent("change"));
       }).catch(() => {
-        if (this.#requests.get(id) === request) this.#requests.delete(id);
+        if (this.#requests.get(id) !== request) return;
+        this.#removeIcon(id);
+        this.dispatchEvent(new ChangeEvent("change"));
       });
     }
     this.dispatchEvent(new ChangeEvent("change"));
@@ -94,5 +101,6 @@ export class TemplateCache extends EventTarget<ChangeEvent> {
   dispose(): void {
     this.#disposed = true;
     this.reset();
+    for (const id of this.icons.keys()) this.#removeIcon(id);
   }
 }
