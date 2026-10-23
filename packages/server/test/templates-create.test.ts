@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { existsSync, lstatSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -47,6 +49,8 @@ async function start(root: string, recordTelemetry = true) {
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
+  syncBuiltinESMExports();
   for (const server of servers.splice(0)) await server.dispose();
   for (const root of homes.splice(0)) rmSync(root, { recursive: true, force: true });
 });
@@ -66,7 +70,7 @@ describe("template artifact creation", () => {
       { ...base, templateID: 1 },
       { ...base, channelID: 1 },
       { ...base, title: 1 },
-      ...[null, 1, "true"].map((copy) => ({ ...base, copy })),
+
       { ...base, before: 1 },
       { ...base, after: 1 },
       { ...base, extra: "invalid" },
@@ -99,7 +103,7 @@ describe("template artifact creation", () => {
     writeFileSync(path.join(custom, "thumbnail.png"), privateImage);
     const { channelID, client, events } = await start(root);
     await client.templates.create({ templateID: "example", channelID, source: "cli", data: { message: "private starting value" } });
-    await client.templates.create({ templateID: "private-custom-id", channelID, source: "ui", title: "Private display title", copy: true });
+    await client.templates.create({ templateID: "private-custom-id", channelID, source: "ui", title: "Private display title" });
     const urlFolder = template(root, "private-url-id");
     const privateURL = "https://example.com/private-manifest-url";
     writeFileSync(path.join(urlFolder, "manifest.json"), JSON.stringify({ name: "Private site name", description: "Site", version: "1.0.0", url: privateURL }));
@@ -133,7 +137,7 @@ describe("template artifact creation", () => {
       expect(store.listArtifacts().map(({ id }) => id)).toEqual([otherArtifact.id]);
     }
     const empty = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
-    expect(store.resources.json.get({ artifactID: empty.artifactID }, "")).toEqual({ exists: false });
+    expect(store.resources.json.get({ artifactID: empty.artifactID }, "")).toEqual({ exists: true, value: { template: true } });
     const result = await client.templates.create({ templateID: "sample", channelID, source: "cli", data: null });
     expect(store.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: true, value: null });
   });
@@ -172,7 +176,7 @@ describe("template artifact creation", () => {
     const fromDefaults = await client.templates.create({ templateID: "partial", channelID, source: "ui", data: { seeded: true } });
     const fromFalse = await client.templates.create({ templateID: "opaque", channelID, source: "ui", data: { seeded: true } });
     const explicitTrue = await client.templates.create({
-      templateID: "opaque", channelID, source: "cli", copy: true, data: { seeded: true }, display: { transparent: true },
+      templateID: "opaque", channelID, source: "cli", data: { seeded: true }, display: { transparent: true },
     });
     const urlFolder = template(root, "url");
     writeFileSync(path.join(urlFolder, "manifest.json"), JSON.stringify({
@@ -269,47 +273,75 @@ describe("template artifact creation", () => {
   });
 
   // proofs/arch/templates/index.md#^templates-t-package
-  it("links the exact installed folder when its ID ends in whitespace", async () => {
+  it("copies the exact installed folder when its ID ends in whitespace", async () => {
     const root = home();
     template(root, "sample");
     const folder = template(root, "sample ");
+    writeFileSync(path.join(folder, "index.html"), "Exact folder");
     const { store, channelID, client } = await start(root, false);
     const result = await client.templates.create({ templateID: "sample ", channelID, source: "cli" });
-    expect(result).toEqual({ artifactID: expect.any(String), path: folder });
-    expect(store.getArtifact(result.artifactID)).toMatchObject({ kind: "path", path: `${folder}${path.sep}` });
+    expect(result.path).not.toBe(folder);
+    expect(readFileSync(path.join(result.path!, "index.html"), "utf8")).toBe("Exact folder");
+    expect(store.getArtifact(result.artifactID)).toMatchObject({ kind: "path", path: `${result.path}${path.sep}` });
   });
 
   // proofs/arch/templates/index.md#^templates-t-copy
-  it("links by default, copies only on request, and persists caller data without interpreting support files", async () => {
+  it("copies every folder independently and persists template or replacement caller data", async () => {
     const root = home();
-    const folder = template(root, "sample", { fromTemplate: true });
+    const folder = template(root, "sample", { fromTemplate: true, nested: { keep: false } });
+    mkdirSync(path.join(folder, "nested"));
+    writeFileSync(path.join(folder, "nested", "data.json"), "supporting content");
+    writeFileSync(path.join(folder, "nested", "manifest.json"), "supporting manifest");
     const { store, server, channelID, client } = await start(root);
-    const linked = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
-    const falseCopy = await client.templates.create({ templateID: "sample", channelID, source: "ui", copy: false });
-    for (const result of [linked, falseCopy]) {
-      expect(result).toEqual({ artifactID: expect.any(String), path: folder });
-      expect(store.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: false });
-      expect(store.getArtifact(result.artifactID)).toEqual({ id: result.artifactID, kind: "path", title: "Sample page", path: `${folder}${path.sep}` });
+    const seeded = await client.templates.create({ templateID: "sample", channelID, source: "ui" });
+    const replaced = await client.templates.create({ templateID: "sample", channelID, source: "cli", data: { caller: true } });
+    const explicitNull = await client.templates.create({ templateID: "sample", channelID, title: "My Copy", source: "cli", data: null, before: seeded.artifactID });
+    expect(explicitNull.path).toMatch(new RegExp(`^${root}/artifacts/my-copy-[0-9a-z]{5}$`));
+    expect(new Set([seeded.path, replaced.path, explicitNull.path]).size).toBe(3);
+    const values = [
+      [seeded, { fromTemplate: true, nested: { keep: false } }], [replaced, { caller: true }], [explicitNull, null],
+    ] as const;
+    for (const [created, value] of values) {
+      expect(created).toEqual({ artifactID: expect.any(String), path: expect.stringMatching(`${root}/artifacts/`) });
+      for (const filename of ["index.html", "README.md", "helper.js", "thumbnail.png", "nested/data.json", "nested/manifest.json"]) {
+        expect(readFileSync(path.join(created.path!, filename))).toEqual(readFileSync(path.join(folder, filename)));
+      }
+      for (const filename of ["manifest.json", "data.json"]) expect(existsSync(path.join(created.path!, filename))).toBe(false);
+      expect(store.getArtifact(created.artifactID)).toEqual({
+        id: created.artifactID, kind: "path", title: created === explicitNull ? "My Copy" : "Sample page",
+        path: `${created.path}${path.sep}`, store: expect.any(String),
+      });
+      expect(store.resources.json.get({ artifactID: created.artifactID }, "")).toEqual({ exists: true, value });
     }
-    expect(readdirSync(path.join(root, "artifacts"))).toEqual([]);
-    expect(existsSync(path.join(root, "resources"))).toBe(false);
-    const result = await client.templates.create({ templateID: "sample", channelID, title: "My Copy", source: "cli", copy: true, data: null, before: linked.artifactID });
-    expect(result).toEqual({ artifactID: expect.any(String), path: expect.stringMatching(new RegExp(`^${root}/artifacts/my-copy-[0-9a-z]{5}$`)) });
-    const copied = result.path!;
-    for (const filename of ["index.html", "README.md", "helper.js", "thumbnail.png", "data.json"]) {
-      expect(readFileSync(path.join(copied, filename))).toEqual(readFileSync(path.join(folder, filename)));
-    }
-    expect(existsSync(path.join(copied, "manifest.json"))).toBe(false);
-    expect(store.getArtifact(result.artifactID)).not.toHaveProperty("templateID");
     expect(store.getChannel(channelID)?.channel.layout.map(({ artifactIds }) => artifactIds))
-      .toEqual([[result.artifactID], [linked.artifactID], [falseCopy.artifactID]]);
-    expect(store.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: true, value: null });
+      .toEqual([[explicitNull.artifactID], [seeded.artifactID], [replaced.artifactID]]);
+    writeFileSync(path.join(folder, "index.html"), "edited template");
+    writeFileSync(path.join(folder, "data.json"), "null");
+    const newer = await client.templates.create({ templateID: "sample", channelID, source: "ui" });
+    expect(readFileSync(path.join(newer.path!, "index.html"), "utf8")).toBe("edited template");
+    expect(store.resources.json.get({ artifactID: newer.artifactID }, "")).toEqual({ exists: true, value: null });
+    rmSync(folder, { recursive: true });
+    for (const [created] of values) expect(readFileSync(path.join(created.path!, "index.html"), "utf8")).toContain("Sample");
     await server.dispose();
     servers.splice(servers.indexOf(server), 1);
     const reopened = createServingStore(root);
     try {
-      expect(reopened.resources.json.get({ artifactID: result.artifactID }, "")).toEqual({ exists: true, value: null });
+      for (const [created, value] of values) expect(reopened.resources.json.get({ artifactID: created.artifactID }, "")).toEqual({ exists: true, value });
     } finally { reopened.dispose(); }
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-clone
+  it("requests filesystem cloning with Node's ordinary-copy fallback", async () => {
+    const root = home();
+    const folder = template(root);
+    const { channelID, client } = await start(root, false);
+    const copy = vi.spyOn(fs, "cpSync");
+    syncBuiltinESMExports();
+    const created = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
+    const calls = copy.mock.calls.filter(([source]) => String(source).startsWith(`${folder}${path.sep}`));
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [, , options] of calls) expect(options?.mode).toBe(fs.constants.COPYFILE_FICLONE);
+    expect(readFileSync(path.join(created.path!, "index.html"))).toEqual(readFileSync(path.join(folder, "index.html")));
   });
 
   // proofs/arch/templates/index.md#^templates-t-preflight-seam
@@ -324,7 +356,7 @@ describe("template artifact creation", () => {
     const { store, server, channelID, client, events } = await start(root);
     for (const data of [{}, { message: 4 }, null, "x".repeat(1_048_577)]) {
       const response = await request(server.httpServer).post("/templates/artifacts")
-        .set("Authorization", `Bearer ${store.authToken}`).send({ templateID: "sample", channelID, source: "cli", copy: true, data }).expect(400);
+        .set("Authorization", `Bearer ${store.authToken}`).send({ templateID: "sample", channelID, source: "cli", data }).expect(400);
       if (data && typeof data === "object") {
         expect(response.body.error).toContain("message");
         expect(response.body.error).toContain("tv templates show");
@@ -346,15 +378,15 @@ describe("template artifact creation", () => {
 
   // proofs/arch/templates/index.md#^templates-t-copy
   // proofs/arch/templates/index.md#^templates-t-preflight
-  it("creates an ordinary URL record and rejects even null data or false copy before effects", async () => {
+  it("creates an ordinary URL record and rejects even null data before effects", async () => {
     const root = home();
     const folder = template(root);
     writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Site", description: "A site", version: "1.0.0", url: " https://example.com/page " }));
     const { store, server, channelID, client } = await start(root);
-    for (const extra of [{ data: null }, { data: {} }, { copy: false }, { copy: true }]) {
+    for (const extra of [{ data: null }, { data: {} }]) {
       const response = await request(server.httpServer).post("/templates/artifacts")
         .set("Authorization", `Bearer ${store.authToken}`).send({ templateID: "sample", channelID, source: "cli", ...extra }).expect(400);
-      expect(response.body.error).toMatch(/URL.*(data|copy)/);
+      expect(response.body.error).toMatch(/URL.*data/);
       expect(store.listArtifacts()).toEqual([]);
     }
     const result = await client.templates.create({ templateID: "sample", channelID, source: "cli", title: "My site" });
@@ -367,7 +399,7 @@ describe("template artifact creation", () => {
   // proofs/arch/templates/index.md#^templates-t-preflight-seam
   it("rechecks placement when a registered-artifact observer moves the neighbor before layout saving", async () => {
     const root = home();
-    const folder = template(root);
+    template(root);
     const { store, server, channelID, events } = await start(root);
     const neighbor = store.createArtifact({ kind: "url", title: "Neighbor", channelID, url: "https://example.com" });
     const other = store.createChannel({ name: "Other" });
@@ -378,7 +410,7 @@ describe("template artifact creation", () => {
       .set("Authorization", `Bearer ${store.authToken}`)
       .send({ templateID: "sample", channelID, source: "cli", after: neighbor.id }).expect(500);
     expect(response.body.error).toContain("channel layout");
-    expect(response.body.error).toContain(folder);
+    expect(response.body.error).toContain(path.join(root, "artifacts"));
     expect(response.body.error).toContain("not on channel");
     const created = store.listArtifacts().find(({ id }) => id !== neighbor.id)!;
     expect(response.body.error).toContain(created.id);
@@ -401,7 +433,7 @@ describe("template artifact creation", () => {
     symlinkSync(outside, path.join(folder, "outside-link.txt"));
     const { server, channelID, client } = await start(root);
 
-    const created = await client.templates.create({ templateID: "sample", channelID, source: "cli", copy: true });
+    const created = await client.templates.create({ templateID: "sample", channelID, source: "cli" });
     const internal = path.join(created.path!, "helper-link.js");
     const absoluteInternal = path.join(created.path!, "absolute-helper-link.js");
     const aliasInternal = path.join(created.path!, "absolute-alias-link.js");
@@ -439,11 +471,11 @@ describe("template artifact creation", () => {
     await server.start();
     const channelID = store.listChannels()[0]!.id;
     const client = new TelevisionClient(server.getBaseURL(), { token: store.authToken });
-    const first = await client.templates.create({ templateID: "sample", channelID, source: "cli", copy: true, title: " Héllo... WORLD! " });
-    const second = await client.templates.create({ templateID: "sample", channelID, source: "cli", copy: true, title: " Héllo... WORLD! " });
-    const empty = await client.templates.create({ templateID: "sample", channelID, source: "cli", copy: true, title: "!!!" });
+    const first = await client.templates.create({ templateID: "sample", channelID, source: "cli", title: " Héllo... WORLD! " });
+    const second = await client.templates.create({ templateID: "sample", channelID, source: "cli", title: " Héllo... WORLD! " });
+    const empty = await client.templates.create({ templateID: "sample", channelID, source: "cli", title: "!!!" });
     const longTitle = `${"a".repeat(30)}-${"b".repeat(35)}`;
-    const limited = await client.templates.create({ templateID: "sample", channelID, source: "cli", copy: true, title: longTitle });
+    const limited = await client.templates.create({ templateID: "sample", channelID, source: "cli", title: longTitle });
     expect(path.basename(first.path!)).toBe("h-llo-world-abcde");
     expect(path.basename(second.path!)).toBe("h-llo-world-fghij");
     expect(path.basename(empty.path!)).toBe("artifact-klmno");

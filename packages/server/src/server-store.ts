@@ -107,7 +107,7 @@ import {
   writeBundledThemeStateFile,
 } from "./bundled-theme-installer.ts";
 import { artifactRealLocation } from "./artifact-location.ts";
-import { randomTemplateSuffix, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
+import { randomTemplateSuffix, readTemplateData, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
 import { TemplateCache } from "./template-cache.ts";
 import { getTemplatesDir } from "./templates.ts";
 import { validateTemplateData } from "./template-schema.ts";
@@ -513,18 +513,17 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   /** Register a template target and retain every created part on an unconfirmed save. */
-  async createTemplateArtifact(input: {
+  createTemplateArtifact(input: {
     template: AppTemplate;
     templateID: string;
     channelID: string;
     title?: string;
     data?: unknown;
-    copy?: boolean;
     display?: ArtifactDisplayOptions;
     before?: string;
     after?: string;
     source: "cli" | "ui";
-  }, telemetryContext?: TelemetryClientContext | null): Promise<CreateTemplateArtifactResult> {
+  }, telemetryContext?: TelemetryClientContext | null): CreateTemplateArtifactResult {
     const title = input.title ?? input.template.name;
     const placement = { before: input.before, after: input.after };
     const display: ArtifactDisplayOptions = {
@@ -533,28 +532,29 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       fullScreen: input.display?.fullScreen ?? input.template.display?.fullScreen,
       transparent: input.display?.transparent ?? input.template.display?.transparent,
     };
-    const hasData = Object.hasOwn(input, "data");
-    if (input.template.url !== undefined && (hasData || Object.hasOwn(input, "copy"))) {
-      throw new InvalidRequestError("URL templates do not accept data or copy");
+    const hasCallerData = Object.hasOwn(input, "data");
+    if (input.template.url !== undefined && hasCallerData) {
+      throw new InvalidRequestError("URL templates do not accept data");
     }
-    if (hasData) {
-      try {
-        validateJsonValue(input.data);
-        checkJsonLimits(input.data);
-        if (input.template.dataSchema !== undefined) await validateTemplateData(input.template.dataSchema, input.data, input.templateID);
-      } catch (error) {
-        throw new InvalidRequestError(`Invalid template starting data: ${errorMessage(error)}`);
+    let startingValue: JSONValue | undefined;
+    try {
+      startingValue = hasCallerData ? input.data as JSONValue
+        : input.template.url === undefined ? readTemplateData(input.template.path) : undefined;
+      if (startingValue !== undefined || hasCallerData) {
+        validateJsonValue(startingValue);
+        checkJsonLimits(startingValue);
+        if (input.template.dataSchema !== undefined) validateTemplateData(input.template.dataSchema, startingValue, input.templateID);
       }
+    } catch (error) {
+      throw new InvalidRequestError(`Invalid template starting data: ${errorMessage(error)}`);
     }
 
-    // Schema validation can yield; check the current channel and placement
-    // after it completes, before creating any files or records.
     const channel = this.channels.get(input.channelID);
     if (!channel) throw new InvalidRequestError(`Channel not found: ${input.channelID}`);
     placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
 
     let destination = input.template.url ?? input.template.path;
-    if (input.copy === true) {
+    if (input.template.url === undefined) {
       const copiesDir = getAgentArtifactsDir(this.storagePath);
       for (;;) {
         destination = path.join(copiesDir, templateFolderName(title, this.generateTemplateSuffix()));
@@ -563,10 +563,11 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       try {
         mkdirSync(destination);
         for (const entry of readdirSync(input.template.path)) {
-          if (entry === "manifest.json") continue;
+          if (entry === "manifest.json" || entry === "data.json") continue;
           cpSync(path.join(input.template.path, entry), path.join(destination, entry), {
             recursive: true,
             verbatimSymlinks: true,
+            mode: constants.COPYFILE_FICLONE,
           });
         }
         relinkCopiedTemplateSymlinks(input.template.path, destination);
@@ -580,7 +581,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     try {
       const created = input.template.url !== undefined
         ? this.createKindArtifact({ id, kind: "url", title, url: destination, transparent: display.transparent })
-        : createArtifact({ id, kind: "path", title, path: this.normalizeArtifactPath(destination), transparent: display.transparent });
+        : this.createKindArtifact({ id, kind: "path", title, path: destination, transparent: display.transparent });
       const saved = this.saveArtifactRecord(created, `registering template artifact ${id}`);
       artifact = saved.artifact;
       this._artifacts.set(id, artifact);
@@ -601,9 +602,9 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       throw new TemplateCreationError(`Template channel layout for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
     }
 
-    if (hasData) {
+    if (startingValue !== undefined) {
       try {
-        this.resources.json.write({ artifactID: id }, { kind: "set", path: "", value: input.data as JSONValue });
+        this.resources.json.write({ artifactID: id }, { kind: "set", path: "", value: startingValue });
       } catch (error) {
         throw new TemplateCreationError(`Template store write for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
       }

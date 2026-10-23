@@ -1,6 +1,6 @@
 # Artifact templates — proposal
 
-**Status:** the original mechanism was approved on October 15, 2026 and implemented on `feat/artifact-templates`. This document now incorporates the October 22 decisions for linked templates and the Toolbox. Those revisions are a draft for review on `feat/linked-templates`; earlier implementation and validation do not cover them. The governing contracts are in [artifact templates](../../specs/product/templates.md) and [template architecture](../../specs/arch/templates/index.md).
+**Status:** the original mechanism was approved on October 15, 2026 and implemented on `feat/artifact-templates`. This document now incorporates the October 22 decisions for linked templates and the Toolbox. Those revisions are a draft for review on `feat/toolbox`; earlier implementation and validation do not cover them. The governing contracts are in [artifact templates](../../specs/product/templates.md) and [template architecture](../../specs/arch/templates/index.md).
 
 ## Model
 

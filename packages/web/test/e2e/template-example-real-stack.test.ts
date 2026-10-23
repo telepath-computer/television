@@ -14,7 +14,8 @@ test("bundled Example renders unwritten and caller-supplied stores and live agen
     const channelID = channels[0]?.id;
     expect(channelID).toBeDefined();
     const created = await client.templates.create({ templateID: "example", channelID: channelID!, source: "cli" });
-    expect(created).toEqual({ artifactID: expect.any(String), path: path.join(product.home, "templates/example") });
+    expect(created).toEqual({ artifactID: expect.any(String), path: expect.any(String) });
+    expect(path.dirname(created.path!)).toBe(path.join(product.home, "artifacts"));
     const store = { artifactID: created.artifactID };
     expect(await client.resources.json.get({ store, path: "" })).toEqual({ exists: false });
     expect(await client.resources.list({ artifactID: created.artifactID })).toEqual([]);

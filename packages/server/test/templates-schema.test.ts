@@ -25,12 +25,27 @@ describe("template caller-data schema validation", () => {
     expect(() => compileTemplateSchema(schema)).toThrow();
   });
 
+  it.each<JSONSchema>([
+    { $async: true, type: "boolean" },
+    { $async: false },
+    { $async: true, $ref: "#/$async" },
+  ])("rejects a root async declaration without rewriting the schema: %j", (schema) => {
+    const before = structuredClone(schema);
+    expect(() => compileTemplateSchema(schema)).toThrow("$async is not supported in dataSchema");
+    expect(schema).toEqual(before);
+  });
+
+  it("rejects a synchronous schema referencing an async subschema through Ajv", () => {
+    expect(() => compileTemplateSchema({
+      $defs: { text: { $async: true, type: "string" } },
+      $ref: "#/$defs/text",
+    })).toThrow("async schema in sync schema");
+  });
+
   // proofs/arch/templates/index.md#^templates-t-preflight
   it.each<[JSONSchema, unknown, RegExp | undefined]>([
     [true, null, undefined],
     [false, null, /root/],
-    [{ $async: true, type: "boolean" }, false, undefined],
-    [{ $async: true, type: "boolean" }, 42, /root.*boolean/],
     [{ type: "object", required: ["message"] }, {}, /root.*message/],
     [{ properties: { message: { type: "string" } } }, { message: 42 }, /\/message.*string/],
     [{ $defs: { text: { type: "string" } }, properties: { message: { $ref: "#/$defs/text" } } }, { message: 42 }, /\/message.*string/],
@@ -39,12 +54,14 @@ describe("template caller-data schema validation", () => {
     [{ type: "object", required: ["message"], properties: { message: { default: "default" } } }, {}, /root.*message/],
     [{ properties: { count: { type: "integer" } } }, { count: "42" }, /\/count.*integer/],
     [{ type: "object", additionalProperties: false }, { extra: true }, /additional propert/],
-  ])("validates %j without changing %j", async (schema, value, failure) => {
+  ])("validates %j without changing %j", (schema, value, failure) => {
     const before = structuredClone(value);
+    const schemaBefore = structuredClone(schema);
     if (failure) {
-      await expect(validateTemplateData(schema, value, "sample")).rejects.toThrow(failure);
-      await expect(validateTemplateData(schema, value, "sample")).rejects.toThrow("tv templates show -- 'sample'");
-    } else await expect(validateTemplateData(schema, value, "sample")).resolves.toBeUndefined();
+      expect(() => validateTemplateData(schema, value, "sample")).toThrow(failure);
+      expect(() => validateTemplateData(schema, value, "sample")).toThrow("tv templates show -- 'sample'");
+    } else expect(validateTemplateData(schema, value, "sample")).toBeUndefined();
     expect(value).toEqual(before);
+    expect(schema).toEqual(schemaBefore);
   });
 });

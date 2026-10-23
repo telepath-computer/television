@@ -14,9 +14,10 @@ import {
   symlinkSync,
 } from "node:fs";
 import path from "node:path";
+import { checkJsonLimits, validateJsonValue, type JSONValue } from "@telepath-computer/television-shared/resources";
 import { randomInt } from "node:crypto";
 import { isExternalArtifactURL } from "@telepath-computer/television-artifact";
-import { compileTemplateSchema, templateSchemaHint } from "./template-schema.ts";
+import { compileTemplateSchema, templateSchemaHint, validateTemplateData } from "./template-schema.ts";
 import type { ArtifactDisplayOptions, AppTemplate, ArtifactTemplateIcon, ArtifactTemplateScan, JSONSchema } from "@telepath-computer/television-shared";
 import { isSemanticVersion } from "./themes.ts";
 
@@ -88,6 +89,24 @@ function readableFile(filename: string): boolean {
   } catch {
     return false;
   }
+}
+
+function entryPresent(filename: string): boolean {
+  try {
+    lstatSync(filename);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== "ENOENT";
+  }
+}
+
+export function readTemplateData(folder: string): JSONValue | undefined {
+  const filename = path.join(folder, "data.json");
+  if (!entryPresent(filename)) return;
+  const value: unknown = JSON.parse(readFileSync(filename, "utf8"));
+  validateJsonValue(value);
+  checkJsonLimits(value);
+  return value;
 }
 
 type IconType = "image/svg+xml" | "image/png";
@@ -215,6 +234,7 @@ export function validateTemplatePackage(folder: string, id: string): { template?
       errors.push("manifest url must be an absolute HTTP(S) URL");
     } else url = manifest.url.trim();
     if (Object.hasOwn(manifest, "dataSchema")) errors.push("URL templates cannot declare dataSchema");
+    if (entryPresent(path.join(folder, "data.json"))) errors.push("URL templates cannot contain data.json");
   } else {
     if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
     if (manifest && Object.hasOwn(manifest, "dataSchema")) {
@@ -228,6 +248,12 @@ export function validateTemplatePackage(folder: string, id: string): { template?
       } catch (error) {
         errors.push(`dataSchema ${error instanceof Error ? error.message : String(error)}. ${templateSchemaHint(id)}`);
       }
+    }
+    try {
+      const value = readTemplateData(folder);
+      if (value !== undefined && dataSchema !== undefined) validateTemplateData(dataSchema, value, id);
+    } catch (error) {
+      errors.push(`data.json is invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

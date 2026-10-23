@@ -87,7 +87,6 @@ const createTemplateArtifactBodySchema = z.object({
   channelID: z.string(),
   title: z.string().optional(),
   data: z.unknown().optional(),
-  copy: z.boolean().optional(),
   display: artifactDisplaySchema.optional(),
   ...placementFields,
   source: z.enum(["cli", "ui"]),

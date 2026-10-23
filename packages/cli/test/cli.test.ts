@@ -571,8 +571,7 @@ describe("artifact template CLI commands", () => {
     ["multiple sources", ["--path", "/tmp/note.md", "--template", "example"]],
     ["path without title", ["--path", "/tmp/note.md"]],
     ["URL without title", ["--url", "https://example.com"]],
-    ["copy with path", ["--path", "/tmp/note.md", "--title", "Note", "--copy"]],
-    ["copy with URL", ["--url", "https://example.com", "--title", "Link", "--copy"]],
+    ["unsupported copy option", ["--template", "example", "--copy"]],
     ["data with path", ["--path", "/tmp/note.md", "--title", "Note", "--data", "null"]],
     ["data file with URL", ["--url", "https://example.com", "--title", "Link", "--data-file", "-"]],
   ] as const)("refuses %s before any creation request", async (_reason, options) => {
@@ -583,10 +582,9 @@ describe("artifact template CLI commands", () => {
 
   // proofs/arch/cli/index.md#^cli-t-template-create
   it.each([
-    [[], { artifactID: "artifact-1", path: "/tmp/templates/example" }],
-    [["--copy"], { artifactID: "artifact-1", path: "/tmp/artifacts/example" }],
-    [[], { artifactID: "artifact-1", url: "https://example.com/page" }],
-  ])("prints the registered template target and sends copying only when requested: %j", async (options, result) => {
+    { artifactID: "artifact-1", path: "/tmp/artifacts/example" },
+    { artifactID: "artifact-1", url: "https://example.com/page" },
+  ])("prints the registered template target and omits caller data: %j", async (result) => {
     const stdout = new BufferOutput();
     const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
     const client = (env.createClient as any)();
@@ -594,8 +592,8 @@ describe("artifact template CLI commands", () => {
     client.display.focus.mockImplementation(async () => {
       expect(stdout.toString()).toBe(`Artifact artifact-1 created.\nTelevision registered ${"path" in result ? result.path : result.url}.\n`);
     });
-    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", ...options, "--focus-artifact"], env)).toBe(0);
-    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", source: "cli", ...(options.length ? { copy: true } : {}) });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(0);
+    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", source: "cli" });
   });
 
   it("prints no success when template creation is rejected", async () => {
@@ -903,6 +901,8 @@ describe("CLI artifact command surface", () => {
     const stdout = new BufferOutput();
     expect(await runCLI(["help", "create-artifact"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
     expect(stdout.toString()).toContain("--focus-artifact");
+    // proofs/arch/cli/index.md#^cli-t-template-create
+    expect(stdout.toString()).not.toContain("--copy");
     // proofs/arch/cli/index.md#^cli-t-create-display-help
     for (const option of ["--width <px>", "--height <px>", "--full-screen", "--no-full-screen"]) {
       expect(stdout.toString()).toContain(option);

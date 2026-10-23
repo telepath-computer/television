@@ -1397,7 +1397,6 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .option("--path <path>", "Absolute path to an existing markdown/HTML file or indexed directory (trailing separator optional)")
     .option("--url <url>", "http(s) URL")
     .option("--template <id>", "Artifact template folder ID")
-    .option("--copy", "Copy a folder template into an independent artifact directory")
     .option("--title <title>", "Artifact title; defaults to the template name when using --template")
     .option("--data <json>", "Starting JSON value for a template artifact")
     .option("--data-file <path>", "File containing starting JSON for a template artifact; - reads standard input")
@@ -1415,12 +1414,12 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .option("--after <artifact-id>", PLACE_AFTER_HELP)
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .addHelpText("after", buildArtifactWorkflowHelpNote(true))
-    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; copy?: boolean; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
+    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
       const sourceCount = [opts.path, opts.url, opts.template].filter((value) => value !== undefined).length;
       if (sourceCount !== 1) throw createDirectiveError("tv create-artifact requires exactly one of --path, --url, or --template.");
       if (opts.template === undefined && opts.title === undefined) throw createDirectiveError("tv create-artifact requires --title with --path or --url.");
-      if (opts.template === undefined && (opts.copy !== undefined || opts.data !== undefined || opts.dataFile !== undefined)) {
-        throw createDirectiveError("tv create-artifact accepts --copy, --data, and --data-file only with --template.");
+      if (opts.template === undefined && (opts.data !== undefined || opts.dataFile !== undefined)) {
+        throw createDirectiveError("tv create-artifact accepts --data and --data-file only with --template.");
       }
       if (opts.data !== undefined && opts.dataFile !== undefined) throw createDirectiveError("tv create-artifact accepts --data or --data-file, not both.");
       const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
@@ -1460,7 +1459,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       let artifactID: string;
       let registeredTarget: string;
       if (opts.template !== undefined) {
-        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.copy === true ? { copy: true } : {}), ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
+        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
         artifactID = created.artifactID;
         registeredTarget = created.path !== undefined ? created.path : created.url;
       } else {

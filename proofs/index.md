@@ -14,7 +14,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `licensing.md` (33 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (32 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (93 lines) — *How the promises in Telemetry are proven.*
-  - `templates.md` (46 lines) — *Proves linked, copied and URL template use through built CLI commands and the real app, including data isolation and principal failures.*
+  - `templates.md` (45 lines) — *Proves copied and URL template use through built CLI commands and the real app, including data isolation and principal failures.*
   - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
   - `update-notifications.md` (88 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
   - `versioning.md` (27 lines) — *How Television's release versions are proven where users receive them: the packed CLI package and the desktop upload directory built from the same commit, the built `tv` process and running server, update details, and the native About panel in the desktop product's Mac install check.*
@@ -78,10 +78,10 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sessions.md` (31 lines) — *How the promises in Telemetry sessions are proven.*
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **templates/**
-    - `authoring.md` (28 lines) — *Proves that the emitted television skill teaches safe linked-template use, compatible authoring, and explicit copying or detachment.*
+    - `authoring.md` (29 lines) — *Proves that the emitted television skill teaches copied template use, starting data, and artifact snapshots.*
     - `bundled-installation.md` (33 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
-    - `bundled-templates.md` (26 lines) — *Proves the bundled Example manifest and its live page behavior with an unwritten or caller-supplied store.*
-    - `index.md` (74 lines) — *Proves template validation, watched discovery, authenticated icons, and linked, copied, or URL creation at contracts and real transport boundaries.*
+    - `bundled-templates.md` (25 lines) — *Proves the bundled Example manifest and its live page behavior with an unwritten or caller-supplied store.*
+    - `index.md` (75 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (60 lines) — *How the promises in Blaxel Test Shards are proven.*

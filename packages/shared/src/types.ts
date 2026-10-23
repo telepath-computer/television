@@ -127,7 +127,6 @@ export interface CreateTemplateArtifactRequest {
   channelID: string;
   title?: string;
   data?: JSONValue;
-  copy?: boolean;
   display?: ArtifactDisplayOptions;
   before?: string;
   after?: string;

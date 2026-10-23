@@ -88,7 +88,7 @@ describe("bundled artifact template package", () => {
     expect(guidance).toMatch(/`message` string.*store/i);
     expect(guidance).toMatch(/each artifact.*store/i);
     expect(guidance).toContain("tv resource json");
-    expect(guidance).toMatch(/copy or detach.*(?:page files|files).*one artifact/i);
+    expect(guidance).toMatch(/edit.*copied page files.*one artifact/i);
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-validate
@@ -469,8 +469,8 @@ describe("bundled artifact template serving installation", () => {
     expect(scanTemplatesDirectory(path.join(home, "templates")).templates.map(({ id }) => id).sort()).toEqual(["example", "second"]);
   });
 
-  // proofs/arch/templates/bundled-installation.md#^templates-install-t-linked-records
-  it.each(["invalid", "below minimum"])("preserves linked records and stores through %s replacement and handled deletion", async (condition) => {
+  // proofs/arch/templates/bundled-installation.md#^templates-install-t-copied-artifacts
+  it.each(["invalid", "below minimum"])("preserves copied pages, records and stores through %s replacement and handled deletion", async (condition) => {
     const home = tempRoot();
     const installed = path.join(home, "templates/example");
     const firstBoot = servingBoot(home);
@@ -479,17 +479,20 @@ describe("bundled artifact template serving installation", () => {
     const first = await firstBoot.createTemplateArtifact({ template, templateID: "example", channelID, source: "cli", data: { message: "First" } });
     const second = await firstBoot.createTemplateArtifact({ template, templateID: "example", channelID, source: "ui" });
     firstBoot.resources.json.write({ artifactID: second.artifactID }, { kind: "set", path: "", value: { message: "Second" } });
-    expect(first.path).toBe(installed);
-    expect(second.path).toBe(installed);
+    expect(first.path).not.toBe(installed);
+    expect(second.path).not.toBe(installed);
+    expect(first.path).not.toBe(second.path);
+    const pages = snapshotRegularFiles(path.join(home, "artifacts"));
     const records = snapshotRegularFiles(path.join(home, "state/artifacts"));
     const stores = snapshotRegularFiles(path.join(home, "resources"));
     firstBoot.dispose();
     const expectDependents = (store: ServerStore) => {
       expect(snapshotRegularFiles(path.join(home, "state/artifacts"))).toEqual(records);
       expect(snapshotRegularFiles(path.join(home, "resources"))).toEqual(stores);
-      for (const [artifactID, message] of [[first.artifactID, "First"], [second.artifactID, "Second"]]) {
-        expect(store.getArtifact(artifactID!)).toMatchObject({ id: artifactID, kind: "path", path: `${installed}${path.sep}` });
-        expect(store.resources.json.get({ artifactID: artifactID! }, "")).toEqual({ exists: true, value: { message } });
+      expect(snapshotRegularFiles(path.join(home, "artifacts"))).toEqual(pages);
+      for (const [created, message] of [[first, "First"], [second, "Second"]] as const) {
+        expect(store.getArtifact(created.artifactID)).toMatchObject({ id: created.artifactID, kind: "path", path: `${created.path}${path.sep}` });
+        expect(store.resources.json.get({ artifactID: created.artifactID }, "")).toEqual({ exists: true, value: { message } });
       }
     };
 

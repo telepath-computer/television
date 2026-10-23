@@ -2,7 +2,7 @@
 
 Implement the approved linked-template and Toolbox contracts in four sequential red/green TDD slices. This plan groups the work, assigns proof obligations, and records the test failures each slice must resolve. It does not change product or architecture decisions.
 
-The starting tree is `96d85ae`, with specs approved at `bf195c7` against `54cd365` and proofs approved at `96d85ae`. The branch is `feat/linked-templates`; its contribution target is `feat/artifact-templates`. See the [task record](linked-templates-task.md), [planning and slices](../../specs/spec-workflow.md#planning-and-slices), and [testing policy](../../specs/arch/testing-policy.md). This document is an authored plan awaiting independent convergence, not an implementation or verification report.
+The starting tree is `96d85ae`, with specs approved at `bf195c7` against `54cd365` and proofs approved at `96d85ae`. The branch is `feat/toolbox`; its contribution target is `feat/artifact-templates`. See the [task record](linked-templates-task.md), [planning and slices](../../specs/spec-workflow.md#planning-and-slices), and [testing policy](../../specs/arch/testing-policy.md). This document is an authored plan awaiting independent convergence, not an implementation or verification report.
 
 ## Implementation approach and verification
 

@@ -183,18 +183,15 @@ describe("skills build", () => {
     expect(intro).toMatch(/templates show <id>[^.]*dataSchema[^.]*before[^.]*data/);
     for (const document of [intro, capabilities, guide]) {
       expect(document).toMatch(/\]\(\.\/templates\.md\)|^# Artifact templates/);
-      expect(document).toMatch(/link[^.]*data[^.]*chang/i);
-      expect(document).toContain("--copy");
-      expect(document).toMatch(/never edit an installed template[^.]*one artifact/i);
-      expect(document).toMatch(/every artifact linked[^.]*receives the change/i);
+      expect(document).toMatch(/cop(?:y|ies|ied)/i);
+      expect(document).not.toMatch(/--copy|detach|schema compatibility|linked artifact/i);
+      expect(document).toMatch(/edit[^.]*copied page files[^.]*one artifact/i);
+      expect(document).toMatch(/template[^\n]*only artifacts created afterwards/i);
     }
-    expect(intro).toMatch(/link[^.]*folder page files[^.]*separate store/i);
-    expect(intro).toMatch(/detach[^.]*before changing page files/i);
-    expect(capabilities).toContain("tv update-artifact --id <id> --path <copy>");
-    expect(capabilities).toMatch(/link[^.]*by default/i);
-    expect(guide).toMatch(/link[^.]*by default/i);
+    expect(intro).toMatch(/folder template[^.]*cop(?:y|ies)[^.]*page files/i);
+    expect(intro).toMatch(/adding an artifact to the toolbox/i);
     for (const option of ["--width", "--height", "--full-screen", "--no-full-screen", "--transparent", "--no-transparent"]) expect(intro).toContain(option);
-    for (const field of ["--home", "name", "description", "version", "index.html", "README.md", "dataSchema", "icons", "url", "display", "width", "height", "fullScreen", "transparent"]) {
+    for (const field of ["--home", "name", "description", "version", "index.html", "README.md", "data.json", "dataSchema", "icons", "url", "display", "width", "height", "fullScreen", "transparent"]) {
       expect(guide, field).toContain(field);
     }
     expect(guide).toContain("default starting size");
@@ -212,24 +209,24 @@ describe("skills build", () => {
     expect(guide).toMatch(/app[^.]*watched[^.]*Toolbox/i);
     expect(guide).toMatch(/same absolute `--home`/);
     expect(guide).toContain("tv get-artifact --id <id>");
-    expect(guide).toContain("tv update-artifact --id <id> --path <copy>");
-    expect(guide).toMatch(/keeps its ID and store/);
-    expect(guide).toMatch(/templates supply no starting data/i);
+    expect(guide).toMatch(/read[^\n]*data\.json[^\n]*path[^\n]*show/i);
+    expect(guide).toMatch(/including[^\n]*null[^\n]*replaces[^\n]*entirely[^\n]*no merging/i);
+    expect(guide).toMatch(/manifest\.json[^\n]*data\.json[^\n]*stay with[^\n]*template/i);
+    expect(guide).toMatch(/neither[^.]*store starts unwritten/i);
     expect(guide).toMatch(/server checks[^.]*dataSchema[^.]*before creating/i);
     expect(guide).toMatch(/written by the server[^.]*creation request/);
     expect(guide).toMatch(/failed request[^.]*target[^.]*artifact ID[^.]*step/i);
     expect(guide).toMatch(/inspect what remains before retrying/i);
-    expect(guide).toMatch(/URL templates[^.]*data options[^.]*--copy[^.]*dataSchema/);
+    expect(guide).toMatch(/URL templates[^\n]*data options[^\n]*data\.json[^\n]*dataSchema/);
     expect(guide).toMatch(/URL artifact[^.]*without a store/);
-    expect(guide).toMatch(/Toolbox[^.]*no data[^.]*unwritten store/);
-    expect(guide).toMatch(/every folder template[^.]*usable[^.]*unwritten store/i);
+    expect(guide).toMatch(/without[^\n]*data\.json[^\n]*usable[^\n]*unwritten store/i);
     expect(guide).toMatch(/people fill in[^.]*add content from the page/i);
     expect(guide).toMatch(/write[^.]*only when[^.]*act/i);
     expect(guide).toMatch(/content comes from an agent[^.]*nothing[^.]*ask[^.]*agent/i);
     expect(guide).toMatch(/render defaults[^.]*missing fields[^.]*partial data/);
     expect(guide).toMatch(/do not write defaults on load/i);
     expect(guide).toMatch(/without deriving values from `default`/);
-    expect(guide).toMatch(/schema must accept every value[^.]*page must still render/i);
+    expect(guide).toMatch(/data\.json[^\n]*scan[^\n]*schema/i);
     for (const icon of ["image/svg+xml", "image/png", '<link rel="icon">', "apple-touch-icon", "web app manifest", "/favicon.ico"]) expect(guide).toContain(icon);
     expect(guide).toMatch(/fetch[^.]*site icon once/i);
     expect(guide).toMatch(/favicon\.ico[^.]*convert it to PNG/);
@@ -237,7 +234,17 @@ describe("skills build", () => {
     expect(guide).toMatch(/server and app never fetch site favicons/i);
     expect(guide).toMatch(/preserves[^.]*minimum version[^.]*newer version/i);
     expect(guide).toMatch(/invalid or older[^.]*backed up[^.]*replaced at the same path/i);
-    expect(guide).toMatch(/deleting or moving[^.]*breaks[^.]*linked artifacts/i);
+    // proofs/arch/templates/authoring.md#^templates-guide-t-snapshot
+    const snapshot = guide.split("## Add an artifact to the toolbox")[1]?.split("\n## ")[0];
+    expect(snapshot).toBeDefined();
+    expect(snapshot).toMatch(/snapshot/i);
+    expect(snapshot).toMatch(/new folder[^\n]*templates/i);
+    expect(snapshot).toContain("manifest.json");
+    expect(snapshot).toMatch(/current[^\n]*store[^\n]*data\.json[^\n]*null/i);
+    expect(snapshot).toMatch(/omit[^\n]*no value/i);
+    expect(snapshot).toMatch(/single[^\n]*HTML[^\n]*index\.html/i);
+    expect(snapshot).toMatch(/URL artifact[^\n]*URL template[^\n]*no[^\n]*data\.json[^\n]*dataSchema/i);
+    expect(snapshot).toMatch(/original artifact[^.]*as it is/i);
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle

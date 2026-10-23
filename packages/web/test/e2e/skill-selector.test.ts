@@ -99,10 +99,15 @@ test("authenticated fresh directory failure replaces cached Toolbox rows", async
   } finally { await product.dispose(); }
 });
 
-test("click and Return create linked artifacts after selected tab or in empty channel (^toolbox-ac-activation, ^templates-ac-ui-create)", async ({ page, baseURL }) => {
+test("click and Return create copied artifacts with starting data after selected tab or in empty channel (^toolbox-ac-activation, ^templates-ac-ui-create)", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {
     const folder = template(product.home, "example", "Example");
+    writeFileSync(path.join(folder, "data.json"), '{"message":"Toolbox starting value"}');
+    writeFileSync(path.join(folder, "index.html"), `<!doctype html><h1>Example</h1><p id="message"></p><script type="module">
+      import { getStore, onValue, ref } from "/sdk/v1/resources.js";
+      onValue(ref(getStore()), snapshot => document.querySelector("#message").textContent = snapshot.val()?.message ?? "Unwritten");
+    </script>`);
     const client = new TelevisionClient(product.serverURL, { token: product.token });
     const channelID = (await client.channels.list()).channels[0]!.id;
     const first = (await client.artifacts.create({ channelID, kind: "path", title: "First", path: createArtifactFile(product.home, "first", "<title>First</title>", "html") })).artifact;
@@ -123,8 +128,13 @@ test("click and Return create linked artifacts after selected tab or in empty ch
     expect((await client.channels.get({ channelID })).channel.layout.map((entry) => entry.artifactIds[0])).toEqual([first.id, created, second.id]);
     await expect(page.locator(`.stage .page[data-page-key="${created}"]`)).toHaveAttribute("selected", "");
     expect(requests[0]).toEqual({ templateID: "example", channelID, after: first.id, source: "ui" });
-    expect((await client.artifacts.get({ artifactID: created })).artifact).toMatchObject({ kind: "path", path: `${folder}/` });
-    expect(await client.resources.json.get({ store: { artifactID: created }, path: "" })).toEqual({ exists: false });
+    const artifact = (await client.artifacts.get({ artifactID: created })).artifact;
+    expect(artifact.kind).toBe("path");
+    if (artifact.kind !== "path") throw new Error("Expected a copied folder artifact");
+    expect(path.dirname(path.resolve(artifact.path))).toBe(path.join(product.home, "artifacts"));
+    expect(await client.resources.json.get({ store: { artifactID: created }, path: "" })).toEqual({ exists: true, value: { message: "Toolbox starting value" } });
+    await expect(page.locator(`.stage .page[data-page-key="${created}"] iframe`).contentFrame().locator("#message")).toHaveText("Toolbox starting value");
+    rmSync(path.join(folder, "data.json"));
     await expect(page.locator(`.stage .page[data-page-key="${created}"] iframe`).contentFrame().locator("h1")).toHaveText("Example");
     const empty = (await client.channels.create({ name: "Empty template channel" })).channel;
     await client.display.patch({ focusedChannelId: empty.id });
@@ -137,6 +147,9 @@ test("click and Return create linked artifacts after selected tab or in empty ch
     expect(requests[1]).toEqual({ templateID: "example", channelID: empty.id, source: "ui" });
     expect(requests[1]).not.toHaveProperty("after");
     await expect(page.locator(".stage .page[selected]")).toHaveCount(1);
+    const unseeded = (await client.channels.get({ channelID: empty.id })).channel.layout[0]!.artifactIds[0]!;
+    expect(await client.resources.json.get({ store: { artifactID: unseeded }, path: "" })).toEqual({ exists: false });
+    await expect(page.locator(`.stage .page[data-page-key="${unseeded}"] iframe`).contentFrame().locator("#message")).toHaveText("Unwritten");
   } finally {
     await product.dispose();
   }
@@ -247,7 +260,7 @@ test("failed focus request leaves the prior page selected (^toolbox-ac-activatio
 test("partial creation after channel layout obstruction never takes focus (^toolbox-ac-activation)", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {
-    template(product.home, "linked", "Linked");
+    template(product.home, "copied", "Copied");
     const client = new TelevisionClient(product.serverURL, { token: product.token });
     const channelID = (await client.channels.list()).channels[0]!.id;
     const existing = (await client.artifacts.create({ channelID, kind: "path", title: "Existing", path: createArtifactFile(product.home, "existing", "<title>Existing</title>", "html") })).artifact;

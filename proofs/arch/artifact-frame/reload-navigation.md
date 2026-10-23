@@ -6,7 +6,7 @@ Proves [specs/arch/artifact-frame/reload-navigation.md](../../../specs/arch/arti
 
 ## Coverage model
 
-The template cache is a third consumer of the shared watcher. [Template cache events](../templates/index.md#^templates-t-cache-events) prove its recursive filesystem-to-WebSocket crossing and that an edit to a linked folder also sends the separate artifact-content event. [Template fallback contracts](../templates/index.md#^templates-t-cache-order) carry its error policy. The shared mechanics here are reused, not replicated per consumer.
+The template cache is a third consumer of the shared watcher. [Template cache events](../templates/index.md#^templates-t-cache-events) prove its recursive filesystem-to-WebSocket crossing. [Template fallback contracts](../templates/index.md#^templates-t-cache-order) carry its error policy. The shared mechanics here are reused, not replicated per consumer.
 
 Coverage declarations are carried inside the migrated assertion blocks below.
 

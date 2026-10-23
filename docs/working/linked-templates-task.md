@@ -1,6 +1,6 @@
 # Linked templates and Toolbox: task record
 
-Working record for `feat/linked-templates`, branched from `feat/artifact-templates` at `54cd365`. The pull request targets `feat/artifact-templates`. The intent is in the updated [templates proposal](templates-proposal.md); the authority is the specs it was drafted into, with the Toolbox specified as `specs/ui/app/toolbox.mdx` and its stories in `storybook/spec/toolbox/`.
+Working record for `feat/toolbox`, branched from `feat/artifact-templates` at `54cd365`. The pull request targets `feat/artifact-templates`. The intent is in the updated [templates proposal](templates-proposal.md); the authority is the specs it was drafted into, with the Toolbox specified as `specs/ui/app/toolbox.mdx` and its stories in `storybook/spec/toolbox/`.
 
 ## Settled
 
@@ -50,7 +50,7 @@ Proof derivation only, against approved spec commit `bf195c7d135a45b396465ac9657
 
 This checkpoint records the original implementation and validation. The Ajv-only rework below supersedes its validator, schema-test inventory, dependency inventory and review result.
 
-Work is based on `fd654fd5743cdd60895b4292364ab387931881db` on `feat/linked-templates`. Every command below ran in this worktree against its uncommitted tree at the stated stage. The canonical runner records dirty HEAD tree `7b4381aefa4afb5dc4d0efa3a4db072ac5d285ec`; that is not a snapshot of the edits. The final changed source/test/proof/config file set, excluding this record, is SHA-256 `e0a730561894bc7c35dfa4ecd39a7073e04c95a89a1bf7e49ca86865f7c39746` (per-file manifest in ignored `scratch/linked-templates-slice1-tree.json`). Intermediate dirty snapshots were not retained; the timestamped reports identify their selections and results.
+Work is based on `fd654fd5743cdd60895b4292364ab387931881db` on `feat/toolbox`. Every command below ran in this worktree against its uncommitted tree at the stated stage. The canonical runner records dirty HEAD tree `7b4381aefa4afb5dc4d0efa3a4db072ac5d285ec`; that is not a snapshot of the edits. The final changed source/test/proof/config file set, excluding this record, is SHA-256 `e0a730561894bc7c35dfa4ecd39a7073e04c95a89a1bf7e49ca86865f7c39746` (per-file manifest in ignored `scratch/linked-templates-slice1-tree.json`). Intermediate dirty snapshots were not retained; the timestamped reports identify their selections and results.
 
 Implemented flat records, fresh CLI list/show projections, default linked and explicit copied folder creation, URL creation, caller-only data with local Draft 2020-12 schema validation, and the schema-driven Example with no starting-data file. Display, placement, durable writes, failure retention, exact IDs and paths, and telemetry privacy remain covered. Ajv checks the official metaschema synchronously during package discovery; Hyperjump evaluates caller data without external resource retrieval or data mutation. The reference/projection adapter preserves annotation and literal values and resolves schema-local resources, pointers and dynamic anchors.
 
@@ -229,7 +229,7 @@ The supervisor's independent review superseded the preceding PASS with one block
 
 Applied Rupert's specified fix: a module-level `Ajv2020` only checks `validateSchema(schema)` and supplies `errorsText()` on failure; each caller schema compiles in a fresh instance with `meta: false`, `validateSchema: false`, `strict: false`, `validateFormats: false`, `allErrors: true`, and no external loader. The module is 35 lines. No custom reference checks, dependencies or spec changes were added.
 
-All commands below ran in `/root/workspace/dev/television/feat/linked-templates` on branch `feat/linked-templates`, dirty HEAD `fd654fd5743cdd60895b4292364ab387931881db` (HEAD tree `7b4381aefa4afb5dc4d0efa3a4db072ac5d285ec`). The red run used the preceding implementation plus the new test row. All subsequent checks used the final source/test tree, unchanged afterward. Its changed source/test/proof/config snapshot, excluding this task record, is SHA-256 `53aa1044728723cf661f91e92cee00f193ad3225426a659b9f6aa82954f11a5f`; the per-file manifest is `scratch/linked-templates-metaschema-isolation-tree.json`.
+All commands below ran in `/root/workspace/dev/television/feat/toolbox` on branch `feat/toolbox`, dirty HEAD `fd654fd5743cdd60895b4292364ab387931881db` (HEAD tree `7b4381aefa4afb5dc4d0efa3a4db072ac5d285ec`). The red run used the preceding implementation plus the new test row. All subsequent checks used the final source/test tree, unchanged afterward. Its changed source/test/proof/config snapshot, excluding this task record, is SHA-256 `53aa1044728723cf661f91e92cee00f193ad3225426a659b9f6aa82954f11a5f`; the per-file manifest is `scratch/linked-templates-metaschema-isolation-tree.json`.
 
 | UTC start | Exact command | Result |
 |---|---|---|
@@ -250,7 +250,7 @@ Slice 1 remains complete. The later-slice baseline and two MDX mirror failures a
 
 ### Slice 2 implementation — October 23, 2026
 
-**Implementation and slice validation complete; supervisor review pending.** Work stayed on `feat/linked-templates`, based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. No commit or push was made.
+**Implementation and slice validation complete; supervisor review pending.** Work stayed on `feat/toolbox`, based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. No commit or push was made.
 
 Implemented local SVG/PNG icon validation and deterministic selection, authenticated exact-ID icon bytes with content type and `no-store`, and delivery-time containment checks. Retired the thumbnail route/client and replaced its route test. When observation is unavailable, icon requests validate directly without changing the scan cache or publishing events.
 
@@ -264,7 +264,7 @@ All **12 slice 2 proof placeholders** now cite real tests: eight in template arc
 
 #### Validation tree and results
 
-Every command below ran in `/root/workspace/dev/television/feat/linked-templates` on the evolving **uncommitted** tree based on `4ede94e`. The runner reports HEAD tree `b6494070c7dac1332ec526887b45ef534d9aee3e` with `dirty: true`; that is not a snapshot of the edits. Intermediate dirty trees were not retained. The final source/test/proof snapshot, excluding this task record, is SHA-256 `dd6019148f03f2b1c7dfa642cd2b9335069be97306096f9be76d59a534bfb42f`; its per-file manifest is in ignored `scratch/linked-templates-slice2-tree.json`.
+Every command below ran in `/root/workspace/dev/television/feat/toolbox` on the evolving **uncommitted** tree based on `4ede94e`. The runner reports HEAD tree `b6494070c7dac1332ec526887b45ef534d9aee3e` with `dirty: true`; that is not a snapshot of the edits. Intermediate dirty trees were not retained. The final source/test/proof snapshot, excluding this task record, is SHA-256 `dd6019148f03f2b1c7dfa642cd2b9335069be97306096f9be76d59a534bfb42f`; its per-file manifest is in ignored `scratch/linked-templates-slice2-tree.json`.
 
 The final owning run at 04:57:36 passed **1,148 server tests, 67 shared tests and 579 browser-app tests** (1,794 total). It has two retained skips: the server privileged-port permission case unavailable on this host, and the pre-existing ACP fake-server disconnect case. After that run, production changes only named the icon/debounce constants and replaced the popover's copied scan field with a getter; test changes strengthened bootstrap scan observation and awaited both delayed browser responses through completion. The final 77-case server selection, three browser journeys, eight freshly packaged CLI template cases, type-check and lint cover those closing changes. The source/test/proof tree was unchanged after the final checks.
 
@@ -328,7 +328,7 @@ Added the combined regression before changing production code: preload `one` and
 
 #### Validation
 
-All commands ran in `/root/workspace/dev/television/feat/linked-templates`, on the uncommitted `feat/linked-templates` tree based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. The red tree contains only the added regression beyond the previous handoff; its snapshot is SHA-256 `8b0a8ea97d24e6ac971215e40dcb56acdb298f21c6011b22efe057677af2107a` in `scratch/linked-templates-reconnect-red-tree.json`. The final source/test/proof snapshot is SHA-256 `2b6e0cd9de42bea5cb90d8e501b97a801d68590fa9bafe09de1945f10765886f` in `scratch/linked-templates-reconnect-final-tree.json`. Both exclude this task record. The green cache-file run used the final source/test tree before adding the proof citation; the owning suite and static checks used the final snapshot. No source, test or proof changed afterward.
+All commands ran in `/root/workspace/dev/television/feat/toolbox`, on the uncommitted `feat/toolbox` tree based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. The red tree contains only the added regression beyond the previous handoff; its snapshot is SHA-256 `8b0a8ea97d24e6ac971215e40dcb56acdb298f21c6011b22efe057677af2107a` in `scratch/linked-templates-reconnect-red-tree.json`. The final source/test/proof snapshot is SHA-256 `2b6e0cd9de42bea5cb90d8e501b97a801d68590fa9bafe09de1945f10765886f` in `scratch/linked-templates-reconnect-final-tree.json`. Both exclude this task record. The green cache-file run used the final source/test tree before adding the proof citation; the owning suite and static checks used the final snapshot. No source, test or proof changed afterward.
 
 | UTC start | Exact command | Result |
 |---|---|---|
@@ -357,7 +357,7 @@ Thirteen proof placeholders now cite actual tests: ten in `proofs/ui/app/toolbox
 
 #### Validation
 
-All commands below ran in this worktree on uncommitted changes based on `d17b04161cb1a438cd37d8372b90bff664f32370` (`feat/linked-templates`). Canonical reports record dirty HEAD tree `fc915594e64399a708723ee8dd35c955695a7f73`; that is not a snapshot of the edits. The final changed source/test/proof/config file manifest, excluding this task record, is SHA-256 `d8b5a0a8f34ad8950aeb02bee9c1fc2c13d0a37eeda913f20510748fb575f362`, in ignored `scratch/linked-templates-slice3-tree.json`. Intermediate dirty snapshots were not retained. The stages below identify which implementation each run exercised; final file/suite runs used the final relevant source/tests, with proof citations completed before the last repository checks. No source or test changed after the final runs.
+All commands below ran in this worktree on uncommitted changes based on `d17b04161cb1a438cd37d8372b90bff664f32370` (`feat/toolbox`). Canonical reports record dirty HEAD tree `fc915594e64399a708723ee8dd35c955695a7f73`; that is not a snapshot of the edits. The final changed source/test/proof/config file manifest, excluding this task record, is SHA-256 `d8b5a0a8f34ad8950aeb02bee9c1fc2c13d0a37eeda913f20510748fb575f362`, in ignored `scratch/linked-templates-slice3-tree.json`. Intermediate dirty snapshots were not retained. The stages below identify which implementation each run exercised; final file/suite runs used the final relevant source/tests, with proof citations completed before the last repository checks. No source or test changed after the final runs.
 
 Each UTC timestamp identifies `.test-runs/2026-10-23T<timestamp>-*/summary.json`, with case-level evidence in its native report. All 32 canonical runs recorded zero recovered flakes, process leaks and infrastructure failures. The unchanged-tree theme rerun below recovered an intermittent failure across separate invocations; the runner does not count that as a recovered flake.
 
@@ -445,7 +445,7 @@ The final `^toolbox-t-conformance` placeholder now cites `toolbox-conformance.te
 
 #### Validation
 
-The 23 main-worktree commands below ran on `/root/workspace/dev/television/feat/linked-templates`, branch `feat/linked-templates`, based on `d17b04161cb1a438cd37d8372b90bff664f32370`. The additional 13:46:25 command ran from an isolated `git archive d17b041` snapshot at `scratch/theme-baseline-d17b041`, with existing external dependencies symlinked in; its build failed before testing. That directory was removed. Its report is retained at `scratch/baseline-report-2026-10-23T13-46-25-528Z-p3960777-ra90ed36a423b15b3/`.
+The 23 main-worktree commands below ran on `/root/workspace/dev/television/feat/toolbox`, branch `feat/toolbox`, based on `d17b04161cb1a438cd37d8372b90bff664f32370`. The additional 13:46:25 command ran from an isolated `git archive d17b041` snapshot at `scratch/theme-baseline-d17b041`, with existing external dependencies symlinked in; its build failed before testing. That directory was removed. Its report is retained at `scratch/baseline-report-2026-10-23T13-46-25-528Z-p3960777-ra90ed36a423b15b3/`.
 
 The 13:49:45, 13:57:32 and 14:00:13 commands used the normal worktree path temporarily restored to `d17b041`. The diagnostic script checked `git diff --exit-code` before adding test-only observations, temporarily removed the newly installed web peer directory, and restored every saved file byte-for-byte and the peer directory in `finally`. New untracked Toolbox files were unreferenced by the baseline. The first two runs added only request/event/response/execution logging. The third also delayed the two folder-loss requests until restoration executed, then released them and waited for that execution before restarting; it retained the original post-restart assertion. These diagnostic runs are evidence about the existing race, not replacement acceptance tests or full baseline verification.
 
@@ -514,7 +514,7 @@ The watcher-failure assertion now selects `.toolbox-invalid, .toolbox-folder-err
 
 #### Validation
 
-Both review findings are fixed; independent re-review remains pending. All runs use `/root/workspace/dev/television/feat/linked-templates`, branch `feat/linked-templates`, uncommitted on `d17b04161cb1a438cd37d8372b90bff664f32370`. The final source/test/config/proof manifest, excluding this task record, is `scratch/linked-templates-slice3-review-final-tree.json`, SHA-256 `c3eb8d28c25bb1dc3855bdeb90ad5af72c52a2172ea7d30035060fdc0b69a5c3`. It differs from the preceding handoff in exactly those three test files.
+Both review findings are fixed; independent re-review remains pending. All runs use `/root/workspace/dev/television/feat/toolbox`, branch `feat/toolbox`, uncommitted on `d17b04161cb1a438cd37d8372b90bff664f32370`. The final source/test/config/proof manifest, excluding this task record, is `scratch/linked-templates-slice3-review-final-tree.json`, SHA-256 `c3eb8d28c25bb1dc3855bdeb90ad5af72c52a2172ea7d30035060fdc0b69a5c3`. It differs from the preceding handoff in exactly those three test files.
 
 
 The two ENOENT runs exercised the incoming review tree before these fixes. The warning negative control used the corrected selectors and two module-relative reads plus the temporary invalid-directory setup described above. The targeted green and all three complete surfaces used the final implementation/test bytes identified by the manifest. No source or test changed afterward. Each timestamp identifies `.test-runs/2026-10-23T<timestamp>-*/summary.json` and its native report. All eight runs recorded zero recovered flakes, process leaks and infrastructure failures. The separate tab-drag rerun passed after a failure in the full invocation; that is an intermittent failure across invocations, not a runner-counted recovered flake.
@@ -546,7 +546,7 @@ No additional dependency, permanent test, proof/spec change or story/style chang
 
 ### Slice 4 implementation — October 23, 2026
 
-**Initial implementation and slice validation completed; independent review subsequently returned FAIL. The correction and its validation are recorded below.** All work is uncommitted on `feat/linked-templates` at `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`, in `/root/workspace/dev/television/feat/linked-templates`.
+**Initial implementation and slice validation completed; independent review subsequently returned FAIL. The correction and its validation are recorded below.** All work is uncommitted on `feat/toolbox` at `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`, in `/root/workspace/dev/television/feat/toolbox`.
 
 The bundled installer now completes a hidden backup, writes state without the handled ID, removes the destination, copies the complete bundled folder to that path, and records the ID after success. A failed backup or state removal leaves the destination intact. The ordinary unhandled-ID rule restores an absent folder on the next serving boot. Removed the staged-copy/prior-folder rollback code. The existing filesystem adapter now also observes copy/removal operations; the installation-loop hook accepts the proof-declared two-ID inventory. Production uses the real filesystem and shipped inventory. No dependency was added.
 
@@ -611,7 +611,7 @@ The approved `^bundled-artifact-template-backup` rule requires a complete replac
 
 #### Validation
 
-All commands ran in `/root/workspace/dev/television/feat/linked-templates` on the uncommitted tree atop `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`. Only the installer and its test file changed since the preceding slice 4 handoff, apart from this record. The updated source/test/proof manifest is `scratch/linked-templates-slice4-review-tree.json`, SHA-256 `945af03f2639ad8ee5136816b27149964a4e5f1b7d882d5cafdd8d1c9ade5949`. It excludes this record. The original manifest remains as historical evidence.
+All commands ran in `/root/workspace/dev/television/feat/toolbox` on the uncommitted tree atop `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`. Only the installer and its test file changed since the preceding slice 4 handoff, apart from this record. The updated source/test/proof manifest is `scratch/linked-templates-slice4-review-tree.json`, SHA-256 `945af03f2639ad8ee5136816b27149964a4e5f1b7d882d5cafdd8d1c9ade5949`. It excludes this record. The original manifest remains as historical evidence.
 
 Times below are UTC and identify `.test-runs/2026-10-23T<timestamp>-*/summary.json` and native reports. Filtered cases are not skips.
 
@@ -637,7 +637,7 @@ All six canonical runs above recorded zero recovered flakes, process leaks and i
 
 ### Toolbox layout and blank-store guidance follow-up — October 23, 2026
 
-**Complete within the requested scope; uncommitted and unpushed.** Work stayed in `/root/workspace/dev/television/feat/linked-templates` on `feat/linked-templates`, HEAD `10a8f3afe6d56ababcdd034bce5c809b125343a4`. The final approved design has a fixed footer in every state: “Ask your agent to add artifacts to your toolbox, then reuse them anywhere.” The empty-directory message is “Nothing here yet.” The search gap belongs to the scrolling body. Production renders that design, and `toolbox.css` is byte-identical to the approved story stylesheet. The four approved spec/story files were not changed by the implementer; their final-design hashes are preserved in `scratch/linked-templates-followup-approved.json`.
+**Complete within the requested scope; uncommitted and unpushed.** Work stayed in `/root/workspace/dev/television/feat/toolbox` on `feat/toolbox`, HEAD `10a8f3afe6d56ababcdd034bce5c809b125343a4`. The final approved design has a fixed footer in every state: “Ask your agent to add artifacts to your toolbox, then reuse them anywhere.” The empty-directory message is “Nothing here yet.” The search gap belongs to the scrolling body. Production renders that design, and `toolbox.css` is byte-identical to the approved story stylesheet. The four approved spec/story files were not changed by the implementer; their final-design hashes are preserved in `scratch/linked-templates-followup-approved.json`.
 
 Extended the existing [conformance assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-conformance), [browser-input assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-browser-input), and [message assertion](../../proofs/ui/app/toolbox.md#^toolbox-t-messages). Conformance covers the rendered states. The two existing browser tests additionally prove that the initial gap scrolls away, search and footer stay fixed, and the footer survives pending, empty, unmatched and error states. Footer promises cite `toolbox-layout`; no `toolbox-footer` anchor remains. No test file, fixture, hook or test case was added.
 
@@ -675,3 +675,91 @@ Additional checks passed:
 All 11 canonical runs recorded zero recovered flakes, process leaks and infrastructure failures. The only failures were the three intentional red runs. Browser checks used Chromium with retries disabled; Firefox is unavailable on this host. Build warnings about bundle size, canonical CSS resolved at runtime and Storybook/Vite imports did not fail validation. The existing Storybook dev server on port 6106 was left running; conformance used its registered build and temporary test services. No second Storybook dev server was started.
 
 Removed the task-owned temporary directory after confirming no process retained its `TMPDIR`. Canonical reports, small logs and validation manifests remain. No full `npm run verify`, commit, push, package installation or host CLI installation occurred. All selected follow-up checks pass; integrated branch review, full verification and pre-merge docs prep remain with the supervisor.
+
+### Slice 5 — copy-only templates with starting data — October 23, 2026
+
+**Complete within the requested scope.** The approved root `$async` rejection clears the blocker, all requested checks pass, and independent review has no findings. The earlier blocked handoff is retained below; the correction and final results are at the end of this section. Nothing is committed or pushed.
+
+Implementing the approved spec delta `2463776..f6c0a63`. Proofs are updated before tests and code. Folder templates produce independent copies using filesystem cloning when available; root manifest/data stay with the template. Optional starting data is scan-validated and caller data replaces it, including null. CLI copy controls, linked-template paths and detach/compatibility guidance are retired. Existing scan cache, icons, display precedence and installer recovery remain. Guidance includes saving an artifact to the toolbox as a snapshot.
+
+Validation uses canonical targeted checks followed by the requested owning suites, with fresh temporary homes. No full verify, host CLI install/link, commit or push is authorized. Results and proof review will be recorded below.
+
+Independent proof review by a separate GPT-6 Astra agent at `xhigh` passed all changed proofs with no blockers. The root browser red run failed because two template creations returned the same installed folder. CLI red rejected neither the obsolete flag nor its help entry; scanner red exposed missing validation of starting data. Guidance red exposed the obsolete instructions; the focused and complete skills-build tests subsequently passed.
+
+A schema issue remains pending a maintainer decision. The synchronous scan must validate starting data, while Ajv treats its nonstandard `$async` flag as asynchronous validation. Rewriting that flag changes schema-local references. The governing sentences are “Optional manifest `dataSchema` must be a valid JSON Schema Draft 2020-12 schema” and “References resolve only within `dataSchema` itself.” The maintainer was asked whether to explicitly reject the Ajv extension or retain it and convert scanning and its callers to async. No spec decision has been inferred; independent work continues.
+
+The owning CLI/shared/browser-app run passed 964 tests with one existing ACP fake-server disconnect skip. The owning server run passed 1,154 tests with one existing privileged-port permission skip. Both recorded zero recovered flakes, process leaks and infrastructure failures. Exact per-run records are in `scratch/slice5-clients-validation.json` and `scratch/slice5-server-validation.json`.
+
+Two test-environment issues were kept separate from product failures. Starting spec-links while a server test removed a fixture caused the canonical runner’s package discovery to fail with `ENOENT` inside the checkout-local temporary directory, before tests started; subsequent canonical invocations are serialized. A Unix-socket obstruction fixture used a 123-byte path exceeding Linux’s socket-address limit and timed out. A short-path isolated rerun passed, then the full server suite passed using `TMPDIR=/tmp/tv-s5-server`; that task-owned directory and the intermediate `.t5` directory were removed. No product or test code was changed for either environment issue.
+
+Implementation review used the same independent GPT-6 Astra context at `xhigh`. It found one blocker in the tentative synchronous schema compiler: `{ $async: true, $ref: "#/$async" }` references boolean `true`, but suppressing `$async` by rewriting it to `false` changes that reference. Nested async schemas also remain unresolved. The reviewer found no additional implementation, test, guidance, architecture or simplification issue in the inspected scope. Overall implementation review is FAIL until the schema decision is resolved; passing existing suites does not clear this finding.
+
+#### Changes and proof disposition
+
+- Server creation always copies folder contents with Node's `COPYFILE_FICLONE` option, which permits an ordinary-copy fallback. Root `manifest.json` and `data.json` are excluded; supporting files and the existing symlink handling remain. Template data seeds the store unless caller data is present, including null. Ordinary artifact registration replaces the linked-folder shortcut. Scanner validation reads starting data, checks store limits and the declared schema, and rejects data files on URL templates. The synchronous schema compiler is tentative because of the blocker above.
+- CLI and shared request types no longer accept or advertise `--copy`/`copy`. Flat list/show records retain their shape. Toolbox already omits copy, data and display in its request; the changed real-browser test proves it receives template starting data and still handles an unwritten store. Example already had no `data.json`; its README now teaches editing the copied page.
+- The delivered skill teaches independent copies, data precedence and saving an artifact to the toolbox as a snapshot. Snapshot guidance includes current store values, null versus unwritten stores, single HTML files, supporting files and URL artifacts. Linked-template, detach and schema-compatibility instructions are removed.
+- Retired linking, explicit-copy, detach and compatibility obligations within the affected proofs. Replaced `^templates-ac-copy-detach` with `^templates-ac-copy-lifecycle`, and `^templates-install-t-linked-records` with `^templates-install-t-copied-artifacts`. Added and discharged `^templates-t-clone` and `^templates-guide-t-snapshot`. Updated copied-folder, starting-data, URL rejection, Toolbox, bundled Example and guidance assertions with real test citations. The ordinary shared-folder resource promise is preserved in a separate path-artifact journey. `^templates-t-package` remains `(test to be written)` pending the schema decision; the standing `^templates-t-schema` citation does not resolve that finding.
+- Replaced `linked-templates-real-stack.test.ts` with `templates-real-stack.test.ts`: one copied-template journey and one ordinary shared-folder resource journey. Added a real-filesystem clone-option observer and expanded scanner, creation, CLI acceptance, Toolbox and built-guidance coverage. Removed redundant linked/copy permutations, linked-target failure coverage and linked-template content-watcher expectations. Existing cache, icon, display and failure handling tests remain.
+
+The initial Toolbox starting-data run failed during an unexpected app reload with its temporary home inside the Vite-watched checkout. The unchanged test passed with `TMPDIR=/tmp/tv-s5-root`, outside that watched tree. Subsequent Toolbox checks use that short external temporary root. This is recorded separately from product changes; no assertion was weakened.
+
+#### Validation and remaining work
+
+The following final requested selections all passed on the uncommitted tree above `f6c0a6352234d846cb99a07ad884c98f336c9d28`. Together they contain 2,244 passed tests and two existing skips. The recorded Git tree is the committed HEAD tree, not a snapshot of the edits. Times are UTC on October 23 and locate `.test-runs/2026-10-23T<timestamp>-*/summary.json` and native reports.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 18:27:05 | `TMPDIR="$PWD/scratch/slice5-tmp" npm test -- local --file test/repo/skills-build.test.ts` | 12 passed |
+| 18:26:53 | `TMPDIR="$PWD/scratch/slice5-tmp" npm test -- local --surface unit:cli,unit:shared,unit:browser-app --run-dir-output scratch/slice5-client-units-run.txt` | CLI 311, shared 67, browser-app 586 passed; 1 existing ACP fake-server disconnect skip |
+| 18:35:36 | `TMPDIR=/tmp/tv-s5-server npm test -- local --surface unit:server` | 1,154 passed; 1 existing privileged-port permission skip |
+| 18:40:25 | `TMPDIR="$PWD/scratch/slice5-tmp" npm test -- local --file test/node/cli-acceptance.test.ts --run-dir-output scratch/slice5-cli-acceptance-run.txt` | 45 passed |
+| 18:44:31 | `TMPDIR="$PWD/scratch/slice5-tmp" npm test -- local --file test/node/cli-assets.test.ts --run-dir-output scratch/slice5-cli-assets-run.txt` | 24 passed |
+| 18:45:43 | `TMPDIR="$PWD/scratch/slice5-tmp" npm test -- local --surface e2e:browser-app-real-stack --grep '(templates-real-stack\|template-example-real-stack)\.test\.ts' --retries 0` | 3 passed |
+| 18:53:40 | `TMPDIR=/tmp/tv-s5-root npm test -- local --surface e2e:browser-app --grep '(skill-selector\|toolbox\|template-cache)\.test\.ts' --retries 0` | 15 passed |
+| 18:58:44 | `TMPDIR=/tmp/tv-s5-root npm test -- local --surface e2e:toolbox-conformance --retries 0` | 19 passed: all 18 stories and the MDX check |
+| 19:00:31 | `TMPDIR=/tmp/tv-s5-root npm test -- local --file test/repo/spec-links.test.ts` | 8 passed |
+
+Targeted green runs preceded the owning checks: scanner 41, schema 24, creation 13, changed bundled cases 3, routes 6, CLI contracts/help 71, CLI copy/stdin acceptance 2, guidance 1 and Toolbox starting-data activation 1. The short-path socket case also passed before the full server suite. All 32 completed canonical runs, including expected reds and intermediate failures, are recorded in `scratch/slice5-all-validation.json`; client exact commands and server selections/counts are retained in their respective manifests. The earlier schema-file green preceded the conditional `$async` correction; the owning server run includes it but does not clear the review finding. The clone observer initially missed Node's named export until `syncBuiltinESMExports` was used; the guidance check initially expected the concepts in the wrong order. Those test corrections are distinct from production fixes.
+
+Additional checks passed: `npm run type-check`; the local `node_modules/.bin/eslint` executable over the 20 changed/new TypeScript files listed in `scratch/slice5-eslint-files.json`, with `--max-warnings=0`; `cmp storybook/spec/toolbox/styles.css packages/web/src/views/toolbox.css`; and `git diff --check`. Approved specs, story specifications and dependency manifests are unchanged. The proof index was regenerated without writing the spec index.
+
+All completed canonical reports recorded zero recovered flakes, process leaks and infrastructure failures. The startup package-discovery exception described above occurred before a canonical report was created. Browser runs used Chromium with retries disabled; Firefox is unavailable on this host. Existing build warnings about bundle size, runtime canonical CSS and Storybook/Vite imports did not fail validation.
+
+Removed the task-owned `scratch/slice5-tmp` and `/tmp/tv-s5-root` trees after checking that no process retained them. The server worker had already removed `.t5` and `/tmp/tv-s5-server`. Small logs, validation manifests and canonical reports remain. No full `npm run verify`, dependency installation, host CLI installation/link, commit or push occurred. The existing developer telemetry marker was verified before running Television.
+
+Remaining work is the maintainer's schema choice, its implementation and regression coverage, discharge of `^templates-t-package`, and independent re-review. The pending choice is to explicitly reject Ajv's `$async` extension in the contract or retain acceptance and make scanning and its callers asynchronous. The current tentative compiler must not be treated as conforming or ready to merge.
+
+The final source/test/proof manifest, excluding this record, is `scratch/slice5-final-tree.json`, SHA-256 `2c2857135f95ec197b208035ef2a20a3ccfbe099e3b5b1810575d0a497f54f67`. It records all 37 changed/new/deleted paths outside this record, including the known incomplete compiler. Closing whitespace, approved-spec/dependency and stylesheet checks passed.
+
+
+#### Approved synchronous schema correction — October 23, 2026
+
+The maintainer resolved the blocker: reject any root `$async` declaration with `$async is not supported in dataSchema`, keep scanning synchronous, and rely on Ajv's existing compile error for a synchronous schema referencing an async subschema. No schema rewriting or async-validator handling is permitted. The owning architecture sentence now records that explicit rejection; no other template contract changes. Regression tests precede the implementation, followed by the schema/scanner files, owning server suite, type-check and independent review. This supersedes the pending decision above.
+
+
+The correction adds one `Object.hasOwn(schema, "$async")` guard before other schema checks and passes the original schema to Ajv. Validation is a plain synchronous call; no `$async` rewrite, async-validator branch, awaited validator or `ValidationError` handling remains. Three compiler cases cover true, false and the reported `#/$async` reference, and assert the input is unchanged. One case confirms Ajv rejects a synchronous root referencing an async subschema. The scanner's existing invalid-schema table gains true/false cases requiring the exact rejection and the inspection hint. The two tests accepting the extension were removed. Schema and scanner files are green with 26 and 43 cases; both `^templates-t-schema` and `^templates-t-package` now cite passing tests.
+
+A fresh independent GPT-6 Astra context at exact `xhigh` reviewed the spec clarification, then the proof before tests/code, and finally the correction with its scanner/creation callers. All three reviews passed with zero findings. Its simplicity/architecture assessment found the shared compiler guard sufficient, with no traversal or new abstraction. Owning-suite and type-check results follow below.
+
+The first red compiler report renders `$async` as “undefined” in the parameterized test title because Vitest treated it as a placeholder. The title was changed to “root async declaration” without changing the assertions. The red failures still demonstrate the three missing rejections; the nested-async case passed before the correction because Ajv already rejected it.
+
+
+Final correction validation used fresh temporary homes under `/tmp/tv-s5-async` and the canonical local runner. Exact commands and report paths are also in `scratch/slice5-async-validation.json`. Times below are UTC on October 23. Filtered tests are not skips.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 19:06:50 | `TMPDIR=/tmp/tv-s5-async npm test -- local --file packages/server/test/templates-schema.test.ts --grep 'root.*declaration\|async subschema' --run-dir-output scratch/slice5-async-schema-red-run.txt` | 1 passed, 3 expected failures, 22 filtered |
+| 19:07:14 | `TMPDIR=/tmp/tv-s5-async npm test -- local --file packages/server/test/templates-scanner.test.ts --grep '\$async' --run-dir-output scratch/slice5-async-scanner-red-run.txt` | 0 passed, 2 expected failures, 41 filtered |
+| 19:07:36 | `TMPDIR=/tmp/tv-s5-async npm test -- local --file packages/server/test/templates-schema.test.ts --run-dir-output scratch/slice5-async-schema-green-run.txt` | 26 passed |
+| 19:07:53 | `TMPDIR=/tmp/tv-s5-async npm test -- local --file packages/server/test/templates-scanner.test.ts --run-dir-output scratch/slice5-async-scanner-green-run.txt` | 43 passed |
+| 19:08:17 | `TMPDIR=/tmp/tv-s5-async npm test -- local --surface unit:server --run-dir-output scratch/slice5-async-server-run.txt` | 1,158 passed, 1 existing privileged-port permission skip |
+
+
+`npm run type-check` passed. `node_modules/.bin/eslint packages/server/src/template-schema.ts packages/server/test/templates-schema.test.ts packages/server/test/templates-scanner.test.ts --max-warnings=0` and `git diff --check` passed. All five canonical correction runs recorded zero recovered flakes, process leaks and infrastructure failures. The two red runs failed only on the intended missing rejections; no intermediate implementation failure occurred. The owning server suite contains all updated schema/scanner cases and passed on its first correction run.
+
+The prior CLI, shared, browser, acceptance, assets, skills-build and conformance implementation/tests remain byte-identical to the earlier handoff manifest. This correction changes the compiler, its two test files and the template architecture proof, plus the approved one-sentence schema-spec clarification and this record. The final slice has no remaining `(test to be written)` assertion in the affected template proof and no outstanding schema finding. Full branch verification and merge readiness are outside this requested slice validation.
+
+The task-owned `/tmp/tv-s5-async` directory was removed after checking that no process retained it. Canonical reports and small logs remain. No `npm run verify`, dependency installation, host CLI installation/link, commit or push occurred. The final independent review was PASS at exact `xhigh`; the original rejection/rewrite blocker is resolved.
+
+The corrected source/test/proof/spec manifest, excluding this record, is `scratch/slice5-async-final-tree.json`, SHA-256 `a92f54ab26e6a86ed83207d22f756990442640149d7f9f3151223802d2d7722e`. It supersedes the incomplete handoff manifest while retaining it as history.

@@ -75,6 +75,8 @@ describe("artifact template routes", () => {
     template(root, "valid");
     const invalid = template(root, "invalid");
     rmSync(path.join(invalid, "index.html"));
+    const badData = template(root, "bad-data");
+    writeFileSync(path.join(badData, "data.json"), "not JSON");
     const outside = path.join(root, "outside-template");
     mkdirSync(outside);
     writeFileSync(path.join(outside, "manifest.json"), JSON.stringify({ name: "Outside", description: "Outside", version: "1.0.0" }));
@@ -85,6 +87,7 @@ describe("artifact template routes", () => {
     await request(server.httpServer).post("/templates/artifacts").send({ templateID: "valid", channelID, source: "cli" }).expect(401);
     expect((await create("missing").expect(404)).body.error).toMatch(/missing/);
     expect((await create("invalid").expect(400)).body.error).toMatch(/index\.html/);
+    expect((await create("bad-data").expect(400)).body.error).toMatch(/data\.json/);
     expect((await create("../outside-template").expect(404)).body.error).toMatch(/outside-template/);
     expect(readdirSync(path.join(root, "artifacts"))).toEqual([]);
     const records = await request(server.httpServer).get("/artifacts").set(auth(token)).expect(200);
@@ -170,14 +173,12 @@ describe("artifact template routes", () => {
   });
 
   // proofs/arch/templates/index.md#^templates-t-cache-events
-  it("publishes native nested edits and folder additions renames removals without replay and keeps linked-content events", async () => {
+  it("publishes native nested edits and folder additions renames removals without replay", async () => {
     const root = home();
     const folder = template(root, "one");
     mkdirSync(path.join(folder, "nested"));
     writeFileSync(path.join(folder, "nested", "style.css"), "first");
-    const { server, token, channelID } = await start(root);
-    const client = new TelevisionClient(server.getBaseURL(), { token });
-    const artifact = await client.templates.create({ templateID: "one", channelID, source: "cli" });
+    const { server, token } = await start(root);
     const socket = new WebSocket(`${server.getBaseURL().replace("http:", "ws:")}/events?token=${token}`);
     const events: any[] = [];
     socket.on("message", (data) => events.push(JSON.parse(data.toString())));
@@ -188,7 +189,6 @@ describe("artifact template routes", () => {
       const edits = () => events.filter((event) => event.type === "templates-changed");
       writeFileSync(path.join(folder, "nested", "style.css"), "second");
       await vi.waitFor(() => expect(edits().at(-1)).toMatchObject({ scan: { templates: [{ id: "one" }], watching: true }, invalidatedIDs: ["one"] }));
-      await vi.waitFor(() => expect(events.some((event) => event.type === "artifact-content-changed" && event.artifactID === artifact.artifactID)).toBe(true));
       template(root, "two");
       await vi.waitFor(() => expect(edits().at(-1)?.scan.templates.map((entry: { id: string }) => entry.id)).toEqual(["one", "two"]));
       renameSync(path.join(root, "templates", "two"), path.join(root, "templates", "renamed"));

@@ -54,27 +54,43 @@ describe("artifact template scanner", () => {
     expect(result.errors[0]?.error).toMatch(/description/);
     expect(result.errors[0]?.error).toMatch(/Semantic Version/);
     expect(result.errors[0]?.error).toMatch(/index\.html/);
-    expect(result.errors[0]?.error).not.toMatch(/data\.json/);
+    expect(result.errors[0]?.error).toMatch(/data\.json/);
   });
 
   // proofs/arch/templates/index.md#^templates-t-package
-  it("treats supporting data.json as ordinary content regardless of its bytes or readability", () => {
+  it("validates starting data readability, JSON, store limits and schema without exposing it in records", () => {
     const root = path.join(home(), "templates");
-    for (const [id, bytes] of [["oversized", "x".repeat(1_048_577)], ["invalid-json", "not JSON"]]) {
-      writeFileSync(path.join(template(root, id), "data.json"), bytes!);
-    }
+    for (const [id, bytes] of [
+      ["oversized", JSON.stringify("x".repeat(1_048_577))], ["invalid-json", "not JSON"],
+      ["nonfinite", "1e400"], ["invalid-key", JSON.stringify({ ["x".repeat(769)]: true })],
+      ["too-deep", "[".repeat(34) + "null" + "]".repeat(34)],
+    ]) writeFileSync(path.join(template(root, id!), "data.json"), bytes!);
     symlinkSync(path.join(root, "missing.json"), path.join(template(root, "unreadable"), "data.json"));
+    mkdirSync(path.join(template(root, "directory"), "data.json"));
+    const schema = { type: "object", properties: { message: { type: "string" } }, required: ["message"] };
+    for (const [id, value] of [["missing-field", {}], ["wrong-field", { message: 42 }], ["valid", { message: "Ready" }]] as const) {
+      const folder = template(root, id, { name: id, description: "Page", version: "1.0.0", dataSchema: schema });
+      writeFileSync(path.join(folder, "data.json"), JSON.stringify(value));
+    }
+    writeFileSync(path.join(template(root, "null"), "data.json"), "null");
     const scan = scanTemplatesDirectory(root);
-    expect(scan.errors).toEqual([]);
-    expect(scan.templates).toHaveLength(3);
+    expect(scan.templates.map(({ id }) => id)).toEqual(["null", "valid"]);
+    expect(scan.errors).toHaveLength(9);
+    for (const error of scan.errors) expect(error.error).toContain("data.json");
+    for (const id of ["missing-field", "wrong-field"]) {
+      const error = scan.errors.find((entry) => entry.folder === id)!.error;
+      expect(error).toContain("message");
+      expect(error).toContain("tv templates show");
+    }
     for (const record of scan.templates) {
+      expect(record).not.toHaveProperty("data");
       expect(record).not.toHaveProperty("hasData");
       expect(record).not.toHaveProperty("hasThumbnail");
     }
   });
 
   // proofs/arch/templates/index.md#^templates-t-package
-  it("uses a trimmed HTTP(S) URL even without a page and rejects other URL forms or URL schemas", () => {
+  it("uses a trimmed HTTP(S) URL even without a page and rejects other URL forms, starting data or schemas", () => {
     const root = path.join(home(), "templates");
     for (const [id, url, page] of [["https", "  https://example.com/path?q=1  ", false], ["http", "http://example.com", true]] as const) {
       const folder = template(root, id, { name: id, description: "Site", version: "1.0.0", url });
@@ -84,12 +100,17 @@ describe("artifact template scanner", () => {
       template(root, String(id), { name: id, description: "Invalid site", version: "1.0.0", url });
     }
     template(root, "url-schema", { name: "Invalid", description: "Site", version: "1.0.0", url: "https://example.com", dataSchema: false });
+    for (const id of ["url-data", "url-broken-data"]) {
+      const folder = template(root, id, { name: id, description: "Site", version: "1.0.0", url: "https://example.com" });
+      if (id === "url-data") writeFileSync(path.join(folder, "data.json"), "null");
+      else symlinkSync("missing.json", path.join(folder, "data.json"));
+    }
     const scan = scanTemplatesDirectory(root);
     expect(scan.templates.map(({ id, url }) => ({ id, url }))).toEqual([
       { id: "http", url: "http://example.com" }, { id: "https", url: "https://example.com/path?q=1" },
     ]);
-    expect(scan.errors).toHaveLength(6);
-    for (const error of scan.errors) expect(error.error).toMatch(/url|dataSchema/);
+    expect(scan.errors).toHaveLength(8);
+    for (const error of scan.errors) expect(error.error).toMatch(/url|dataSchema|data\.json/);
   });
 
   // proofs/arch/templates/index.md#^templates-t-schema
@@ -111,6 +132,8 @@ describe("artifact template scanner", () => {
     [null, "dataSchema"], [[], "dataSchema"], [{ type: "nonsense" }, "type"],
     [{ $id: 42 }, "dataSchema"],
     [{ $schema: "http://json-schema.org/draft-07/schema#" }, "$schema"],
+    [{ $async: true }, "$async is not supported in dataSchema"],
+    [{ $async: false }, "$async is not supported in dataSchema"],
     [{ $ref: "#/$defs/missing" }, "ref"], [{ $ref: "#/name" }, "ref"],
     [{ $ref: "https://example.com/external" }, "ref"],
   ])("rejects an invalid or escaping schema with an inspection hint: %j", (dataSchema, field) => {
