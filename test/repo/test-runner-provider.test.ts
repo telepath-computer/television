@@ -1113,6 +1113,11 @@ describe("provider result normalization", () => {
   });
 
   test("selects package surfaces for Blaxel selection runs", () => {
-    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((candidate) => candidate.id).sort()).toEqual(["e2e:browser-app", "unit:browser-app"]);
+    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((candidate) => candidate.id).sort()).toEqual([
+      "e2e:browser-app",
+      "e2e:checklist-conformance",
+      "e2e:sticky-note-conformance",
+      "unit:browser-app",
+    ]);
   });
 });

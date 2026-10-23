@@ -11,23 +11,25 @@ import { configureTestMotion } from "./helpers.ts";
 export const TEST_HOST = "tv-sdk.test";
 export const TEMPLATES_BUNDLE = path.resolve(import.meta.dirname, "../../../server/assets/templates");
 
-export const CHECKLIST_LAUNCH = { args: [`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
+export const TEMPLATE_LAUNCH = { args: [`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
 
 /** Real installed templates and copied artifacts behind a stable, controllable browser connection. */
-export class ChecklistHarness {
+export class TemplateHarness {
   product: ProductServer;
   readonly proxy: NetworkProxy;
   readonly home: string;
   readonly channelID: string;
+  private readonly template: { id: string; name: string };
 
-  private constructor(product: ProductServer, proxy: NetworkProxy, channelID: string) {
+  private constructor(product: ProductServer, proxy: NetworkProxy, channelID: string, template: { id: string; name: string }) {
     this.product = product;
     this.proxy = proxy;
     this.home = product.home;
     this.channelID = channelID;
+    this.template = template;
   }
 
-  static async start(): Promise<ChecklistHarness> {
+  static async start(template: { id: string; name: string }): Promise<TemplateHarness> {
     const product = await launchProductServer({ auth: true, cleanupHome: false, bundledTemplatesBundle: TEMPLATES_BUNDLE });
     let proxy: NetworkProxy | undefined;
     try {
@@ -35,7 +37,7 @@ export class ChecklistHarness {
       const client = new TelevisionClient(product.serverURL, { token: product.token });
       const channelID = (await client.channels.list()).channels[0]?.id;
       if (!channelID) throw new Error("Product server has no initial channel");
-      return new ChecklistHarness(product, proxy, channelID);
+      return new TemplateHarness(product, proxy, channelID, template);
     } catch (error) {
       await proxy?.close();
       await product.dispose();
@@ -72,7 +74,7 @@ export class ChecklistHarness {
     await expect(page.locator(".templates-popover")).toHaveAttribute("open", "");
     const created = page.waitForResponse((response) =>
       new URL(response.url()).pathname === "/templates/artifacts" && response.request().method() === "POST");
-    await page.getByRole("option", { name: "Checklist", exact: true }).click();
+    await page.getByRole("option", { name: this.template.name, exact: true }).click();
     const response = await created;
     expect(response.status()).toBe(201);
     const { artifactID } = await response.json() as { artifactID: string };
@@ -81,7 +83,7 @@ export class ChecklistHarness {
 
   async createStored(value?: JSONValue): Promise<string> {
     const { artifactID } = await this.client.templates.create({
-      templateID: "checklist", channelID: this.channelID, source: "cli",
+      templateID: this.template.id, channelID: this.channelID, source: "cli",
     });
     if (value !== undefined) await this.set(artifactID, value);
     return artifactID;
@@ -124,14 +126,38 @@ export class ChecklistHarness {
   }
 
   /** A separate ordinary page supplies the clipboard; the artifact receives real paste keys. */
-  async clipboard(page: Page, text: string): Promise<void> {
+  async clipboard(page: Page, text: string, html?: string): Promise<void> {
     const fixture = await page.context().newPage();
     try {
       await fixture.setContent('<textarea aria-label="Clipboard fixture"></textarea>');
       const textarea = fixture.getByRole("textbox", { name: "Clipboard fixture" });
       await textarea.fill(text);
+      if (html !== undefined) {
+        await fixture.evaluate(({ plain, rich }) => {
+          document.addEventListener("copy", event => {
+            event.clipboardData!.setData("text/plain", plain);
+            event.clipboardData!.setData("text/html", rich);
+            event.preventDefault();
+          }, { once: true });
+        }, { plain: text, rich: html });
+      }
       await textarea.press("ControlOrMeta+A");
       await textarea.press("ControlOrMeta+C");
+    } finally {
+      await fixture.close();
+      await page.bringToFront();
+    }
+  }
+
+  /** Reads the real clipboard by pasting into a separate ordinary text field. */
+  async readClipboard(page: Page): Promise<string> {
+    const fixture = await page.context().newPage();
+    try {
+      await fixture.setContent('<textarea aria-label="Clipboard fixture"></textarea>');
+      const textarea = fixture.getByRole("textbox", { name: "Clipboard fixture" });
+      await textarea.focus();
+      await textarea.press("ControlOrMeta+V");
+      return await textarea.inputValue();
     } finally {
       await fixture.close();
       await page.bringToFront();

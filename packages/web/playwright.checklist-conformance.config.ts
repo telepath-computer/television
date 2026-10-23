@@ -5,7 +5,7 @@ export default defineConfig({
   testMatch: "template-checklist-conformance.test.ts",
   outputDir: "../../.playwright/test-results-checklist-conformance",
   // One product server for every worker; each worker has its own browser and proxy.
-  globalSetup: "./test/e2e/checklist-conformance-setup.ts",
+  globalSetup: "./test/e2e/template-conformance-setup.ts",
   fullyParallel: true,
   // The comparisons are CPU-bound, so one worker per core.
   workers: "100%",

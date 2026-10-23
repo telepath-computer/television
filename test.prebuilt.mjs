@@ -20,7 +20,7 @@ export default {
       // the conformance pre-command without rebuilding those products.
       id: "storybook",
       command: ["npm", "--workspace", "@telepath-computer/storybook", "run", "build"],
-      coversPreCommands: ["e2e:checklist-conformance"],
+      coversPreCommands: ["e2e:checklist-conformance", "e2e:sticky-note-conformance"],
     },
   ],
 };

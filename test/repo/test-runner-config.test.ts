@@ -21,7 +21,7 @@ describe("test runner registry", () => {
     expect(selectSurfaces(config, { suite: "telemetry-posthog-roundtrip" }).map((surface) => surface.id)).toEqual(["telemetry-posthog-roundtrip:integration"]);
     expect(selectSurfaces(config, { suite: "daemon-acceptance" }).map((surface) => surface.id)).toEqual(["daemon-acceptance:cli"]);
     expect(selectSurfaces(config, { package: "@telepath-computer/canonical" }).map((surface) => surface.id)).toEqual(["unit:canonical"]);
-    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((surface) => surface.id).sort()).toEqual(["e2e:browser-app", "e2e:checklist-conformance", "unit:browser-app"]);
+    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((surface) => surface.id).sort()).toEqual(["e2e:browser-app", "e2e:checklist-conformance", "e2e:sticky-note-conformance", "unit:browser-app"]);
     expect(selectSurfaces(config, { surface: "e2e:browser-app" }).map((surface) => surface.id)).toEqual(["e2e:browser-app"]);
   });
 
@@ -63,6 +63,7 @@ describe("test runner registry", () => {
       "e2e:server",
       "e2e:tasks-skill",
       "e2e:checklist-conformance",
+      "e2e:sticky-note-conformance",
     ]);
     expect(allSurfaces.filter((surface) => surface.executionGroup?.id === "unit:workspaces").map((surface) => surface.id)).toEqual([
       "unit:artifact",
@@ -90,6 +91,8 @@ describe("test runner registry", () => {
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/root-horizontal-overflow.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/onboarding-browser.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-checklist-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:checklist-conformance"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-sticky-note-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:sticky-note-conformance"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-sticky-note-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/swipe-gesture.test.ts").map((surface) => surface.id)).toEqual(["unit:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/canonical/test/build-canonical.test.ts").map((surface) => surface.id)).toEqual(["unit:canonical"]);
     expect(owningSurfaces(config.surfaces, "packages/server/test/telemetry-posthog.integration.test.ts").map((surface) => surface.id)).toEqual(["telemetry-posthog-roundtrip:integration"]);

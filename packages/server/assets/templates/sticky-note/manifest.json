@@ -1,0 +1,10 @@
+{
+  "name": "Sticky note",
+  "description": "A yellow note to type into; an agent can write on it too.",
+  "version": "1.0.0",
+  "display": {
+    "width": 360,
+    "height": 360,
+    "transparent": true
+  }
+}

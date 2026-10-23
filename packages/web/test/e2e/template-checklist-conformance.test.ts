@@ -7,8 +7,8 @@ import { TelevisionClient } from "@telepath-computer/television-shared";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "@playwright/test";
 import { NetworkProxy } from "../../../server/test/e2e/network-proxy.ts";
-import { CHECKLIST_LAUNCH, TEST_HOST } from "./checklist-harness.ts";
-import { SERVER_ENV, type SharedServer } from "./checklist-conformance-setup.ts";
+import { TEMPLATE_LAUNCH, TEST_HOST } from "./template-harness.ts";
+import { SERVER_ENV, type SharedServer } from "./template-conformance-setup.ts";
 
 // Global setup starts one product server for every worker.
 const server = JSON.parse(process.env[SERVER_ENV]!) as SharedServer;
@@ -16,7 +16,7 @@ const client = new TelevisionClient(server.serverURL, { token: server.token });
 
 // conform drives its own Playwright, so each worker's browser comes from that version rather than the runner's.
 let browser: Browser;
-test.beforeAll(async () => { browser = await chromium.launch(CHECKLIST_LAUNCH); });
+test.beforeAll(async () => { browser = await chromium.launch(TEMPLATE_LAUNCH); });
 test.afterAll(async () => { await browser?.close(); });
 
 // Each story's page reaches the server through its own proxy, so held or refused traffic never carries over.

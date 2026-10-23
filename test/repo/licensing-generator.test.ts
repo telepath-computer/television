@@ -547,9 +547,11 @@ describe("notice rendering", () => {
     const folders = generateFolderNotices({ root: repoRoot });
     expect(folders.map((entry) => entry.folder)).toEqual([
       "packages/server/assets/templates/checklist",
+      "packages/server/assets/templates/sticky-note",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
       "packages/server/assets/themes/tokyo-night",
+      "storybook/spec/templates/sticky-note",
     ]);
     for (const { folder, text } of folders) {
       expect(readFileSync(path.join(repoRoot, folder, "THIRD-PARTY-NOTICES.txt"), "utf8")).toBe(text);

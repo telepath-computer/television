@@ -3,19 +3,19 @@ import path from "node:path";
 import type { Frame, Locator, Page } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
-import { ChecklistHarness, CHECKLIST_LAUNCH } from "./checklist-harness.ts";
+import { TemplateHarness, TEMPLATE_LAUNCH } from "./template-harness.ts";
 
-test.use({ launchOptions: CHECKLIST_LAUNCH, viewport: { width: 640, height: 800 }, actionTimeout: 15_000 });
+test.use({ launchOptions: TEMPLATE_LAUNCH, viewport: { width: 640, height: 800 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
 type Item = { order: number; text: string; done: boolean; [key: string]: JSONValue };
 type Checklist = { title: string; items: Record<string, Item>; [key: string]: JSONValue };
 const item = (text: string, order: number, done = false): Item => ({ text, order, done });
 const fixture = (): Checklist => ({ title: "Groceries", items: { a: item("Apples", 0), b: item("Bread", 1), c: item("Coffee", 2) } });
-let h: ChecklistHarness;
+let h: TemplateHarness;
 test.beforeEach(async ({ page }) => {
   page.on("pageerror", error => console.error("Checklist page error:", error));
-  h = await ChecklistHarness.start();
+  h = await TemplateHarness.start({ id: "checklist", name: "Checklist" });
 });
 test.afterEach(async () => { await h?.cleanup(); });
 

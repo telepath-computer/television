@@ -33,6 +33,10 @@ describe("template-use telemetry derivation", () => {
   it.each([
     ["checklist", "cli", { source: "cli", template: "checklist" }],
     ["checklist", "ui", { source: "ui", template: "checklist" }],
+    ["sticky-note", "cli", { source: "cli", template: "sticky-note" }],
+    ["sticky-note", "ui", { source: "ui", template: "sticky-note" }],
+    ["Sticky-note", "ui", { source: "ui", template: "custom" }],
+    ["STICKY-NOTE", "cli", { source: "cli", template: "custom" }],
     ["example", "cli", { source: "cli", template: "custom" }],
     ["Checklist", "ui", { source: "ui", template: "custom" }],
     ["CHECKLIST", "cli", { source: "cli", template: "custom" }],

@@ -22,6 +22,8 @@ const realStackTests = [
   "**/sidebar-resize.test.ts",
   "**/template-checklist-conformance.test.ts",
   "**/template-checklist-real-stack.test.ts",
+  "**/template-sticky-note-real-stack.test.ts",
+  "**/template-sticky-note-conformance.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];
 export default defineConfig({
