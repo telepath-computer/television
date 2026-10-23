@@ -174,26 +174,65 @@ describe("skills build", () => {
     runBuild(path.join(REPO_ROOT, "packages/skills/scripts/build.mjs"), REPO_ROOT, { TV_SKILLS_DIST_DIR: output });
     const skill = readDistFile(output, "television", "SKILL.md");
     const guide = readDistFile(output, "television", "templates.md");
-    expect(skill).toContain("tv templates list");
-    expect(skill).toContain("tv create-artifact --template");
-    expect(skill).toContain("tv templates path");
-    expect(skill).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
-    expect(skill).toContain("[template authoring guidance](./templates.md)");
-    for (const option of ["--width", "--height", "--full-screen", "--no-full-screen", "--transparent", "--no-transparent"]) expect(skill).toContain(option);
-    for (const phrase of ["--home", "manifest.json", "name", "description", "version", "index.html", "data.json", "README.md", "thumbnail.png", "tv templates list", "tv templates path", "minimum version", "backed up", "replaced"]) {
-      expect(guide, phrase).toContain(phrase);
+    const [intro, capabilities] = skill.split("\n# TV CLI capabilities\n");
+    expect(capabilities).toBeDefined();
+    for (const command of ["tv templates list", "tv templates show <id>", "tv create-artifact --template", "tv templates path"]) {
+      expect(intro, command).toContain(command);
     }
-    expect(guide).toMatch(/README\.md[^.]*copied/);
-    expect(guide).toContain("The `manifest.json`, `data.json`, and `thumbnail.png` stay with the template");
-    expect(guide).not.toMatch(/created artifact[^.]*template origin/i);
-    expect(guide).toContain("display");
-    for (const field of ["width", "height", "fullScreen", "display.transparent"]) expect(guide).toContain(field);
+    expect(intro).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
+    expect(intro).toMatch(/templates show <id>[^.]*dataSchema[^.]*before[^.]*data/);
+    for (const document of [intro, capabilities, guide]) {
+      expect(document).toMatch(/\]\(\.\/templates\.md\)|^# Artifact templates/);
+      expect(document).toMatch(/link[^.]*data[^.]*chang/i);
+      expect(document).toContain("--copy");
+      expect(document).toMatch(/never edit an installed template[^.]*one artifact/i);
+      expect(document).toMatch(/every artifact linked[^.]*receives the change/i);
+    }
+    expect(intro).toMatch(/link[^.]*folder page files[^.]*separate store/i);
+    expect(intro).toMatch(/detach[^.]*before changing page files/i);
+    expect(capabilities).toContain("tv update-artifact --id <id> --path <copy>");
+    expect(capabilities).toMatch(/link[^.]*by default/i);
+    expect(guide).toMatch(/link[^.]*by default/i);
+    for (const option of ["--width", "--height", "--full-screen", "--no-full-screen", "--transparent", "--no-transparent"]) expect(intro).toContain(option);
+    for (const field of ["--home", "name", "description", "version", "index.html", "README.md", "dataSchema", "icons", "url", "display", "width", "height", "fullScreen", "transparent"]) {
+      expect(guide, field).toContain(field);
+    }
     expect(guide).toContain("default starting size");
-    expect(skill).toContain("An artifact template is a reusable folder");
-    expect(guide).toMatch(/index\.html[^.]*HTML artifact page[^.]*HTML artifact style[^.]*SKILL\.md/);
-    expect(guide).toMatch(/naming guidance[^.]*template ID/);
+    expect(guide).toMatch(/HTML artifact page[^.]*HTML artifact style[^.]*SKILL\.md/);
+    expect(guide).toMatch(/naming guidance[^\n]*template ID/);
     expect(guide).toContain("[resource guidance](./resources.md)");
-    expect(guide).toMatch(/README\.md[^.]*[\s\S]*store shape/);
+    expect(guide).toMatch(/README\.md[^\n]*data[^\n]*page/);
+    expect(guide).toMatch(/copies include the README/i);
+    for (const document of [capabilities, guide]) {
+      expect(document).toMatch(/(?:only|fields)[^\n]*`id`[^\n]*`name`[^\n]*`description`[^\n]*`url`/);
+      expect(document).toMatch(/templates show <id>[^\n]*`path`[^\n]*version|templates show <id>[^\n]*version[^\n]*`path`/);
+      expect(document).toMatch(/both commands[^.]*scan/i);
+      expect(document).toMatch(/hasIcon[^.]*omitted/);
+    }
+    expect(guide).toMatch(/app[^.]*watched[^.]*Toolbox/i);
+    expect(guide).toMatch(/same absolute `--home`/);
+    expect(guide).toContain("tv get-artifact --id <id>");
+    expect(guide).toContain("tv update-artifact --id <id> --path <copy>");
+    expect(guide).toMatch(/keeps its ID and store/);
+    expect(guide).toMatch(/templates supply no starting data/i);
+    expect(guide).toMatch(/server checks[^.]*dataSchema[^.]*before creating/i);
+    expect(guide).toMatch(/written by the server[^.]*creation request/);
+    expect(guide).toMatch(/failed request[^.]*target[^.]*artifact ID[^.]*step/i);
+    expect(guide).toMatch(/inspect what remains before retrying/i);
+    expect(guide).toMatch(/URL templates[^.]*data options[^.]*--copy[^.]*dataSchema/);
+    expect(guide).toMatch(/URL artifact[^.]*without a store/);
+    expect(guide).toMatch(/render defaults[^.]*missing fields[^.]*partial data/);
+    expect(guide).toMatch(/do not write defaults on load/i);
+    expect(guide).toMatch(/without deriving values from `default`/);
+    expect(guide).toMatch(/schema must accept every value[^.]*page must still render/i);
+    for (const icon of ["image/svg+xml", "image/png", '<link rel="icon">', "apple-touch-icon", "web app manifest", "/favicon.ico"]) expect(guide).toContain(icon);
+    expect(guide).toMatch(/fetch[^.]*site icon once/i);
+    expect(guide).toMatch(/favicon\.ico[^.]*convert it to PNG/);
+    expect(guide).toMatch(/local file in `icons`/);
+    expect(guide).toMatch(/server and app never fetch site favicons/i);
+    expect(guide).toMatch(/preserves[^.]*minimum version[^.]*newer version/i);
+    expect(guide).toMatch(/invalid or older[^.]*backed up[^.]*replaced at the same path/i);
+    expect(guide).toMatch(/deleting or moving[^.]*breaks[^.]*linked artifacts/i);
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
@@ -321,7 +360,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("advisory authoring context");
     expect(televisionSkill).toContain("[theming guidance](./theming.md)");
     expect(televisionSkill).toContain("[resource guidance](./resources.md)");
-    expect(televisionSkill).toContain("[template authoring guidance](./templates.md)");
+    expect(televisionSkill).toMatch(/\]\(\.\/templates\.md\)/);
 
     const htmlGuidance = readFileSync(
       path.join(

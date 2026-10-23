@@ -111,7 +111,7 @@ import { randomTemplateSuffix, relinkCopiedTemplateSymlinks, templateFolderName,
 import { TemplateCache } from "./template-cache.ts";
 import { getTemplatesDir } from "./templates.ts";
 import { validateTemplateData } from "./template-schema.ts";
-import { runBundledTemplateInstallation, type BundledTemplateStateOperations } from "./bundled-template-installer.ts";
+import { runBundledTemplateInstallation, type BundledTemplateOperations } from "./bundled-template-installer.ts";
 
 const JSON_INDENT_SPACES = 2;
 const LAYOUT_VERSION = 2 as const;
@@ -247,8 +247,8 @@ export interface ServerStoreOptions {
   generateID?: () => string;
   /** Test hook for destination collision behavior; production draws random base-36 suffixes. */
   generateTemplateSuffix?: () => string;
-  /** Filesystem operations at the bundled-template state-write seam. */
-  bundledTemplateStateOperations?: BundledTemplateStateOperations;
+  /** Filesystem operations at the bundled-template replacement and state-write seams. */
+  bundledTemplateOperations?: Partial<BundledTemplateOperations>;
 }
 
 export class ServerStore extends EventTarget<StoreDomainEvent> {
@@ -397,7 +397,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     runBundledTemplateInstallation(
       this.storagePath,
       this.bundledTemplatesPath,
-      options.bundledTemplateStateOperations,
+      options.bundledTemplateOperations,
     );
     this.refreshThemeRegistry();
     this.templateCache = new TemplateCache(getTemplatesDir(this.storagePath), (scan, invalidatedIDs) => {

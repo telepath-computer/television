@@ -19,13 +19,13 @@ Working record for `feat/linked-templates`, branched from `feat/artifact-templat
 | Proof derivation | Complete for all 26 affected product, architecture and UI specs at `bf195c7`; 61 assertions remain `(test to be written)`; no ambiguous expected results found |
 | Proof convergence | Done: round 1 FAIL, round 2 FAIL, round 3 PASS with one generated-count fix applied |
 | Plan | Done: four slices; plan review round 1 PASS with no findings |
-| Implementation, red/green TDD | Slices 1–2 committed (`4ede94e`, `d17b041`). Slice 3 review defects fixed and validated; all four requested browser files, Conform and browser units pass. Full browser run exposed an unrelated intermittent tab-drag failure; isolated rerun passed. Awaiting independent re-review. Slice 4 not started |
-| Integrated result and full verification | Not started |
+| Implementation, red/green TDD | Slices 1–3 committed (`4ede94e`, `d17b041`, `f0fa323`). Slice 4 independent review found one partial-copy recovery defect. The correction is implemented red-first; the installer file, server suite and type-check pass. All five proof citations remain in place; supervisor re-review is pending |
+| Integrated result and full verification | Slice checks complete; independent integrated review and full verification pending with the supervisor |
 | Pull request | Not opened |
 
 ## Open obligations
 
-- Supervisor review of slice 3, then slice 4 bundled recovery and delivered guidance.
+- Supervisor review of slice 4 and the integrated contribution after slice validation.
 - The pre-existing theme request race is documented below with evidence at `d17b041`; it is outside this slice.
 - The full browser run recorded an intermittent tab-drag timing failure; its unchanged-tree isolated run passed. Details are in the review-corrections entry.
 - Full verification belongs to the supervisor on the committed, pushed tree.
@@ -542,3 +542,94 @@ Additional validation:
 - `git diff --check`: passed after this final record update. A byte-hash check against `scratch/linked-templates-slice3-review-final-tree.json` confirmed every tested source/test/config/proof file remains unchanged.
 
 No additional dependency, permanent test, proof/spec change or story/style change was needed. The plan's five slice 4 obligations remain unchanged. The two review findings are resolved; the previously documented theme race and this separate tab-drag intermittent failure remain reported limitations. No full verification, commit, push, host CLI installation/link or host-home server occurred. Removed eight completed source-CLI/versioned-web temporary build directories after checking their assets and confirming no process still referenced them. The small ignored negative-control fragment, audit, manifests, logs and canonical reports remain for review.
+
+
+### Slice 4 implementation — October 23, 2026
+
+**Initial implementation and slice validation completed; independent review subsequently returned FAIL. The correction and its validation are recorded below.** All work is uncommitted on `feat/linked-templates` at `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`, in `/root/workspace/dev/television/feat/linked-templates`.
+
+The bundled installer now completes a hidden backup, writes state without the handled ID, removes the destination, copies the complete bundled folder to that path, and records the ID after success. A failed backup or state removal leaves the destination intact. The ordinary unhandled-ID rule restores an absent folder on the next serving boot. Removed the staged-copy/prior-folder rollback code. The existing filesystem adapter now also observes copy/removal operations; the installation-loop hook accepts the proof-declared two-ID inventory. Production uses the real filesystem and shipped inventory. No dependency was added.
+
+Replaced tests for recovering hidden prior/staged pairs and keeping the old destination through a replacement-copy failure. The handled-deletion claim remains, including when two artifacts depend on the deleted folder. Added operation-order, interrupted-removal/reboot, failed state removal, two-ID containment/bundle removal, and linked-record/store preservation cases. The latter create two artifacts and their different stores through production operations, preserve valid edits despite a newer source, then exercise invalid/below-minimum replacement and handled deletion. Existing validation, minimum-version, backup, token-only and atomic state-write checks remain. The installer file has 21 passing cases.
+
+The real skills build now checks the delivered list/show/create/path commands and linking/copying/detachment rules, caller data and compatible schemas, empty rendering without writes, URL restrictions, icons and agent favicon acquisition, minimum versions and broken paths. Replaced the retired starting-data, thumbnail-exclusion, automatic-copy and incidental link-label assertions. Bundle membership and display/transparency checks remain. Reviewed the emitted intro, template document, CLI capabilities and Toolbox reference against the approved contracts. Small source edits shorten sentences, state default sharing, name `manifest.json`, and remove an internal deferred-work note. The Toolbox reference required no edit.
+
+Replaced all five slice-4 proof placeholders with actual test citations: `templates-install-t-retry`, `templates-install-t-containment`, `templates-install-t-linked-records`, `templates-guide-t-intro`, and `templates-guide-t-authoring`. No assertion scope or mock declaration changed. No spec/proof ambiguity or needed spec change was found. Specs and Storybook specification files are unchanged.
+
+#### Validation
+
+Every command below ran locally in this worktree on the evolving uncommitted tree atop `f0fa323`. The runner reports HEAD tree `552adebc891b9af985bcca60a35f5eb8a5ea2504` with `dirty: true`; that hash is not a snapshot of the edits. The final source/test/proof file manifest, excluding this task record, is `scratch/linked-templates-slice4-tree.json`, SHA-256 `4b584aa5867feaa548f074182bf7d39f3a11a176694a7fa1c2540828b9b51bd8`. Byte checks confirm those files remain unchanged. Small ignored reports and the manifest remain for review.
+
+The initial installer red used the new tests against HEAD implementation. Five cases exposed missing recovery behavior/hooks; two linked-record cases also had an incorrect expected path without the stored trailing slash. The latter expectations were corrected with the implementation. The first green installer runs precede only a comment and the inventory-hook type annotation. The final runtime implementation and installer tests are covered by both full server runs. The guidance runs identify their stages below; all runs from 15:01:44 onward use final source/test/proof bytes. The CLI build copied the final guidance bytes, separately confirmed against source and producer output.
+
+Times are UTC; each timestamp identifies `.test-runs/2026-10-23T<timestamp>-*/summary.json` and its native report. All runs record zero recovered flakes, process leaks and infrastructure failures. Filtered tests are not counted as skips below. The JSON-store failure followed by separate passing invocations is an intermittent failure across invocations, not a runner-counted recovered flake.
+
+| UTC start | Exact command | Result and tree stage |
+|---|---|---|
+| 14:54:46 | `npm test -- local --file test/repo/skills-build.test.ts --grep 'emits template discovery and authoring guidance'` | 1 failed, 11 filtered; original stale link-label assertion |
+| 14:57:16 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'finishes backup\|absent destination\|removing its ID\|unhandled ID\|one bundled ID\|linked records'` | 7 failed, 14 filtered; new tests against HEAD implementation |
+| 14:57:58 | `npm test -- local --file test/repo/skills-build.test.ts --grep 'emits template discovery and authoring guidance'` | 1 failed, 11 filtered; replaced assertions exposed a retained regex stopping at the dot in SKILL.md |
+| 14:58:09 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'finishes backup\|absent destination\|removing its ID\|unhandled ID\|one bundled ID\|linked records'` | 7 passed, 14 filtered; implemented recovery and corrected path expectations |
+| 14:58:40 | `npm test -- local --file test/repo/skills-build.test.ts --grep 'emits template discovery and authoring guidance'` | 1 passed, 11 filtered; corrected regex, before prose cleanup |
+| 14:58:40 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts` | 21 passed |
+| 14:59:29 | `npm test -- local --file test/repo/skills-build.test.ts --file test/repo/theming-reference.test.ts` | 1 passed; repeated --file selected only theming-reference, not both files |
+| 14:59:32 | `npm test -- local --surface unit:server` | 1,151 passed, 1 failed, 1 skipped; JSON-store WebSocket timeout described below |
+| 14:59:32 | `npm test -- local --file test/node/cli-assets.test.ts --retries 0` | 24 passed; real server/skills/CLI/desktop build and packaged asset checks |
+| 15:00:24 | `npm test -- local --file test/repo/skills-build.test.ts` | 11 passed, 1 failed; second stale link label in the membership test |
+| 15:01:14 | `npm test -- local --file test/repo/skills-build.test.ts --grep 'builds only television'` | 1 passed, 11 filtered; final membership test checks the link target |
+| 15:01:44 | `npm test -- local --file test/repo/skills-build.test.ts` | 12 passed; final guidance source/test/proof bytes |
+| 15:02:37 | `npm test -- local --surface unit:root` | 447 passed, 1 existing isolated-GitHub-only skip |
+| 15:02:37 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed |
+| 15:03:53 | `npm test -- local --file packages/server/test/resources/json-store-server.test.ts --grep 'applies a set of placeholders'` | 1 passed, 9 filtered; unchanged-tree isolated run |
+| 15:04:54 | `npm test -- local --file packages/web/test/e2e/skill-selector.test.ts --retries 0` | 10 passed |
+| 15:06:38 | `npm test -- local --surface unit:server` | 1,152 passed, 1 existing privileged-port permission skip; no concurrent test run |
+| 15:09:24 | `npm test -- local --file packages/web/test/e2e/template-example-real-stack.test.ts --retries 0` | 1 passed |
+
+The first server-suite failure was `packages/server/test/resources/json-store-server.test.ts`, “applies a set of placeholders whose message is exactly the limit, through the page connection and the administrative route”: the message recorder reported `no matching message within 5000ms; saw []`. It passed alone without changes, then the complete server suite passed without another concurrent test run. Resource code, tests and harness are unchanged. This harness supplies no bundled-template path, so the installer returns before the changed logic. The precise timeout cause is unconfirmed; concurrent build/test load is a possible contributor, not an established diagnosis.
+
+Additional validation:
+
+- `npm run type-check && npx eslint packages/server/src/bundled-template-installer.ts packages/server/src/server-store.ts packages/server/test/bundled-template-installation.test.ts --max-warnings=0`: first failed during type-check because the inventory default inferred only the literal ID `example`; ESLint did not run. Added the explicit read-only ID/minimum-version array type. The same command then passed. No runtime change was required.
+- `npx eslint test/repo/skills-build.test.ts --max-warnings=0`: passed on final guidance tests.
+- `git diff --exit-code HEAD -- packages/server/test/resources packages/server/src/resources`: passed.
+- `git diff --check` and `git diff --exit-code -- specs storybook/spec`: passed. The final byte-hash check matched the manifest above. Direct byte comparison confirmed the emitted template document matches its source and all four packaged skill documents match the producer build; the emitted SKILL.md includes the final intro and CLI text.
+- Browser checks used Chromium with retries disabled. Firefox is unavailable on this host. The existing build warnings about bundle size and unresolved canonical CSS at build time did not fail the build. The owning server and repository suites retain only their existing environment-restricted skips.
+
+**Remaining baseline versus the plan:** none of the allocated linked-template baseline remains. Bundled recovery, delivered guidance, package assets, Example rendering, app cache and Toolbox interaction pass their selected checks; the final owning server and repository suites are green with the stated skips. The known TV-1002 theme-script race and tab-strip sampling race were not changed or re-exercised in this slice. The separate JSON-store timeout and passing reruns remain recorded above. Full `npm run verify` was not run, so this is not a complete-gate claim. Independent slice/integrated review and full verification on a committed, pushed revision remain with the supervisor.
+
+No commit, push, package installation, host CLI install/link or host-home server occurred. Tests use absolute temporary homes and the existing developer marker was present. Fixture cleanup removed installer homes and temporary skills output. Removed the two completed source-CLI runtime directories from the Toolbox and Example runs after confirming matching generated CLI bytes/current assets and no live references. Left another task's active test runtime alone. Normal ignored build output, canonical reports and the small validation manifests remain. Final `git diff --check` passed, and source/test/proof hashes still match the recorded manifest.
+
+### Slice 4 review correction — October 23, 2026
+
+**Correction implemented and locally validated. Supervisor re-review remains pending.** Independent review found that copying directly into the destination could leave a valid manifest and page without a supporting script. The next boot would keep that incomplete folder and mark the ID handled. This supersedes the preceding handoff's claim that replacement recovery was complete.
+
+The installer now copies the bundled folder into a hidden sibling, `.example.bundled-template.tmp` for Example, and renames it onto the destination only after the copy succeeds. It removes a stale hidden copy on the next boot. Backup, durable state removal, destination removal, complete replacement and handled recording retain their required order. A failed copy leaves the destination absent and the ID unhandled. Valid customized destinations remain unchanged, including when a stale hidden copy exists.
+
+Replaced the failure test's socket at `index.html` with a real socket obstructing the page's supporting `runtime.js`. After clearing the obstruction, the next serving boot must install every source file with matching bytes. Added two stale-copy cases, with the destination absent or valid and customized. Strengthened the order test to observe a complete hidden copy before the rename. The state-file atomicity test now records only renames onto the state path, while still delegating all renames to Node. The installer file has 23 cases. No tests were retired in this correction beyond replacing the inadequate failure fixture.
+
+The approved `^bundled-artifact-template-backup` rule requires a complete replacement before recording success and permits an absent destination until the next boot. The hidden copy satisfies that rule without restoring the retired prior-folder rollback behavior. No spec conflict, proof ambiguity, new dependency or new test hook was found. The existing `^templates-install-t-retry` citation covers the strengthened and added cases; all five slice 4 proof citations remain unchanged. Guidance source, built guidance and its earlier validation are unchanged.
+
+#### Validation
+
+All commands ran in `/root/workspace/dev/television/feat/linked-templates` on the uncommitted tree atop `f0fa32377f8d2fa7d897976e72bbbace9b0d3d12`. Only the installer and its test file changed since the preceding slice 4 handoff, apart from this record. The updated source/test/proof manifest is `scratch/linked-templates-slice4-review-tree.json`, SHA-256 `945af03f2639ad8ee5136816b27149964a4e5f1b7d882d5cafdd8d1c9ade5949`. It excludes this record. The original manifest remains as historical evidence.
+
+Times below are UTC and identify `.test-runs/2026-10-23T<timestamp>-*/summary.json` and native reports. Filtered cases are not skips.
+
+| UTC start | Exact command | Result and tree stage |
+|---|---|---|
+| 15:24:39 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'supporting-file copy\|interrupted hidden copy'` | 1 passed, 2 failed, 20 filtered; original implementation. The stale-copy cases failed, but the first socket filename, `support.js`, failed copying before the required page arrived, so it did not expose the reported reboot defect |
+| 15:27:18 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'supporting-file copy\|interrupted hidden copy'` | 3 failed, 20 filtered; original implementation with the socket at `runtime.js`. Reproduced the reported defect: after reboot the ID was handled while the supporting script was absent |
+| 15:28:17 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'finishes backup\|supporting-file copy\|interrupted hidden copy'` | 4 failed, 19 filtered; original implementation with the added complete-copy order and absent-destination assertions |
+| 15:28:50 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts --grep 'finishes backup\|supporting-file copy\|interrupted hidden copy'` | 4 passed, 19 filtered; final correction |
+| 15:31:48 | `npm test -- local --file packages/server/test/bundled-template-installation.test.ts` | 23 passed; final correction |
+| 15:32:28 | `npm test -- local --surface unit:server` | 1,154 passed, 1 existing privileged-port permission skip; final correction, after type-check and the narrow tests completed |
+
+Additional validation on the final source/test bytes:
+
+- `npm run type-check`: passed.
+- `npx eslint packages/server/src/bundled-template-installer.ts packages/server/test/bundled-template-installation.test.ts --max-warnings=0`: passed.
+- `git diff --check && git diff --exit-code -- specs storybook/spec`: passed; no specification changes.
+
+All six canonical runs above recorded zero recovered flakes, process leaks and infrastructure failures. The red failures were expected test failures. The server suite passed on its first run of this correction; no additional intermittent failure occurred. Small filesystem probes established the socket ordering for the revised fixture; their temporary directories were removed. Installer fixture homes and sockets were cleaned by the tests. No full `npm run verify`, commit, push, package installation, host CLI install/link or host-home server occurred.
+
+**Remaining baseline versus the plan:** no allocated linked-template test failure remains in the selected checks. The reported partial-copy defect is corrected and the required suites pass; independent re-review and full verification still belong to the supervisor. Earlier browser limitations and intermittent failures remain documented above. The guidance and all other slice 4 source/test/proof bytes still match the original handoff manifest. Final `git diff --check` passed, and all source/test/proof hashes match the review manifest.

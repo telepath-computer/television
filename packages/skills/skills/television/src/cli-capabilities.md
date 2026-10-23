@@ -34,7 +34,11 @@ Commands group into four intents:
 
 When the CLI rejects a command, follow the directive it prints rather than guessing flags.
 
-With `create-artifact --template`, folder templates link to their installed page files by default, with a separate store for each artifact; URL templates create URL artifacts without stores. Link when only data needs changing. `templates list` returns only `id`, `name`, `description`, and optional `url`; `url` identifies a URL template. Read `templates show <id>` for the installed folder `path`, version, and optional display options, icons, or `dataSchema` before editing or preparing data. Both commands always scan again; app cache fields such as `hasIcon` are omitted. Add `--copy` when creating an artifact that needs its own page-file changes. For an existing linked artifact, copy its folder and run `tv update-artifact --id <id> --path <copy>`; its store stays. Never edit an installed template for a request about one artifact. When asked to change a template, explain that every artifact linked to it receives the change. The [template guidance](./templates.md) covers caller-supplied starting data, manifest `dataSchema`, icons, and compatible template changes.
+With `create-artifact --template`, folder templates link to their installed page files by default. Each artifact has a separate store. URL templates create URL artifacts without stores. Link when only data needs changing.
+
+`templates list` returns only `id`, `name`, `description`, and optional `url`; `url` identifies a URL template. Read `templates show <id>` for the installed folder `path`, version, and optional display options, icons, or `dataSchema` before editing or preparing data. Both commands always scan again; app cache fields such as `hasIcon` are omitted.
+
+Add `--copy` when creating an artifact that needs changes to its own page files. For an existing linked artifact, copy its folder and run `tv update-artifact --id <id> --path <copy>`; its store stays. Never edit an installed template for a request about one artifact. When asked to change a template, explain that every artifact linked to it receives the change. The [template guidance](./templates.md) covers caller-supplied starting data, manifest `dataSchema`, icons, and compatible template changes.
 
 ### Server operation notes
 

@@ -31,7 +31,7 @@ URL templates accept neither data options nor `--copy`, and cannot declare `data
 
 ## Author a template
 
-Put each template in a separate folder directly inside the directory from `tv templates path`. Follow the Artifact workflow naming guidance in `SKILL.md`; the folder name is the exact template ID. Required manifest fields are non-empty `name` and `description` strings and a Semantic Version `version` string. The Toolbox lists names and icons and searches names; descriptions remain required for agents. The manifest name is also the default artifact title.
+Put each template in a separate folder directly inside the directory from `tv templates path`. Follow the Artifact workflow naming guidance in `SKILL.md`; the folder name is the exact template ID. Required fields in `manifest.json` are non-empty `name` and `description` strings and a Semantic Version `version` string. The Toolbox lists names and icons and searches names; descriptions remain required for agents. The manifest name is also the default artifact title.
 
 For a folder template, include a readable root `index.html` and any supporting files. This is an HTML artifact page, so follow the Artifact workflow and HTML artifact style sections of `SKILL.md`. Alternatively, manifest `url` supplies an absolute HTTP or HTTPS address: `index.html` is then unnecessary. Use the field `url`, not Web App Manifest `start_url`.
 
@@ -71,4 +71,4 @@ Treat a missing store value as the empty state and render defaults for missing f
 
 When changing a linked template, the new schema must accept every value the previous schema accepted, and the page must still render those values. Existing artifacts keep their data while receiving the changed files. Adding an optional field can still break compatibility if the old schema accepted values that the new field constraints reject. Compatibility is an authoring responsibility; Television neither compares schema versions nor migrates stores.
 
-Television preserves a valid installed bundled template at or above its minimum version on later boots, even when the bundled source has a newer version. An invalid or older folder is backed up and replaced at the same path. An interrupted replacement can leave that path absent until the next serving boot restores it. Detecting local changes is deferred. Run `tv templates list` after editing to check validity. Deleting or moving an installed folder breaks its linked artifacts; their records and stores remain.
+Television preserves a valid installed bundled template at or above its minimum version on later boots, even when the bundled source has a newer version. An invalid or older folder is backed up and replaced at the same path. An interrupted replacement can leave that path absent until the next serving boot restores it. Run `tv templates list` after editing to check validity. Deleting or moving an installed folder breaks its linked artifacts; their records and stores remain.
