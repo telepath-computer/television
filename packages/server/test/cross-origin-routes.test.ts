@@ -63,6 +63,9 @@ async function start(): Promise<Running> {
   write(artifactDir, "page.html", "<!doctype html><title>artifact</title>");
 
   const storagePath = tempDir("television-cors-home-");
+  write(storagePath, "templates/icon/manifest.json", JSON.stringify({ name: "Icon", description: "Page", version: "1.0.0", icons: [{ src: "icon.svg" }] }));
+  write(storagePath, "templates/icon/index.html", "<title>Page</title>");
+  write(storagePath, "templates/icon/icon.svg", "<svg/>");
   const store = createServingStore(storagePath, { bundledViewsPath: viewsDir });
   const server = new Server({
     store,
@@ -149,6 +152,7 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
     }
   });
 
+  // proofs/arch/artifact-frame/isolation.md#^iso-t-template-icons
   it("sends no CORS header and grants no preflight on the token routes", async () => {
     const running = await start();
     const tokenRoutes: Array<[string, string]> = [
@@ -158,7 +162,7 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
       ["GET", `/artifacts/${running.artifactID}`],
       ["GET", "/templates"],
       ["POST", "/templates/artifacts"],
-      ["GET", "/templates/missing/thumbnail.png"],
+      ["GET", "/templates/icon/icon"],
       ["GET", "/display"],
       ["POST", "/display/focus"],
       ["GET", "/themes"],
@@ -174,6 +178,7 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
       for (const [method, route] of tokenRoutes) {
         const label = `${method} ${route} ${origin}`;
         const withToken = await send(running, method, route, { Origin: origin, Authorization: `Bearer ${running.token}` });
+        if (route === "/templates/icon/icon") expect(withToken.status).toBe(200);
         expect(corsHeaders(withToken), `${label} with the token`).toEqual({});
         const withoutToken = await send(running, method, route, { Origin: origin });
         expect(withoutToken.status, `${label} without the token`).toBe(401);

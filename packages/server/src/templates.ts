@@ -1,6 +1,9 @@
 import {
   accessSync,
   constants,
+  closeSync,
+  openSync,
+  readSync,
   lstatSync,
   readFileSync,
   readlinkSync,
@@ -14,12 +17,19 @@ import path from "node:path";
 import { randomInt } from "node:crypto";
 import { isExternalArtifactURL } from "@telepath-computer/television-artifact";
 import { compileTemplateSchema, templateSchemaHint } from "./template-schema.ts";
-import type { ArtifactDisplayOptions, AppTemplate, ArtifactTemplateScan, JSONSchema } from "@telepath-computer/television-shared";
+import type { ArtifactDisplayOptions, AppTemplate, ArtifactTemplateIcon, ArtifactTemplateScan, JSONSchema } from "@telepath-computer/television-shared";
 import { isSemanticVersion } from "./themes.ts";
 
 const MAX_SLUG_LENGTH = 60;
 const SUFFIX_RADIX = 36;
 const SUFFIX_LENGTH = 5;
+const ICON_TARGET_SIZE = 40;
+const ICON_RANK = { scalable: 0, sufficient: 1, undersized: 2, unsized: 3 } as const;
+const PNG_HEADER_LENGTH = 24;
+const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+const PNG_CHUNK_TYPE_OFFSET = 12;
+const PNG_WIDTH_OFFSET = 16;
+const PNG_HEIGHT_OFFSET = 20;
 
 export function getTemplatesDir(storagePath: string): string {
   return path.join(storagePath, "templates");
@@ -80,14 +90,76 @@ function readableFile(filename: string): boolean {
   }
 }
 
-export function readableTemplateThumbnail(folder: string): string | null {
+type IconType = "image/svg+xml" | "image/png";
+
+function iconPath(folder: string, src: string): string | undefined {
+  if (!src || path.isAbsolute(src) || /^[a-z][a-z0-9+.-]*:/i.test(src)) return;
   try {
-    const root = realpathSync(folder);
-    const image = realpathSync(path.join(folder, "thumbnail.png"));
-    return isContainedPath(root, image) && readableFile(image) ? image : null;
-  } catch {
-    return null;
+    const file = realpathSync(path.resolve(folder, src));
+    if (isContainedPath(realpathSync(folder), file) && readableFile(file)) return file;
+  } catch { /* Missing icons are optional. */ }
+}
+
+function usableIcons(folder: string, input: unknown): ArtifactTemplateIcon[] {
+  if (!Array.isArray(input)) return [];
+  const icons: ArtifactTemplateIcon[] = [];
+  for (const candidate of input as unknown[]) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const entry = candidate as Record<string, unknown>;
+    if (typeof entry.src !== "string" || !iconPath(folder, entry.src)) continue;
+    let type = typeof entry.type === "string" ? entry.type.trim() : "";
+    if (!type) {
+      const extension = path.extname(entry.src).toLowerCase();
+      type = extension === ".svg" ? "image/svg+xml" : extension === ".png" ? "image/png" : "";
+    }
+    if (type !== "image/svg+xml" && type !== "image/png") continue;
+    const purpose = typeof entry.purpose === "string" ? entry.purpose.trim() : undefined;
+    if (purpose !== undefined && !purpose.split(/\s+/).includes("any")) continue;
+    const sizes = typeof entry.sizes === "string" ? entry.sizes.split(/\s+/).filter((size: string) =>
+      size === "any" || /^[1-9]\d*x[1-9]\d*$/.test(size)).join(" ") : "";
+    icons.push({ src: entry.src, type, ...(sizes ? { sizes } : {}), ...(purpose !== undefined ? { purpose } : {}) });
   }
+  return icons;
+}
+
+function pngSize(file: string): number | undefined {
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(file, "r");
+    const bytes = Buffer.alloc(PNG_HEADER_LENGTH);
+    const length = readSync(descriptor, bytes, 0, bytes.length, 0);
+    if (length === PNG_HEADER_LENGTH && bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE) &&
+        bytes.toString("ascii", PNG_CHUNK_TYPE_OFFSET, PNG_WIDTH_OFFSET) === "IHDR") {
+      const size = Math.min(bytes.readUInt32BE(PNG_WIDTH_OFFSET), bytes.readUInt32BE(PNG_HEIGHT_OFFSET));
+      if (size > 0) return size;
+    }
+  } catch { /* A disappearing image is ranked as unsized. */ }
+  finally { if (descriptor !== undefined) closeSync(descriptor); }
+}
+
+/** Select a readable local icon, checking containment again at delivery. */
+export function selectTemplateIcon(template: Pick<AppTemplate, "path" | "icons">): { path: string; contentType: IconType } | undefined {
+  let selected: { path: string; contentType: IconType } | undefined;
+  let bestRank: [number, number] = [Infinity, Infinity];
+  for (const icon of usableIcons(template.path, template.icons)) {
+    const file = iconPath(template.path, icon.src);
+    if (!file) continue;
+    const sizes = icon.sizes?.split(" ") ?? [];
+    let rank: [number, number];
+    if (icon.type === "image/svg+xml" || sizes.includes("any")) rank = [ICON_RANK.scalable, 0];
+    else {
+      const dimensions = sizes.map((size) => Math.min(...size.split("x").map(Number)));
+      const sufficient = dimensions.filter((size) => size >= ICON_TARGET_SIZE);
+      const size = sufficient.length ? Math.min(...sufficient) : dimensions.length ? Math.max(...dimensions) : pngSize(file);
+      // Sufficient PNGs rank first, then undersized PNGs, then unreadable sizes.
+      rank = size === undefined ? [ICON_RANK.unsized, 0] : size >= ICON_TARGET_SIZE ? [ICON_RANK.sufficient, size] : [ICON_RANK.undersized, -size];
+    }
+    if (!selected || rank[0] < bestRank[0] || (rank[0] === bestRank[0] && rank[1] < bestRank[1])) {
+      selected = { path: file, contentType: icon.type as IconType };
+      bestRank = rank;
+    }
+  }
+  return selected;
 }
 
 export function validateTemplatePackage(folder: string, id: string): { template?: AppTemplate; errors: string[] } {
@@ -159,6 +231,7 @@ export function validateTemplatePackage(folder: string, id: string): { template?
     }
   }
 
+  const icons = usableIcons(folder, manifest?.icons);
   return errors.length === 0 && manifest !== undefined
     ? { template: {
         id,
@@ -168,7 +241,8 @@ export function validateTemplatePackage(folder: string, id: string): { template?
         ...(display !== undefined ? { display } : {}),
         ...(url !== undefined ? { url } : {}),
         ...(dataSchema !== undefined ? { dataSchema } : {}),
-        hasIcon: false,
+        ...(icons.length ? { icons } : {}),
+        hasIcon: icons.length > 0,
         path: folder,
       }, errors: [] }
     : { errors };

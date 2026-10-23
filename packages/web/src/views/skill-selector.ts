@@ -15,20 +15,20 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
   #panel: HTMLElement | null = null;
   #observer: MutationObserver | null = null;
   #open = false;
-  #sequence = 0;
-  #scan: ArtifactTemplateScan = { templates: [], errors: [], watching: false };
+  get #scan(): ArtifactTemplateScan {
+    return this.#connection?.templates.scan ?? { templates: [], errors: [], watching: false };
+  }
   #query = "";
   #highlighted: number | null = null;
   #pressed: number | null = null;
   #creating = false;
-  readonly #images = new Map<string, string>();
 
   disconnected(): void {
     this.#observer?.disconnect();
     this.#observer = null;
     this.#panel = null;
-    this.#sequence++;
-    this.#releaseImages();
+    this.#connection?.templates.removeEventListener("change", this.#cacheChanged);
+    this.#connection?.templates.setOpen(false);
     this.#application = null;
     this.#connection = null;
   }
@@ -43,51 +43,22 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
       const open = this.#panel?.hasAttribute("open") ?? false;
       if (open === this.#open) return;
       this.#open = open;
-      if (open) void this.#load();
-      else {
-        this.#sequence++;
-        this.#releaseImages();
-      }
+      this.#connection?.templates.setOpen(open);
+      if (open) this.#onOpen();
     });
     this.#observer.observe(this.#panel, { attributes: true, attributeFilter: ["open"] });
   };
 
-  #releaseImages(): void {
-    for (const url of this.#images.values()) URL.revokeObjectURL(url);
-    this.#images.clear();
-  }
+  readonly #cacheChanged = (): void => {
+    this.render();
+  };
 
-  async #load(): Promise<void> {
-    const sequence = ++this.#sequence;
-    this.#releaseImages();
-    this.#scan = { templates: [], errors: [], watching: false };
+  #onOpen(): void {
     this.#query = "";
     this.#highlighted = null;
     this.#pressed = null;
     this.render();
     queueMicrotask(() => this.#panel?.querySelector<HTMLInputElement>(".templates-search input")?.focus());
-    const templates = this.#connection?.client.templates;
-    if (!templates) return;
-    try {
-      const scan = await templates.list();
-      if (sequence !== this.#sequence) return;
-      this.#scan = scan;
-      this.#highlighted = this.#query && this.#matches().length ? 0 : null;
-      this.render();
-      for (const entry of scan.templates) {
-        if (!entry.hasIcon) continue;
-        void templates.thumbnail(entry.id).then((bytes) => {
-          if (sequence !== this.#sequence) return;
-          const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes)], { type: "image/png" }));
-          this.#images.set(entry.id, url);
-          this.render();
-        }).catch(() => {});
-      }
-    } catch (error) {
-      if (sequence !== this.#sequence) return;
-      this.#scan = { templates: [], errors: [{ folder: null, error: String(error) }], watching: false };
-      this.render();
-    }
   }
 
   #matches(): AppTemplate[] {
@@ -174,7 +145,14 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
 
   template(application: ApplicationService, connection?: ServerConnection): TemplateResult {
     this.#application = application;
-    this.#connection = connection ?? null;
+    if (this.#connection !== (connection ?? null)) {
+      this.#connection?.templates.removeEventListener("change", this.#cacheChanged);
+      this.#connection?.templates.setOpen(false);
+      this.#connection = connection ?? null;
+      this.#connection?.templates.addEventListener("change", this.#cacheChanged);
+      this.#connection?.templates.setOpen(this.#open);
+    }
+    const images = this.#connection?.templates.icons;
     const folderError = this.#scan.errors.find(({ folder }) => folder === null)?.error ?? null;
     const invalid = this.#scan.errors.filter(({ folder }) => folder !== null);
     const matches = this.#matches();
@@ -196,7 +174,7 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
             .value=${this.#query} @input=${this.#input} @keydown=${this.#keydown}>
         </label>
         <div class="templates-body">
-          ${folderError !== null ? html`
+          ${this.#connection?.templates.scan == null ? nothing : folderError !== null ? html`
             <div class="templates-folder-error"><tv-icon name="warning"></tv-icon><span class="template-invalid-text"><span class="template-invalid-folder">Television couldn't read the templates folder.</span><span>${folderError}</span></span></div>
           ` : showGrid ? html`
             <ul class="templates-grid" id="templates-grid" role="listbox" aria-label="Templates">
@@ -205,8 +183,8 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
                   ?data-highlighted=${index === this.#highlighted} ?data-pressed=${index === this.#pressed}
                   @pointermove=${this.#pointerMove} @pointerdown=${this.#pointerDown}
                   @pointerleave=${this.#clearPressed} @click=${this.#click}>
-                  <span class="template-tile-card">${this.#images.has(entry.id)
-                    ? html`<img src=${this.#images.get(entry.id)!} alt="" draggable="false">`
+                  <span class="template-tile-card">${images?.has(entry.id)
+                    ? html`<img src=${images!.get(entry.id)!} alt="" draggable="false">`
                     : html`<tv-icon name="artifact"></tv-icon>`}</span>
                   <span class="template-tile-name">${entry.name}</span>
                 </li>

@@ -315,6 +315,7 @@ export interface Channel {
 }
 
 export type ServerEvent =
+  | { type: "templates-changed"; scan: ArtifactTemplateScan; invalidatedIDs: string[] }
   | {
       // Artifact identity came into existence on the owning channel.
       // The full `artifact` payload is included so clients can render the new

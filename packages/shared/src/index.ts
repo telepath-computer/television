@@ -71,6 +71,7 @@ export {
   PinnedChannelsChangedEvent,
   ServerEventMessageEvent,
   ThemeChangedEvent,
+  TemplatesChangedEvent,
   type StoreDomainEvent,
 } from "./events.ts";
 export {
@@ -93,7 +94,7 @@ export {
   type ToolCallMessage,
   type UserMessage,
 } from "./acp-types.ts";
-export { TelevisionClient } from "./client.ts";
+export { type TemplateClient, TelevisionClient } from "./client.ts";
 export { buildConnectURL, parseConnectURL } from "./connect-url.ts";
 export {
   DEV_VERSION,

@@ -15,6 +15,7 @@ import {
   ChannelRemovedEvent,
   ChannelUpdatedEvent,
   ThemeChangedEvent,
+  TemplatesChangedEvent,
   type ArtifactRemovalResult,
   type MoveArtifactResult,
   type ArtifactPlacement,
@@ -107,6 +108,7 @@ import {
 } from "./bundled-theme-installer.ts";
 import { artifactRealLocation } from "./artifact-location.ts";
 import { randomTemplateSuffix, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
+import { TemplateCache } from "./template-cache.ts";
 import { getTemplatesDir } from "./templates.ts";
 import { validateTemplateData } from "./template-schema.ts";
 import { runBundledTemplateInstallation, type BundledTemplateStateOperations } from "./bundled-template-installer.ts";
@@ -253,6 +255,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   readonly storagePath: string;
   readonly authToken: string;
   readonly dataDirCreated: boolean;
+  readonly templateCache?: TemplateCache;
   /** The resource layer (specs/arch/resources/index.md#^rs-bootstrap); loaded only by a serving boot. */
   readonly resources: ResourceLayer;
   private readonly channels = new Map<string, Channel>();
@@ -397,6 +400,9 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       options.bundledTemplateStateOperations,
     );
     this.refreshThemeRegistry();
+    this.templateCache = new TemplateCache(getTemplatesDir(this.storagePath), (scan, invalidatedIDs) => {
+      this.dispatchEvent(new TemplatesChangedEvent("templates-changed", { scan, invalidatedIDs }));
+    }, { watch: this.watchContentFile });
     if (!this.loadDisplayState()) {
       this.initializeDisplayState();
     } else if (this.getFocusedChannelId() === null) {
@@ -409,8 +415,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     if (noContentAtBoot && onboarding.focusChannelID !== undefined && this.channels.has(onboarding.focusChannelID)) {
       this.patchDisplay({ focusedChannelId: onboarding.focusChannelID });
     }
-    // Watchers start last (specs/arch/onboarding/installer.md#^bootstrap-sequence
-    // step 8). Restarting an installer-created artifact's watcher is idempotent.
+    // Ordinary artifact/theme watchers start in bootstrap step 8. Template
+    // observation already started with its cache in step 6.
     for (const artifact of this._artifacts.values()) {
       this.startWatchingArtifactContent(artifact);
     }
@@ -1154,6 +1160,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   dispose(): void {
+    this.templateCache?.dispose();
     this.stopAllContentWatchers();
     this.stopWatchingActiveTheme();
   }

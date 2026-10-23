@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { scanTemplatesDirectory } from "../src/templates.ts";
+import { scanTemplatesDirectory, selectTemplateIcon } from "../src/templates.ts";
 
 const homes: string[] = [];
 
@@ -199,4 +199,74 @@ describe("artifact template scanner", () => {
       templates: [], errors: [{ folder: null, error: expect.stringContaining("templates directory") }], watching: false,
     });
   });
+
+  // proofs/arch/templates/index.md#^templates-t-icons
+  it("ignores unusable icons without invalidating the package and preserves usable manifest order", () => {
+    const root = home();
+    const folder = template(root, "icons");
+    writeFileSync(path.join(folder, "image.SVG"), "<svg/>");
+    writeFileSync(path.join(folder, "image.png"), "broken bytes still select a local file");
+    writeFileSync(path.join(root, "outside.svg"), "<svg/>");
+    symlinkSync(path.join(root, "outside.svg"), path.join(folder, "escape.svg"));
+    symlinkSync("image.SVG", path.join(folder, "inside.svg"));
+    symlinkSync("missing.svg", path.join(folder, "missing.svg"));
+    const icons = [
+      null, {}, { src: "" }, { src: "https://example.com/icon.svg" }, { src: "/image.svg" },
+      { src: "../outside.svg" }, { src: "escape.svg" }, { src: "missing.svg" },
+      { src: "image.SVG", type: "image/jpeg" }, { src: "image.SVG", purpose: "maskable monochrome" },
+      { src: "image.SVG", type: 4, sizes: "nonsense 0x40 40x-1 40x40", extra: "ignored" },
+      { src: "inside.svg", purpose: "maskable any", sizes: "any" },
+      { src: "image.png", type: "", purpose: "any", sizes: "invalid" },
+    ];
+    const writeIcons = (value: unknown) => writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({
+      name: "Icons", description: "Page", version: "1.0.0", icons: value,
+    }));
+    writeIcons(icons);
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.errors).toEqual([]);
+    expect(scan.templates[0]).toMatchObject({ hasIcon: true, icons: [
+      { src: "image.SVG", type: "image/svg+xml", sizes: "40x40" },
+      { src: "inside.svg", type: "image/svg+xml", purpose: "maskable any", sizes: "any" },
+      { src: "image.png", type: "image/png", purpose: "any" },
+    ] });
+    for (const absent of [null, {}, "image.svg", [], [{ src: "escape.svg" }]]) {
+      writeIcons(absent);
+      const record = scanTemplatesDirectory(root).templates[0];
+      expect(record).toMatchObject({ hasIcon: false });
+      expect(record).not.toHaveProperty("icons");
+    }
+  });
+
+  it.each([
+    ["SVG before sized PNG", [{ src: "large.png", sizes: "40x40" }, { src: "vector.svg" }], "vector.svg"],
+    ["any and SVG tie in manifest order", [{ src: "large.png", sizes: "any" }, { src: "vector.svg" }], "large.png"],
+    ["smallest sufficient shorter dimension", [{ src: "large.png", sizes: "100x60" }, { src: "small.png", sizes: "40x80" }], "small.png"],
+    ["both axes meet target", [{ src: "small.png", sizes: "80x20" }, { src: "large.png", sizes: "45x40" }], "large.png"],
+    ["largest undersized", [{ src: "small.png", sizes: "20x30" }, { src: "large.png", sizes: "39x100" }], "large.png"],
+    ["best of multiple declared sizes", [{ src: "large.png", sizes: "16x16 48x48 128x128" }, { src: "small.png", sizes: "64x64" }], "large.png"],
+    ["read dimensions when hints are absent", [{ src: "large.png" }, { src: "small.png", sizes: "invalid" }], "small.png"],
+    ["unsized after sized", [{ src: "broken.png" }, { src: "small.png", sizes: "16x16" }], "small.png"],
+    ["unsized still selects", [{ src: "broken.png" }], "broken.png"],
+    ["ties use manifest order", [{ src: "large.png", sizes: "40x40" }, { src: "small.png", sizes: "40x40" }], "large.png"],
+    ["supported type hint without extension", [{ src: "untyped", type: "image/svg+xml" }], "untyped"],
+  ])("selects icons by %s", (_case, icons, expected) => {
+    const root = home();
+    const folder = template(root, "icons", { name: "Icons", description: "Page", version: "1.0.0", url: "https://example.com", icons });
+    // Only PNG metadata is read here; browser decoding has its own seam.
+    for (const [file, size] of [["small.png", 48], ["large.png", 96]] as const) {
+      const png = Buffer.alloc(24);
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(png);
+      png.write("IHDR", 12);
+      png.writeUInt32BE(size, 16);
+      png.writeUInt32BE(size, 20);
+      writeFileSync(path.join(folder, file), png);
+    }
+    writeFileSync(path.join(folder, "broken.png"), "broken");
+    writeFileSync(path.join(folder, "vector.svg"), "<svg/>");
+    writeFileSync(path.join(folder, "untyped"), "<svg/>");
+    const record = scanTemplatesDirectory(root).templates[0]!;
+    expect(record.hasIcon).toBe(true);
+    expect(selectTemplateIcon(record)?.path).toBe(path.join(folder, expected as string));
+  });
+
 });

@@ -19,7 +19,7 @@ Working record for `feat/linked-templates`, branched from `feat/artifact-templat
 | Proof derivation | Complete for all 26 affected product, architecture and UI specs at `bf195c7`; 61 assertions remain `(test to be written)`; no ambiguous expected results found |
 | Proof convergence | Done: round 1 FAIL, round 2 FAIL, round 3 PASS with one generated-count fix applied |
 | Plan | Done: four slices; plan review round 1 PASS with no findings |
-| Implementation, red/green TDD | Slice 1 complete, including Ajv-only rework and metaschema isolation fix; slices 2–4 not started |
+| Implementation, red/green TDD | Slices 1–2 implemented; slice 2 reconnect review blocker fixed and validated, awaiting independent re-review; slices 3–4 not started |
 | Integrated result and full verification | Not started |
 | Pull request | Not opened |
 
@@ -244,3 +244,98 @@ Each test timestamp identifies its `.test-runs/2026-10-23T<timestamp>-*/summary.
 Independent re-review in a fresh Codex process, GPT-6 Astra at `xhigh`, resumed reviewer thread `01a165e4-fd41-7200-91c0-659121f94ea3` and returned **PASS: the metaschema-isolation blocker is closed, with no new defect found**. The read-only review checked the fix and existing red/green reports; it ran no additional tests. Report: `scratch/codex/slice1-review/last-message-metaschema-isolation.txt`.
 
 Slice 1 remains complete. The later-slice baseline and two MDX mirror failures are unchanged and were not rerun. No commit, push, full verification, package installation or host CLI installation was performed.
+
+
+### Slice 2 implementation — October 23, 2026
+
+**Implementation and slice validation complete; supervisor review pending.** Work stayed on `feat/linked-templates`, based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. No commit or push was made.
+
+Implemented local SVG/PNG icon validation and deterministic selection, authenticated exact-ID icon bytes with content type and `no-store`, and delivery-time containment checks. Retired the thumbnail route/client and replaced its route test. When observation is unavailable, icon requests validate directly without changing the scan cache or publishing events.
+
+The serving store starts its template cache after bundled handling in step 6, before display initialization and ordinary artifact/theme watchers. Token-only construction starts neither scan nor observation. The cache uses the shared recursive watcher, debounces changes, publishes full scans and invalidated IDs, handles warning/fallback/recovery, and closes observation on disposal. Synchronous scans preserve read/publication order; fresh CLI/create reads use that same cache and cancel queued debounce work. Stale callbacks from replaced watchers are ignored.
+
+Each `ServerConnection` owns its list and icon Blob URLs while the popover is closed. Startup/reconnect loading follows subscription and the desktop boot barrier. Full loads and pushes invalidate icons, stale responses are ignored, failed loads retry on opening, and watcher failure refreshes on opening or once when learned while open. The current popover consumes this cache, preserves prior rows during refresh, and leaves its body blank before the first scan. Its visual and interaction redesign remains in slice 3.
+
+Added scanner icon tables; server/client cache contracts; native filesystem-to-WebSocket, authenticated HTTP and real-browser seams; watcher fallback acceptance; boot-order/token-only checks; and icon CORS coverage. Extended server-connection tests for event-before-load ordering and desktop-barrier preservation. Existing artifact/theme watcher fixtures distinguish template observation without changing their retained claims. Tests use only the proof-declared controlled peers, transport timing/abort, watcher-failure and CSS-motion hooks. No dependencies were added.
+
+All **12 slice 2 proof placeholders** now cite real tests: eight in template architecture, two in onboarding, one in shared watcher integration and one in isolation. The retired thumbnail proof points to its icon replacement. Nineteen linked-template/Toolbox placeholders remain for slices 3–4; the unrelated daemon-unit placeholder also remains. No spec or Storybook specification changed, and no spec/proof ambiguity required a decision.
+
+#### Validation tree and results
+
+Every command below ran in `/root/workspace/dev/television/feat/linked-templates` on the evolving **uncommitted** tree based on `4ede94e`. The runner reports HEAD tree `b6494070c7dac1332ec526887b45ef534d9aee3e` with `dirty: true`; that is not a snapshot of the edits. Intermediate dirty trees were not retained. The final source/test/proof snapshot, excluding this task record, is SHA-256 `dd6019148f03f2b1c7dfa642cd2b9335069be97306096f9be76d59a534bfb42f`; its per-file manifest is in ignored `scratch/linked-templates-slice2-tree.json`.
+
+The final owning run at 04:57:36 passed **1,148 server tests, 67 shared tests and 579 browser-app tests** (1,794 total). It has two retained skips: the server privileged-port permission case unavailable on this host, and the pre-existing ACP fake-server disconnect case. After that run, production changes only named the icon/debounce constants and replaced the popover's copied scan field with a getter; test changes strengthened bootstrap scan observation and awaited both delayed browser responses through completion. The final 77-case server selection, three browser journeys, eight freshly packaged CLI template cases, type-check and lint cover those closing changes. The source/test/proof tree was unchanged after the final checks.
+
+Times below are UTC. Each timestamp locates `.test-runs/2026-10-23T<timestamp>-*/summary.json`; the full report names every case. The combined-surface command is preserved in its invoked order. Filtered cases are reported by Vitest as pending alongside actual skips.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 04:38:12 | `npm test -- local --file packages/server/test/templates-scanner.test.ts --grep 'icons'` | 0 passed, 12 failed, 29 skipped/filtered |
+| 04:38:44 | `npm test -- local --file packages/server/test/templates-scanner.test.ts --grep 'icons'` | 12 passed, 0 failed, 29 skipped/filtered |
+| 04:39:43 | `npm test -- local --file packages/server/test/templates-cache.test.ts` | module-load failure: cache module not yet implemented |
+| 04:40:30 | `npm test -- local --file packages/server/test/templates-routes.test.ts` | 2 passed, 3 failed |
+| 04:41:28 | `npm test -- local --file packages/server/test/templates-cache.test.ts` | 4 passed, 0 failed |
+| 04:41:42 | `npm test -- local --file packages/server/test/templates-routes.test.ts` | 0 passed, 5 failed |
+| 04:42:17 | `npm test -- local --file packages/server/test/templates-routes.test.ts` | 4 passed, 1 failed |
+| 04:43:18 | `npm test -- local --file packages/web/test/template-cache.test.ts` | module-load failure: cache module not yet implemented |
+| 04:44:10 | `npm test -- local --file packages/web/test/template-cache.test.ts` | 4 passed, 0 failed |
+| 04:44:29 | `npm test -- local --file packages/web/test/server-connection.test.ts --grep 'subscribes to template'` | 0 passed, 1 failed, 34 skipped/filtered |
+| 04:44:51 | `npm test -- local --file packages/web/test/server-connection.test.ts --grep 'subscribes to template'` | 1 passed, 0 failed, 34 skipped/filtered |
+| 04:46:23 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --grep 'preloads authenticated'` | 1 failed |
+| 04:47:35 | `npm test -- local --file packages/server/test/onboarding-installer.test.ts --grep 'watchers\|template cache'` | 2 passed, 1 failed, 47 skipped/filtered |
+| 04:47:35 | `npm test -- local --file packages/server/test/templates-routes.test.ts` | 6 passed, 0 failed |
+| 04:49:02 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --grep 'preloads authenticated'` | 1 passed after one recovered timeout |
+| 04:49:19 | `npm test -- local --file packages/server/test/cross-origin-routes.test.ts --grep 'token routes'` | 1 passed, 0 failed, 3 skipped/filtered |
+| 04:49:20 | `npm test -- local --file packages/server/test/onboarding-installer.test.ts --grep 'watchers\|template cache'` | 3 passed, 0 failed, 47 skipped/filtered |
+| 04:53:19 | `npm test -- local --file packages/server/test/templates-cache.test.ts --grep 'failed watcher'` | 0 passed, 1 failed, 4 skipped/filtered |
+| 04:53:23 | `npm test -- local --file packages/web/test/server-connection.test.ts --grep 'template loading behind'` | 0 passed, 1 failed, 35 skipped/filtered |
+| 04:53:25 | `npm test -- local --file packages/server/test/server-store-file-watcher.test.ts --grep 'handoff\|owners before\|watcher error\|stale callbacks'` | 0 passed, 4 failed, 13 skipped/filtered |
+| 04:54:40 | `npm test -- local --file packages/server/test/server-store-file-watcher.test.ts` | 17 passed, 0 failed |
+| 04:54:40 | `npm test -- local --file packages/server/test/templates-cache.test.ts` | 5 passed, 0 failed |
+| 04:54:40 | `npm test -- local --file packages/web/test/server-connection.test.ts` | 36 passed, 0 failed |
+| 04:55:56 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed; retries disabled |
+| 04:57:36 | `npm test -- local --surface unit:server,unit:shared,unit:browser-app` | 1794 passed, 0 failed, 2 skipped/filtered |
+| 05:02:23 | `npm test -- local --surface unit:server --grep 'artifact template\|watched template cache\|template cache\|token-only\|token routes'` | 77 passed, 0 failed, 1072 skipped/filtered |
+| 05:02:23 | `npm test -- local --file test/repo/spec-links.test.ts` | 6 passed, 2 failed |
+| 05:03:32 | `npm test -- local --file packages/web/test/e2e/template-cache.test.ts --retries 0` | 3 passed; retries disabled |
+| 05:03:32 | `npm test -- local --file test/node/cli-acceptance.test.ts --grep 'template'` | 8 passed, 0 failed, 38 skipped/filtered |
+
+The first icon and route runs failed on the intended missing behavior. The first cache-file runs failed to import the not-yet-created cache modules; they are module-load reds, not behavioral evidence. The connection and popover reds then exercised the absent wiring. Intermediate route failures exposed a missing shared-event export and a repeated false-status publication during fallback reads; both were fixed. The first bootstrap check used the wrong bundled-fixture path; correcting it made the real installer/cache observation pass.
+
+The lifecycle regression reds reproduced callbacks from a failed watcher affecting its replacement and icon requests crossing a halted desktop boot barrier. Both were repaired before their full files passed. The four ordinary-watcher failures came from fixtures counting the additional template watcher; those fixtures now identify their own artifact/theme consumers and retain their prior assertions.
+
+One browser run (04:49:02) recovered on retry after the first attempt exhausted its 30-second test timeout during reconnect. The missed-edit setup now performs mutation and cache publication synchronously while sockets are closed, and the journey has a 90-second overall budget for cold startup and reconnect on a busy host. Both subsequent complete browser runs passed all three journeys with retries disabled, including the final run after explicit delayed-response completion checks. No final run relied on retry recovery. Firefox was unavailable; browser evidence is Chromium.
+
+All **29 canonical runs** recorded zero process leaks and zero infrastructure failures. The recovered browser timeout above is the sole recovered flake. The final `spec-links` result preserves the planned baseline exactly: six checks pass, and only “the proof tree mirrors every proof-bearing spec and has no orphan” and “every proof declares its exact mirrored spec” fail on the MDX/Markdown Toolbox pair. Links, block references and test-code citations pass.
+
+Additional commands:
+
+- `npm run type-check`: the first run (during integration) failed on erasable-syntax parameter properties, a private-store test access, the missing shared `TemplateClient` type export, and the not-yet-replaced popover thumbnail call. The second failed on an overly narrow icon mock return type. Both were corrected; the final run passed on the final source/test tree.
+- `git ls-files -m -o --exclude-standard -- '*.ts' | xargs npx eslint --max-warnings=0`: first failed on 17 unnamed numeric constants in PNG parsing/ranking and debounce; the final run passed after naming them without changing their values.
+- `git diff --check`: passed during implementation and after the final task-record edit.
+- Browser runner precommands built the web app, artifact documents, canonical assets and SDK. The CLI acceptance runner's `node scripts/licenses/build-suite.mjs` built and checked the packaged CLI/server/web/assets, skills and desktop output. These were canonical-runner prerequisites, not host installs.
+
+**Remaining baseline:** Toolbox appearance, interaction, messages, icon fallback presentation, MDX mirroring/index generation and theming-reference work belong to slice 3; bundled replacement recovery and delivered guidance belong to slice 4. Their obsolete UI/guidance tests were not treated as slice 2 obligations. There is no remaining thumbnail-route obligation or new unassigned failure. Full `npm run verify` remains for the supervisor on a committed, pushed revision. No host CLI installation/link, host-home server execution, dependency installation or large ad hoc temporary directory was used. Test-created homes were removed, including two empty ACP homes left when the final server selector filtered out their teardown; the owning suite’s cached temporary web bundle was also removed. Canonical reports and the small ignored validation manifest remain as evidence.
+
+
+### Slice 2 reconnect review fix — October 23, 2026
+
+Independent review returned **FAIL**: reconnect retained icon bytes when a partial push superseded the full list response. The push refreshed its named IDs, but icons changed during the outage could remain stale indefinitely. This finding superseded the preceding implementation-complete handoff.
+
+Added the combined regression before changing production code: preload `one` and `two`, reset, delay the reconnect list, apply a current scan invalidating only `one`, then complete the list and open the popover. The red run reproduced `two-old` where `two-new` was required. Reset now revokes and removes all cached icons, so either the full response or a superseding partial push reloads them. The previous list remains available. Disposal reuses this cleanup instead of repeating it. The `^templates-t-app-cache` proof now cites the new regression.
+
+#### Validation
+
+All commands ran in `/root/workspace/dev/television/feat/linked-templates`, on the uncommitted `feat/linked-templates` tree based on `4ede94e0f534565ccfc193ee28de0334063e33e8`. The red tree contains only the added regression beyond the previous handoff; its snapshot is SHA-256 `8b0a8ea97d24e6ac971215e40dcb56acdb298f21c6011b22efe057677af2107a` in `scratch/linked-templates-reconnect-red-tree.json`. The final source/test/proof snapshot is SHA-256 `2b6e0cd9de42bea5cb90d8e501b97a801d68590fa9bafe09de1945f10765886f` in `scratch/linked-templates-reconnect-final-tree.json`. Both exclude this task record. The green cache-file run used the final source/test tree before adding the proof citation; the owning suite and static checks used the final snapshot. No source, test or proof changed afterward.
+
+| UTC start | Exact command | Result |
+|---|---|---|
+| 05:19:23 | `npm test -- local --file packages/web/test/template-cache.test.ts --grep 'partial push'` | Expected red: 1 failed, 4 filtered; `two-old` instead of `two-new` |
+| 05:19:48 | `npm test -- local --file packages/web/test/template-cache.test.ts` | 5 passed |
+| 05:20:13 | `npm test -- local --surface unit:browser-app` | 580 passed, 1 existing ACP fake-server disconnect skip |
+| — | `npm run type-check && npx eslint packages/web/src/services/template-cache.ts packages/web/test/template-cache.test.ts --max-warnings=0` | Passed |
+| — | `git diff --check` | Passed, including this final record edit |
+
+Each test timestamp locates its `.test-runs/2026-10-23T<timestamp>-*/summary.json`; the owning-suite report is `.test-runs/2026-10-23T05-20-13-530Z-p3806290-r1ba2f603cada97d6/summary.json`. All three runs recorded zero recovered flakes, process leaks and infrastructure failures. The intentional regression red was the only failure. Removed the temporary web bundle retained by the owning-suite helper.
+
+The reconnect blocker is fixed and awaits independent re-review. No spec/proof ambiguity, new dependency or other finding arose. The planned slice 3–4 baseline remains unchanged; those checks were not rerun. No full verification, commit, push, installation or host-home server run was performed.
