@@ -1392,11 +1392,12 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
   const creationTransparencyFlags = new Set<boolean>();
   program
     .command("create-artifact")
-    .description("Create an artifact from an existing path, an http(s) URL, or a copied artifact template")
+    .description("Create an artifact from an existing path, an http(s) URL, or an artifact template")
     .requiredOption("--channel <id>", "Target channel ID")
     .option("--path <path>", "Absolute path to an existing markdown/HTML file or indexed directory (trailing separator optional)")
     .option("--url <url>", "http(s) URL")
     .option("--template <id>", "Artifact template folder ID")
+    .option("--copy", "Copy a folder template into an independent artifact directory")
     .option("--title <title>", "Artifact title; defaults to the template name when using --template")
     .option("--data <json>", "Starting JSON value for a template artifact")
     .option("--data-file <path>", "File containing starting JSON for a template artifact; - reads standard input")
@@ -1414,12 +1415,12 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
     .option("--after <artifact-id>", PLACE_AFTER_HELP)
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
     .addHelpText("after", buildArtifactWorkflowHelpNote(true))
-    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
+    .action(async (opts: { channel: string; path?: string; url?: string; template?: string; copy?: boolean; title?: string; data?: string; dataFile?: string; width?: string; height?: string; before?: string; after?: string; port?: number }) => {
       const sourceCount = [opts.path, opts.url, opts.template].filter((value) => value !== undefined).length;
       if (sourceCount !== 1) throw createDirectiveError("tv create-artifact requires exactly one of --path, --url, or --template.");
       if (opts.template === undefined && opts.title === undefined) throw createDirectiveError("tv create-artifact requires --title with --path or --url.");
-      if (opts.template === undefined && (opts.data !== undefined || opts.dataFile !== undefined)) {
-        throw createDirectiveError("tv create-artifact accepts --data and --data-file only with --template.");
+      if (opts.template === undefined && (opts.copy !== undefined || opts.data !== undefined || opts.dataFile !== undefined)) {
+        throw createDirectiveError("tv create-artifact accepts --copy, --data, and --data-file only with --template.");
       }
       if (opts.data !== undefined && opts.dataFile !== undefined) throw createDirectiveError("tv create-artifact accepts --data or --data-file, not both.");
       const fullScreenFlags = argv.filter((token) => token === "--full-screen" || token === "--no-full-screen");
@@ -1459,9 +1460,9 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       let artifactID: string;
       let registeredTarget: string;
       if (opts.template !== undefined) {
-        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
+        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.copy === true ? { copy: true } : {}), ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
         artifactID = created.artifactID;
-        registeredTarget = created.path;
+        registeredTarget = created.path !== undefined ? created.path : created.url;
       } else {
         const pointer = opts.path !== undefined ? { kind: "path" as const, path: opts.path.trim() } : { kind: "url" as const, url: opts.url!.trim() };
         const { artifact } = await client.artifacts.create({ ...pointer, title: opts.title!, channelID: opts.channel, ...display, ...placement });
@@ -1473,11 +1474,34 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       if (shouldFocus) await client.display.focus({ artifactID });
     });
 
-  const templatesCommand = program.command("templates").description("List and locate artifact templates");
+  const templatesCommand = program.command("templates").description("List, inspect and locate artifact templates");
   templatesCommand.command("list")
     .description("Scan artifact templates in the selected home as JSON")
     .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
-    .action(async (opts: { port?: number }) => writeJSON(env.stdout, await createAuthenticatedClient(opts).templates.list()));
+    .action(async (opts: { port?: number }) => {
+      const scan = await createAuthenticatedClient(opts).templates.list({ fresh: true });
+      const templates = scan.templates.map(({ id, name, description, url }) => ({ id, name, description, ...(url !== undefined ? { url } : {}) }));
+      writeJSON(env.stdout, { templates, errors: scan.errors });
+    });
+  templatesCommand.command("show <id>")
+    .description("Inspect one freshly scanned artifact template as JSON")
+    .option("--port <number>", "Server port; required when the config file sets port 0", parseClientPortOption)
+    .action(async (id: string, opts: { port?: number }) => {
+      const scan = await createAuthenticatedClient(opts).templates.list({ fresh: true });
+      const found = scan.templates.find((entry) => entry.id === id);
+      if (!found) {
+        const failure = scan.errors.find((entry) => entry.folder === id) ?? scan.errors.find((entry) => entry.folder === null);
+        throw new Error(failure?.error ?? `Template not found: ${id}`);
+      }
+      const { name, description, version, path: templatePath, url, display, icons, dataSchema } = found;
+      writeJSON(env.stdout, { template: {
+        id, name, description, version, path: templatePath,
+        ...(url !== undefined ? { url } : {}),
+        ...(display !== undefined ? { display } : {}),
+        ...(icons !== undefined ? { icons } : {}),
+        ...(dataSchema !== undefined ? { dataSchema } : {}),
+      } });
+    });
   templatesCommand.command("path")
     .description("Print the artifact templates directory of the selected home as JSON")
     .action(() => writeJSON(env.stdout, { templatesPath: path.join(resolveHome(), "templates") }));

@@ -87,6 +87,7 @@ const createTemplateArtifactBodySchema = z.object({
   channelID: z.string(),
   title: z.string().optional(),
   data: z.unknown().optional(),
+  copy: z.boolean().optional(),
   display: artifactDisplaySchema.optional(),
   ...placementFields,
   source: z.enum(["cli", "ui"]),
@@ -241,7 +242,7 @@ export function registerRoutes(
     res.json(scanTemplatesDirectory(getTemplatesDir(store.storagePath)));
   });
 
-  app.post("/templates/artifacts", ...auth, (req, res) => {
+  app.post("/templates/artifacts", ...auth, async (req, res) => {
     const parsed = createTemplateArtifactBodySchema.safeParse(req.body);
     if (!parsed.success) {
       sendError(res, HTTP_BAD_REQUEST, parsed.error.issues[0]?.message ?? "Invalid request body");
@@ -257,7 +258,7 @@ export function registerRoutes(
       return;
     }
     try {
-      const result = store.createTemplateArtifact({ ...parsed.data, template }, telemetryContext(req));
+      const result = await store.createTemplateArtifact({ ...parsed.data, template }, telemetryContext(req));
       res.status(HTTP_CREATED).json(result);
     } catch (error) {
       if (error instanceof TemplateCreationError) {

@@ -1,7 +1,7 @@
 import { View, view } from "@telepath-computer/utils/lit-view";
 import { html, nothing, type TemplateResult } from "lit-html";
 import { ref } from "lit-html/directives/ref.js";
-import type { ArtifactTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import type { AppTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
 import type { ApplicationService } from "../services/application-service.ts";
 import type { ServerConnection } from "../services/server-connection.ts";
 import "../elements/icon.ts";
@@ -16,7 +16,7 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
   #observer: MutationObserver | null = null;
   #open = false;
   #sequence = 0;
-  #scan: ArtifactTemplateScan = { templates: [], errors: [] };
+  #scan: ArtifactTemplateScan = { templates: [], errors: [], watching: false };
   #query = "";
   #highlighted: number | null = null;
   #pressed: number | null = null;
@@ -60,7 +60,7 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
   async #load(): Promise<void> {
     const sequence = ++this.#sequence;
     this.#releaseImages();
-    this.#scan = { templates: [], errors: [] };
+    this.#scan = { templates: [], errors: [], watching: false };
     this.#query = "";
     this.#highlighted = null;
     this.#pressed = null;
@@ -75,7 +75,7 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
       this.#highlighted = this.#query && this.#matches().length ? 0 : null;
       this.render();
       for (const entry of scan.templates) {
-        if (!entry.hasThumbnail) continue;
+        if (!entry.hasIcon) continue;
         void templates.thumbnail(entry.id).then((bytes) => {
           if (sequence !== this.#sequence) return;
           const url = URL.createObjectURL(new Blob([Uint8Array.from(bytes)], { type: "image/png" }));
@@ -85,12 +85,12 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
       }
     } catch (error) {
       if (sequence !== this.#sequence) return;
-      this.#scan = { templates: [], errors: [{ folder: null, error: String(error) }] };
+      this.#scan = { templates: [], errors: [{ folder: null, error: String(error) }], watching: false };
       this.render();
     }
   }
 
-  #matches(): ArtifactTemplate[] {
+  #matches(): AppTemplate[] {
     const needle = this.#query.toLocaleLowerCase();
     return this.#scan.templates.filter(({ name, description }) =>
       name.toLocaleLowerCase().includes(needle) || description.toLocaleLowerCase().includes(needle));
@@ -149,7 +149,7 @@ export class TemplatesPopover extends View<[ApplicationService, ServerConnection
     void this.#create(this.#matches()[index]);
   };
 
-  async #create(entry: ArtifactTemplate | undefined): Promise<void> {
+  async #create(entry: AppTemplate | undefined): Promise<void> {
     if (!entry || this.#creating || !this.#application || !this.#connection) return;
     const channel = this.#application.snapshot.focusedChannel;
     if (!channel) return;

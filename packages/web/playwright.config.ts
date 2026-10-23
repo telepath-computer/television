@@ -22,6 +22,7 @@ const realStackTests = [
   "**/sidebar-collapse.test.ts",
   "**/sidebar-resize.test.ts",
   "**/template-example-real-stack.test.ts",
+  "**/linked-templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];
 export default defineConfig({

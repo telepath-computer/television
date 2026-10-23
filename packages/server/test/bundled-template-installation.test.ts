@@ -66,18 +66,28 @@ afterEach(() => {
 describe("bundled artifact template package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-example-t-package
   // proofs/arch/templates/bundled-templates.md#^templates-example-t-no-display
-  it("declares the sole Example with its minimum version, manifest, starting data, and adapting guidance", () => {
+  it("declares the sole Example with its minimum version, data schema, unwritten store, and adapting guidance", () => {
     expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["example"]);
     expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([{ id: "example", minimumVersion: "1.0.0" }]);
     const folder = path.join(sourceRoot, "example");
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest).toEqual({
       name: "Example", description: "A live message that an agent can change.", version: "1.0.0",
+      dataSchema: {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        type: "object",
+        properties: { message: { type: "string" } },
+        required: ["message"],
+      },
     });
     expect(manifest).not.toHaveProperty("display");
-    expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ message: "Hello from a template." });
-    expect(readFileSync(path.join(folder, "README.md"), "utf8"))
-      .toContain("The page shows the `message` string in this artifact's JSON store; use `tv resource json` to change it.");
+    expect(manifest).not.toHaveProperty("url");
+    expect(existsSync(path.join(folder, "data.json"))).toBe(false);
+    const guidance = readFileSync(path.join(folder, "README.md"), "utf8");
+    expect(guidance).toMatch(/`message` string.*store/i);
+    expect(guidance).toMatch(/each artifact.*store/i);
+    expect(guidance).toContain("tv resource json");
+    expect(guidance).toMatch(/copy or detach.*(?:page files|files).*one artifact/i);
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-validate

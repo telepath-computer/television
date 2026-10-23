@@ -46,7 +46,7 @@ describe("artifact template scanner", () => {
     const result = scanTemplatesDirectory(root);
     expect(result.templates).toEqual([{
       id: "Space #One", name: "Sample", description: "A sample page", version: "1.2.3-alpha.1+build.7",
-      path: valid, hasData: true, hasThumbnail: true,
+      path: valid, hasIcon: false,
     }]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.folder).toBe("broken");
@@ -54,27 +54,74 @@ describe("artifact template scanner", () => {
     expect(result.errors[0]?.error).toMatch(/description/);
     expect(result.errors[0]?.error).toMatch(/Semantic Version/);
     expect(result.errors[0]?.error).toMatch(/index\.html/);
-    expect(result.errors[0]?.error).toMatch(/data\.json/);
+    expect(result.errors[0]?.error).not.toMatch(/data\.json/);
   });
 
   // proofs/arch/templates/index.md#^templates-t-package
-  it("rejects oversized data and excludes thumbnails that escape the real folder", () => {
+  it("treats supporting data.json as ordinary content regardless of its bytes or readability", () => {
     const root = path.join(home(), "templates");
-    const oversized = template(root, "oversized");
-    writeFileSync(path.join(oversized, "data.json"), JSON.stringify("x".repeat(1_048_577)));
-    const linked = template(root, "linked");
-    const outside = path.join(path.dirname(root), "outside.png");
-    writeFileSync(outside, "outside");
-    symlinkSync(outside, path.join(linked, "thumbnail.png"));
-    const unreadableData = template(root, "unreadable-data");
-    symlinkSync(path.join(root, "missing-data.json"), path.join(unreadableData, "data.json"));
+    for (const [id, bytes] of [["oversized", "x".repeat(1_048_577)], ["invalid-json", "not JSON"]]) {
+      writeFileSync(path.join(template(root, id), "data.json"), bytes!);
+    }
+    symlinkSync(path.join(root, "missing.json"), path.join(template(root, "unreadable"), "data.json"));
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.errors).toEqual([]);
+    expect(scan.templates).toHaveLength(3);
+    for (const record of scan.templates) {
+      expect(record).not.toHaveProperty("hasData");
+      expect(record).not.toHaveProperty("hasThumbnail");
+    }
+  });
 
-    const result = scanTemplatesDirectory(root);
-    expect(result.errors).toEqual([
-      { folder: "oversized", error: expect.stringMatching(/1048576|too.large|at most/i) },
-      { folder: "unreadable-data", error: expect.stringMatching(/data\.json/) },
+  // proofs/arch/templates/index.md#^templates-t-package
+  it("uses a trimmed HTTP(S) URL even without a page and rejects other URL forms or URL schemas", () => {
+    const root = path.join(home(), "templates");
+    for (const [id, url, page] of [["https", "  https://example.com/path?q=1  ", false], ["http", "http://example.com", true]] as const) {
+      const folder = template(root, id, { name: id, description: "Site", version: "1.0.0", url });
+      if (!page) rmSync(path.join(folder, "index.html"));
+    }
+    for (const [id, url] of [["relative", "/path"], ["scheme", "file:///tmp/page"], ["empty", " "], ["number", 3], ["null", null]]) {
+      template(root, String(id), { name: id, description: "Invalid site", version: "1.0.0", url });
+    }
+    template(root, "url-schema", { name: "Invalid", description: "Site", version: "1.0.0", url: "https://example.com", dataSchema: false });
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.templates.map(({ id, url }) => ({ id, url }))).toEqual([
+      { id: "http", url: "http://example.com" }, { id: "https", url: "https://example.com/path?q=1" },
     ]);
-    expect(result.templates).toMatchObject([{ id: "linked", hasThumbnail: false }]);
+    expect(scan.errors).toHaveLength(6);
+    for (const error of scan.errors) expect(error.error).toMatch(/url|dataSchema/);
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-schema
+  it.each([
+    true, false, { type: "object" },
+    { $schema: "https://json-schema.org/draft/2020-12/schema", type: "string" },
+    { $defs: { text: { type: "string" } }, properties: { message: { $ref: "#/$defs/text" } } },
+    { $defs: { unused: { $ref: "https://example.com/external" } } },
+  ])("accepts a self-contained Draft 2020-12 schema: %j", (dataSchema) => {
+    const root = path.join(home(), "templates");
+    template(root, "schema", { name: "Schema", description: "Page", version: "1.0.0", dataSchema });
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.errors).toEqual([]);
+    expect(scan.templates[0]?.dataSchema).toEqual(dataSchema);
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-schema
+  it.each([
+    [null, "dataSchema"], [[], "dataSchema"], [{ type: "nonsense" }, "type"],
+    [{ $id: 42 }, "dataSchema"],
+    [{ $schema: "http://json-schema.org/draft-07/schema#" }, "$schema"],
+    [{ $ref: "#/$defs/missing" }, "ref"], [{ $ref: "#/name" }, "ref"],
+    [{ $ref: "https://example.com/external" }, "ref"],
+  ])("rejects an invalid or escaping schema with an inspection hint: %j", (dataSchema, field) => {
+    const root = path.join(home(), "templates");
+    template(root, "Space #One", { name: "Schema", description: "Page", version: "1.0.0", dataSchema });
+    const scan = scanTemplatesDirectory(root);
+    expect(scan.templates).toEqual([]);
+    expect(scan.errors).toHaveLength(1);
+    expect(scan.errors[0]?.error).toContain(field);
+    expect(scan.errors[0]?.error).toContain("tv templates show");
+    expect(scan.errors[0]?.error).toContain("Space #One");
   });
 
   // proofs/arch/templates/index.md#^templates-t-display-scan
@@ -141,13 +188,15 @@ describe("artifact template scanner", () => {
     const broken = template(root, "c");
     rmSync(path.join(broken, "manifest.json"));
     expect(scanTemplatesDirectory(root).templates.map(({ id }) => id)).toEqual(["a", "z", "b"]);
-    expect(scanTemplatesDirectory(root).errors.map(({ folder }) => folder)).toEqual(["c"]);
+    for (const id of ["Z-invalid", "a-invalid", "Á-invalid"]) template(root, id, {});
+    expect(scanTemplatesDirectory(root).errors.map(({ folder }) => folder))
+      .toEqual(["a-invalid", "Á-invalid", "c", "Z-invalid"]);
     template(root, "new", { name: "Aardvark", description: "A", version: "1.0.0" });
     expect(scanTemplatesDirectory(root).templates.map(({ id }) => id)).toEqual(["new", "a", "z", "b"]);
     rmSync(root, { recursive: true });
     writeFileSync(root, "not a directory");
     expect(scanTemplatesDirectory(root)).toEqual({
-      templates: [], errors: [{ folder: null, error: expect.stringContaining("templates directory") }],
+      templates: [], errors: [{ folder: null, error: expect.stringContaining("templates directory") }], watching: false,
     });
   });
 });

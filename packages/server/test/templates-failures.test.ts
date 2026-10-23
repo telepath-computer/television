@@ -43,9 +43,9 @@ async function start(root: string, overrides: ServingStoreOverrides = {}) {
   return { store, server, channelID, events };
 }
 
-function create(server: Server, token: string, channelID: string) {
+function create(server: Server, token: string, channelID: string, options: { copy?: boolean; data?: unknown } = { copy: true }) {
   return request(server.httpServer).post("/templates/artifacts")
-    .set("Authorization", `Bearer ${token}`).send({ templateID: "sample", channelID, source: "cli" });
+    .set("Authorization", `Bearer ${token}`).send({ templateID: "sample", channelID, source: "cli", ...options });
 }
 
 function destination(error: string): string {
@@ -117,7 +117,7 @@ describe("template creation keeps partial results", () => {
     template(root, true);
     const { store, server, channelID, events } = await start(root);
     writeFileSync(path.join(root, "resources"), "obstructed");
-    const response = await create(server, store.authToken, channelID).expect(500);
+    const response = await create(server, store.authToken, channelID, { copy: true, data: { seeded: true } }).expect(500);
     expect(response.body.error).toMatch(/store write/i);
     const artifact = store.listArtifacts()[0]!;
     expect(response.body.error).toContain(artifact.id);
@@ -148,7 +148,7 @@ describe("template creation keeps partial results", () => {
       },
     };
     const { store, server, channelID, events } = await start(root, { resourceStorageOperations: storage });
-    const response = await create(server, store.authToken, channelID).expect(500);
+    const response = await create(server, store.authToken, channelID, { copy: true, data: { seeded: true } }).expect(500);
     expect(response.body.error).toMatch(/store write/i);
     const artifact = store.listArtifacts()[0]!;
     expect(response.body.error).toContain(artifact.id);
@@ -158,4 +158,27 @@ describe("template creation keeps partial results", () => {
     expect(events.filter(({ name }) => name === "artifact_created")).toHaveLength(1);
     expect(events.filter(({ name }) => name === "artifact_template_used")).toEqual([]);
   });
+  // proofs/arch/templates/index.md#^templates-t-failure
+  it.each(["linked", "url"] as const)("reports the %s target and attempted ID on registration and layout failure", async (kind) => {
+    for (const step of ["registration", "channel layout"]) {
+      const root = home();
+      const folder = template(root);
+      const target = kind === "url" ? "https://example.com/private-target" : folder;
+      if (kind === "url") writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Site", description: "Site", version: "1.0.0", url: target }));
+      const { store, server, channelID, events } = await start(root);
+      const obstruction = step === "registration" ? path.join(root, "state", "artifacts") : path.join(root, "state", "channels", `${channelID}.json`);
+      rmSync(obstruction, { recursive: true });
+      if (step === "registration") writeFileSync(obstruction, "obstructed");
+      else mkdirSync(obstruction);
+      const response = await create(server, store.authToken, channelID, {}).expect(500);
+      expect(response.body.error).toContain(target);
+      expect(response.body.error).toContain(step);
+      expect(response.body.error).toMatch(/[0-9A-HJKMNP-TV-Z]{26}/);
+      expect(readFileSync(path.join(folder, "index.html"), "utf8")).toContain("Sample");
+      expect(store.listArtifacts()).toHaveLength(step === "registration" ? 0 : 1);
+      if (step === "channel layout") expect(response.body.error).toContain(store.listArtifacts()[0]!.id);
+      expect(events.filter(({ name }) => name === "artifact_template_used")).toEqual([]);
+    }
+  });
+
 });

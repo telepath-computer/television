@@ -88,20 +88,38 @@ export interface ArtifactDisplayOptions {
   transparent?: boolean;
 }
 
-export interface ArtifactTemplate {
+export type JSONSchema = boolean | { [keyword: string]: JSONValue };
+
+export interface ArtifactTemplateIcon {
+  src: string;
+  sizes?: string;
+  type?: string;
+  purpose?: string;
+}
+
+export interface TemplateSummary {
   id: string;
   name: string;
   description: string;
+  url?: string;
+}
+
+export interface Template extends TemplateSummary {
   version: string;
-  display?: ArtifactDisplayOptions;
-  hasData: boolean;
-  hasThumbnail: boolean;
   path: string;
+  display?: ArtifactDisplayOptions;
+  icons?: ArtifactTemplateIcon[];
+  dataSchema?: JSONSchema;
+}
+
+export interface AppTemplate extends Template {
+  hasIcon: boolean;
 }
 
 export interface ArtifactTemplateScan {
-  templates: ArtifactTemplate[];
+  templates: AppTemplate[];
   errors: { folder: string | null; error: string }[];
+  watching: boolean;
 }
 
 export interface CreateTemplateArtifactRequest {
@@ -109,16 +127,17 @@ export interface CreateTemplateArtifactRequest {
   channelID: string;
   title?: string;
   data?: JSONValue;
+  copy?: boolean;
   display?: ArtifactDisplayOptions;
   before?: string;
   after?: string;
   source: "cli" | "ui";
 }
 
-export interface CreateTemplateArtifactResult {
-  artifactID: string;
-  path: string;
-}
+export type CreateTemplateArtifactResult = { artifactID: string } & (
+  | { path: string; url?: never }
+  | { url: string; path?: never }
+);
 /**
  * Where a created or moved artifact goes in its channel's order: immediately
  * before or after a named artifact there, or at the end when neither is given

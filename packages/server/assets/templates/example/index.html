@@ -20,7 +20,7 @@
   import { getStore, onValue, ref } from "/sdk/v1/resources.js";
   onValue(ref(getStore()), (snapshot) => {
     const value = snapshot.val();
-    document.querySelector("#message").textContent = typeof value?.message === "string" ? value.message : "";
+    document.querySelector("#message").textContent = typeof value?.message === "string" ? value.message : "Hello from a template.";
   });
 </script>
 </body>

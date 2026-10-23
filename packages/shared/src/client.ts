@@ -412,8 +412,8 @@ export class TemplateClient {
     this.#http = http;
   }
 
-  list(): Promise<ArtifactTemplateScan> {
-    return this.#http.requestJSON<ArtifactTemplateScan>("GET", "/templates");
+  list(options?: { fresh?: boolean }): Promise<ArtifactTemplateScan> {
+    return this.#http.requestJSON<ArtifactTemplateScan>("GET", options?.fresh ? "/templates?fresh=true" : "/templates");
   }
 
   create(input: CreateTemplateArtifactRequest): Promise<CreateTemplateArtifactResult> {

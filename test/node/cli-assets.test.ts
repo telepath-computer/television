@@ -200,7 +200,7 @@ const resolverCases: Array<{
     builtPath: path.join(CLI_DIST, "templates"),
     devResolver: resolveBundledTemplatesPath,
     devPath: path.join(REPO_ROOT, "packages/server/assets/templates"),
-    requiredChildren: ["example/manifest.json", "example/index.html"],
+    requiredChildren: ["example/manifest.json", "example/index.html", "example/README.md"],
   },
   {
     name: "bundled skills",

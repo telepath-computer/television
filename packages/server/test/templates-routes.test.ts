@@ -48,7 +48,7 @@ describe("artifact template routes", () => {
     const { server, token } = await start(root);
     await request(server.httpServer).get("/templates").expect(401);
     const first = await request(server.httpServer).get("/templates").set(auth(token)).set("Origin", "https://outside.example").expect(200);
-    expect(first.body).toEqual({ templates: [], errors: [] });
+    expect(first.body).toEqual({ templates: [], errors: [], watching: false });
     expect(first.headers["access-control-allow-origin"]).toBeUndefined();
     template(root, "first", "First");
     const client = new TelevisionClient(server.getBaseURL(), { token });
@@ -81,6 +81,21 @@ describe("artifact template routes", () => {
     rmSync(path.join(root, "templates"), { recursive: true });
     writeFileSync(path.join(root, "templates"), "obstructed");
     expect((await create("valid").expect(500)).body.error).toMatch(/templates directory/);
+  });
+
+  // proofs/arch/templates/index.md#^templates-t-create-route
+  it("creates from an immediately edited manifest through a fresh exact-ID lookup", async () => {
+    const root = home();
+    const folder = template(root, "Space #One");
+    const { server, token, channelID } = await start(root);
+    const client = new TelevisionClient(server.getBaseURL(), { token });
+    await client.templates.list();
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({
+      name: "Edited name", description: "Site", version: "1.0.0", url: "https://example.com/edited",
+    }));
+    const result = await client.templates.create({ templateID: "Space #One", channelID, source: "cli" });
+    expect(result).toEqual({ artifactID: expect.any(String), url: "https://example.com/edited" });
+    expect((await client.artifacts.get({ artifactID: result.artifactID })).artifact).toMatchObject({ title: "Edited name" });
   });
 
   // proofs/arch/templates/index.md#^templates-t-thumbnail-route

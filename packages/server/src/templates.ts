@@ -12,8 +12,9 @@ import {
 } from "node:fs";
 import path from "node:path";
 import { randomInt } from "node:crypto";
-import { checkJsonLimits, validateJsonValue } from "@telepath-computer/television-shared/resources";
-import type { ArtifactDisplayOptions, ArtifactTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import { isExternalArtifactURL } from "@telepath-computer/television-artifact";
+import { compileTemplateSchema, templateSchemaHint } from "./template-schema.ts";
+import type { ArtifactDisplayOptions, AppTemplate, ArtifactTemplateScan, JSONSchema } from "@telepath-computer/television-shared";
 import { isSemanticVersion } from "./themes.ts";
 
 const MAX_SLUG_LENGTH = 60;
@@ -79,15 +80,6 @@ function readableFile(filename: string): boolean {
   }
 }
 
-function entryPresent(filename: string): boolean {
-  try {
-    lstatSync(filename);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ENOENT";
-  }
-}
-
 export function readableTemplateThumbnail(folder: string): string | null {
   try {
     const root = realpathSync(folder);
@@ -98,10 +90,12 @@ export function readableTemplateThumbnail(folder: string): string | null {
   }
 }
 
-export function validateTemplatePackage(folder: string, id: string): { template?: ArtifactTemplate; errors: string[] } {
+export function validateTemplatePackage(folder: string, id: string): { template?: AppTemplate; errors: string[] } {
   const errors: string[] = [];
   let manifest: Record<string, unknown> | undefined;
   let display: ArtifactDisplayOptions | undefined;
+  let url: string | undefined;
+  let dataSchema: JSONSchema | undefined;
   try {
     const parsed: unknown = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
@@ -144,17 +138,24 @@ export function validateTemplatePackage(folder: string, id: string): { template?
       }
     }
   }
-  if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
-
-  const dataPath = path.join(folder, "data.json");
-  const hasData = entryPresent(dataPath);
-  if (hasData) {
-    try {
-      const value: unknown = JSON.parse(readFileSync(dataPath, "utf8"));
-      validateJsonValue(value);
-      checkJsonLimits(value);
-    } catch (error) {
-      errors.push(`data.json is invalid: ${error instanceof Error ? error.message : String(error)}`);
+  if (manifest && Object.hasOwn(manifest, "url")) {
+    if (typeof manifest.url !== "string" || !isExternalArtifactURL(manifest.url.trim())) {
+      errors.push("manifest url must be an absolute HTTP(S) URL");
+    } else url = manifest.url.trim();
+    if (Object.hasOwn(manifest, "dataSchema")) errors.push("URL templates cannot declare dataSchema");
+  } else {
+    if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
+    if (manifest && Object.hasOwn(manifest, "dataSchema")) {
+      try {
+        const candidate = manifest.dataSchema;
+        if (typeof candidate !== "boolean" && (!candidate || typeof candidate !== "object" || Array.isArray(candidate))) {
+          throw new Error("must be a boolean or schema object");
+        }
+        compileTemplateSchema(candidate as JSONSchema);
+        dataSchema = candidate as JSONSchema;
+      } catch (error) {
+        errors.push(`dataSchema ${error instanceof Error ? error.message : String(error)}. ${templateSchemaHint(id)}`);
+      }
     }
   }
 
@@ -165,8 +166,9 @@ export function validateTemplatePackage(folder: string, id: string): { template?
         description: manifest.description as string,
         version: manifest.version as string,
         ...(display !== undefined ? { display } : {}),
-        hasData,
-        hasThumbnail: readableTemplateThumbnail(folder) !== null,
+        ...(url !== undefined ? { url } : {}),
+        ...(dataSchema !== undefined ? { dataSchema } : {}),
+        hasIcon: false,
         path: folder,
       }, errors: [] }
     : { errors };
@@ -177,10 +179,10 @@ export function scanTemplatesDirectory(templatesDir: string): ArtifactTemplateSc
   try {
     entries = readdirSync(templatesDir, { withFileTypes: true });
   } catch {
-    return { templates: [], errors: [{ folder: null, error: "cannot read templates directory" }] };
+    return { templates: [], errors: [{ folder: null, error: "cannot read templates directory" }], watching: false };
   }
 
-  const result: ArtifactTemplateScan = { templates: [], errors: [] };
+  const result: ArtifactTemplateScan = { templates: [], errors: [], watching: false };
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
     const checked = validateTemplatePackage(path.join(templatesDir, entry.name), entry.name);
