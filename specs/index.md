@@ -135,7 +135,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `templates-popover.mdx` (68 lines) — *UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
     - **artifact-frame/**
       - `index.md` (68 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
-      - `transparency.mdx` (40 lines) — *UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
+      - `transparency.mdx` (38 lines) — *UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
     - **copy-button/**
       - `index.md` (45 lines) — *UI spec: the copy button — a control that copies a value and briefly confirms, without resizing.*
     - **desktop-upgrade-gate/**

@@ -688,7 +688,7 @@ test.describe("artifact rendering dispatcher", () => {
   });
 })
 
-// proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-hover
+// proofs/ui/app/artifact-frame/transparency/index.md#^af-ui-ac-transparent-hover
 // The fixture replaces only application services. Document loading, pointer,
 // keyboard, menu elements and CSS motion all run in the browser.
 test.describe("transparent frame hover (^af-ui-ac-transparent-hover)", () => {

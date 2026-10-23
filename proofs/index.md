@@ -11,7 +11,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `cli.md` (122 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
-  - `licensing.md` (33 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
+  - `licensing.md` (37 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (30 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (91 lines) — *How the promises in Telemetry are proven.*
   - `templates.md` (34 lines) — *Proves artifact-template discovery and creation at the CLI and browser boundaries.*
@@ -26,7 +26,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **arch/**
   - `canonical.md` (36 lines) — *How the promises in Canonical are proven.*
   - `developer-skills.md` (21 lines) — *Developer skill installation proven through real temporary homes and installer processes.*
-  - `licensing.md` (24 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
+  - `licensing.md` (28 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (18 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
   - `testing-policy.md` (7 lines) — *How the testing policy’s development discipline is checked.*
@@ -70,7 +70,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **telemetry/**
     - `client-signals.md` (27 lines) — *How the promises in Telemetry client signals are proven.*
     - `client.md` (33 lines) — *How the promises in Telemetry client agent are proven.*
-    - `derivation.md` (32 lines) — *How the promises in Telemetry property derivation are proven.*
+    - `derivation.md` (34 lines) — *How the promises in Telemetry property derivation are proven.*
     - `emitters.md` (36 lines) — *How the promises in Telemetry emitters are proven.*
     - `identity.md` (26 lines) — *How the promises in Telemetry identity and control are proven.*
     - `index.md` (24 lines) — *How the promises in Telemetry architecture are proven.*
@@ -79,10 +79,11 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **templates/**
     - `authoring.md` (24 lines) — *Proves that the built television skill introduces artifact templates and carries usable authoring guidance.*
-    - `bundled-installation.md` (28 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
-    - `bundled-templates.md` (17 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
+    - `bundled-installation.md` (30 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
+    - `bundled-templates.md` (19 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (46 lines) — *Proves the installed artifact-template contract, fresh scans, authenticated delivery, and copy creation.*
+    - `sticky-note.md` (43 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (60 lines) — *How the promises in Blaxel Test Shards are proven.*
@@ -118,7 +119,9 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **app/**
     - `index.md` (67 lines) — *How the promises in App (UI) are proven.*
     - **artifact-frame/**
-      - `index.md` (47 lines) — *Proves artifact-frame content and actions, transparent frost motion and menu placement in the stage, and the bounded window-edge regression.*
+      - `index.md` (36 lines) — *Proves artifact-frame content and actions and the bounded window-edge regression.*
+      - **transparency/**
+        - `index.md` (24 lines) — *Proves transparent artifact-frame state, hover motion and menu placement, with resize behavior supplied by the stage proof.*
     - **copy-button/**
       - `index.md` (32 lines) — *How the promises in Copy button (UI) are proven.*
     - **desktop-upgrade-gate/**
@@ -166,6 +169,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **templates/**
     - **checklist/**
       - `index.md` (79 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
+    - **sticky-note/**
+      - `index.md` (69 lines) — *Proves Sticky note editing, live changes, offline drafts, access and failure states in a real browser, and rendered conformance to every spec story.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**
