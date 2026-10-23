@@ -92,9 +92,10 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **templates/**
     - `authoring.md` (17 lines) — *Artifact template guidance: the short introduction and `templates.md` document bundled in the `television` skill for using and authoring templates.*
     - `bundled-installation.md` (32 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (11 lines) — *The bundled artifact template inventory and shared rules.*
+    - `bundled-templates.md` (12 lines) — *The bundled artifact template inventory and shared rules.*
     - `checklist.md` (36 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (101 lines) — *Artifact template architecture: installed folder validation, request-time discovery, thumbnail delivery, and creation of an ordinary path artifact from a copy.*
+    - `sticky-note.md` (49 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
     - `blaxel-testshards.md` (131 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
@@ -134,6 +135,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `templates-popover.mdx` (68 lines) — *UI spec: the Templates popover for finding an artifact template and creating an artifact from it.*
     - **artifact-frame/**
       - `index.md` (68 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
+      - `transparency.mdx` (40 lines) — *UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
     - **copy-button/**
       - `index.md` (45 lines) — *UI spec: the copy button — a control that copies a value and briefly confirms, without resizing.*
     - **desktop-upgrade-gate/**
@@ -178,6 +180,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **templates/**
     - `checklist.mdx` (129 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
+    - `sticky-note.mdx` (82 lines) — *UI spec: the bundled Sticky note page, for text that a person and an agent can edit together.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

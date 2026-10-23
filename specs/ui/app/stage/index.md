@@ -85,7 +85,7 @@ The gesture is pointer-only, inheriting the shell's desktop input boundary ([ui/
 - An edge's band is [measures.yml#handles.edge_band_px](./measures.yml#handles.edge_band_px) thick, centred on the edge.
 - A corner reaches down both its adjoining edges as an L, never a filled square — [measures.yml#handles.corner_reach_px](./measures.yml#handles.corner_reach_px) along each, with arms [measures.yml#handles.corner_thickness_px](./measures.yml#handles.corner_thickness_px) thick — so a grab near a corner takes both axes while the edge beyond the L's arms takes one.
 - Each handle shows the cursor of the directions it drags.
-- The page's artifact frame carries `data-resize-active` while either holds: the pointer is on one of the page's handles, or a resize drag runs, wherever the pointer goes. It loses the marker only when neither holds, so a drag that ends or is cancelled with the pointer still on a handle keeps it. A [transparent frame](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) shows its hovered state for that time.
+- The page's artifact frame carries `data-resize-active` while either holds: the pointer is on one of the page's handles, or a resize drag runs, wherever the pointer goes. It loses the marker only when neither holds, so a drag that ends or is cancelled with the pointer still on a handle keeps it. A [transparent frame](../artifact-frame/transparency.mdx) shows its hovered state for that time.
 - Handles never overlap controls: the frame lays out its controls clear of the bands, and a combination of measures that puts a band over a control is an invalid state.
 
 ### Bounds

@@ -7,7 +7,8 @@ const root = path.resolve(import.meta.dirname, "../..");
 const referencePath = "packages/skills/skills/television/src/app-shell-reference.md";
 
 // An MDX spec binds the story module it imports and the surface stylesheet
-// that module imports; foundation stylesheets under specs/ are not its own.
+// that module imports; foundation stylesheets under specs/ and canvas staging
+// are not the surface's own styling authority.
 function mdxAuthorities(mdx: string): string[] {
   const resolve = (from: string, specifier: string) =>
     path.relative(root, path.resolve(root, path.dirname(from), specifier));
@@ -16,7 +17,7 @@ function mdxAuthorities(mdx: string): string[] {
   const stories = resolve(mdx, storyImport[1]!);
   const styles = [...readFileSync(path.join(root, stories), "utf8").matchAll(/^import "([^"]+\.css)";/gm)]
     .map(([, specifier]) => resolve(stories, specifier!))
-    .filter(file => !file.startsWith("specs/"));
+    .filter(file => !file.startsWith("specs/") && path.basename(file) !== "staging.css");
   return [mdx, stories, ...styles];
 }
 
@@ -30,10 +31,6 @@ test("the authored theme reference covers current application authorities", () =
     ...globSync("specs/ui/app/**/*", { cwd: root })
       .filter(file => /\.(frame|css)$/.test(file)),
     ...globSync("specs/ui/app/**/*.mdx", { cwd: root }).flatMap(mdxAuthorities),
-    // Artifact-frame authority adds its transparent states to the base frame.
-    "storybook/spec/artifact-frame/artifact-frame.stories.ts",
-    "storybook/spec/artifact-frame/artifact-frame.mdx",
-    "storybook/spec/artifact-frame/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);
   const contents = sources.map(([, source, digest]) => {

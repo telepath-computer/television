@@ -62,4 +62,5 @@ export const Opaque = {};
 
 export const TransparentAtRest = { args: { transparent: true } };
 
+// Sets data-hovered to show the pointer-over state; hovering the resting story looks the same.
 export const TransparentHovered = { args: { transparent: true, hovered: true } };

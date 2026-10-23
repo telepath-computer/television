@@ -280,6 +280,6 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 3dbae1626a6335d1d0e5bd1bdbf6ff47cef7b0f8a617301abee54d7d35662a9c -->
 <!-- app-reference-source: specs/ui/app/templates-popover.mdx sha256: e80de3b35f036152251c1b4681ddc28b1b0fe9527dbea835ea16fae32195e8fd -->
 <!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->
-<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 5a252bbc2ee44d19bac57ae3bc4658844d37ddd04fe99ecec38041aaa508056a -->
-<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.mdx sha256: 096623dfcbba5e1fede34112133a2d3f37bade8a4a2745f24993c73176ae219d -->
+<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
+<!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: f47185669d83657172fe57d896c56b30d6ae6f55157f68fb97d0e27894713716 -->
 <!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 7fbb3adcfc70ec9ab9e232b09707a5f276f74de56cee0346d9dc3daeb771a230 -->

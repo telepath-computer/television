@@ -156,7 +156,7 @@ interface LicenseConfig {
   /**
    * License identifiers acceptable in shipped surfaces — the machine-readable copy of the
    * product allowlist, which must match it exactly (see below). OFL-1.1 is on
-   * it for the vendored typeface; its font-only scope is policy, upheld in
+   * it for vendored typefaces; its font-only scope is policy, upheld in
    * review (product/licensing.md), not a distinction this file encodes.
    */
   allow: string[]
@@ -232,7 +232,7 @@ The [asset manifest](../../scripts/licenses/assets.json) is the canonical invent
 
 ### Folder notices
 
-Some tracked folders leave the package as a unit: [bundled-theme installation](./themes/bundled-installation.md#serving-boot-installation) copies each theme's complete source folder into the user's data directory. An asset whose material sits in such a folder names it in `noticesFolder`, and the generator writes a committed `THIRD-PARTY-NOTICES.txt` into that folder, rendered from the asset's components under the same [content rule](#notices-content) as every other notices file. Assets naming the same folder share one file. The gate fails when a committed folder file differs from a fresh generation, exactly as it does for the root file, and the loader checks a `noticesFolder` the way it checks `paths`: it must be a repository-relative path to an existing folder. The license text therefore lives once, in the manifest, and every rendered copy is checked against it. ^licensing-folder-notices
+Some tracked folders leave the package as a unit: [bundled-theme installation](./themes/bundled-installation.md#serving-boot-installation) copies each theme's complete source folder into the user's data directory, and [bundled artifact templates](./templates/bundled-installation.md) carry their dependencies into each copied artifact. An asset whose material sits in such a folder names it in `noticesFolder`, and the generator writes a committed `THIRD-PARTY-NOTICES.txt` into that folder, rendered from the asset's components under the same [content rule](#notices-content) as every other notices file. Assets naming the same folder share one file. The gate fails when a committed folder file differs from a fresh generation, exactly as it does for the root file, and the loader checks a `noticesFolder` the way it checks `paths`: it must be a repository-relative path to an existing folder. The license text therefore lives once, in the manifest, and every rendered copy is checked against it. ^licensing-folder-notices
 
 ### Bundled themes with externally licensed material
 
