@@ -161,12 +161,12 @@ describe("top-bar markup (^top-ac-markup-smoke)", () => {
       expect(tabs.map((tab) => tab.textContent?.trim())).toEqual(row.titles);
 
       const controls = bar!.querySelector<HTMLElement>(":scope > .top-bar-controls")!;
-      expect(controls.children[0]?.classList.contains("templates-trigger")).toBe(true);
-      expect(controls.children[1]?.classList.contains("templates-popover")).toBe(true);
+      expect(controls.children[0]?.classList.contains("toolbox-trigger")).toBe(true);
+      expect(controls.children[1]?.classList.contains("toolbox-popover")).toBe(true);
       const settingsTrigger = controls.querySelector<HTMLElement>(".settings-trigger")!;
       expect(controls.children[2]).toBe(settingsTrigger);
       expect(settingsTrigger.nextElementSibling?.classList.contains("settings-popover")).toBe(true);
-      expect(controls.querySelectorAll(".templates-trigger")).toHaveLength(1);
+      expect(controls.querySelectorAll(".toolbox-trigger")).toHaveLength(1);
       expect(controls.querySelectorAll(".settings-trigger")).toHaveLength(1);
       expect(controls.querySelectorAll(".update-bell")).toHaveLength(row.notice ? 1 : 0);
       expect(controls.querySelectorAll(".update-popover")).toHaveLength(row.notice ? 1 : 0);

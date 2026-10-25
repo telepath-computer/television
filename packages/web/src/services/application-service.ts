@@ -827,6 +827,8 @@ function applyServerEvent(
         ...event.themeJavaScriptConsentIds,
       ];
       return;
+    case "templates-changed":
+      return;
     case "appearance-changed":
       state.display.appearanceMode = event.appearanceMode;
       return;

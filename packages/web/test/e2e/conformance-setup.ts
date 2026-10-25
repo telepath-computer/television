@@ -3,7 +3,7 @@ import { TelevisionClient } from "@telepath-computer/television-shared";
 import { launchProductServer } from "../../../../test/helpers/product-server.ts";
 import { TEMPLATES_BUNDLE } from "./checklist-harness.ts";
 
-export const SERVER_ENV = "TV_CHECKLIST_CONFORMANCE_SERVER";
+export const SERVER_ENV = "TV_CONFORMANCE_SERVER";
 
 export interface SharedServer {
   serverURL: string;

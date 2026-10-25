@@ -167,32 +167,83 @@ describe("skills build", () => {
   // proofs/arch/templates/authoring.md#^templates-guide-t-authoring
   // proofs/arch/templates/authoring.md#^templates-guide-t-display-intro
   // proofs/arch/templates/authoring.md#^templates-guide-t-display-authoring
+  // proofs/arch/templates/authoring.md#^templates-guide-t-transparent
   it("emits template discovery and authoring guidance beside the television skill", () => {
     const output = mkdtempSync(path.join(os.tmpdir(), "tv-template-guidance-"));
     TEMP_DIRS.push(output);
     runBuild(path.join(REPO_ROOT, "packages/skills/scripts/build.mjs"), REPO_ROOT, { TV_SKILLS_DIST_DIR: output });
     const skill = readDistFile(output, "television", "SKILL.md");
     const guide = readDistFile(output, "television", "templates.md");
-    expect(skill).toContain("tv templates list");
-    expect(skill).toContain("tv create-artifact --template");
-    expect(skill).toContain("tv templates path");
-    expect(skill).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
-    expect(skill).toContain("[template authoring guidance](./templates.md)");
-    for (const option of ["--width", "--height", "--full-screen"]) expect(skill).toContain(option);
-    for (const phrase of ["--home", "manifest.json", "name", "description", "version", "index.html", "data.json", "README.md", "thumbnail.png", "tv templates list", "tv templates path", "minimum version", "backed up", "replaced"]) {
-      expect(guide, phrase).toContain(phrase);
+    const [intro, capabilities] = skill.split("\n# TV CLI capabilities\n");
+    expect(capabilities).toBeDefined();
+    for (const command of ["tv templates list", "tv templates show <id>", "tv create-artifact --template", "tv templates path"]) {
+      expect(intro, command).toContain(command);
     }
-    expect(guide).toMatch(/README\.md[^.]*copied/);
-    expect(guide).toContain("The `manifest.json`, `data.json`, and `thumbnail.png` stay with the template");
-    expect(guide).not.toMatch(/created artifact[^.]*template origin/i);
-    expect(guide).toContain("display");
-    for (const field of ["width", "height", "fullScreen"]) expect(guide).toContain(field);
+    expect(intro).toMatch(/macro.*stock artifact|stock artifact.*macro/s);
+    expect(intro).toMatch(/templates show <id>[^.]*dataSchema[^.]*before[^.]*data/);
+    for (const document of [intro, capabilities, guide]) {
+      expect(document).toMatch(/\]\(\.\/templates\.md\)|^# Artifact templates/);
+      expect(document).toMatch(/cop(?:y|ies|ied)/i);
+      expect(document).toMatch(/edit[^.]*copied page files[^.]*one artifact/i);
+      expect(document).toMatch(/template[^\n]*only artifacts created afterwards/i);
+    }
+    expect(intro).toMatch(/folder template[^.]*cop(?:y|ies)[^.]*page files/i);
+    expect(intro).toMatch(/adding an artifact to the toolbox/i);
+    for (const option of ["--width", "--height", "--full-screen", "--no-full-screen", "--transparent", "--no-transparent"]) expect(intro).toContain(option);
+    for (const field of ["--home", "name", "description", "version", "index.html", "README.md", "data.json", "dataSchema", "icons", "url", "display", "width", "height", "fullScreen", "transparent"]) {
+      expect(guide, field).toContain(field);
+    }
     expect(guide).toContain("default starting size");
-    expect(skill).toContain("An artifact template is a reusable folder");
-    expect(guide).toMatch(/index\.html[^.]*HTML artifact page[^.]*HTML artifact style[^.]*SKILL\.md/);
-    expect(guide).toMatch(/naming guidance[^.]*template ID/);
+    expect(guide).toMatch(/HTML artifact page[^.]*HTML artifact style[^.]*SKILL\.md/);
+    expect(guide).toMatch(/naming guidance[^\n]*template ID/);
     expect(guide).toContain("[resource guidance](./resources.md)");
-    expect(guide).toMatch(/README\.md[^.]*[\s\S]*store shape/);
+    expect(guide).toMatch(/README\.md[^\n]*data[^\n]*page/);
+    expect(guide).toMatch(/copies include the README/i);
+    for (const document of [capabilities, guide]) {
+      expect(document).toMatch(/(?:only|fields)[^\n]*`id`[^\n]*`name`[^\n]*`description`[^\n]*`url`/);
+      expect(document).toMatch(/templates show <id>[^\n]*`path`[^\n]*version|templates show <id>[^\n]*version[^\n]*`path`/);
+      expect(document).toMatch(/both commands[^.]*scan/i);
+      expect(document).toMatch(/hasIcon[^.]*omitted/);
+    }
+    expect(guide).toMatch(/app[^.]*watched[^.]*Toolbox/i);
+    expect(guide).toMatch(/same absolute `--home`/);
+    expect(guide).toContain("tv get-artifact --id <id>");
+    expect(guide).toMatch(/read[^\n]*data\.json[^\n]*path[^\n]*show/i);
+    expect(guide).toMatch(/including[^\n]*null[^\n]*replaces[^\n]*entirely[^\n]*no merging/i);
+    expect(guide).toMatch(/manifest\.json[^\n]*data\.json[^\n]*stay with[^\n]*template/i);
+    expect(guide).toMatch(/neither[^.]*store starts unwritten/i);
+    expect(guide).toMatch(/server checks[^.]*dataSchema[^.]*before creating/i);
+    expect(guide).toMatch(/written by the server[^.]*creation request/);
+    expect(guide).toMatch(/failed request[^.]*target[^.]*artifact ID[^.]*step/i);
+    expect(guide).toMatch(/inspect what remains before retrying/i);
+    expect(guide).toMatch(/URL templates[^\n]*data options[^\n]*data\.json[^\n]*dataSchema/);
+    expect(guide).toMatch(/URL artifact[^.]*without a store/);
+    expect(guide).toMatch(/without[^\n]*data\.json[^\n]*usable[^\n]*unwritten store/i);
+    expect(guide).toMatch(/people fill in[^.]*add content from the page/i);
+    expect(guide).toMatch(/write[^.]*only when[^.]*act/i);
+    expect(guide).toMatch(/content comes from an agent[^.]*nothing[^.]*ask[^.]*agent/i);
+    expect(guide).toMatch(/render defaults[^.]*missing fields[^.]*partial data/);
+    expect(guide).toMatch(/do not write defaults on load/i);
+    expect(guide).toMatch(/without deriving values from `default`/);
+    expect(guide).toMatch(/data\.json[^\n]*scan[^\n]*schema/i);
+    for (const icon of ["image/svg+xml", "image/png", '<link rel="icon">', "apple-touch-icon", "web app manifest", "/favicon.ico"]) expect(guide).toContain(icon);
+    expect(guide).toMatch(/fetch[^.]*site icon once/i);
+    expect(guide).toMatch(/favicon\.ico[^.]*convert it to PNG/);
+    expect(guide).toMatch(/local file in `icons`/);
+    expect(guide).toMatch(/server and app never fetch site favicons/i);
+    expect(guide).toMatch(/preserves[^.]*minimum version[^.]*newer version/i);
+    expect(guide).toMatch(/invalid or older[^.]*backed up[^.]*replaced at the same path/i);
+    // proofs/arch/templates/authoring.md#^templates-guide-t-snapshot
+    const snapshot = guide.split("## Add an artifact to the toolbox")[1]?.split("\n## ")[0];
+    expect(snapshot).toBeDefined();
+    expect(snapshot).toMatch(/snapshot/i);
+    expect(snapshot).toMatch(/new folder[^\n]*templates/i);
+    expect(snapshot).toContain("manifest.json");
+    expect(snapshot).toMatch(/current[^\n]*store[^\n]*data\.json[^\n]*null/i);
+    expect(snapshot).toMatch(/omit[^\n]*no value/i);
+    expect(snapshot).toMatch(/single[^\n]*HTML[^\n]*index\.html/i);
+    expect(snapshot).toMatch(/URL artifact[^\n]*URL template[^\n]*no[^\n]*data\.json[^\n]*dataSchema/i);
+    expect(snapshot).toMatch(/original artifact[^.]*as it is/i);
   });
 
   // proofs/arch/making-skills.md#^making-skills-t-theming-bundle
@@ -320,7 +371,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("advisory authoring context");
     expect(televisionSkill).toContain("[theming guidance](./theming.md)");
     expect(televisionSkill).toContain("[resource guidance](./resources.md)");
-    expect(televisionSkill).toContain("[template authoring guidance](./templates.md)");
+    expect(televisionSkill).toMatch(/\]\(\.\/templates\.md\)/);
 
     const htmlGuidance = readFileSync(
       path.join(
@@ -763,6 +814,28 @@ describe("skills build", () => {
         expect(televisionTheming).toContain(line);
       }
     }
+    // proofs/arch/themes/authoring.md#^theme-authoring-t-shipped-guidance
+    const frameReference = televisionTheming.split("### Artifact frame and its menu")[1]!.split("### Settings")[0]!;
+    expect(frameReference).toContain(".artifact-frame.artifact-frame-transparent");
+    expect(frameReference).toContain("square document corners");
+    expect(frameReference).toContain("full document height");
+    expect(frameReference).toContain(":has(tv-menu[open])");
+    expect(frameReference).toContain("300ms");
+    expect(frameReference).toContain("leave keyboard navigation");
+    expect(frameReference).toContain("Reduced motion makes both changes immediate");
+    // proofs/arch/themes/authoring.md#^theme-authoring-t-transparent-frame-guidance
+    for (const guidance of [
+      "`data-resize-active`", "outer band", "resize drag", "wherever the pointer goes",
+      "release or cancellation", "neither condition holds", "same frost and title bar",
+      "native border and both edge paints remain hidden",
+      "`.artifact-frame-clip::before`", "`.artifact-title-bar::before`", "opacity",
+      "fixed-position menu", "containing block", "stacking context", "stage handles",
+      "positioned content", "tree order", "frame opacity and blur independently",
+    ]) expect(frameReference).toContain(guidance);
+    const stageReference = televisionTheming.split("### Stage and pages")[1]!.split("### Artifact frame and its menu")[0]!;
+    expect(stageReference).toContain("A background page with a transparent frame leaves the wallpaper unblurred");
+    expect(stageReference).toContain("still scales the page and fades and blurs its artifact content");
+    expect(stageReference).toContain("press selects the page without activating its document or frame controls");
     for (const obsolete of ["Create a new skill", "tv-theme-", "null theme"]) {
       expect(televisionTheming).not.toContain(obsolete);
     }

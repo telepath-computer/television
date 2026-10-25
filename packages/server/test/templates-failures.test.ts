@@ -158,4 +158,27 @@ describe("template creation keeps partial results", () => {
     expect(events.filter(({ name }) => name === "artifact_created")).toHaveLength(1);
     expect(events.filter(({ name }) => name === "artifact_template_used")).toEqual([]);
   });
+  // proofs/arch/templates/index.md#^templates-t-failure
+  it("reports the URL target and attempted ID on registration and layout failure", async () => {
+    for (const step of ["registration", "channel layout"]) {
+      const root = home();
+      const folder = template(root);
+      const target = "https://example.com/private-target";
+      writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Site", description: "Site", version: "1.0.0", url: target }));
+      const { store, server, channelID, events } = await start(root);
+      const obstruction = step === "registration" ? path.join(root, "state", "artifacts") : path.join(root, "state", "channels", `${channelID}.json`);
+      rmSync(obstruction, { recursive: true });
+      if (step === "registration") writeFileSync(obstruction, "obstructed");
+      else mkdirSync(obstruction);
+      const response = await create(server, store.authToken, channelID).expect(500);
+      expect(response.body.error).toContain(target);
+      expect(response.body.error).toContain(step);
+      expect(response.body.error).toMatch(/[0-9A-HJKMNP-TV-Z]{26}/);
+      expect(readFileSync(path.join(folder, "index.html"), "utf8")).toContain("Sample");
+      expect(store.listArtifacts()).toHaveLength(step === "registration" ? 0 : 1);
+      if (step === "channel layout") expect(response.body.error).toContain(store.listArtifacts()[0]!.id);
+      expect(events.filter(({ name }) => name === "artifact_template_used")).toEqual([]);
+    }
+  });
+
 });

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Toolbox production mount</title>
+  <link rel="stylesheet" href="/packages/web/src/foundation/index.css">
+  <link rel="stylesheet" href="/packages/web/src/foundation/app.css">
+</head>
+<body style="padding:16px">
+  <main id="fixture" style="display:flex;flex-direction:column;align-items:flex-end"></main>
+  <script type="module">
+    import { render } from "lit-html";
+    import { EventTarget } from "@rupertsworld/event-target";
+    import { ChangeEvent } from "@telepath-computer/television-shared";
+    import { ToolboxView } from "/packages/web/src/views/toolbox.ts";
+    const source = new EventTarget();
+    source.scan = null;
+    source.icons = new Map();
+    source.setOpen = () => {};
+    const actions = [];
+    let finishAction;
+    window.toolbox = {
+      actions,
+      holdAction: false,
+      finishAction: () => finishAction?.(),
+      set(scan, icons = []) {
+        source.scan = scan;
+        source.icons = new Map(icons);
+        source.dispatchEvent(new ChangeEvent("change"));
+      },
+    };
+    render(ToolboxView(source, async item => {
+      actions.push(item.id);
+      if (window.toolbox.holdAction) await new Promise(resolve => { finishAction = resolve; });
+    }), document.querySelector("#fixture"));
+  </script>
+</body>
+</html>

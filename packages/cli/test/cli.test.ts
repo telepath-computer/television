@@ -126,7 +126,7 @@ function fakeEnvironment(overrides: Partial<CLIEnvironment> = {}): Partial<CLIEn
       list: vi.fn(async () => ({ artifacts: [] })),
     },
     templates: {
-      list: vi.fn(async () => ({ templates: [{ id: "example", name: "Example", description: "A sample", version: "1.0.0", hasData: true, hasThumbnail: false, path: "/tmp/templates/example" }], errors: [{ folder: "broken", error: "invalid manifest" }] })),
+      list: vi.fn(async () => ({ templates: [{ id: "example", name: "Example", description: "A sample", version: "1.0.0", hasIcon: false, path: "/tmp/templates/example" }], errors: [{ folder: "broken", error: "invalid manifest" }], watching: true })),
       create: vi.fn(async () => ({ artifactID: "artifact-1", path: "/tmp/artifacts/example" })),
     },
     display: { focus: vi.fn(async () => ({ channelID: "screen-1", artifactID: "artifact-1" })), patch: vi.fn(async () => {}), get: vi.fn(async () => ({ focusedChannelId: null, pinnedChannelIds: [], activeThemeName: null, acpEnabled: false })) },
@@ -410,7 +410,14 @@ describe("startup links", () => {
 
 describe("artifact template CLI commands", () => {
   // proofs/arch/cli/index.md#^cli-t-create-display-request
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
   it.each([
+    ...(["path", "url", "template"] as const).flatMap((source) => [
+      [source, ["--transparent"], { transparent: true }] as const,
+      [source, ["--no-transparent"], { transparent: false }] as const,
+      [source, ["--width", "315.5", "--full-screen", "--transparent"], { width: 315.5, fullScreen: true, transparent: true }] as const,
+      [source, ["--height", "280", "--no-full-screen", "--no-transparent"], { height: 280, fullScreen: false, transparent: false }] as const,
+    ]),
     ["path", ["--width", "315.5"], { width: 315.5 }],
     ["path", ["--height", "280"], { height: 280 }],
     ["path", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
@@ -442,11 +449,35 @@ describe("artifact template CLI commands", () => {
     else expect(call.display).toEqual(display);
   });
 
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
+  it.each(["path", "url", "template", "update"] as const)("keeps transparency flag spellings as title values for %s", async (source) => {
+    for (const title of ["--transparent", "--no-transparent"]) {
+      for (const option of [undefined, title === "--transparent" ? "--no-transparent" : "--transparent"]) {
+        const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+        const args = source === "update" ? ["update-artifact", "--id", "artifact-1"]
+          : ["create-artifact", "--channel", "screen-1", "--no-focus", `--${source}`,
+            source === "path" ? "/server-only/note.md" : source === "url" ? "https://example.com" : "example"];
+        expect(await runCLI([...args, "--title", title, ...(option ? [option] : [])], env)).toBe(0);
+        const client = vi.mocked(env.createClient!).mock.results[0]!.value;
+        const method = source === "update" ? client.artifacts.update
+          : source === "template" ? client.templates.create : client.artifacts.create;
+        const call = vi.mocked(method).mock.calls[0]![0];
+        expect(call).toHaveProperty("title", title);
+        const field = source === "update" ? "transparent" : "display.transparent";
+        if (option === undefined) expect(call).not.toHaveProperty(field);
+        else expect(call).toHaveProperty(field, option === "--transparent");
+      }
+    }
+  });
+
   // proofs/arch/cli/index.md#^cli-t-create-display-invalid
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
   it.each([
     ["--width", "0"], ["--width", "-2"], ["--width", "abc"], ["--width", "Infinity"],
     ["--height", "0"], ["--height", "-2"], ["--height", "abc"], ["--height", "1e400"],
     ["--full-screen", "--no-full-screen"],
+    ["--transparent", "--no-transparent"], ["--no-transparent", "--transparent"],
   ] as const)("rejects invalid creation display %s %s for every source", async (...options) => {
     for (const sourceArgs of [
       ["--path", "/server-only/note.md", "--title", "Note"],
@@ -459,7 +490,7 @@ describe("artifact template CLI commands", () => {
       const env = fakeEnvironment({ stdout, stderr });
       expect(await runCLI(["--home", home, "create-artifact", "--channel", "screen-1", ...sourceArgs, ...options, "--no-focus"], env)).toBe(1);
       expect(stdout.toString()).toBe("");
-      expect(stderr.toString()).toMatch(options[0] === "--full-screen" ? /both|not both/i : /finite|positive/i);
+      expect(stderr.toString()).toMatch(options[0] === "--full-screen" || options[0].includes("transparent") ? /both|not both/i : /finite|positive/i);
       expect(stderr.toString()).toContain(SKILL_POINTER);
       expect(env.createClient).not.toHaveBeenCalled();
     }
@@ -548,13 +579,73 @@ describe("artifact template CLI commands", () => {
     expect(env.createClient).not.toHaveBeenCalled();
   });
 
-  // proofs/arch/cli/index.md#^cli-t-template-commands
-  it("lists the full fresh scan and resolves templates path without config or server", async () => {
-    const output = new BufferOutput();
-    const env = fakeEnvironment({ stdout: output, stderr: new BufferOutput() });
-    expect(await runCLI(["templates", "list"], env)).toBe(0);
-    expect(JSON.parse(output.toString())).toEqual(await (env.createClient as any).mock.results[0].value.templates.list.mock.results[0].value);
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it.each([
+    { artifactID: "artifact-1", path: "/tmp/artifacts/example" },
+    { artifactID: "artifact-1", url: "https://example.com/page" },
+  ])("prints the registered template target and omits caller data: %j", async (result) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    const client = (env.createClient as any)();
+    client.templates.create.mockResolvedValue(result);
+    client.display.focus.mockImplementation(async () => {
+      expect(stdout.toString()).toBe(`Artifact artifact-1 created.\nTelevision registered ${"path" in result ? result.path : result.url}.\n`);
+    });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(0);
+    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", source: "cli" });
+  });
 
+  it("prints no success when template creation is rejected", async () => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.create.mockRejectedValue(new Error("Store save unconfirmed"));
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain("Store save unconfirmed");
+    expect(client.display.focus).not.toHaveBeenCalled();
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it("projects fresh list and exact show records without app metadata", async () => {
+    const folder = { id: "Example", name: "Example", description: "Folder", path: "/tmp/templates/Example", version: "1.0.0", display: { width: 200 }, dataSchema: { type: "object" }, icons: [{ src: "icon.svg", type: "image/svg+xml" }] };
+    const url = { id: "url", name: "URL", description: "Website", path: "/tmp/templates/url", version: "2.0.0", url: "https://example.com/" };
+    const errors = [{ folder: "broken", error: "invalid manifest" }];
+    for (const [args, expected] of [
+      [["list"], { templates: [{ id: folder.id, name: folder.name, description: folder.description }, { id: url.id, name: url.name, description: url.description, url: url.url }], errors }],
+      [["show", "Example"], { template: folder }],
+      [["show", "url"], { template: url }],
+    ] as const) {
+      const stdout = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+      const client = (env.createClient as any)();
+      client.templates.list.mockResolvedValue({ templates: [folder, url].map((entry) => ({ ...entry, hasIcon: true, kind: "app-only", extraAppField: "private" })), errors, watching: true });
+      expect(await runCLI(["templates", ...args], env)).toBe(0);
+      expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+      expect(JSON.parse(stdout.toString())).toEqual(expected);
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it.each([
+    ["broken", [{ folder: "broken", error: "invalid manifest" }], "invalid manifest"],
+    ["Example", [], "not found"],
+    ["example", [{ folder: null, error: "directory unavailable" }], "directory unavailable"],
+  ])("refuses template show %s without a success object", async (id, errors, error) => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.list.mockResolvedValue({ templates: [], errors, watching: false });
+    expect(await runCLI(["templates", "show", id], env)).toBe(1);
+    expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain(error);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-path
+  it("resolves templates path without config or server", async () => {
     const home = temporaryHome("not JSON");
     const local = new BufferOutput();
     const localEnv = fakeEnvironment({ stdout: local, stderr: new BufferOutput() });
@@ -992,6 +1083,48 @@ describe("CLI artifact command surface", () => {
     expect(stdout.toString()).toContain("Artifact artifact-1 updated.");
   });
 
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
+  it.each([
+    [["--transparent"], { transparent: true }],
+    [["--no-transparent"], { transparent: false }],
+    [["--title", "Updated", "--transparent"], { title: "Updated", transparent: true }],
+    [["--path", "  /tmp/a.html  ", "--no-transparent"], { path: "/tmp/a.html", transparent: false }],
+    [["--url", "  https://example.com/  ", "--transparent"], { url: "https://example.com/", transparent: true }],
+  ] as const)("maps transparency updates %j without losing explicit false", async (options, fields) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["update-artifact", "--id", "artifact-1", ...options], env)).toBe(0);
+    const client = vi.mocked(env.createClient!).mock.results[0]!.value;
+    expect(client.artifacts.update).toHaveBeenCalledWith({ artifactID: "artifact-1", ...fields });
+    expect(stdout.toString()).toBe("Artifact artifact-1 updated.\n");
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
+  it.each([
+    ["--transparent", "--no-transparent"], ["--no-transparent", "--transparent"],
+  ])("rejects conflicting update transparency %s %s before contacting the server", async (...flags) => {
+    for (const other of [[], ["--title", "Updated"], ["--path", "/tmp/a.html"], ["--url", "https://example.com/"]]) {
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr });
+      expect(await runCLI(["update-artifact", "--id", "artifact-1", ...other, ...flags], env)).toBe(1);
+      expect(env.createClient).not.toHaveBeenCalled();
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toContain("--transparent or --no-transparent, not both");
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-transparent-help
+  it.each(["create-artifact", "update-artifact"])("exposes both transparency flags in %s help", async (command) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["help", command], env)).toBe(0);
+    expect(stdout.toString()).toContain("--transparent");
+    expect(stdout.toString()).toContain("--no-transparent");
+    expect(env.createClient).not.toHaveBeenCalled();
+  });
+
   // Spec: [[arch/cli/index.md#^26872411|request-error formatting]].
   it("update-artifact prints a token-file hint instead of a raw 401", async () => {
     const stdout = new BufferOutput();
@@ -1028,12 +1161,13 @@ describe("CLI artifact command surface", () => {
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
-  it("update-artifact requires at least one of --title, --path, --url", async () => {
+  // proofs/arch/cli/index.md#^cli-t-transparent-help
+  it("update-artifact requires a field and names the title, pointer, and transparency options", async () => {
     const stderr = new BufferOutput();
     const env = fakeEnvironment({ stdout: new BufferOutput(), stderr });
     expect(await runCLI(["update-artifact", "--id", "artifact-1"], env)).toBe(1);
     expect(env.createClient).not.toHaveBeenCalled();
-    expect(stderr.toString()).toMatch(/--title, --path, or --url/);
+    expect(stderr.toString()).toContain("--title, --path, --url, --transparent, or --no-transparent");
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
@@ -2769,6 +2903,7 @@ const SERVER_COMMANDS: string[][] = [
   ["create-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
   ["create-artifact", "--channel", "screen-1", "--template", "example", "--no-focus"],
   ["templates", "list"],
+  ["templates", "show", "example"],
   ["update-artifact", "--id", "artifact-1", "--title", "T"],
   ["delete-artifact", "--id", "artifact-1"],
   ["reposition-artifact", "--id", "artifact-1", "--width", "500"],

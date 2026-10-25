@@ -152,13 +152,13 @@ class HttpRequester {
     return response.text();
   }
 
-  async requestBytes(method: HTTPMethod, pathname: string): Promise<Uint8Array> {
+  async requestBytes(method: HTTPMethod, pathname: string): Promise<{ bytes: Uint8Array; contentType: string }> {
     const response = await this.request(method, pathname);
     if (!response.ok) {
       if (response.status === HTTP_UNAUTHORIZED) this.onUnauthorized?.();
       throw this.createError(await extractErrorMessage(response, response.statusText), response.status);
     }
-    return new Uint8Array(await response.arrayBuffer());
+    return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type")?.split(";")[0] ?? "" };
   }
 
   async requestRawVoid(method: HTTPMethod, pathname: string, body: string): Promise<void> {
@@ -371,6 +371,7 @@ export class ArtifactClient {
     if (input.title !== undefined) body.title = input.title;
     if (input.path !== undefined) body.path = input.path;
     if (input.url !== undefined) body.url = input.url;
+    if (input.transparent !== undefined) body.transparent = input.transparent;
     return this.#http.requestJSON<{ artifact: Artifact }>(
       "PATCH",
       `/artifacts/${encodeURIComponent(input.artifactID)}`,
@@ -403,7 +404,7 @@ export class ArtifactClient {
   }
 }
 
-/** Fresh artifact-template discovery and creation. */
+/** Artifact-template discovery, creation, and authenticated icons. */
 export class TemplateClient {
   readonly #http: HttpRequester;
 
@@ -411,16 +412,18 @@ export class TemplateClient {
     this.#http = http;
   }
 
-  list(): Promise<ArtifactTemplateScan> {
-    return this.#http.requestJSON<ArtifactTemplateScan>("GET", "/templates");
+  list(options?: { fresh?: boolean }): Promise<ArtifactTemplateScan> {
+    return this.#http.requestJSON<ArtifactTemplateScan>("GET", options?.fresh ? "/templates?fresh=true" : "/templates");
   }
 
   create(input: CreateTemplateArtifactRequest): Promise<CreateTemplateArtifactResult> {
     return this.#http.requestJSON<CreateTemplateArtifactResult>("POST", "/templates/artifacts", { ...input });
   }
 
-  thumbnail(id: string): Promise<Uint8Array> {
-    return this.#http.requestBytes("GET", `/templates/${encodeURIComponent(id)}/thumbnail.png`);
+  async icon(id: string): Promise<{ bytes: Uint8Array; contentType: "image/svg+xml" | "image/png" }> {
+    const result = await this.#http.requestBytes("GET", `/templates/${encodeURIComponent(id)}/icon`);
+    if (result.contentType !== "image/svg+xml" && result.contentType !== "image/png") throw new Error("Unsupported template icon type");
+    return { bytes: result.bytes, contentType: result.contentType };
   }
 }
 

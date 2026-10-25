@@ -1,8 +1,8 @@
-*The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
+*The workshop for retained frame and template UI specs: the frameset viewer, the frames tree, and their staging conventions.*
 
 # Staging
 
-The workshop where the interface's specifications are viewed and judged: each spec's states render as browsable pages, so design is approved by looking at the real thing. What staging is for, and its non-binding standing, are stated in [spec-ui.md](spec-ui.md) (Staging); this document owns the workshop's conventions.
+This document owns the workshop conventions for retained frame and template UI specs. Their states render as browsable pages for design review; workshop wiring and presentation carry no authority. New and redesigned surfaces use MDX specs and Storybook stories under the [UI policy](spec-ui.md).
 
 ## The viewer
 
@@ -20,11 +20,11 @@ Reference frames have no background of their own, so missing surface backgrounds
 
 A **board** is a frame under `frames/` that embeds spec frames in posed states (`<frameset-frame src>`), at the sizes and on the ground they are judged against — a column of states, a centered specimen.
 
-A **prototyping frame** renders a spec frame inline and wires it: each component's wiring is one module in `frames/lib/`, exporting a function the host's `script:` applies to the staged markup. The function registers its event listeners — on the staged markup, and on `document` where a gesture must be tracked past the markup's edge — and returns a disposer that removes every listener it registered. The host applies the wiring when its script runs, and again on each `frameset:rendered` event, which the runtime dispatches after re-rendering the document and replacing the staged markup; it calls the previous disposer first, so no listener is registered twice. Rigs may change the staged markup directly while a gesture runs; at rest, the result must match what the frame would render for that state, so a re-render changes nothing. A staging frame's one-off wiring stays in that frame's own `style:` and `script:` blocks. Spec frames carry no scripts ([spec-ui.md](spec-ui.md), What a frame binds).
+A **prototyping frame** renders a spec frame inline and wires it: each component's wiring is one module in `frames/lib/`, exporting a function the host's `script:` applies to the staged markup. The function registers its event listeners — on the staged markup, and on `document` where a gesture must be tracked past the markup's edge — and returns a disposer that removes every listener it registered. The host applies the wiring when its script runs, and again on each `frameset:rendered` event, which the runtime dispatches after re-rendering the document and replacing the staged markup; it calls the previous disposer first, so no listener is registered twice. Rigs may change the staged markup directly while a gesture runs; at rest, the result must match what the frame would render for that state, so a re-render changes nothing. A staging frame's one-off wiring stays in that frame's own `style:` and `script:` blocks. Retained spec frames carry no scripts.
 
 ## Staging code
 
-Workshop wiring may measure a frame, apply a UI spec's executable motion reference to its DOM, and provide playback or progress controls. The wiring binds nothing; the reference retains its specified authority. Simulation css and DOM added around a spec render — scroll spacers, injected handles, wrappers — are labelled as staging and carry the reason they exist.
+Workshop wiring may measure a frame, apply a motion reference designated by the retained UI spec to its DOM, and provide playback or progress controls. The wiring binds nothing; the reference retains its specified authority. Simulation css and DOM added around a spec render — scroll spacers, injected handles, wrappers — are labelled as staging and carry the reason they exist.
 
 - Staging never restates a value the spec authors — it reads it (`drag.yml` imported as data), so every number exists in exactly one place.
 - A fresh render poses its state: transitions are held off until the posed values have painted, or entry animates from defaults.

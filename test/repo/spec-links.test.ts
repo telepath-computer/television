@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { authorityDocuments, proofBearingSpecs, relativeMirror, TEST_CODE_CITATION } from "./lib/spec-documents.ts";
 
 // Enforces specs/spec-policy.md's procedural reference-integrity rules. Once
 // that policy declares the proof system, the same checks cover the specs/proofs
@@ -27,12 +28,9 @@ function walk(dir: string, predicate: (file: string) => boolean = () => true): s
   });
 }
 
-const specDocuments = [
-  ...walk(SPECS_ROOT, (file) => file.endsWith(".md")),
-  ...walk(path.join(SPECS_ROOT, "ui"), (file) => file.endsWith(".mdx")),
-];
+const specMarkdown = authorityDocuments(SPECS_ROOT);
 const proofMarkdown = walk(PROOFS_ROOT, (file) => file.endsWith(".md"));
-const authorityDocuments = [...specDocuments, ...proofMarkdown];
+const authorityMarkdown = [...specMarkdown, ...proofMarkdown];
 // Guides are not authority; only their links are checked, so a moved guide fails loudly.
 const guideMarkdown = [
   path.join(REPO_ROOT, "docs", "README.md"),
@@ -66,39 +64,9 @@ function references(file: string): string[] {
   return out;
 }
 
-function proofBearingSpecs(): string[] {
-  return ["product", "arch", "ui"]
-    .flatMap((area) => walk(
-      path.join(SPECS_ROOT, area),
-      (file) => file.endsWith(".md") || (area === "ui" && file.endsWith(".mdx")),
-    ))
-    .filter((file) => {
-      const basename = path.basename(file);
-      return !basename.startsWith("runbook-") && !basename.startsWith("explainer-");
-    })
-    .filter((file) => {
-      const relative = path.relative(SPECS_ROOT, file).split(path.sep);
-      return relative[0] !== "ui" || path.basename(file) === "index.md" || file.endsWith(".mdx");
-    });
-}
-
 function proofBearingProofs(): string[] {
   return ["product", "arch", "ui"]
     .flatMap((area) => walk(path.join(PROOFS_ROOT, area), (file) => file.endsWith(".md")));
-}
-
-function proofForSpec(file: string): string {
-  const relative = path.relative(SPECS_ROOT, file);
-  if (!relative.endsWith(".mdx")) return path.join(PROOFS_ROOT, relative);
-  return path.join(PROOFS_ROOT, relative.slice(0, -".mdx".length), "index.md");
-}
-
-function specForProof(file: string): string {
-  const relative = path.relative(PROOFS_ROOT, file);
-  const markdown = path.join(SPECS_ROOT, relative);
-  const [area] = relative.split(path.sep);
-  if (existsSync(markdown) || area !== "ui" || path.basename(relative) !== "index.md") return markdown;
-  return path.join(SPECS_ROOT, `${path.dirname(relative)}.mdx`);
 }
 
 function blockAnchorExists(file: string, anchor: string): boolean {
@@ -109,7 +77,7 @@ function blockAnchorExists(file: string, anchor: string): boolean {
 
 describe("spec and proof reference integrity", () => {
   test("authority documents carry no wikilink syntax", () => {
-    const offenders = authorityDocuments.flatMap((file) =>
+    const offenders = authorityMarkdown.flatMap((file) =>
       proseSegments(readFileSync(file, "utf8")).some((segment) => segment.includes("[["))
         ? [path.relative(REPO_ROOT, file)]
         : []
@@ -119,7 +87,7 @@ describe("spec and proof reference integrity", () => {
 
   test("every relative link resolves to an existing file", () => {
     const broken: string[] = [];
-    for (const file of [...authorityDocuments, ...guideMarkdown]) {
+    for (const file of [...authorityMarkdown, ...guideMarkdown]) {
       for (const href of references(file)) {
         if (/^[a-z][a-z+.-]*:/i.test(href)) continue;
         const [target] = href.split("#");
@@ -139,7 +107,7 @@ describe("spec and proof reference integrity", () => {
 
   test("every cited block ref exists in its target", () => {
     const dangling: string[] = [];
-    for (const file of authorityDocuments) {
+    for (const file of authorityMarkdown) {
       for (const href of references(file)) {
         if (/^[a-z][a-z+.-]*:/i.test(href)) continue;
         const hash = href.indexOf("#");
@@ -159,7 +127,7 @@ describe("spec and proof reference integrity", () => {
 
   test("block refs are unique across specs and proofs", () => {
     const owners = new Map<string, string[]>();
-    for (const file of authorityDocuments) {
+    for (const file of authorityMarkdown) {
       for (const segment of proseSegments(readFileSync(file, "utf8"))) {
         for (const match of segment.matchAll(ANCHOR_DEFINITION)) {
           const owner = `${path.relative(REPO_ROOT, file)}:${segment.slice(0, match.index).split("\n").length}`;
@@ -176,12 +144,12 @@ describe("spec and proof reference integrity", () => {
 
   test("the proof tree mirrors every proof-bearing spec and has no orphan", () => {
     if (!PROOFS_ENABLED) return;
-    const missing = proofBearingSpecs()
-      .map(proofForSpec)
+    const missing = proofBearingSpecs(SPECS_ROOT)
+      .map((file) => relativeMirror(file, SPECS_ROOT, PROOFS_ROOT))
       .filter((file) => !existsSync(file))
       .map((file) => path.relative(REPO_ROOT, file));
     const orphaned = proofBearingProofs()
-      .map(specForProof)
+      .map((file) => relativeMirror(file, PROOFS_ROOT, SPECS_ROOT))
       .filter((file) => !existsSync(file))
       .map((file) => path.relative(REPO_ROOT, file));
     expect({ missing, orphaned }).toEqual({ missing: [], orphaned: [] });
@@ -193,7 +161,7 @@ describe("spec and proof reference integrity", () => {
     for (const proof of proofBearingProofs()) {
       const source = readFileSync(proof, "utf8");
       const match = source.match(/^Proves \[[^\]]+\]\(([^)\s]+)\)\.\s*$/m);
-      const expected = specForProof(proof);
+      const expected = relativeMirror(proof, PROOFS_ROOT, SPECS_ROOT);
       const resolved = match ? path.resolve(path.dirname(proof), match[1]!.split("#")[0]!) : null;
       if (resolved !== expected) broken.push(path.relative(REPO_ROOT, proof));
     }
@@ -202,7 +170,7 @@ describe("spec and proof reference integrity", () => {
 
   test("specs carry no assertion headings", () => {
     if (!PROOFS_ENABLED) return;
-    const offenders = specDocuments.flatMap((file) =>
+    const offenders = specMarkdown.flatMap((file) =>
       proseSegments(readFileSync(file, "utf8")).some((segment) => ASSERTION_HEADING.test(segment))
         ? [path.relative(REPO_ROOT, file)]
         : []
@@ -217,7 +185,7 @@ describe("spec and proof reference integrity", () => {
       .flatMap((root) => walk(root, (file) => CODE_EXTENSIONS.has(path.extname(file))));
     for (const file of code) {
       const source = readFileSync(file, "utf8");
-      for (const match of source.matchAll(/\b(specs|proofs)\/((?:product|arch|ui)\/[^#\s"'`()\]}>]+\.mdx?)#\^([A-Za-z0-9-]+)/g)) {
+      for (const match of source.matchAll(TEST_CODE_CITATION)) {
         const target = path.join(REPO_ROOT, match[1]!, match[2]!);
         if (!blockAnchorExists(target, match[3]!)) {
           dangling.push(`${path.relative(REPO_ROOT, file)} -> ${match[0]}`);

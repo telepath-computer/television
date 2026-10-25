@@ -6,6 +6,8 @@ Proves [specs/ui/app/copy-button/index.md](../../../../specs/ui/app/copy-button/
 
 ## Coverage model
 
+This surface retains its frame/template contract under [UI policy](../../../../specs/spec-ui.md). [Retained conformance](../../../arch/ui/conformance.md) owns stylesheet/delivery and visual-review coverage; the MDX policy does not replace the behavior assertions below or add story comparisons for this surface.
+
 The suite retains its existing clipboard, activation, timer, and announcement coverage. The markup contract covers caller-supplied `intent` and size alongside the copy lifecycle. Setup supplies the standard size through [its state contract](../../setup/index.md#^setup-t-states); clipboard and confirmation remain proven once here for its callers, including the update notification.
 
 ## Test hooks

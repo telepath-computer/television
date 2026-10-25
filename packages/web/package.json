@@ -26,7 +26,6 @@
     "vite": "6.4.3"
   },
   "devDependencies": {
-    "@telepath-computer/conform": "0.2.0",
-    "playwright": "1.64.1"
+    "@telepath-computer/conform": "0.2.0"
   }
 }

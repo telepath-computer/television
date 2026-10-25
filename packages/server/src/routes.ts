@@ -1,5 +1,5 @@
 import express, { type Request, type RequestHandler, type Response } from "express";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
@@ -16,7 +16,7 @@ import { parseClientTelemetryMetaHeader, TELEVISION_CLIENT_META_HEADER, type Tel
 import type { TelemetryStatus } from "./telemetry/index.ts";
 import { serveArtifactProxy } from "./artifact-proxy.ts";
 import { serveMarkdownContent } from "./markdown.ts";
-import { getTemplatesDir, readableTemplateThumbnail, scanTemplatesDirectory, TemplateCreationError } from "./templates.ts";
+import { selectTemplateIcon, validateTemplatePackage, TemplateCreationError } from "./templates.ts";
 import type { ArtifactPollCadence } from "@telepath-computer/television-artifact/browser";
 
 /** Home-directory file that turns on browser demo mode. */
@@ -50,6 +50,7 @@ const artifactDisplaySchema = z.object({
   width: z.number().finite().positive().optional(),
   height: z.number().finite().positive().optional(),
   fullScreen: z.boolean().optional(),
+  transparent: z.boolean().optional(),
 }).strict();
 
 const createPathArtifactSchema = z
@@ -100,11 +101,12 @@ const patchArtifactSchema = z
     title: z.string().optional(),
     path: z.string().optional(),
     url: z.string().optional(),
+    transparent: z.boolean().optional(),
   })
   .strict()
   .refine(
-    (value) => value.title !== undefined || value.path !== undefined || value.url !== undefined,
-    { message: "At least one of title, path, or url must be provided" },
+    (value) => value.title !== undefined || value.path !== undefined || value.url !== undefined || value.transparent !== undefined,
+    { message: "At least one of title, path, url, or transparent must be provided" },
   );
 
 const patchDisplaySchema = z
@@ -235,8 +237,8 @@ export function registerRoutes(
     res.json(store.getThemeRegistry());
   });
 
-  app.get("/templates", ...auth, (_req, res) => {
-    res.json(scanTemplatesDirectory(getTemplatesDir(store.storagePath)));
+  app.get("/templates", ...auth, (req, res) => {
+    res.json(store.templateCache!.get(req.query.fresh === "true"));
   });
 
   app.post("/templates/artifacts", ...auth, (req, res) => {
@@ -245,7 +247,7 @@ export function registerRoutes(
       sendError(res, HTTP_BAD_REQUEST, parsed.error.issues[0]?.message ?? "Invalid request body");
       return;
     }
-    const scan = scanTemplatesDirectory(getTemplatesDir(store.storagePath));
+    const scan = store.templateCache!.get(true);
     const template = scan.templates.find((candidate) => candidate.id === parsed.data.templateID);
     if (!template) {
       const error = scan.errors.find((candidate) => candidate.folder === parsed.data.templateID)
@@ -266,19 +268,25 @@ export function registerRoutes(
     }
   });
 
-  app.get("/templates/:id/thumbnail.png", ...auth, (req: Request<{ id: string }>, res) => {
-    const scan = scanTemplatesDirectory(getTemplatesDir(store.storagePath));
-    const template = scan.templates.find((candidate) => candidate.id === req.params.id);
-    const thumbnail = template && readableTemplateThumbnail(template.path);
-    if (!thumbnail) {
-      sendError(res, HTTP_NOT_FOUND, `Template thumbnail not found: ${req.params.id}`);
-      return;
+  app.get("/templates/:id/icon", ...auth, (req: Request<{ id: string }>, res) => {
+    const scan = store.templateCache!.getSnapshot();
+    let template = scan.templates.find((candidate) => candidate.id === req.params.id);
+    if (!scan.watching) {
+      // Exact immediate-directory IDs only; the caller never supplies a file path.
+      const id = req.params.id;
+      if (id && path.basename(id) === id && !id.startsWith(".")) {
+        const folder = path.join(store.storagePath, "templates", id);
+        try {
+          template = lstatSync(folder).isDirectory() ? validateTemplatePackage(folder, id).template : undefined;
+        } catch { template = undefined; }
+      } else template = undefined;
     }
+    const icon = template && selectTemplateIcon(template);
+    res.set("Cache-Control", "no-store");
     try {
-      res.type("png").send(readFileSync(thumbnail));
-    } catch {
-      sendError(res, HTTP_NOT_FOUND, `Template thumbnail not found: ${req.params.id}`);
-    }
+      if (icon) { res.type(icon.contentType).send(readFileSync(icon.path)); return; }
+    } catch { /* A selected file can disappear before the read. */ }
+    sendError(res, HTTP_NOT_FOUND, `Template icon not found: ${req.params.id}`);
   });
 
   app.post("/themes/refresh", ...auth, (req, res) => {

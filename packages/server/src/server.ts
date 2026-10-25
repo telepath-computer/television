@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -232,6 +232,12 @@ export class Server {
       this.app.get(SDK_NOTICES_ROUTE, serveResourceSdkNotices(options.sdkDir));
     }
     this.pageConnections = new PageConnectionServer({ layer: this.store.resources });
+    // Allow a full store value plus request metadata; the template preflight
+    // enforces the compact JSON store limit before creating anything.
+    this.app.use("/templates/artifacts", express.json({ limit: "2mb" }), (error: unknown, _req: Request, res: Response, next: NextFunction) => {
+      if (!error) { next(); return; }
+      res.status(HTTP_FIRST_ERROR_STATUS).json({ error: error instanceof Error ? error.message : "Invalid JSON request" });
+    });
     this.app.use(express.json());
 
     this.events = new EventStreamServer({

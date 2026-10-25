@@ -195,7 +195,7 @@ Source-to-bundle coverage crosses both the real `television` builder and the rea
 
 Automated reference checks run in the repository test suite and must:
 
-- Compare the source files recorded in the reference with every `.frame` and `.css` file under `specs/ui/app/`, plus `specs/ui/app/index.md`, which defines the app document marker, and every `.mdx` spec under `specs/ui/app/` together with the story module it names and the stylesheet those stories import. Missing, additional, or duplicate source entries fail the check.
+- Compare the source files recorded in the reference with the current app UI authorities: every `.frame` and `.css` file under `specs/ui/app/`; `specs/ui/app/index.md`, which defines the app document marker; and the Storybook stories, MDX pages and stylesheets to which an app UI spec delegates authority. Missing, additional, or duplicate source entries fail the check.
 - Compare a recorded SHA-256 content hash for each source file with its current contents. A mismatch fails the check. Review and, where needed, update the reference before updating the recorded hash.
 - Check that classes, IDs, custom-element names, attribute names, and literal state values named in markup outlines and inline selector examples occur in the source specs. Match complete names so that a longer name containing the same text does not satisfy the check.
 

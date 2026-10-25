@@ -1,36 +1,11 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Page } from "playwright";
 import { conform } from "@telepath-computer/conform";
-import { StorybookSource } from "@telepath-computer/conform/storybook";
-import { TelevisionClient } from "@telepath-computer/television-shared";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "@playwright/test";
-import { NetworkProxy } from "../../../server/test/e2e/network-proxy.ts";
-import { CHECKLIST_LAUNCH, TEST_HOST } from "./checklist-harness.ts";
-import { SERVER_ENV, type SharedServer } from "./checklist-conformance-setup.ts";
+import { artifactURL, client, createArtifact, specStories, storybook, useConformance } from "./conformance-harness.ts";
 
-// Global setup starts one product server for every worker.
-const server = JSON.parse(process.env[SERVER_ENV]!) as SharedServer;
-const client = new TelevisionClient(server.serverURL, { token: server.token });
-
-// conform drives its own Playwright, so each worker's browser comes from that version rather than the runner's.
-let browser: Browser;
-test.beforeAll(async () => { browser = await chromium.launch(CHECKLIST_LAUNCH); });
-test.afterAll(async () => { await browser?.close(); });
-
-// Each story's page reaches the server through its own proxy, so held or refused traffic never carries over.
-let proxy: NetworkProxy;
-test.beforeEach(async () => { proxy = await NetworkProxy.start(Number(new URL(server.serverURL).port)); });
-test.afterEach(async () => { await proxy?.close(); });
-
-async function create(data?: JSONValue): Promise<string> {
-  const { artifactID } = await client.templates.create({ templateID: "checklist", channelID: server.channelID, source: "cli" });
-  if (data !== undefined) await client.resources.json.set({ store: { artifactID }, path: "", value: data });
-  return artifactID;
-}
-
-const storybook = new StorybookSource({ url: process.env.TV_CHECKLIST_STORYBOOK_URL });
+const run = useConformance();
+const create = (data?: JSONValue) => createArtifact("checklist", data);
 
 type Item = [text: string, done: boolean];
 
@@ -64,8 +39,8 @@ const shown = (page: Page) => page.locator(".checklist-title, .checklist-unreada
 const focused = (page: Page, selector: string) => page.locator(`${selector}:focus`).waitFor();
 
 async function disconnect(page: Page): Promise<void> {
-  proxy.refuse(true);
-  proxy.sever();
+  run.proxy.refuse(true);
+  run.proxy.sever();
   await page.getByRole("status").filter({ hasText: "Reconnecting…" }).waitFor();
 }
 
@@ -123,14 +98,14 @@ const states: Record<string, State> = {
     data: withItems,
     share: "read-write",
     ready: async (page, id) => {
-      const connection = proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
-      proxy.holdWrites();
-      proxy.holdServerMessages(connection, message => message.type === "access");
+      const connection = run.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
+      run.proxy.holdWrites();
+      run.proxy.holdServerMessages(connection, message => message.type === "access");
       await page.locator(".checklist-check").first().click();
-      await proxy.waitFor(() => proxy.heldWriteCount === 1);
+      await run.proxy.waitFor(() => run.proxy.heldWriteCount === 1);
       await client.resources.share({ artifactID: id, access: "read" });
-      await proxy.waitFor(() => proxy.heldServerMessageCount(connection) > 0);
-      proxy.releaseWrites();
+      await run.proxy.waitFor(() => run.proxy.heldServerMessageCount(connection) > 0);
+      run.proxy.releaseWrites();
       await page.getByRole("status").filter({ hasText: "Couldn't save that change." }).waitFor();
       await page.mouse.click(1, 1);
     },
@@ -141,15 +116,8 @@ const states: Record<string, State> = {
   "narrow": { data: withItems, narrow: true },
 };
 
-// Storybook's index lists every exported story, including those the MDX does not embed.
-const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
-  entries: Record<string, { id: string; type: string; importPath: string }>;
-};
-const stories = Object.values(index.entries).filter(entry =>
-  entry.type === "story" && entry.importPath === "./spec/templates/checklist/checklist.stories.ts");
-
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-conformance
-for (const { id: storyID } of stories) {
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-conformance
+for (const storyID of specStories("./spec/templates/checklist/checklist.stories.ts")) {
   test(`Checklist conforms: ${storyID}`, async () => {
     const state = states[storyID.replace("spec-templates-checklist--", "")];
     expect(state, `No production state for the Checklist story ${storyID}`).toBeDefined();
@@ -157,17 +125,17 @@ for (const { id: storyID } of stories) {
 
     const id = await create(data);
     const shareID = share && (await client.resources.share({ artifactID: id, access: share })).shareID;
-    if (loading) proxy.hold("to-browser");
+    if (loading) run.proxy.hold("to-browser");
 
     await conform(storybook.page(storyID), {
-      url: `http://${TEST_HOST}:${proxy.port}/artifact/${encodeURIComponent(shareID ?? id)}/index.html`,
+      url: artifactURL(run.proxy, shareID ?? id),
       setup: page => page.emulateMedia({ colorScheme: dark ? "dark" : "light" }),
       ready: async page => {
-        if (loading) await proxy.waitFor(() => proxy.openWebSockets > 0);
+        if (loading) await run.proxy.waitFor(() => run.proxy.openWebSockets > 0);
         else await shown(page);
         await ready?.(page, id);
         await page.mouse.move(0, 0);
       },
-    }, { browser, root: ".checklist-page", ...(narrow ? { width: 360, height: 640 } : { width: 640, height: 800 }) });
+    }, { browser: run.browser, root: ".checklist-page", ...(narrow ? { width: 360, height: 640 } : { width: 640, height: 800 }) });
   });
 }

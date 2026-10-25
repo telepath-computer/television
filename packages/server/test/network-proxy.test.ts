@@ -95,7 +95,7 @@ describe("selective WebSocket server-message buffering", () => {
     return wire;
   }
 
-  // spec: proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+  // spec: proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
   it("holds matching messages only on the chosen connection and releases their original bytes after later refusals", async () => {
     const { proxy } = await start();
     const first = await wire.connect();
@@ -119,7 +119,7 @@ describe("selective WebSocket server-message buffering", () => {
     await first.browser.received(Buffer.concat([refusal, other, access, access]));
   });
 
-  // spec: proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+  // spec: proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
   it.each([12, 256, 66_000])("preserves unmasked fragmented messages with %i-byte payloads and interleaved control frames", async (length) => {
     const { proxy } = await start();
     const { browser, server, connection } = await wire.connect();
@@ -144,7 +144,7 @@ describe("selective WebSocket server-message buffering", () => {
   });
 
   // spec: proofs/arch/resources/sdk.md#^sdk-t-reconnect
-  // spec: proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+  // spec: proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
   it("holds masked fragmented writes independently of server messages without losing messages or control frames", async () => {
     const { proxy } = await start();
     const { browser, server, connection } = await wire.connect();
@@ -175,7 +175,7 @@ describe("selective WebSocket server-message buffering", () => {
     await browser.received(Buffer.concat([refusal, access]));
   });
 
-  // spec: proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+  // spec: proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
   // spec: proofs/arch/resources/sdk.md#^sdk-t-reconnect
   it("drops held server messages and partial frames on disconnect without carrying the hold into a new connection", async () => {
     const { proxy } = await start();
