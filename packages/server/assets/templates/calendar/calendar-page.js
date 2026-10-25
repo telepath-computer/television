@@ -115,13 +115,22 @@ function renderRangeLabel(parts) {
   const key = rangeLabelKeyOf(parts);
   if (rangeLabelKey === key) return;
   rangeLabelKey = key;
-  rangeLabel.replaceChildren(...parts.map((part) => {
-    if (part.type !== "year") return part.value;
-    const year = document.createElement("span");
-    year.className = "year";
-    year.textContent = part.value;
-    return year;
-  }));
+  // The parts between the years are one text node, as the text they make up
+  // lays out as one.
+  const children = [];
+  for (const part of parts) {
+    if (part.type === "year") {
+      const year = document.createElement("span");
+      year.className = "year";
+      year.textContent = part.value;
+      children.push(year);
+    } else if (typeof children.at(-1) === "string") {
+      children[children.length - 1] += part.value;
+    } else {
+      children.push(part.value);
+    }
+  }
+  rangeLabel.replaceChildren(...children);
 }
 
 // While the calendar slides to a new start date, the newest value waits here
@@ -305,6 +314,9 @@ function showHours(hours, animate) {
     const finish = () => {
       if (!target.usual) {
         setHours(target.height, target.scroll);
+        // On opening, the first scroll lands on the start hour once the
+        // hours have their height.
+        if (!animate) calendar.scrollToStartHour();
         return;
       }
       calendar.style.removeProperty("--hour-min-height");

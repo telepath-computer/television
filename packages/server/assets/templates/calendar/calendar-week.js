@@ -27,6 +27,11 @@ const REACTIVE_PROPERTIES = ["days", "startDate", "startHour"];
 // Events this short show their title and start time on one line.
 const SHORT_EVENT_MAX_MINUTES = 30;
 const TIME_FORMAT = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
+// A block writes a time range with thin spaces around the dash and an
+// ordinary space before AM or PM, whichever spaces the browser's formatter
+// puts there.
+const RANGE_DASH_RE = /\s*–\s*/;
+const NARROW_SPACE_RE = /\u202f/g;
 // The custom properties each kind of placement sets on a calendar-event.
 const TIMED_PLACEMENT_PROPERTIES = ["--day-index", "--y-start", "--y-end", "--column-index", "--column-span", "--column-count"];
 const ALL_DAY_PLACEMENT_PROPERTIES = ["--day-start", "--day-span", "--lane-index"];
@@ -466,7 +471,7 @@ function renderEventPlacement(event, placement) {
   // A short event has room for one line, so it shows only its start time.
   const time = isShort
     ? TIME_FORMAT.format(timeOfDay(placement.startMinutes))
-    : TIME_FORMAT.formatRange(timeOfDay(placement.startMinutes), timeOfDay(placement.endMinutes));
+    : formatTimeRange(timeOfDay(placement.startMinutes), timeOfDay(placement.endMinutes));
   if (timeElement.textContent !== time) timeElement.textContent = time;
   if (timeElement.hidden) timeElement.hidden = false;
   removeStyles(event, ALL_DAY_PLACEMENT_PROPERTIES);
@@ -479,6 +484,9 @@ function clearEventPlacement(event) {
 }
 function removeStyles(element, names) {
   for (const name of names) element.style.removeProperty(name);
+}
+function formatTimeRange(from, to) {
+  return TIME_FORMAT.formatRange(from, to).replace(RANGE_DASH_RE, "\u2009–\u2009").replace(NARROW_SPACE_RE, " ");
 }
 /** A Date on an arbitrary day at the given minute, for formatting a time of day. */
 function timeOfDay(totalMinutes) {

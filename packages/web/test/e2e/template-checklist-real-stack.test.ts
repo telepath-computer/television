@@ -3,9 +3,9 @@ import path from "node:path";
 import type { Frame, Locator, Page } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
-import { ChecklistHarness, CHECKLIST_LAUNCH } from "./checklist-harness.ts";
+import { ChecklistHarness, TEST_HOST_LAUNCH } from "./checklist-harness.ts";
 
-test.use({ launchOptions: CHECKLIST_LAUNCH, viewport: { width: 640, height: 800 }, actionTimeout: 15_000 });
+test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 640, height: 800 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
 type Item = { order: number; text: string; done: boolean; [key: string]: JSONValue };

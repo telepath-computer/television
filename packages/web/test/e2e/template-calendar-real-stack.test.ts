@@ -7,16 +7,11 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { TelevisionClient, type CreateTemplateArtifactRequest } from "@telepath-computer/television-shared";
 import { disposeAllProductServers, launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
+import { CALENDAR_DAY as day, CALENDAR_WEEK as week, calendarShown, motionSettled, PAGE_READY_TIMEOUT_MS } from "./calendar-harness.ts";
 import { configureTestMotion } from "./helpers.ts";
 
 const templatesBundle = path.resolve(import.meta.dirname, "../../../server/assets/templates");
-const fixture = (name: string) => JSON.parse(readFileSync(path.join(import.meta.dirname, "fixtures", name), "utf8"));
-const week = fixture("calendar-week.json");
-const day = fixture("calendar-day.json");
 
-// Each case creates an artifact and loads its page, which can take several
-// seconds on a busy host.
-const PAGE_READY_TIMEOUT_MS = 15_000;
 test.describe.configure({ timeout: 60_000 });
 
 let product: ProductServer;
@@ -54,11 +49,11 @@ async function openCalendar(page: Page, data: CreateTemplateArtifactRequest["dat
     ? await options.address(created.artifactID)
     : new URL(`/artifact/${created.artifactID}/index.html`, product.serverURL).toString();
   await page.goto(address);
-  if (showsCalendar) await expect(page.locator("calendar-week")).toHaveAttribute("data-ready", "", { timeout: PAGE_READY_TIMEOUT_MS });
+  if (showsCalendar) await calendarShown(page);
   await configureTestMotion(page, { allowCSSMotion });
   // The events arrive in motion that the CSS-motion override leaves running;
   // the case starts once it has finished, so what it measures has settled.
-  if (showsCalendar) await page.evaluate(() => Promise.allSettled(document.getAnimations().map((animation) => animation.finished)));
+  if (showsCalendar) await motionSettled(page);
   return created.artifactID;
 }
 
@@ -125,7 +120,7 @@ test("the working week shows titles, times, details, attendees and all-day event
   await expect(page.locator("calendar-headers > calendar-day")).toHaveCount(5);
   await expect(event(page, "retro").locator("h3")).toHaveText("Retrospective");
   await expect(event(page, "retro").locator(".event-time")).toHaveText(/^10:00\s–\s11:30\sAM$/);
-  await expect(event(page, "retro").locator(".event-detail")).toHaveText(week.events.retro.detail);
+  await expect(event(page, "retro").locator(".event-detail")).toHaveText(week.events.retro!.detail!);
   await expect(event(page, "retro").locator(".event-attendees")).toHaveText("Alex, Priya, Sam");
   await expect(event(page, "retro").locator(".event-attendees svg")).toBeVisible();
   // An event of half an hour or less shows only its start time.
@@ -272,7 +267,7 @@ test("attendees show as many whole names as fit and a count, and refit when the 
 // proofs/ui/templates/calendar/index.md#^calendar-ac-one-day
 test("one day has one column and shows a highlighted event raised without motion on load", async ({ page }) => {
   const data = structuredClone(day);
-  data.events.launch.highlight = true;
+  data.events.launch!.highlight = true;
   // Every transition that starts on the page from its first moment.
   await page.addInitScript(() => {
     const started: string[] = [];
@@ -356,7 +351,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 108
   test(`one day fills the width and keeps a raised event in view at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     const data = structuredClone(day);
-    data.events.launch.highlight = true;
+    data.events.launch!.highlight = true;
     await openCalendar(page, data);
     const calendar = await page.locator("calendar-week").evaluate((element) => ({
       right: element.getBoundingClientRect().left + element.clientWidth,
@@ -637,7 +632,7 @@ test("through a read-only share link the calendar shows as it does through its o
   const created = await client.templates.create({ templateID: "calendar", channelID: channels[0]!.id, source: "cli", data: week });
   const share = await client.resources.share({ artifactID: created.artifactID, access: "read" });
   await page.goto(new URL(`${share.path}index.html`, shared.serverURL).toString());
-  await expect(page.locator("calendar-week")).toHaveAttribute("data-ready", "", { timeout: PAGE_READY_TIMEOUT_MS });
+  await calendarShown(page);
   await expectWeek(page);
   await expect(event(page, "retro").locator(".event-attendees")).toHaveText("Alex, Priya, Sam");
 });
@@ -747,7 +742,7 @@ test("when the share link the page was opened through is revoked, the page keeps
   const created = await client.templates.create({ templateID: "calendar", channelID: channels[0]!.id, source: "cli", data: week });
   const share = await client.resources.share({ artifactID: created.artifactID, access: "read" });
   await page.goto(new URL(`${share.path}index.html`, shared.serverURL).toString());
-  await expect(page.locator("calendar-week")).toHaveAttribute("data-ready", "", { timeout: PAGE_READY_TIMEOUT_MS });
+  await calendarShown(page);
   await expectWeek(page);
   const before = await page.locator("main").innerHTML();
   // A second listener on the same store hears the error the page's own

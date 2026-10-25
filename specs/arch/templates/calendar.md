@@ -2,7 +2,7 @@
 
 # Calendar artifact template
 
-Calendar is a bundled [artifact template](../../product/templates.md#^artifact-template-bundled). The [inventory](./bundled-templates.md#^bundled-artifact-template-inventory) owns its ID, name, description, and versions. The [Calendar UI spec](../../ui/templates/calendar.mdx) owns the page's interaction, markup, and styling.
+Calendar is a bundled [artifact template](../../product/templates.md#^artifact-template-bundled). The [inventory](./bundled-templates.md#^bundled-artifact-template-inventory) owns its ID, name, description, and versions. The [Calendar UI spec](../../ui/templates/calendar.mdx) owns the page's appearance and interaction.
 
 The bundled manifest declares no `display`, so the shared defaults apply.
 
@@ -32,6 +32,6 @@ The page subscribes to the whole store through the [resource SDK](../resources/s
 
 ## Packaged page and guidance
 
-The page loads Television's canonical stylesheet and the resource SDK, and includes its other page dependencies inside the template folder so copied artifacts work independently. Its stylesheet, `styles.css` in the template folder, is a byte-for-byte copy of the Calendar UI spec's stylesheet, under the [stylesheet-copy checks](../ui/conformance.md#mechanisms). Its `thumbnail.png` is a 4:5 portrait screenshot, 400 by 500 pixels, of the page showing one day with a highlighted event. The [Templates popover UI spec](../../ui/app/templates-popover.mdx) owns how the image is displayed. ^bundled-artifact-template-calendar-page
+The page loads Television's canonical stylesheet and the resource SDK, and includes its other page dependencies inside the template folder so copied artifacts work independently. Its stylesheet is `styles.css` in the template folder; [conformance](../../spec-ui.md#conformance) holds the page to the UI spec's stories. Its `thumbnail.png` is a 4:5 portrait screenshot, 400 by 500 pixels, of the page showing one day with a highlighted event. The [Templates popover UI spec](../../ui/app/templates-popover.mdx) owns how the image is displayed. ^bundled-artifact-template-calendar-page
 
 The bundled `README.md` explains each store field in the table above, the empty starting `events` object, and that an event breaking those rules or outside the days shown is not displayed. It tells an adapting agent to write an event with `tv resource json set` at `events/<key>`, and to raise and settle an event by setting its `highlight` to true and then false. It says that the page follows changes live without writing to the store, and that its modules and stylesheet started from Television's tv-calendar component. ^bundled-artifact-template-calendar-readme

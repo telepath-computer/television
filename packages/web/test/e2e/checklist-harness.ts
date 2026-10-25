@@ -11,7 +11,8 @@ import { configureTestMotion } from "./helpers.ts";
 export const TEST_HOST = "tv-sdk.test";
 export const TEMPLATES_BUNDLE = path.resolve(import.meta.dirname, "../../../server/assets/templates");
 
-export const CHECKLIST_LAUNCH = { args: [`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
+/** Browser launch options mapping the test host name to the loopback server. */
+export const TEST_HOST_LAUNCH = { args:[`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
 
 /** Real installed templates and copied artifacts behind a stable, controllable browser connection. */
 export class ChecklistHarness {

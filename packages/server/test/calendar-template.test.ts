@@ -7,7 +7,7 @@ const folder = path.join(sourceRoot, "calendar");
 
 describe("bundled Calendar package", () => {
   // proofs/arch/templates/calendar.md#^templates-calendar-t-package
-  it("declares Calendar with its manifest, empty starting store, adapting guidance, and the spec stylesheet", () => {
+  it("declares Calendar with its manifest, empty starting store, adapting guidance, stylesheets and thumbnail", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest).toEqual({
       name: "Calendar",
@@ -19,10 +19,7 @@ describe("bundled Calendar package", () => {
     for (const guidance of ["`startDate`", "`days`", "`visibleHours`", "`events/<key>`", "`allDay`", "`attendees`", "`highlight`", "tv resource json set", "tv-calendar"]) {
       expect(readme).toContain(guidance);
     }
-    // The page carries the spec stylesheet byte for byte, linked from the page
-    // after the canonical stylesheet.
-    expect(readFileSync(path.join(folder, "styles.css")))
-      .toEqual(readFileSync(path.join(sourceRoot, "../../../../storybook/spec/templates/calendar/styles.css")));
+    // The page links its own stylesheet after the canonical stylesheet.
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
     const stylesheets = [...page.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map(([, href]) => href);
     expect(stylesheets).toEqual(["/canonical/v2/styles.css?authoredForAppVersion=1.5.4", "./styles.css"]);
