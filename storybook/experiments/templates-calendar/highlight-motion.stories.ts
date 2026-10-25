@@ -12,7 +12,7 @@ const LIFT_DELAY_MS = 1700;
 type Play = { canvasElement: HTMLElement };
 
 export default {
-  title: "Prototypes/Templates/Calendar",
+  title: "Experiments/Templates/Calendar",
   parameters: spec.parameters,
   globals: spec.globals,
   render: spec.render,

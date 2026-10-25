@@ -6,7 +6,7 @@ Proves [specs/arch/templates/bundled-templates.md](../../../specs/arch/templates
 
 ## Coverage model
 
-Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist package coverage](./checklist.md) owns the Checklist's display size, starting data, page delivery, and guidance; [Calendar package coverage](./calendar.md) owns the Calendar's; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
+Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist package coverage](./checklist.md) and [Calendar package coverage](./calendar.md) own the display size, starting data, page delivery, and guidance of their templates; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
 
 ## Test hooks
 

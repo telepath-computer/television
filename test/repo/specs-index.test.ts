@@ -28,16 +28,16 @@ test("indexes primary UI MDX specs and reads descriptions after their Storybook 
   writeFixture(root, "specs/ui/app/index.md", "*UI spec: the app surface.*\n\n# App\n");
   writeFixture(
     root,
-    "specs/ui/app/templates-popover.mdx",
+    "specs/ui/app/toolbox.mdx",
     [
       'import { Meta } from "@storybook/addon-docs/blocks";',
-      'import * as Stories from "./templates-popover.stories.ts";',
+      'import * as Stories from "./toolbox.stories.ts";',
       "",
       "<Meta of={Stories} />",
       "",
-      "*UI spec: the Templates popover.*",
+      "*UI spec: the Toolbox.*",
       "",
-      "# Templates popover",
+      "# Toolbox",
       "",
     ].join("\n"),
   );
@@ -63,7 +63,7 @@ test("indexes primary UI MDX specs and reads descriptions after their Storybook 
   generateIndexes(root);
 
   const index = readFileSync(path.join(root, "specs/index.md"), "utf8");
-  expect(index).toMatch(/`templates-popover\.mdx` \(\d+ lines\) — \*UI spec: the Templates popover\.\*/);
+  expect(index).toMatch(/`toolbox\.mdx` \(\d+ lines\) — \*UI spec: the Toolbox\.\*/);
   expect(index).toMatch(/`checklist\.mdx` \(\d+ lines\) — \*UI spec: the Checklist template page\.\*/);
 });
 
@@ -71,12 +71,12 @@ test("does not treat MDX files in the proof tree as proofs", () => {
   const root = tempRoot();
   writeFixture(root, "proofs/index.md", "");
   writeFixture(root, "proofs/ui/app/index.md", "*Proof of the app UI spec.*\n");
-  writeFixture(root, "proofs/ui/app/templates-popover.md", "*Proof of the Templates popover UI spec.*\n");
+  writeFixture(root, "proofs/ui/app/toolbox.md", "*Proof of the Toolbox UI spec.*\n");
   writeFixture(root, "proofs/ui/app/not-a-proof.mdx", "*This MDX file is not a proof.*\n");
 
   generateIndexes(root);
 
   const index = readFileSync(path.join(root, "proofs/index.md"), "utf8");
-  expect(index).toContain("`templates-popover.md`");
+  expect(index).toContain("`toolbox.md`");
   expect(index).not.toContain("not-a-proof.mdx");
 });

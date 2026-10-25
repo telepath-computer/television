@@ -91,6 +91,7 @@ describe("licensing configuration", () => {
       "tailwind-foundation",
       "firebase-push-keys",
       "markdown-table-editor",
+      "calendar-icons",
     ]);
 
     const hind = assets[0];
@@ -126,6 +127,19 @@ describe("licensing configuration", () => {
       license: "MIT",
       noticeText: readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"),
     });
+
+    // proofs/arch/licensing.md#^licensing-t-real-assets-seam
+    const calendarIcons = assets.find((asset) => asset.id === "calendar-icons")!;
+    expect(calendarIcons.paths).toEqual([
+      "packages/server/assets/templates/calendar/calendar-attendees.js",
+      "storybook/spec/templates/calendar/calendar.stories.ts",
+    ]);
+    expect(calendarIcons.components).toEqual(phosphor.components);
+    expect(calendarIcons.surfaces).toEqual(["cli", "source"]);
+    expect(calendarIcons.noticesFolder).toBe("packages/server/assets/templates/calendar");
+    for (const file of calendarIcons.paths) {
+      expect(readFileSync(path.join(repoRoot, file), "utf8")).toContain("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt");
+    }
 
     // proofs/arch/licensing.md#^licensing-t-real-assets-seam
     const nord = assets[2];

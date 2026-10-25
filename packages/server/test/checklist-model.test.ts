@@ -168,7 +168,7 @@ describe("Checklist renumbering callback", () => {
   );
 });
 
-// Contract: proofs/ui/templates/checklist/index.md#^checklist-ui-t-shortcut.
+// Contract: proofs/ui/templates/checklist.md#^checklist-ui-t-shortcut.
 // Supplied platform values forfeit native detection and delivery to the browser seam.
 describe("Checklist completion shortcut", () => {
   it.each(["MacIntel", "Macintosh", "Win32", "Linux x86_64"])("selects the native modifier for %s", (platform) => {

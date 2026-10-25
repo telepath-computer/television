@@ -155,13 +155,18 @@ async function beginResize(
   position: string,
   delta: { x: number; y: number },
 ): Promise<ResizePointer> {
-  const pointer = await resizePointer(page, position);
-  await page.mouse.move(pointer.origin.x, pointer.origin.y);
-  await page.mouse.down();
+  const pointer = await pressResizeHandle(page, position);
   await page.mouse.move(
     pointer.origin.x + delta.x,
     pointer.origin.y + delta.y,
   );
+  return pointer;
+}
+
+async function pressResizeHandle(page: Page, position: string): Promise<ResizePointer> {
+  const pointer = await resizePointer(page, position);
+  await page.mouse.move(pointer.origin.x, pointer.origin.y);
+  await page.mouse.down();
   return pointer;
 }
 
@@ -187,6 +192,58 @@ async function resizePointer(
       : box.y + box.height / 2,
   };
   return { handle, origin };
+}
+
+// Record the entire gesture, including cancellation before cleanup releases the
+// mouse. Endpoint assertions alone would miss a marker that disappears mid-drag.
+async function observeResizeState(page: Page) {
+  const observation = await page.evaluateHandle(() => {
+    const stage = document.querySelector(".stage")!;
+    const frames = [...stage.querySelectorAll(".artifact-frame")];
+    const samples: Array<{ active: boolean; marked: number[] }> = [];
+    const mutations: Array<{ frame: number; oldValue: string | null }> = [];
+    let running = true;
+    const observer = new MutationObserver(records => {
+      for (const record of records) {
+        mutations.push({ frame: frames.indexOf(record.target as Element), oldValue: record.oldValue });
+      }
+    });
+    observer.observe(stage, { attributes: true, attributeFilter: ["data-resize-active"], attributeOldValue: true, subtree: true });
+    function sample() {
+      samples.push({ active: stage.hasAttribute("resizing"), marked: frames.flatMap((frame, index) => frame.hasAttribute("data-resize-active") ? [index] : []) });
+      if (running) requestAnimationFrame(sample);
+    }
+    sample();
+    return { samples, mutations, stop() { running = false; observer.disconnect(); } };
+  });
+  return async (dragged = true) => {
+    await settleStage(page);
+    const result = await observation.evaluate(state => {
+      state.stop();
+      return { samples: state.samples, mutations: state.mutations };
+    });
+    await observation.dispose();
+    expect(result.mutations).toEqual([{ frame: 1, oldValue: null }, { frame: 1, oldValue: "" }]);
+    expect(result.samples.some(sample => sample.active)).toBe(dragged);
+    expect(result.samples.some(sample => !sample.active && sample.marked.length === 1)).toBe(true);
+    for (const sample of result.samples) {
+      expect(sample.marked.every(index => index === 1)).toBe(true);
+      if (sample.active) expect(sample.marked).toEqual([1]);
+    }
+  };
+}
+
+async function expectTransparentReveal(page: Page, shown: boolean): Promise<void> {
+  await (await startMotionObservation(page, ".stage")).settle();
+  const frame = page.locator(".page[selected] .artifact-frame");
+  const clip = frame.locator(".artifact-frame-clip");
+  expect(await clip.evaluate(element => getComputedStyle(element, "::before").opacity)).toBe(shown ? "1" : "0");
+  await expect(frame.locator(".artifact-title-bar")).toHaveCSS("opacity", shown ? "1" : "0");
+  await expect(frame.locator(".artifact-title-bar")).toHaveCSS("visibility", shown ? "visible" : "hidden");
+}
+
+async function expectHandleAt(page: Page, point: { x: number; y: number }, present: boolean): Promise<void> {
+  expect(await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest(".page-handle")), point)).toBe(present);
 }
 
 async function enterFullScreen(page: Page): Promise<StageReport> {
@@ -380,6 +437,50 @@ test.describe("stage selection motion (^st-ac-selection-motion)", () => {
   });
 });
 
+test.describe("stage transparent background input (^st-ac-transparent-input)", () => {
+  test("a press over a transparent background document control selects once and only a later press activates it", async ({ page }) => {
+    await page.setViewportSize({ width: 3_000, height: 900 });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.goto(`${FIXTURE}?transparent=artifact-a`);
+    await waitForStage(page, true);
+    await capture(page);
+
+    const background = page.locator('.page[data-page-key="artifact-a"]');
+    const frame = background.locator(".artifact-frame");
+    // State readiness ensures this input walk exercises the transparent frame.
+    await expect(frame).toHaveClass(/artifact-frame-transparent/);
+    await expect(background).not.toHaveAttribute("selected");
+    const document = background.frameLocator("iframe");
+    const control = document.getByRole("button", { name: "Activate document" });
+    const controlBox = await control.boundingBox();
+    if (!controlBox) throw new Error("Expected the background document control to have a box");
+    const observation = await startMotionObservation(page, ".stage");
+    await page.mouse.click(
+      controlBox.x + controlBox.width / 2,
+      controlBox.y + controlBox.height / 2,
+    );
+    await observation.settle({ requireMotion: true });
+
+    expect(await report(page)).toMatchObject({
+      selectedArtifactID: "artifact-a",
+      selectionCalls: [{ channelID: "channel-stage", artifactID: "artifact-a" }],
+      pageUpdateCalls: [],
+      artifactPresses: [],
+    });
+    await expect(document.locator("#activations")).toHaveText("0");
+    await expect(page.locator("tv-menu[open]")).toHaveCount(0);
+
+    await control.click();
+    await expect(document.locator("#activations")).toHaveText("1");
+    // The iframe reports the pointer press to its parent asynchronously via postMessage.
+    await expect.poll(() => report(page)).toMatchObject({
+      selectionCalls: [{ channelID: "channel-stage", artifactID: "artifact-a" }],
+      artifactPresses: ["artifact-a"],
+      pageUpdateCalls: [],
+    });
+  });
+});
+
 test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
   test("replaces the complete filmstrip and centres the arriving channel in one motionless paint", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });
@@ -426,82 +527,136 @@ test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
 });
 
 test.describe("stage page sizing", () => {
-  test("artifact menu owns both handle halves without blocking the uncovered strip (^st-ac-menu-over-handles)", async ({ page }) => {
+  // proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-menu
+  // proofs/ui/app/stage/index.md#^st-ac-menu-over-handles
+  // Application state is a fixture; menu placement, stage handles and CSS motion are real.
+  test("opaque and transparent menus stay beside their triggers and own both handle halves (^af-ui-ac-transparent-menu, ^st-ac-menu-over-handles)", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 700 });
-    await page.goto(FIXTURE);
-    await waitForStage(page);
-    await settleStage(page);
-
-    const selectedPage = page.locator(".page[selected]");
-    const trigger = selectedPage.locator(".artifact-menu-trigger");
-    const menu = selectedPage.locator("tv-menu");
-    const item = menu.locator("tv-menu-item").first();
-    await trigger.click();
-    await expect(menu).toBeVisible();
-    await settleStage(page);
-
-    const points = await selectedPage.evaluate((selected) => {
-      const menu = selected.querySelector("tv-menu[open]");
-      const item = menu?.querySelector("tv-menu-item");
-      const handle = selected.querySelector(".page-handle.right");
-      if (!menu || !item || !handle) throw new Error("Expected an open menu item and right resize handle");
-      const menuBox = menu.getBoundingClientRect();
-      const itemBox = item.getBoundingClientRect();
-      const handleBox = handle.getBoundingClientRect();
-      const pageBox = selected.getBoundingClientRect();
-      const innerLeft = Math.max(itemBox.left, handleBox.left, pageBox.left);
-      const innerRight = Math.min(itemBox.right, handleBox.right, pageBox.right);
-      const outerLeft = Math.max(itemBox.left, handleBox.left, pageBox.right);
-      const outerRight = Math.min(itemBox.right, handleBox.right);
-      const top = Math.max(itemBox.top, handleBox.top);
-      const bottom = Math.min(itemBox.bottom, handleBox.bottom);
-      if (innerRight <= innerLeft || outerRight <= outerLeft || bottom <= top) {
-        throw new Error("Expected the menu item to overlap both halves of the right handle band");
-      }
-      const away = { x: (handleBox.left + pageBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
-      if (away.x >= menuBox.left && away.x <= menuBox.right && away.y >= menuBox.top && away.y <= menuBox.bottom) {
-        throw new Error("Expected the inner-band point to be away from the open menu");
-      }
-      return {
-        inner: { x: (innerLeft + innerRight) / 2, y: (top + bottom) / 2 },
-        outer: { x: (outerLeft + outerRight) / 2, y: (top + bottom) / 2 },
-        away,
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    let opaquePlacement: { x: number; y: number } | undefined;
+    for (const transparent of [false, true]) {
+      await page.goto(`${FIXTURE}${transparent ? "?transparent=artifact-b" : ""}`);
+      await waitForStage(page, true);
+      await (await startMotionObservation(page, ".stage")).settle();
+      const selectedPage = page.locator(".page[selected]");
+      const frame = selectedPage.locator(".artifact-frame");
+      const bar = frame.locator(".artifact-title-bar");
+      const clip = frame.locator(".artifact-frame-clip");
+      const trigger = selectedPage.locator(".artifact-menu-trigger");
+      const menu = selectedPage.locator("tv-menu");
+      const item = menu.locator("tv-menu-item").first();
+      const revealAndOpen = async () => {
+        const enter = await startMotionObservation(page, ".stage");
+        const box = await selectedPage.boundingBox();
+        if (!box) throw new Error("Expected a selected page box");
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await enter.settle();
+        await trigger.click();
+        await expect(menu).toHaveAttribute("open", "");
+        await (await startMotionObservation(page, ".stage")).settle();
       };
-    });
-
-    for (const point of [points.outer, points.inner]) {
-      await page.mouse.move(point.x, point.y);
-      const hit = await item.evaluate((item, { x, y }) => {
-        const target = document.elementFromPoint(x, y);
+      await revealAndOpen();
+      const triggerBox = await trigger.boundingBox();
+      const menuBox = await menu.boundingBox();
+      if (!triggerBox || !menuBox) throw new Error("Expected rendered trigger and menu boxes");
+      expect(menuBox.x).toBeGreaterThanOrEqual(0);
+      expect(menuBox.y).toBeGreaterThanOrEqual(0);
+      expect(menuBox.x + menuBox.width, `${transparent ? "transparent" : "opaque"} menu right edge`).toBeLessThanOrEqual(1_200);
+      expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(700);
+      // This viewport flips the shared menu above the bottom-bar trigger.
+      const gap = await menu.evaluate(element => Number.parseFloat(getComputedStyle(element).getPropertyValue("--popover-distance")));
+      expectClose(triggerBox.y - menuBox.y - menuBox.height, gap);
+      expectClose(menuBox.x, triggerBox.x);
+      const placement = { x: menuBox.x - triggerBox.x, y: menuBox.y + menuBox.height - triggerBox.y };
+      if (!transparent) opaquePlacement = placement;
+      else {
+        expectClose(placement.x, opaquePlacement!.x);
+        expectClose(placement.y, opaquePlacement!.y);
+        const held = await startMotionObservation(page, ".stage");
+        await page.mouse.move(8, 8);
+        await expect(frame).not.toHaveAttribute("data-resize-active", "");
+        await expectHandleAt(page, { x: 8, y: 8 }, false);
+        expect((await held.settle()).transitionEvents).toEqual([]);
+        await expect(menu).toHaveAttribute("open", "");
+        expect(await menu.boundingBox()).toEqual(menuBox);
+        expect(await clip.evaluate(element => getComputedStyle(element, "::before").opacity)).toBe("1");
+        await expect(bar).toHaveCSS("opacity", "1");
+        await expect(bar).toHaveCSS("visibility", "visible");
+        const exit = await startMotionObservation(page, ".stage");
+        await page.keyboard.press("Escape");
+        await exit.settle({ requireMotion: true });
+        await expect(menu).not.toHaveAttribute("open", "");
+        await expect(bar).toHaveCSS("visibility", "hidden");
+        expect(await clip.evaluate(element => getComputedStyle(element, "::before").opacity)).toBe("0");
+        await revealAndOpen();
+      }
+      const points = await selectedPage.evaluate((selected) => {
+        const menu = selected.querySelector("tv-menu[open]");
+        const item = menu?.querySelector("tv-menu-item");
+        const handle = selected.querySelector(".page-handle.right");
+        if (!menu || !item || !handle) throw new Error("Expected an open menu item and right resize handle");
+        const menuBox = menu.getBoundingClientRect();
+        const itemBox = item.getBoundingClientRect();
+        const handleBox = handle.getBoundingClientRect();
+        const pageBox = selected.getBoundingClientRect();
+        const innerLeft = Math.max(itemBox.left, handleBox.left, pageBox.left);
+        const innerRight = Math.min(itemBox.right, handleBox.right, pageBox.right);
+        const outerLeft = Math.max(itemBox.left, handleBox.left, pageBox.right);
+        const outerRight = Math.min(itemBox.right, handleBox.right);
+        const top = Math.max(itemBox.top, handleBox.top);
+        const bottom = Math.min(itemBox.bottom, handleBox.bottom);
+        if (innerRight <= innerLeft || outerRight <= outerLeft || bottom <= top) {
+          throw new Error("Expected the menu item to overlap both halves of the right handle band");
+        }
+        const away = { x: (handleBox.left + pageBox.right) / 2, y: (handleBox.top + handleBox.bottom) / 2 };
+        if (away.x >= menuBox.left && away.x <= menuBox.right && away.y >= menuBox.top && away.y <= menuBox.bottom) {
+          throw new Error("Expected the inner-band point to be away from the open menu");
+        }
         return {
-          target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
-          cursor: target ? getComputedStyle(target).cursor : null,
-          menuCursor: getComputedStyle(item).cursor,
+          inner: { x: (innerLeft + innerRight) / 2, y: (top + bottom) / 2 },
+          outer: { x: (outerLeft + outerRight) / 2, y: (top + bottom) / 2 },
+          away,
         };
-      }, point);
-      expect(hit.target).toBe("tv-menu-item");
-      expect(hit.cursor).toBe(hit.menuCursor);
+      });
+
+      for (const point of [points.outer, points.inner]) {
+        await page.mouse.move(point.x, point.y);
+        const hit = await item.evaluate((item, { x, y }) => {
+          const target = document.elementFromPoint(x, y);
+          return {
+            target: target === item ? "tv-menu-item" : target?.getAttribute("class") ?? target?.tagName,
+            cursor: target ? getComputedStyle(target).cursor : null,
+            menuCursor: getComputedStyle(item).cursor,
+          };
+        }, point);
+        expect(hit.target).toBe("tv-menu-item");
+        expect(hit.cursor).toBe(hit.menuCursor);
+      }
+
+      await page.mouse.move(points.away.x, points.away.y);
+      await expect(menu).toBeVisible();
+      const awayHit = await selectedPage.evaluate((selected, { x, y }) => {
+        const target = document.elementFromPoint(x, y);
+        return target === selected.querySelector(".page-handle.right") ? "page-handle right" : target?.tagName;
+      }, points.away);
+      expect(awayHit).toBe("page-handle right");
+      await expect(frame).toHaveAttribute("data-resize-active", "");
+      await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+
+      await page.mouse.move(points.inner.x, points.inner.y);
+      await expect(frame).not.toHaveAttribute("data-resize-active", "");
+      await page.mouse.down();
+      await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+      await expect(frame).not.toHaveAttribute("data-resize-active", "");
+      await page.mouse.up();
+      await expect(menu).toBeHidden();
+      await expect(selectedPage).toHaveAttribute("full-screen", "");
+      expect((await report(page)).pageUpdateCalls).toEqual([{
+        channelID: "channel-stage",
+        fullScreen: true,
+        sizes: AUTHORED_PAGE_SIZES,
+      }]);
     }
-
-    await page.mouse.move(points.away.x, points.away.y);
-    await expect(menu).toBeVisible();
-    const awayHit = await selectedPage.evaluate((selected, { x, y }) => {
-      const target = document.elementFromPoint(x, y);
-      return target === selected.querySelector(".page-handle.right") ? "page-handle right" : target?.tagName;
-    }, points.away);
-    expect(awayHit).toBe("page-handle right");
-
-    await page.mouse.move(points.inner.x, points.inner.y);
-    await page.mouse.down();
-    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
-    await page.mouse.up();
-    await expect(menu).toBeHidden();
-    await expect(selectedPage).toHaveAttribute("full-screen", "");
-    expect((await report(page)).pageUpdateCalls).toEqual([{
-      channelID: "channel-stage",
-      fullScreen: true,
-      sizes: AUTHORED_PAGE_SIZES,
-    }]);
   });
 
   test("renders fractional stored sizes through the shared factor without animating window tracking", async ({ page }) => {
@@ -542,54 +697,104 @@ test.describe("stage page sizing", () => {
     expect(Math.abs(tiny.geometry.centerOffset)).toBeLessThan(1);
   });
 
-  test("shows non-overlapping handles only on the selected page and commits the moved rendered axis", async ({ page }) => {
+  // proofs/ui/app/stage/index.md#^st-ac-frame-resizing
+  test("outer handle hover reveals the transparent frame and leaving without a drag hides it (^st-ac-frame-resizing)", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });
-    await page.goto(FIXTURE);
-    await waitForStage(page);
-    await settleStage(page);
+    await page.goto(`${FIXTURE}?transparent=artifact-b`);
+    await waitForStage(page, true);
+    await (await startMotionObservation(page, ".stage")).settle();
     const before = await report(page);
-    if (!before.geometry) throw new Error("Expected initial page geometry");
-
-    expect(before.handles).toEqual({
-      selected: [
-        "bottom page-handle",
-        "bottom-left page-handle",
-        "bottom-right page-handle",
-        "left page-handle",
-        "page-handle right",
-        "page-handle top",
-        "page-handle top-left",
-        "page-handle top-right",
-      ].sort(),
-      backgroundCounts: [0, 0],
-      controlOverlaps: [],
-    });
-
-    await beginResize(page, "right", { x: 37, y: 0 });
-    const during = await report(page);
-    if (!during.geometry) throw new Error("Expected live resize geometry");
-    expectClose(during.geometry.page.width, before.geometry.page.width + 74);
-    expectClose(during.geometry.page.height, before.geometry.page.height);
-    expectClose(during.geometry.centerOffset, 0);
-    expect(during.snapOutlined).toBe(false);
-
-    await page.mouse.up();
-    await settleStage(page);
-    const committed = await report(page);
-    expect(committed.pageUpdateCalls).toHaveLength(1);
-    const sizes = committed.pageUpdateCalls[0]!.sizes;
-    expect(sizes[0]).toEqual(AUTHORED_PAGE_SIZES[0]);
-    expect(sizes[2]).toEqual(AUTHORED_PAGE_SIZES[2]);
-    expect(sizes[1]!.height).toBe(AUTHORED_PAGE_SIZES[1]!.height);
-    const box = pageBox(before.geometry);
-    const widthFactor = 1 - 0.4 + 0.4 * box.width / 1_280;
-    expectClose(
-      sizes[1]!.width,
-      (before.geometry.page.width + 74) / widthFactor,
-      0.05,
-    );
-    expectPageGeometry(committed, false, sizes[1]);
+    const frame = page.locator(".page[selected] .artifact-frame");
+    const finishObservation = await observeResizeState(page);
+    const pointer = await resizePointer(page, "right");
+    const outer = { x: pointer.origin.x + 1, y: pointer.origin.y };
+    const box = await frame.boundingBox();
+    expect(outer.x).toBeGreaterThan(box!.x + box!.width);
+    await page.mouse.move(outer.x, outer.y);
+    await expectHandleAt(page, outer, true);
+    await expect(frame).toHaveAttribute("data-resize-active", "");
+    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+    await expectTransparentReveal(page, true);
+    await page.mouse.move(5, 5);
+    await expect(frame).not.toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, false);
+    const after = await report(page);
+    expect(after.geometry).toEqual(before.geometry);
+    expect(after.pageUpdateCalls).toEqual([]);
+    await finishObservation(false);
   });
+
+  for (const transparent of [false, true]) {
+    for (const ending of ["over a handle", "away from handles"] as const) {
+      test(`${transparent ? "transparent corner" : "opaque edge"} release ${ending} retains only the eligible resize-active frame and commits the moved axes (^st-ac-frame-resizing)`, async ({ page }) => {
+        await page.setViewportSize({ width: 1_200, height: 900 });
+        await page.goto(`${FIXTURE}${transparent ? "?transparent=artifact-b" : ""}`);
+        await waitForStage(page, true);
+        await (await startMotionObservation(page, ".stage")).settle();
+        await settleStage(page);
+        const before = await report(page);
+        if (!before.geometry) throw new Error("Expected initial page geometry");
+        expect(before.handles).toEqual({
+          selected: ["bottom page-handle", "bottom-left page-handle", "bottom-right page-handle", "left page-handle", "page-handle right", "page-handle top", "page-handle top-left", "page-handle top-right"].sort(),
+          backgroundCounts: [0, 0],
+          controlOverlaps: [],
+        });
+        const frame = page.locator(".page[selected] .artifact-frame");
+        await expect(page.locator(".artifact-frame[data-resize-active]")).toHaveCount(0);
+        const finishObservation = await observeResizeState(page);
+        const delta = { x: 37, y: transparent ? 21 : 0 };
+        const pointer = await resizePointer(page, transparent ? "bottom-right" : "right");
+        await page.mouse.move(pointer.origin.x, pointer.origin.y);
+        await expect(frame).toHaveAttribute("data-resize-active", "");
+        await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+        await (await startMotionObservation(page, ".stage")).settle();
+        await page.mouse.down();
+        await expect(page.locator(".stage")).toHaveAttribute("resizing", "");
+        await expect(frame).toHaveAttribute("data-resize-active", "");
+        await page.mouse.move(pointer.origin.x + delta.x, pointer.origin.y + delta.y);
+        await settleStage(page);
+        const during = await report(page);
+        if (!during.geometry) throw new Error("Expected live resize geometry");
+        expectClose(during.geometry.page.width, before.geometry.page.width + 74);
+        expectClose(during.geometry.page.height, before.geometry.page.height + delta.y * 2);
+        expectClose(during.geometry.centerOffset, 0);
+        expect(during.snapOutlined).toBe(false);
+
+        await page.mouse.move(5, 5);
+        await expectHandleAt(page, { x: 5, y: 5 }, false);
+        await expect(frame).toHaveAttribute("data-resize-active", "");
+        expect((await frame.boundingBox())!.x).toBeGreaterThan(5);
+        if (transparent) await expectTransparentReveal(page, true);
+        const over = ending === "over a handle";
+        const endpoint = over ? { x: pointer.origin.x + delta.x, y: pointer.origin.y + delta.y } : { x: 5, y: 5 };
+        await page.mouse.move(endpoint.x, endpoint.y);
+        await settleStage(page);
+        const finalDrag = await report(page);
+        await page.mouse.up();
+        await settleStage(page);
+        await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+        await expectHandleAt(page, endpoint, over);
+        if (over) await expect(frame).toHaveAttribute("data-resize-active", "");
+        else await expect(frame).not.toHaveAttribute("data-resize-active", "");
+        if (transparent) await expectTransparentReveal(page, over);
+
+        const committed = await report(page);
+        expect(committed.pageUpdateCalls).toHaveLength(1);
+        const sizes = committed.pageUpdateCalls[0]!.sizes;
+        expect(sizes[0]).toEqual(AUTHORED_PAGE_SIZES[0]);
+        expect(sizes[2]).toEqual(AUTHORED_PAGE_SIZES[2]);
+        if (!transparent) expect(sizes[1]!.height).toBe(AUTHORED_PAGE_SIZES[1]!.height);
+        else expectClose(sizes[1]!.height, finalDrag.geometry!.page.height / (0.6 + 0.4 * pageBox(before.geometry).height / 800), 0.05);
+        const widthFactor = 0.6 + 0.4 * pageBox(before.geometry).width / 1_280;
+        expectClose(sizes[1]!.width, finalDrag.geometry!.page.width / widthFactor, 0.05);
+        expectPageGeometry(committed, false, sizes[1]);
+        await page.mouse.move(5, 5);
+        await expect(frame).not.toHaveAttribute("data-resize-active", "");
+        if (transparent) await expectTransparentReveal(page, false);
+        await finishObservation();
+      });
+    }
+  }
 
   test("holds an edge at both rendered bounds and resumes as soon as the pointer returns", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });
@@ -635,49 +840,145 @@ test.describe("stage page sizing", () => {
   });
 
   for (const cancellation of ["Escape", "pointer cancellation", "capture loss", "page-box change"] as const) {
-    test(`${cancellation} restores the settled size and commits no snap or layout update`, async ({ page }) => {
-      await page.setViewportSize({ width: 1_200, height: 900 });
-      await page.goto(FIXTURE);
-      await waitForStage(page);
-      await settleStage(page);
-      const before = await report(page);
-      if (!before.geometry) throw new Error("Expected initial page geometry");
-
-      const pointer = await beginResize(page, "bottom-right", { x: 55, y: 35 });
-      const moved = await report(page);
-      if (!moved.geometry) throw new Error("Expected live resize geometry");
-      expect(moved.geometry.page.width).not.toBe(before.geometry.page.width);
-      expect(moved.geometry.page.height).not.toBe(before.geometry.page.height);
-
-      if (cancellation === "Escape") {
-        await page.keyboard.press("Escape");
-      } else if (cancellation === "pointer cancellation") {
-        await pointer.handle.evaluate((handle) => {
-          handle.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 }));
-        });
-      } else if (cancellation === "capture loss") {
-        await pointer.handle.evaluate((handle) => {
-          for (let pointerId = 1; pointerId <= 10; pointerId += 1) {
-            if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
-          }
-        });
-      } else {
-        await page.setViewportSize({ width: 1_100, height: 820 });
+    for (const ending of ["over a handle", "away from handles"] as const) {
+      test(`${cancellation} ${ending} restores the settled size and retains only the eligible resize-active frame (^st-ac-frame-resizing)`, async ({ page }) => {
+        await page.setViewportSize({ width: 1_200, height: 900 });
+        await page.goto(`${FIXTURE}?transparent=artifact-b`);
+        await waitForStage(page, true);
+        await (await startMotionObservation(page, ".stage")).settle();
+        await settleStage(page);
+        const before = await report(page);
+        if (!before.geometry) throw new Error("Expected initial page geometry");
+        const frame = page.locator(".page[selected] .artifact-frame");
+        const right = await resizePointer(page, "right");
+        const finishObservation = await observeResizeState(page);
+        const pointer = await resizePointer(page, "bottom-right");
+        await page.mouse.move(pointer.origin.x, pointer.origin.y);
+        await expect(frame).toHaveAttribute("data-resize-active", "");
+        await expectTransparentReveal(page, true);
+        await page.mouse.down();
+        await expect(page.locator(".stage")).toHaveAttribute("resizing", "");
+        await page.mouse.move(pointer.origin.x + 55, pointer.origin.y + 35);
+        await settleStage(page);
+        const moved = await report(page);
+        expect(moved.geometry!.page.width).not.toBe(before.geometry.page.width);
+        expect(moved.geometry!.page.height).not.toBe(before.geometry.page.height);
+        // The right edge of the restored page is independent of the corner's
+        // provisional height. Keeping the viewport width preserves that edge
+        // in the page-box cancellation too.
+        const over = ending === "over a handle";
+        const endpoint = over ? { x: right.origin.x + 1, y: right.origin.y } : { x: 5, y: 5 };
+        await page.mouse.move(endpoint.x, endpoint.y);
+        await expect(frame).toHaveAttribute("data-resize-active", "");
+        await expectTransparentReveal(page, true);
+        if (cancellation === "Escape") {
+          await page.keyboard.press("Escape");
+        } else if (cancellation === "pointer cancellation") {
+          await pointer.handle.evaluate(handle => handle.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 1 })));
+        } else if (cancellation === "capture loss") {
+          await pointer.handle.evaluate(handle => {
+            for (let pointerId = 1; pointerId <= 10; pointerId += 1) {
+              if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+            }
+          });
+          // The browser delivers pending capture loss before the next pointer event.
+          await page.mouse.move(endpoint.x, endpoint.y);
+        } else {
+          await page.setViewportSize({ width: 1_200, height: 820 });
+        }
         await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
-      }
-      await page.mouse.up();
-      await settleStage(page);
-
-      const restored = await report(page);
-      expect(restored.pageUpdateCalls).toEqual([]);
-      expect(restored.snapOutlined).toBe(false);
-      expectPageGeometry(restored, false);
-      if (cancellation !== "page-box change" && restored.geometry) {
-        expectClose(restored.geometry.page.width, before.geometry.page.width);
-        expectClose(restored.geometry.page.height, before.geometry.page.height);
-      }
-    });
+        await settleStage(page);
+        await expectHandleAt(page, endpoint, over);
+        if (over) await expect(frame).toHaveAttribute("data-resize-active", "");
+        else await expect(frame).not.toHaveAttribute("data-resize-active", "");
+        await expectTransparentReveal(page, over);
+        const restored = await report(page);
+        expect(restored.pageUpdateCalls).toEqual([]);
+        expect(restored.snapOutlined).toBe(false);
+        expectPageGeometry(restored, false);
+        if (cancellation !== "page-box change" && restored.geometry) {
+          expectClose(restored.geometry.page.width, before.geometry.page.width);
+          expectClose(restored.geometry.page.height, before.geometry.page.height);
+        }
+        // All cancellation assertions precede this cleanup release.
+        await page.mouse.up();
+        await page.mouse.move(5, 5);
+        await expect(frame).not.toHaveAttribute("data-resize-active", "");
+        await expectTransparentReveal(page, false);
+        await finishObservation();
+      });
+    }
   }
+
+  test("capture loss delivered at a new position over the grabbed handle retains the transparent hover state (^st-ac-frame-resizing)", async ({ page }) => {
+    await page.setViewportSize({ width: 1_200, height: 900 });
+    await page.goto(`${FIXTURE}?transparent=artifact-b`);
+    await waitForStage(page, true);
+    await (await startMotionObservation(page, ".stage")).settle();
+    await settleStage(page);
+    const before = await report(page);
+    if (!before.geometry) throw new Error("Expected initial page geometry");
+    const frame = page.locator(".page[selected] .artifact-frame");
+    const box = await frame.boundingBox();
+    if (!box) throw new Error("Expected the transparent frame to have a box");
+    const pointer = await resizePointer(page, "right");
+    const outer = { x: pointer.origin.x + 1, y: pointer.origin.y };
+    const away = { x: outer.x, y: 5 };
+    const delivery = await pointer.handle.evaluateHandle(handle => {
+      if (!(handle instanceof HTMLElement)) throw new Error("Expected an HTML resize handle");
+      const events: Array<{ type: string; x: number; y: number; trusted: boolean }> = [];
+      let pointerId: number;
+      handle.addEventListener("pointerdown", event => { pointerId = event.pointerId; }, { once: true });
+      for (const type of ["lostpointercapture", "pointermove", "pointerover", "pointerout"] as const) {
+        handle.addEventListener(type, event => {
+          events.push({ type, x: event.clientX, y: event.clientY, trusted: event.isTrusted });
+        });
+      }
+      return { events, release() { events.length = 0; handle.releasePointerCapture(pointerId); } };
+    });
+    const finishObservation = await observeResizeState(page);
+    await page.mouse.move(outer.x, outer.y);
+    expect(outer.x).toBeGreaterThan(box.x + box.width);
+    expect(away.y).toBeLessThan(box.y);
+    await expect(frame).toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, true);
+    await page.mouse.down();
+    await page.mouse.move(away.x, away.y);
+    await settleStage(page);
+    await expectHandleAt(page, away, false);
+    await expect(page.locator(".stage")).toHaveAttribute("resizing", "");
+    const during = await report(page);
+    expectClose(during.geometry!.page.width, before.geometry.page.width);
+    expectClose(during.geometry!.page.height, before.geometry.page.height);
+
+    // Preserve the page width so capture loss and the following move target
+    // the same handle. No boundary event can repair a stale hover decision.
+    await delivery.evaluate(state => state.release());
+    await page.mouse.move(outer.x, outer.y);
+    const events = await delivery.evaluate(state => state.events);
+    await delivery.dispose();
+    expect(events.map(event => event.type)).toEqual(["lostpointercapture", "pointermove"]);
+    for (const event of events) {
+      expectClose(event.x, outer.x);
+      expectClose(event.y, outer.y);
+      expect(event.trusted).toBe(true);
+    }
+    expect(await pointer.handle.evaluate((handle, point) => document.elementFromPoint(point.x, point.y) === handle, outer)).toBe(true);
+    await expect(page.locator(".stage")).not.toHaveAttribute("resizing", "");
+    await expect(frame).toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, true);
+    const restored = await report(page);
+    expect(restored.geometry).toEqual(before.geometry);
+    expect(restored.pageUpdateCalls).toEqual([]);
+    expect(restored.snapOutlined).toBe(false);
+
+    // Check the cancellation before releasing the mouse for cleanup.
+    await page.mouse.up();
+    await page.mouse.move(5, 5);
+    await expect(frame).not.toHaveAttribute("data-resize-active", "");
+    await expectTransparentReveal(page, false);
+    await finishObservation();
+  });
 
   test("Option suppresses a live corner magnet and armed release enters full-screen over the settled size", async ({ page }) => {
     await page.setViewportSize({ width: 1_200, height: 900 });

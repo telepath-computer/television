@@ -22,7 +22,6 @@
     ".storybook/**/*.ts",
     "lib/**/*.ts",
     "spec/**/*.ts",
-    "experiments/**/*.ts",
-    "prototypes/**/*.ts"
+    "experiments/**/*.ts"
   ]
 }

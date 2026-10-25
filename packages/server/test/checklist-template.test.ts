@@ -1,15 +1,11 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { createRequire } from "node:module";
+import { existsSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { BUNDLED_ARTIFACT_TEMPLATE_IDS, BUNDLED_ARTIFACT_TEMPLATES } from "../src/bundled-template-installer.ts";
+import { selectTemplateIcon, validateTemplatePackage } from "../src/templates.ts";
 
 const sourceRoot = path.resolve(import.meta.dirname, "../assets/templates");
 const folder = path.join(sourceRoot, "checklist");
-const require = createRequire(import.meta.url);
-const { PNG } = require("playwright-core/lib/utilsBundle") as {
-  PNG: { sync: { read(bytes: Buffer): { width: number; height: number; data: Buffer } } };
-};
 
 describe("bundled Checklist package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-bundled-t-inventory
@@ -37,12 +33,12 @@ describe("bundled Checklist package", () => {
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ title: "Checklist", items: {} });
   });
 
-  // proofs/arch/templates/checklist.md#^templates-checklist-t-thumbnail
-  it("decodes a complete portrait PNG with a 4 to 5 aspect ratio", () => {
-    const image = PNG.sync.read(readFileSync(path.join(folder, "thumbnail.png")));
-    expect(image.width).toBeGreaterThan(0);
-    expect(image.width * 5).toBe(image.height * 4);
-    expect(image.data.length).toBe(image.width * image.height * 4);
+  // proofs/arch/templates/checklist.md#^templates-checklist-t-icon
+  it("supplies its SVG icon to the Toolbox", () => {
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    expect(manifest.icons).toEqual([{ src: "icon.svg", type: "image/svg+xml" }]);
+    const { template } = validateTemplatePackage(folder, "checklist");
+    expect(selectTemplateIcon(template!)).toEqual({ path: realpathSync(path.join(folder, "icon.svg")), contentType: "image/svg+xml" });
   });
 
   // proofs/arch/templates/checklist.md#^templates-checklist-t-readme

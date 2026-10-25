@@ -95,6 +95,7 @@ const DEFAULT_START_HOUR = 8;
 const START_HOUR_OFFSET_PX = 12;
 
 // Phosphor's "user" icon, fill weight.
+// Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt at the repository root for the upstream terms.
 const personIcon = html`<svg class="event-attendees-icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M230.93,220a8,8,0,0,1-6.93,4H32a8,8,0,0,1-6.92-12c15.23-26.33,38.7-45.21,66.09-54.16a72,72,0,1,1,73.66,0c27.39,8.95,50.86,27.83,66.09,54.16A8,8,0,0,1,230.93,220Z"></path></svg>`;
 
 /** A time range as the page formats it: thin spaces around the dash. */
@@ -760,7 +761,7 @@ export default {
 // Five working days with all-day, timed, overlapping and short events.
 export const Week = { name: "A working week" };
 
-// What a person sees after creating a Calendar from the Templates popover, on
+// What a person sees after creating a Calendar from the Toolbox, on
 // a Wednesday morning: this week, from Monday, and no events.
 export const New = {
   args: { days: fullWeek("2026-11-04"), allDay: [], events: [], now: { time: "10:15", label: "10:15 AM" } },

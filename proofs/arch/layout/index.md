@@ -12,6 +12,8 @@ Creation tests cover both path and URL `POST /artifacts` requests with partial a
 
 The existing creation assertion checks that options omitted entirely produce the shared defaults. [The stage's default-size contract](../../ui/app/stage/index.md#^st-ac-initial-size) ties that shared value to the UI measure. The new tests compare against the shared default when one dimension is absent.
 
+The creation display contract also validates `transparent`. True becomes a field on the artifact record; false or omission leaves that field absent. Dimensions and full-screen mode remain on the page. The assertions below check that absence on disk and in API results and events for path and URL creation, and reject nonbooleans. [The record proof](../artifacts/index.md#^ar-t-transparent-roundtrip) owns enabled creation and updates; [template resolution](../templates/index.md#^templates-t-transparent-resolution) owns the third source. These checks do not introduce a stored page transparency field.
+
 ## Test hooks
 
 No production test hook is used; temporary directories and request bodies are fixtures.
@@ -34,6 +36,11 @@ Shared acceptance declaration ([arch/testing-policy.md#^declaration-schema](../.
 - **Acceptance** (real HTTP client → running server over a temporary directory; authored path or URL target, no mocks or test hooks): Under [creation display validation](../../../specs/arch/layout/index.md#^ly-creation-display), requests with malformed `display`, nonpositive or nonfinite width or height, or nonboolean `fullScreen` are refused before an artifact record or page is created. Table cases cover both path and URL routes without repeating every malformed value for both. *(policy-grade test: `packages/server/test/page-layout.test.ts` “rejects invalid creation display before a path or URL artifact exists”)* ^ly-ac-create-display-invalid
 - **Acceptance.** Deleting a page's only artifact removes that page from the layout — *(covered by inherited tests: `packages/server/test/endpoints.test.ts` “DELETE /artifacts/:id deletes metadata and does not touch the target” and `packages/server/test/server-store-attach-detach-delete.test.ts` “persists the stripped layout to disk”, minimally updated from card removal to page removal)*. ^ly-ac-delete-removes
 
+
+#### Transparency at creation
+
+- **Acceptance** (real authenticated HTTP client → running server, real temporary filesystem, and WebSocket client; path and URL target fixtures, no mocks or hooks): under [creation display options](../../../specs/arch/layout/index.md#^ly-creation-display) and [the stored transparency rule](../../../specs/arch/artifacts/index.md#^ar-transparent), path and URL creation with `transparent` omitted or explicitly false produces opaque artifacts with no `transparent` field in the saved record, create response, individual/list/channel API records, or created event. Combine a transparency option with a partial size and full-screen option to check that the page still takes its specified size/mode and the shared defaults for omitted page fields. Transparency belongs to the artifact record and does not add a page field. Enabled creation is [the record round trip](../artifacts/index.md#^ar-t-transparent-roundtrip). *(policy-grade tests: `packages/server/test/artifact-transparency.test.ts`, “creates opaque %s records for false or omitted transparency independently of page options” (path and URL cases))* ^ly-ac-create-transparent
+- **Acceptance** (real authenticated HTTP client → running server and temporary filesystem; otherwise valid path and URL create bodies, no mocks or hooks): under [display validation](../../../specs/arch/layout/index.md#^ly-creation-display), a string, number, or null `display.transparent` is refused before a record or page is created. Extend the existing invalid-display cases, including each creation kind without repeating the whole matrix for both. *(policy-grade tests: `packages/server/test/page-layout.test.ts`, “rejects invalid creation display before a path or URL artifact exists”)* ^ly-ac-create-transparent-invalid
 
 #### Moving an artifact between channels
 

@@ -6,6 +6,8 @@
   </head>
   <body>
     <p>Live stage document</p>
+    <button id="activate">Activate document</button>
+    <output id="activations">0</output>
     <script>
       const artifactID = new URLSearchParams(location.search).get("artifact");
       window.__stageArtifactID = artifactID;
@@ -15,6 +17,10 @@
       owner.__stageDocumentLoads[artifactID] = (owner.__stageDocumentLoads[artifactID] ?? 0) + 1;
       document.addEventListener("pointerdown", () => {
         owner.postMessage({ type: "stage-document-pointerdown", artifactID }, location.origin);
+      });
+      document.querySelector("#activate").addEventListener("click", () => {
+        const output = document.querySelector("#activations");
+        output.value = String(Number(output.value) + 1);
       });
       owner.postMessage({ type: "stage-document-ready", artifactID }, location.origin);
     </script>

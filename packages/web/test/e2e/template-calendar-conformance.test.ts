@@ -200,7 +200,7 @@ const states: Record<string, State> = {
   },
 };
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-conformance
+// proofs/ui/templates/calendar.md#^calendar-ac-conformance
 for (const storyID of specStories("./spec/templates/calendar/calendar.stories.ts")) {
   test(`Calendar conforms: ${storyID}`, async () => {
     const state = states[storyID.replace("spec-templates-calendar--", "")];

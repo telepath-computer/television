@@ -44,7 +44,7 @@ This trickles down to the things specs define: **types** are defined once and li
 
 **Architecture specs** (`specs/arch/`) define the modules and contracts that organize the implementation of the product. They typically define actual TypeScript types as their contracts. They also own the operational procedures needed to stand up and run the part of the system they describe, such as provisioning steps, environment requirements and key procedures. Operational content is called out in `## Operations` or `## Setup` sections, to keep procedure apart from contract.
 
-**UI specs** (`specs/ui/`) specify visual design with stories as well as prose. How that works is owned by [spec-ui.md](spec-ui.md). UI specs are the exclusive authority for a surface's appearance and interaction. Product and arch specs reference the owning UI spec rather than owning either. Product specs keep a feature's promises and acceptance criteria; arch specs keep everything code-shaped, such as properties, events, types, persistence and mechanisms.
+**UI specs** (`specs/ui/`) are the exclusive authority for appearance and interaction. [spec-ui.md](spec-ui.md) owns their format and authority: MDX prose and story appearance for new or redesigned surfaces, with existing frame and template contracts retained until redesign. Product and arch specs reference the owning UI spec. Product specs keep feature promises and acceptance criteria; arch specs keep everything code-shaped, such as properties, events, types, persistence and mechanisms.
 
 ## Proofs
 

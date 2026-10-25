@@ -2,9 +2,9 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./test/e2e",
-  testMatch: "template-*-conformance.test.ts",
+  testMatch: "*-conformance.test.ts",
   outputDir: "../../.playwright/test-results-conformance",
-  // One product server for every worker; each worker has its own browser and proxy.
+  // One product server for every template test; each worker has its own browser.
   globalSetup: "./test/e2e/conformance-setup.ts",
   fullyParallel: true,
   // The comparisons are CPU-bound, so one worker per core. TV_PW_WORKERS sets

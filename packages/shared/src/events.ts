@@ -2,6 +2,7 @@ import { defineEvent } from "@rupertsworld/event-target";
 import type { Artifact } from "@telepath-computer/television-artifact";
 import type {
   AppearanceMode,
+  ArtifactTemplateScan,
   ServerEvent,
   Channel,
   TabPage,
@@ -119,7 +120,15 @@ export interface AppearanceChangedEvent extends Event {
 }
 export const AppearanceChangedEvent = defineEvent<AppearanceChangedEvent>();
 
+export interface TemplatesChangedEvent extends Event {
+  type: "templates-changed";
+  scan: ArtifactTemplateScan;
+  invalidatedIDs: string[];
+}
+export const TemplatesChangedEvent = defineEvent<TemplatesChangedEvent>();
+
 export type StoreDomainEvent =
+  | TemplatesChangedEvent
   | ArtifactCreatedEvent
   | ArtifactUpdatedEvent
   | ArtifactRemovedEvent

@@ -96,7 +96,7 @@ The [desktop-only input and viewport boundary](#Input and viewport scope) does n
 
 Acceptance of the resize drag must include a path whose pointer crosses an artifact's document, where an embedded document could swallow the gesture's pointer events.
 
-The resize band's node and styling are implementation-owned and are a declared exemption; the frames and [styles.css](./styles.css) do not state them. ^ap-resize-band-exemption
+The resize band's node and styling are implementation-owned and enter conformance as a declared exemption ([arch/ui/conformance.md](../../arch/ui/conformance.md)); the frames and [styles.css](./styles.css) do not state them. ^ap-resize-band-exemption
 
 Under [The suite does not assert styling adherence](../../arch/testing-policy.md#^ui-styling-out), this surface's suite does not cover shell padding or gaps, backgrounds, or the appearance of its two regions.
 

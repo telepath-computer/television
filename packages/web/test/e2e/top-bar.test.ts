@@ -377,8 +377,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
       const controls = document.querySelector<HTMLElement>(".top-bar-controls")!;
       const refs = {
         controls,
-        templates: controls.querySelector(".templates-trigger")!,
-        templatesPanel: controls.querySelector(".templates-popover")!,
+        templates: controls.querySelector(".toolbox-trigger")!,
+        templatesPanel: controls.querySelector(".toolbox-popover")!,
         settings: controls.querySelector(".settings-trigger")!,
         settingsPanel: controls.querySelector(".settings-popover")!,
         bell: controls.querySelector(".update-bell")!,
@@ -411,8 +411,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
       return {
         same: {
           controls: document.querySelector(".top-bar-controls") === refs.controls,
-          templates: controls.querySelector(".templates-trigger") === refs.templates,
-          templatesPanel: controls.querySelector(".templates-popover") === refs.templatesPanel,
+          templates: controls.querySelector(".toolbox-trigger") === refs.templates,
+          templatesPanel: controls.querySelector(".toolbox-popover") === refs.templatesPanel,
           settings: controls.querySelector(".settings-trigger") === refs.settings,
           settingsPanel: controls.querySelector(".settings-popover") === refs.settingsPanel,
           bell: controls.querySelector(".update-bell") === refs.bell,
@@ -702,9 +702,9 @@ test.describe("channel switcher selection (^top-ac-switcher-select)", () => {
       await expectDismissedSwitcher(page);
 
       await trigger.click();
-      await page.locator(".templates-trigger").click();
+      await page.locator(".toolbox-trigger").click();
       await expectDismissedSwitcher(page);
-      await page.locator(".templates-trigger").click();
+      await page.locator(".toolbox-trigger").click();
 
       await trigger.click();
       await expect(trigger).toHaveAttribute("aria-expanded", "true");

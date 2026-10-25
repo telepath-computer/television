@@ -73,10 +73,10 @@ function writes(): Record<string, unknown>[] {
   return h.proxy.messages.filter(({ message }) => message.type === "write").map(({ message }) => message.write as Record<string, unknown>);
 }
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-new
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-new
 // proofs/arch/templates/checklist.md#^templates-checklist-t-delivery
 // proofs/product/templates.md delegates the bundled journey to checklist-ui-ac-new.
-test("new Checklist from the popover persists its seed, display, additions and independent assets", async ({ page }) => {
+test("new Checklist from the Toolbox persists its seed, display, additions and independent assets", async ({ page }) => {
   const responses: { url: string; body: Buffer }[] = [];
   const bodies: Promise<void>[] = [];
   page.on("response", response => {
@@ -116,7 +116,7 @@ test("new Checklist from the popover persists its seed, display, additions and i
   await expect.poll(() => texts(id)).toEqual(["Milk after reload"]);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-title
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-title
 // proofs/arch/templates/checklist.md#^templates-checklist-t-write-scope
 test("title saves before blur, preserves empty title, joins pasted lines and enters the list", async ({ page }) => {
   const id = await open(page);
@@ -140,8 +140,8 @@ test("title saves before blur, preserves empty title, joins pasted lines and ent
   }
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-title
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-items
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-title
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-items
 // proofs/arch/templates/checklist.md#^templates-checklist-t-transaction
 test("Return focuses the optimistic row before an ordinary or transaction acknowledgement", async ({ page }) => {
   const id = await open(page);
@@ -168,7 +168,7 @@ test("Return focuses the optimistic row before an ordinary or transaction acknow
   expect(writes().filter(write => write.kind === "compare-and-set").length).toBeGreaterThanOrEqual(2);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-items
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-items
 // proofs/arch/templates/checklist.md#^templates-checklist-t-write-scope
 test("items save complete objects, retain whitespace and order, insert rows and keep native undo", async ({ page }) => {
   const value = fixture(); value.extra = "root"; value.items.a!.extra = "drop"; value.items.b!.extra = "keep";
@@ -205,8 +205,8 @@ test("items save complete objects, retain whitespace and order, insert rows and 
   await expect(page.getByRole("button", { name: /clear|nest|indent|restore/i })).toHaveCount(0);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-navigation
-// proofs/ui/templates/checklist/index.md#^checklist-ui-t-shortcut-delivery
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-navigation
+// proofs/ui/templates/checklist.md#^checklist-ui-t-shortcut-delivery
 test("real keys navigate visual lines, handle empty Backspace and toggle without moving the caret", async ({ page }) => {
   const value = fixture(); value.items.b!.text = "Wrapped words ".repeat(22);
   const id = await open(page, value);
@@ -246,7 +246,7 @@ test("real keys navigate visual lines, handle empty Backspace and toggle without
   await expect(text(page, 0)).toBeFocused(); expect(await h.read(id, "items/sole")).toEqual(item("", 0));
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-navigation
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-navigation
 test("pointer positions on either side of a soft wrap preserve visual-line navigation", async ({ page }) => {
   const value = fixture(); value.items.b!.text = "Wrapped words ".repeat(22);
   await open(page, value);
@@ -284,7 +284,7 @@ test("pointer positions on either side of a soft wrap preserve visual-line navig
   }
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-paste
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-paste
 test("real clipboard paste appends lines and inserts at an item caret in order", async ({ page }) => {
   const id = await open(page);
   await h.clipboard(page, "Tea\n\n  \nMilk\nEggs");
@@ -296,7 +296,7 @@ test("real clipboard paste appends lines and inserts at an item caret in order",
   await expect(text(page, 2)).toBeFocused(); expect(await selection(page)).toEqual({ text: "Z", offset: 1 });
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-remove
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-remove
 // proofs/arch/templates/checklist.md#^templates-checklist-t-write-scope
 test("accessible checkbox and remove controls work by keyboard and preserve removal focus", async ({ page }) => {
   const id = await open(page);
@@ -341,7 +341,7 @@ test("accessible checkbox and remove controls work by keyboard and preserve remo
   await expect.poll(() => texts(id)).toEqual(["Next"]);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-live
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-live
 test("spawned agent commands and two viewers update live while preserving active text until blur", async ({ page, context }) => {
   const value = fixture(); value.items.a!.key = "colliding extra field";
   const id = await open(page, value);
@@ -367,7 +367,7 @@ test("spawned agent commands and two viewers update live while preserving active
   await other.close();
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-remote-remove
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-remote-remove
 test("remote removal restores active nonempty drafts on typing or blur and leaves empty drafts removed", async ({ page }) => {
   const id = await open(page);
   for (const action of ["type", "blur", "empty"]) {
@@ -389,7 +389,7 @@ test("remote removal restores active nonempty drafts on typing or blur and leave
   }
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-access
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-access
 test("real share access upgrades, downgrades and revocation retain a read-only view", async ({ page }) => {
   const id = await h.createStored(fixture());
   const share = await h.client.resources.share({ artifactID: id, access: "read" });
@@ -527,7 +527,7 @@ async function statusOrder(page: Page): Promise<void> {
   expect(order.length).toBeGreaterThan(1); expect(order.every(Boolean)).toBe(true);
 }
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-loading
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-loading
 test("first load stays blank, announces disconnection only after mounting its status and recovers", async ({ page }) => {
   const id = await h.createStored();
   await observeStatus(page); h.proxy.hold("to-browser");
@@ -545,7 +545,7 @@ test("first load stays blank, announces disconnection only after mounting its st
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-reconnect
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-reconnect
 test("disconnect retains valid or unreadable views and reconnect restores current editable data", async ({ page }) => {
   const id = await open(page);
   await caret(text(page, 0));
@@ -569,7 +569,7 @@ test("disconnect retains valid or unreadable views and reconnect restores curren
   h.proxy.refuse(false); await h.set(id, fixture()); await expect(title(page)).toHaveText("Groceries");
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
 // Selective buffering forfeits production notification order, never authorization or rollback.
 test("a genuinely refused save rolls back the focused editor and dismisses its mounted status", async ({ page }) => {
   const id = await h.createStored(fixture());
@@ -594,7 +594,7 @@ test("a genuinely refused save rolls back the focused editor and dismisses its m
   await expect.poll(() => h.read(id, "items/a/text")).toBe("Allowed");
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-save-failure
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-save-failure
 // Selective buffering keeps the page writable until the real title refusal arrives.
 test("a refused title save does not retain an unrelated item named undefined", async ({ page }) => {
   const value = fixture(); value.items.undefined = item("Unrelated", 3);
@@ -617,7 +617,7 @@ test("a refused title save does not retain an unrelated item named undefined", a
   h.proxy.releaseServerMessages(connection);
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-invalid
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-invalid
 test("malformed and missing values replace the whole checklist with an alert without repair", async ({ page }) => {
   const id = await open(page);
   for (const missing of [false, true]) {
@@ -636,7 +636,7 @@ test("malformed and missing values replace the whole checklist with an alert wit
   }
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-unavailable
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-unavailable
 test("real damaged saved bytes show unavailable and recover after repair and server restart", async ({ page }) => {
   const id = await open(page);
   const file = h.contentFile(id);
@@ -650,7 +650,7 @@ test("real damaged saved bytes show unavailable and recover after repair and ser
   await text(page, 0).fill("Recovered"); await expect.poll(() => h.read(id, "items/a/text")).toBe("Recovered");
 });
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-layout
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-layout
 test("long and narrow lists wrap without overflow and final controls remain reachable with a status strip", async ({ page }) => {
   const value = { title: "Long list", items: Object.fromEntries(Array.from({ length: 28 }, (_, i) => [`key${i}`, item(`Task ${i} ${"a long wrapped line ".repeat(8)}`, i)])) };
   const id = await open(page, value);

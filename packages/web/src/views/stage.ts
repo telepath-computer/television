@@ -110,6 +110,7 @@ export class Stage extends View<[
   #lastPageBox: PageBox | null = null;
   #windowTrackingTimer: ReturnType<typeof setTimeout> | null = null;
   #activeResize: ResizeGesture | null = null;
+  #resizeActiveFrame: Element | null = null;
   readonly #displacementAnimations = new Set<Animation>();
   #motionSuppressed = false;
 
@@ -174,6 +175,8 @@ export class Stage extends View<[
     if (this.#activeResize && (channelChanged || selectionChanged || selectedModeChanged)) {
       this.#finishResize(false);
     }
+
+    if (channelChanged || selectionChanged) this.#setResizeActivePage(null);
 
     this.#channelID = channelID;
     this.#selectedKey = selectedKey;
@@ -256,7 +259,9 @@ export class Stage extends View<[
                       : null}
                     ${selected
                       ? html`
-                          <div class="page-handles" aria-hidden="true">
+                          <div class="page-handles" aria-hidden="true"
+                            @pointerover=${this.#onResizeHandleBoundary}
+                            @pointerout=${this.#onResizeHandleBoundary}>
                             ${RESIZE_HANDLE_POSITIONS.map((position) => html`
                               <span
                                 class="page-handle ${position}"
@@ -288,6 +293,7 @@ export class Stage extends View<[
 
   disconnected(): void {
     this.#finishResize(false);
+    this.#setResizeActivePage(null);
     this.#clearWindowTracking();
     this.#cancelCrossing();
     cancelAnimationFrame(this.#centreFrame);
@@ -395,6 +401,24 @@ export class Stage extends View<[
     this.#stageRef.value?.removeAttribute("window-tracking");
   }
 
+  // Hover follows the actual hit target, so a menu above a handle owns the
+  // pointer. Capture holds the frame active independently of these boundaries.
+  readonly #onResizeHandleBoundary = (event: PointerEvent): void => {
+    if (this.#activeResize) return;
+    const target = event.type === "pointerout" ? event.relatedTarget : event.target;
+    this.#setResizeActivePage(target instanceof Element
+      ? target.closest(".page-handle")?.closest(".page") ?? null
+      : null);
+  };
+
+  #setResizeActivePage(page: Element | null): void {
+    const frame = page?.querySelector(".artifact-frame") ?? null;
+    if (frame === this.#resizeActiveFrame) return;
+    this.#resizeActiveFrame?.removeAttribute("data-resize-active");
+    this.#resizeActiveFrame = frame;
+    frame?.setAttribute("data-resize-active", "");
+  }
+
   #beginResize(
     event: PointerEvent,
     position: ResizeHandlePosition,
@@ -453,6 +477,7 @@ export class Stage extends View<[
       leftFullScreen: false,
     };
     stage.setAttribute("resizing", "");
+    this.#setResizeActivePage(pageElement);
     handle.addEventListener("pointermove", this.#onResizePointerMove);
     handle.addEventListener("pointerup", this.#onResizePointerUp);
     handle.addEventListener("pointercancel", this.#onResizePointerCancel);
@@ -472,7 +497,10 @@ export class Stage extends View<[
   };
 
   readonly #onResizePointerUp = (event: PointerEvent): void => {
-    if (event.pointerId === this.#activeResize?.pointerId) this.#finishResize(true);
+    const gesture = this.#activeResize;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    gesture.lastPointer = { x: event.clientX, y: event.clientY };
+    this.#finishResize(true);
   };
 
   readonly #onResizePointerCancel = (event: PointerEvent): void => {
@@ -480,7 +508,12 @@ export class Stage extends View<[
   };
 
   readonly #onResizeCaptureLost = (event: PointerEvent): void => {
-    if (event.pointerId === this.#activeResize?.pointerId) this.#finishResize(false);
+    const gesture = this.#activeResize;
+    if (!gesture || event.pointerId !== gesture.pointerId) return;
+    // Pending capture loss carries the triggering event's position, before
+    // its pointermove can update the gesture.
+    gesture.lastPointer = { x: event.clientX, y: event.clientY };
+    this.#finishResize(false);
   };
 
   readonly #onResizeKeyChange = (event: KeyboardEvent): void => {
@@ -624,6 +657,11 @@ export class Stage extends View<[
       gesture.pageKey,
       false,
     );
+    // Cancellation can restore a different box beneath a stationary pointer.
+    // Capture still names the grabbed handle, so use the settled geometry to
+    // decide whether ordinary handle hover keeps the frame revealed.
+    const target = document.elementFromPoint(gesture.lastPointer.x, gesture.lastPointer.y);
+    this.#setResizeActivePage(target?.closest(".page-handle")?.closest(".page") ?? null);
   }
 
   #syncSnapOutline(stage: HTMLElement, armed: boolean): void {

@@ -2,7 +2,6 @@ import {
   cpSync,
   lstatSync,
   readFileSync,
-  readdirSync,
   renameSync,
   rmSync,
   writeFileSync,
@@ -20,13 +19,15 @@ interface BundledTemplateState {
   installedTemplateIDs: string[];
 }
 
-/** Tests replace state-file writes through this interface. */
-export interface BundledTemplateStateOperations {
+/** Filesystem operations used to observe replacement and state writes in tests. */
+export interface BundledTemplateOperations {
   writeFileSync: typeof writeFileSync;
   renameSync: typeof renameSync;
+  cpSync: typeof cpSync;
+  rmSync: typeof rmSync;
 }
 
-const nodeStateOperations: BundledTemplateStateOperations = { writeFileSync, renameSync };
+const nodeOperations: BundledTemplateOperations = { writeFileSync, renameSync, cpSync, rmSync };
 
 function exists(filename: string): boolean {
   try {
@@ -58,7 +59,7 @@ function readState(home: string): BundledTemplateState {
   return candidate as unknown as BundledTemplateState;
 }
 
-function writeState(home: string, state: BundledTemplateState, operations: BundledTemplateStateOperations): void {
+function writeState(home: string, state: BundledTemplateState, operations: BundledTemplateOperations): void {
   const filename = statePath(home);
   const temporary = path.join(path.dirname(filename), `.${path.basename(filename)}.tmp-${process.pid}`);
   try {
@@ -70,8 +71,8 @@ function writeState(home: string, state: BundledTemplateState, operations: Bundl
   }
 }
 
-function copyTree(source: string, destination: string): void {
-  cpSync(source, destination, {
+function copyTree(source: string, destination: string, operations: BundledTemplateOperations): void {
+  operations.cpSync(source, destination, {
     recursive: true,
     errorOnExist: true,
     force: false,
@@ -105,70 +106,15 @@ function meetsMinimum(destination: string, id: string, minimumVersion: string): 
   }
 }
 
-function restoreInterruptedReplacement(templatesDir: string, id: string): void {
-  const previousPrefix = `.${id}.bundled-template.previous-`;
-  const previous = readdirSync(templatesDir)
-    .filter((name) => name.startsWith(previousPrefix) && /^\d+$/.test(name.slice(previousPrefix.length)))
-    .sort();
-  const destination = path.join(templatesDir, id);
-  const paired = previous.map((name) => ({
-    prior: path.join(templatesDir, name),
-    staged: path.join(templatesDir, `.${id}.bundled-template.tmp-${name.slice(previousPrefix.length)}`),
-  })).filter(({ staged }) => exists(staged));
-  if (!exists(destination) && paired.length) renameSync(paired[0]!.prior, destination);
-  for (const { prior, staged } of paired) {
-    rmSync(prior, { recursive: true, force: true });
-    rmSync(staged, { recursive: true, force: true });
-  }
-}
-
-function installOrReplace(source: string, destination: string, id: string): boolean {
-  const templatesDir = path.dirname(destination);
-  const previous = path.join(templatesDir, `.${id}.bundled-template.previous-${process.pid}`);
-  const temporary = path.join(templatesDir, `.${id}.bundled-template.tmp-${process.pid}`);
-  const backupTemporary = path.join(templatesDir, `.${id}.bundled-template.backup-tmp-${process.pid}`);
-  try {
-    rmSync(temporary, { recursive: true, force: true });
-    rmSync(backupTemporary, { recursive: true, force: true });
-    if (exists(destination)) {
-      copyTree(destination, backupTemporary);
-      renameSync(backupTemporary, backupPath(templatesDir, id));
-    }
-    copyTree(source, temporary);
-    if (exists(destination)) renameSync(destination, previous);
-    try {
-      renameSync(temporary, destination);
-    } catch (error) {
-      if (exists(previous) && !exists(destination)) renameSync(previous, destination);
-      throw error;
-    }
-    if (exists(previous)) {
-      try {
-        rmSync(previous, { recursive: true, force: true });
-      } catch (error) {
-        console.warn(`Bundled template ${JSON.stringify(id)} was replaced, but its hidden prior copy could not be removed.`, error);
-      }
-    }
-    return true;
-  } catch (error) {
-    // If both destination renames failed, the complete staged copy marks the
-    // hidden prior folder for recovery on the next serving boot.
-    if (!exists(previous) || exists(destination)) {
-      try { rmSync(temporary, { recursive: true, force: true }); } catch { /* Keep the original failure. */ }
-    }
-    try { rmSync(backupTemporary, { recursive: true, force: true }); } catch { /* Keep the original failure. */ }
-    console.warn(`Failed to install bundled template ${JSON.stringify(id)}; it will retry on the next boot.`, error);
-    return false;
-  }
-}
-
 /** Install bundled content only during a serving boot. */
 export function runBundledTemplateInstallation(
   home: string,
   bundledTemplatesPath: string | undefined,
-  stateOperations: BundledTemplateStateOperations = nodeStateOperations,
+  overrides: Partial<BundledTemplateOperations> = {},
+  inventory: readonly { id: string; minimumVersion: string }[] = BUNDLED_ARTIFACT_TEMPLATES,
 ): void {
   if (bundledTemplatesPath === undefined) return;
+  const operations = { ...nodeOperations, ...overrides };
   let state: BundledTemplateState;
   try {
     state = readState(home);
@@ -177,20 +123,41 @@ export function runBundledTemplateInstallation(
     return;
   }
   const templatesDir = getTemplatesDir(home);
-  for (const { id, minimumVersion } of BUNDLED_ARTIFACT_TEMPLATES) {
+  for (const { id, minimumVersion } of inventory) {
     try {
-      restoreInterruptedReplacement(templatesDir, id);
       const destination = path.join(templatesDir, id);
+      const temporary = path.join(templatesDir, `.${id}.bundled-template.tmp`);
+      operations.rmSync(temporary, { recursive: true, force: true });
       if (!exists(destination) && state.installedTemplateIDs.includes(id)) continue;
-      if (!meetsMinimum(destination, id, minimumVersion) &&
-        !installOrReplace(path.join(bundledTemplatesPath, id), destination, id)) continue;
+      if (!meetsMinimum(destination, id, minimumVersion)) {
+        if (exists(destination)) {
+          const backup = backupPath(templatesDir, id);
+          try {
+            copyTree(destination, backup, operations);
+          } catch (error) {
+            try { rmSync(backup, { recursive: true, force: true }); } catch { /* Keep the copy error. */ }
+            throw error;
+          }
+          // Remove the handled ID on disk before removing the folder.
+          const unhandled: BundledTemplateState = {
+            version: 1,
+            installedTemplateIDs: state.installedTemplateIDs.filter((handled) => handled !== id),
+          };
+          writeState(home, unhandled, operations);
+          state = unhandled;
+          operations.rmSync(destination, { recursive: true, force: true });
+        }
+        // An incomplete copy must never be mistaken for a valid installed folder.
+        copyTree(path.join(bundledTemplatesPath, id), temporary, operations);
+        operations.renameSync(temporary, destination);
+      }
       if (state.installedTemplateIDs.includes(id)) continue;
       const next: BundledTemplateState = {
         version: 1,
         installedTemplateIDs: [...state.installedTemplateIDs, id].sort((left, right) => left.localeCompare(right, "en")),
       };
       try {
-        writeState(home, next, stateOperations);
+        writeState(home, next, operations);
         state = next;
       } catch (error) {
         console.warn(`Failed to record bundled template ${JSON.stringify(id)}; it will retry on the next boot.`, error);

@@ -84,9 +84,11 @@ export interface PathArtifact {
   readonly kind: "path";
   readonly title: string;
   readonly path: string;
-  /** The resource ID of the artifact's own store, from its first write (specs/arch/resources/index.md#^rs-artifact-record). */
+  /** True enables transparency; absence means opaque (specs/arch/artifacts/index.md#^ar-transparent). */
+  readonly transparent?: boolean;
+  /** The resource ID of the artifact's own store, from its first write (specs/arch/artifacts/index.md#^ar-record). */
   readonly store?: string;
-  /** The artifact's share link (specs/arch/resources/index.md#^rs-artifact-record). */
+  /** The artifact's share link (specs/arch/artifacts/index.md#^ar-record). */
   readonly share?: ArtifactShareLink;
 }
 
@@ -101,6 +103,8 @@ export interface UrlArtifact {
   readonly kind: "url";
   readonly title: string;
   readonly url: string;
+  /** True enables transparency; absence means opaque (specs/arch/artifacts/index.md#^ar-transparent). */
+  readonly transparent?: boolean;
 }
 
 export type Artifact = PathArtifact | UrlArtifact;
@@ -110,6 +114,7 @@ export const PathArtifactSchema = z.object({
   kind: z.literal("path"),
   title: z.string(),
   path: z.string(),
+  transparent: z.boolean().optional(),
   store: z.string().optional(),
   share: z.object({
     id: z.string().min(1),
@@ -122,6 +127,7 @@ export const UrlArtifactSchema = z.object({
   kind: z.literal("url"),
   title: z.string(),
   url: z.string().refine(isExternalArtifactURL, { message: "url must be an http(s) URL" }),
+  transparent: z.boolean().optional(),
 }).strict();
 
 export const ArtifactSchema = z.discriminatedUnion("kind", [PathArtifactSchema, UrlArtifactSchema]);
@@ -146,11 +152,18 @@ export function createArtifact(input: {
   kind: "path";
   title: string;
   path: string;
+  transparent?: boolean;
 } | {
   id?: string;
   kind: "url";
   title: string;
   url: string;
+  transparent?: boolean;
 }): Artifact {
-  return ArtifactSchema.parse({ id: input.id ?? generateArtifactID(), ...input });
+  const { transparent, ...fields } = input;
+  return ArtifactSchema.parse({
+    id: input.id ?? generateArtifactID(),
+    ...fields,
+    ...(transparent === true ? { transparent: true } : {}),
+  });
 }

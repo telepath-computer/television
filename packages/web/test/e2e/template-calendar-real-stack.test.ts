@@ -87,7 +87,7 @@ async function write(page: Page, storePath: string, value: unknown): Promise<voi
 
 const event = (page: Page, key: string) => page.locator(`calendar-event[data-key="${key}"]`);
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-new
+// proofs/ui/templates/calendar.md#^calendar-ac-new
 test("a new Calendar shows this week from Monday with today and the now line, and no events", async ({ page }) => {
   const errors: Error[] = [];
   page.on("pageerror", (error) => errors.push(error));
@@ -112,7 +112,7 @@ test("a spawned tv write adds an event to the open page", async ({ page }) => {
   await expect(event(page, "added").locator("h3")).toHaveText("Added by an agent");
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-week
+// proofs/ui/templates/calendar.md#^calendar-ac-week
 test("the working week shows titles, times, details, attendees and all-day events", async ({ page }) => {
   await openCalendar(page, week);
   await expect(page.locator("h1")).toHaveText("November 2026");
@@ -130,7 +130,7 @@ test("the working week shows titles, times, details, attendees and all-day event
   await expect(event(page, "planning").locator(".event-time")).toBeHidden();
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-scroll
+// proofs/ui/templates/calendar.md#^calendar-ac-scroll
 test("first load scrolls to an hour before the earliest event, and a later range change keeps the scroll", async ({ page }) => {
   await openCalendar(page, week);
   const calendar = page.locator("calendar-week");
@@ -146,7 +146,7 @@ test("first load scrolls to an hour before the earliest event, and a later range
   expect(await calendar.evaluate((element) => element.scrollTop)).toBe(120);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-in-place
+// proofs/ui/templates/calendar.md#^calendar-ac-in-place
 test("adding, highlighting, changing and removing events keeps every other block and the scroll position", async ({ page }) => {
   await openCalendar(page, week);
   await expect(event(page, "roadmap").locator(".event-block")).toBeVisible();
@@ -185,7 +185,7 @@ test("adding, highlighting, changing and removing events keeps every other block
   expect(await unchanged()).toEqual(same);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-no-redraw
+// proofs/ui/templates/calendar.md#^calendar-ac-no-redraw
 test("changing one event mutates only that event", async ({ page }) => {
   type Check = { marked: Element[]; otherBlocks: Record<string, string | undefined>; mutations: Node[] };
   await openCalendar(page, week);
@@ -222,7 +222,7 @@ test("changing one event mutates only that event", async ({ page }) => {
   expect(result).toEqual({ sameNodes: true, otherBlocksUnchanged: true, changedOnlyInEvent: true, scrollTop: 200 });
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-invalid
+// proofs/ui/templates/calendar.md#^calendar-ac-invalid
 test("invalid events are not shown and valid ones still are", async ({ page }) => {
   await openCalendar(page, week);
   await write(page, "events/bad-end", { title: "Bad end", start: "2026-11-02T12:00", end: "2026-11-02T11:00" });
@@ -234,7 +234,7 @@ test("invalid events are not shown and valid ones still are", async ({ page }) =
   await expect(page.locator('calendar-event[data-key^="bad-"] .event-block')).toHaveCount(0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-overlap
+// proofs/ui/templates/calendar.md#^calendar-ac-overlap
 test("overlapping events sit side by side and an event with no overlap keeps the day's width", async ({ page }) => {
   await openCalendar(page, week);
   const roadmap = (await event(page, "roadmap").locator(".event-block-inner").boundingBox())!;
@@ -245,7 +245,7 @@ test("overlapping events sit side by side and an event with no overlap keeps the
   expect(lunch.width).toBeGreaterThan(roadmap.width * 2 - 4);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-attendees
+// proofs/ui/templates/calendar.md#^calendar-ac-attendees
 test("attendees show as many whole names as fit and a count, and refit when the column width changes", async ({ page }) => {
   await page.setViewportSize({ width: 760, height: 770 });
   await openCalendar(page, week);
@@ -264,7 +264,7 @@ test("attendees show as many whole names as fit and a count, and refit when the 
   for (const key of ["retro", "design", "roadmap", "workshop"]) expect(await fitsWhole(key)).toBe(true);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-one-day
+// proofs/ui/templates/calendar.md#^calendar-ac-one-day
 test("one day has one column and shows a highlighted event raised without motion on load", async ({ page }) => {
   const data = structuredClone(day);
   data.events.launch!.highlight = true;
@@ -284,7 +284,7 @@ test("one day has one column and shows a highlighted event raised without motion
   expect(await event(page, "launch").locator(".event-block-inner").evaluate((block) => getComputedStyle(block).transform)).not.toBe("none");
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-highlight-motion
+// proofs/ui/templates/calendar.md#^calendar-ac-highlight-motion
 test("a highlight lifts only its event over 700ms, and clearing it settles the event over 450ms", async ({ page }) => {
   await openCalendar(page, day, { allowCSSMotion: true });
   const block = event(page, "launch").locator(".event-block-inner");
@@ -331,7 +331,7 @@ test("a highlight lifts only its event over 700ms, and clearing it settles the e
   await expect(block).toHaveCSS("transform", "none");
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-highlight-motion
+// proofs/ui/templates/calendar.md#^calendar-ac-highlight-motion
 test("with reduced motion a highlight raises and settles its event with no motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await openCalendar(page, day, { allowCSSMotion: true });
@@ -347,7 +347,7 @@ test("with reduced motion a highlight raises and settles its event with no motio
 });
 
 for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 1080 }]) {
-  // proofs/ui/templates/calendar/index.md#^calendar-ac-layout
+  // proofs/ui/templates/calendar.md#^calendar-ac-layout
   test(`one day fills the width and keeps a raised event in view at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
     const data = structuredClone(day);
@@ -369,7 +369,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 1920, height: 108
   });
 }
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-layout
+// proofs/ui/templates/calendar.md#^calendar-ac-layout
 test("days share the width down to 100 pixels, then scroll sideways under pinned hour labels", async ({ page }) => {
   await page.setViewportSize({ width: 1100, height: 620 });
   await openCalendar(page, { ...week, days: 7 });
@@ -441,7 +441,7 @@ async function topHour(page: Page): Promise<{ hour: number; line: number }> {
 
 const hourHeight = async (page: Page) => (await hourView(page)).hour;
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+// proofs/ui/templates/calendar.md#^calendar-ac-visible-hours
 test("stored hours in view fill the height below the pinned rows, and keep filling it when the window resizes", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openCalendar(page, { ...week, visibleHours: { start: 9, end: 18 } });
@@ -455,7 +455,7 @@ test("stored hours in view fill the height below the pinned rows, and keep filli
   await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+// proofs/ui/templates/calendar.md#^calendar-ac-visible-hours
 test("hours in view keep filling the view when the all-day band goes and comes back", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openCalendar(page, { ...week, visibleHours: { start: 9, end: 18 } });
@@ -470,14 +470,14 @@ test("hours in view keep filling the view when the all-day band goes and comes b
   await expect.poll(() => fillsView(page, 9, 18)).toBe(true);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+// proofs/ui/templates/calendar.md#^calendar-ac-visible-hours
 test("an hour in view is never shorter than 16 pixels", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 500 });
   await openCalendar(page, { ...week, visibleHours: { start: 0, end: 24 } });
   await expect.poll(() => hourHeight(page)).toBeCloseTo(16, 1);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours
+// proofs/ui/templates/calendar.md#^calendar-ac-visible-hours
 test("hours in view written to an open calendar fill it, and removing them returns the usual hour height with the top hour kept", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openCalendar(page, week);
@@ -494,7 +494,7 @@ test("hours in view written to an open calendar fill it, and removing them retur
   expect(after.line).toBeCloseTo(before.line, 0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-visible-hours-invalid
+// proofs/ui/templates/calendar.md#^calendar-ac-visible-hours-invalid
 test("hours in view the page cannot read are treated as absent", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openCalendar(page, week);
@@ -520,7 +520,7 @@ test("hours in view the page cannot read are treated as absent", async ({ page }
   await expect(errorPage(page)).toHaveCount(0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-now
+// proofs/ui/templates/calendar.md#^calendar-ac-now
 test("the current time is marked on today's column and in the hour labels, over events and beneath a raised one", async ({ page }) => {
   await openCalendar(page, { ...week, days: 7 }, { now: "2026-11-05T16:42:00" });
   await expect(page.locator("calendar-headers > calendar-day[data-today] .weekday")).toHaveText("Thu");
@@ -539,7 +539,7 @@ test("the current time is marked on today's column and in the hour labels, over 
   expect(await zIndex(lateBlock)).toBeGreaterThan(await zIndex("calendar-grid > .now-line"));
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-weekend
+// proofs/ui/templates/calendar.md#^calendar-ac-weekend
 test("weekend days are shaded in the hour grid and the all-day band only when six or seven days are shown", async ({ page }) => {
   await openCalendar(page, week);
   const background = (date: string) => page.locator(`calendar-grid > calendar-column[date="${date}"]`)
@@ -566,7 +566,7 @@ test("weekend days are shaded in the hour grid and the all-day band only when si
   expect(await bandBackground("2026-11-06")).toBe(await background("2026-11-06"));
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-title-wrap
+// proofs/ui/templates/calendar.md#^calendar-ac-title-wrap
 test("titles in narrow blocks wrap only between words, and a word too wide for its block ends in an ellipsis", async ({ page }) => {
   await page.setViewportSize({ width: 760, height: 770 });
   await openCalendar(page, week);
@@ -591,7 +591,7 @@ test("titles in narrow blocks wrap only between words, and a word too wide for i
   }))).toEqual({ overflowWrap: "normal", textOverflow: "ellipsis", clipped: true });
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-appearance
+// proofs/ui/templates/calendar.md#^calendar-ac-appearance
 test("the page follows the artifact document's light and dark appearance", async ({ page }) => {
   await openCalendar(page, week);
   const colors = () => page.evaluate(() => ({
@@ -608,7 +608,7 @@ test("the page follows the artifact document's light and dark appearance", async
   expect(dark.ink).not.toBe(light.ink);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-opening
+// proofs/ui/templates/calendar.md#^calendar-ac-opening
 test("before the data arrives, the page shows the month and an empty grid for this week", async ({ page }) => {
   // The page connection is held open and never reaches the server, so the
   // data does not arrive.
@@ -623,7 +623,7 @@ test("before the data arrives, the page shows the month and an empty grid for th
   await expect(errorPage(page)).toHaveCount(0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-read-only
+// proofs/ui/templates/calendar.md#^calendar-ac-read-only
 test("through a read-only share link the calendar shows as it does through its own address", async ({ page }) => {
   // Share links need a server that requires its token, so this case has its own.
   const shared = await launchProductServer({ bundledTemplatesBundle: templatesBundle, auth: true });
@@ -638,7 +638,7 @@ test("through a read-only share link the calendar shows as it does through its o
 });
 
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-disconnection
+// proofs/ui/templates/calendar.md#^calendar-ac-disconnection
 test("while disconnected the page keeps what it showed with no message, and catches up after reconnecting", async ({ page }) => {
   // Every page connection passes through to the server until `cut` closes it;
   // while `blocked`, new connections are refused.
@@ -671,7 +671,7 @@ test("while disconnected the page keeps what it showed with no message, and catc
   await expect(errorPage(page)).toHaveCount(0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-unreadable
+// proofs/ui/templates/calendar.md#^calendar-ac-unreadable
 test("a value that breaks the store contract, or no value, shows the error page, which follows the data back to the calendar", async ({ page }) => {
   await openCalendar(page, week);
   const writeRoot = (value: unknown) => page.evaluate(async (root) => {
@@ -694,7 +694,7 @@ test("a value that breaks the store contract, or no value, shows the error page,
   }
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-unavailable
+// proofs/ui/templates/calendar.md#^calendar-ac-unavailable
 test("stored data the server reports unavailable shows the error page, and the calendar returns once it can be read", async ({ page, baseURL }) => {
   // The page is opened through a proxy that follows the server across restarts.
   const proxy = await product.appURL(baseURL!);
@@ -714,7 +714,7 @@ test("stored data the server reports unavailable shows the error page, and the c
   await expectWeek(page);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-unreadable-range
+// proofs/ui/templates/calendar.md#^calendar-ac-unreadable-range
 test("a startDate or days the page cannot read falls back to its default", async ({ page }) => {
   await openCalendar(page, week, { now: "2026-11-04T10:15:00" });
   const days = page.locator("calendar-headers > calendar-day");
@@ -733,7 +733,7 @@ test("a startDate or days the page cannot read falls back to its default", async
   await expect(errorPage(page)).toHaveCount(0);
 });
 
-// proofs/ui/templates/calendar/index.md#^calendar-ac-access-lost
+// proofs/ui/templates/calendar.md#^calendar-ac-access-lost
 test("when the share link the page was opened through is revoked, the page keeps showing the calendar", async ({ page }) => {
   // Share links need a server that requires its token, so this case has its own.
   const shared = await launchProductServer({ bundledTemplatesBundle: templatesBundle, auth: true });

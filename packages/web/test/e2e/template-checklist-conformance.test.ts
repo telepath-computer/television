@@ -116,7 +116,7 @@ const states: Record<string, State> = {
   "narrow": { data: withItems, narrow: true },
 };
 
-// proofs/ui/templates/checklist/index.md#^checklist-ui-ac-conformance
+// proofs/ui/templates/checklist.md#^checklist-ui-ac-conformance
 for (const storyID of specStories("./spec/templates/checklist/checklist.stories.ts")) {
   test(`Checklist conforms: ${storyID}`, async () => {
     const state = states[storyID.replace("spec-templates-checklist--", "")];

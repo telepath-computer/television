@@ -11,8 +11,8 @@
 // refits every line, because a fallback font measures differently.
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-// Phosphor's "user" icon, fill weight (MIT licence), drawn in the line's
-// text colour.
+// Phosphor's "user" icon, fill weight, drawn in the line's text colour.
+// Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt for the upstream terms.
 const PERSON_ICON_PATH = "M230.93,220a8,8,0,0,1-6.93,4H32a8,8,0,0,1-6.92-12c15.23-26.33,38.7-45.21,66.09-54.16a72,72,0,1,1,73.66,0c27.39,8.95,50.86,27.83,66.09,54.16A8,8,0,0,1,230.93,220Z";
 // Canvas text metrics and layout widths can differ by a fraction of a pixel.
 const FIT_TOLERANCE_PX = 0.5;
