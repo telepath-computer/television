@@ -26,7 +26,7 @@
     "vite": "6.4.3"
   },
   "devDependencies": {
-    "@telepath-computer/conform": "file:../../../../../conform-builds/telepath-computer-conform-0.2.0.tgz",
+    "@telepath-computer/conform": "0.2.0",
     "playwright": "1.64.1"
   }
 }
