@@ -568,7 +568,7 @@ describe("Onboarding installer", () => {
         watchContentFile: (file, change, options) => {
           starts.push(file);
           if (file === path.join(storagePath, "templates")) {
-            expect(existsSync(path.join(file, "example", "manifest.json"))).toBe(true);
+            expect(existsSync(path.join(file, "checklist", "manifest.json"))).toBe(true);
             expect(existsSync(getDisplayStatePath(storagePath))).toBe(false);
             expect(options?.recursive).toBe(true);
           } else expect(existsSync(getDisplayStatePath(storagePath))).toBe(true);
@@ -578,7 +578,7 @@ describe("Onboarding installer", () => {
         },
       });
       stores.push(store);
-      expect(store.templateCache?.getSnapshot().templates.map(({ id }) => id)).toEqual(["example"]);
+      expect(store.templateCache?.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist"]);
       expect(starts[0]).toBe(path.join(storagePath, "templates"));
       expect(starts).toHaveLength(3);
       expect(scanAtDisplayStates).toEqual([false]);

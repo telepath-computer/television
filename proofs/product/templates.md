@@ -14,7 +14,7 @@ Refusal and partial-failure walks prove the principal unsuccessful outcomes at t
 [CLI architecture](../arch/cli/index.md) carries argv and flat list/show projection; [product CLI](./cli.md) carries process input and focus-failure output.
 [Toolbox](../ui/app/toolbox.md) carries interaction, appearance and UI failure behavior; the creation journeys here prove its real server outcome.
 [Reload/navigation](../arch/artifact-frame/reload-navigation.md) carries shared watcher mechanics, and [bundled installation](../arch/templates/bundled-installation.md) carries minimum-version recovery.
-[Bundled Example](../arch/templates/bundled-templates.md) demonstrates page defaults without writes; authored page behavior remains the author’s responsibility.
+The [bundled Checklist's creation walk](../ui/templates/checklist.md#^checklist-ui-ac-new) extends the Toolbox journey through the shipped seed, starting display size, first edit and saved result; authored page behavior remains the author’s responsibility.
 No mechanism is mocked in these walks except the standing CSS-motion override, which forfeits CSS motion only to the owning UI proofs.
 
 ## Test hooks

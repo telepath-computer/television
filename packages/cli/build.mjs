@@ -206,7 +206,7 @@ if (!outfileOverride) {
 
   // The validated bundled template tree is installed by serving bootstrap.
   const templatesSrc = path.join(repoRoot, "packages/server/dist/templates");
-  if (!existsSync(path.join(templatesSrc, "example/manifest.json"))) {
+  if (!existsSync(path.join(templatesSrc, "checklist/manifest.json"))) {
     throw new Error(`Server build produced no bundled artifact template tree at ${templatesSrc}`);
   }
   const templatesDest = path.join(distDir, "templates");

@@ -109,14 +109,17 @@ describe("licensing configuration", () => {
     expect(hind.components[0].noticeText).toContain("5) The Font Software, modified or unmodified");
     expect(hind.components[0].noticeText).toMatch(/OR FROM\s+OTHER DEALINGS IN THE FONT SOFTWARE\.\s*$/);
 
+    // proofs/arch/licensing.md#^licensing-t-real-assets-seam
     const phosphor = assets[1];
     expect(phosphor.paths).toEqual([
       "packages/web/src/elements/icon.ts",
       "packages/canonical/frozen/v1/components.js",
       "packages/web/src/elements/select.svg",
       "specs/ui/foundation/icons/select.svg",
+      "packages/server/assets/templates/checklist/index.html",
     ]);
-    expect(phosphor.surfaces).toEqual(["web", "view:markdown", "source", "desktop"]);
+    expect(phosphor.surfaces).toEqual(["web", "view:markdown", "source", "desktop", "cli"]);
+    expect(phosphor.noticesFolder).toBe("packages/server/assets/templates/checklist");
     expect(phosphor.components[0]).toMatchObject({
       package: "@phosphor-icons/core",
       version: "2.1.1",

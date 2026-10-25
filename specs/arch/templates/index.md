@@ -2,7 +2,7 @@
 
 # Artifact template architecture
 
-Television reads artifact templates from `templates/` in the selected home. This spec owns the installed folder contract, CLI records, watched app cache, and server operation that creates an artifact from a template. [Product behavior](../../product/templates.md) owns the feature promises; [bundled installation](./bundled-installation.md) owns installation; [bundled template content](./bundled-templates.md) owns the shipped inventory and pages.
+Television reads artifact templates from `templates/` in the selected home. This spec owns the installed folder contract, CLI records, watched app cache, and server operation that creates an artifact from a template. [Product behavior](../../product/templates.md) owns the feature promises; [bundled installation](./bundled-installation.md) owns installation; [the bundled inventory](./bundled-templates.md) lists the shipped templates; [Checklist](./checklist.md) owns its package and store contract.
 
 ## Installed folder contract
 

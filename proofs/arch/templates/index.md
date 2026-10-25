@@ -18,6 +18,7 @@ CSS-motion disablement in browser cases forfeits motion only; no template-cache 
 [Reload/navigation](../artifact-frame/reload-navigation.md) owns watcher mechanics and artifact-content events; template pushes do not replace those events.
 [Resources](../resources/index.md) owns durable first writes and uncertain saves; [artifact records](../artifacts/index.md) owns ordinary record shapes.
 [Isolation](../artifact-frame/isolation.md) owns route-wide CORS; [Toolbox](../../ui/app/toolbox.md) owns accessible interaction, default icons and appearance.
+The scanner validates general JSON seed rules, not the Checklist data shape; [Checklist architecture](./checklist.md) owns that shape and [Checklist UI](../../ui/templates/checklist.md) owns what the copied page does with it.
 Evidence below covers creation, discovery and icons; browser cache evidence is recorded separately from its controlled-peer contracts.
 
 ## Test hooks

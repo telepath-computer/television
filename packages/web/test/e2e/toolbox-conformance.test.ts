@@ -1,17 +1,15 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { conform } from "@telepath-computer/conform";
-import { StorybookSource } from "@telepath-computer/conform/storybook";
+import type { StorybookSource } from "@telepath-computer/conform/storybook";
 import { test, expect } from "@playwright/test";
 import type { ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import { specStories, storybook } from "./conformance-harness.ts";
 
 // Use Conform's Playwright peer for capture; the runner uses the root toolchain.
 let browser: Browser;
 test.beforeAll(async () => { browser = await chromium.launch(); });
 test.afterAll(async () => { await browser?.close(); });
 
-const storybook = new StorybookSource({ url: process.env.TV_TOOLBOX_STORYBOOK_URL });
 const mountURL = new URL("/packages/web/test/e2e/fixtures/toolbox.html", process.env.TV_WEB_E2E_URL).href;
 
 interface Item { id: string; name: string; icon?: string }
@@ -89,15 +87,12 @@ async function prepare(page: Page, state: State): Promise<void> {
   if (state.failedIcon) await page.locator(".toolbox-letter").filter({ hasText: "C" }).waitFor();
 }
 
-// Read the built index so every exported story receives a test, including future stories.
-const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
-  entries: Record<string, { id: string; type: string; importPath: string }>;
-};
-const stories = Object.values(index.entries).filter(entry => entry.type === "story" && entry.importPath === "./spec/toolbox/toolbox.stories.ts");
+// Every exported story receives a test, including future stories.
+const stories = specStories("./spec/toolbox/toolbox.stories.ts");
 test.beforeAll(() => { expect(stories.length).toBeGreaterThan(0); });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-conformance
-for (const { id } of stories) {
+for (const id of stories) {
   test(`Toolbox conforms: ${id}`, async () => {
     const state = states[id.replace("spec-toolbox--", "")];
     expect(state, `No production state for Toolbox story ${id}`).toBeDefined();
@@ -117,10 +112,10 @@ test("Toolbox documentation renders its MDX and all embedded stories", async () 
   try {
     const errors: string[] = [];
     page.on("pageerror", error => errors.push(error.message));
-    await page.goto(new URL("iframe.html?id=spec-toolbox--docs&viewMode=docs", process.env.TV_TOOLBOX_STORYBOOK_URL).href);
+    await page.goto(new URL("iframe.html?id=spec-toolbox--docs&viewMode=docs", process.env.TV_SPEC_STORYBOOK_URL).href);
     await page.getByRole("heading", { name: /Toolbox$/ }).waitFor();
     await page.getByRole("heading", { name: /The highlight$/ }).waitFor();
-    for (const { id } of stories) await page.locator(`#story--${id}`).waitFor({ state: "attached" });
+    for (const id of stories) await page.locator(`#story--${id}`).waitFor({ state: "attached" });
     expect(errors).toEqual([]);
   } finally { await page.close(); }
 });

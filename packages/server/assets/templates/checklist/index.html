@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checklist</title>
+  <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="checklist-page"></main>
+  <template id="checklist-content">
+    <h1 class="checklist-title"><span class="checklist-title-text" data-placeholder="Untitled"></span></h1>
+    <ul class="checklist-items" role="list"></ul>
+  </template>
+  <template id="checklist-row">
+    <li class="checklist-item">
+      <input type="checkbox" class="checklist-check">
+      <span class="checklist-text"></span>
+    </li>
+  </template>
+  <!-- Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt for the upstream terms. -->
+  <template id="checklist-remove">
+    <button class="checklist-remove" variant="ghost" icon title="Remove item"><tv-icon name="close"><template shadowrootmode="open" shadowrootserializable="" shadowrootclonable=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></template>
+
+</tv-icon></button>
+  </template>
+  <template id="checklist-add">
+    <label class="checklist-add">
+      <tv-icon name="add"><template shadowrootmode="open" shadowrootserializable="" shadowrootclonable=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"></path></svg></template>
+
+</tv-icon>
+      <input class="checklist-add-input" type="text" placeholder="Add an item" aria-label="Add an item">
+    </label>
+  </template>
+  <template id="checklist-unreadable">
+    <section class="checklist-unreadable" role="alert">
+      <span class="checklist-unreadable-icon"><tv-icon name="warning" size="xl"><template shadowrootmode="open" shadowrootserializable="" shadowrootclonable=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"></path></svg></template>
+
+</tv-icon></span>
+      <h1 class="checklist-unreadable-title">This checklist can't be shown</h1>
+      <p class="checklist-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </section>
+  </template>
+  <script type="module" src="./page.js"></script>
+</body>
+</html>

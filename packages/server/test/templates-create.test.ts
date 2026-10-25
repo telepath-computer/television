@@ -91,7 +91,7 @@ describe("template artifact creation", () => {
   // proofs/product/telemetry.md#^ac-artifact-template
   it("emits ordinary creation and one classified template-use event after successful creation", async () => {
     const root = home();
-    template(root, "example", { message: "private starting value" });
+    template(root, "checklist", { title: "private starting value", items: {} });
     const custom = template(root, "private-custom-id");
     const privateName = "Private catalog name QX7";
     const privateImage = "Private image bytes YZ9";
@@ -101,7 +101,7 @@ describe("template artifact creation", () => {
     }));
     writeFileSync(path.join(custom, "image.png"), privateImage);
     const { channelID, client, events } = await start(root);
-    await client.templates.create({ templateID: "example", channelID, source: "cli", data: { message: "private starting value" } });
+    await client.templates.create({ templateID: "checklist", channelID, source: "cli" });
     await client.templates.create({ templateID: "private-custom-id", channelID, source: "ui", title: "Private display title" });
     const urlFolder = template(root, "private-url-id");
     const privateURL = "https://example.com/private-manifest-url";
@@ -110,7 +110,7 @@ describe("template artifact creation", () => {
     expect(events.filter(({ name }) => name === "artifact_created")).toHaveLength(3);
     const uses = events.filter(({ name }) => name === "artifact_template_used");
     expect(uses.map(({ properties }) => ({ source: properties.source, template: properties.template }))).toEqual([
-      { source: "cli", template: "example" }, { source: "ui", template: "custom" }, { source: "cli", template: "custom" },
+      { source: "cli", template: "checklist" }, { source: "ui", template: "custom" }, { source: "cli", template: "custom" },
     ]);
     const serialized = JSON.stringify(events);
     for (const privateText of ["private-custom-id", "private starting value", "Private display title", privateName, privateImage, root, privateURL, "private-url-id", "Private site name", "Private schema content AB9"]) {

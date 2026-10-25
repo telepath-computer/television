@@ -542,9 +542,11 @@ describe("notice rendering", () => {
     expect(generateFolderNotices({ root, config, assets: [assets[2]], write: true })).toEqual([]);
   });
 
-  test("regenerates the committed theme folder notices byte-for-byte", () => {
+  // proofs/arch/licensing.md#^licensing-t-real-assets-seam
+  test("regenerates the committed asset folder notices byte-for-byte", () => {
     const folders = generateFolderNotices({ root: repoRoot });
     expect(folders.map((entry) => entry.folder)).toEqual([
+      "packages/server/assets/templates/checklist",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
       "packages/server/assets/themes/tokyo-night",
@@ -561,6 +563,9 @@ describe("notice rendering", () => {
     const nord = folders.find((entry) => entry.folder.endsWith("/nord"))!.text;
     expect(entryMetadata(nord)).toEqual([["Nord color palette", "Licensed under MIT."]]);
     expect(nord).toContain("Copyright (c) 2016-present Sven Greb");
+    const checklist = folders.find((entry) => entry.folder.endsWith("/checklist"))!.text;
+    expect(entryMetadata(checklist)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
+    expect(checklist).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));
   });
 
   test("regenerates the committed source-surface notices byte-for-byte", () => {

@@ -16,7 +16,7 @@ import {
 describe("telemetry event and property vocabulary", () => {
   // proofs/arch/telemetry/index.md#^t-template-vocabulary
   it("accepts only closed template-use source and template values", () => {
-    const cli = { name: "artifact_template_used", properties: { source: "cli", template: "example" } } satisfies TelemetryEvent;
+    const cli = { name: "artifact_template_used", properties: { source: "cli", template: "checklist" } } satisfies TelemetryEvent;
     const ui = { name: "artifact_template_used", properties: { source: "ui", template: "custom" } } satisfies TelemetryEvent;
     const other = {} satisfies TelemetryEventProperties;
     expect([cli.properties.source, ui.properties.template, other]).toEqual(["cli", "custom", {}]);
@@ -28,7 +28,11 @@ describe("telemetry event and property vocabulary", () => {
       // @ts-expect-error installed custom IDs are not telemetry values.
       template: "private-template-id",
     } satisfies TelemetryEventProperties;
-    expect([badSource, badTemplate]).toHaveLength(2);
+    const retired = {
+      // @ts-expect-error former bundled IDs are not telemetry values.
+      template: "example",
+    } satisfies TelemetryEventProperties;
+    expect([badSource, badTemplate, retired]).toBeDefined();
   });
   it("accepts only the closed event names", () => {
     const valid = { name: "server_started", properties: {} } satisfies TelemetryEvent;

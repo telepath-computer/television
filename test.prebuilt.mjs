@@ -19,7 +19,7 @@ export default {
       // Product artifacts above and the built Storybook cover conformance setup.
       id: "storybook",
       command: ["npm", "--workspace", "@telepath-computer/storybook", "run", "build"],
-      coversPreCommands: ["e2e:toolbox-conformance"],
+      coversPreCommands: ["e2e:conformance"],
     },
   ],
 };

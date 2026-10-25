@@ -8,7 +8,7 @@ export type ProxyLogEntry =
   | { kind: "message"; connection: number; message: Record<string, unknown> }
   | { kind: "released"; direction: Direction };
 
-/** One WebSocket frame of the browser's, as sent and unmasked. */
+/** One WebSocket frame, with its original bytes and decoded payload. */
 interface Frame {
   readonly bytes: Buffer;
   readonly opcode: number;
@@ -16,10 +16,15 @@ interface Frame {
   readonly payload: Buffer;
 }
 
-/** One whole message of the browser's: its frames as sent, and the JSON it carries if it is text. */
-interface BrowserMessage {
+/** One whole message: its frames as sent, and a JSON object when it carries one. */
+interface Message {
   readonly bytes: Buffer;
   readonly message: Record<string, unknown> | null;
+}
+
+interface FrameStream {
+  bytes: Buffer;
+  readonly fragments: Frame[];
 }
 
 interface Pipe {
@@ -32,11 +37,12 @@ interface Pipe {
   readonly head: Record<Direction, Buffer | null>;
   readonly held: Record<Direction, Buffer[]>;
   /** The browser's write messages, held while writes are held. */
-  readonly heldWrites: BrowserMessage[];
-  /** Unparsed bytes of the browser's WebSocket frames. */
-  frames: Buffer;
-  /** Frames of a message of the browser's whose last fragment has not arrived. */
-  readonly fragments: Frame[];
+  readonly heldWrites: Message[];
+  /** Server messages selected for delayed delivery on this connection. */
+  readonly heldServerMessages: Message[];
+  serverMessageHold: ((message: Record<string, unknown>) => boolean) | null;
+  /** Unparsed frame bytes and incomplete messages, independently in each direction. */
+  readonly streams: Record<Direction, FrameStream>;
   closed: boolean;
 }
 
@@ -45,6 +51,7 @@ const OPCODE_TEXT = 1;
 /** Close, ping and pong: control frames, which may come between a message's fragments. */
 const OPCODE_FIRST_CONTROL = 8;
 const FIN_BIT = 0x80;
+const MASK_BIT = 0x80;
 const MASK_BYTES = 4;
 const LENGTH_16 = 126;
 const LENGTH_64 = 127;
@@ -53,9 +60,9 @@ const LENGTH_64 = 127;
  * A test-controlled TCP proxy standing in for the network between a browser
  * and the server (proofs/arch/resources/sdk.md, Test hooks). It forwards
  * traffic unchanged, and lets a test sever open connections, refuse new ones,
- * or hold WebSocket traffic in either direction, or only the page's write
- * messages, until released. It reads the browser's WebSocket messages so a
- * test can see what the page sent.
+ * or hold WebSocket traffic in either direction, only the page's writes, or
+ * selected server messages on one connection until released. It reads the
+ * browser's WebSocket messages so a test can see what the page sent.
  */
 export class NetworkProxy {
   readonly log: ProxyLogEntry[] = [];
@@ -138,13 +145,34 @@ export class NetworkProxy {
   releaseWrites(): void {
     this.holdingWrites = false;
     for (const pipe of this.pipes) {
-      for (const frame of pipe.heldWrites.splice(0)) this.forwardMessage(pipe, frame);
+      for (const frame of pipe.heldWrites.splice(0)) this.forwardMessage(pipe, "to-server", frame);
     }
   }
 
   /** Write messages held now, across open connections. */
   get heldWriteCount(): number {
     return [...this.pipes].reduce((count, pipe) => count + pipe.heldWrites.length, 0);
+  }
+
+  /** Holds matching server messages on one open connection; later messages and control frames still pass. */
+  holdServerMessages(connection: number, predicate: (message: Record<string, unknown>) => boolean): void {
+    const pipe = [...this.pipes].find((pipe) => pipe.number === connection);
+    if (!pipe) throw new Error(`no open proxy connection ${connection}`);
+    pipe.serverMessageHold = predicate;
+  }
+
+  /** Releases selected messages unchanged, after anything that passed meanwhile, and removes the predicate. */
+  releaseServerMessages(connection: number): void {
+    const pipe = [...this.pipes].find((pipe) => pipe.number === connection);
+    if (!pipe) return;
+    pipe.serverMessageHold = null;
+    for (const message of pipe.heldServerMessages.splice(0)) this.forwardMessage(pipe, "to-browser", message);
+    this.notify();
+  }
+
+  /** Server messages held now on the selected connection; a closed connection holds none. */
+  heldServerMessageCount(connection: number): number {
+    return [...this.pipes].find((pipe) => pipe.number === connection)?.heldServerMessages.length ?? 0;
   }
 
   /** Resolves once `check` holds, checking after everything the proxy sees; rejects after `timeoutMs`. */
@@ -184,8 +212,12 @@ export class NetworkProxy {
       head: { "to-server": Buffer.alloc(0), "to-browser": Buffer.alloc(0) },
       held: { "to-server": [], "to-browser": [] },
       heldWrites: [],
-      frames: Buffer.alloc(0),
-      fragments: [],
+      heldServerMessages: [],
+      serverMessageHold: null,
+      streams: {
+        "to-server": { bytes: Buffer.alloc(0), fragments: [] },
+        "to-browser": { bytes: Buffer.alloc(0), fragments: [] },
+      },
       closed: false,
     };
     this.pipes.add(pipe);
@@ -202,6 +234,14 @@ export class NetworkProxy {
     pipe.closed = true;
     pipe.browser.destroy();
     pipe.server.destroy();
+    pipe.heldWrites.length = 0;
+    pipe.heldServerMessages.length = 0;
+    pipe.serverMessageHold = null;
+    for (const direction of ["to-server", "to-browser"] as const) {
+      pipe.held[direction].length = 0;
+      pipe.streams[direction].bytes = Buffer.alloc(0);
+      pipe.streams[direction].fragments.length = 0;
+    }
     this.pipes.delete(pipe);
     this.notify();
   }
@@ -263,46 +303,46 @@ export class NetworkProxy {
 
   private forwardFrames(pipe: Pipe, direction: Direction, chunk: Buffer): void {
     if (pipe.closed) return;
-    if (direction === "to-browser") {
-      this.forwardRaw(pipe, direction, chunk);
-      return;
-    }
-    // The browser's messages are forwarded whole, each once its last fragment
-    // has arrived, so a write message can be held on its own.
-    pipe.frames = Buffer.concat([pipe.frames, chunk]);
-    for (let frame = takeFrame(pipe); frame !== null; frame = takeFrame(pipe)) {
+    // Forward whole messages so one can be held independently. Control frames
+    // pass immediately, including those between a message's fragments.
+    const stream = pipe.streams[direction];
+    stream.bytes = Buffer.concat([stream.bytes, chunk]);
+    for (let frame = takeFrame(stream); frame !== null; frame = takeFrame(stream)) {
       if (frame.opcode >= OPCODE_FIRST_CONTROL) {
         this.forwardRaw(pipe, direction, frame.bytes);
         continue;
       }
-      pipe.fragments.push(frame);
+      stream.fragments.push(frame);
       if (!frame.fin) continue;
-      const parts = pipe.fragments.splice(0);
+      const parts = stream.fragments.splice(0);
       const text = parts[0]!.opcode === OPCODE_TEXT ? Buffer.concat(parts.map((part) => part.payload)).toString("utf8") : null;
-      const message: BrowserMessage = {
+      const message: Message = {
         bytes: Buffer.concat(parts.map((part) => part.bytes)),
-        message: text === null ? null : (JSON.parse(text) as Record<string, unknown>),
+        message: text === null ? null : jsonObject(text),
       };
-      if (this.holdingWrites && message.message?.type === "write") {
+      if (direction === "to-server" && this.holdingWrites && message.message?.type === "write") {
         pipe.heldWrites.push(message);
         this.notify();
+      } else if (direction === "to-browser" && message.message !== null && pipe.serverMessageHold?.(message.message)) {
+        pipe.heldServerMessages.push(message);
+        this.notify();
       } else {
-        this.forwardMessage(pipe, message);
+        this.forwardMessage(pipe, direction, message);
       }
     }
   }
 
-  /** Forwards one whole message of the browser's and records it if it is text. */
-  private forwardMessage(pipe: Pipe, message: BrowserMessage): void {
+  /** Forwards one whole message and records JSON objects the browser sends. */
+  private forwardMessage(pipe: Pipe, direction: Direction, message: Message): void {
     if (pipe.closed) return;
-    this.forwardRaw(pipe, "to-server", message.bytes);
-    if (message.message === null) return;
+    this.forwardRaw(pipe, direction, message.bytes);
+    if (direction !== "to-server" || message.message === null) return;
     this.log.push({ kind: "message", connection: pipe.number, message: message.message });
     this.notify();
   }
 }
 
-/** The length of the browser's first whole frame in `bytes`, or null while it is incomplete. */
+/** The length of the first whole frame in `bytes`, or null while it is incomplete. */
 function frameLength(bytes: Buffer): { header: number; payload: number } | null {
   if (bytes.length < 2) return null;
   let payload = bytes[1]! & 0x7f;
@@ -316,18 +356,30 @@ function frameLength(bytes: Buffer): { header: number; payload: number } | null 
     payload = Number(bytes.readBigUInt64BE(header));
     header += 8;
   }
-  header += MASK_BYTES;
+  if ((bytes[1]! & MASK_BIT) !== 0) header += MASK_BYTES;
   return bytes.length < header + payload ? null : { header, payload };
 }
 
-/** Takes the first whole frame from the browser's unparsed bytes, and unmasks its payload. */
-function takeFrame(pipe: Pipe): Frame | null {
-  const length = frameLength(pipe.frames);
+/** Takes the first whole frame from unparsed bytes, unmasking only masked payloads. */
+function takeFrame(stream: FrameStream): Frame | null {
+  const length = frameLength(stream.bytes);
   if (length === null) return null;
-  const bytes = pipe.frames.subarray(0, length.header + length.payload);
-  pipe.frames = pipe.frames.subarray(bytes.length);
-  const mask = bytes.subarray(length.header - MASK_BYTES, length.header);
+  const bytes = stream.bytes.subarray(0, length.header + length.payload);
+  stream.bytes = stream.bytes.subarray(bytes.length);
   const payload = Buffer.from(bytes.subarray(length.header));
-  for (let index = 0; index < payload.length; index++) payload[index]! ^= mask[index % MASK_BYTES]!;
+  if ((bytes[1]! & MASK_BIT) !== 0) {
+    const mask = bytes.subarray(length.header - MASK_BYTES, length.header);
+    for (let index = 0; index < payload.length; index++) payload[index]! ^= mask[index % MASK_BYTES]!;
+  }
   return { bytes, opcode: bytes[0]! & 0x0f, fin: (bytes[0]! & FIN_BIT) !== 0, payload };
+}
+
+/** Non-JSON text and binary messages pass through without invoking JSON predicates. */
+function jsonObject(text: string): Record<string, unknown> | null {
+  try {
+    const value: unknown = JSON.parse(text);
+    return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
 }

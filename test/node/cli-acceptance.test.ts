@@ -579,15 +579,14 @@ describe("CLI product spine acceptance", () => {
   }
 
   // proofs/arch/cli/index.md#^cli-bundled-template-resolution
-  it("installs packaged Example before the first templates list in a fresh home", async () => {
+  it("installs packaged Checklist before the first templates list in a fresh home", async () => {
     const { home, tv } = await seededServer("television-cli-bundled-template-");
     const result = await tv(["templates", "list"]);
     expect(result.exitCode, result.stderr).toBe(0);
     const scan = JSON.parse(result.stdout);
-    expect(scan.templates).toContainEqual(expect.objectContaining({ id: "example", name: "Example" }));
+    expect(scan.templates).toContainEqual(expect.objectContaining({ id: "checklist", name: "Checklist" }));
     expect(scan.errors).toEqual([]);
-    expect(existsSync(path.join(home, "templates/example/index.html"))).toBe(true);
-    expect(existsSync(path.join(home, "templates/example/data.json"))).toBe(false);
+    expect(existsSync(path.join(home, "templates/checklist/index.html"))).toBe(true);
   });
 
   // proofs/product/templates.md#^templates-ac-discovery
