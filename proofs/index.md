@@ -168,7 +168,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **templates/**
     - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
-    - `checklist.md` (79 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
+    - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

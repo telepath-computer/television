@@ -182,7 +182,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `index.md` (26 lines) — *UI spec: the setup screen — the desktop app's connect screen when it has no saved server connection, where a person pastes the link their agent gives them.*
   - **templates/**
     - `calendar.mdx` (169 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
-    - `checklist.mdx` (129 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
+    - `checklist.mdx` (133 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**
