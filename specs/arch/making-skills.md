@@ -6,7 +6,7 @@ A bundled skill gives an agent instructions and may ship assets used by the arti
 
 ## Authority
 
-A skill that defines a designed artifact surface may have a UI spec under `specs/ui/skills/<name>/` (`index.md`, `template.liquid`, `styles.css`, and `content.yml` as needed), per [spec-ui.md](../spec-ui.md). Its templates are rendered truth; production and bundles never import them. General product guidance, including the `television` skill's primary and theming documents, follows its owning product and architecture authorities and does not need a UI surface.
+A skill that defines a designed artifact surface may have an MDX spec under `specs/ui/skills/<name>/`, with stories in the Storybook package, per [spec-ui.md](../spec-ui.md). Existing frame and template contracts remain until redesign. Production and bundles never import UI spec files. General product guidance, including the primary and theming documents for `television`, follows its owning product and architecture authorities and does not need a UI surface.
 
 The presence of source under `packages/skills/skills/` does not by itself make a skill shippable. The `tv-calendar`, `tv-table`, and `tv-tasks` sources remain in that tree but are not bundled agent skills. The calendar and task browser components are still built for the [onboarding bake](./onboarding/bake.md#^skill-assets).
 

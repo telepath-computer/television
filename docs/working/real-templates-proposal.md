@@ -1,8 +1,12 @@
 # The first real artifact templates — proposal
 
-**Status:** draft for Rupert, October 16, 2026. The template mechanism is built and in a draft PR with one placeholder template, Example. This proposal settles the four templates that ship in its place: Calendar, Table, Checklist and Markdown. The branch does not merge until they are specified and built.
+**Status:** draft for Rupert, first written October 16, 2026 and updated for the October 22 linked-template decisions. This proposal explores Calendar, Table, Checklist and Markdown; it does not change the [current bundled inventory](../../specs/arch/templates/bundled-templates.md). The feature branches for Checklist and Calendar have developed their designs further. Their specs govern those designs when integrated.
 
-Each template is an ordinary template folder: `manifest.json`, an `index.html` page, a `data.json` starting value for the artifact's JSON store, a `README.md` for an agent adapting the copy, and a portrait `thumbnail.png` (4:5, about 400 by 500 pixels). Every page reads its store through the resource SDK and updates live when an agent writes with `tv resource json`. Lists that several writers add to are keyed maps built with `push`, with an `order` field where order matters. The `tv-*` skills no longer ship, so any component a template uses is copied into the template folder itself, as onboarding already does.
+Each template is an ordinary folder: `manifest.json` with embedded `dataSchema`, an `index.html` page, a `README.md` for agents, and optional local icon assets declared by manifest `icons`. Using it links an artifact to the installed folder; each artifact keeps its own store. An agent uses `--copy`, or copies and repoints an existing artifact, before editing files for just that artifact.
+
+Templates supply no starting data. A caller can supply an optional starting value with `--data` or `--data-file`. The page renders its empty state without a value and defaults for missing fields in partial data. It must not write defaults on load: that can race with agent writes or fail for read-only share viewers. Schema `default` annotations do not supply starting values. The starting displays recommended below describe page behavior, not writes to the store.
+
+Every page reads its store through the resource SDK and updates live when an agent writes with `tv resource json`. Lists that several writers add to are keyed maps built with `push`, with an `order` field where order matters. The `tv-*` skills no longer ship, so any component a template uses is copied into the template folder itself, as onboarding already does.
 
 Each section gives a recommendation and the questions to settle. The recommendations start from the draft written on October 15 and set aside then, revised with the points raised about it.
 
@@ -83,6 +87,12 @@ interface MarkdownData {
 
 ## For all four
 
-**Thumbnails.** Each template's `thumbnail.png` is a screenshot of its page holding sample data, cropped to 4:5. The agent makes them once the pages exist; Rupert approves them.
+**Toolbox and icons.** The [Toolbox](../../specs/ui/app/toolbox.mdx) lists names and icons and searches names only. Manifest descriptions remain required for agents. Optional manifest `icons` uses [W3C Web App Manifest form](https://www.w3.org/TR/appmanifest/#icons-member), with SVG or PNG files inside the folder. The [icon contract](../../specs/arch/templates/index.md#^artifact-template-icon-route) owns selection and ignored entries. Supplied icons have no added background; absent or failed icons use the default letter circle. The app and server never fetch favicons.
 
-**Popover order.** The scan sorts templates alphabetically by name, so the popover shows Calendar, Checklist, Markdown, Table. Is that order fine, or should bundled templates appear in a chosen order?
+**Order and display.** The Toolbox retains the scan order, alphabetically by name and then ID. Each template may declare starting `display` options, including size, full-screen, and transparency; linking does not make those settings update existing artifacts.
+
+## Data compatibility for linked templates
+
+Editing an installed template changes every linked page while existing stores keep their values. A new schema must accept every value accepted by the previous schema, and the page must continue to render it. Adding an optional field is compatible only if its constraints do not reject values previously accepted. This is an authoring responsibility, without automatic schema comparison or store migration.
+
+Each manifest `dataSchema` embeds a [JSON Schema Draft 2020-12](../../specs/arch/templates/index.md#^artifact-template-schema) schema object or boolean, with references confined to that schema. An invalid schema makes the template invalid. The server validates caller-supplied starting data before creating anything and writes it within the creation request. Agents use `tv templates list` to choose and `tv templates show <id>` to inspect `dataSchema` before writing. Later store writes do not enforce it.

@@ -250,8 +250,9 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 |---|---|
 | `create-artifact --path` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, display?, before?, after? })`. |
 | `create-artifact --url` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, display?, before?, after? })`. |
-| `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, display?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the copied folder path for the success output. |
-| `templates list` | `client.templates.list()`; print the [scan result](../../product/cli.md#^cli-templates-list). |
+| `create-artifact --template` | Parse and check optional JSON before `client.templates.create({ templateID, channelID, title?, data?, display?, before?, after?, source: "cli" })`. The [template creation contract](../templates/index.md#creating-an-artifact) owns the server operation and returns the registered path or URL for success output. |
+| `templates list` | `client.templates.list({ fresh: true })`; print only the [summaries and scan errors](../../product/cli.md#^cli-templates-list). |
+| `templates show <id>` | `client.templates.list({ fresh: true })`; resolve the exact ID with the [same lookup errors as creation](../templates/index.md#discovery) and print the [full validated record](../../product/cli.md#^cli-templates-show), including the installed folder `path` for both folder and URL templates and optional `dataSchema`; omit app metadata. |
 | `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim(), transparent? })`. |
 | `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
 | `get-artifact` | `client.artifacts.get({ artifactID })`. |

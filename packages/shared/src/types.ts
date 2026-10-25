@@ -22,8 +22,7 @@ export const TELEMETRY_SIGNAL_MESSAGE_TYPE = "telemetry-signal";
 /**
  * The subset of the closed telemetry vocabulary that clients may signal
  * (specs/arch/telemetry/client-signals.md). Firing semantics (when and how
- * often each fires) are owned by the update-notifications or skill-selector
- * feature specs.
+ * often each fires) are owned by the update-notifications specs.
  */
 export type ClientSignalEventName =
   | "client_autoreloaded"
@@ -88,20 +87,38 @@ export interface ArtifactDisplayOptions {
   transparent?: boolean;
 }
 
-export interface ArtifactTemplate {
+export type JSONSchema = boolean | { [keyword: string]: JSONValue };
+
+export interface ArtifactTemplateIcon {
+  src: string;
+  sizes?: string;
+  type?: string;
+  purpose?: string;
+}
+
+export interface TemplateSummary {
   id: string;
   name: string;
   description: string;
+  url?: string;
+}
+
+export interface Template extends TemplateSummary {
   version: string;
-  display?: ArtifactDisplayOptions;
-  hasData: boolean;
-  hasThumbnail: boolean;
   path: string;
+  display?: ArtifactDisplayOptions;
+  icons?: ArtifactTemplateIcon[];
+  dataSchema?: JSONSchema;
+}
+
+export interface AppTemplate extends Template {
+  hasIcon: boolean;
 }
 
 export interface ArtifactTemplateScan {
-  templates: ArtifactTemplate[];
+  templates: AppTemplate[];
   errors: { folder: string | null; error: string }[];
+  watching: boolean;
 }
 
 export interface CreateTemplateArtifactRequest {
@@ -115,10 +132,10 @@ export interface CreateTemplateArtifactRequest {
   source: "cli" | "ui";
 }
 
-export interface CreateTemplateArtifactResult {
-  artifactID: string;
-  path: string;
-}
+export type CreateTemplateArtifactResult = { artifactID: string } & (
+  | { path: string; url?: never }
+  | { url: string; path?: never }
+);
 /**
  * Where a created or moved artifact goes in its channel's order: immediately
  * before or after a named artifact there, or at the end when neither is given
@@ -296,6 +313,7 @@ export interface Channel {
 }
 
 export type ServerEvent =
+  | { type: "templates-changed"; scan: ArtifactTemplateScan; invalidatedIDs: string[] }
   | {
       // Artifact identity came into existence on the owning channel.
       // The full `artifact` payload is included so clients can render the new

@@ -1,6 +1,9 @@
 import {
   accessSync,
   constants,
+  closeSync,
+  openSync,
+  readSync,
   lstatSync,
   readFileSync,
   readlinkSync,
@@ -11,14 +14,23 @@ import {
   symlinkSync,
 } from "node:fs";
 import path from "node:path";
+import { checkJsonLimits, validateJsonValue, type JSONValue } from "@telepath-computer/television-shared/resources";
 import { randomInt } from "node:crypto";
-import { checkJsonLimits, validateJsonValue } from "@telepath-computer/television-shared/resources";
-import type { ArtifactDisplayOptions, ArtifactTemplate, ArtifactTemplateScan } from "@telepath-computer/television-shared";
+import { isExternalArtifactURL } from "@telepath-computer/television-artifact";
+import { compileTemplateSchema, templateSchemaHint, validateTemplateData } from "./template-schema.ts";
+import type { ArtifactDisplayOptions, AppTemplate, ArtifactTemplateIcon, ArtifactTemplateScan, JSONSchema } from "@telepath-computer/television-shared";
 import { isSemanticVersion } from "./themes.ts";
 
 const MAX_SLUG_LENGTH = 60;
 const SUFFIX_RADIX = 36;
 const SUFFIX_LENGTH = 5;
+const ICON_TARGET_SIZE = 40;
+const ICON_RANK = { scalable: 0, sufficient: 1, undersized: 2, unsized: 3 } as const;
+const PNG_HEADER_LENGTH = 24;
+const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+const PNG_CHUNK_TYPE_OFFSET = 12;
+const PNG_WIDTH_OFFSET = 16;
+const PNG_HEIGHT_OFFSET = 20;
 
 export function getTemplatesDir(storagePath: string): string {
   return path.join(storagePath, "templates");
@@ -41,7 +53,7 @@ export function randomTemplateSuffix(): string {
   return randomInt(SUFFIX_RADIX ** SUFFIX_LENGTH).toString(SUFFIX_RADIX).padStart(SUFFIX_LENGTH, "0");
 }
 
-export function isContainedPath(root: string, candidate: string): boolean {
+function isContainedPath(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
   return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }
@@ -88,20 +100,93 @@ function entryPresent(filename: string): boolean {
   }
 }
 
-export function readableTemplateThumbnail(folder: string): string | null {
-  try {
-    const root = realpathSync(folder);
-    const image = realpathSync(path.join(folder, "thumbnail.png"));
-    return isContainedPath(root, image) && readableFile(image) ? image : null;
-  } catch {
-    return null;
-  }
+export function readTemplateData(folder: string): JSONValue | undefined {
+  const filename = path.join(folder, "data.json");
+  if (!entryPresent(filename)) return;
+  const value: unknown = JSON.parse(readFileSync(filename, "utf8"));
+  validateJsonValue(value);
+  checkJsonLimits(value);
+  return value;
 }
 
-export function validateTemplatePackage(folder: string, id: string): { template?: ArtifactTemplate; errors: string[] } {
+type IconType = "image/svg+xml" | "image/png";
+
+function iconPath(folder: string, src: string): string | undefined {
+  if (!src || path.isAbsolute(src) || /^[a-z][a-z0-9+.-]*:/i.test(src)) return;
+  try {
+    const file = realpathSync(path.resolve(folder, src));
+    if (isContainedPath(realpathSync(folder), file) && readableFile(file)) return file;
+  } catch { /* Missing icons are optional. */ }
+}
+
+function usableIcons(folder: string, input: unknown): ArtifactTemplateIcon[] {
+  if (!Array.isArray(input)) return [];
+  const icons: ArtifactTemplateIcon[] = [];
+  for (const candidate of input as unknown[]) {
+    if (!candidate || typeof candidate !== "object") continue;
+    const entry = candidate as Record<string, unknown>;
+    if (typeof entry.src !== "string" || !iconPath(folder, entry.src)) continue;
+    let type = typeof entry.type === "string" ? entry.type.trim() : "";
+    if (!type) {
+      const extension = path.extname(entry.src).toLowerCase();
+      type = extension === ".svg" ? "image/svg+xml" : extension === ".png" ? "image/png" : "";
+    }
+    if (type !== "image/svg+xml" && type !== "image/png") continue;
+    const purpose = typeof entry.purpose === "string" ? entry.purpose.trim() : undefined;
+    if (purpose !== undefined && !purpose.split(/\s+/).includes("any")) continue;
+    const sizes = typeof entry.sizes === "string" ? entry.sizes.split(/\s+/).filter((size: string) =>
+      size === "any" || /^[1-9]\d*x[1-9]\d*$/.test(size)).join(" ") : "";
+    icons.push({ src: entry.src, type, ...(sizes ? { sizes } : {}), ...(purpose !== undefined ? { purpose } : {}) });
+  }
+  return icons;
+}
+
+function pngSize(file: string): number | undefined {
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(file, "r");
+    const bytes = Buffer.alloc(PNG_HEADER_LENGTH);
+    const length = readSync(descriptor, bytes, 0, bytes.length, 0);
+    if (length === PNG_HEADER_LENGTH && bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE) &&
+        bytes.toString("ascii", PNG_CHUNK_TYPE_OFFSET, PNG_WIDTH_OFFSET) === "IHDR") {
+      const size = Math.min(bytes.readUInt32BE(PNG_WIDTH_OFFSET), bytes.readUInt32BE(PNG_HEIGHT_OFFSET));
+      if (size > 0) return size;
+    }
+  } catch { /* A disappearing image is ranked as unsized. */ }
+  finally { if (descriptor !== undefined) closeSync(descriptor); }
+}
+
+/** Select a readable local icon, checking containment again at delivery. */
+export function selectTemplateIcon(template: Pick<AppTemplate, "path" | "icons">): { path: string; contentType: IconType } | undefined {
+  let selected: { path: string; contentType: IconType } | undefined;
+  let bestRank: [number, number] = [Infinity, Infinity];
+  for (const icon of usableIcons(template.path, template.icons)) {
+    const file = iconPath(template.path, icon.src);
+    if (!file) continue;
+    const sizes = icon.sizes?.split(" ") ?? [];
+    let rank: [number, number];
+    if (icon.type === "image/svg+xml" || sizes.includes("any")) rank = [ICON_RANK.scalable, 0];
+    else {
+      const dimensions = sizes.map((size) => Math.min(...size.split("x").map(Number)));
+      const sufficient = dimensions.filter((size) => size >= ICON_TARGET_SIZE);
+      const size = sufficient.length ? Math.min(...sufficient) : dimensions.length ? Math.max(...dimensions) : pngSize(file);
+      // Sufficient PNGs rank first, then undersized PNGs, then unreadable sizes.
+      rank = size === undefined ? [ICON_RANK.unsized, 0] : size >= ICON_TARGET_SIZE ? [ICON_RANK.sufficient, size] : [ICON_RANK.undersized, -size];
+    }
+    if (!selected || rank[0] < bestRank[0] || (rank[0] === bestRank[0] && rank[1] < bestRank[1])) {
+      selected = { path: file, contentType: icon.type as IconType };
+      bestRank = rank;
+    }
+  }
+  return selected;
+}
+
+export function validateTemplatePackage(folder: string, id: string): { template?: AppTemplate; errors: string[] } {
   const errors: string[] = [];
   let manifest: Record<string, unknown> | undefined;
   let display: ArtifactDisplayOptions | undefined;
+  let url: string | undefined;
+  let dataSchema: JSONSchema | undefined;
   try {
     const parsed: unknown = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
@@ -144,20 +229,35 @@ export function validateTemplatePackage(folder: string, id: string): { template?
       }
     }
   }
-  if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
-
-  const dataPath = path.join(folder, "data.json");
-  const hasData = entryPresent(dataPath);
-  if (hasData) {
+  if (manifest && Object.hasOwn(manifest, "url")) {
+    if (typeof manifest.url !== "string" || !isExternalArtifactURL(manifest.url.trim())) {
+      errors.push("manifest url must be an absolute HTTP(S) URL");
+    } else url = manifest.url.trim();
+    if (Object.hasOwn(manifest, "dataSchema")) errors.push("URL templates cannot declare dataSchema");
+    if (entryPresent(path.join(folder, "data.json"))) errors.push("URL templates cannot contain data.json");
+  } else {
+    if (!readableFile(path.join(folder, "index.html"))) errors.push("index.html must be a readable file");
+    if (manifest && Object.hasOwn(manifest, "dataSchema")) {
+      try {
+        const candidate = manifest.dataSchema;
+        if (typeof candidate !== "boolean" && (!candidate || typeof candidate !== "object" || Array.isArray(candidate))) {
+          throw new Error("must be a boolean or schema object");
+        }
+        compileTemplateSchema(candidate as JSONSchema);
+        dataSchema = candidate as JSONSchema;
+      } catch (error) {
+        errors.push(`dataSchema ${error instanceof Error ? error.message : String(error)}. ${templateSchemaHint(id)}`);
+      }
+    }
     try {
-      const value: unknown = JSON.parse(readFileSync(dataPath, "utf8"));
-      validateJsonValue(value);
-      checkJsonLimits(value);
+      const value = readTemplateData(folder);
+      if (value !== undefined && dataSchema !== undefined) validateTemplateData(dataSchema, value, id);
     } catch (error) {
       errors.push(`data.json is invalid: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
+  const icons = usableIcons(folder, manifest?.icons);
   return errors.length === 0 && manifest !== undefined
     ? { template: {
         id,
@@ -165,8 +265,10 @@ export function validateTemplatePackage(folder: string, id: string): { template?
         description: manifest.description as string,
         version: manifest.version as string,
         ...(display !== undefined ? { display } : {}),
-        hasData,
-        hasThumbnail: readableTemplateThumbnail(folder) !== null,
+        ...(url !== undefined ? { url } : {}),
+        ...(dataSchema !== undefined ? { dataSchema } : {}),
+        ...(icons.length ? { icons } : {}),
+        hasIcon: icons.length > 0,
         path: folder,
       }, errors: [] }
     : { errors };
@@ -177,10 +279,10 @@ export function scanTemplatesDirectory(templatesDir: string): ArtifactTemplateSc
   try {
     entries = readdirSync(templatesDir, { withFileTypes: true });
   } catch {
-    return { templates: [], errors: [{ folder: null, error: "cannot read templates directory" }] };
+    return { templates: [], errors: [{ folder: null, error: "cannot read templates directory" }], watching: false };
   }
 
-  const result: ArtifactTemplateScan = { templates: [], errors: [] };
+  const result: ArtifactTemplateScan = { templates: [], errors: [], watching: false };
   for (const entry of entries) {
     if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
     const checked = validateTemplatePackage(path.join(templatesDir, entry.name), entry.name);

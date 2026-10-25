@@ -25,6 +25,7 @@ export default defineConfig({
     "**/sidebar-collapse.test.ts",
     "**/sidebar-resize.test.ts",
     "**/template-example-real-stack.test.ts",
+    "**/templates-real-stack.test.ts",
     "**/theme-product-acceptance.test.ts",
   ],
   outputDir: "../../.playwright/test-results-web-real-stack",

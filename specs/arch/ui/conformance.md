@@ -1,8 +1,8 @@
-*The UI conformance machinery: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
+*Conformance for retained frame and template UI specs: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
 
 # UI conformance
 
-This spec governs the machinery that verifies production UI against `specs/ui/`. It exists so that "the built surface matches the specified surface" is an automated check rather than a review judgment. The requirement it enforces: **structure and style must conform to maintain visual identity.** [spec-ui.md](../../spec-ui.md) states the requirement; this page owns the mechanism.
+This spec retains the conformance machinery for existing frame and template surfaces under the [UI policy](../../spec-ui.md). Its structure, stylesheet, exemption and release-exception rules apply only to those retained contracts. New and redesigned MDX surfaces, including Toolbox, follow the [story-by-story conformance policy](../../spec-ui.md#^ui-conformance-test).
 
 ## What conformance means
 

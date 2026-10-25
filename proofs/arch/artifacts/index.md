@@ -6,6 +6,8 @@ Proves [specs/arch/artifacts/index.md](../../../specs/arch/artifacts/index.md).
 
 ## Coverage model
 
+Template creation produces these same ordinary records: a linked or copied folder is a path record, and a URL template is a URL record. [The template creation seam](../templates/index.md#^templates-t-copy) proves all three producers, including the absence of template-origin fields; no additional record variant or duplicate schema test is required here.
+
 Model contracts check the path and URL record variants with transparency true or absent.
 Existing store and route tests cover target normalization, ordinary metadata updates, and records without optional resource fields.
 Real HTTP walks create and update both artifact kinds, read the saved JSON, and observe the records delivered over WebSocket.

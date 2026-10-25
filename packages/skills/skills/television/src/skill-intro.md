@@ -10,7 +10,9 @@ Load this skill when you need to create, update, inspect, focus, delete, or othe
 
 Read the [theming guidance](./theming.md) when creating, revising, or bringing an installed theme up to date.
 
-An artifact template is a reusable folder that Television copies to make a new artifact. When a person asks for an artifact, check `tv templates list` and consider whether an available artifact template fits, including a request described as a “macro” or “stock artifact.” Use `tv create-artifact --template` to create from one. `tv templates path` shows the selected home's template folder. Read the [template authoring guidance](./templates.md) when creating, changing, or fixing a template.
+An artifact template describes a reusable artifact. A folder template copies its page files into each artifact created from it, with optional starting data and a separate store. A URL template supplies a web address. When a person asks for an artifact, check `tv templates list` and consider whether an available template fits, including a request described as a “macro” or “stock artifact.” Run `tv templates show <id>` to inspect any `dataSchema` before preparing or writing data. Use `tv create-artifact --template` to create an artifact from the chosen template.
+
+Edit the copied page files directly to change one artifact. Editing an installed template changes only artifacts created afterwards. `tv templates path` locates the installed folders. Read the [template guidance](./templates.md) for using, creating, changing, or fixing templates, including adding an artifact to the toolbox as a snapshot.
 
 When the request calls for particular display settings, pass `--width`, `--height`, `--full-screen`, `--no-full-screen`, `--transparent`, or `--no-transparent` to `tv create-artifact` for any source. The transparency flags enable or turn off artifact transparency.
 

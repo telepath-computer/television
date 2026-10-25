@@ -30,6 +30,8 @@ interface ServerStatusMessage {
 }
 ```
 
+The same authenticated `/events` socket carries domain broadcasts such as `channel-changed`, `artifact-focus`, and [`templates-changed`](../templates/index.md#^artifact-template-events). Template updates follow the first `server-status` message and do not change its shape or ordering.
+
 `ServerStatusMessage` is a connection-lifecycle message, not a domain mutation, so it is not a member of the `ServerEvent` union in `packages/shared/src/types.ts` — it is sent point-to-point on connect (plus broadcast on update-state change), never replayed, and describes the server rather than the store.
 
 **Unknown-message tolerance.** The client routes each `server-status` message to the handler for that message type. Malformed JSON is dropped silently. Any message with an unrecognized `type` is ignored. An unrecognized message does not affect the page or socket. It also has no effect on later messages with recognized types. Ignoring unrecognized message types lets the lockstep contracts change freely ([arch/updates/index.md#^updates-lockstep-contracts](./index.md#^updates-lockstep-contracts)). ^unknown-messages

@@ -1,64 +1,35 @@
-import { Meta, Canvas } from "@storybook/addon-docs/blocks";
-import * as Stories from "./templates-popover.stories.ts";
+import { Meta } from "@storybook/addon-docs/blocks";
 
-<Meta of={Stories} />
+<Meta title="Retired/Templates popover" />
 
-# Templates popover
+# Templates popover (retired)
 
-The navbar's Templates button opens a popover for creating an artifact from an artifact template. Each story on this page is one state of the popover; its markup and styles are the spec for that state. This page states the behaviour the stories cannot show.
-
-<Canvas of={Stories.Open} />
+The [Toolbox spec](../../../specs/ui/app/toolbox.mdx) replaces this surface. This page preserves links from the existing proofs until those proofs are revised. The retired grid is not authority for Toolbox.
 
 ## Opening
 
-Opening the popover shows the [valid templates returned by discovery](../../../specs/arch/templates/index.md#^artifact-template-scan) as tiles in a grid, with their images and names. The search field is focused and empty, and no tile is highlighted. The popover is placed as the popover spec places any panel. Near the navbar's trailing end, there is not room to align its left edge with the button's, so its right edge aligns with the button's instead.
+See [Opening](../../../specs/ui/app/toolbox.mdx#opening).
 
 ## Searching
 
-Typing in the search field narrows the grid to templates whose name or description contains the text, ignoring case, in their usual order. The first match is highlighted, so Return creates it. Clearing the field shows every template again, with no tile highlighted.
-
-<Canvas of={Stories.Searching} />
-
-When nothing matches, the grid is replaced by a message naming the search.
-
-<Canvas of={Stories.NoMatches} />
+See [Searching](../../../specs/ui/app/toolbox.mdx#searching).
 
 ## No templates
 
-When the templates folder holds no templates, the grid is replaced by a message suggesting the person ask their agent to make one. When it holds only folders with errors, the message says there are no valid templates, above the box of errors.
-
-<Canvas of={Stories.OnlyErrors} />
-
-<Canvas of={Stories.NoTemplates} />
-
-When the templates folder itself cannot be read, the grid is replaced by a muted box saying so, with the system's error underneath.
-
-<Canvas of={Stories.FolderUnreadable} />
+See [Empty and error states](../../../specs/ui/app/toolbox.mdx#empty-and-error-states).
 
 ## The highlight
 
-One tile at a time can be highlighted. The arrow keys move the highlight through the grid: Left and Right step to the previous and next tile, and Up and Down to the tile above and below; with no tile highlighted, any arrow key highlights the first. The highlight stops at the edges of the grid. Moving the pointer over a tile moves the highlight to it, and typing moves it to the first match. Keyboard focus stays in the search field throughout, which announces the highlighted tile to assistive technology. While there is no grid, the search field controls nothing and announces no tile. The highlight is the menu's highlight, not a selection: nothing stays chosen.
-
-<Canvas of={Stories.Highlighted} />
-
-While a tile is being pressed, it shows the pressed tint.
-
-<Canvas of={Stories.Pressed} />
-
-Tiles are not draggable, and their images and names cannot be selected as text.
+See [The highlight](../../../specs/ui/app/toolbox.mdx#the-highlight).
 
 ## Creating an artifact
 
-Pressing Return creates an artifact from the highlighted template; clicking a tile creates one from that tile's template. Creation follows the [template placement and focus rule](../../../specs/product/templates.md#^artifact-template-popover). The popover closes. If creation fails, the popover still closes and no error is shown; focus and the selected tab stay as they were. Return with no tile highlighted does nothing. Escape closes the popover without creating anything.
+See [Creating an artifact](../../../specs/ui/app/toolbox.mdx#creating-an-artifact).
 
 ## Images
 
-The [optional template image](../../../specs/arch/templates/index.md#^artifact-template-package) is ideally portrait, 4:5, such as 400 by 500 pixels. The tile crops it to fill the card from the top. Without an image, the tile shows a placeholder.
-
-<Canvas of={Stories.WithoutImage} />
+See [Icons](../../../specs/ui/app/toolbox.mdx#icons).
 
 ## Templates with errors
 
-Template folders that are not valid templates are listed in a box below the grid, each with its folder name and error. They are not affected by the search and cannot be created from.
-
-<Canvas of={Stories.WithErrors} />
+See [Empty and error states](../../../specs/ui/app/toolbox.mdx#empty-and-error-states).

@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { parse as parseYaml } from "yaml";
 
 const REPO_ROOT = path.resolve(process.cwd());
-const INTERNAL_SCOPE = "@telepath-computer/";
 const DEP_FIELDS = ["dependencies", "devDependencies", "peerDependencies"] as const;
 const CLOUDS_MANIFEST_PATH = path.join(
   REPO_ROOT,
@@ -55,8 +54,10 @@ describe("package version sync", () => {
     });
   });
 
-  it("every internal @telepath-computer/* dep spec is the wildcard '*'", () => {
-    const paths = [path.join(REPO_ROOT, "package.json"), ...workspacePackagePaths()];
+  it("every workspace dependency spec is the wildcard '*'", () => {
+    const workspacePaths = workspacePackagePaths();
+    const workspaceNames = new Set(workspacePaths.map((pkgPath) => readPackage(pkgPath).name));
+    const paths = [path.join(REPO_ROOT, "package.json"), ...workspacePaths];
 
     const bad: string[] = [];
     for (const pkgPath of paths) {
@@ -65,14 +66,14 @@ describe("package version sync", () => {
         const deps = pkg[field];
         if (!deps) continue;
         for (const [name, spec] of Object.entries(deps)) {
-          if (name.startsWith(INTERNAL_SCOPE) && spec !== "*") {
+          if (workspaceNames.has(name) && spec !== "*") {
             bad.push(`${pkgPath}: ${field}.${name} = "${spec}"`);
           }
         }
       }
     }
 
-    expect(bad, `expected every internal dep to be "*"; offenders:\n${bad.join("\n")}`).toEqual([]);
+    expect(bad, `expected every workspace dependency to be "*"; offenders:\n${bad.join("\n")}`).toEqual([]);
   });
 });
 

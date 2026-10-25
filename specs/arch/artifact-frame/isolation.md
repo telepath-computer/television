@@ -67,7 +67,7 @@ A sandboxed document's requests to its server are cross-origin, from an opaque o
 | `/views/artifact-missing/…`, the files of the page the proxy serves for a missing file | none | `Access-Control-Allow-Origin: *` |
 | `/artifact-resources/<id>/v1/connection`, a WebSocket | the ID in the path | no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
 | `/api/resources/v1/…` | the token | none, and no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
-| `/channels`, `/artifacts`, `/templates` (including template thumbnails), `/display`, `/themes`, `/markdown`, `/telemetry`, `/demo-mode` and `/desktop/connect-check` | the token | none |
+| `/channels`, `/artifacts`, `/templates` (including template icons), `/display`, `/themes`, `/markdown`, `/telemetry`, `/demo-mode` and `/desktop/connect-check` | the token | none |
 | `/events` and `/acp`, WebSockets | the token | no `Origin` check |
 | `/health`, the app's page and bundle, and the other `/views/…` | none | none |
 

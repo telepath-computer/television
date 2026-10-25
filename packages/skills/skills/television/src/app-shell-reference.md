@@ -182,25 +182,26 @@ The artifact menu uses the same shared menu elements and placement as channel me
 
 An executable active theme adds `.settings-javascript-consent`, with `.settings-javascript-disclosure` and `label.settings-javascript-toggle`. The label contains a native checkbox carrying `role="switch"` and `name="theme-javascript-consent"`. `.settings-javascript-toggle input`, `input::before`, `input:checked`, `input:checked::before`, and `input:focus-visible` define its track, knob, enabled state and focus ring. `.settings-status[role="status"]`, `.settings-failure[role="alert"]`, and `.settings-errors` show loading, failure and registry diagnostics; `.settings-errors p` and `.settings-errors strong` separate the message and folder emphasis.
 
-### Templates, update notice and copy confirmation
+### Toolbox, update notice and copy confirmation
 
 ```html
-<button class="templates-trigger" id="templates-trigger" icon variant="ghost" aria-label="Templates">…</button>
-<tv-popover class="templates-popover" trigger="templates-trigger">
-  <h2 class="templates-heading">…</h2><p class="templates-intro">…</p>
-  <label class="templates-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-controls="templates-grid" aria-activedescendant="…"></label>
-  <div class="templates-body">
-    <ul class="templates-grid" id="templates-grid" role="listbox" aria-label="Templates">
-      <li class="template-tile" role="option" data-highlighted>
-        <span class="template-tile-card"><img alt="" draggable="false"></span><span class="template-tile-name">…</span>
+<button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">…</button>
+<tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox">
+  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search toolbox" placeholder="Search toolbox…" aria-controls="toolbox-list" aria-activedescendant="…"></label>
+  <div class="toolbox-body">
+    <ul class="toolbox-list" id="toolbox-list" role="listbox" aria-label="Toolbox">
+      <li class="toolbox-row" role="option" aria-selected="true" data-highlighted>
+        <img class="toolbox-icon" alt="" draggable="false"><span class="toolbox-name">…</span>
       </li>
     </ul>
-    <ul class="templates-invalid"><li class="template-invalid"><span class="template-invalid-text"><span class="template-invalid-folder">…</span>…</span></li></ul>
+    <hr class="toolbox-divider">
+    <div class="toolbox-invalid" role="note"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">…</span><span>…</span></span></div>
   </div>
+  <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
 </tv-popover>
 ```
 
-`.templates-popover` holds a fixed heading and search above the scrolling `.templates-body`. `.templates-grid` arranges the tiles in three columns. `.template-tile[data-highlighted]` and `.template-tile[data-pressed]` use the shared option tints; `.template-tile-card` crops a thumbnail or holds the artifact icon, and `.template-tile-name` truncates a long name. `.templates-empty` replaces the grid when no template matches, and `.templates-folder-error` replaces it when the folder cannot be read. `.templates-invalid` lists folder errors below the grid.
+`.toolbox-popover` holds search above the scrolling `.toolbox-body`, which is blank before the first template list arrives. Later updates retain the prior list until it is replaced. `.toolbox-footer` stays below the scrolling area in every state, with a muted top rule. `.toolbox-list` is a single column of icon-and-name rows. `.toolbox-row[data-highlighted]` and `.toolbox-row[data-pressed]` use the shared option tints; `.toolbox-icon` fits a supplied image without cropping or an added background. When no icon is available, `span.toolbox-icon.toolbox-letter` holds the white initial in a filled circle. `.toolbox-name` uses the standard body size and medium weight and truncates a long name. `.toolbox-empty` replaces the list when nothing is available or matches, and `.toolbox-folder-error` replaces it when the directory cannot be read. `.toolbox-invalid` shows one error count and repair instruction, without folder names. `.toolbox-divider` separates that summary from any rows or message above it. The summary and `.toolbox-folder-error` have no box or background; their 16px warning icon is centred in the same 20px column as row icons. The search field has a muted background, no border, and no focus ring; there is no heading or introduction.
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
@@ -274,12 +275,12 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: cbf92c6747eb93e6b8b16249062973c0209d0706b15f1a9d3b021af5f943f7c9 -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 6e1070593b273bb9b692420a30c8164e8c4a346fe043dcc1a9feef1fdeed3ee4 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 8ccd1d15f9f29d5cf099f1686fe9cfc8eeee976745302f80842223cd1de10bef -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.stories.ts sha256: 4c1ea175c3ac5d794163350dcb12f3a17f4cda38302e291c26aac6d0237accc1 -->
-<!-- app-reference-source: storybook/spec/templates-popover/templates-popover.mdx sha256: e39f5b8b71fa7986dcbaae5447952429120837d479533a02d53e715c8388fea8 -->
-<!-- app-reference-source: storybook/spec/templates-popover/styles.css sha256: ca66de57fe6615127185ac4cc2827bce192e0804414166c42a6f2e82d748eebc -->
+<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: a6a01b4299896d0611f08accb6935d2ad0c6c19ed0dc015fb5272a24c7e3ba04 -->
+<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 60d8a97aca279c98b46231846d3e1065c96c3dc5ea3e090b1f1f3b2b2c7428f7 -->
+<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: 79539a41e7fbba011cc44eb5f3d009f6e9abb0af645ddf9401290529dc97d789 -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 5a252bbc2ee44d19bac57ae3bc4658844d37ddd04fe99ecec38041aaa508056a -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.mdx sha256: 096623dfcbba5e1fede34112133a2d3f37bade8a4a2745f24993c73176ae219d -->
 <!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 7fbb3adcfc70ec9ab9e232b09707a5f276f74de56cee0346d9dc3daeb771a230 -->

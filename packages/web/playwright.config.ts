@@ -22,11 +22,12 @@ const realStackTests = [
   "**/sidebar-collapse.test.ts",
   "**/sidebar-resize.test.ts",
   "**/template-example-real-stack.test.ts",
+  "**/templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];
 export default defineConfig({
   testDir: "./test/e2e",
-  testIgnore: realStackTests,
+  testIgnore: [...realStackTests, "**/toolbox-conformance.test.ts"],
   outputDir: "../../.playwright/test-results-web",
   timeout: 30_000,
   fullyParallel: false,
@@ -45,7 +46,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: realStackTests,
+      testIgnore: [...realStackTests, "**/toolbox-conformance.test.ts"],
       use: { browserName: "chromium" },
     },
     ...(firefoxAvailable

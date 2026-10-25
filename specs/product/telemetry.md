@@ -222,7 +222,7 @@ Each retained page whose committed `full_screen` value changes emits one event c
 | source | `cli` \| `ui` |
 | template | a bundled artifact template ID \| `custom` |
 
-The event records use of the [artifact template creation path](./templates.md#^artifact-template-result), alongside the ordinary *artifact created* event. `source` identifies the CLI or Templates popover. A bundled ID is reported as itself, because Television chose it; any other ID is reported as `custom`. Template names, paths, data, image files, and non-bundled IDs are never sent. ^artifact-template-telemetry
+The event records use of the [artifact template creation path](./templates.md#^artifact-template-result), alongside the ordinary *artifact created* event. `source` identifies the CLI or Toolbox popover. A bundled ID is reported as itself, because Television chose it; any other ID is reported as `custom`. Template names, paths, data, image files, and non-bundled IDs are never sent. ^artifact-template-telemetry
 
 **Theme change** — on *theme changed*.
 

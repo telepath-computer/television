@@ -229,7 +229,7 @@ style: |
   {% endif %}
   {% render '../tab-strip/tab-strip', tabs: tabs, selected: selected %}
   <div class="top-bar-controls">
-    <!-- Templates trigger position; see [[ui/app/skill-selector/index.md]]. -->
+    <!-- Toolbox trigger position; see [[ui/app/toolbox.mdx]]. -->
     {% render '../settings/settings' %}
     {% if show_notice %}
     {% render '../update-notification/update-notification' %}

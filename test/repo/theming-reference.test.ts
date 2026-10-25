@@ -16,10 +16,10 @@ test("the authored theme reference covers current application authorities", () =
     ...globSync("specs/ui/app/**/*", { cwd: root })
       .filter(file => /\.(frame|css)$/.test(file))
       .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
-    // The retired frame above is replaced by this pilot's authored states.
-    "storybook/spec/templates-popover/templates-popover.stories.ts",
-    "storybook/spec/templates-popover/templates-popover.mdx",
-    "storybook/spec/templates-popover/styles.css",
+    // Toolbox appearance is owned by its MDX spec and authored stories.
+    "storybook/spec/toolbox/toolbox.stories.ts",
+    "specs/ui/app/toolbox.mdx",
+    "storybook/spec/toolbox/styles.css",
     // Artifact-frame authority adds its transparent states to the base frame.
     "storybook/spec/artifact-frame/artifact-frame.stories.ts",
     "storybook/spec/artifact-frame/artifact-frame.mdx",
