@@ -47,7 +47,7 @@
     "@agentclientprotocol/sdk": "0.18.1",
     "@blaxel/core": "^0.3.24",
     "@eslint/js": "9.39.4",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.64.1",
     "@rupertsworld/daemon": "0.2.1",
     "@rupertsworld/dependencies": "0.2.1",
     "@rupertsworld/event-target": "0.1.2",

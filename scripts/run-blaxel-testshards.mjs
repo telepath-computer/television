@@ -920,7 +920,7 @@ OWNER_SUMMARY_NODE
   write_setup_metrics
   exit "$owner_status"
 fi
-run_step playwright-cache bash -lc 'if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-1223" ] && [ ! -e "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-1208" ]; then ln -s chromium_headless_shell-1223 "$PLAYWRIGHT_BROWSERS_PATH/chromium_headless_shell-1208"; fi; if [ -d "$PLAYWRIGHT_BROWSERS_PATH/chromium-1223" ] && [ ! -e "$PLAYWRIGHT_BROWSERS_PATH/chromium-1208" ]; then ln -s chromium-1223 "$PLAYWRIGHT_BROWSERS_PATH/chromium-1208"; fi'
+run_step playwright-cache npx playwright install chromium firefox
 run_step electron-repair bash -c ${shellQuote(`electron_config_cache=/cache/electron node node_modules/electron/install.js`)}
 set +e
 if [ -n "$shard_plan" ]; then
