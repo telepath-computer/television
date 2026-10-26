@@ -12,6 +12,8 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import * as templateScanner from "../src/templates.ts";
+import { defaultWatchContentFile } from "../src/file-watcher.ts";
 import { ServerStore } from "../src/server-store.ts";
 import {
   getAgentArtifactsDir,
@@ -111,6 +113,7 @@ describe("Onboarding installer", () => {
   const stores: ServerStore[] = [];
   afterEach(() => {
     for (const store of stores.splice(0)) store.dispose();
+    vi.restoreAllMocks();
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
 
@@ -215,18 +218,21 @@ describe("Onboarding installer", () => {
       expect(second.getChannel(existing.id)).toBeDefined();
     });
 
-    it("deleting all installed channels yields Default on the next boot, never a reinstall", () => {
+    it("deleting all installed channels keeps the replacement on the next boot, never a reinstall", () => {
       const storagePath = storage();
       const installed = boot(storagePath, "two-channels");
       for (const channel of installed.listChannels()) {
         installed.removeChannel(channel.id);
       }
+      const replacement = installed.listChannels()[0]!;
+      expect(replacement.name).toBe("New channel");
       installed.dispose();
 
       const next = boot(storagePath, "two-channels");
       const channels = next.listChannels();
       expect(channels).toHaveLength(1);
-      expect(channels[0]!.name).toBe("Default");
+      expect(channels[0]!.id).toBe(replacement.id);
+      expect(channels[0]!.name).toBe("New channel");
       expect(channels[0]!.layout).toEqual([]);
       expect(next.listArtifacts()).toEqual([]);
     });
@@ -539,7 +545,58 @@ describe("Onboarding installer", () => {
       });
       stores.push(store);
       expect(store.listArtifacts()).toHaveLength(2);
-      expect(starts).toHaveLength(2);
+      expect(starts.filter((file) => file !== path.join(storagePath, "templates"))).toHaveLength(2);
+      expect(starts[0]).toBe(path.join(storagePath, "templates"));
+    });
+
+    // proofs/arch/onboarding/installer.md#^onboarding-t-template-cache-boot
+    // proofs/arch/artifact-frame/reload-navigation.md#^rn-t-template-watcher
+    it("starts the template cache after bundled handling and before display and ordinary watchers", () => {
+      const storagePath = storage();
+      const starts: string[] = [];
+      const closes: ReturnType<typeof vi.fn>[] = [];
+      const scanAtDisplayStates: boolean[] = [];
+      const realScan = templateScanner.scanTemplatesDirectory;
+      vi.spyOn(templateScanner, "scanTemplatesDirectory").mockImplementation((directory) => {
+        scanAtDisplayStates.push(existsSync(getDisplayStatePath(storagePath)));
+        return realScan(directory);
+      });
+      const store = new ServerStore({
+        storagePath, installOnboardingChannels: true,
+        onboardingContentPath: bundle("two-channels"),
+        bundledTemplatesPath: path.resolve(here, "../assets/templates"),
+        watchContentFile: (file, change, options) => {
+          starts.push(file);
+          if (file === path.join(storagePath, "templates")) {
+            for (const id of ["checklist", "calendar", "sticky-note"]) {
+              expect(existsSync(path.join(file, id, "manifest.json"))).toBe(true);
+            }
+            expect(existsSync(getDisplayStatePath(storagePath))).toBe(false);
+            expect(options?.recursive).toBe(true);
+          } else expect(existsSync(getDisplayStatePath(storagePath))).toBe(true);
+          const watcher = defaultWatchContentFile(file, change, options);
+          closes.push(vi.spyOn(watcher, "close"));
+          return watcher;
+        },
+      });
+      stores.push(store);
+      expect(store.templateCache?.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist", "calendar", "sticky-note"].sort());
+      expect(starts[0]).toBe(path.join(storagePath, "templates"));
+      expect(starts).toHaveLength(3);
+      expect(scanAtDisplayStates).toEqual([false]);
+      store.dispose();
+      expect(closes.every((close) => close.mock.calls.length === 1)).toBe(true);
+    });
+
+    // proofs/arch/onboarding/installer.md#^onboarding-t-template-cache-inert
+    it("token-only construction starts no template cache over an empty home", () => {
+      const watch = vi.fn();
+      const scan = vi.spyOn(templateScanner, "scanTemplatesDirectory");
+      const store = new ServerStore({ storagePath: storage(), watchContentFile: watch });
+      stores.push(store);
+      expect(store.templateCache).toBeUndefined();
+      expect(watch).not.toHaveBeenCalled();
+      expect(scan).not.toHaveBeenCalled();
     });
 
     it("token-only construction starts no watchers even over existing artifacts", () => {
@@ -549,6 +606,7 @@ describe("Onboarding installer", () => {
       stores.splice(stores.indexOf(installed), 1);
 
       const starts: string[] = [];
+      const scan = vi.spyOn(templateScanner, "scanTemplatesDirectory");
       const store = new ServerStore({
         storagePath,
         installOnboardingChannels: false,
@@ -557,6 +615,8 @@ describe("Onboarding installer", () => {
       stores.push(store);
       expect(store.listArtifacts()).toHaveLength(2);
       expect(starts).toEqual([]);
+      expect(store.templateCache).toBeUndefined();
+      expect(scan).not.toHaveBeenCalled();
     });
   });
 
@@ -860,7 +920,7 @@ describe("Onboarding installer", () => {
       stores.splice(stores.indexOf(next), 1);
       const afterDeletion = boot(storagePath, "ordered-artifacts");
       expect(afterDeletion.listChannels()).toHaveLength(1);
-      expect(afterDeletion.listChannels()[0]!.name).toBe("Default");
+      expect(afterDeletion.listChannels()[0]!.name).toBe("New channel");
       expect(afterDeletion.listChannels()[0]!.onboarding).toBeUndefined();
       expect(afterDeletion.listArtifacts()).toEqual([]);
     });
@@ -1139,6 +1199,7 @@ describe("Onboarding installer", () => {
       const recorder: ServerStoreTelemetryHooks = {
         appearanceModeChanged: () => {},
         artifactCreated: () => calls.push("artifactCreated"),
+        templateUsed: () => calls.push("templateUsed"),
         artifactUpdated: () => calls.push("artifactUpdated"),
         artifactDeleted: () => calls.push("artifactDeleted"),
         channelCreated: () => calls.push("channelCreated"),

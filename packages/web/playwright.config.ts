@@ -13,19 +13,22 @@ if (!firefoxAvailable) {
   console.warn("Playwright Firefox is unavailable; skipping the Firefox project.");
 }
 
-// Owned by e2e:browser-app-real-stack (playwright.real-stack.config.ts),
-// which serializes tests that boot product servers.
+// Dedicated surfaces serialize tests that boot product servers.
 const realStackTests = [
   "**/appearance-delivery.test.ts",
   "**/onboarding-browser.test.ts",
   "**/path-artifact-real-stack-coverage.test.ts",
   "**/sidebar-collapse.test.ts",
   "**/sidebar-resize.test.ts",
+  "**/template-checklist-real-stack.test.ts",
+  "**/template-calendar-real-stack.test.ts",
+  "**/template-sticky-note-real-stack.test.ts",
+  "**/templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];
 export default defineConfig({
   testDir: "./test/e2e",
-  testIgnore: realStackTests,
+  testIgnore: [...realStackTests, "**/*-conformance.test.ts"],
   outputDir: "../../.playwright/test-results-web",
   timeout: 30_000,
   fullyParallel: false,
@@ -44,7 +47,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: realStackTests,
+      testIgnore: [...realStackTests, "**/*-conformance.test.ts"],
       use: { browserName: "chromium" },
     },
     ...(firefoxAvailable

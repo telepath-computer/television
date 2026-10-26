@@ -8,6 +8,8 @@ Another surface may wear the frame's look around content of its own, as the [set
 
 **Status:** implemented stage-one frame UI authority.
 
+The [Transparency spec](transparency.mdx) owns interaction, markup and styling for the transparent state; the rest of the frame remains specified here.
+
 ## Markup and styling
 
 - [artifact-frame.frame](./artifact-frame.frame) — the frame: an `.artifact-frame` wrapping an `<iframe>` for the document, and the title bar — the artifact icon (a button in the one case below), the name, the Back and Forward controls once the artifact has history in either direction, and the menu trigger — with the ground, its border, and the title bar's band.

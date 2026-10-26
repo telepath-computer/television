@@ -6,6 +6,8 @@ Proves [specs/arch/resources/json-store.md](../../../specs/arch/resources/json-s
 
 ## Coverage model
 
+Manifest schema validation belongs to [template preflight](../templates/index.md#^templates-t-preflight); the store continues to accept values under its own rules. [The template data walk](../../product/templates.md#^templates-ac-data-refusal) proves that a later ordinary write can differ from the creation schema through the real resource path. The store suite needs no template-schema engine or duplicate schema matrix.
+
 Breadth is proven in three places, each at the cheapest boundary that does not misrepresent it. The product spine is walked in [the JSON store product proof](../../product/resources/json-store.md), whose built-CLI and browser walks sample the rules below rather than enumerate them.
 
 The shared module's rules for paths, values, applying a write, equality, child order, limits and push keys are pure contract tests in Node with authored inputs and no mocks. The server, the SDK and the CLI all import that one module, so these contracts compose into every caller through a single handoff, and the server and browser tests below cross it for real.

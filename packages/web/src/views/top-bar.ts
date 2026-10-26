@@ -13,7 +13,8 @@ import {
   UpdateNotificationController,
   type UpdateNotificationConnectionOwner,
 } from "./update-notification.ts";
-import { SkillSelectorView } from "./skill-selector.ts";
+import { ToolboxView } from "./toolbox.ts";
+import type { ServerConnection } from "../services/server-connection.ts";
 import { SettingsView } from "./settings.ts";
 import type { TabReorderChange } from "./tab-reorder.ts";
 import { TabStripView } from "./tab-strip.ts";
@@ -33,6 +34,7 @@ interface DeleteRestoration {
 
 export interface TopBarOptions {
   connectionOwner?: UpdateNotificationConnectionOwner | null;
+  templateConnection?: ServerConnection | null;
   updatePresentation?: UpdatePresentationState | null;
   desktopRecommendation?: DesktopUpgradeRecommendationContext | null;
   desktopUpdate?: DesktopUpdateState | null;
@@ -184,7 +186,18 @@ export class TopBar extends View<[
           options.sidebarTransitioning,
         )}
         <div class="top-bar-controls">
-          ${SkillSelectorView(options.connectionOwner?.connection)}
+          ${ToolboxView(options.templateConnection?.templates, async entry => {
+            const connection = options.templateConnection;
+            const channel = application.snapshot.focusedChannel;
+            if (!connection || !channel) return;
+            const after = channel.selectedPage?.artifactIds[0];
+            const result = await connection.client.templates.create({
+              templateID: entry.id, channelID: channel.id, source: "ui",
+              ...(after ? { after } : {}),
+            });
+            await connection.client.display.focus({ artifactID: result.artifactID });
+            application.selectPage(channel.id, result.artifactID);
+          })}
           ${SettingsView(application)}
           ${this.#update.template()}
         </div>

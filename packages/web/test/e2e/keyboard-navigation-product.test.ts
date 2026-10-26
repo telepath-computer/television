@@ -74,10 +74,10 @@ async function openApp(
   await expect(page.locator(".top-bar .tab-strip")).toBeVisible();
 }
 
-async function clearChannels(client: TelevisionClient): Promise<void> {
+async function removeOtherChannels(client: TelevisionClient, keepIDs: readonly string[]): Promise<void> {
   const { channels } = await client.channels.list();
   for (const channel of channels) {
-    await client.channels.remove({ channelID: channel.id });
+    if (!keepIDs.includes(channel.id)) await client.channels.remove({ channelID: channel.id });
   }
 }
 
@@ -349,12 +349,12 @@ test.describe("keyboard product walks", () => {
     const product = await launchProductServer();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const channel = await seedChannel(client, product, "Horizontal movement", [
         "First page",
         "Middle page",
         "Last page",
       ]);
+      await removeOtherChannels(client, [channel.id]);
       await client.display.patch({ focusedChannelId: channel.id });
       await openApp(page, product, baseURL);
       await expectSelectedPage(page, channel.artifacts[0]!.id);
@@ -395,12 +395,12 @@ test.describe("keyboard product walks", () => {
     const product = await launchProductServer();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const channel = await seedNavigationChannel(
         client,
         product,
         "Repeated navigation",
       );
+      await removeOtherChannels(client, [channel.id]);
       await client.display.patch({ focusedChannelId: channel.id });
       await openApp(page, product, baseURL);
 
@@ -462,11 +462,11 @@ test.describe("keyboard product walks", () => {
     const observer = await page.context().newPage();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const oldest = await seedChannel(client, product, "Unpinned oldest", []);
       const pinnedFirst = await seedChannel(client, product, "Pinned first", []);
       const newest = await seedChannel(client, product, "Unpinned newest", []);
       const pinnedSecond = await seedChannel(client, product, "Pinned second", []);
+      await removeOtherChannels(client, [oldest.id, pinnedFirst.id, newest.id, pinnedSecond.id]);
       const ordered = [pinnedFirst, pinnedSecond, newest, oldest] as const;
       await client.display.patch({
         focusedChannelId: pinnedFirst.id,
@@ -521,9 +521,9 @@ test.describe("keyboard product walks", () => {
     const nativeDocuments = await launchNativeDocumentServer();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const { channel: nextChannel } = await client.channels.create({ name: "After dead zones" });
       const { channel } = await client.channels.create({ name: "Dead zones" });
+      await removeOtherChannels(client, [nextChannel.id, channel.id]);
       const artifacts = await createDeadZoneArtifacts(
         client,
         product,

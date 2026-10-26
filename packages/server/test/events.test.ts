@@ -218,7 +218,7 @@ describe("/events websocket stream", () => {
     expect(events).toHaveLength(7);
   });
 
-  it("orders artifact removals, channel removal, pin pruning, and successor focus", async () => {
+  it("orders artifact removals, pin pruning, successor focus, and channel removal", async () => {
     const h = await harness();
     const successor = h.store.listChannels()[0]!;
     const channel = h.store.createChannel({ name: "Delete" });
@@ -235,9 +235,9 @@ describe("/events websocket stream", () => {
 
     expect(events).toEqual([
       { type: "artifact-removed", artifactID: artifact.id, channelID: channel.id },
-      { type: "channel-removed", channelID: channel.id },
       { type: "pinned-channels-changed", pinnedChannelIds: [successor.id] },
       { type: "channel-changed", channelID: successor.id },
+      { type: "channel-removed", channelID: channel.id },
     ]);
     expect(h.store.getDisplayState()).toEqual({
       focusedChannelId: successor.id,

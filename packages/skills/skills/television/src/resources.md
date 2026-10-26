@@ -36,7 +36,7 @@ Use `push` for lists that several clients edit, so additions never collide.
 
 ## A complete example
 
-A chores list that the people at 14 Maple Street and their agent share, on its artifact's own store. It renders the list live, adds chores with `push`, saves checkboxes with `set`, clears done chores in a transaction, shows a saving state, says when it is disconnected and disables its controls until the connection returns, and turns read-only when it is opened through a `read` share link. The `tv-tasks` skill exists for building to-do lists for a person; this example leaves it out to keep its focus on using the JSON store.
+A chores list that the people at 14 Maple Street and their agent share, on its artifact's own store. It renders the list live, adds chores with `push`, saves checkboxes with `set`, clears done chores in a transaction, shows a saving state, says when it is disconnected and disables its controls until the connection returns, and turns read-only when it is opened through a `read` share link.
 
 ```html
 <!doctype html>
@@ -186,7 +186,7 @@ tv resource json push --artifact <artifact-id> items '{"title":"Take out the rec
 tv resource json set --artifact <artifact-id> items/<key>/done true
 ```
 
-`<artifact-id>` is the ID that `tv create-path-artifact` printed; `tv list-artifacts` lists them. `push` prints the new chore's key as `{"key":"<key>"}`, and the second command marks that chore done. Values from the shell are plain JSON, so a chore you add has no `createdAt`; the page sets it only for the chores it adds.
+`<artifact-id>` is the ID that `tv create-artifact` printed; `tv list-artifacts` lists them. `push` prints the new chore's key as `{"key":"<key>"}`, and the second command marks that chore done. Values from the shell are plain JSON, so a chore you add has no `createdAt`; the page sets it only for the chores it adds.
 
 ## Read and change the store from the shell
 

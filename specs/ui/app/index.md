@@ -82,7 +82,7 @@ While the server's interface can't use its server, the [system modal](./system-m
 - **What is behind the dialog.** After a session has existed, the shell, with its live artifact frames, stays mounted behind Disconnected and Can't connect with server, and resumes without reloading when the connection returns. Before any session, and for Access token required and the upgrade gate, no shell is rendered; the dialog stands on the app's bare ground.
 ## Testing
 
-Under [What a UI surface's suite is responsible for](../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the shell composition for the `connected`, `no-channel`, `empty-channel`, `connecting`, `disconnected`, `unauthorized`, `error`, and `needs-upgrade` application states. The permanent foreground div is sampled in every state in that matrix. When the facts for more than one connection state are true, the suite must prove that the [connection-state rules](#connection-states) select one presentation. It must also prove that two system-modal states never appear together.
+Under [What a UI surface's suite is responsible for](../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the shell composition for the `connected`, `empty-channel`, `connecting`, `disconnected`, `unauthorized`, `error`, and `needs-upgrade` application states. The permanent foreground div is sampled in every state in that matrix. When the facts for more than one connection state are true, the suite must prove that the [connection-state rules](#connection-states) select one presentation. It must also prove that two system-modal states never appear together.
 
 Acceptance of the connection states runs in a real browser against a running server, one that requires a token where a token is involved. A rejected stored token is covered both during boot and after a session has been established.
 
@@ -96,7 +96,7 @@ The [desktop-only input and viewport boundary](#Input and viewport scope) does n
 
 Acceptance of the resize drag must include a path whose pointer crosses an artifact's document, where an embedded document could swallow the gesture's pointer events.
 
-The resize band's node and styling are implementation-owned and enter conformance as a declared exemption ([arch/ui/conformance.md](../../arch/ui/conformance.md)); the frames and [styles.css](./styles.css) do not state them. ^ap-resize-band-exemption
+The resize band's node and styling are implementation-owned ([arch/ui/conformance.md](../../arch/ui/conformance.md)); the frames and [styles.css](./styles.css) do not state them. ^ap-resize-band-exemption
 
 Under [The suite does not assert styling adherence](../../arch/testing-policy.md#^ui-styling-out), this surface's suite does not cover shell padding or gaps, backgrounds, or the appearance of its two regions.
 

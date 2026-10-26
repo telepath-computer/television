@@ -103,7 +103,7 @@ describe("server telemetry lifecycle", () => {
 
   // Seam: proofs/arch/telemetry/emitters.md#^t-theme-settings-refresh.
   // Real serving boots, packaged Clouds, persisted display and theme files; sink only is mocked.
-  it("TV-755 initializes default, persisted, and normalized fallback settings on boot", async () => {
+  it("initializes default, persisted, and normalized fallback settings on boot", async () => {
     const storagePath = tempDir();
     storagePaths.push(storagePath);
     const sink = new RecordingTelemetrySink();

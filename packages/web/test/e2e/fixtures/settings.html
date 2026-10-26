@@ -23,7 +23,7 @@
       } from "/packages/web/src/store.ts";
       import { ServerConnectionOwner } from "/packages/web/src/services/server-connection-owner.ts";
       import { ApplicationService } from "/packages/web/src/services/application-service.ts";
-      import { SkillSelectorView } from "/packages/web/src/views/skill-selector.ts";
+      import { ToolboxView } from "/packages/web/src/views/toolbox.ts";
       import { SettingsView } from "/packages/web/src/views/settings.ts";
 
       // The app's one server is the origin this page was loaded from.
@@ -39,7 +39,7 @@
       const draw = () => {
         render(html`
           <div class="fixture-controls">
-            ${SkillSelectorView(connectionOwner.connection)}
+            ${ToolboxView(connectionOwner.connection?.templates, async () => {})}
             ${SettingsView(application)}
           </div>
           <button id="outside" type="button">Outside</button>

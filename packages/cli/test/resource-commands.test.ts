@@ -22,7 +22,7 @@ class BufferOutput {
   toString(): string { return this.chunks.join(""); }
 }
 
-const SKILL_POINTER = "Television ships bundled skills.";
+const SKILL_POINTER = "Television ships the `television` skill";
 const PORT = 43200;
 const SERVER_URL = `http://localhost:${PORT}`;
 const TOKENLESS_BIND_WARNING =

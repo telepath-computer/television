@@ -17,10 +17,12 @@ import {
   BUNDLED_THEME_IDS,
   type BundledThemeID,
 } from "../bundled-theme-installer.ts";
+import { BUNDLED_ARTIFACT_TEMPLATE_IDS, type BundledArtifactTemplateID } from "../bundled-template-ids.ts";
 import { DEFAULT_SERVER_PORT, getDefaultTelevisionStoragePath } from "../config.ts";
 import { AGENT_TYPES, telemetryVersion } from "./types.ts";
 import type {
   AgentType,
+  ArtifactTemplateSource,
   AuthMode,
   ChannelPinsChangeType,
   ClientApp,
@@ -53,6 +55,15 @@ export function deriveArtifactProperties(artifact: Artifact): ArtifactTelemetryP
     url_host: classifyUrlHost(artifact.url),
     url_is_artifact_proxy: isTvArtifact(artifact.url),
   };
+}
+
+const BUNDLED_TEMPLATE_ID_SET: ReadonlySet<string> = new Set(BUNDLED_ARTIFACT_TEMPLATE_IDS);
+
+export function deriveTemplateUseProperties(id: string, source: ArtifactTemplateSource): {
+  source: ArtifactTemplateSource;
+  template: BundledArtifactTemplateID | "custom";
+} {
+  return { source, template: BUNDLED_TEMPLATE_ID_SET.has(id) ? id as BundledArtifactTemplateID : "custom" };
 }
 
 export interface ThemeTelemetryInput {

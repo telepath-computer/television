@@ -16,7 +16,7 @@ The dialog is [ui/app/dialog/dialog.frame](./dialog.frame): the backdrop filling
 
 - While a dialog shows, the screen behind it takes no input or focus.
 - Anything floating over the screen (an open popover) closes as a dialog enters.
-- **Presentation is immediate.** Panel and backdrop enter and leave without a CSS transition, CSS animation, or scripted presentation motion. Confirmed in [TV-582](https://linear.app/telepath-computer/issue/TV-582).
+- **Presentation is immediate.** Panel and backdrop enter and leave without a CSS transition, CSS animation, or scripted presentation motion.
 
 Staging poses appearance only; the mounted implementation enforces these behaviors.
 

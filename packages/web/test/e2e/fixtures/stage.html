@@ -53,6 +53,7 @@
       import { TabStripView } from "/packages/web/src/views/tab-strip.ts";
 
       const artifactIDs = ["artifact-a", "artifact-b", "artifact-c"];
+      const transparentArtifactID = new URLSearchParams(location.search).get("transparent");
       const replacementArtifactIDs = ["artifact-d", "artifact-e"];
       const pageSizes = new Map([
         ["artifact-a", { width: 561.25, height: 741.5 }],
@@ -68,6 +69,7 @@
         kind: "path",
         title: `${id} revision ${revision}`,
         path: `/tmp/${id}.html`,
+        ...(id === transparentArtifactID ? { transparent: true } : {}),
       }));
       let pageState = artifactIDs.map((artifactID) => ({
         artifactIds: [artifactID],

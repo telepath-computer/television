@@ -18,6 +18,7 @@ import type {
 import { telemetryVersion, type AuthMode, type LaunchMode } from "./types.ts";
 import {
   deriveArtifactProperties,
+  deriveTemplateUseProperties,
   deriveBindingProperties,
   deriveChannelPinsProperties,
   derivePageFullScreenChanges,
@@ -41,6 +42,7 @@ export interface ServerTelemetryStoreSnapshot {
 
 export interface ServerStoreTelemetryHooks {
   artifactCreated(artifact: Artifact, clientContext?: TelemetryClientContext | null): void;
+  templateUsed(templateID: string, source: "cli" | "ui", clientContext?: TelemetryClientContext | null): void;
   artifactUpdated(artifact: Artifact, clientContext?: TelemetryClientContext | null): void;
   artifactDeleted(artifact: Artifact, deletionCause: ArtifactDeletionCause, clientContext?: TelemetryClientContext | null): void;
   channelCreated(channel: Channel, clientContext?: TelemetryClientContext | null): void;
@@ -71,6 +73,12 @@ export function createServerStoreTelemetryHooks(
           personProperties: totals,
         }, clientContext);
       });
+    },
+    templateUsed(templateID, source, clientContext): void {
+      safeEmit(() => capture({
+        name: "artifact_template_used",
+        properties: deriveTemplateUseProperties(templateID, source),
+      }, clientContext));
     },
     artifactUpdated(artifact, clientContext): void {
       safeEmit(() => capture({ name: "artifact_updated", properties: deriveArtifactProperties(artifact) }, clientContext));

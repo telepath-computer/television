@@ -29,6 +29,26 @@ describe("ServerStore bootstrap", () => {
     store.dispose();
   });
 
+  // proofs/arch/onboarding/installer.md#^t-default-invariant
+  it("keeps the ordinary New channel replacement on restart without adding Default", () => {
+    const storagePath = tempDir();
+    dirs.push(storagePath);
+    const first = new ServerStore({ installOnboardingChannels: true, storagePath });
+    const original = first.listChannels()[0]!;
+    first.removeChannel(original.id);
+    const replacement = first.listChannels()[0]!;
+    expect(replacement).toMatchObject({ name: "New channel", layout: [] });
+    expect(first.getFocusedChannelId()).toBe(replacement.id);
+    first.dispose();
+    const restarted = new ServerStore({ installOnboardingChannels: true, storagePath });
+    try {
+      expect(restarted.listChannels()).toEqual([replacement]);
+      expect(restarted.getFocusedChannelId()).toBe(replacement.id);
+    } finally {
+      restarted.dispose();
+    }
+  });
+
   it("reports whether this bootstrap created the Television data directory structure", () => {
     const storagePath = tempDir();
     dirs.push(storagePath);

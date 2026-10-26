@@ -109,7 +109,7 @@ function nonEmptyString(value) {
 const FLAG_DEFAULTS = {
   "--root": path.join(REPO_ROOT, "packages", "server", "assets", "onboarding-channels"),
   "--designs": path.join(REPO_ROOT, "specs", "ui", "onboarding-artifacts"),
-  "--skills-dist": path.join(REPO_ROOT, "packages", "skills", "dist"),
+  "--skills-dist": path.join(REPO_ROOT, "packages", "skills", "onboarding-dist"),
 };
 
 const channels = [];

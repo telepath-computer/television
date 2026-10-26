@@ -14,7 +14,7 @@ async function artifactTrustGuid(page: Page): Promise<string | null> {
 test.describe("markdown editor integration", () => {
   test.beforeEach(async ({ page }) => {
     await page.route("**/views/markdown/", async (route) => {
-      const body = readFileSync("../view-markdown/src/index.html", "utf8")
+      const body = readFileSync(new URL("../../../view-markdown/src/index.html", import.meta.url), "utf8")
         .replace(
           "<head>",
           `<head><script>${appearanceResolverScriptSource('"system"')}</script>`,

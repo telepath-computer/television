@@ -66,7 +66,7 @@ The persisted service installed by `tv serve --persist` is rendered by `@ruperts
 - `WantedBy=default.target`.
 - **No backoff**: `RestartSteps=`/`RestartMaxDelaySec=` are not used. Backoff trades recovery latency for a log-volume saving that rotation already bounds, and has no macOS analogue. ^no-backoff
 
-The package does not render an explicit systemd start-limit setting. The user-manager default allows five starts per 10-second window; exceeding it parks the unit in a permanent `start-limit-hit` failed state that does not retry automatically. The current retry-forever behavior holds because `RestartSec=5` permits at most about three starts in any 10-second window, below that limit. Until explicit start-limit hardening lands, `RestartSec` must remain at least approximately three seconds so a fast bind-failure loop cannot exhaust the default burst. **Required future work (Linear TV-507):** `@rupertsworld/daemon` will gain an option that lets Television render `StartLimitIntervalSec=0`, making retry-forever explicit rather than dependent on the restart cadence. ^unit-start-limit
+The package does not render an explicit systemd start-limit setting. The user-manager default allows five starts per 10-second window; exceeding it parks the unit in a permanent `start-limit-hit` failed state that does not retry automatically. The current retry-forever behavior holds because `RestartSec=5` permits at most about three starts in any 10-second window, below that limit. `RestartSec` must remain at least approximately three seconds so a fast bind-failure loop cannot exhaust the default burst. ^unit-start-limit
 
 **macOS LaunchAgent** (`~/Library/LaunchAgents/com.television.server.plist`):
 

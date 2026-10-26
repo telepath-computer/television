@@ -14,7 +14,7 @@ class BufferOutput {
 }
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const SKILL_POINTER = "Television ships bundled skills.";
+const SKILL_POINTER = "Television ships the `television` skill";
 // The retired-options guidance after its first sentence, as specs/product/cli.md
 // (^cli-retired-options) states it. The first sentence names the options given.
 const RETIRED_OPTIONS_GUIDANCE = [
@@ -125,6 +125,10 @@ function fakeEnvironment(overrides: Partial<CLIEnvironment> = {}): Partial<CLIEn
       get: vi.fn(async () => ({ artifact: { id: "artifact-1", kind: "path", title: "A", path: "/tmp/a.html" } })),
       list: vi.fn(async () => ({ artifacts: [] })),
     },
+    templates: {
+      list: vi.fn(async () => ({ templates: [{ id: "example", name: "Example", description: "A sample", version: "1.0.0", hasIcon: false, path: "/tmp/templates/example" }], errors: [{ folder: "broken", error: "invalid manifest" }], watching: true })),
+      create: vi.fn(async () => ({ artifactID: "artifact-1", path: "/tmp/artifacts/example" })),
+    },
     display: { focus: vi.fn(async () => ({ channelID: "screen-1", artifactID: "artifact-1" })), patch: vi.fn(async () => {}), get: vi.fn(async () => ({ focusedChannelId: null, pinnedChannelIds: [], activeThemeName: null, acpEnabled: false })) },
     themes: { list: vi.fn(async () => ({ themes: [], errors: [] })), refresh: vi.fn(async () => ({ themes: [], errors: [] })) },
     channels: { create: vi.fn(async () => ({ channel: { id: "screen-1", name: "S", layout: [] } })), update: vi.fn(async () => ({ channel: { id: "screen-1", name: "Updated", layout: [] } })), list: vi.fn(async () => ({ channels: [] })), get: vi.fn(async () => ({ channel: { id: "screen-1", name: "S", layout: [] }, artifacts: [] })), remove: vi.fn(async () => ({ channelID: "screen-1", metadataPath: "/state/channels/screen-1.json", artifactResults: [] })) },
@@ -144,6 +148,7 @@ function fakeEnvironment(overrides: Partial<CLIEnvironment> = {}): Partial<CLIEn
     resolveBundledViewsPath: () => undefined,
     resolveOnboardingContentPath: () => undefined,
     resolveBundledThemesPath: () => undefined,
+    resolveBundledTemplatesPath: () => undefined,
     resolveBundledSkillsRoot: () => undefined,
     resolveSdkDir: () => undefined,
     runSkillsInstaller: vi.fn(async () => {}),
@@ -403,41 +408,280 @@ describe("startup links", () => {
   });
 });
 
-describe("CLI Slice 1 artifact command surface", () => {
-  it("lists new pointer commands and omits removed lifecycle commands", () => {
-    const names = listVisibleCLICommandNames();
-    expect(names).toContain("create-path-artifact");
-    expect(names).toContain("create-url-artifact");
-    expect(names).toContain("update-artifact");
-    expect(names).toContain("delete-artifact");
-    expect(names).not.toContain("create-artifact");
-    expect(names).not.toContain("create-markdown-artifact");
-    expect(names).not.toContain("create-web-bundle-artifact");
-    expect(names).not.toContain("edit-artifact");
-    expect(names).not.toContain("commit-artifact");
-    expect(names).not.toContain("abandon-artifact");
-    expect(names).not.toContain("attach-artifact");
-    expect(names).not.toContain("detach-artifact");
+describe("artifact template CLI commands", () => {
+  // proofs/arch/cli/index.md#^cli-t-create-display-request
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
+  it.each([
+    ...(["path", "url", "template"] as const).flatMap((source) => [
+      [source, ["--transparent"], { transparent: true }] as const,
+      [source, ["--no-transparent"], { transparent: false }] as const,
+      [source, ["--width", "315.5", "--full-screen", "--transparent"], { width: 315.5, fullScreen: true, transparent: true }] as const,
+      [source, ["--height", "280", "--no-full-screen", "--no-transparent"], { height: 280, fullScreen: false, transparent: false }] as const,
+    ]),
+    ["path", ["--width", "315.5"], { width: 315.5 }],
+    ["path", ["--height", "280"], { height: 280 }],
+    ["path", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["path", ["--full-screen"], { fullScreen: true }],
+    ["path", ["--no-full-screen"], { fullScreen: false }],
+    ["path", [], undefined],
+    ["url", ["--width", "315.5"], { width: 315.5 }],
+    ["url", ["--height", "280"], { height: 280 }],
+    ["url", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["url", ["--full-screen"], { fullScreen: true }],
+    ["url", ["--no-full-screen"], { fullScreen: false }],
+    ["url", [], undefined],
+    ["template", ["--width", "315.5"], { width: 315.5 }],
+    ["template", ["--height", "280"], { height: 280 }],
+    ["template", ["--width", "315.5", "--height", "280"], { width: 315.5, height: 280 }],
+    ["template", ["--full-screen"], { fullScreen: true }],
+    ["template", ["--no-full-screen"], { fullScreen: false }],
+    ["template", [], undefined],
+  ] as const)("maps display options for %s: %j", async (source, options, display) => {
+    const home = temporaryHome();
+    const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+    const sourceArgs = source === "path" ? ["--path", "/server-only/note.md", "--title", "Note"]
+      : source === "url" ? ["--url", "https://example.com", "--title", "Link"]
+      : ["--template", "example"];
+    expect(await runCLI(["--home", home, "create-artifact", "--channel", "screen-1", ...sourceArgs, ...options, "--no-focus"], env)).toBe(0);
+    const client = (env.createClient as any).mock.results[0].value;
+    const call = source === "template" ? client.templates.create.mock.calls[0][0] : client.artifacts.create.mock.calls[0][0];
+    if (display === undefined) expect(call).not.toHaveProperty("display");
+    else expect(call.display).toEqual(display);
   });
 
-  it("create-path-artifact trims and sends the path pointer shape without local filesystem validation", async () => {
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
+  it.each(["path", "url", "template", "update"] as const)("keeps transparency flag spellings as title values for %s", async (source) => {
+    for (const title of ["--transparent", "--no-transparent"]) {
+      for (const option of [undefined, title === "--transparent" ? "--no-transparent" : "--transparent"]) {
+        const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+        const args = source === "update" ? ["update-artifact", "--id", "artifact-1"]
+          : ["create-artifact", "--channel", "screen-1", "--no-focus", `--${source}`,
+            source === "path" ? "/server-only/note.md" : source === "url" ? "https://example.com" : "example"];
+        expect(await runCLI([...args, "--title", title, ...(option ? [option] : [])], env)).toBe(0);
+        const client = vi.mocked(env.createClient!).mock.results[0]!.value;
+        const method = source === "update" ? client.artifacts.update
+          : source === "template" ? client.templates.create : client.artifacts.create;
+        const call = vi.mocked(method).mock.calls[0]![0];
+        expect(call).toHaveProperty("title", title);
+        const field = source === "update" ? "transparent" : "display.transparent";
+        if (option === undefined) expect(call).not.toHaveProperty(field);
+        else expect(call).toHaveProperty(field, option === "--transparent");
+      }
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-create-display-invalid
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
+  it.each([
+    ["--width", "0"], ["--width", "-2"], ["--width", "abc"], ["--width", "Infinity"],
+    ["--height", "0"], ["--height", "-2"], ["--height", "abc"], ["--height", "1e400"],
+    ["--full-screen", "--no-full-screen"],
+    ["--transparent", "--no-transparent"], ["--no-transparent", "--transparent"],
+  ] as const)("rejects invalid creation display %s %s for every source", async (...options) => {
+    for (const sourceArgs of [
+      ["--path", "/server-only/note.md", "--title", "Note"],
+      ["--url", "https://example.com", "--title", "Link"],
+      ["--template", "example"],
+    ]) {
+      const home = temporaryHome();
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr });
+      expect(await runCLI(["--home", home, "create-artifact", "--channel", "screen-1", ...sourceArgs, ...options, "--no-focus"], env)).toBe(1);
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toMatch(options[0] === "--full-screen" || options[0].includes("transparent") ? /both|not both/i : /finite|positive/i);
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+      expect(env.createClient).not.toHaveBeenCalled();
+    }
+  });
+
+  // proofs/arch/cli/index.md#^acdde6ff
+  // proofs/arch/cli/index.md#^07842556
+  it.each([
+    ["path", "  /server-only/note.md  ", { kind: "path", path: "/server-only/note.md", title: "Note", channelID: "screen-1" }, "/server-only/note.md"],
+    ["url", "  https://example.com  ", { kind: "url", url: "https://example.com", title: "Note", channelID: "screen-1" }, "https://example.com"],
+  ] as const)("create-artifact --%s sends the pointer and prints common output before focus", async (source, target, request, registered) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--title", "Note", `--${source}`, target, "--focus-artifact"], env)).toBe(0);
+    const client = (env.createClient as any).mock.results[0].value;
+    expect(client.artifacts.create).toHaveBeenCalledWith(request);
+    expect(client.display.focus).toHaveBeenCalledWith({ artifactID: "artifact-1" });
+    expect(stdout.toString()).toBe(`Artifact artifact-1 created.\nTelevision registered ${registered}.\n`);
+    expect(client.display.focus.mock.invocationCallOrder[0]).toBeGreaterThan(client.artifacts.create.mock.invocationCallOrder[0]);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it("create-artifact --template sends an exact ID, explicit null, placement and CLI source", async () => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "Example", "--data", "null", "--before", "other", "--no-focus"], env)).toBe(0);
+    const client = (env.createClient as any).mock.results[0].value;
+    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "Example", channelID: "screen-1", data: null, before: "other", source: "cli" });
+    expect(client.display.focus).not.toHaveBeenCalled();
+    expect(stdout.toString()).toBe("Artifact artifact-1 created.\nTelevision registered /tmp/artifacts/example.\n");
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it("reads template data from a named JSON file and refuses malformed or oversized values before creation", async () => {
+    const file = path.join(temporaryDirectory("tv-cli-template-data-"), "data.json");
+    writeFileSync(file, '{"message":"from file"}');
+    const valid = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--data-file", file, "--no-focus"], valid)).toBe(0);
+    expect((valid.createClient as any).mock.results[0].value.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", data: { message: "from file" }, source: "cli" });
+
+    for (const extras of [
+      ["--data", "not JSON"],
+      ["--data", `"${"x".repeat(1_048_577)}"`],
+      ["--data", "null", "--data-file", file],
+    ]) {
+      const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+      expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", ...extras, "--no-focus"], env)).toBe(1);
+      expect(env.createClient).not.toHaveBeenCalled();
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it.each([
+    ["non-finite number", "1e400", "A stored number must be finite."],
+    ["nested non-finite number", '{"count":1e400}', "A stored number must be finite."],
+    ["empty object key", '{"":1}', "An object key must be non-empty"],
+    ["slash in object key", '{"bad/key":1}', "An object key must be non-empty"],
+    ["oversized object key", JSON.stringify({ ["k".repeat(769)]: 1 }), "An object key must be non-empty"],
+    ["excessive depth", `${"[".repeat(33)}0${"]".repeat(33)}`, "A value can be at most 32 keys below the store's root."],
+  ] as const)("refuses %s from either template data option before any client call", async (_case, value, error) => {
+    const file = path.join(temporaryDirectory("tv-cli-invalid-template-data-"), "data.json");
+    writeFileSync(file, value);
+    for (const option of [["--data", value], ["--data-file", file]]) {
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr });
+      expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", ...option, "--no-focus"], env)).toBe(1);
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toContain(error);
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+      expect(env.createClient).not.toHaveBeenCalled();
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it.each([
+    ["no source", []],
+    ["multiple sources", ["--path", "/tmp/note.md", "--template", "example"]],
+    ["path without title", ["--path", "/tmp/note.md"]],
+    ["URL without title", ["--url", "https://example.com"]],
+    ["data with path", ["--path", "/tmp/note.md", "--title", "Note", "--data", "null"]],
+    ["data file with URL", ["--url", "https://example.com", "--title", "Link", "--data-file", "-"]],
+  ] as const)("refuses %s before any creation request", async (_reason, options) => {
+    const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", ...options, "--no-focus"], env)).toBe(1);
+    expect(env.createClient).not.toHaveBeenCalled();
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it.each([
+    { artifactID: "artifact-1", path: "/tmp/artifacts/example" },
+    { artifactID: "artifact-1", url: "https://example.com/page" },
+  ])("prints the registered template target and omits caller data: %j", async (result) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    const client = (env.createClient as any)();
+    client.templates.create.mockResolvedValue(result);
+    client.display.focus.mockImplementation(async () => {
+      expect(stdout.toString()).toBe(`Artifact artifact-1 created.\nTelevision registered ${"path" in result ? result.path : result.url}.\n`);
+    });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(0);
+    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", source: "cli" });
+  });
+
+  it("prints no success when template creation is rejected", async () => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.create.mockRejectedValue(new Error("Store save unconfirmed"));
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain("Store save unconfirmed");
+    expect(client.display.focus).not.toHaveBeenCalled();
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it("projects fresh list and exact show records without app metadata", async () => {
+    const folder = { id: "Example", name: "Example", description: "Folder", path: "/tmp/templates/Example", version: "1.0.0", display: { width: 200 }, dataSchema: { type: "object" }, icons: [{ src: "icon.svg", type: "image/svg+xml" }] };
+    const url = { id: "url", name: "URL", description: "Website", path: "/tmp/templates/url", version: "2.0.0", url: "https://example.com/" };
+    const errors = [{ folder: "broken", error: "invalid manifest" }];
+    for (const [args, expected] of [
+      [["list"], { templates: [{ id: folder.id, name: folder.name, description: folder.description }, { id: url.id, name: url.name, description: url.description, url: url.url }], errors }],
+      [["show", "Example"], { template: folder }],
+      [["show", "url"], { template: url }],
+    ] as const) {
+      const stdout = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+      const client = (env.createClient as any)();
+      client.templates.list.mockResolvedValue({ templates: [folder, url].map((entry) => ({ ...entry, hasIcon: true, kind: "app-only", extraAppField: "private" })), errors, watching: true });
+      expect(await runCLI(["templates", ...args], env)).toBe(0);
+      expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+      expect(JSON.parse(stdout.toString())).toEqual(expected);
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it.each([
+    ["broken", [{ folder: "broken", error: "invalid manifest" }], "invalid manifest"],
+    ["Example", [], "not found"],
+    ["example", [{ folder: null, error: "directory unavailable" }], "directory unavailable"],
+  ])("refuses template show %s without a success object", async (id, errors, error) => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.list.mockResolvedValue({ templates: [], errors, watching: false });
+    expect(await runCLI(["templates", "show", id], env)).toBe(1);
+    expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain(error);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-path
+  it("resolves templates path without config or server", async () => {
+    const home = temporaryHome("not JSON");
+    const local = new BufferOutput();
+    const localEnv = fakeEnvironment({ stdout: local, stderr: new BufferOutput() });
+    expect(await runCLI(["--home", home, "templates", "path"], localEnv)).toBe(0);
+    expect(local.toString()).toBe(`${JSON.stringify({ templatesPath: path.join(home, "templates") })}\n`);
+    expect(localEnv.createClient).not.toHaveBeenCalled();
+  });
+});
+
+describe("CLI artifact command surface", () => {
+  it("lists creation and metadata commands", () => {
+    const names = listVisibleCLICommandNames();
+    expect(names).toContain("create-artifact");
+    expect(names).toContain("templates");
+    expect(names).toContain("update-artifact");
+    expect(names).toContain("delete-artifact");
+  });
+
+  it("create-artifact trims and sends the path pointer shape without local filesystem validation", async () => {
     const stdout = new BufferOutput();
     const stderr = new BufferOutput();
     const target = "server-only/path/note.md";
     const env = fakeEnvironment({ stdout, stderr });
-    const exitCode = await runCLI(["create-path-artifact", "--channel", "screen-1", "--title", "Note", "--path", `  ${target}  `, "--no-focus"], env);
+    const exitCode = await runCLI(["create-artifact", "--channel", "screen-1", "--title", "Note", "--path", `  ${target}  `, "--no-focus"], env);
     expect(exitCode).toBe(0);
     const client = (env.createClient as any).mock.results[0].value;
     expect(client.artifacts.create).toHaveBeenCalledWith({ kind: "path", title: "Note", path: target, channelID: "screen-1" });
     expect(client.display.focus).not.toHaveBeenCalled();
-    expect(stdout.toString()).toContain("Path artifact artifact-1 created.");
+    expect(stdout.toString()).toContain("Artifact artifact-1 created.");
   });
 
   // Spec: [[arch/cli/index.md#^07842556|URL creation trims and forms the request]].
-  it("create-url-artifact trims and sends url instead of externalURL", async () => {
+  it("create-artifact trims and sends url instead of externalURL", async () => {
     const stdout = new BufferOutput();
     const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
-    const exitCode = await runCLI(["create-url-artifact", "--channel", "screen-1", "--title", "Link", "--url", " https://example.com ", "--no-focus"], env);
+    const exitCode = await runCLI(["create-artifact", "--channel", "screen-1", "--title", "Link", "--url", " https://example.com ", "--no-focus"], env);
     expect(exitCode).toBe(0);
     const client = (env.createClient as any).mock.results[0].value;
     expect(client.artifacts.create).toHaveBeenCalledWith({ kind: "url", title: "Link", url: "https://example.com", channelID: "screen-1" });
@@ -445,23 +689,6 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stdout.toString()).toContain("Television registered https://example.com.");
   });
 
-  it("removed commands fail as unknown", async () => {
-    for (const command of ["create-artifact", "create-markdown-artifact", "create-web-bundle-artifact", "edit-artifact", "commit-artifact", "abandon-artifact", "attach-artifact", "detach-artifact"]) {
-      const stderr = new BufferOutput();
-      expect(await runCLI([command], fakeEnvironment({ stdout: new BufferOutput(), stderr }))).toBe(1);
-      expect(stderr.toString()).toContain(`Unknown tv command: ${command}`);
-      expect(stderr.toString()).toContain(SKILL_POINTER);
-    }
-  });
-
-  it("keeps deferred commands absent behind the directive contract", async () => {
-    for (const commandName of ["restore-artifact", "list-pending-artifacts", "make-attestation-nonce"]) {
-      const stderr = new BufferOutput();
-      expect(await runCLI([commandName], fakeEnvironment({ stdout: new BufferOutput(), stderr }))).toBe(1);
-      expect(stderr.toString()).toContain(`Unknown tv command: ${commandName}`);
-      expect(stderr.toString()).toContain(SKILL_POINTER);
-    }
-  });
 
   it("delete-artifact prints pointer delete output", async () => {
     for (const result of [
@@ -505,8 +732,8 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(listVisibleCLICommandNames()).toEqual([
       "serve",
       "config",
-      "create-path-artifact",
-      "create-url-artifact",
+      "create-artifact",
+      "templates",
       "update-artifact",
       "delete-artifact",
       "reposition-artifact",
@@ -545,8 +772,8 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stdout.toString()).toContain("Usage: tv");
     expect(stdout.toString()).toContain("Television — virtual display for agents");
     expect(stdout.toString()).toContain("tv skills install");
-    expect(stdout.toString()).toContain("create-path-artifact");
-    expect(stdout.toString()).toContain("create-url-artifact");
+    expect(stdout.toString()).toContain("create-artifact");
+    expect(stdout.toString()).toContain("templates");
     expect(stdout.toString()).toContain("focus-artifact");
     expect(stdout.toString()).toContain("update-channel");
     expect(stdout.toString()).toMatch(/^  --home <path>\s/m);
@@ -559,25 +786,7 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stdout.toString()).toContain(
       "The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
     );
-    expect(stdout.toString()).toContain("Additional `tv-*` skills cover specialized artifact types.");
-    expect(stdout.toString()).not.toContain("specialized artifact types and theming");
-    for (const command of [
-      "create-artifact",
-      "create-markdown-artifact",
-      "create-web-bundle-artifact",
-      "edit-artifact",
-      "commit-artifact",
-      "abandon-artifact",
-      "attach-artifact",
-      "detach-artifact",
-      "restore-artifact",
-      "list-pending-artifacts",
-      "make-attestation-nonce",
-      "data-dir",
-      "storage-path",
-    ]) {
-      expect(stdout.toString()).not.toMatch(new RegExp(`^  ${command}(?:\\s|$)`, "m"));
-    }
+    expect(stdout.toString()).not.toContain("Additional `tv-*` skills cover specialized artifact types.");
     expect(stdout.toString()).not.toContain("tv skills show");
     expect(stdout.toString()).not.toContain("cli-capabilities.md");
     expect(stdout.toString()).not.toContain("artifact-workflow.md");
@@ -689,13 +898,16 @@ describe("CLI Slice 1 artifact command surface", () => {
   // Specs: [[arch/cli/index.md#^37bb8262|unsupported options]], [[arch/cli/index.md#^cf207a25|exact argv in errors]].
   it("prints command help and rejects unsupported options", async () => {
     const stdout = new BufferOutput();
-    expect(await runCLI(["help", "create-path-artifact"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
+    expect(await runCLI(["help", "create-artifact"], fakeEnvironment({ stdout, stderr: new BufferOutput() }))).toBe(0);
     expect(stdout.toString()).toContain("--focus-artifact");
+    // proofs/arch/cli/index.md#^cli-t-create-display-help
+    for (const option of ["--width <px>", "--height <px>", "--full-screen", "--no-full-screen"]) {
+      expect(stdout.toString()).toContain(option);
+    }
     expect(stdout.toString()).toContain(
       "The main skill is `television` — keep its guidance available for channels, lifecycle, the `tv` CLI, artifact workflow, and theming.",
     );
-    expect(stdout.toString()).toContain("Additional `tv-*` skills cover specialized artifact types.");
-    expect(stdout.toString()).not.toContain("specialized artifact types and theming");
+    expect(stdout.toString()).not.toContain("Additional `tv-*` skills cover specialized artifact types.");
 
     const focusStdout = new BufferOutput();
     expect(await runCLI(["help", "focus-artifact"], fakeEnvironment({ stdout: focusStdout, stderr: new BufferOutput() }))).toBe(0);
@@ -713,10 +925,10 @@ describe("CLI Slice 1 artifact command surface", () => {
     const stdout = new BufferOutput();
     const stderr = new BufferOutput();
 
-    const exitCode = await runCLI(["create-path-artifact", "-h"], fakeEnvironment({ stdout, stderr }));
+    const exitCode = await runCLI(["create-artifact", "-h"], fakeEnvironment({ stdout, stderr }));
 
     expect(exitCode).toBe(0);
-    expect(stdout.toString()).toContain("Usage: tv create-path-artifact");
+    expect(stdout.toString()).toContain("Usage: tv create-artifact");
     expect(stdout.toString()).toContain("tv skills install");
     expect(stdout.toString()).not.toContain("tv skills show");
     expect(stdout.toString()).not.toContain("artifact-workflow.md");
@@ -823,19 +1035,10 @@ describe("CLI Slice 1 artifact command surface", () => {
   });
 
 
-  // Specs: [[arch/cli/index.md#^72e143f1|historical names]], [[arch/cli/index.md#^cli-home-command-surface|storage-path retired]].
-  it.each(["data-dir", "storage-path"])("does not expose the old %s command name", async (command) => {
-    const stdout = new BufferOutput();
-    const stderr = new BufferOutput();
-    expect(await runCLI([command], fakeEnvironment({ stdout, stderr }))).toBe(1);
-    expect(stdout.toString()).toBe("");
-    expect(stderr.toString()).toContain(`Unknown tv command: ${command}.`);
-  });
-
-  it("requires exactly one focus directive for create-path-artifact, create-url-artifact, and create-channel", async () => {
+  it("requires exactly one focus directive for path, URL, and channel creation", async () => {
     for (const baseArgv of [
-      ["create-path-artifact", "--channel", "screen-1", "--title", "A", "--path", "/tmp/a.html"],
-      ["create-url-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com"],
+      ["create-artifact", "--channel", "screen-1", "--title", "A", "--path", "/tmp/a.html"],
+      ["create-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com"],
       ["create-channel", "--name", "New"],
     ]) {
       const focusFlag = baseArgv[0] === "create-channel" ? "--focus-channel" : "--focus-artifact";
@@ -849,26 +1052,26 @@ describe("CLI Slice 1 artifact command surface", () => {
     }
   });
 
-  it("create-path-artifact focuses the new artifact when requested", async () => {
+  it("create-artifact --path focuses the new artifact when requested", async () => {
     const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
-    expect(await runCLI(["create-path-artifact", "--channel", "screen-1", "--title", "Note", "--path", "/tmp/note.md", "--focus-artifact"], env)).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--title", "Note", "--path", "/tmp/note.md", "--focus-artifact"], env)).toBe(0);
     const client = (env.createClient as any).mock.results[0].value;
     expect(client.display.focus).toHaveBeenCalledWith({ artifactID: "artifact-1" });
   });
 
-  it("create-url-artifact focuses the new artifact when requested", async () => {
+  it("create-artifact --url focuses the new artifact when requested", async () => {
     const env = fakeEnvironment({ stdout: new BufferOutput(), stderr: new BufferOutput() });
-    expect(await runCLI(["create-url-artifact", "--channel", "screen-1", "--title", "Link", "--url", "https://example.com", "--focus-artifact"], env)).toBe(0);
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--title", "Link", "--url", "https://example.com", "--focus-artifact"], env)).toBe(0);
     const client = (env.createClient as any).mock.results[0].value;
     expect(client.display.focus).toHaveBeenCalledWith({ artifactID: "artifact-1" });
   });
 
-  it("create-url-artifact requires --url", async () => {
+  it("create-artifact requires one source", async () => {
     const stderr = new BufferOutput();
     const env = fakeEnvironment({ stdout: new BufferOutput(), stderr });
-    expect(await runCLI(["create-url-artifact", "--channel", "screen-1", "--title", "x", "--no-focus"], env)).toBe(1);
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--title", "x", "--no-focus"], env)).toBe(1);
     expect(env.createClient).not.toHaveBeenCalled();
-    expect(stderr.toString()).toMatch(/--url/);
+    expect(stderr.toString()).toMatch(/exactly one of --path, --url, or --template/);
   });
 
   it("update-artifact sends flat title metadata and prints confirmation", async () => {
@@ -878,6 +1081,48 @@ describe("CLI Slice 1 artifact command surface", () => {
     const client = (env.createClient as any).mock.results[0].value;
     expect(client.artifacts.update).toHaveBeenCalledWith({ artifactID: "artifact-1", title: "Updated" });
     expect(stdout.toString()).toContain("Artifact artifact-1 updated.");
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-transparent-request
+  it.each([
+    [["--transparent"], { transparent: true }],
+    [["--no-transparent"], { transparent: false }],
+    [["--title", "Updated", "--transparent"], { title: "Updated", transparent: true }],
+    [["--path", "  /tmp/a.html  ", "--no-transparent"], { path: "/tmp/a.html", transparent: false }],
+    [["--url", "  https://example.com/  ", "--transparent"], { url: "https://example.com/", transparent: true }],
+  ] as const)("maps transparency updates %j without losing explicit false", async (options, fields) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["update-artifact", "--id", "artifact-1", ...options], env)).toBe(0);
+    const client = vi.mocked(env.createClient!).mock.results[0]!.value;
+    expect(client.artifacts.update).toHaveBeenCalledWith({ artifactID: "artifact-1", ...fields });
+    expect(stdout.toString()).toBe("Artifact artifact-1 updated.\n");
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-transparent-invalid
+  it.each([
+    ["--transparent", "--no-transparent"], ["--no-transparent", "--transparent"],
+  ])("rejects conflicting update transparency %s %s before contacting the server", async (...flags) => {
+    for (const other of [[], ["--title", "Updated"], ["--path", "/tmp/a.html"], ["--url", "https://example.com/"]]) {
+      const stdout = new BufferOutput();
+      const stderr = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr });
+      expect(await runCLI(["update-artifact", "--id", "artifact-1", ...other, ...flags], env)).toBe(1);
+      expect(env.createClient).not.toHaveBeenCalled();
+      expect(stdout.toString()).toBe("");
+      expect(stderr.toString()).toContain("--transparent or --no-transparent, not both");
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-transparent-help
+  it.each(["create-artifact", "update-artifact"])("exposes both transparency flags in %s help", async (command) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    expect(await runCLI(["help", command], env)).toBe(0);
+    expect(stdout.toString()).toContain("--transparent");
+    expect(stdout.toString()).toContain("--no-transparent");
+    expect(env.createClient).not.toHaveBeenCalled();
   });
 
   // Spec: [[arch/cli/index.md#^26872411|request-error formatting]].
@@ -916,12 +1161,13 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
-  it("update-artifact requires at least one of --title, --path, --url", async () => {
+  // proofs/arch/cli/index.md#^cli-t-transparent-help
+  it("update-artifact requires a field and names the title, pointer, and transparency options", async () => {
     const stderr = new BufferOutput();
     const env = fakeEnvironment({ stdout: new BufferOutput(), stderr });
     expect(await runCLI(["update-artifact", "--id", "artifact-1"], env)).toBe(1);
     expect(env.createClient).not.toHaveBeenCalled();
-    expect(stderr.toString()).toMatch(/--title, --path, or --url/);
+    expect(stderr.toString()).toContain("--title, --path, --url, --transparent, or --no-transparent");
     expect(stderr.toString()).toContain(SKILL_POINTER);
   });
 
@@ -1685,8 +1931,8 @@ describe("CLI Slice 1 artifact command surface", () => {
     expect(stderr.toString()).toContain("tv skills install -i does not take a destination path");
   });
 
-  // Spec: [[arch/cli/index.md#^cli-stale-theme-skill-cleanup|stale standalone-theme cleanup]].
-  it("skills install removes a stale tv-theme directory while preserving the bundled set", async () => {
+  // proofs/arch/cli/index.md#^74183a83
+  it("skills install keeps other installed skill directories", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-cli-skills-stale-theme-"));
     try {
       const bundled = path.join(root, "bundled");
@@ -1706,7 +1952,7 @@ describe("CLI Slice 1 artifact command surface", () => {
         resolveBundledSkillsRoot: () => bundled,
       }))).toBe(0);
 
-      expect(existsSync(path.join(destination, "tv-theme"))).toBe(false);
+      expect(readFileSync(path.join(destination, "tv-theme", "nested", "stale.txt"), "utf8")).toBe("stale\n");
       expect(readFileSync(path.join(destination, "television", "SKILL.md"), "utf8")).toBe("television\n");
       expect(readFileSync(path.join(destination, "tv-table", "SKILL.md"), "utf8")).toBe("table\n");
       expect(stdout.toString()).toContain("Copied 2 bundled Television skill(s):");
@@ -1716,7 +1962,8 @@ describe("CLI Slice 1 artifact command surface", () => {
     }
   });
 
-  it("re-running skills install replaces destination folders with the current bundled copies", async () => {
+  // proofs/arch/cli/index.md#^74183a83
+  it("re-running skills install updates bundled files while keeping other files", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-cli-skills-reinstall-"));
     const bundled = path.join(root, "bundled");
     const destination = path.join(root, "dest");
@@ -1731,7 +1978,7 @@ describe("CLI Slice 1 artifact command surface", () => {
     await runCLI(["skills", "install", destination], fakeEnvironment({ resolveBundledSkillsRoot: () => bundled }));
 
     expect(readFileSync(path.join(destination, "television", "SKILL.md"), "utf8")).toBe("second\n");
-    expect(existsSync(path.join(destination, "television", "stale.txt"))).toBe(false);
+    expect(readFileSync(path.join(destination, "television", "stale.txt"), "utf8")).toBe("stale\n");
   });
 
 
@@ -2440,7 +2687,7 @@ describe("CLI Slice 1 artifact command surface", () => {
     process.env.TELEVISION_LAUNCH_MODE = "daemon";
 
     try {
-      const runPromise = runCLI(["serve"], fakeEnvironment({
+      const runPromise = runCLI(["serve", "--home", temporaryHome()], fakeEnvironment({
         stdout,
         stderr,
         createServer,
@@ -2449,6 +2696,7 @@ describe("CLI Slice 1 artifact command surface", () => {
         resolveBundledViewsPath: () => "/tmp/television-views",
         resolveOnboardingContentPath: () => "/tmp/television-onboarding",
         resolveBundledThemesPath: () => "/tmp/television-themes",
+        resolveBundledTemplatesPath: () => "/tmp/television-templates",
         resolveSdkDir: () => "/tmp/television-sdk",
         onSignal: vi.fn((signal, handler) => { signalHandlers.set(signal, handler); }),
       }));
@@ -2459,6 +2707,7 @@ describe("CLI Slice 1 artifact command surface", () => {
           bundledViewsPath: "/tmp/television-views",
           onboardingContentPath: "/tmp/television-onboarding",
           bundledThemesPath: "/tmp/television-themes",
+          bundledTemplatesPath: "/tmp/television-templates",
           sdkDir: "/tmp/television-sdk",
           launchMode: "daemon",
           resourceBindings: false,
@@ -2650,8 +2899,11 @@ const RESOURCE_COMMANDS: string[][] = [
 
 /** Every command that contacts the server, with the other arguments it requires. */
 const SERVER_COMMANDS: string[][] = [
-  ["create-path-artifact", "--channel", "screen-1", "--title", "A", "--path", "/tmp/a.md", "--no-focus"],
-  ["create-url-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
+  ["create-artifact", "--channel", "screen-1", "--title", "A", "--path", "/tmp/a.md", "--no-focus"],
+  ["create-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
+  ["create-artifact", "--channel", "screen-1", "--template", "example", "--no-focus"],
+  ["templates", "list"],
+  ["templates", "show", "example"],
   ["update-artifact", "--id", "artifact-1", "--title", "T"],
   ["delete-artifact", "--id", "artifact-1"],
   ["reposition-artifact", "--id", "artifact-1", "--width", "500"],
@@ -3432,7 +3684,7 @@ describe("page arrangement and moving commands", () => {
     const notOnChannel = arrange();
     await runCLI(["reposition-artifact", "--id", "middle", "--before", "elsewhere"], notOnChannel.env);
     texts.push(notOnChannel.stderr.toString());
-    for (const command of ["create-path-artifact", "create-url-artifact"]) {
+    for (const command of ["create-artifact"]) {
       const { stdout, env } = arrange();
       expect(await runCLI([command, "--help"], env)).toBe(0);
       const placementLines = stdout.toString().split("\n").filter((line) => /--(before|after)\b/.test(line));
@@ -3500,46 +3752,50 @@ describe("page arrangement and moving commands", () => {
   }
 
   const createArgs = {
-    "create-path-artifact": ["create-path-artifact", "--channel", "home-channel", "--title", "Note", "--path", "/notes/note.md", "--no-focus"],
-    "create-url-artifact": ["create-url-artifact", "--channel", "home-channel", "--title", "Link", "--url", "https://example.com", "--no-focus"],
-    "move-artifact": ["move-artifact", "--id", "middle", "--channel", "home-channel", "--no-focus"],
+    path: ["create-artifact", "--channel", "home-channel", "--title", "Note", "--path", "/notes/note.md", "--no-focus"],
+    url: ["create-artifact", "--channel", "home-channel", "--title", "Link", "--url", "https://example.com", "--no-focus"],
+    template: ["create-artifact", "--channel", "home-channel", "--template", "example", "--no-focus"],
+    move: ["move-artifact", "--id", "middle", "--channel", "home-channel", "--no-focus"],
   } as const;
 
   // proofs/arch/cli/index.md#^cli-t-placement-request
   it.each([
-    ["create-path-artifact", "--before", "before"],
-    ["create-path-artifact", "--after", "after"],
-    ["create-url-artifact", "--before", "before"],
-    ["create-url-artifact", "--after", "after"],
-    ["move-artifact", "--before", "before"],
-    ["move-artifact", "--after", "after"],
-  ] as const)("%s passes %s to the server", async (command, option, key) => {
+    ["path", "--before", "before"],
+    ["path", "--after", "after"],
+    ["url", "--before", "before"],
+    ["url", "--after", "after"],
+    ["template", "--before", "before"],
+    ["template", "--after", "after"],
+    ["move", "--before", "before"],
+    ["move", "--after", "after"],
+  ] as const)("%s passes %s to the server", async (source, option, key) => {
     const { stderr, client, env } = arrange();
-    expect(await runCLI([...createArgs[command], option, "b"], env)).toBe(0);
+    expect(await runCLI([...createArgs[source], option, "b"], env)).toBe(0);
     expect(stderr.toString()).toBe("");
-    const call = command === "move-artifact" ? client.artifacts.move : client.artifacts.create;
+    const call = source === "move" ? client.artifacts.move : source === "template" ? client.templates.create : client.artifacts.create;
     expect(call).toHaveBeenCalledTimes(1);
     expect(call.mock.calls[0][0]).toEqual(expect.objectContaining({ [key]: "b" }));
     expect(call.mock.calls[0][0]).not.toHaveProperty(key === "before" ? "after" : "before");
   });
 
-  it.each(["create-path-artifact", "create-url-artifact", "move-artifact"] as const)(
+  it.each(["path", "url", "template", "move"] as const)(
     "%s without --before or --after sends neither",
-    async (command) => {
+    async (source) => {
       const { client, env } = arrange();
-      expect(await runCLI([...createArgs[command]], env)).toBe(0);
-      const call = command === "move-artifact" ? client.artifacts.move : client.artifacts.create;
+      expect(await runCLI([...createArgs[source]], env)).toBe(0);
+      const call = source === "move" ? client.artifacts.move : source === "template" ? client.templates.create : client.artifacts.create;
       expect(call.mock.calls[0][0]).not.toHaveProperty("before");
       expect(call.mock.calls[0][0]).not.toHaveProperty("after");
     },
   );
 
-  it.each(["create-path-artifact", "create-url-artifact", "move-artifact"] as const)(
+  it.each(["path", "url", "template", "move"] as const)(
     "%s rejects --before with --after without a client call",
-    async (command) => {
+    async (source) => {
       const { stdout, stderr, client, env } = arrange();
-      expect(await runCLI([...createArgs[command], "--before", "a", "--after", "b"], env)).toBe(1);
+      expect(await runCLI([...createArgs[source], "--before", "a", "--after", "b"], env)).toBe(1);
       expect(client.artifacts.create).not.toHaveBeenCalled();
+      expect(client.templates.create).not.toHaveBeenCalled();
       expect(client.artifacts.move).not.toHaveBeenCalled();
       expect(stdout.toString()).toBe("");
       expect(stderr.toString()).toContain("accepts --before or --after, not both.");
@@ -3559,13 +3815,13 @@ describe("page arrangement and moving commands", () => {
     },
   );
 
-  it("create-url-artifact prints the server's placement error without focusing", async () => {
+  it("create-artifact prints the server's placement error without focusing", async () => {
     const { stdout, stderr, client, env } = arrange();
     const message = "Artifact elsewhere is not on channel home-channel.";
     client.artifacts.create = vi.fn(async () => {
       throw new RequestError(message, { serverURL: "http://localhost:43123", status: 400 });
     });
-    const argv = ["create-url-artifact", "--channel", "home-channel", "--title", "Link", "--url", "https://example.com", "--before", "elsewhere", "--focus-artifact"];
+    const argv = ["create-artifact", "--channel", "home-channel", "--title", "Link", "--url", "https://example.com", "--before", "elsewhere", "--focus-artifact"];
     expect(await runCLI(argv, env)).toBe(1);
     expect(client.display.focus).not.toHaveBeenCalled();
     expect(stdout.toString()).toBe("");

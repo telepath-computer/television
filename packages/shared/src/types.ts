@@ -1,5 +1,6 @@
 import type { Artifact } from "@telepath-computer/television-artifact";
 import type { ResourceEvent } from "./resources/types.ts";
+import type { JSONValue } from "./resources/types.ts";
 
 export const TELEVISION_CLIENT_META_HEADER = "X-Television-Client-Meta";
 export const TELEMETRY_ACTIVITY_MESSAGE_TYPE = "telemetry-activity";
@@ -21,15 +22,13 @@ export const TELEMETRY_SIGNAL_MESSAGE_TYPE = "telemetry-signal";
 /**
  * The subset of the closed telemetry vocabulary that clients may signal
  * (specs/arch/telemetry/client-signals.md). Firing semantics (when and how
- * often each fires) are owned by the update-notifications or skill-selector
- * feature specs.
+ * often each fires) are owned by the update-notifications specs.
  */
 export type ClientSignalEventName =
   | "client_autoreloaded"
   | "update_toast_shown"
   | "update_prompt_copy_clicked"
-  | "desktop_upgrade_gate_shown"
-  | "artifact_skill_prompt_copy_clicked";
+  | "desktop_upgrade_gate_shown";
 
 /**
  * Client → server over the /events websocket, alongside the activity signal.
@@ -79,6 +78,64 @@ export type NewArtifact =
     };
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
+
+/** Starting artifact transparency and page size (in reference pixels) and mode. */
+export interface ArtifactDisplayOptions {
+  width?: number;
+  height?: number;
+  fullScreen?: boolean;
+  transparent?: boolean;
+}
+
+export type JSONSchema = boolean | { [keyword: string]: JSONValue };
+
+export interface ArtifactTemplateIcon {
+  src: string;
+  sizes?: string;
+  type?: string;
+  purpose?: string;
+}
+
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  description: string;
+  url?: string;
+}
+
+export interface Template extends TemplateSummary {
+  version: string;
+  path: string;
+  display?: ArtifactDisplayOptions;
+  icons?: ArtifactTemplateIcon[];
+  dataSchema?: JSONSchema;
+}
+
+export interface AppTemplate extends Template {
+  hasIcon: boolean;
+}
+
+export interface ArtifactTemplateScan {
+  templates: AppTemplate[];
+  errors: { folder: string | null; error: string }[];
+  watching: boolean;
+}
+
+export interface CreateTemplateArtifactRequest {
+  templateID: string;
+  channelID: string;
+  title?: string;
+  data?: JSONValue;
+  display?: ArtifactDisplayOptions;
+  before?: string;
+  after?: string;
+  source: "cli" | "ui";
+}
+
+export type CreateTemplateArtifactResult = { artifactID: string } & (
+  | { path: string; url?: never }
+  | { url: string; path?: never }
+);
 /**
  * Where a created or moved artifact goes in its channel's order: immediately
  * before or after a named artifact there, or at the end when neither is given
@@ -124,6 +181,7 @@ export type ArtifactPatch = {
   title?: string;
   path?: string;
   url?: string;
+  transparent?: boolean;
 };
 
 /** Input DTO for `PATCH /channels/:id`. */
@@ -255,6 +313,7 @@ export interface Channel {
 }
 
 export type ServerEvent =
+  | { type: "templates-changed"; scan: ArtifactTemplateScan; invalidatedIDs: string[] }
   | {
       // Artifact identity came into existence on the owning channel.
       // The full `artifact` payload is included so clients can render the new

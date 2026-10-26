@@ -13,8 +13,7 @@ import { agentCommands, artifactExample, storeComment } from "../helpers/resourc
  * [[arch/resources/guidance.md#^rg-t-document]],
  * [[arch/resources/guidance.md#^rg-t-purpose]],
  * [[arch/resources/guidance.md#^rg-t-firebase]],
- * [[arch/resources/guidance.md#^rg-t-teaches]] and
- * [[arch/resources/guidance.md#^rg-t-tv-tasks]], and the `television`
+ * [[arch/resources/guidance.md#^rg-t-teaches]], and the `television`
  * skill's map guidance, [[arch/artifact-frame/isolation.md#^iso-t-map-guidance]].
  */
 
@@ -64,7 +63,7 @@ function section(text: string, heading: RegExp): string {
 
 describe("the resource guidance document", () => {
   it("is emitted from its source beside SKILL.md and theming.md, and SKILL.md introduces the JSON store in one paragraph that points to it", () => {
-    expect(readdirSync(path.join(dist, "television")).sort()).toEqual(["SKILL.md", "resources.md", "theming.md"]);
+    expect(readdirSync(path.join(dist, "television")).sort()).toEqual(["SKILL.md", "resources.md", "templates.md", "theming.md"]);
     expect(shipped("television", "resources.md")).toBe(readFileSync(path.join(TELEVISION_SOURCE, "resources.md"), "utf8"));
 
     const pointers = shipped("television", "SKILL.md").split("\n").filter((line) => line.includes("resources.md"));
@@ -102,7 +101,7 @@ describe("the resource guidance document", () => {
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-purpose
   it("names browser storage only to say that it does not work in artifacts or how to catch the exception", () => {
-    for (const file of [["television", "SKILL.md"], ["television", "resources.md"], ["tv-tasks", "SKILL.md"]] as const) {
+    for (const file of [["television", "SKILL.md"], ["television", "resources.md"]] as const) {
       // Split at every sentence end, whatever follows, so that a sentence opening with a storage name stands alone.
       const naming = shipped(...file).replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).filter((sentence) => /localStorage|sessionStorage|\bcookies?\b|IndexedDB/i.test(sentence));
       expect(naming, file.join("/")).not.toEqual([]);
@@ -224,7 +223,7 @@ describe("what the resource guidance teaches", () => {
   });
 
   // spec: proofs/arch/resources/guidance.md#^rg-t-teaches
-  it("one complete artifact example on its own store that imports the SDK and shows onValue, push, a transaction, a server-filled value and the connection status, and a sentence leaving the tv-tasks skill out of it", () => {
+  it("one complete artifact example on its own store that imports the SDK and shows onValue, push, a transaction, a server-filled value and the connection status", () => {
     const text = guidance();
     const example = artifactExample(text);
     expect(example).toMatch(/^<!doctype html>/i);
@@ -234,11 +233,6 @@ describe("what the resource guidance teaches", () => {
     for (const call of ["onValue(", "push(", "runTransaction("]) expect(example, call).toContain(call);
     expect(example).toMatch(/serverTimestamp\(\)|increment\(/);
     expect(example).toMatch(/onConnectionStatusChanged\([^;]*?=>[\s\S]{0,200}?"disconnected"/);
-    const tvTasks = sentences(section(text, /^## A complete example/)).filter((sentence) => /`tv-tasks`/.test(sentence));
-    expect(tvTasks).toHaveLength(1);
-    expect(tvTasks[0]).toMatch(/to-do lists? for a person/);
-    expect(tvTasks[0]).toMatch(/left out|leaves it out/);
-    expect(tvTasks[0]).toMatch(/JSON store/);
   });
 
   it("that a page sees its own writes, that refused writes roll back, and a saving state from hasPendingWrites in an onValue listener", () => {
@@ -296,31 +290,6 @@ describe("what the resource guidance teaches", () => {
     expect(joined).toMatch(/\b(never|no)\b/i);
     expect(joined).toMatch(/share ID/);
     expect(joined).toMatch(/store/);
-  });
-});
-
-describe("the task-list skill", () => {
-  const skill = () => shipped("tv-tasks", "SKILL.md");
-
-  // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks
-  it("leaves where task data lives to the author, calling the JSON store the standard choice for a to-do list and saying that browser storage does not work in artifacts", () => {
-    expect(sections(skill()).map(({ heading }) => heading).filter((heading) => /JSON store/.test(heading))).toEqual([]);
-    const rule = sentences(skill());
-    expect(rule.some((sentence) => /artifact's author/.test(sentence) && /depends on[^.]*design[^.]*\buse\b[^.]*person/.test(sentence))).toBe(true);
-    const sources = rule.find((sentence) => /JSON store/.test(sentence) && /third-party API/.test(sentence));
-    expect(sources).toMatch(/productivity app/);
-    expect(sources).toMatch(/HTML itself/);
-    expect(rule.some((sentence) => /`television` skill's `resources\.md`/.test(sentence))).toBe(true);
-    expect(rule.some((sentence) => /JSON store/.test(sentence) && /standard choice/.test(sentence) && /to-do list/.test(sentence))).toBe(true);
-    expect(rule.some((sentence) => /`localStorage`, cookies and IndexedDB do not work in artifacts/.test(sentence) && /CSP sandbox/.test(sentence))).toBe(true);
-  });
-
-  // spec: proofs/arch/resources/guidance.md#^rg-t-tv-tasks-message
-  it("puts a live list's status or error message in the page header", () => {
-    const rule = sentences(skill()).filter((sentence) => /status or error message/.test(sentence)).join(" ");
-    expect(rule).toMatch(/page header/);
-    expect(rule).toMatch(/subtitle/);
-    expect(sentences(skill()).some((sentence) => /page header to hold it/.test(sentence))).toBe(true);
   });
 });
 

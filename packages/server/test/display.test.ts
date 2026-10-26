@@ -84,7 +84,7 @@ describe("display HTTP API", () => {
     } finally { await h.server.dispose(); rmSync(h.storagePath, { recursive: true, force: true }); }
   });
 
-  it("GET /display keeps activeScreenID output-only for focused and empty state", async () => {
+  it("GET /display keeps activeScreenID output-only after a last-channel replacement", async () => {
     const h = await harness(true, true);
     try {
       const assertDisplayResponse = async (focusedChannelId: string | null) => {
@@ -113,7 +113,7 @@ describe("display HTTP API", () => {
         .delete(`/channels/${focusedChannelId}`)
         .set(h.authHeader)
         .expect(200);
-      await assertDisplayResponse(null);
+      await assertDisplayResponse(h.store.listChannels()[0]!.id);
     } finally { await h.server.dispose(); rmSync(h.storagePath, { recursive: true, force: true }); }
   });
 
@@ -437,7 +437,7 @@ describe("display HTTP API", () => {
     } finally { await server.dispose(); store.dispose(); rmSync(storagePath, { recursive: true, force: true }); }
   });
 
-  it("fresh startup keeps a stale persisted focusedChannelId drift-tolerantly null", async () => {
+  it("fresh startup repairs a stale persisted focusedChannelId", async () => {
     const storagePath = tempDir();
     seedChannel(storagePath, { id: "screen-1", name: "One" });
     seedDisplayState(storagePath, {
@@ -450,10 +450,10 @@ describe("display HTTP API", () => {
     const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true, acpProfile: { agent: "hermes", command: "hermes", args: ["acp"], envPrefix: "HERMES_", sessionIdStrategy: "mapped" } });
     await server.start();
     try {
-      expect(store.getFocusedChannelId()).toBeNull();
+      expect(store.getFocusedChannelId()).toBe("screen-1");
       expect(store.listChannels().map((channel) => channel.id)).toEqual(["screen-1"]);
       await request(server.httpServer).get("/display").set({ Authorization: `Bearer ${store.authToken}` }).expect(200).expect(({ body }) => {
-        expect(body).toMatchObject({ focusedChannelId: null, pinnedChannelIds: [], activeThemeName: null, appearanceMode: "system", acpEnabled: true });
+        expect(body).toMatchObject({ focusedChannelId: "screen-1", pinnedChannelIds: [], activeThemeName: null, appearanceMode: "system", acpEnabled: true });
       });
     } finally { await server.dispose(); store.dispose(); rmSync(storagePath, { recursive: true, force: true }); }
   });
@@ -862,7 +862,7 @@ describe("display HTTP API", () => {
     }
   });
 
-  it("POST /channels focuses the new channel after deleting the sole channel", async () => {
+  it("POST /channels leaves the replacement focused after deleting the sole channel", async () => {
     const h = await harness();
     try {
       const soleChannelId = h.store.getFocusedChannelId()!;
@@ -873,8 +873,10 @@ describe("display HTTP API", () => {
         .send({ name: "First again" })
         .expect(201);
 
+      const replacementId = h.store.listChannels().find((channel) => channel.id !== created.body.channel.id)!.id;
+
       const expected = {
-        focusedChannelId: created.body.channel.id,
+        focusedChannelId: replacementId,
         pinnedChannelIds: [],
         activeThemeName: null,
         appearanceMode: "system",
@@ -969,18 +971,20 @@ describe("display HTTP API", () => {
     } finally { await h.server.dispose(); rmSync(h.storagePath, { recursive: true, force: true }); }
   });
 
-  it("DELETE /channels allows removing the last remaining channel and leaves display focusedChannelId null", async () => {
+  it("DELETE /channels replaces the last remaining channel and focuses it", async () => {
     const h = await harness();
     try {
       const focusedChannelId = h.store.getFocusedChannelId()!;
       const channelEvents: any[] = [];
       h.store.addEventListener("channel-changed", (event) => channelEvents.push(event));
       await request(h.server.httpServer).delete(`/channels/${focusedChannelId}`).set(h.authHeader).expect(200);
+      const replacement = h.store.listChannels()[0]!;
       expect(channelEvents).toHaveLength(1);
-      expect(channelEvents[0].channelID).toBeNull();
-      expect(h.store.listChannels()).toHaveLength(0);
+      expect(channelEvents[0].channelID).toBe(replacement.id);
+      expect(h.store.listChannels()).toHaveLength(1);
+      expect(replacement).toMatchObject({ name: "New channel", layout: [] });
       expect(h.store.getDisplayState()).toEqual({
-        focusedChannelId: null,
+        focusedChannelId: replacement.id,
         pinnedChannelIds: [],
         activeThemeName: null,
         activeThemeColorScheme: null,
@@ -988,7 +992,7 @@ describe("display HTTP API", () => {
         themeJavaScriptConsentIds: [],
       });
       expect(readDisplayState(h.storagePath)).toEqual({
-        focusedChannelId: null,
+        focusedChannelId: replacement.id,
         pinnedChannelIds: [],
         activeThemeName: null,
         appearanceMode: "system",

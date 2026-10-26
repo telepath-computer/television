@@ -98,10 +98,13 @@ async function openCollapsedProductApp(
   await expect(page.locator(".channel-switcher")).toBeVisible();
 }
 
-async function clearChannels(client: TelevisionClient): Promise<void> {
+async function removeOtherChannels(
+  client: TelevisionClient,
+  keepIDs: readonly string[],
+): Promise<void> {
   const { channels } = await client.channels.list();
   for (const channel of channels) {
-    await client.channels.remove({ channelID: channel.id });
+    if (!keepIDs.includes(channel.id)) await client.channels.remove({ channelID: channel.id });
   }
 }
 
@@ -374,8 +377,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
       const controls = document.querySelector<HTMLElement>(".top-bar-controls")!;
       const refs = {
         controls,
-        skill: controls.querySelector(".skill-trigger")!,
-        skillPanel: controls.querySelector(".skill-popover")!,
+        templates: controls.querySelector(".toolbox-trigger")!,
+        templatesPanel: controls.querySelector(".toolbox-popover")!,
         settings: controls.querySelector(".settings-trigger")!,
         settingsPanel: controls.querySelector(".settings-popover")!,
         bell: controls.querySelector(".update-bell")!,
@@ -408,8 +411,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
       return {
         same: {
           controls: document.querySelector(".top-bar-controls") === refs.controls,
-          skill: controls.querySelector(".skill-trigger") === refs.skill,
-          skillPanel: controls.querySelector(".skill-popover") === refs.skillPanel,
+          templates: controls.querySelector(".toolbox-trigger") === refs.templates,
+          templatesPanel: controls.querySelector(".toolbox-popover") === refs.templatesPanel,
           settings: controls.querySelector(".settings-trigger") === refs.settings,
           settingsPanel: controls.querySelector(".settings-popover") === refs.settingsPanel,
           bell: controls.querySelector(".update-bell") === refs.bell,
@@ -422,8 +425,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
 
     expect(result.same).toEqual({
       controls: true,
-      skill: true,
-      skillPanel: true,
+      templates: true,
+      templatesPanel: true,
       settings: true,
       settingsPanel: true,
       bell: true,
@@ -431,8 +434,8 @@ test.describe("top-bar controls continuity (^top-ac-controls-continuity)", () =>
     });
     expect(result.removed).toEqual({
       controls: false,
-      skill: false,
-      skillPanel: false,
+      templates: false,
+      templatesPanel: false,
       settings: false,
       settingsPanel: false,
       bell: false,
@@ -676,12 +679,12 @@ test.describe("channel switcher selection (^top-ac-switcher-select)", () => {
     const product = await launchProductServer();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const channels = [
         await seedLiveChannel(client, product, "Switcher first"),
         await seedLiveChannel(client, product, "Switcher second"),
         await seedLiveChannel(client, product, "Switcher third"),
       ];
+      await removeOtherChannels(client, channels.map(({ id }) => id));
       const listOrder = [...channels].sort((left, right) =>
         right.id.localeCompare(left.id)
       );
@@ -699,9 +702,9 @@ test.describe("channel switcher selection (^top-ac-switcher-select)", () => {
       await expectDismissedSwitcher(page);
 
       await trigger.click();
-      await page.locator(".skill-trigger").click();
+      await page.locator(".toolbox-trigger").click();
       await expectDismissedSwitcher(page);
-      await page.locator(".skill-trigger").click();
+      await page.locator(".toolbox-trigger").click();
 
       await trigger.click();
       await expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -802,8 +805,8 @@ test.describe("channel switcher creation (^top-ac-switcher-create)", () => {
     const product = await launchProductServer();
     try {
       const client = new TelevisionClient(product.serverURL);
-      await clearChannels(client);
       const initial = await seedLiveChannel(client, product, "Initial channel");
+      await removeOtherChannels(client, [initial.id]);
       await client.display.patch({ focusedChannelId: initial.id, pinnedChannelIds: [] });
       await openCollapsedProductApp(page, product, baseURL, { realMotion: true });
       const trigger = page.locator(".channel-switcher");
@@ -819,7 +822,7 @@ test.describe("channel switcher creation (^top-ac-switcher-create)", () => {
       });
 
       const motion = await startMotionObservation(page, ".channel-switcher-pop");
-      await popover.getByRole("button", { name: "New channel" }).click();
+      await popover.getByRole("button", { name: "New channel", exact: true }).click();
       const report = await motion.settle({ requireMotion: true });
       expect(report.webAnimations.some(({ kind, duration, finished }) =>
         kind === "web-animation" && duration > 0 && finished
@@ -863,7 +866,7 @@ test.describe("channel switcher creation (^top-ac-switcher-create)", () => {
       await expect.poll(async () =>
         (await client.channels.get({ channelID: createdChannel.id })).channel.name
       ).toBe("Created in switcher");
-      await popover.getByRole("button", { name: "New channel" }).click();
+      await popover.getByRole("button", { name: "New channel", exact: true }).click();
       const nextRename = popover.getByRole("textbox", { name: "Channel name" });
       await expect(nextRename).toBeFocused();
       await nextRename.fill("Abandoned name");

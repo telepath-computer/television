@@ -133,7 +133,7 @@ The markdown editor, artifact-missing page, and url-unsupported page include a b
 
 ## Embedded-document platform behavior
 
-In Chrome and Firefox, an iframe's used `color-scheme` value controls that document's `prefers-color-scheme` query, including cross-origin frames. Safari uses the device preference inside an iframe when an explicit host preference disagrees; [TV-692](https://linear.app/telepath-computer/issue/TV-692) tracks this platform difference. Theme-frame appearance does not depend on that query: each frame document receives its effective `data-theme` and matching root scheme at creation. There is no appearance message in this contract.
+In Chrome and Firefox, an iframe's used `color-scheme` value controls that document's `prefers-color-scheme` query, including cross-origin frames. Safari uses the device preference inside an iframe when an explicit host preference disagrees. Theme-frame appearance does not depend on that query: each frame document receives its effective `data-theme` and matching root scheme at creation. There is no appearance message in this contract.
 
 Electron applies the application's appearance input app-wide through the [desktop appearance contract](../desktop/appearance.md), because a `<webview>` is a separate `WebContents` and does not inherit its embedder's scheme.
 

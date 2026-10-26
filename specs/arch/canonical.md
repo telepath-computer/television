@@ -35,7 +35,7 @@ The private workspace package `@telepath-computer/canonical` at `packages/canoni
 
 ## What artifacts are told
 
-An artifact is written by an agent reading Television's skill guidance, so what the bundle offers is only reachable if that guidance says it is there. The television skill's HTML artifact guidance (`packages/skills/skills/television/src/html-artifact-style.md`) and the bundled artifact-authoring skills target live canonical v2 for newly authored artifacts. The HTML guidance lists the v2 bundle addresses to link, the vocabulary its styles provide, and every public icon name. For each public element, it includes the markup an author writes, the element's attributes, and its documented custom properties.
+An artifact is written by an agent reading Television's skill guidance, so what the bundle offers is only reachable if that guidance says it is there. The `television` skill's HTML artifact guidance (`packages/skills/skills/television/src/html-artifact-style.md`) targets live canonical v2 for newly authored artifacts. The HTML guidance lists the v2 bundle addresses to link, the vocabulary its styles provide, and every public icon name. For each public element, it includes the markup an author writes, the element's attributes, and its documented custom properties.
 
 It states nothing that is not contract. An internal class, a shadow part, a structure an element happens to render — none appears there, because an artifact written against it must survive everything a version is free to change. The same holds for vocabulary: guidance and every stylesheet a skill ships name only what the live foundation defines. A retired name preserved only by a frozen version appears in neither, so no new artifact is written against it.
 

@@ -206,6 +206,24 @@ describe("server telemetry emitters", () => {
     ]);
   });
 
+  // proofs/arch/telemetry/emitters.md#^t-emit-hooks
+  it("emits artifact updates only when transparency changes", async () => {
+    const h = await setup();
+    const artifact = h.store.createArtifact({
+      kind: "url", title: "Transparency", channelID: h.store.listChannels()[0]!.id,
+      url: "https://example.com/",
+    });
+    h.sink.clear();
+    for (const [transparent, count] of [[false, 0], [true, 1], [true, 1], [false, 2], [false, 2]] as const) {
+      h.store.updateArtifact({ artifactID: artifact.id, fields: { transparent } });
+      expect(h.sink.events).toHaveLength(count);
+    }
+    for (const event of h.sink.events) {
+      expect(event).toMatchObject({ name: "artifact_updated", properties: { artifact_kind: "url" } });
+      expect(event.properties).not.toHaveProperty("transparent");
+    }
+  });
+
   it("distinguishes direct artifact deletion from channel cleanup", async () => {
     const h = await setup();
     const firstChannel = h.store.listChannels()[0]!;
@@ -381,7 +399,7 @@ describe("server telemetry emitters", () => {
     expect(h.sink.events.map((event) => event.name)).toEqual(["screen_deleted"]);
   });
 
-  it("TV-755 emits theme changes with registry count but no theme package data", async () => {
+  it("emits theme changes with registry count but no theme package data", async () => {
     const h = await setup();
     const themeName = "alice-secret-theme";
     const invalidThemeName = "alice-invalid-theme";
@@ -468,7 +486,7 @@ describe("server telemetry emitters", () => {
 
   // Seam: proofs/arch/telemetry/emitters.md#^t-theme-settings-actions.
   // Real store and packages; recording sink forfeits only PostHog delivery.
-  it("TV-755 emits each committed setting once and ignores unchanged or rejected patches", async () => {
+  it("emits each committed setting once and ignores unchanged or rejected patches", async () => {
     const h = await setup();
     const themeID = "private-combined-theme";
     seedThemePackage(h.storagePath, themeID, "/* private */", { enableMainJS: true, mainJS: "/* private script */" });
@@ -498,7 +516,7 @@ describe("server telemetry emitters", () => {
     expect(h.sink.events.at(-1)?.properties.$set).toMatchObject(settings);
   });
 
-  it("TV-755 distinguishes custom switches, explicit None, and registry fallback", async () => {
+  it("distinguishes custom switches, explicit None, and registry fallback", async () => {
     const h = await setup();
     const first = "private-first-theme";
     const second = "private-second-theme";

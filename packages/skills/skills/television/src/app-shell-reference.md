@@ -17,7 +17,7 @@ An artifact frame belongs to the application document. The document inside its i
 <div id="foreground-overlay" inert aria-hidden="true"></div>
 ```
 
-`#app` owns the application layout and suppresses ordinary text selection in its contents; readable regions can explicitly restore selection. `.app-sidebar` holds the channel list. The sidebar defaults to 260 pixels wide, resizes between 160 and 350 pixels, and remembers the chosen width per browser; it can also collapse entirely, the navbar then opening with an expand control and — while a channel is open — a channel-switcher popover, with the collapsed state remembered per browser. `.app-main` holds the wallpaper, navbar and stage. `.app-main > .top-bar` supplies the horizontal control inset; stage padding is separate. Preserve the shell width constraints so overflowing tabs and pages scroll inside their regions without widening the document. `#app:focus` suppresses a ring on the container itself. The wallpaper region establishes a backdrop boundary so overlay blur samples the wallpaper rather than adjacent content, while fixed popovers retain viewport positioning.
+`#app` owns the application layout and suppresses ordinary text selection in its contents; readable regions can explicitly restore selection. `.app-sidebar` holds the channel list. The sidebar defaults to 260 pixels wide, resizes between 160 and 350 pixels, and remembers the chosen width per browser; it can also collapse entirely, the navbar then opening with an expand control and channel-switcher popover, with the collapsed state remembered per browser. `.app-main` holds the wallpaper, navbar and stage. `.app-main > .top-bar` supplies the horizontal control inset; stage padding is separate. Preserve the shell width constraints so overflowing tabs and pages scroll inside their regions without widening the document. `#app:focus` suppresses a ring on the container itself. The wallpaper region establishes a backdrop boundary so overlay blur samples the wallpaper rather than adjacent content, while fixed popovers retain viewport positioning.
 
 While Television cannot use its server, one connection dialog is shown. Disconnected and unreachable states keep an established shell and its artifact documents mounted; first connection, authorization and upgrade-gate states have no shell behind them. Three failed unreachable reconnects change Disconnected to Can’t connect with server; the displayed upgrade gate stays until reload.
 
@@ -95,7 +95,7 @@ Channel context menus use `tv-menu`, `tv-menu-item`, `hr`, and `tv-menu-item[int
 
 `.top-bar` centers `.top-bar > .tab-strip` while tabs fit and keeps `.top-bar-controls` at the trailing edge. With `.tab-strip[data-overflow]`, the strip scrolls within the remaining space. The layout retains an 8-pixel gap before the strip and 48 pixels of draggable ground before the trailing controls; tabs and their edge fades stay clear of both control groups. Both child bands exclude native window dragging; empty bar ground remains available for it. The navbar and sidebar titlebar share the application bar height, with their controls vertically centered.
 
-`.top-bar-lead` appears only while the channel sidebar is collapsed: `.sidebar-expand` reopens it, and — only while a channel is open — `.channel-switcher` (with `.channel-switcher-name` truncating the label) opens `.channel-switcher-pop`, a `tv-popover` composing the channel list over a pinned `.channel-switcher-pop-footer` create bar, its scrolling body `.channel-switcher-pop-body`. While the lead group is present the leading flank refuses to shrink below it, so a long name pushes the strip off-centre rather than clipping.
+`.top-bar-lead` appears only while the channel sidebar is collapsed: `.sidebar-expand` reopens it, and `.channel-switcher` (with `.channel-switcher-name` truncating the label) opens `.channel-switcher-pop`, a `tv-popover` composing the channel list over a pinned `.channel-switcher-pop-footer` create bar, its scrolling body `.channel-switcher-pop-body`. While the lead group is present the leading flank refuses to shrink below it, so a long name pushes the strip off-centre rather than clipping.
 
 The popover retains channel row spacing, type and shape, but assigns its colors locally from ordinary panel and option roles. Sidebar-specific color overrides therefore do not set its colors. `.channel-switcher-pop .channel[aria-selected="true"]` keeps primary selection colors. Unselected rows use a neutral highlight for hover, keyboard focus or an open context menu; `.channel-switcher-pop .channel:focus-visible` has no outline. While keyboard focus is visible, a stationary pointer does not highlight a second row. Preserve these distinctions when styling the popover.
 
@@ -112,7 +112,7 @@ Ordinary controls in both groups — `.top-bar :is(.top-bar-controls, .top-bar-l
   <div class="filmstrip">
     <div class="filmstrip-inner">
       <div class="page" selected><div class="artifact-frame">…</div></div>
-      <div class="page"><div class="artifact-frame">…</div></div>
+      <div class="page"><div class="artifact-frame artifact-frame-transparent">…</div></div>
     </div>
   </div>
 </section>
@@ -120,7 +120,7 @@ Ordinary controls in both groups — `.top-bar :is(.top-bar-controls, .top-bar-l
 
 `.stage` provides the clipping and size-container boundary. `body > .stage` fills a standalone stage; the app composition uses the flex region instead. `.filmstrip` is the viewport and `.filmstrip-inner` arranges pages. `.filmstrip-inner::before` and `::after` provide the end room needed for centering. `.page` receives its stored dimensions, and `.page[full-screen]` takes the available page box. `.page > .artifact-frame` fills that width.
 
-`.page:not([selected])` scales the background page and blurs the wallpaper behind it; its direct `.artifact-frame` child controls content opacity and content blur separately; `.page:has(~ .page[selected])` and `.page[selected] ~ .page` set the corresponding transform origins. `.page[selected]` keeps the selected page above neighbors during reordering. `.page:not([selected]) .artifact-frame` takes no pointer input. Reduced-motion styling removes page and artifact-frame transitions. Preserve selection, clipping and size behavior when changing the appearance.
+`.page:not([selected])` scales the background page and blurs the wallpaper behind it; its direct `.artifact-frame` child controls content opacity and content blur separately. A background page with a transparent frame leaves the wallpaper unblurred, but still scales the page and fades and blurs its artifact content. `.page:has(~ .page[selected])` and `.page[selected] ~ .page` set the corresponding transform origins. `.page[selected]` keeps the selected page above neighbors during reordering. `.page:not([selected]) .artifact-frame` takes no pointer input: a press selects the page without activating its document or frame controls. Reduced-motion styling removes page and artifact-frame transitions. Preserve selection, clipping and size behavior when changing the appearance.
 
 An empty channel adds `.stage-empty`, containing an artifact `tv-icon` and a paragraph in a compact, rounded box centered over the stage. It shares the wallpaper-overlay background, border, outline and blur, and has no shadow. Its text uses `--wallpaper-overlay-text-color`. `.stage-empty p` styles its supporting line. During an armed fullscreen snap, `.snap-outline[aria-hidden="true"]` overlays the page box without taking input. The outline and the tab/channel placeholders express transient drop or resize state, not persisted selection.
 
@@ -144,7 +144,15 @@ An empty channel adds `.stage-empty`, containing an artifact `tv-icon` and a par
 </div>
 ```
 
-`.artifact-frame` owns the border, curve, surface and broad shadow. Its `::before` paints the sharp rim and its `::after` paints a pointer-transparent masked inner highlight over document and titlebar. Background pages suppress the broad shadow while retaining the exterior rim. `.artifact-frame-clip > :is(iframe, webview)` fills the document area through the one-pixel padding track. `.artifact-frame-clip` clips the document and titlebar while the outer frame lets both shadows extend outward. `.artifact-title-bar` paints the lower band, `.artifact-title-bar .artifact-title` takes the remaining width and truncates, and `.artifact-bar-divider` separates navigation from the menu trigger. The two direction buttons use `disabled` to show unavailable history. In browser demo mode, the frame of an external web page wraps its artifact `tv-icon` in `button.artifact-return` (`icon`, ghost, `sm`) and shows no direction controls. The document repeats the top clipping radius where required for composited iframe/webview rendering. A frame can also hold static `.artifact-frame-content` in place of a document and omit its menu when it has no artifact to act on. That content fills the clipping region above the title bar.
+In the opaque state, `.artifact-frame` owns the border, curve, surface and broad shadow. Its `::before` paints the sharp rim and its `::after` paints a pointer-transparent masked inner highlight over document and titlebar. Opaque background pages suppress the broad shadow while retaining the exterior rim. `.artifact-frame-clip > :is(iframe, webview)` fills the document area through the one-pixel padding track. `.artifact-frame-clip` clips the document and titlebar while the outer frame lets both shadows extend outward. `.artifact-title-bar` paints the lower band, `.artifact-title-bar .artifact-title` takes the remaining width and truncates, and `.artifact-bar-divider` separates navigation from the menu trigger. The two direction buttons use `disabled` to show unavailable history. In browser demo mode, the frame of an external web page wraps its artifact `tv-icon` in `button.artifact-return` (`icon`, ghost, `sm`) and shows no direction controls. The opaque document repeats the top clipping radius where required for composited iframe/webview rendering. A frame can also hold static `.artifact-frame-content` in place of a document and omit its menu when it has no artifact to act on. That content fills the clipping region above the title bar.
+
+`.artifact-frame.artifact-frame-transparent` removes the frame surface, shadow and outline. Its native border and both edge paints remain hidden in every state. The clip allows square document corners, and the document host has a transparent background. The artifact still paints its own content. The title bar overlays the bottom of the document, preserving the full document height as the bar appears and disappears.
+
+The stage sets `data-resize-active` on the artifact frame while the pointer is on a page handle, including its outer band, or a resize drag runs wherever the pointer goes. After release or cancellation, the marker remains while the pointer is on a handle; it is removed only when neither condition holds. The marker reveals the same frost and title bar as frame hover.
+
+`.artifact-frame-transparent:is(:hover, [data-resize-active], :has(tv-menu[open]))` reveals the clip frost and title bar. `.artifact-frame-clip::before` paints the clip frost, with opacity fading over 300ms with ease timing. `.artifact-title-bar::before` paints the bar frost beneath the controls; the bar opacity uses the same fade. Keep these transitions on the clip pseudo-element and bar so the stage can animate frame opacity and blur independently. At rest the bar becomes hidden after the fade, so its controls leave keyboard navigation. An open descendant `tv-menu[open]` keeps the hovered appearance after the pointer leaves. Reduced motion makes both changes immediate.
+
+Keep backdrop filtering on these paint layers: a filtered menu ancestor becomes the containing block for the fixed-position menu, moving it away from its trigger. Avoid adding a stacking context that traps the menu beneath stage handles. Each frost layer precedes positioned content, which paints above it in tree order; the menu keeps its own fixed position beside the trigger.
 
 The artifact menu uses the same shared menu elements and placement as channel menus. Deletion uses the shared dialog outline below.
 
@@ -174,24 +182,26 @@ The artifact menu uses the same shared menu elements and placement as channel me
 
 An executable active theme adds `.settings-javascript-consent`, with `.settings-javascript-disclosure` and `label.settings-javascript-toggle`. The label contains a native checkbox carrying `role="switch"` and `name="theme-javascript-consent"`. `.settings-javascript-toggle input`, `input::before`, `input:checked`, `input:checked::before`, and `input:focus-visible` define its track, knob, enabled state and focus ring. `.settings-status[role="status"]`, `.settings-failure[role="alert"]`, and `.settings-errors` show loading, failure and registry diagnostics; `.settings-errors p` and `.settings-errors strong` separate the message and folder emphasis.
 
-### Skills, update notice and copy confirmation
+### Toolbox, update notice and copy confirmation
 
 ```html
-<button class="skill-trigger" id="skills-trigger" icon variant="ghost">…</button>
-<tv-popover class="skill-popover" trigger="skills-trigger">
-  <div class="skill-heading">…</div><p class="skill-intro">…</p>
-  <div class="skill-grid">
-    <article class="skill-card">
-      <div class="skill-thumb"><img alt=""></div>
-      <div class="skill-name">…</div><p class="skill-desc">…</p>
-      <button class="copy-button" size="sm">…</button>
-      <span class="copy-button-status" role="status" aria-live="polite"></span>
-    </article>
+<button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">…</button>
+<tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox">
+  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search toolbox" placeholder="Search toolbox…" aria-controls="toolbox-list" aria-activedescendant="…"></label>
+  <div class="toolbox-body">
+    <ul class="toolbox-list" id="toolbox-list" role="listbox" aria-label="Toolbox">
+      <li class="toolbox-row" role="option" aria-selected="true" data-highlighted>
+        <img class="toolbox-icon" alt="" draggable="false"><span class="toolbox-name">…</span>
+      </li>
+    </ul>
+    <hr class="toolbox-divider">
+    <div class="toolbox-invalid" role="note"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">…</span><span>…</span></span></div>
   </div>
+  <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
 </tv-popover>
 ```
 
-`.skill-popover`, `.skill-heading`, and `.skill-intro` define the panel framing. `.skill-grid` arranges the cards. `.skill-card`, `.skill-thumb`, `.skill-thumb img`, `.skill-name`, and `.skill-desc` own each card; `.skill-card button.copy-button` places its copy action at the bottom.
+`.toolbox-popover` holds search above the scrolling `.toolbox-body`, which is blank before the first template list arrives. Later updates retain the prior list until it is replaced. `.toolbox-footer` stays below the scrolling area in every state, with a muted top rule. `.toolbox-list` is a single column of icon-and-name rows. `.toolbox-row[data-highlighted]` and `.toolbox-row[data-pressed]` use the shared option tints; `.toolbox-icon` fits a supplied image without cropping or an added background. When no icon is available, `span.toolbox-icon.toolbox-letter` holds the white initial in a filled circle. `.toolbox-name` uses the standard body size and medium weight and truncates a long name. `.toolbox-empty` replaces the list when nothing is available or matches, and `.toolbox-folder-error` replaces it when the directory cannot be read. `.toolbox-invalid` shows one error count and repair instruction, without folder names. `.toolbox-divider` separates that summary from any rows or message above it. The summary and `.toolbox-folder-error` have no box or background; their 16px warning icon is centred in the same 20px column as row icons. The search field has a muted background, no border, and no focus ring; there is no heading or introduction.
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
@@ -244,7 +254,7 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 `.artifact-error` paints the document ground; `.artifact-error-body` limits the reading column. `.artifact-error h1`, `.artifact-error p`, and `.artifact-error-block` arrange its text. A missing artifact can include a path chip. An unsupported URL can include a link or `.plain-address`, followed by a link to the admin guide for installing the Mac desktop app. `.artifact-error a`, `.artifact-error .plain-address`, and `.artifact-error code` wrap long content; the path chip is selected whole for copying. Optional host-supplied content may carry `[hidden]`.
 
 <!-- Authority freshness: review this authored reference whenever a listed source changes. -->
-<!-- app-reference-source: specs/ui/app/app.frame sha256: d3f547b23c22507ffc38b4741c5b9fa5c66ddc83e845f999fc09a6259986aa0b -->
+<!-- app-reference-source: specs/ui/app/app.frame sha256: 907e1b4a150b0ac3649f77ed58933290bf053f6829a112e5222611593ee0b80c -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-frame.frame sha256: f336de141ff397e1e282f89a35ceb4e449e70ed3d85e92852c854ca7f61acce3 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/artifact-menu.frame sha256: e01464499f195ec8d44d9d0f899069e78661944131f23aca74459e1dca283111 -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/delete-confirm/delete-confirm.frame sha256: 42dea00eb14ddc11756cf012d53c1ae63c8a6f0409110ff3b30b8c0833532fb6 -->
@@ -253,19 +263,24 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/desktop-upgrade-gate/desktop-upgrade-gate.frame sha256: 15138e0ed0273ec54267efa55aae65b7b35a8812952a94902e05b85c3beb6725 -->
 <!-- app-reference-source: specs/ui/app/dialog/dialog.frame sha256: 31a723b9cafde4bbc2783cb01cc22e9dcfc88e71d36120dc24edf1de5ddcab17 -->
 <!-- app-reference-source: specs/ui/app/settings/settings.frame sha256: 35f923930af589729410a2b45a66ba7edddd6fd78f7de31f265cd5164abfc769 -->
-<!-- app-reference-source: specs/ui/app/sidebar/channel-list.frame sha256: 498bd76036a32641537b1a1c37ed3e135a2f0fdaf23fb66de12ef174eabc4fab -->
+<!-- app-reference-source: specs/ui/app/sidebar/channel-list.frame sha256: 71b3a11b35715eea72e79d0887b71526aaa1c5a3d65ea22c6c5468261e444edc -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-menu.frame sha256: 3696718c2d20c39e0408554439010b70ea9d649bdc77aab6fbab4a65453ecc4d -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel-placeholder.frame sha256: 2b18f7e0ca020db7c6d697752a12633f418a7964bb819885f56cd56a6ef19001 -->
 <!-- app-reference-source: specs/ui/app/sidebar/channel.frame sha256: 267e70719e2c8f2693c566c2d1118908391152ed9f573905215c384062f00dfd -->
 <!-- app-reference-source: specs/ui/app/sidebar/delete-confirm.frame sha256: 940dfd33179c4a59e1190efd4bb48b12a04fb2e8f246db9f5edb619e2ed6f75a -->
-<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 7e92cd473576d4a47f576342a09542ad8021dc8b60c978b1d8196a62b0aa1b87 -->
-<!-- app-reference-source: specs/ui/app/skill-selector/skill-selector.frame sha256: 7474d8a456c13f2064b90c43d04a37ffae9ef9e542ffa39a16fcbf27f6158a7f -->
-<!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: a4ec027d1aa152f456704df57d32b319e62405343fc8026cae31f97532314bfd -->
+<!-- app-reference-source: specs/ui/app/sidebar/sidebar.frame sha256: 54a14612559867f9fb552c826fa4290da0dc965e5c80a9b2338c1dd6483f6cee -->
+<!-- app-reference-source: specs/ui/app/stage/stage.frame sha256: 97dd9252bb561694a70ac6795f9261565da0195fd7087d5e4a9abee8541102cc -->
 <!-- app-reference-source: specs/ui/app/styles.css sha256: b3129a9c9fe4ad498324983304ef7ec448f3a510a9eb337d1ee24f5c003c0f84 -->
 <!-- app-reference-source: specs/ui/app/system-modal/system-modal.frame sha256: 5b2d6762819fd376cbfff840be88c4fb87e4713c5a7b98f478ab93246b1762c0 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-placeholder.frame sha256: 68f1be9e5bb91802c2877e63fd79e6c2157eae09f6a8729b2a3ae2f6bdc5cac3 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab-strip.frame sha256: 386d056d162c3aff1d5e6da1a7201bb9e9f1885a9f85933bb366d391c4622880 -->
 <!-- app-reference-source: specs/ui/app/tab-strip/tab.frame sha256: 99279467a24200a16547a76162c30c1a90a9bad1f783eb935fe2224bdcd7a8b6 -->
-<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: c2ee2416dc5411716fbab93f0adda0c5861e6e7be58b5f07d14d6c77a4c0320e -->
+<!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 6e1070593b273bb9b692420a30c8164e8c4a346fe043dcc1a9feef1fdeed3ee4 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
-<!-- app-reference-source: specs/ui/app/index.md sha256: a82a5169d070e9b3a6ecc4da5a7d616f3c0a9ad841512bd6322e36ebf652f401 -->
+<!-- app-reference-source: specs/ui/app/index.md sha256: 4181001af0760ec1c2d175e1cc2ff096e5391d046154760fb59291f3131b17d8 -->
+<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: a6a01b4299896d0611f08accb6935d2ad0c6c19ed0dc015fb5272a24c7e3ba04 -->
+<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 60d8a97aca279c98b46231846d3e1065c96c3dc5ea3e090b1f1f3b2b2c7428f7 -->
+<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: 79539a41e7fbba011cc44eb5f3d009f6e9abb0af645ddf9401290529dc97d789 -->
+<!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
+<!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: f47185669d83657172fe57d896c56b30d6ae6f55157f68fb97d0e27894713716 -->
+<!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 7fbb3adcfc70ec9ab9e232b09707a5f276f74de56cee0346d9dc3daeb771a230 -->

@@ -1,0 +1,86 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as Stories from "../../../storybook/spec/templates/sticky-note/sticky-note.stories.ts";
+
+<Meta of={Stories} />
+
+export const Artifact = ({ children }) => <div style={{ width: "360px", maxWidth: "100%" }}>{children}</div>;
+
+*UI spec: the bundled Sticky note page, for text that a person and an agent can edit together.*
+
+# Sticky note template
+
+Each story shows one state of the page, checked against production by [UI conformance](../../spec-ui.md#conformance).
+
+<Artifact><Canvas of={Stories.WithText} /></Artifact>
+
+## A new note
+
+A new note is empty. Its hint disappears when you type and returns when you clear the note. Opening the note does not focus or select it. Click the note or reach it with Tab to begin editing. The text box is named "Note" for assistive technology.
+
+<Artifact><Canvas of={Stories.New} /></Artifact>
+
+<Artifact><Canvas of={Stories.Empty} /></Artifact>
+
+## Opening a note
+
+You can start typing once the note has opened.
+
+<Artifact><Canvas of={Stories.Loading} /></Artifact>
+
+<Artifact><Canvas of={Stories.LoadingDisconnected} /></Artifact>
+
+## Typing
+
+Return and Shift-Return insert line breaks. Pasting keeps plain text, including line breaks and spaces. Spellcheck is off; the usual selection, copying and undo work within the field.
+
+What you type is saved automatically shortly after you pause, or when you leave the field. Normal saving shows no message.
+
+<Artifact><Canvas of={Stories.Typing} /></Artifact>
+
+## Changes from elsewhere
+
+Changes an agent or another viewer makes appear while the note is open. Incoming changes never replace what you are typing or move your caret while you type. Once you pause or leave the field, changes from elsewhere can appear again.
+
+## Long text
+
+Scroll within the note to read the rest of the text. Only the text scrolls. Scrolling, selection and copying also work when the note is read-only.
+
+<Artifact><Canvas of={Stories.LongText} /></Artifact>
+
+<Artifact><Canvas of={Stories.LongTextScrolled} /></Artifact>
+
+## Read-only
+
+A read-only share exposes "Note" as a read-only text box. An empty read-only note has no typing hint. If permission to edit is removed while the note is open, it becomes read-only and shows the latest saved text. Revoking the share link leaves that text visible. Editing becomes available again when permission returns.
+
+<Artifact><Canvas of={Stories.ReadOnly} /></Artifact>
+
+<Artifact><Canvas of={Stories.EmptyReadOnly} /></Artifact>
+
+## Saving
+
+If an open, editable note loses its connection to Television, it says "Reconnecting…" and you can keep typing. What you typed is kept and saved once it reconnects. Keep the page open: reloading or closing it before it can save loses those unsaved edits. A read-only note stays read-only while disconnected.
+
+If Television rejects a save, the note returns to the text Television has kept and says "Couldn't save that change." for a few seconds. When disconnected, "Reconnecting…" takes precedence. These messages use a status region so screen readers announce them.
+
+<Artifact><Canvas of={Stories.Disconnected} /></Artifact>
+
+<Artifact><Canvas of={Stories.LongTextDisconnected} /></Artifact>
+
+<Artifact><Canvas of={Stories.SaveFailed} /></Artifact>
+
+## Data the page cannot read
+
+If the note cannot be read, an alert replaces its text. Any edit still waiting to save is discarded. The note cannot be edited until it has been repaired; once an agent fixes it, it appears again without reopening the page. The error is announced to screen readers as an alert.
+
+<Artifact><Canvas of={Stories.Unreadable} /></Artifact>
+
+<Artifact><Canvas of={Stories.UnreadableDisconnected} /></Artifact>
+
+## Icon
+
+In the Toolbox, the template's icon is a yellow note with writing and a folded corner.
+
+## Appearance
+
+<Artifact><Canvas of={Stories.Dark} /></Artifact>

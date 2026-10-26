@@ -1,4 +1,4 @@
-*What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
+*What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, its transparency setting, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
 
 **Status:** adopted redesign product authority.
 
@@ -8,7 +8,7 @@ An *artifact* is a pointer to content — held externally, or generated on the f
 
 An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel, except after a move that did not finish ([#^af-move](#^af-move)). ^af-artifact-reference
 
-The artifact record itself — its fields other than the [ID](#^af-artifact-id), its [store and share link](#^af-store-share), the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)). How a record is [saved](#^af-record-saved) is specified.
+The [artifact-record architecture](../arch/artifacts/index.md) owns the stored record shape and its create and update inputs. The registry and other record behavior remain code-authoritative outside the requirements stated here and by the owning specs in the [migration map](../spec-migration.md).
 
 ## Name
 
@@ -25,6 +25,10 @@ An artifact that this server serves from its own files has its own store, whatev
 ## Saving an artifact
 
 Every change to an artifact's record is saved durably, its creation and its deletion included: the change is complete, and reported, only once it is on disk. A record holds promises to the people who use the artifact's store and to those holding its share link, so a crash must neither lose the pointer to its store nor bring back a deleted artifact's link. When Television cannot confirm that a change reached the disk, the change fails, saying that its outcome is unknown, and Television keeps what the disk holds, which is ordinarily the change, so the person or agent can check and retry. ^af-record-saved
+
+## Transparency
+
+A *transparent* artifact shows its own document without the usual surface of the frame around it, so overlay-style documents work. Artifacts are opaque by default. Transparency can be chosen at creation and changed later for both path and URL artifacts. The setting belongs to the artifact and survives moves between channels and server restarts. The [frame](../ui/app/artifact-frame/index.md) and [stage](../ui/app/stage/index.md) UI specs own its visual treatment. ^af-transparent
 
 ## The document
 
@@ -98,7 +102,7 @@ Demo mode changes nothing else: the desktop app, every other kind of artifact, a
 
 - **Switching tabs preserves the document.** Moving between tab pages within a channel never reloads their artifacts: scroll position, form contents, and running scripts survive. Tab switching is the most frequent movement in the app, and losing in-document work to it would make the strip unusable for real work. ^af-tab-continuity
 - **Switching channels may reload documents.** A channel's frames exist only while it is the current channel; returning to a channel loads its artifacts fresh. Unsaved state held inside a document does not survive leaving the channel. ^af-channel-reload
-- **Rearranging pages may reload their documents.** Reordering tabs rearranges the channel's pages ([ui/app/stage/index.md](../ui/app/stage/index.md)); rearrangement is not promised to preserve live documents — continuity is promised to tab *switching* alone. Preserving documents through rearrangement is tracked as a future enhancement ([TV-524](https://linear.app/telepath-computer/issue/TV-524)); softening the channel-switch reload with a recency buffer is likewise tracked ([TV-525](https://linear.app/telepath-computer/issue/TV-525)). Dragging an artifact by its frame is a future milestone, not part of the current release.
+- **Rearranging pages may reload their documents.** Reordering tabs rearranges the channel's pages ([ui/app/stage/index.md](../ui/app/stage/index.md)); rearrangement is not promised to preserve live documents — continuity is promised to tab *switching* alone. Dragging an artifact by its frame is a future milestone, not part of the current release.
 
 ## Navigation
 

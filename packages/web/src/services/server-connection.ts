@@ -29,6 +29,7 @@ import {
   type TelemetryActivityDocumentTarget,
   type TelemetryActivityEventTarget,
 } from "./telemetry-client.ts";
+import { TemplateCache } from "./template-cache.ts";
 import { ACPClient, type ACPMappedSessionStore } from "./acp-client.ts";
 import {
   StorageMappedSessionStore,
@@ -174,6 +175,7 @@ export class ServerConnection extends EventTarget<
   channels = new Map<string, Channel>();
   client: TelevisionClient;
   readonly acpClient: ACPClient;
+  readonly templates = new TemplateCache(() => this.client.templates);
 
   private _token: string | null;
   /**
@@ -371,6 +373,7 @@ export class ServerConnection extends EventTarget<
     this.networkEventTarget?.removeEventListener("online", this.onNetworkOnline);
     this.telemetryActivityAgent?.stop();
     this.acpClient.dispose();
+    this.templates.dispose();
   }
 
   getViewURL(artifact: Artifact): string {
@@ -412,6 +415,9 @@ export class ServerConnection extends EventTarget<
 
   applyServerEvent(event: ServerEvent): void {
     switch (event.type) {
+      case "templates-changed":
+        this.templates.apply(event);
+        break;
       case "channel-created":
         this.channels.set(event.channel.id, structuredClone(event.channel));
         this.dispatchEvent(new ChannelsChangedEvent("channels-changed"));
@@ -466,6 +472,7 @@ export class ServerConnection extends EventTarget<
     const attempt = this.connectAttempt;
     this.socket?.close();
     this.client = this.createClient(this.url, this._token, this.telemetryMeta);
+    this.templates.reset();
 
     this.setStatus("disconnected");
     this.dispatchEvent(new ChangeEvent("change"));
@@ -499,6 +506,7 @@ export class ServerConnection extends EventTarget<
         // Captured before finishConnected() records this attempt: true only
         // when an earlier attempt already bootstrapped, i.e. a reconnect.
         const isReconnect = this.hasEverConnected;
+        void this.templates.load();
         try {
           const [{ channels }, display, demoMode] = await Promise.all([
             this.client.channels.list(),
@@ -562,6 +570,7 @@ export class ServerConnection extends EventTarget<
       });
 
       socket.addEventListener("message", (event) => {
+        if (this.connectAttempt !== attempt) return;
         // Route by `type` ahead of applyServerEvent: applyServerEvent stays
         // domain-only, and this routing layer is the single place non-domain
         // messages are admitted. Unrecognized types are dropped deliberately
@@ -615,6 +624,7 @@ export class ServerConnection extends EventTarget<
         if (!isServerEventType(message.type)) {
           return;
         }
+        if (message.type === "templates-changed" && (this.bootState !== "booted" || this.navigationPending())) return;
         const serverEvent = message as unknown as ServerEvent;
         this.applyServerEvent(serverEvent);
         this.dispatchEvent(
@@ -841,6 +851,7 @@ function getCloseCode(event: unknown): number | null {
  * union variant fails to compile until it is admitted here.
  */
 const SERVER_EVENT_TYPE_FLAGS: Record<ServerEvent["type"], true> = {
+  "templates-changed": true,
   "artifact-created": true,
   "artifact-updated": true,
   "artifact-content-changed": true,
