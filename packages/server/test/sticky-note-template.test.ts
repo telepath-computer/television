@@ -8,12 +8,20 @@ const storyFolder = path.resolve(import.meta.dirname, "../../../storybook/spec/t
 
 describe("bundled Sticky note package", () => {
   // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-package
-  it("provides the page, exact empty seed and transparent 360 by 360 display", () => {
+  it("provides the page, store schema, exact empty seed and transparent 360 by 360 display", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest.display).toEqual({ width: 360, height: 360, transparent: true });
     expect(manifest.display).not.toHaveProperty("fullScreen");
     expect(existsSync(path.join(folder, "index.html"))).toBe(true);
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ text: "" });
+    // The store schema, as specs/arch/templates/sticky-note.md (^bundled-artifact-template-sticky-note-store) states it.
+    expect(manifest.dataSchema).toEqual({
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" }
+      }
+    });
   });
 
   // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-assets

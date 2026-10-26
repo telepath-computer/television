@@ -8,20 +8,31 @@ The bundled manifest declares `display: { "width": 640, "height": 800 }` in refe
 
 ## Store
 
-The template's `data.json` seeds the artifact's [own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"title":"Checklist","items":{}}`. The value has this contract because agents write it:
+The template's `data.json` seeds the artifact's [own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"title":"Checklist","items":{}}`. Agents write the value, so it has a contract: the manifest's `dataSchema`, which is this schema.
 
-```ts
-interface ChecklistData {
-  title: string;
-  items: Record<string, {
-    order: number;
-    text: string;
-    done: boolean;
-  }>;
+```json
+{
+  "type": "object",
+  "required": ["title", "items"],
+  "properties": {
+    "title": { "type": "string" },
+    "items": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["order", "text", "done"],
+        "properties": {
+          "order": { "type": "number" },
+          "text": { "type": "string" },
+          "done": { "type": "boolean" }
+        }
+      }
+    }
+  }
 }
 ```
 
-The value is valid when it is a JSON object, not an array, whose `title` is a string and whose `items` is an object; each value in `items` must be an object whose `text` is a string, `done` a boolean and `order` a finite number. Any key is accepted for an item, though the page and the README create them with [JSON store `push`](../resources/json-store.md#^js-arch-push-keys). Fields this contract does not name are ignored. A value that breaks this contract is shown as the pilot's [Data the page cannot read](../../ui/templates/checklist.mdx#data-the-page-cannot-read) section describes. ^bundled-artifact-template-checklist-store
+Any key is accepted for an item, though the page and the README create them with [JSON store `push`](../resources/json-store.md#^js-arch-push-keys). Fields the schema does not name are ignored. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. A value that breaks the schema is shown as the pilot's [Data the page cannot read](../../ui/templates/checklist.mdx#data-the-page-cannot-read) section describes. ^bundled-artifact-template-checklist-store
 
 The page displays items by ascending `order`, breaking ties by key in the [JSON store's key order](../../product/resources/json-store.md#^js-child-events). It gives the first item in an empty list `order` 0, an item added at the top one less than the smallest, one added at the end one more than the largest, and one added below an item the midpoint between that item and the next. When that number would not lie strictly beyond or between its neighbours, as when two items share an `order` or a gap has been halved until no number fits, the page renumbers instead: a [transaction](../../product/resources/json-store.md#^js-transactions) on `items` adds the new item, with a key from `push`, and sets every item's `order` to its position from 0, leaving each item's other fields as they are. Each attempt works from the current items, so a change another writer made meanwhile is kept; if the item the new one was to follow has been removed, the new item goes at the end. If an attempt finds `items` missing or breaking this contract, it writes nothing and the item is not added.
 

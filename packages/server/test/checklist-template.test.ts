@@ -29,12 +29,32 @@ describe("bundled Checklist package", () => {
   });
 
   // proofs/arch/templates/checklist.md#^templates-checklist-t-package
-  it("provides the page, exact empty seed, and 640 by 800 display using the shared fullscreen default", () => {
+  it("provides the page, store schema, exact empty seed, and 640 by 800 display using the shared fullscreen default", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest.display).toEqual({ width: 640, height: 800 });
     expect(manifest.display).not.toHaveProperty("fullScreen");
     expect(existsSync(path.join(folder, "index.html"))).toBe(true);
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ title: "Checklist", items: {} });
+    // The store schema, as specs/arch/templates/checklist.md (^bundled-artifact-template-checklist-store) states it.
+    expect(manifest.dataSchema).toEqual({
+      "type": "object",
+      "required": ["title", "items"],
+      "properties": {
+        "title": { "type": "string" },
+        "items": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["order", "text", "done"],
+            "properties": {
+              "order": { "type": "number" },
+              "text": { "type": "string" },
+              "done": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    });
   });
 
   // proofs/arch/templates/checklist.md#^templates-checklist-t-icon
