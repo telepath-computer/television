@@ -20,6 +20,7 @@ const realStackTests = [
   "**/path-artifact-real-stack-coverage.test.ts",
   "**/sidebar-collapse.test.ts",
   "**/sidebar-resize.test.ts",
+  "**/template-calendar-real-stack.test.ts",
   "**/template-checklist-real-stack.test.ts",
   "**/templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",

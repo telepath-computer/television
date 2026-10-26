@@ -127,9 +127,9 @@ describe("full CLI build asset copies", () => {
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-build
   // proofs/arch/cli/index.md#^cli-build-templates-copy
   // The e2e:node preCommand runs the real CLI build, including the server build.
-  it("ships the complete bundled Checklist tree byte-for-byte through both builds", () => {
+  it("ships the complete bundled template tree byte-for-byte through both builds", () => {
     const source = path.join(REPO_ROOT, "packages/server/assets/templates");
-    expect(readdirSync(source)).toEqual(["checklist"]);
+    expect(readdirSync(source).sort()).toEqual(["calendar", "checklist"]);
     expectByteIdenticalTree(source, path.join(REPO_ROOT, "packages/server/dist/templates"));
     expectByteIdenticalTree(source, path.join(CLI_DIST, "templates"));
   });

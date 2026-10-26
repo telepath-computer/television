@@ -6,7 +6,7 @@ Proves [specs/arch/templates/bundled-templates.md](../../../specs/arch/templates
 
 ## Coverage model
 
-Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist package coverage](./checklist.md) owns display size, starting data, page delivery, and guidance; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
+Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist package coverage](./checklist.md) and [Calendar package coverage](./calendar.md) own the display size, starting data, page delivery, and guidance of their templates; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
 
 ## Test hooks
 
@@ -14,4 +14,4 @@ The inventory contract reads the actual bundled files and exported IDs; it repla
 
 ## Inventory
 
-- **Contract** (real source folders, manifests, and exported inventory; no mocks): Under [the inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the only bundled ID is `checklist`, the readonly tuple is `['checklist']`, the inventory records minimum installed version `1.0.0`, and the manifest declares `Checklist`, `A list of items to tick off and edit.`, and version `1.0.0`. *(policy-grade test: `packages/server/test/checklist-template.test.ts`, “ships only Checklist with its exact inventory identity and minimum version”)* ^templates-bundled-t-inventory
+- **Contract** (real source folders, manifests, and exported inventory; no mocks): Under [the inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the bundled IDs are `checklist` and `calendar`, the readonly tuple is `['checklist', 'calendar']`, the inventory records minimum installed version `1.0.0` for each, and the manifests declare the names, descriptions, and version `1.0.0` the inventory lists. *(policy-grade test: `packages/server/test/checklist-template.test.ts`, “ships Checklist and Calendar with their exact inventory identities and minimum versions”)* ^templates-bundled-t-inventory

@@ -89,6 +89,7 @@ describe("test runner registry", () => {
   test("uses explicit excludeRoots when resolving file ownership", () => {
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/root-horizontal-overflow.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/onboarding-browser.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-calendar-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-checklist-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/toolbox-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/swipe-gesture.test.ts").map((surface) => surface.id)).toEqual(["unit:browser-app"]);

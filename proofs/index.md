@@ -81,6 +81,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `authoring.md` (29 lines) — *Proves that the emitted television skill teaches copied template use, starting data, and artifact snapshots.*
     - `bundled-installation.md` (33 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
     - `bundled-templates.md` (17 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
+    - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
   - **test-runner/**
@@ -166,7 +167,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **setup/**
     - `index.md` (28 lines) — *Setup coverage at the local renderer boundary, with real Electron evidence for connection, confirmation before navigation, agent links, and window dragging.*
   - **templates/**
-    - `checklist.md` (79 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
+    - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
+    - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

@@ -9,12 +9,18 @@ const folder = path.join(sourceRoot, "checklist");
 
 describe("bundled Checklist package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-bundled-t-inventory
-  it("ships only Checklist with its exact inventory identity and minimum version", () => {
-    expect(readdirSync(sourceRoot)).toEqual(["checklist"]);
-    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist"]);
-    expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([{ id: "checklist", minimumVersion: "1.0.0" }]);
+  it("ships Checklist and Calendar with their exact inventory identities and minimum versions", () => {
+    expect(readdirSync(sourceRoot).sort()).toEqual(["calendar", "checklist"]);
+    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist", "calendar"]);
+    expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([
+      { id: "checklist", minimumVersion: "1.0.0" },
+      { id: "calendar", minimumVersion: "1.0.0" },
+    ]);
     expect(JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"))).toMatchObject({
       name: "Checklist", description: "A list of items to tick off and edit.", version: "1.0.0",
+    });
+    expect(JSON.parse(readFileSync(path.join(sourceRoot, "calendar/manifest.json"), "utf8"))).toMatchObject({
+      name: "Calendar", description: "Show one to seven days of live events, including all-day events and highlighted moments.", version: "1.0.0",
     });
   });
 

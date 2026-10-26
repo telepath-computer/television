@@ -546,6 +546,7 @@ describe("notice rendering", () => {
   test("regenerates the committed asset folder notices byte-for-byte", () => {
     const folders = generateFolderNotices({ root: repoRoot });
     expect(folders.map((entry) => entry.folder)).toEqual([
+      "packages/server/assets/templates/calendar",
       "packages/server/assets/templates/checklist",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
@@ -563,9 +564,11 @@ describe("notice rendering", () => {
     const nord = folders.find((entry) => entry.folder.endsWith("/nord"))!.text;
     expect(entryMetadata(nord)).toEqual([["Nord color palette", "Licensed under MIT."]]);
     expect(nord).toContain("Copyright (c) 2016-present Sven Greb");
-    const checklist = folders.find((entry) => entry.folder.endsWith("/checklist"))!.text;
-    expect(entryMetadata(checklist)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
-    expect(checklist).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));
+    for (const template of ["/calendar", "/checklist"]) {
+      const notice = folders.find((entry) => entry.folder.endsWith(template))!.text;
+      expect(entryMetadata(notice)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
+      expect(notice).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));
+    }
   });
 
   test("regenerates the committed source-surface notices byte-for-byte", () => {
