@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch `feat/artifact-template-sticky-note`.** This was the implementation plan for the bundled Sticky note template, followed as written in one slice; the thumbnail, popover links and per-template conformance setup it describes were later replaced when the branch adopted Toolbox icons and the shared conformance group. It is the one view of how the page, its offline draft handling, packaging and evidence were shaped as a single slice, and why. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Sticky note implementation plan
 
 Implement the approved specification at `7d95f9f` and the converged proofs at `fde3c79`. This plan is based on that checkout. It proposes **one slice** under [Planning and slices](../../specs/spec-workflow.md#planning-and-slices): one copied page, its local save logic, and small additions to established packaging and test paths fit one implementation and review. Saving, disconnection, and conformance need to be understood together; separating them would leave several incomplete versions of the same page.
