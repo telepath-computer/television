@@ -4,7 +4,7 @@ Read the governing specs before making changes. Start with the links below.
 
 ## UI conformance
 
-Production UI specified in MDX is compared with its spec stories, state by state, by the [conformance test](specs/spec-ui.md#conformance). Surfaces still specified as frames or templates follow the [earlier conformance spec](specs/arch/ui/conformance.md), whose automated markup comparison remains deferred under [TV-649](specs/arch/ui/conformance.md#release-exception-for-tv-649); [spec migration](specs/spec-migration.md) lists which surfaces are which. Do not revert UI specifications to match a nonconforming implementation.
+Production UI specified in MDX is compared with its spec stories, state by state, by the [conformance test](specs/spec-ui.md#conformance). Surfaces still specified as frames or templates follow the [frame and template conformance spec](specs/arch/ui/conformance.md); [spec migration](specs/spec-migration.md) lists which surfaces are which. Do not revert UI specifications to match a nonconforming implementation.
 
 ## Team developer telemetry marker
 

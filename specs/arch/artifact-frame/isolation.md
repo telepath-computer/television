@@ -73,7 +73,7 @@ A sandboxed document's requests to its server are cross-origin, from an opaque o
 
 In the desktop app an artifact document has its own address's origin, so its requests to the server that serves it are same-origin and it can read the token routes' responses. Its partition never holds the token, so those routes refuse it, as they refuse any request without the token.
 
-On a server that runs without a token, the routes the token would protect are open to any page, artifact documents included. That exposure belongs to tokenless mode ([product/resources/resources.md#^rs-tokenless](../../product/resources/resources.md#^rs-tokenless)); `Origin` and `Host` checks for it are [TV-379](https://linear.app/telepath-computer/issue/TV-379).
+On a server that runs without a token, the routes the token would protect are open to any page, artifact documents included. That exposure belongs to tokenless mode ([product/resources/resources.md#^rs-tokenless](../../product/resources/resources.md#^rs-tokenless)).
 
 ## Known limitations
 
@@ -91,8 +91,8 @@ Isolation limits what artifact documents can do. These limits are accepted. Each
 8. **Third-party embeds**, such as video players, in a browser, inherit the sandbox, run with opaque origins and no storage, and may fail or degrade.
 9. **Maps**, in a browser. Mapping services such as Google Maps and OpenStreetMap may not work correctly in artifacts, because the sandbox strips the referrer and other information they expect. Leaflet with Esri's World Street Map or World Imagery tiles works for simple maps, with markers, popups, panning and zooming. The `television` skill's guidance on HTML artifacts says so, and recommends Leaflet with those tiles.
 10. **Pointer lock** fails. In a browser it is not among the sandbox header's tokens, and in the desktop app the [permission handlers](#^iso-desktop-permissions) refuse Electron's `pointerLock` permission.
-11. **PDFs inside folder artifacts** do not display in Chromium-based browsers, which refuse to show a PDF in a sandboxed iframe ([TV-956](https://linear.app/telepath-computer/issue/TV-956)). Desktop webviews have no `sandbox` attribute and are unaffected.
-12. **Browser features**, in both runtimes: those other than the six [artifact iframes](#^iso-iframe-allow) and [webviews](#^iso-desktop-permissions) are granted, such as notifications, geolocation, the camera, the microphone, reading the clipboard and MIDI, do not work ([TV-957](https://linear.app/telepath-computer/issue/TV-957)).
+11. **PDFs inside folder artifacts** do not display in Chromium-based browsers, which refuse to show a PDF in a sandboxed iframe. Desktop webviews have no `sandbox` attribute and are unaffected.
+12. **Browser features**, in both runtimes: those other than the six [artifact iframes](#^iso-iframe-allow) and [webviews](#^iso-desktop-permissions) are granted, such as notifications, geolocation, the camera, the microphone, reading the clipboard and MIDI, do not work.
 13. **Shared artifacts from producers on an older release**, in a browser, are sandboxed by the iframe attribute, but their producer sends neither CORS headers nor the sandbox header. Their module scripts fail, and their freshness poll cannot read the `ETag`, so they do not update live. Fragment and history changes inside them do not reach the artifact's navigation history, because their bridge relies on the Navigation API; each page they load is still recorded. [Cross-version compatibility](./artifact-bridge.md#Known limits and non-goals) is a non-goal.
 14. **An updated desktop app connected to an older server.** Two boundaries apply, each to servers whose interface predates it.
     - A server whose interface does not pass application links on to the main process ([artifact-bridge.md#^ab-link-handling](./artifact-bridge.md#^ab-link-handling)) leaves application links in artifacts and in the Markdown editor doing nothing until it upgrades.

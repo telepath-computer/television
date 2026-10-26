@@ -114,7 +114,7 @@ describe("telemetry event and property vocabulary", () => {
   });
   // Contract: proofs/arch/telemetry/index.md#^t-theme-settings-vocabulary.
   // These probes are checked by TypeScript; Vitest alone does not check satisfies.
-  it("TV-755 accepts closed settings in events and person properties", () => {
+  it("accepts closed settings in events and person properties", () => {
     const settings = {
       theme_state: "clouds",
       theme_main_js_declared: true,

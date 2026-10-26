@@ -146,7 +146,7 @@ describe("telemetry event stream activity", () => {
 
   // Seam: proofs/arch/telemetry/emitters.md#^t-theme-settings-refresh.
   // Real HTTP, websocket and temporary package files; only delivery is replaced.
-  it("TV-755 reads fresh consent and registry settings on activity without switch events", async () => {
+  it("reads fresh consent and registry settings on activity without switch events", async () => {
     const h = await setup();
     const themeID = "private-live-settings";
     const seed = (background: boolean, overlay: boolean) => seedThemePackage(h.storagePath, themeID, "/* private */", {

@@ -1,6 +1,6 @@
 *What a channel is to a user: identity, creation, renaming, deletion and last-channel replacement, pinning, ordering, and how one channel is the focused one everywhere.*
 
-**Status:** implemented redesign product authority. TV-549 tracks the caller-supplied-id gap stated below.
+**Status:** implemented redesign product authority.
 
 # Channels
 
@@ -20,7 +20,7 @@ A *channel* is the unit a person keeps their work in: it has a name, an ordered 
 
 The client connects to exactly one server, so the channel sidebar lists one server's channels and a channel never needs to say which server it belongs to. ^ch-single-server
 
-**Identity.** A channel's id is minted by the server and never changes. Ids are ULIDs, whose leading bits encode creation time — so sorting channels by id is sorting them by creation, and the model carries no separate creation-time field. One deliberate gap: the API still accepts a caller-supplied id verbatim, so id sortability is not yet an owned contract; today only Television's own code creates ids, so they are reliably sortable. Closing the gap is tracked as [TV-549](https://linear.app/telepath-computer/issue/TV-549). ^ch-identity
+**Identity.** A channel's id is minted by the server and never changes. Ids are ULIDs, whose leading bits encode creation time — so sorting channels by id is sorting them by creation, and the model carries no separate creation-time field. One deliberate gap: the API still accepts a caller-supplied id verbatim, so id sortability is not yet an owned contract; today only Television's own code creates ids, so they are reliably sortable. ^ch-identity
 
 ## Creating
 

@@ -8,7 +8,7 @@ Proves [specs/ui/app/toolbox.mdx](../../../specs/ui/app/toolbox.mdx).
 
 A Chromium conformance file compares every imported spec story with the production surface in the same state, viewport, theme and appearance.
 It uses shipped markup/styles without test additions and fails if any story is missing; no permitted-difference list is allowed.
-This MDX surface follows story conformance, not the TV-649 deferral for retained frame/template contracts.
+This MDX surface follows story conformance, not the conformance for retained frame/template contracts.
 Conformance and cheap state contracts may substitute the item/cache service with authored scans and icon bytes; that mock forfeits discovery and transport to [template architecture](../../arch/templates/index.md), directory-read failure through the caches into the UI to [directory-failure acceptance](#^toolbox-ac-directory-error), and creation to [product creation](../../product/templates.md).
 A real browser proves search focus, cursor keys, pointer highlighting, active-option semantics and scrolling; those mechanisms are never replaced by a mocked DOM.
 Product creation acceptance proves successful copy/URL activation and placement once, shared with this proof rather than duplicated.

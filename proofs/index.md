@@ -44,7 +44,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
     - `index.md` (295 lines) — *How the promises in CLI architecture are proven.*
-    - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
+    - `startup-bind-failure.md` (38 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
     - `artifact-partitions.md` (42 lines) — *How desktop artifact partitions are proven: naming, attachment, the record and the reaper as contracts, crossed in the real Electron app connected to a running server, including a stand-in for an interface without partition support and a reaping across a restart.*
@@ -101,7 +101,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `delivery.md` (87 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
   - **ui/**
-    - `conformance.md` (21 lines) — *Proves the active conformance checks for retained frame/template surfaces and records their TV-649 deferral.*
+    - `conformance.md` (15 lines) — *Proves conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
     - `elements.md` (21 lines) — *How the promises in Elements are proven.*
     - `foundation.md` (32 lines) — *How the promises in Foundation architecture are proven.*
     - `index.md` (29 lines) — *How the promises in UI architecture are proven.*

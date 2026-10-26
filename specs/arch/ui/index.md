@@ -8,7 +8,7 @@ UI surfaces materialize through views, the application root included: the entry 
 
 **Status:** implemented app UI architecture.
 
-The web client requires browser `localStorage` and is not expected to fall back gracefully or handle its absence. If `localStorage` is unavailable, the entry script aborts with a console error and leaves a blank page. A small user-facing message explaining the failure is desired and tracked in [TV-708](https://linear.app/telepath-computer/issue/TV-708/web-client-show-a-small-message-when-browser-storage-is-unavailable).
+The web client requires browser `localStorage` and is not expected to fall back gracefully or handle its absence. If `localStorage` is unavailable, the entry script aborts with a console error and leaves a blank page.
 
 ## Client-persisted preferences
 

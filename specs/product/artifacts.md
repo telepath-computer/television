@@ -102,7 +102,7 @@ Demo mode changes nothing else: the desktop app, every other kind of artifact, a
 
 - **Switching tabs preserves the document.** Moving between tab pages within a channel never reloads their artifacts: scroll position, form contents, and running scripts survive. Tab switching is the most frequent movement in the app, and losing in-document work to it would make the strip unusable for real work. ^af-tab-continuity
 - **Switching channels may reload documents.** A channel's frames exist only while it is the current channel; returning to a channel loads its artifacts fresh. Unsaved state held inside a document does not survive leaving the channel. ^af-channel-reload
-- **Rearranging pages may reload their documents.** Reordering tabs rearranges the channel's pages ([ui/app/stage/index.md](../ui/app/stage/index.md)); rearrangement is not promised to preserve live documents — continuity is promised to tab *switching* alone. Preserving documents through rearrangement is tracked as a future enhancement ([TV-524](https://linear.app/telepath-computer/issue/TV-524)); softening the channel-switch reload with a recency buffer is likewise tracked ([TV-525](https://linear.app/telepath-computer/issue/TV-525)). Dragging an artifact by its frame is a future milestone, not part of the current release.
+- **Rearranging pages may reload their documents.** Reordering tabs rearranges the channel's pages ([ui/app/stage/index.md](../ui/app/stage/index.md)); rearrangement is not promised to preserve live documents — continuity is promised to tab *switching* alone. Dragging an artifact by its frame is a future milestone, not part of the current release.
 
 ## Navigation
 
