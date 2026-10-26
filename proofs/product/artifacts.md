@@ -11,7 +11,7 @@ Authored documents and temporary homes are fixtures; ordinary setup uses product
 Transparency is exercised on a local path artifact and a URL artifact backed by a real shared document.
 The walks observe creation and live updates, then retain the enabled setting through a channel move and a server restart.
 They also check that an opaque area authored inside the document remains authored content when the frame becomes transparent.
-The standard CSS-motion override is permitted in these walks and forfeits fade timing to [the frame UI proof](../ui/app/artifact-frame/transparency/index.md#^af-ui-ac-transparent-hover).
+The standard CSS-motion override is permitted in these walks and forfeits fade timing to [the frame UI proof](../ui/app/artifact-frame/transparency.md#^af-ui-ac-transparent-hover).
 That proof covers hover, the open menu, keyboard reachability, and reduced motion; visual styling is reviewed against its Storybook authority.
 [Artifact records](../arch/artifacts/index.md) cover optional-field compatibility, update validation, storage, and API/event values.
 [CLI](./cli.md) covers spawned commands, while [templates](./templates.md) covers manifest defaults and overrides.

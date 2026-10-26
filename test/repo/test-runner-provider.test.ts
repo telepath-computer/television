@@ -85,6 +85,17 @@ describe("provider result normalization", () => {
     expect(source).toContain('-- bash -c "$TV_TARGET_COMMAND"');
   });
 
+  // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-playwright-cache-command
+  test("prepares the installed Playwright browsers in the existing Blaxel cache phase", () => {
+    const source = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
+    const phase = source.match(/^run_step playwright-cache .*$/m)?.[0];
+
+    expect(phase).toBe("run_step playwright-cache npx playwright install chromium firefox");
+    expect(source).toContain("export PLAYWRIGHT_BROWSERS_PATH=${playwrightBrowsersPath}");
+    expect(source.indexOf("run_step deps")).toBeLessThan(source.indexOf("run_step playwright-cache"));
+    expect(source.indexOf("run_step playwright-cache")).toBeLessThan(source.indexOf("run_step test-run"));
+  });
+
   test("uses Electron's installer for the Blaxel runtime preparation phase", () => {
     const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
     const phase = source.match(/run_step electron-repair[^\n]*\n(?:.*\n)*?set \+e/)?.[0] ?? "";
@@ -1113,11 +1124,6 @@ describe("provider result normalization", () => {
   });
 
   test("selects package surfaces for Blaxel selection runs", () => {
-    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((candidate) => candidate.id).sort()).toEqual([
-      "e2e:browser-app",
-      "e2e:checklist-conformance",
-      "e2e:sticky-note-conformance",
-      "unit:browser-app",
-    ]);
+    expect(selectSurfaces(config, { package: "@telepath-computer/television-web" }).map((candidate) => candidate.id).sort()).toEqual(["e2e:browser-app", "e2e:conformance", "unit:browser-app"]);
   });
 });

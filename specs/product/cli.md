@@ -33,7 +33,7 @@ The visible command surface is:
 | `tv serve` | Start the server in the foreground, install it as a persisted service, or uninstall that service. |
 | `tv config` | Show the effective settings of the selected home, or change settings in its config file. |
 | `tv create-artifact` | Create an artifact from a local path, an `http(s)` URL, or an artifact template. |
-| `tv templates` | List artifact templates and invalid folders, or print the selected home's templates directory. |
+| `tv templates` | List artifact template summaries and invalid folders, inspect one template, or print the templates directory. |
 | `tv update-artifact` | Update an artifact title or transparency setting, or repoint its path/URL. |
 | `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
 | `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
@@ -111,6 +111,7 @@ Output formatting is currently inconsistent and depends on the command. Successf
 | `tv themes-path` | `{ "themesPath": string }` |
 | `tv templates path` | `{ "templatesPath": string }` |
 | `tv templates list` | `{ "templates": [...], "errors": [...] }` |
+| `tv templates show <id>` | `{ "template": ... }` |
 | `tv list-channels` | `{ "channels": [...] }` |
 | `tv get-channel` | `{ "channel": ..., "artifacts": [...] }` |
 | `tv get-artifact` | `{ "artifact": ... }` |
@@ -255,7 +256,7 @@ Neither command contacts a server.
 
 ### Connecting to the server
 
-Commands that contact a server — artifact creation and other artifact commands, `tv templates list`, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
+Commands that contact a server — artifact creation and other artifact commands, `tv templates list`, `tv templates show`, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
 
 These commands read the bearer token from `<home>/state/token`, trimming surrounding whitespace. A missing or empty token file means the command sends no bearer token. If a token-protected server returns `401`, the CLI prints:
 
@@ -445,7 +446,7 @@ Channel <channel-id> deleted:
 
 ## Artifact commands
 
-`tv create-artifact` with `--path` or `--url` registers content without copying it. [Creating from an artifact template](./templates.md#^artifact-template-result) first copies a template into the home's artifacts directory. Deleting any artifact registry record never removes or mutates the path or URL target. ^e5b85571
+`tv create-artifact` registers a supplied path or URL without copying content. [Using a folder template](./templates.md#^artifact-template-result) copies its page and supporting files into a fresh folder and registers that copy. Deleting any artifact registry record never removes or mutates the path or URL target. ^e5b85571
 
 ### Creating an artifact
 
@@ -453,7 +454,7 @@ Channel <channel-id> deleted:
 tv create-artifact --channel <id> (--path <path> | --url <url> | --template <id>) [--title <title>] [--data <json> | --data-file <path>] [--width <px>] [--height <px>] [--full-screen | --no-full-screen] [--transparent | --no-transparent] [--before <artifact-id> | --after <artifact-id>] (--focus-artifact | --no-focus)
 ```
 
-Exactly one of `--path`, `--url`, and `--template` is required. `--title` is required with a path or URL; with a template, it defaults to the template's name. `--data` and `--data-file` are allowed only with `--template`. A missing or multiple source, a missing required title, or data supplied with a path or URL is a directive error before any creation request. `--channel` and exactly one focus directive are required, with no focus default. `--focus-artifact` sends a transient artifact-focus nudge after creation; `--no-focus` leaves focus unchanged. The new artifact goes at the end of the channel's order unless `--before` or `--after` places it beside another artifact ([placement](#^cli-before-after)). ^cli-create-artifact
+Exactly one of `--path`, `--url`, and `--template` is required. `--title` is required with a path or URL; with a template, it defaults to the template's name. `--data` and `--data-file` are allowed only with `--template`; URL templates reject them under the [template creation rules](#^cli-create-artifact-template). A missing or multiple source, a missing required title, or these options supplied with `--path` or `--url` is a directive error before any creation request. `--channel` and exactly one focus directive are required, with no focus default. `--focus-artifact` sends a transient artifact-focus nudge after creation; `--no-focus` leaves focus unchanged. The new artifact goes at the end of the channel's order unless `--before` or `--after` places it beside another artifact ([placement](#^cli-before-after)). ^cli-create-artifact
 
 For every source, `--width` and `--height` set the artifact's starting size in reference pixels; either may be given alone. `--full-screen` starts it in full-screen mode, and `--no-full-screen` starts it out of that mode. `--transparent` enables [transparency](./artifacts.md#^af-transparent), and `--no-transparent` turns it off. The [layout display rule](../arch/layout/index.md#^ly-creation-display) governs valid size values. Giving both full-screen options, both transparency options, or an invalid size is a directive error, and nothing is created. With `--template`, each supplied option takes precedence over the template's [display options](./templates.md#^artifact-template-display-options). The size remains beneath full-screen mode, so leaving that mode returns the artifact to its starting size unless it has been resized. ^cli-create-display
 
@@ -464,7 +465,7 @@ Artifact <artifact-id> created.
 Television registered <registered-target>.
 ```
 
-`<registered-target>` is the trimmed path for `--path`, the trimmed URL for `--url`, or the new copied folder path for `--template`.
+`<registered-target>` is the trimmed path for `--path`, the trimmed URL for `--url`, or the registered copied folder path or manifest URL for `--template`.
 
 For every source, the CLI prints those lines before sending the focus request when `--focus-artifact` is given. If that request fails, the artifact remains created, those lines remain on stdout, and the command prints the focus error to stderr and exits `1`.
 
@@ -478,11 +479,13 @@ With `--url`, the CLI trims surrounding whitespace before sending the URL to the
 
 ### Artifact template commands
 
-`tv templates list` scans the selected home's artifact templates through the running server and prints the [scan result](../arch/templates/index.md#^artifact-template-scan) unchanged as compact JSON. The list reflects folder changes on each invocation. ^cli-templates-list
+`tv templates list` scans artifact templates through the running server and prints compact JSON with `templates` and `errors`. Each template is a [TemplateSummary](../arch/templates/index.md#discovery): `id`, `name`, `description`, and optional `url`. The presence of `url` identifies a URL template. No version, path, display options, icons, `dataSchema`, or app metadata appear in this summary. Scan errors are returned unchanged. Every invocation requests a fresh scan, bypassing the app cache, so an agent sees a preceding edit immediately. ^cli-templates-list
 
-With `--template`, `tv create-artifact` creates an [ordinary folder path artifact](./templates.md#^artifact-template-result). The template ID is matched exactly. `--data` takes JSON text as one argument; `--data-file` reads JSON text from a file, with `-` meaning standard input. The two options cannot be combined, following the [JSON store CLI value rule](./resources/json-store.md#^js-cli). When either is supplied, its value replaces the template's `data.json`, including when that value is `null`. The CLI checks that the text parses as JSON and that the value fits the [JSON store's 1 MiB limit](../arch/resources/json-store.md#^js-arch-limits) before making any creation request. The server checks the selected starting value and placement before creating anything ([template preflight](../arch/templates/index.md#^artifact-template-preflight)). ^cli-create-artifact-template
+`tv templates show <id>` scans again and prints `{ "template": ... }` with the full validated [Template](../arch/templates/index.md#discovery): the summary fields, `version`, the installed folder `path` for both folder and URL templates, and optional `dataSchema`, `display`, and usable `icons`. App metadata such as `hasIcon` is omitted. IDs match exactly. An invalid folder, missing ID, or unreadable directory fails with the [lookup error](../arch/templates/index.md#discovery), prints to stderr, and exits `1` without a success object. Agents use `list` to choose and `show` before preparing data. ^cli-templates-show
 
-If [template creation fails after copying starts](./templates.md#^artifact-template-data), the CLI prints the server's error to stderr and exits `1` without printing the creation success lines. The error names the copied folder path, names the artifact ID whenever it may have been registered, and says which step could not be confirmed, so the caller can inspect what remains before retrying.
+With `--template`, `tv create-artifact` creates an [ordinary copied folder artifact or URL artifact](./templates.md#^artifact-template-result). The ID matches exactly. `--data` takes JSON text as one argument; `--data-file` reads it from a file, with `-` meaning standard input. The two options cannot be combined, following the [JSON store CLI value rule](./resources/json-store.md#^js-cli). A supplied value, including `null`, replaces the starting value in `data.json` entirely, with no merging. Without caller data, creation uses `data.json` when present, or leaves the store unwritten. The CLI checks JSON syntax and the [1 MiB limit](../arch/resources/json-store.md#^js-arch-limits) before sending the creation request. The server checks the supplied value against `dataSchema` and the store rules, and validates placement and display options before creating anything ([template preflight](../arch/templates/index.md#^artifact-template-preflight)). A URL template refuses data options; `data.json` or `dataSchema` makes that template invalid. Schema errors identify the failing field and direct the agent to `tv templates show <id>`. ^cli-create-artifact-template
+
+If [template creation fails after copying or registration starts](../arch/templates/index.md#^artifact-template-copy), the CLI prints the server error to stderr and exits `1` without the creation success lines. The error names the copied folder path or manifest URL, includes the artifact ID whenever registration was attempted, and says which step could not be confirmed. Inspect what remains before retrying.
 
 `tv templates path` prints `<home>/templates` as compact JSON, for example `{"templatesPath":"/home/me/.television/templates"}`. It reads neither the config file nor a server, so an author can use it while the server is stopped. ^cli-template-directory
 

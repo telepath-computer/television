@@ -198,8 +198,8 @@ export const UI_STYLE_CROSSINGS: readonly UIStyleCrossing[] = [
   },
   {
     kind: "implementation-owned",
-    productionModule: "packages/web/src/views/skill-selector.ts",
-    stylesheet: "packages/web/src/views/skill-selector.css",
+    productionModule: "packages/web/src/views/toolbox.ts",
+    stylesheet: "packages/web/src/views/toolbox.css",
   },
   {
     kind: "sibling",

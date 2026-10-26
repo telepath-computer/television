@@ -25,7 +25,8 @@ function isIndexedDocument(rootDir, file, directoryHasIndex, allowUiMdx) {
   const extension = extname(file);
   if (extension === ".mdx") return allowUiMdx && segments[0] === "ui";
   if (extension !== ".md") return false;
-  return segments[0] !== "ui" || directoryHasIndex;
+  // A proof of an MDX spec is a lone Markdown file, so only spec directories need an index.md.
+  return segments[0] !== "ui" || !allowUiMdx || directoryHasIndex;
 }
 
 function walkDocuments(rootDir, directory, indexPath, allowUiMdx) {

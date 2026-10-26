@@ -65,10 +65,10 @@ describe("prebuilt manifest", () => {
     expect(checkManifestCoversRegistry(loadTestConfig())).toEqual([]);
   });
 
-  test("uses one Storybook recipe for both template conformance surfaces", () => {
+  test("uses one Storybook recipe for the shared conformance surface", () => {
     const recipe = manifest.builds.find((build) => build.id === "storybook");
     expect(recipe?.command).toEqual(["npm", "--workspace", "@telepath-computer/storybook", "run", "build"]);
-    expect(recipe?.coversPreCommands).toEqual(["e2e:checklist-conformance", "e2e:sticky-note-conformance"]);
+    expect(recipe?.coversPreCommands).toEqual(["e2e:conformance"]);
   });
 
   test("check CLI passes against the real registry", () => {

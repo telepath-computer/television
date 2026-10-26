@@ -1,0 +1,6 @@
+{
+  "name": "Calendar",
+  "description": "Show one to seven days of live events, including all-day events and highlighted moments.",
+  "version": "1.0.0",
+  "icons": [{ "src": "icon.svg", "type": "image/svg+xml" }]
+}

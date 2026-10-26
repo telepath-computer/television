@@ -1,0 +1,11 @@
+---
+title: Skill selector
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [none, clouds, nord, swiss, tokyo-night], default: none }
+style: |
+  main { min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 32px; }
+---
+<main>
+  <frameset-frame src="../../../specs/ui/app/skill-selector/skill-selector?open=true" label="Skill selector" width="560" height="760"></frameset-frame>
+</main>

@@ -42,7 +42,7 @@ The template carries its own `Caveat-Medium.woff2`, byte-identical to the [story
 
 Following [folder notices](../licensing.md#^licensing-folder-notices), the packaged font is registered in `scripts/licenses/assets.json` for `cli` and `source`, and for `desktop` if that package ships it. The template folder carries a generated `THIRD-PARTY-NOTICES.txt` with Caveat's complete upstream copyright notice and OFL terms, as Checklist carries its icon notice. The story copy has its own source-surface inventory entry and folder notice. The font remains under OFL when the template is copied or adapted.
 
-The template includes `thumbnail.png`, a square screenshot of the UI story `WithText` at 360 by 360 pixels, preserving the transparent background. The [Templates popover UI spec](../../ui/app/templates-popover.mdx) owns how the image is displayed.
+The manifest's `icons` lists one entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-sticky-note-icon
 
 The bundled `README.md` explains the root object and `text` string, that a new note starts with empty text, that the typing hint is never saved, that spaces and line breaks are kept, and that other root fields are ignored and preserved. It explains that the page and agent share the artifact's own store and that changes appear live. It shows `tv resource json set --artifact <id> /text '"…"'` to replace the text and `tv resource json set --artifact <id> /text '""'` to clear it, leaving other fields alone.
 

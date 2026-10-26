@@ -1,0 +1,169 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as Stories from "../../../storybook/spec/templates/calendar/calendar.stories.ts";
+
+<Meta of={Stories} />
+
+{/* Each story's frame is drawn at the artifact's width, as its viewport sets it. */}
+export const Artifact = ({ width = "760px", children }) => <div style={{ width, maxWidth: "100%" }}>{children}</div>;
+
+*UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
+
+# Calendar template
+
+The Calendar template makes an artifact that shows one to seven days of events that an agent keeps up to date: the month and year at the top, a header for each day, a band for all-day events, and an hour grid. Each story on this page is one state of the page, and the page in the template must pass a [UI conformance](../../spec-ui.md#conformance) check against every one of them. The prose states the behaviour the stories cannot show.
+
+The [store contract](../../arch/templates/calendar.md#^bundled-artifact-template-calendar-store) owns the data: which days are shown and the fields of each event.
+
+<Artifact><Canvas of={Stories.Week} /></Artifact>
+
+## A new calendar
+
+A new artifact from the template has no events and no `startDate` or `days`, so it shows the current week from Monday, with today marked.
+
+<Artifact><Canvas of={Stories.New} /></Artifact>
+
+## Opening a calendar
+
+Until the store's data arrives, the page shows the month and an empty grid for the current week, as a new calendar does. When the data arrives, its events arrive as [Events arriving](#events-arriving) describes.
+
+## Layout
+
+The calendar fills the full width and height of the artifact. The header stays at the top, and the hours below it scroll vertically inside the calendar. The day columns share the width equally, each at least 100 pixels wide. When the artifact is too narrow for every column at that width, the days scroll horizontally, with their headers and all-day events. The hour labels stay fixed on the left.
+
+This story shows one day in a full-screen artifact.
+
+<Artifact width="1440px"><Canvas of={Stories.OneDay} /></Artifact>
+
+This story shows a whole week, with the weekend shaded and the current time marked on today, drawn over the event it crosses.
+
+<Artifact width="1280px"><Canvas of={Stories.SevenDays} /></Artifact>
+
+In an event too narrow for its title on one line, the title wraps onto a second line, between words only; a word wider than the event ends in an ellipsis.
+
+This story shows events of fifteen and thirty minutes, and two and three events at the same time.
+
+<Artifact><Canvas of={Stories.ShortAndOverlapping} /></Artifact>
+
+This story shows seven days in a 400-pixel artifact, scrolled sideways.
+
+<Artifact width="400px"><Canvas of={Stories.Narrow} /></Artifact>
+
+### Hours in view
+
+The calendar always shows all 24 hours of each day. Without `visibleHours`, each hour has its usual height, and the calendar opens scrolled to an hour before the earliest event.
+
+With `visibleHours`, the hours grow or shrink so that the range fills the height below the day headers and all-day events, with room for its first and last hour labels, and the calendar scrolls to the start of the range. An hour is never shorter than 16 pixels. The other hours stay above and below the range, so the person can scroll to them. When the artifact changes size, or the all-day band appears, disappears or changes height, the range keeps filling the view.
+
+This story shows a week with 9 AM to 6 PM in view.
+
+<Artifact width="1280px"><Canvas of={Stories.VisibleHours} /></Artifact>
+
+## Attendees
+
+An event's attendees show on one line: a person icon, then the names. When the names do not all fit the width of the event, the line shows as many names as fit whole and a count of the rest, such as "Alex, Priya +3". When not even one name fits, it shows the icon and the number of attendees. A name is never cut off. The fit is worked out again whenever the width of the event changes. The line shows only when the event is tall enough to show it whole, and it uses the size and colour of the detail line.
+
+The working week at the top of this page shows each case: all the names on Retrospective, names and a count on Design review, and the count alone on Roadmap review, which shares its column.
+
+## Highlighted events
+
+This story shows an event an agent has highlighted, raised above the others.
+
+<Artifact width="1440px"><Canvas of={Stories.Highlighted} /></Artifact>
+
+### Highlight motion
+
+When an event on screen becomes highlighted, it lifts off the page over 700 milliseconds. It rises, grows and tilts slightly towards the viewer, moving fast at first and easing gently to rest, while its shadow spreads and its fill deepens. When the highlight is cleared, it settles back over 450 milliseconds with the same kind of easing. Neither direction overshoots. The raised state is the Highlighted events story above. The exact timing curves are the transitions in the spec stylesheet.
+
+Only that event moves. An event that is already highlighted when the page opens arrives already raised, as [Events arriving](#events-arriving) describes, and does not lift. When the person has asked their system for reduced motion, the event switches between flat and raised with no motion at all.
+
+A [motion demo](../../../storybook/experiments/templates-calendar/highlight-motion.stories.ts) in Storybook plays the lift. It is not part of this spec.
+
+## Changes from elsewhere
+
+The page follows the whole store and updates in place: when an event is added, changed or removed, only that event's block changes. The rest of the calendar is not redrawn. Each change moves into place, as [Motion](#motion) describes, so a person watching sees what changed. The scroll position stays where it is, except when the hours in view change.
+
+## Motion
+
+Each kind of change below has a story that plays it. All the motion except leaving moves fast at first and eases to rest, with no overshoot; the stories hold the exact curves.
+
+### Events arriving
+
+An event that appears fades in as it grows from 92% of its size and rises 6 pixels into place, over 520 milliseconds. This includes an event an agent adds, and the events on a day that starts showing when the number of days grows. When several events arrive together, they follow one another in order of start time, 40 milliseconds apart, and all of them have started within 360 milliseconds.
+
+When the calendar opens, its events arrive this way.
+
+<Artifact width="1280px"><Canvas of={Stories.EventsArriving} /></Artifact>
+
+### Events leaving
+
+An event that is removed fades out as it shrinks to 94% of its size, over 260 milliseconds, speeding up as it goes. The events on a day that stops showing leave the same way.
+
+<Artifact width="1280px"><Canvas of={Stories.EventLeaving} /></Artifact>
+
+### Events moving
+
+When an event's time, day or length changes, it glides from where it was to its new place and size over 450 milliseconds. Events beside it that become narrower or wider to share the time glide at the same moment.
+
+<Artifact width="1280px"><Canvas of={Stories.EventMoving} /></Artifact>
+
+### A new range of days
+
+When `startDate` changes and the number of days does not, the days slide sideways: a later date slides them to the left, an earlier one to the right. The old days and the new move as one strip, so a day shown both before and after ends in its new column. A move of more days than are shown slides one calendar width, bringing the new days in right beside the old, rather than passing every day in between. The slide takes 520 milliseconds. The hour labels stay where they are, and nothing slides under them.
+
+The month and year change without overlapping: the old title fades out, then the new one fades in, over 320 milliseconds in all.
+
+<Artifact width="1280px"><Canvas of={Stories.NewRangeOfDays} /></Artifact>
+
+### A new number of days
+
+When `days` changes, the days that stay glide to their new columns, widening or narrowing, over 450 milliseconds, and their events move with them. Day headers move with their columns but keep their size. A day that starts showing fades in, and a day that stops showing fades out. When `startDate` and `days` change together, the change moves this way, not as a slide.
+
+<Artifact width="1280px"><Canvas of={Stories.NewNumberOfDays} /></Artifact>
+
+### A new range of hours
+
+When `visibleHours` changes, is added or is removed, the hours grow or shrink and the view scrolls to the new range together, over 520 milliseconds. When it is removed, the hours return to their usual height, and the hour at the top of the view stays there. A calendar that opens with `visibleHours` shows that range at once, with no motion.
+
+<Artifact width="1280px"><Canvas of={Stories.NewRangeOfHours} /></Artifact>
+
+### Changes during motion
+
+A change that arrives while something is moving starts from what is on screen at that moment. An event part-way through a glide moves on from where it is drawn, and the hours change from their height part-way through. A new `startDate` during a slide ends that slide at once, and the next slide starts from there.
+
+### Reduced motion
+
+When the person has asked their system for reduced motion, nothing in this section moves: each change appears at once.
+
+## Read-only
+
+The page never changes its store, so a calendar the page can only read, as through a read-only share link, looks and behaves exactly like any other. While it has no access at all, as after the share link it was opened through is revoked, it keeps showing what it last showed.
+
+## Disconnection
+
+While the page cannot reach its server, it keeps showing what it last showed, with no message. Once it reconnects, it catches up with any changes made in the meantime by itself.
+
+## Data the page cannot read
+
+Agents write the calendar's data by hand, so it can break the [store contract](../../arch/templates/calendar.md#^bundled-artifact-template-calendar-store). The page never rewrites data it cannot read.
+
+An event the page cannot read is left out, and the rest of the calendar shows as normal. A `startDate` or `days` the page cannot read is treated as absent, so the calendar falls back to its defaults. When the value as a whole breaks the contract, as when `events` is not an object, when the store has no value, as after an agent removes it, or when the server reports the store's saved data unavailable, the page shows an error page instead of the calendar: centred in the page, a warning icon in a ruled circle, "This calendar can't be shown", and below it, in muted text, "Its saved data isn't in the form this page reads. Ask your agent to check it." The error page is an alert, so a person using a screen reader hears it when it replaces the calendar.
+
+The error page follows the data live: once an agent fixes the data, the calendar shows as normal.
+
+This story shows the error page.
+
+<Artifact><Canvas of={Stories.Unreadable} /></Artifact>
+
+## Icon
+
+In the Toolbox, the template's icon is a white calendar page with a red top and the date 17.
+
+## Appearance
+
+The page uses only the foundation's tokens, so it follows the active theme and the light or dark appearance.
+
+<Artifact><Canvas of={Stories.Dark} /></Artifact>
+
+This story shows the error page in the dark appearance.
+
+<Artifact><Canvas of={Stories.UnreadableDark} /></Artifact>

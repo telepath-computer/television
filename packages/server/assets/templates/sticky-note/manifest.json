@@ -6,5 +6,11 @@
     "width": 360,
     "height": 360,
     "transparent": true
-  }
+  },
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml"
+    }
+  ]
 }

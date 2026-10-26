@@ -486,6 +486,8 @@ function bundledFolderNotices(): { folder: string; text: string }[] {
     .filter(({ folder }) => [bundledThemesSource, bundledTemplatesSource].includes(path.dirname(folder)));
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledThemesSource}/nord`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/checklist`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/calendar`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/sticky-note`);
   return owed;
 }
 

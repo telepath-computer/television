@@ -575,7 +575,6 @@ describe("CLI product spine acceptance", () => {
     writeFileSync(path.join(folder, "index.html"), '<!doctype html><title>Authored Example</title><script src="support.js"></script>');
     writeFileSync(path.join(folder, "support.js"), "window.example = true;\n");
     writeFileSync(path.join(folder, "README.md"), "Adapt this copy.\n");
-    writeFileSync(path.join(folder, "data.json"), '{"message":"from template"}');
     return folder;
   }
 
@@ -585,7 +584,7 @@ describe("CLI product spine acceptance", () => {
     const result = await tv(["templates", "list"]);
     expect(result.exitCode, result.stderr).toBe(0);
     const scan = JSON.parse(result.stdout);
-    expect(scan.templates).toContainEqual(expect.objectContaining({ id: "checklist", name: "Checklist", path: path.join(home, "templates", "checklist") }));
+    expect(scan.templates).toContainEqual(expect.objectContaining({ id: "checklist", name: "Checklist" }));
     expect(scan.errors).toEqual([]);
     expect(existsSync(path.join(home, "templates/checklist/index.html"))).toBe(true);
   });
@@ -600,7 +599,7 @@ describe("CLI product spine acceptance", () => {
     mkdirSync(broken);
     writeFileSync(path.join(broken, "index.html"), "<!doctype html><title>Broken</title>");
     const first = JSON.parse((await tv(["templates", "list"])).stdout);
-    expect(first.templates).toContainEqual(expect.objectContaining({ id: "custom", path: valid }));
+    expect(first.templates).toContainEqual(expect.objectContaining({ id: "custom", name: "Authored Example" }));
     expect(first.errors).toContainEqual(expect.objectContaining({ folder: "broken", error: expect.any(String) }));
     const rejected = await tv(["create-artifact", "--channel", target.id, "--template", "broken", "--no-focus"]);
     expect(rejected.exitCode).toBe(1);
@@ -616,11 +615,12 @@ describe("CLI product spine acceptance", () => {
     expect(absent.stderr).toMatch(/not found/i);
   });
 
-  // proofs/product/templates.md#^templates-ac-cli-create
-  it("creates an independent template copy with seeded store and ordinary artifact lifecycle", async () => {
+  // proofs/product/templates.md#^templates-ac-copy-lifecycle
+  it("creates an independent template copy with starting data and ordinary artifact lifecycle", async () => {
     const { home, channel, tv } = await seededServer("television-cli-template-create-");
     const target = await channel("Templates", 0);
     const source = authorTemplate(home, "custom");
+    writeFileSync(path.join(source, "data.json"), '{"message":"from template"}');
     const created = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--title", "Chosen title", "--no-focus"]);
     expect(created.exitCode, created.stderr).toBe(0);
     const match = /^Artifact (\S+) created\.\nTelevision registered (.+)\.\n$/.exec(created.stdout);
@@ -630,7 +630,11 @@ describe("CLI product spine acceptance", () => {
     expect(readFileSync(path.join(copy!, "index.html"), "utf8")).toBe(readFileSync(path.join(source, "index.html"), "utf8"));
     expect(readFileSync(path.join(copy!, "support.js"), "utf8")).toBe(readFileSync(path.join(source, "support.js"), "utf8"));
     expect(readFileSync(path.join(copy!, "README.md"), "utf8")).toBe("Adapt this copy.\n");
+    expect(existsSync(path.join(copy!, "manifest.json"))).toBe(false);
+    expect(existsSync(path.join(copy!, "data.json"))).toBe(false);
     expect(JSON.parse((await tv(["resource", "json", "get", "--artifact", artifactID!])).stdout).value).toEqual({ message: "from template" });
+    writeFileSync(path.join(source, "index.html"), "source edit");
+    expect(readFileSync(path.join(copy!, "index.html"), "utf8")).not.toBe("source edit");
     writeFileSync(path.join(copy!, "support.js"), "window.changed = true;\n");
     expect(readFileSync(path.join(source, "support.js"), "utf8")).toBe("window.example = true;\n");
     expect((await tv(["update-artifact", "--id", artifactID!, "--title", "Retitled"])).exitCode).toBe(0);
@@ -641,37 +645,158 @@ describe("CLI product spine acceptance", () => {
     const storeFile = path.join(home, "resources", "json", artifact.store, "content.json");
     const storedValue = readFileSync(storeFile, "utf8");
     expect((await tv(["delete-artifact", "--id", artifactID!])).exitCode).toBe(0);
+    expect((await tv(["get-artifact", "--id", artifactID!])).exitCode).toBe(1);
     expect(existsSync(copy!)).toBe(true);
     expect(readFileSync(storeFile, "utf8")).toBe(storedValue);
   });
 
   // proofs/product/cli.md#^cli-ac-template-stdin
-  it("reads piped stdin as replacement starting data in a built CLI process", async () => {
+  it("reads piped stdin through the built CLI as replacement starting data for a copied artifact", async () => {
     const { home, channel, tv } = await seededServer("television-cli-template-stdin-");
     const target = await channel("Templates", 0);
-    authorTemplate(home, "custom");
+    const source = authorTemplate(home, "custom");
+    writeFileSync(path.join(source, "data.json"), '{"message":"from template","templateOnly":true}');
     const created = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--data-file", "-", "--no-focus"], '{"message":"from stdin"}');
     expect(created.exitCode, created.stderr).toBe(0);
     const artifactID = /^Artifact (\S+) created\./.exec(created.stdout)![1]!;
-    expect(JSON.parse((await tv(["get-artifact", "--id", artifactID])).stdout).artifact.title).toBe("Authored Example");
+    const artifact = JSON.parse((await tv(["get-artifact", "--id", artifactID])).stdout).artifact;
+    expect(artifact.title).toBe("Authored Example");
+    expect(path.dirname(path.resolve(artifact.path))).toBe(path.join(home, "artifacts"));
     expect(JSON.parse((await tv(["resource", "json", "get", "--artifact", artifactID])).stdout).value).toEqual({ message: "from stdin" });
+    expect(JSON.parse(readFileSync(path.join(home, "resources", "json", artifact.store, "content.json"), "utf8"))).toEqual({ message: "from stdin" });
   });
 
   // proofs/product/templates.md#^templates-ac-cli-post-copy-failure
-  it("reports a failed store seed without creation success lines and leaves the copy for inspection", async () => {
-    const { home, channel, tv } = await seededServer("television-cli-template-seed-failure-");
+  it("reports an unconfirmed starting-data write and preserves the copy", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-write-failure-");
     const target = await channel("Templates", 0);
     const source = authorTemplate(home, "custom");
     rmSync(path.join(home, "resources"), { recursive: true, force: true });
     writeFileSync(path.join(home, "resources"), "obstruction");
-    const result = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--no-focus"]);
+    const result = await tv(["create-artifact", "--channel", target.id, "--template", "custom", "--data", '{"message":"caller"}', "--no-focus"]);
     expect(result.exitCode).toBe(1);
     expect(result.stdout).toBe("");
     expect(result.stderr).toMatch(/Template store write for \S+ in (\S+) could not be confirmed/);
-    const [, artifactID, copy] = /Template store write for (\S+) in (\S+) could not be confirmed/.exec(result.stderr)!;
-    expect(existsSync(path.join(copy!, "index.html"))).toBe(true);
-    expect(path.resolve(JSON.parse((await tv(["get-artifact", "--id", artifactID!])).stdout).artifact.path)).toBe(copy);
-    expect(readFileSync(path.join(source, "data.json"), "utf8")).toBe('{"message":"from template"}');
+    const [, artifactID, registered] = /Template store write for (\S+) in (\S+) could not be confirmed/.exec(result.stderr)!;
+    expect(existsSync(path.join(registered!, "index.html"))).toBe(true);
+    expect(path.resolve(JSON.parse((await tv(["get-artifact", "--id", artifactID!])).stdout).artifact.path)).toBe(path.resolve(registered!));
+    expect(path.dirname(path.resolve(registered!))).toBe(path.join(home, "artifacts"));
+    expect(existsSync(path.join(source, "index.html"))).toBe(true);
+  });
+
+  // proofs/product/templates.md#^templates-ac-discovery
+  // proofs/product/cli.md#^cli-ac-template-show-refusal
+  it("shows freshly edited exact template records and refuses invalid, absent or unreadable lookups", async () => {
+    const { home, running, tv } = await seededServer("television-cli-template-show-");
+    const folder = authorTemplate(home, "Exact ID");
+    const manifest = { name: "Current", description: "Current description", version: "1.2.3", dataSchema: { type: "object" }, display: { width: 312 } };
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify(manifest));
+    writeFileSync(path.join(folder, "data.json"), '{"message":"Starting value"}');
+    const shown = await tv(["templates", "show", "Exact ID"]);
+    expect(shown.exitCode, shown.stderr).toBe(0);
+    expect(JSON.parse(shown.stdout)).toEqual({ template: { id: "Exact ID", path: folder, ...manifest } });
+    const urlFolder = path.join(home, "templates", "URL");
+    mkdirSync(urlFolder);
+    const urlManifest = { name: "Web", description: "Local target", version: "1.0.0", url: `  ${running.startupURL}/health  ` };
+    writeFileSync(path.join(urlFolder, "manifest.json"), JSON.stringify(urlManifest));
+    const url = urlManifest.url.trim();
+    expect(JSON.parse((await tv(["templates", "show", "URL"])).stdout)).toEqual({ template: { ...urlManifest, id: "URL", path: urlFolder, url } });
+    const list = JSON.parse((await tv(["templates", "list"])).stdout);
+    expect(list).toEqual({ templates: expect.any(Array), errors: [] });
+    expect(list.templates).toContainEqual({ id: "Exact ID", name: "Current", description: "Current description" });
+    expect(list.templates).toContainEqual({ id: "URL", name: "Web", description: "Local target", url });
+    for (const id of ["exact id", "absent"]) {
+      const result = await tv(["templates", "show", id]);
+      expect(result.exitCode).toBe(1);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toContain(id);
+      expect(result.stderr).toMatch(/not found/i);
+    }
+    writeFileSync(path.join(folder, "manifest.json"), "{");
+    const invalid = await tv(["templates", "show", "Exact ID"]);
+    expect(invalid.exitCode).toBe(1);
+    expect(invalid.stdout).toBe("");
+    expect(invalid.stderr).toContain(JSON.parse((await tv(["templates", "list"])).stdout).errors.find((error: any) => error.folder === "Exact ID").error);
+    rmSync(path.join(home, "templates"), { recursive: true });
+    writeFileSync(path.join(home, "templates"), "obstruction");
+    const unreadable = await tv(["templates", "show", "Exact ID"]);
+    expect(unreadable.exitCode).toBe(1);
+    expect(unreadable.stdout).toBe("");
+    expect(unreadable.stderr).toContain(JSON.parse((await tv(["templates", "list"])).stdout).errors.find((error: any) => error.folder === null).error);
+  });
+
+  // proofs/product/templates.md#^templates-ac-url-create
+  // proofs/product/templates.md#^templates-ac-data-refusal
+  it("creates ordinary URL templates and refuses URL data before creation", async () => {
+    const { home, running, channel, tv } = await seededServer("television-cli-template-url-");
+    const target = await channel("URL templates", 0);
+    const folder = path.join(home, "templates", "website");
+    mkdirSync(folder);
+    const url = new URL("/health", running.startupURL).href;
+    const manifest = { name: "Local website", description: "Local URL", version: "1.0.0", url: `  ${url}  ` };
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify(manifest));
+    for (const options of [["--data", "null"], ["--data-file", "-"]]) {
+      const refused = await tv(["create-artifact", "--channel", target.id, "--template", "website", ...options, "--no-focus"], "null");
+      expect(refused.exitCode).toBe(1);
+      expect(refused.stdout).toBe("");
+      expect(refused.stderr).toMatch(/URL/i);
+      expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
+    }
+    const created = await tv(["create-artifact", "--channel", target.id, "--template", "website", "--title", "Chosen site", "--no-focus"]);
+    expect(created.exitCode, created.stderr).toBe(0);
+    const id = /^Artifact (\S+) created\./.exec(created.stdout)![1]!;
+    expect(created.stdout).toBe(`Artifact ${id} created.\nTelevision registered ${url}.\n`);
+    const artifact = JSON.parse((await tv(["get-artifact", "--id", id])).stdout).artifact;
+    expect(artifact).toMatchObject({ id, kind: "url", title: "Chosen site", url });
+    expect(artifact).not.toHaveProperty("store");
+    expect(artifact).not.toHaveProperty("templateID");
+    expect(artifact).not.toHaveProperty("origin");
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ ...manifest, url: new URL("/changed", running.startupURL).href }));
+    expect(JSON.parse((await tv(["get-artifact", "--id", id])).stdout).artifact.url).toBe(url);
+  });
+
+  // proofs/product/templates.md#^templates-ac-data-refusal
+  it("validates caller data before creation and keeps unwritten, null and later writes distinct", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-schema-");
+    const target = await channel("Schema", 0);
+    const folder = authorTemplate(home, "schema");
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Schema", description: "Caller data", version: "1.0.0", dataSchema: { type: ["object", "null"], properties: { message: { type: "string", default: "Schema default" } }, required: ["message"] } }));
+    const invalid = await tv(["create-artifact", "--channel", target.id, "--template", "schema", "--data", "{}", "--no-focus"]);
+    expect(invalid.exitCode).toBe(1);
+    expect(invalid.stdout).toBe("");
+    expect(invalid.stderr).toContain("message");
+    expect(invalid.stderr).toMatch(/required|missing/i);
+    expect(invalid.stderr).toMatch(/tv templates show (?:-- )?["']?schema["']?/);
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
+    for (const value of [undefined, "null", '{"message":"Caller"}']) {
+      const created = await tv(["create-artifact", "--channel", target.id, "--template", "schema", ...(value === undefined ? [] : ["--data", value]), "--no-focus"]);
+      expect(created.exitCode, created.stderr).toBe(0);
+      const id = /^Artifact (\S+) created\./.exec(created.stdout)![1]!;
+      const store = JSON.parse((await tv(["resource", "json", "get", "--artifact", id])).stdout);
+      expect(store).toEqual(value === undefined ? { exists: false } : { exists: true, value: JSON.parse(value) });
+      const artifact = JSON.parse((await tv(["get-artifact", "--id", id])).stdout).artifact;
+      if (value === undefined) expect(artifact).not.toHaveProperty("store");
+      else expect(JSON.parse(readFileSync(path.join(home, "resources", "json", artifact.store, "content.json"), "utf8"))).toEqual(JSON.parse(value));
+      expect((await tv(["resource", "json", "set", "--artifact", id, "message", "42"])).exitCode).toBe(0);
+      expect(JSON.parse((await tv(["resource", "json", "get", "--artifact", id, "message"])).stdout)).toEqual({ exists: true, value: 42 });
+    }
+  });
+
+  // proofs/product/cli.md#^cli-ac-template-options-refusal
+  it("refuses template-only directives on ordinary path and URL sources in the built process", async () => {
+    const { home, channel, tv } = await seededServer("television-cli-template-directives-");
+    const target = await channel("Directives", 0);
+    const file = path.join(home, "page.html");
+    writeFileSync(file, "<h1>Page</h1>");
+    for (const source of [["--path", file], ["--url", "https://example.com/"]]) {
+      for (const option of [["--data", "null"], ["--data-file", "-"]]) {
+        const result = await tv(["create-artifact", "--channel", target.id, ...source, "--title", "Ordinary", ...option, "--no-focus"]);
+        expect(result.exitCode).toBe(1);
+        expect(result.stdout).toBe("");
+        expect(result.stderr).toContain("only with --template");
+      }
+    }
+    expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
   });
 
   // proofs/product/cli.md#^cli-ac-create-artifact

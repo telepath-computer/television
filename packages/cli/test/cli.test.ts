@@ -126,7 +126,7 @@ function fakeEnvironment(overrides: Partial<CLIEnvironment> = {}): Partial<CLIEn
       list: vi.fn(async () => ({ artifacts: [] })),
     },
     templates: {
-      list: vi.fn(async () => ({ templates: [{ id: "example", name: "Example", description: "A sample", version: "1.0.0", hasData: true, hasThumbnail: false, path: "/tmp/templates/example" }], errors: [{ folder: "broken", error: "invalid manifest" }] })),
+      list: vi.fn(async () => ({ templates: [{ id: "example", name: "Example", description: "A sample", version: "1.0.0", hasIcon: false, path: "/tmp/templates/example" }], errors: [{ folder: "broken", error: "invalid manifest" }], watching: true })),
       create: vi.fn(async () => ({ artifactID: "artifact-1", path: "/tmp/artifacts/example" })),
     },
     display: { focus: vi.fn(async () => ({ channelID: "screen-1", artifactID: "artifact-1" })), patch: vi.fn(async () => {}), get: vi.fn(async () => ({ focusedChannelId: null, pinnedChannelIds: [], activeThemeName: null, acpEnabled: false })) },
@@ -579,13 +579,73 @@ describe("artifact template CLI commands", () => {
     expect(env.createClient).not.toHaveBeenCalled();
   });
 
-  // proofs/arch/cli/index.md#^cli-t-template-commands
-  it("lists the full fresh scan and resolves templates path without config or server", async () => {
-    const output = new BufferOutput();
-    const env = fakeEnvironment({ stdout: output, stderr: new BufferOutput() });
-    expect(await runCLI(["templates", "list"], env)).toBe(0);
-    expect(JSON.parse(output.toString())).toEqual(await (env.createClient as any).mock.results[0].value.templates.list.mock.results[0].value);
+  // proofs/arch/cli/index.md#^cli-t-template-create
+  it.each([
+    { artifactID: "artifact-1", path: "/tmp/artifacts/example" },
+    { artifactID: "artifact-1", url: "https://example.com/page" },
+  ])("prints the registered template target and omits caller data: %j", async (result) => {
+    const stdout = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+    const client = (env.createClient as any)();
+    client.templates.create.mockResolvedValue(result);
+    client.display.focus.mockImplementation(async () => {
+      expect(stdout.toString()).toBe(`Artifact artifact-1 created.\nTelevision registered ${"path" in result ? result.path : result.url}.\n`);
+    });
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(0);
+    expect(client.templates.create).toHaveBeenCalledWith({ templateID: "example", channelID: "screen-1", source: "cli" });
+  });
 
+  it("prints no success when template creation is rejected", async () => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.create.mockRejectedValue(new Error("Store save unconfirmed"));
+    expect(await runCLI(["create-artifact", "--channel", "screen-1", "--template", "example", "--focus-artifact"], env)).toBe(1);
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain("Store save unconfirmed");
+    expect(client.display.focus).not.toHaveBeenCalled();
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it("projects fresh list and exact show records without app metadata", async () => {
+    const folder = { id: "Example", name: "Example", description: "Folder", path: "/tmp/templates/Example", version: "1.0.0", display: { width: 200 }, dataSchema: { type: "object" }, icons: [{ src: "icon.svg", type: "image/svg+xml" }] };
+    const url = { id: "url", name: "URL", description: "Website", path: "/tmp/templates/url", version: "2.0.0", url: "https://example.com/" };
+    const errors = [{ folder: "broken", error: "invalid manifest" }];
+    for (const [args, expected] of [
+      [["list"], { templates: [{ id: folder.id, name: folder.name, description: folder.description }, { id: url.id, name: url.name, description: url.description, url: url.url }], errors }],
+      [["show", "Example"], { template: folder }],
+      [["show", "url"], { template: url }],
+    ] as const) {
+      const stdout = new BufferOutput();
+      const env = fakeEnvironment({ stdout, stderr: new BufferOutput() });
+      const client = (env.createClient as any)();
+      client.templates.list.mockResolvedValue({ templates: [folder, url].map((entry) => ({ ...entry, hasIcon: true, kind: "app-only", extraAppField: "private" })), errors, watching: true });
+      expect(await runCLI(["templates", ...args], env)).toBe(0);
+      expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+      expect(JSON.parse(stdout.toString())).toEqual(expected);
+    }
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-commands
+  it.each([
+    ["broken", [{ folder: "broken", error: "invalid manifest" }], "invalid manifest"],
+    ["Example", [], "not found"],
+    ["example", [{ folder: null, error: "directory unavailable" }], "directory unavailable"],
+  ])("refuses template show %s without a success object", async (id, errors, error) => {
+    const stdout = new BufferOutput();
+    const stderr = new BufferOutput();
+    const env = fakeEnvironment({ stdout, stderr });
+    const client = (env.createClient as any)();
+    client.templates.list.mockResolvedValue({ templates: [], errors, watching: false });
+    expect(await runCLI(["templates", "show", id], env)).toBe(1);
+    expect(client.templates.list).toHaveBeenCalledWith({ fresh: true });
+    expect(stdout.toString()).toBe("");
+    expect(stderr.toString()).toContain(error);
+  });
+
+  // proofs/arch/cli/index.md#^cli-t-template-path
+  it("resolves templates path without config or server", async () => {
     const home = temporaryHome("not JSON");
     const local = new BufferOutput();
     const localEnv = fakeEnvironment({ stdout: local, stderr: new BufferOutput() });
@@ -2843,6 +2903,7 @@ const SERVER_COMMANDS: string[][] = [
   ["create-artifact", "--channel", "screen-1", "--title", "U", "--url", "https://example.com", "--no-focus"],
   ["create-artifact", "--channel", "screen-1", "--template", "example", "--no-focus"],
   ["templates", "list"],
+  ["templates", "show", "example"],
   ["update-artifact", "--id", "artifact-1", "--title", "T"],
   ["delete-artifact", "--id", "artifact-1"],
   ["reposition-artifact", "--id", "artifact-1", "--width", "500"],

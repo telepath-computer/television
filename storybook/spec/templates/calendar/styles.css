@@ -1,0 +1,771 @@
+/* The Calendar template's page: the month title above a calendar of one to
+   seven days, laid out like Apple Calendar. Built only from the foundation's
+   tokens, so it follows the active theme and appearance. */
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+main { display: grid; grid-template-rows: auto minmax(0, 1fr); height: 100vh; overflow: hidden; }
+
+/* The title reads like a calendar app's toolbar: the month in bold, the year
+   in a lighter weight. */
+.masthead {
+  padding: clamp(14px, 2.4vh, 26px) var(--space-20) clamp(6px, 1vh, 12px);
+}
+.masthead h1 {
+  margin: 0;
+  font-size: clamp(22px, 1.1rem + 1.1vw, 40px);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+}
+.masthead h1 .year { font-weight: var(--font-weight-normal); }
+
+/* Data the page cannot read: an error page in place of the calendar,
+   centred in the page. */
+.calendar-unreadable {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-48) var(--space-24);
+  text-align: center;
+}
+
+.calendar-unreadable-icon {
+  display: grid;
+  place-items: center;
+  width: var(--space-64);
+  height: var(--space-64);
+  margin-bottom: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.calendar-unreadable-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.calendar-unreadable-text {
+  max-width: 28em;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------ */
+/* Calendar                                                            */
+/* ------------------------------------------------------------------ */
+
+calendar-week {
+  /* Hour lines and day separators: quieter than an ordinary border. */
+  --calendar-line: oklch(from var(--color-border) l c h / calc(alpha * 0.75));
+  /* Weekend columns sit a step toward the muted surface. */
+  --calendar-weekend: color-mix(in oklab, var(--color-surface-muted) 60%, var(--color-surface));
+  /* Today's date circle and the now line use the theme's red; dark
+     appearance takes a deeper step so reversed type stays legible. */
+  --calendar-today: var(--red-500);
+  --calendar-today-text: oklch(from var(--calendar-today) clamp(0.2, (var(--contrast-flip) - l) * 1e6, 0.98) 0 h);
+  --calendar-gutter: 60px;
+  /* Days share the full width equally down to this width; a calendar too
+     narrow for every day at it scrolls sideways under the pinned hour labels. */
+  --calendar-day-min-width: 100px;
+  --hour-count: 24;
+
+  /* Sizes for a week: a comfortable hour that grows with the window height. */
+  --hour-min-height: clamp(52px, 7.5vh, 76px);
+  --calendar-header-size: 15px;
+  --calendar-axis-size: 11px;
+  --event-font-size: 12px;
+
+  display: grid;
+  grid-template-columns:
+    [time-left] var(--calendar-gutter)
+    [days-start] repeat(var(--day-count, 0), minmax(var(--calendar-day-min-width), 1fr)) [days-end];
+  grid-template-rows:
+    [headers] auto
+    [allday] auto
+    [hours-start] repeat(var(--hour-count), minmax(var(--hour-min-height), 1fr)) [hours-end];
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  overflow-anchor: none;
+  scrollbar-color: var(--neutral-alpha-50) transparent;
+  background: var(--color-surface);
+  font-family: inherit;
+  color: var(--color-text);
+}
+
+:root[data-theme="dark"] calendar-week {
+  --calendar-today: var(--red-600);
+}
+
+/* One day is the stage view: larger type, taller hours, and events that fill
+   the width. The trailing inset leaves room for a raised event to grow. */
+calendar-week[days="1"] {
+  --hour-min-height: clamp(56px, 8.6vh, 104px);
+  --calendar-gutter: clamp(56px, 4.5vw, 84px);
+  --calendar-header-size: clamp(17px, 0.5rem + 0.8vw, 26px);
+  --calendar-axis-size: clamp(11px, 0.3rem + 0.6vw, 16px);
+  --event-font-size: clamp(13px, 0.4rem + 0.7vw, 21px);
+  --event-padding-block: 0.32em;
+  --event-padding-inline: 0.75em;
+  --event-inset-start: max(12px, 1%);
+  --event-inset-end: max(16px, 1.4%);
+  --event-gap: 4px;
+  --lift-scale: 1.016;
+  --lift-rise: -14px;
+  --lift-perspective: 2400px;
+}
+
+@media (max-width: 560px) {
+  .masthead { padding-inline: var(--space-16); }
+  calendar-week[days="1"] { --event-inset-end: 10px; }
+}
+
+calendar-week > calendar-headers,
+calendar-week > calendar-allday,
+calendar-week > calendar-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Day headers                                                         */
+/* ------------------------------------------------------------------ */
+
+calendar-week > calendar-headers {
+  grid-row: headers / allday;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--calendar-line);
+}
+
+/* When the days scroll sideways, the gutter stays put: a surface strip in
+   each band covers the days passing beneath the hour labels. The grid's
+   strip stops short of the day columns so the now line's dot, which sits
+   on that edge, stays whole. */
+calendar-headers::before,
+calendar-grid::before {
+  content: "";
+  grid-column: time-left / days-start;
+  grid-row: 1 / -1;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--color-surface);
+}
+
+calendar-grid::before {
+  width: calc(100% - 6px);
+}
+
+calendar-headers > calendar-day {
+  grid-column: calc(var(--day-index) + 1);
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  min-width: 0;
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  font-size: var(--calendar-header-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+calendar-headers > calendar-day .weekday {
+  color: var(--color-text-muted);
+}
+
+/* The date sits in a circle that fills red only for today. */
+calendar-headers > calendar-day .date-num {
+  display: grid;
+  place-items: center;
+  min-width: 1.75em;
+  height: 1.75em;
+  padding: 0 0.3em;
+  border-radius: var(--radius-pill);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+calendar-headers > calendar-day[data-weekend] .date-num {
+  color: var(--color-text-muted);
+}
+
+calendar-headers > calendar-day[data-today] .weekday {
+  color: var(--calendar-today);
+}
+
+calendar-headers > calendar-day[data-today] .date-num {
+  background: var(--calendar-today);
+  color: var(--calendar-today-text);
+}
+
+/* ------------------------------------------------------------------ */
+/* All-day band                                                        */
+/* ------------------------------------------------------------------ */
+
+/* The band sticks just below the day headers, whose height is the date
+   circle plus the header padding and rule. */
+calendar-week > calendar-allday {
+  grid-row: allday / hours-start;
+  grid-template-rows: repeat(var(--allday-lane-count, 1), auto);
+  position: sticky;
+  top: calc(1.75 * var(--calendar-header-size) + var(--space-6) + var(--space-8) + 1px);
+  z-index: 2;
+  padding: var(--space-2) 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--calendar-line);
+}
+
+calendar-allday > .allday-label {
+  grid-column: time-left / days-start;
+  grid-row: 1 / -1;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  margin: calc(-1 * var(--space-2)) 0;
+  padding: calc(var(--space-2) + 0.45em) var(--space-8) 0 0;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: var(--calendar-axis-size);
+  text-align: right;
+  white-space: nowrap;
+}
+
+calendar-allday > calendar-cell {
+  grid-column: calc(var(--day-index) + 1);
+  grid-row: 1 / -1;
+  margin: calc(-1 * var(--space-2)) 0;
+  border-left: 1px solid var(--calendar-line);
+}
+
+/* ------------------------------------------------------------------ */
+/* Hour grid                                                           */
+/* ------------------------------------------------------------------ */
+
+/* The grid is its own stacking context, so a raised event stays beneath the
+   sticky headers and all-day band when it scrolls under them. */
+calendar-week > calendar-grid {
+  grid-row: hours-start / hours-end;
+  grid-template-rows: subgrid;
+  position: relative;
+  z-index: 0;
+}
+
+calendar-grid > calendar-column {
+  grid-column: calc(var(--day-index) + 1);
+  grid-row: 1 / -1;
+  border-left: 1px solid var(--calendar-line);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--calendar-line) 0,
+    var(--calendar-line) 1px,
+    transparent 1px,
+    transparent calc(100% / var(--hour-count))
+  );
+}
+
+/* With six or seven days shown, the weekend days are shaded, in the all-day
+   band and the hour grid alike. */
+calendar-week:is([days="6"], [days="7"]) calendar-allday > calendar-cell[data-weekend],
+calendar-week:is([days="6"], [days="7"]) calendar-grid > calendar-column[data-weekend] {
+  background-color: var(--calendar-weekend);
+}
+
+calendar-grid > .start-hour-marker {
+  grid-column: 2;
+  grid-row-start: calc(var(--start-hour) + 1);
+  width: 0;
+  height: 0;
+}
+
+/* Hour labels sit right-aligned in the gutter, centred on their hour line. */
+calendar-time-axis {
+  display: contents;
+}
+
+calendar-time-axis .hour-label {
+  grid-column: time-left / days-start;
+  grid-row-start: calc(var(--hour-index) + 1);
+  align-self: start;
+  /* Pinned with the gutter when the days scroll sideways. */
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  padding-right: var(--space-8);
+  color: var(--color-text-muted);
+  font-size: var(--calendar-axis-size);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+/* Midnight would sit on the grid's top edge, so it is left out. */
+calendar-time-axis .hour-label[data-hour="0"] {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ */
+/* Now line                                                            */
+/* ------------------------------------------------------------------ */
+
+calendar-grid > .now-line-faint,
+calendar-grid > .now-line {
+  grid-row: 1 / -1;
+  position: relative;
+  pointer-events: none;
+}
+
+/* The faint line across the other days runs beneath the events. Today's red
+   line and its dot draw over them, as in Apple and Google Calendar, but stay
+   beneath a raised event. */
+calendar-grid > .now-line-faint {
+  z-index: 0;
+}
+
+calendar-grid > .now-line {
+  z-index: 2;
+}
+
+calendar-grid > .now-line-faint {
+  grid-column: days-start / days-end;
+}
+
+calendar-grid > .now-line {
+  grid-column: calc(var(--day-index) + 1);
+}
+
+calendar-grid > .now-line-faint::before,
+calendar-grid > .now-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--y-fraction) * 100%);
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+calendar-grid > .now-line-faint::before {
+  height: 1px;
+  background: oklch(from var(--calendar-today) l c h / var(--alpha-40));
+}
+
+calendar-grid > .now-line::before {
+  background: var(--calendar-today);
+}
+
+calendar-grid > .now-line::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: calc(var(--y-fraction) * 100%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--calendar-today);
+  transform: translate(-50%, -50%);
+}
+
+/* The current time replaces the hour label it lands on. The strip spans the
+   gutter for the whole day and is pinned with it; the time inside sits at
+   the same fraction of the day's height as the line. */
+calendar-grid > .now-label {
+  grid-column: time-left / days-start;
+  grid-row: 1 / -1;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+calendar-grid > .now-label > span {
+  position: absolute;
+  top: calc(var(--y-fraction) * 100%);
+  right: 6px;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  color: var(--calendar-today);
+  font-size: var(--calendar-axis-size);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+/* ------------------------------------------------------------------ */
+/* Events                                                              */
+/* ------------------------------------------------------------------ */
+
+/* Event blocks, in the manner of Apple Calendar: a soft fill in the event's
+   colour, a bold title and the time in a deeper shade of the same hue, no
+   border. Each colour reads from the matching canonical hue scale, so events
+   follow the active theme; the steps used change with the appearance. */
+calendar-event {
+  display: contents;
+
+  /* The event's hue and its ink in each appearance, chosen by its color
+     attribute below. Light ink is a deep step of the hue, dark ink a pale
+     one. Yellow, green and orange go a step deeper in light to stay legible
+     on their pale fills, as Apple sets yellow in ochre. Blue is the default. */
+  --event-hue: var(--blue-500);
+  --event-ink-light: var(--blue-800);
+  --event-ink-soft-light: var(--blue-700);
+  --event-ink-dark: var(--blue-200);
+  --event-ink-soft-dark: var(--blue-300);
+
+  --event-fill-strength: 17%;
+  --event-fill-strength-raised: 32%;
+  --event-ink: var(--event-ink-light);
+  --event-ink-soft: var(--event-ink-soft-light);
+}
+
+/* Dark appearance: light ink on a deeper, denser fill. */
+:root[data-theme="dark"] calendar-event {
+  --event-fill-strength: 30%;
+  --event-fill-strength-raised: 50%;
+  --event-ink: var(--event-ink-dark);
+  --event-ink-soft: var(--event-ink-soft-dark);
+}
+
+calendar-event[color="red"] { --event-hue: var(--red-500); --event-ink-light: var(--red-800); --event-ink-soft-light: var(--red-700); --event-ink-dark: var(--red-200); --event-ink-soft-dark: var(--red-300); }
+calendar-event[color="orange"] { --event-hue: var(--orange-500); --event-ink-light: var(--orange-900); --event-ink-soft-light: var(--orange-800); --event-ink-dark: var(--orange-200); --event-ink-soft-dark: var(--orange-300); }
+calendar-event[color="yellow"] { --event-hue: var(--yellow-500); --event-ink-light: var(--yellow-900); --event-ink-soft-light: var(--yellow-900); --event-ink-dark: var(--yellow-200); --event-ink-soft-dark: var(--yellow-300); }
+calendar-event[color="green"] { --event-hue: var(--green-500); --event-ink-light: var(--green-900); --event-ink-soft-light: var(--green-800); --event-ink-dark: var(--green-200); --event-ink-soft-dark: var(--green-300); }
+calendar-event[color="purple"] { --event-hue: var(--purple-500); --event-ink-light: var(--purple-800); --event-ink-soft-light: var(--purple-700); --event-ink-dark: var(--purple-200); --event-ink-soft-dark: var(--purple-300); }
+
+calendar-event .event-block {
+  pointer-events: none;
+}
+
+calendar-event .event-block-inner {
+  --event-fill: color-mix(in oklab, var(--event-hue) var(--event-fill-strength), var(--color-surface));
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  padding: var(--event-padding-block, 4px) var(--event-padding-inline, 6px);
+  border-radius: var(--control-radius);
+  background-color: var(--event-fill);
+  color: var(--event-ink);
+  font-size: var(--event-font-size);
+  line-height: 1.2;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+calendar-event h3 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--event-ink);
+  font-size: 1em;
+  font-weight: var(--font-weight-semibold);
+  line-height: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+calendar-event :is(.event-time, .event-detail, .event-attendees) {
+  overflow: hidden;
+  color: var(--event-ink-soft);
+  white-space: nowrap;
+}
+
+calendar-event :is(.event-time, .event-detail) {
+  text-overflow: ellipsis;
+}
+
+calendar-event .event-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Attendees: a person icon, then as many names as fit whole and a count of
+   the rest. The page sets the names to fit the block's width, so a name is
+   never cut off. */
+calendar-event .event-attendees {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  margin-top: 0.35em;
+}
+
+calendar-event .event-attendees-icon {
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+}
+
+calendar-event .event-attendees-names {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+calendar-event :is(.event-time, .event-detail, .event-attendees)[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Timed events                                                        */
+/* ------------------------------------------------------------------ */
+
+/* Each event spans its day's column; the block inside is placed in its
+   overlap column. With W the column width less the insets, a column is
+   (W + gap) / count wide including its trailing gap. */
+calendar-grid calendar-event .event-block {
+  grid-column: calc(var(--day-index) + 1);
+  grid-row: 1 / -1;
+  position: relative;
+  z-index: 1;
+  --event-track: calc((100% - var(--event-inset-start, 2px) - var(--event-inset-end, 4px) + var(--event-gap, 2px)) / var(--column-count, 1));
+}
+
+calendar-grid calendar-event .event-block-inner {
+  position: absolute;
+  top: calc(var(--y-start) * 100% + 1px);
+  height: calc((var(--y-end) - var(--y-start)) * 100% - 2px);
+  left: calc(var(--event-inset-start, 2px) + var(--column-index, 0) * var(--event-track));
+  width: calc(var(--column-span, 1) * var(--event-track) - var(--event-gap, 2px));
+  /* The block's own height decides which lines fit; see the queries below. */
+  container: event / size;
+}
+
+/* A short event shows its title with the start time beside it. The line is
+   centred in a block too low for the usual padding, and otherwise sits at
+   the usual padding from the top; cqh measures the block's height. */
+calendar-grid calendar-event[data-size="short"] .event-block-inner {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.4em;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+calendar-grid calendar-event[data-size="short"] h3 {
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-top: clamp(0px, (100cqh - 1.2em) / 2, var(--event-padding-block, 4px));
+}
+
+calendar-grid calendar-event[data-size="short"] .event-time {
+  flex: none;
+  font-size: 0.92em;
+}
+
+calendar-grid calendar-event[data-size="short"] :is(.event-detail, .event-attendees) {
+  display: none;
+}
+
+/* In a narrow block the title keeps the room. */
+@container event (width < 9em) {
+  calendar-grid calendar-event[data-size="short"] .event-time { display: none; }
+}
+
+/* Lines appear only when the block is tall enough to show them whole: each
+   line is 1.2em with 0.1em between, and attendees sit 0.35em lower. */
+@container event (height < 2.5em) {
+  calendar-event[data-size="long"] .event-time { display: none; }
+}
+
+@container event (height < 3.8em) {
+  calendar-event .event-detail { display: none; }
+}
+
+@container event (height < 5.45em) {
+  calendar-event .event-attendees { display: none; }
+}
+
+/* A narrow block, such as one of two overlapping events, wraps its title
+   onto a second line in place of the detail line. */
+@container event (width < 9em) and (height >= 3.7em) {
+  calendar-event[data-size="long"] h3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    /* Titles wrap only between words; a word wider than the block ends in
+       an ellipsis. */
+    white-space: normal;
+  }
+
+  calendar-event[data-size="long"] .event-detail {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* All-day events                                                      */
+/* ------------------------------------------------------------------ */
+
+calendar-allday calendar-event .event-block {
+  grid-column: calc(var(--day-start) + 1) / span var(--day-span);
+  grid-row: var(--lane-index);
+  padding: 1px var(--event-inset-end, 4px) 1px var(--event-inset-start, 2px);
+}
+
+calendar-allday calendar-event .event-block-inner {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.5em;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+}
+
+calendar-allday calendar-event .event-detail {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+calendar-allday calendar-event .event-attendees {
+  display: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Highlight                                                           */
+/* ------------------------------------------------------------------ */
+
+/* A highlighted event lifts off the page: it rises, grows and tilts slightly
+   toward the viewer while a broad, layered shadow spreads beneath it. The
+   raised block sits above every other event and the now line. Its denser
+   fill takes the title's ink for the other lines as well. */
+calendar-event[highlight] {
+  --event-ink-soft: var(--event-ink);
+}
+
+calendar-event[highlight] .event-block {
+  z-index: 4;
+}
+
+calendar-event[highlight] .event-block-inner {
+  --event-fill: color-mix(in oklab, var(--event-hue) var(--event-fill-strength-raised), var(--color-surface));
+  transform-origin: 50% 100%;
+  transform:
+    perspective(var(--lift-perspective, 700px))
+    translateY(var(--lift-rise, -7px))
+    rotateX(var(--lift-tilt, -3deg))
+    scale(var(--lift-scale, 1.06));
+  box-shadow:
+    /* Light catching the top edge, and a fine rim in the event's hue. */
+    inset 0 1px 0 oklch(from var(--event-fill) calc(l + 0.1) c h),
+    0 0 0 1px oklch(from var(--event-hue) l c h / var(--lift-rim-alpha, 22%)),
+    /* Contact shadow, close under the block. */
+    0 2px 5px oklch(from var(--neutral-950) l c h / var(--lift-contact-alpha, 14%)),
+    /* Body shadow, offset down as the block rises. */
+    0 14px 28px -8px oklch(from var(--neutral-950) l c h / var(--lift-body-alpha, 26%)),
+    /* Broad ambient shadow, faintly tinted with the event's hue. */
+    0 36px 72px -14px oklch(from var(--event-hue) calc(l * var(--lift-ambient-lightness, 0.45)) calc(c * 0.6) h / var(--lift-ambient-alpha, 42%));
+}
+
+/* On a dark ground a tinted shadow reads as a glow, so it goes near black. */
+:root[data-theme="dark"] calendar-event[highlight] .event-block-inner {
+  --lift-contact-alpha: 50%;
+  --lift-body-alpha: 55%;
+  --lift-ambient-alpha: 75%;
+  --lift-ambient-lightness: 0.12;
+  --lift-rim-alpha: 40%;
+}
+
+/* Motion starts only once the calendar is ready after its first render, so
+   an event that loads raised appears raised. Both directions ease out
+   smoothly, with no overshoot; settling is quicker than rising. */
+calendar-week[data-ready] calendar-event .event-block-inner {
+  transition:
+    transform 450ms cubic-bezier(0.32, 0.72, 0, 1),
+    box-shadow 450ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 450ms ease;
+}
+
+calendar-week[data-ready] calendar-event[highlight] .event-block-inner {
+  transition:
+    transform 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 700ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  calendar-week[data-ready] calendar-event .event-block-inner,
+  calendar-week[data-ready] calendar-event[highlight] .event-block-inner {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Range slide                                                         */
+/* ------------------------------------------------------------------ */
+
+/* A new start date slides the days sideways as a view transition. The days
+   and each hour label in view are captured on their own, so the days move
+   while the hour labels stay put; the names apply only while a slide is
+   under way. The old days and the new travel together as one strip, each
+   image dropping its blank gutter, and the strip stays within the days' own
+   area. */
+:root[data-calendar-move] calendar-week {
+  view-transition-name: calendar-days;
+}
+
+:root[data-calendar-move]::view-transition-group(calendar-days) {
+  clip-path: inset(0 0 0 var(--calendar-move-gutter));
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-days),
+:root[data-calendar-move]::view-transition-new(calendar-days) {
+  animation: none;
+  mix-blend-mode: normal;
+  clip-path: inset(0 0 0 var(--calendar-move-gutter));
+}
+
+/* When the month or year changes too, the title is captured on its own: the
+   old title fades out, then the new one fades in, each at its own size, and
+   the two never show together. */
+:root[data-calendar-move="month"] #range-label {
+  view-transition-name: calendar-month;
+}
+
+:root[data-calendar-move]::view-transition-group(calendar-month) {
+  animation: none;
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-month),
+:root[data-calendar-move]::view-transition-new(calendar-month) {
+  inline-size: auto;
+}
+
+:root[data-calendar-move]::view-transition-old(calendar-month) {
+  animation: calendar-month-out 160ms ease both;
+}
+
+:root[data-calendar-move]::view-transition-new(calendar-month) {
+  animation: calendar-month-in 160ms ease 160ms both;
+}
+
+@keyframes calendar-month-out {
+  to { opacity: 0; }
+}
+
+@keyframes calendar-month-in {
+  from { opacity: 0; }
+}

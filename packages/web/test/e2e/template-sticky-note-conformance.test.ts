@@ -1,28 +1,11 @@
 // Each exported spec story is compared with an independently copied note reached through real services and input.
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import type { Page } from "playwright";
 import { conform } from "@telepath-computer/conform";
-import { StorybookSource } from "@telepath-computer/conform/storybook";
-import { TelevisionClient } from "@telepath-computer/television-shared";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "@playwright/test";
-import { NetworkProxy } from "../../../server/test/e2e/network-proxy.ts";
-import { TEMPLATE_LAUNCH, TEST_HOST } from "./template-harness.ts";
-import { SERVER_ENV, type SharedServer } from "./template-conformance-setup.ts";
+import { artifactURL, client, createArtifact, specStories, storybook, useConformance } from "./conformance-harness.ts";
 
-const server = JSON.parse(process.env[SERVER_ENV]!) as SharedServer;
-const client = new TelevisionClient(server.serverURL, { token: server.token });
-const storybook = new StorybookSource({ url: process.env.TV_STICKY_NOTE_STORYBOOK_URL });
-
-// conform owns a separate Playwright version; its browser must come from that version.
-let browser: Browser;
-test.beforeAll(async () => { browser = await chromium.launch(TEMPLATE_LAUNCH); });
-test.afterAll(async () => { await browser?.close(); });
-
-let proxy: NetworkProxy;
-test.beforeEach(async () => { proxy = await NetworkProxy.start(Number(new URL(server.serverURL).port)); });
-test.afterEach(async () => { await proxy?.close(); });
+const run = useConformance();
 
 const note = "Buy milk\nCall the plumber\nBook Barcelona dinner";
 const longNote = [
@@ -57,8 +40,8 @@ async function fontLoaded(page: Page): Promise<void> {
 }
 
 async function disconnect(page: Page): Promise<void> {
-  proxy.refuse(true);
-  proxy.sever();
+  run.proxy.refuse(true);
+  run.proxy.sever();
   await page.getByRole("status").filter({ hasText: "Reconnecting…" }).waitFor();
 }
 
@@ -117,16 +100,16 @@ const states: Record<string, State> = {
     data: { text: note },
     share: "read-write",
     ready: async (page, id) => {
-      const connection = proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
+      const connection = run.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
       // Keep the page unaware of the downgrade until the server rejects its real save.
-      proxy.holdWrites();
-      proxy.holdServerMessages(connection, message => message.type === "access");
+      run.proxy.holdWrites();
+      run.proxy.holdServerMessages(connection, message => message.type === "access");
       await caretAtEnd(page);
       await page.keyboard.type(" refused");
-      await proxy.waitFor(() => proxy.heldWriteCount === 1);
+      await run.proxy.waitFor(() => run.proxy.heldWriteCount === 1);
       await client.resources.share({ artifactID: id, access: "read" });
-      await proxy.waitFor(() => proxy.heldServerMessageCount(connection) > 0);
-      proxy.releaseWrites();
+      await run.proxy.waitFor(() => run.proxy.heldServerMessageCount(connection) > 0);
+      run.proxy.releaseWrites();
       await page.getByRole("status").filter({ hasText: "Couldn't save that change." }).waitFor();
       await expect.poll(() => page.getByRole("textbox", { name: "Note", exact: true }).inputValue()).toBe(note);
       await page.mouse.click(1, 1);
@@ -137,23 +120,18 @@ const states: Record<string, State> = {
   "dark": { data: { text: note }, dark: true },
 };
 
-const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
-  entries: Record<string, { id: string; type: string; importPath: string }>;
-};
-const stories = Object.values(index.entries).filter(entry =>
-  entry.type === "story" && entry.importPath === "./spec/templates/sticky-note/sticky-note.stories.ts");
+const stories = specStories("./spec/templates/sticky-note/sticky-note.stories.ts");
 if (stories.length === 0) throw new Error("The worktree Storybook build contains no Sticky note stories");
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-conformance
-for (const { id: storyID } of stories) {
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-conformance
+for (const storyID of stories) {
   test(`Sticky note conforms: ${storyID}`, async () => {
     const state = states[storyID.replace("spec-templates-sticky-note--", "")];
     expect(state, `No production state for the Sticky note story ${storyID}`).toBeDefined();
     const { data, share, dark, loading, ready } = state!;
-    const { artifactID } = await client.templates.create({ templateID: "sticky-note", channelID: server.channelID, source: "cli" });
-    if (data !== undefined) await client.resources.json.set({ store: { artifactID }, path: "", value: data });
+    const artifactID = await createArtifact("sticky-note", data);
     const shareID = share && (await client.resources.share({ artifactID, access: share })).shareID;
-    if (loading) proxy.hold("to-browser");
+    if (loading) run.proxy.hold("to-browser");
 
     const reference = storybook.page(storyID);
     if (typeof reference === "string") throw new Error("Storybook must supply its completed-play readiness hook");
@@ -161,15 +139,15 @@ for (const { id: storyID } of stories) {
       ...reference,
       ready: async page => { await reference.ready?.(page); await fontLoaded(page); },
     }, {
-      url: `http://${TEST_HOST}:${proxy.port}/artifact/${encodeURIComponent(shareID ?? artifactID)}/index.html`,
+      url: artifactURL(run.proxy, shareID ?? artifactID),
       setup: page => page.emulateMedia({ colorScheme: dark ? "dark" : "light" }),
       ready: async page => {
-        if (loading) await proxy.waitFor(() => proxy.openWebSockets > 0);
+        if (loading) await run.proxy.waitFor(() => run.proxy.openWebSockets > 0);
         else await page.locator(".sticky-note-text, .sticky-note-unreadable").waitFor();
         await fontLoaded(page);
         await ready?.(page, artifactID);
         await page.mouse.move(0, 0);
       },
-    }, { browser, root: ".sticky-note-page", width: 360, height: 360 });
+    }, { browser: run.browser, root: ".sticky-note-page", width: 360, height: 360 });
   });
 }

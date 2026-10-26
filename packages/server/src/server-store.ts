@@ -15,6 +15,7 @@ import {
   ChannelRemovedEvent,
   ChannelUpdatedEvent,
   ThemeChangedEvent,
+  TemplatesChangedEvent,
   type ArtifactRemovalResult,
   type MoveArtifactResult,
   type ArtifactPlacement,
@@ -22,7 +23,7 @@ import {
   type StoreDomainEvent,
   type ChannelRemovalResult,
   type ThemeRegistrySnapshot,
-  type ArtifactTemplate,
+  type AppTemplate,
   type ArtifactDisplayOptions,
   type CreateTemplateArtifactResult,
 } from "@telepath-computer/television-shared";
@@ -106,9 +107,10 @@ import {
   writeBundledThemeStateFile,
 } from "./bundled-theme-installer.ts";
 import { artifactRealLocation } from "./artifact-location.ts";
-import { randomTemplateSuffix, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
-import { getTemplatesDir } from "./templates.ts";
-import { runBundledTemplateInstallation, type BundledTemplateStateOperations } from "./bundled-template-installer.ts";
+import { getTemplatesDir, randomTemplateSuffix, readTemplateData, relinkCopiedTemplateSymlinks, templateFolderName, TemplateCreationError } from "./templates.ts";
+import { TemplateCache } from "./template-cache.ts";
+import { validateTemplateData } from "./template-schema.ts";
+import { runBundledTemplateInstallation, type BundledTemplateOperations } from "./bundled-template-installer.ts";
 
 const JSON_INDENT_SPACES = 2;
 const LAYOUT_VERSION = 2 as const;
@@ -244,14 +246,15 @@ export interface ServerStoreOptions {
   generateID?: () => string;
   /** Test hook for destination collision behavior; production draws random base-36 suffixes. */
   generateTemplateSuffix?: () => string;
-  /** Filesystem operations at the bundled-template state-write seam. */
-  bundledTemplateStateOperations?: BundledTemplateStateOperations;
+  /** Filesystem operations at the bundled-template replacement and state-write seams. */
+  bundledTemplateOperations?: Partial<BundledTemplateOperations>;
 }
 
 export class ServerStore extends EventTarget<StoreDomainEvent> {
   readonly storagePath: string;
   readonly authToken: string;
   readonly dataDirCreated: boolean;
+  readonly templateCache?: TemplateCache;
   /** The resource layer (specs/arch/resources/index.md#^rs-bootstrap); loaded only by a serving boot. */
   readonly resources: ResourceLayer;
   private readonly channels = new Map<string, Channel>();
@@ -393,9 +396,12 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     runBundledTemplateInstallation(
       this.storagePath,
       this.bundledTemplatesPath,
-      options.bundledTemplateStateOperations,
+      options.bundledTemplateOperations,
     );
     this.refreshThemeRegistry();
+    this.templateCache = new TemplateCache(getTemplatesDir(this.storagePath), (scan, invalidatedIDs) => {
+      this.dispatchEvent(new TemplatesChangedEvent("templates-changed", { scan, invalidatedIDs }));
+    }, { watch: this.watchContentFile });
     if (!this.loadDisplayState()) {
       this.initializeDisplayState();
     } else if (this.getFocusedChannelId() === null) {
@@ -408,8 +414,8 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     if (noContentAtBoot && onboarding.focusChannelID !== undefined && this.channels.has(onboarding.focusChannelID)) {
       this.patchDisplay({ focusedChannelId: onboarding.focusChannelID });
     }
-    // Watchers start last (specs/arch/onboarding/installer.md#^bootstrap-sequence
-    // step 8). Restarting an installer-created artifact's watcher is idempotent.
+    // Ordinary artifact/theme watchers start in bootstrap step 8. Template
+    // observation already started with its cache in step 6.
     for (const artifact of this._artifacts.values()) {
       this.startWatchingArtifactContent(artifact);
     }
@@ -505,9 +511,9 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     return artifact;
   }
 
-  /** Preserve every created part if template creation fails after copying starts. */
+  /** Register a template target and retain every created part on an unconfirmed save. */
   createTemplateArtifact(input: {
-    template: ArtifactTemplate;
+    template: AppTemplate;
     templateID: string;
     channelID: string;
     title?: string;
@@ -517,7 +523,6 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
     after?: string;
     source: "cli" | "ui";
   }, telemetryContext?: TelemetryClientContext | null): CreateTemplateArtifactResult {
-    const channel = this.requireChannel(input.channelID);
     const title = input.title ?? input.template.name;
     const placement = { before: input.before, after: input.after };
     const display: ArtifactDisplayOptions = {
@@ -526,51 +531,56 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       fullScreen: input.display?.fullScreen ?? input.template.display?.fullScreen,
       transparent: input.display?.transparent ?? input.template.display?.transparent,
     };
-    // Check placement and starting data before creating a destination.
-    placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
-    let startingValue: JSONValue | undefined;
-    if (Object.hasOwn(input, "data")) {
-      startingValue = input.data as JSONValue;
-    } else if (input.template.hasData) {
-      try {
-        startingValue = JSON.parse(readFileSync(path.join(input.template.path, "data.json"), "utf8")) as JSONValue;
-      } catch (error) {
-        throw new InvalidRequestError(`Template starting data cannot be read: ${errorMessage(error)}`);
-      }
+    const hasCallerData = Object.hasOwn(input, "data");
+    if (input.template.url !== undefined && hasCallerData) {
+      throw new InvalidRequestError("URL templates do not accept data");
     }
-    if (startingValue !== undefined || Object.hasOwn(input, "data")) {
-      try {
+    let startingValue: JSONValue | undefined;
+    try {
+      startingValue = hasCallerData ? input.data as JSONValue
+        : input.template.url === undefined ? readTemplateData(input.template.path) : undefined;
+      if (startingValue !== undefined || hasCallerData) {
         validateJsonValue(startingValue);
         checkJsonLimits(startingValue);
-      } catch (error) {
-        throw new InvalidRequestError(`Invalid template starting data: ${errorMessage(error)}`);
+        if (input.template.dataSchema !== undefined) validateTemplateData(input.template.dataSchema, startingValue, input.templateID);
       }
+    } catch (error) {
+      throw new InvalidRequestError(`Invalid template starting data: ${errorMessage(error)}`);
     }
 
-    const copiesDir = getAgentArtifactsDir(this.storagePath);
-    let destination: string;
-    for (;;) {
-      destination = path.join(copiesDir, templateFolderName(title, this.generateTemplateSuffix()));
-      if (!existsSync(destination)) break;
-    }
-    try {
-      mkdirSync(destination);
-      for (const entry of readdirSync(input.template.path)) {
-        if (entry === "manifest.json" || entry === "data.json" || entry === "thumbnail.png") continue;
-        cpSync(path.join(input.template.path, entry), path.join(destination, entry), {
-          recursive: true,
-          verbatimSymlinks: true,
-        });
+    const channel = this.channels.get(input.channelID);
+    if (!channel) throw new InvalidRequestError(`Channel not found: ${input.channelID}`);
+    placePage(channel, newArtifactPage("pending-template-artifact", display), placement);
+
+    let destination = input.template.url ?? input.template.path;
+    if (input.template.url === undefined) {
+      const copiesDir = getAgentArtifactsDir(this.storagePath);
+      for (;;) {
+        destination = path.join(copiesDir, templateFolderName(title, this.generateTemplateSuffix()));
+        if (!existsSync(destination)) break;
       }
-      relinkCopiedTemplateSymlinks(input.template.path, destination);
-    } catch (error) {
-      throw new TemplateCreationError(`Template copy into ${destination} could not be confirmed: ${errorMessage(error)}`);
+      try {
+        mkdirSync(destination);
+        for (const entry of readdirSync(input.template.path)) {
+          if (entry === "manifest.json" || entry === "data.json") continue;
+          cpSync(path.join(input.template.path, entry), path.join(destination, entry), {
+            recursive: true,
+            verbatimSymlinks: true,
+            mode: constants.COPYFILE_FICLONE,
+          });
+        }
+        relinkCopiedTemplateSymlinks(input.template.path, destination);
+      } catch (error) {
+        throw new TemplateCreationError(`Template copy into ${destination} could not be confirmed: ${errorMessage(error)}`);
+      }
     }
 
     const id = this.newID();
     let artifact: Artifact;
     try {
-      const created = this.createKindArtifact({ id, kind: "path", title, path: destination, transparent: display.transparent });
+      const created = input.template.url !== undefined
+        ? this.createKindArtifact({ id, kind: "url", title, url: destination, transparent: display.transparent })
+        : this.createKindArtifact({ id, kind: "path", title, path: destination, transparent: display.transparent });
       const saved = this.saveArtifactRecord(created, `registering template artifact ${id}`);
       artifact = saved.artifact;
       this._artifacts.set(id, artifact);
@@ -591,15 +601,15 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
       throw new TemplateCreationError(`Template channel layout for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
     }
 
-    if (startingValue !== undefined || Object.hasOwn(input, "data")) {
+    if (startingValue !== undefined) {
       try {
-        this.resources.json.write({ artifactID: id }, { kind: "set", path: "", value: startingValue! });
+        this.resources.json.write({ artifactID: id }, { kind: "set", path: "", value: startingValue });
       } catch (error) {
         throw new TemplateCreationError(`Template store write for ${id} in ${destination} could not be confirmed: ${errorMessage(error)}`);
       }
     }
     this.emitTelemetry((hooks) => hooks.templateUsed(input.templateID, input.source, telemetryContext));
-    return { artifactID: id, path: destination };
+    return input.template.url !== undefined ? { artifactID: id, url: destination } : { artifactID: id, path: destination };
   }
 
   updateArtifact(input: { artifactID: string; fields: ArtifactPatch }, telemetryContext?: TelemetryClientContext | null): Artifact {
@@ -1150,6 +1160,7 @@ export class ServerStore extends EventTarget<StoreDomainEvent> {
   }
 
   dispose(): void {
+    this.templateCache?.dispose();
     this.stopAllContentWatchers();
     this.stopWatchingActiveTheme();
   }

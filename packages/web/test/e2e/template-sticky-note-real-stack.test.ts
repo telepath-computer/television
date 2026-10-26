@@ -4,9 +4,9 @@ import path from "node:path";
 import type { Frame, Locator, Page } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
-import { TemplateHarness, TEMPLATE_LAUNCH } from "./template-harness.ts";
+import { TemplateHarness, TEST_HOST_LAUNCH } from "./template-harness.ts";
 
-test.use({ launchOptions: TEMPLATE_LAUNCH, viewport: { width: 360, height: 360 }, actionTimeout: 15_000 });
+test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 360, height: 360 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
 type Note = { text: string; [key: string]: JSONValue };
@@ -95,11 +95,11 @@ async function waitPastPause(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 }
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-new
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-new
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-delivery
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-write-scope
 // proofs/product/templates.md delegates the bundled journey to sticky-note-ui-ac-new.
-test("new Sticky note from the popover persists its seed, display, edits and independent assets", async ({ page }) => {
+test("new Sticky note from Toolbox persists its seed, display, edits and independent assets", async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 700 });
   const responses: { url: string; body: Buffer; ok: boolean }[] = [];
   const bodies: Promise<void>[] = [];
@@ -225,7 +225,7 @@ test("new Sticky note from the popover persists its seed, display, edits and ind
   await expect.poll(() => h.read(id, "text")).toBe("Independent copy");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-editing
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-editing
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-write-scope
 test("real editing preserves line breaks, spaces, copying and native undo", async ({ page }) => {
   const id = await open(page, { text: "Start", extra: { preserved: true } });
@@ -251,7 +251,7 @@ test("real editing preserves line breaks, spaces, copying and native undo", asyn
   expect(writes().every(write => write.kind === "set" && write.path === "text")).toBe(true);
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-live
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-live
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-write-scope
 test("agent commands and two viewers preserve active typing and follow the latest stored write", async ({ page, context }) => {
   const id = await open(page);
@@ -303,7 +303,7 @@ test("an older save confirmation leaves newer typing pending", async ({ page }) 
   ]);
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-access
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-access
 test("real share access changes discard drafts and retain the latest saved read-only text", async ({ page }) => {
   const id = await h.createStored(fixture()); const share = await h.client.resources.share({ artifactID: id, access: "read" });
   await h.open(page, id, share.shareID); await observeStore(page);
@@ -331,7 +331,7 @@ test("real share access changes discard drafts and retain the latest saved read-
   await expect(note(page)).toHaveAttribute("readonly", ""); await expect(note(page)).toHaveValue("Fresh allowed edit");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-loading
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-loading
 test("first load waits for readable data and access and announces disconnection before recovering", async ({ page }) => {
   const id = await h.createStored(); await observeStatus(page); h.proxy.hold("to-browser");
   await h.open(page, id); await expect(page.locator(".sticky-note-page")).toBeVisible();
@@ -343,7 +343,7 @@ test("first load waits for readable data and access and announces disconnection 
   await note(page).fill("Loaded and writable"); await expect.poll(() => h.read(id, "text")).toBe("Loaded and writable");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-offline
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-offline
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-reconnect
 test("offline typing survives rollback and saves after reconnect checks", async ({ page }) => {
   const id = await open(page); await observeStore(page);
@@ -396,7 +396,7 @@ for (const lost of ["access", "data"] as const) {
   });
 }
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-offline
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-offline
 test("read-only disconnection stays read-only and reconnect without a draft shows current text", async ({ page }) => {
   const id = await open(page); await disconnect(page); await h.set(id, { text: "Remote without a draft" }); h.proxy.refuse(false);
   await expect(note(page)).toHaveValue("Remote without a draft"); await expect(status(page)).toHaveText("");
@@ -407,7 +407,7 @@ test("read-only disconnection stays read-only and reconnect without a draft show
   await h.set(id, { text: "Remote read-only" }); h.proxy.refuse(false); await expect(note(page)).toHaveValue("Remote read-only");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-draft-lifetime
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-draft-lifetime
 test("reloading or closing an offline note loses its unsent draft", async ({ page, context }) => {
   const id = await open(page); const saved = fixture().text;
   await disconnect(page); await note(page).fill("Lost by reload"); await waitPastPause(page); expect(writes()).toEqual([]);
@@ -418,7 +418,7 @@ test("reloading or closing an offline note loses its unsent draft", async ({ pag
   await replacement.close();
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-save-failure
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-save-failure
 // Selective buffering changes notification order while real authorization and rollback still run.
 test("a genuinely refused save discards newer typing and announces rollback with reconnect priority", async ({ page }) => {
   const id = await h.createStored(fixture()); const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -439,7 +439,7 @@ test("a genuinely refused save discards newer typing and announces rollback with
   await note(page).fill("Allowed fresh edit"); await expect.poll(() => h.read(id, "text")).toBe("Allowed fresh edit");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-invalid
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-invalid
 // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-invalid-guard
 test("unreadable data discards pending typing and recovers without reopening", async ({ page }) => {
   const id = await open(page);
@@ -467,7 +467,7 @@ test("invalid subscriptions prevent new writes while an already-sent write remai
   await expect(note(page)).toHaveValue("Already sent"); expect(writes()).toHaveLength(1);
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-unavailable
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-unavailable
 test("damaged saved bytes show the alert and recover after repair and restart", async ({ page }) => {
   const id = await open(page); const file = h.contentFile(id); const original = readFileSync(file);
   await h.restart(() => writeFileSync(file, "{damaged json"));
@@ -478,7 +478,7 @@ test("damaged saved bytes show the alert and recover after repair and restart", 
   await note(page).fill("Recovered"); await expect.poll(() => h.read(id, "text")).toBe("Recovered");
 });
 
-// proofs/ui/templates/sticky-note/index.md#^sticky-note-ui-ac-layout
+// proofs/ui/templates/sticky-note.md#^sticky-note-ui-ac-layout
 test("long text scrolls and copies within the note in editable and read-only views", async ({ page }) => {
   const id = await open(page, { text: longText }); await page.evaluate(() => document.fonts.ready);
   const share = await h.client.resources.share({ artifactID: id, access: "read" });

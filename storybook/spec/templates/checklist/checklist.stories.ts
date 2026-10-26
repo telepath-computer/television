@@ -127,7 +127,7 @@ export default {
   args: { theme: "light", title: "Groceries", items: groceries, editing: null, adding: "", readOnly: false, status: null, unreadable: false, loading: false } satisfies Args,
 };
 
-// What a person sees after creating a Checklist from the Templates popover.
+// What a person sees after creating a Checklist from the Toolbox.
 export const New = { args: { title: "Checklist", items: [] }, play: focusAddField };
 
 export const WithItems = { name: "With items" };

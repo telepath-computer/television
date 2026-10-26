@@ -1,14 +1,10 @@
-import { existsSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { selectTemplateIcon, validateTemplatePackage } from "../src/templates.ts";
 
 const folder = path.resolve(import.meta.dirname, "../assets/templates/sticky-note");
 const storyFolder = path.resolve(import.meta.dirname, "../../../storybook/spec/templates/sticky-note");
-const require = createRequire(import.meta.url);
-const { PNG } = require("playwright-core/lib/utilsBundle") as {
-  PNG: { sync: { read(bytes: Buffer): { width: number; height: number; data: Buffer } } };
-};
 
 describe("bundled Sticky note package", () => {
   // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-package
@@ -21,14 +17,16 @@ describe("bundled Sticky note package", () => {
   });
 
   // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-assets
-  it("ships the story font unchanged and a transparent 360 by 360 WithText thumbnail", () => {
+  it("ships the story font unchanged", () => {
     expect(readFileSync(path.join(folder, "Caveat-Medium.woff2"))).toEqual(readFileSync(path.join(storyFolder, "Caveat-Medium.woff2")));
-    const image = PNG.sync.read(readFileSync(path.join(folder, "thumbnail.png")));
-    expect([image.width, image.height]).toEqual([360, 360]);
-    expect(image.data.length).toBe(360 * 360 * 4);
-    const alphas = image.data.filter((_value, index) => index % 4 === 3);
-    expect(alphas).toContain(0);
-    expect(alphas).toContain(255);
+  });
+
+  // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-icon
+  it("supplies its SVG icon to the Toolbox", () => {
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    expect(manifest.icons).toEqual([{ src: "icon.svg", type: "image/svg+xml" }]);
+    const { template } = validateTemplatePackage(folder, "sticky-note");
+    expect(selectTemplateIcon(template!)).toEqual({ path: realpathSync(path.join(folder, "icon.svg")), contentType: "image/svg+xml" });
   });
 
   // proofs/arch/templates/sticky-note.md#^templates-sticky-note-t-readme
