@@ -12,5 +12,16 @@
       "src": "icon.svg",
       "type": "image/svg+xml"
     }
-  ]
+  ],
+  "dataSchema": {
+    "type": "object",
+    "required": [
+      "text"
+    ],
+    "properties": {
+      "text": {
+        "type": "string"
+      }
+    }
+  }
 }

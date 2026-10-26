@@ -8,15 +8,19 @@ The bundled manifest declares `display: { "width": 360, "height": 360, "transpar
 
 ## Store
 
-The template `data.json` seeds the [artifact's own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"text":""}`. The typing hint is a placeholder, never stored text; an agent reading a new note sees an empty string. The value has this contract because agents write it:
+The template `data.json` seeds the [artifact's own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"text":""}`. The typing hint is a placeholder, never stored text; an agent reading a new note sees an empty string. Agents write the value, so it has a contract: the manifest's `dataSchema`, which is this schema.
 
-```ts
-interface StickyNoteData {
-  text: string;
+```json
+{
+  "type": "object",
+  "required": ["text"],
+  "properties": {
+    "text": { "type": "string" }
+  }
 }
 ```
 
-The value is valid when it is a JSON object, not an array or `null`, with a `text` string. The string may be empty and may contain whitespace and line breaks. Other fields are ignored and left unchanged by page writes. A missing value, missing `text`, or any other type breaks the contract and is shown as [Data the page cannot read](../../ui/templates/sticky-note.mdx#data-the-page-cannot-read) describes. ^bundled-artifact-template-sticky-note-store
+The string may be empty and may contain whitespace and line breaks. Other fields are ignored and left unchanged by page writes. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. A missing value, or one that breaks the schema, is shown as [Data the page cannot read](../../ui/templates/sticky-note.mdx#data-the-page-cannot-read) describes. ^bundled-artifact-template-sticky-note-store
 
 The page subscribes to the whole store through the [resource SDK](../resources/sdk.md), so it can validate the root as well as the text. Each save uses `set` at `text` with the complete current string, leaving other root fields alone. Clearing the note writes `""`; it does not remove the field. Opening, reading and displaying the note write nothing.
 
