@@ -42,6 +42,39 @@ afterEach(() => {
 });
 
 describe("licensing configuration", () => {
+  // proofs/arch/licensing.md#^licensing-t-sticky-note-font
+  test("records the Sticky note story and packaged font with complete OFL notices", () => {
+    const assets = loadAssetManifest();
+    const story = assets.find((asset) => asset.id === "caveat-story-font")!;
+    const packaged = assets.find((asset) => asset.id === "caveat-template-font")!;
+    expect(story.paths).toEqual(["storybook/spec/templates/sticky-note/Caveat-Medium.woff2"]);
+    expect(story.surfaces).toEqual(["source"]);
+    expect(story.noticesFolder).toBe("storybook/spec/templates/sticky-note");
+    expect(packaged.paths).toEqual(["packages/server/assets/templates/sticky-note/Caveat-Medium.woff2"]);
+    expect(packaged.surfaces).toEqual(["cli", "source"]);
+    expect(packaged.noticesFolder).toBe("packages/server/assets/templates/sticky-note");
+    expect(packaged.components).toEqual(story.components);
+    expect(story.components).toHaveLength(1);
+    const font = story.components[0];
+    expect(font).toMatchObject({ name: "Caveat Medium font", license: "OFL-1.1" });
+    expect(font.noticeText).toMatch(/^Copyright 2014 The Caveat Project Authors \(https:\/\/github\.com\/googlefonts\/caveat\)/);
+    expect(font.noticeText).toContain("SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007");
+    expect(font.noticeText).toContain("5) The Font Software, modified or unmodified");
+    expect(font.noticeText).toMatch(/OR FROM\s+OTHER DEALINGS IN THE FONT SOFTWARE\.\s*$/);
+    for (const asset of [story, packaged]) {
+      expect(readFileSync(path.join(repoRoot, asset.noticesFolder!, "THIRD-PARTY-NOTICES.txt"), "utf8"))
+        .toContain(font.noticeText);
+    }
+    const sourceNotice = readFileSync(path.join(repoRoot, "THIRD-PARTY-NOTICES.txt"), "utf8");
+    expect(sourceNotice.split("Caveat Medium font\n")).toHaveLength(2);
+    expect(sourceNotice).toContain(font.noticeText);
+    const icons = assets.find((asset) => asset.id === "sticky-note-icons")!;
+    expect(icons.paths).toEqual(["packages/server/assets/templates/sticky-note/index.html"]);
+    expect(icons.noticesFolder).toBe(packaged.noticesFolder);
+    expect(icons.surfaces).toEqual(["cli", "source"]);
+    expect(icons.components).toEqual(assets.find((asset) => asset.id === "phosphor-icons")!.components);
+  });
+
   // proofs/arch/licensing.md#^licensing-t-generator-contract
   test("declares package topology in one module", () => {
     expect(includedLicenseSurfaces("cli")).toEqual([
@@ -92,6 +125,9 @@ describe("licensing configuration", () => {
       "firebase-push-keys",
       "markdown-table-editor",
       "calendar-icons",
+      "caveat-story-font",
+      "caveat-template-font",
+      "sticky-note-icons",
     ]);
 
     const hind = assets[0];

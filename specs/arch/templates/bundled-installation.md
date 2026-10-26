@@ -2,7 +2,7 @@
 
 # Bundled artifact template installation
 
-Television ships its [bundled artifact templates](./bundled-templates.md) as folders in the server package and installs them into each serving home. This spec owns the server package source and validation, the minimum-version rule, the handled-IDs state file, and replacement and backup behavior. [Template architecture](./index.md) owns the installed folder validator and request-time scan; [the bundled inventory](./bundled-templates.md) owns IDs, names, descriptions, and versions; [Checklist](./checklist.md) owns its display size, initial data, page packaging, and README guidance, and [Calendar](./calendar.md) owns its initial data, page packaging, and README guidance; [CLI architecture](../cli/index.md#build-and-packaged-asset-layout) owns the standalone package copy and resolver.
+Television ships its [bundled artifact templates](./bundled-templates.md) as folders in the server package and installs them into each serving home. This spec owns the server package source and validation, the minimum-version rule, the handled-IDs state file, and replacement and backup behavior. [Template architecture](./index.md) owns the installed folder validator and request-time scan; [the bundled inventory](./bundled-templates.md) owns IDs, names, descriptions, and versions, and links to each template's display options, initial data, page packaging, and README guidance; [CLI architecture](../cli/index.md#build-and-packaged-asset-layout) owns the standalone package copy and resolver.
 
 ## Bundled packages
 

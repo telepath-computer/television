@@ -297,6 +297,34 @@ describe("shipped package licensing", () => {
     expect(manifest.engines?.node).toBe(">=22.12.0");
   });
 
+  // proofs/product/licensing.md#^licensing-ac-sticky-note-font
+  test("Sticky note carries Caveat attribution in source and every package that ships its font", () => {
+    const assets = loadAssetManifest({ root: repoRoot });
+    const font = assets.find((asset) => asset.id === "caveat-story-font")!.components[0];
+    const template = "packages/server/assets/templates/sticky-note";
+    expect(readFileSync(path.join(packedCLI, "dist/templates/sticky-note/Caveat-Medium.woff2")))
+      .toEqual(readFileSync(path.join(repoRoot, template, "Caveat-Medium.woff2")));
+    const notices = [
+      path.join(repoRoot, noticeName),
+      path.join(repoRoot, template, noticeName),
+      path.join(repoRoot, "storybook/spec/templates/sticky-note", noticeName),
+      path.join(packedCLI, "dist", noticeName),
+      path.join(packedCLI, "dist/templates/sticky-note", noticeName),
+    ];
+    for (const file of notices) {
+      const notice = readFileSync(file, "utf8");
+      expect(materialSection(notice, "Caveat Medium font"), file).toContain(font.noticeText);
+      expect(materialSection(notice, "Caveat Medium font"), file).toContain("Licensed under OFL-1.1.");
+    }
+    // The desktop currently ships no artifact-template folders. If it gains the font,
+    // its upload directory must carry the same complete attribution.
+    const desktopFonts = listFiles(desktopUpload).filter((file) => path.basename(file) === "Caveat-Medium.woff2");
+    for (const file of desktopFonts) {
+      expect(readFileSync(path.join(path.dirname(file), noticeName), "utf8")).toContain(font.noticeText);
+      expect(readFileSync(path.join(desktopUpload, "dist", noticeName), "utf8")).toContain(font.noticeText);
+    }
+  });
+
   // proofs/product/licensing.md#^licensing-ac-ignored-silent
   test("every real artifact has notices exactly where entries exist, and every file is written for readers", () => {
     const sourceExpected = expectedSurfaceNotices("source", []);
@@ -308,8 +336,13 @@ describe("shipped package licensing", () => {
     const calendarExpected = expectedSurfaceNotices("onboarding:calendar", ["onboarding:calendar"]);
     const tasksExpected = expectedSurfaceNotices("onboarding:tasks", ["onboarding:tasks"]);
     const sdkExpected = expectedSurfaceNotices("sdk:resources", ["sdk:resources"]);
+    const sourceFolders = renderFolderNotices({
+      assets: loadAssetManifest({ root: repoRoot }).filter((asset) => asset.surfaces.every((surface) => surface === "source")),
+    });
+    expect(sourceFolders.map(({ folder }) => folder)).toContain("storybook/spec/templates/sticky-note");
     const locations = [
       [path.join(repoRoot, noticeName), sourceExpected],
+      ...sourceFolders.map(({ folder, text }) => [path.join(repoRoot, folder, noticeName), text] as const),
       [path.join(packedCLI, "dist", noticeName), cliExpected],
       [path.join(desktopUpload, "dist", noticeName), desktopExpected],
       [
@@ -338,6 +371,7 @@ describe("shipped package licensing", () => {
 
     const noticeFiles = [
       path.join(repoRoot, noticeName),
+      ...sourceFolders.map(({ folder }) => path.join(repoRoot, folder, noticeName)),
       ...listFiles(packedCLI).filter((file) => path.basename(file) === noticeName),
       ...listFiles(desktopUpload).filter((file) => path.basename(file) === noticeName),
       ...Object.values(sourceNotices).filter((file) => existsSync(file)),
@@ -453,6 +487,7 @@ function bundledFolderNotices(): { folder: string; text: string }[] {
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledThemesSource}/nord`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/checklist`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/calendar`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/sticky-note`);
   return owed;
 }
 

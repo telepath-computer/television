@@ -9,7 +9,7 @@ import { TelevisionClient } from "@telepath-computer/television-shared";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { test } from "@playwright/test";
 import { NetworkProxy } from "../../../server/test/e2e/network-proxy.ts";
-import { TEST_HOST, TEST_HOST_LAUNCH } from "./checklist-harness.ts";
+import { TEST_HOST, TEST_HOST_LAUNCH } from "./template-harness.ts";
 import { SERVER_ENV, type SharedServer } from "./conformance-setup.ts";
 
 // Global setup starts one product server for every worker.

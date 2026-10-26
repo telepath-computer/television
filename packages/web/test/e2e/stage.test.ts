@@ -527,7 +527,7 @@ test.describe("stage channel redraw (^st-ac-channel-redraw)", () => {
 });
 
 test.describe("stage page sizing", () => {
-  // proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-menu
+  // proofs/ui/app/artifact-frame/transparency.md#^af-ui-ac-transparent-menu
   // proofs/ui/app/stage/index.md#^st-ac-menu-over-handles
   // Application state is a fixture; menu placement, stage handles and CSS motion are real.
   test("opaque and transparent menus stay beside their triggers and own both handle halves (^af-ui-ac-transparent-menu, ^st-ac-menu-over-handles)", async ({ page }) => {

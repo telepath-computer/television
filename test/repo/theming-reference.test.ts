@@ -22,7 +22,7 @@ test("the authored theme reference covers current application authorities", () =
     "storybook/spec/toolbox/styles.css",
     // Artifact-frame authority adds its transparent states to the base frame.
     "storybook/spec/artifact-frame/artifact-frame.stories.ts",
-    "storybook/spec/artifact-frame/artifact-frame.mdx",
+    "specs/ui/app/artifact-frame/transparency.mdx",
     "storybook/spec/artifact-frame/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);

@@ -521,7 +521,7 @@ describe("artifact-frame view rendering dispatcher", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  // proofs/ui/app/artifact-frame/index.md#^af-ui-ac-transparent-state
+  // proofs/ui/app/artifact-frame/transparency.md#^af-ui-ac-transparent-state
   it.each([false, true])("selects transparency from path and URL metadata in full-screen=%s without changing the document", async (fullScreen) => {
     const artifacts: Artifact[] = [
       { id: "transparent-path", kind: "path", title: "Local clock", path: "/tmp/clock.html" },

@@ -1,6 +1,6 @@
 import { Meta, Canvas, Story } from "@storybook/addon-docs/blocks";
 import { useEffect, useRef } from "react";
-import * as Stories from "./artifact-frame.stories.ts";
+import * as Stories from "../../../../storybook/spec/artifact-frame/artifact-frame.stories.ts";
 
 export const HoverDemo = () => {
   const container = useRef(null);
@@ -15,9 +15,11 @@ export const HoverDemo = () => {
 
 <Meta of={Stories} name="Spec" />
 
+*UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
+
 # Artifact frame: transparency
 
-These stories and [styles](./styles.css) specify the transparent state promised by the [product spec](../../../specs/product/artifacts.md#^af-transparent). The opaque story supplies a comparison; the [frame spec](../../../specs/ui/app/artifact-frame/index.md) owns the rest of the frame.
+These stories and [styles](../../../../storybook/spec/artifact-frame/styles.css) specify the transparent state promised by the [product spec](../../../product/artifacts.md#^af-transparent). The opaque story supplies a comparison; the [frame spec](./index.md) owns the rest of the frame.
 
 <Canvas of={Stories.Opaque} />
 
@@ -29,9 +31,7 @@ While the frame's menu is open, the frame keeps its hovered state whether or not
 
 <Canvas of={Stories.TransparentHovered} />
 
-The hovered story forces the pointer state with `data-hovered`; moving the pointer over the resting story produces the same result.
-
-The frame also takes its hovered state, the one shown above, while the stage's resize cursor is active for its page: whenever the pointer is in the band where the page's edges can be grabbed, and for the whole of a resize drag, whether or not the pointer is over the frame. The stage marks the frame with `data-resize-active` for that time ([handles](../../../specs/ui/app/stage/index.md#handles)). There is no separate resizing look.
+The frame also takes its hovered state, the one shown above, while the stage's resize cursor is active for its page: whenever the pointer is in the band where the page's edges can be grabbed, and for the whole of a resize drag, whether or not the pointer is over the frame. The [stage's handles](../stage/index.md#handles) define that band. There is no separate resizing look.
 
 This demonstration alternates between rest and hover every two seconds, using the same fade. Pointer hover still works.
 

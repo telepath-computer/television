@@ -8,7 +8,7 @@ Another surface may wear the frame's look around content of its own, as the [set
 
 **Status:** implemented stage-one frame UI authority.
 
-The [Storybook spec](../../../../storybook/spec/artifact-frame/artifact-frame.mdx) owns interaction, markup and styling for the transparent state; the rest of the frame remains specified here.
+The [Transparency spec](transparency.mdx) owns interaction, markup and styling for the transparent state; the rest of the frame remains specified here.
 
 ## Markup and styling
 
