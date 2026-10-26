@@ -113,7 +113,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `delivery.md` (156 lines) — *Theme delivery: how the selected installed package reaches application and artifact documents and combines with the shared appearance preference.*
     - `index.md` (158 lines) — *Theme architecture: installed package validation, the in-memory registry, shared display and main-JavaScript-consent contracts, control APIs, events, and privacy-preserving telemetry.*
   - **ui/**
-    - `conformance.md` (44 lines) — *Conformance for retained frame and template UI specs: byte identity and delivery checks, structural comparison, selector coverage, and explicit per-surface exemptions.*
+    - `conformance.md` (17 lines) — *Conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
     - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
     - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
     - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*

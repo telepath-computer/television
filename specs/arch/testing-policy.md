@@ -176,7 +176,7 @@ Platform-dependent behavior is covered by a contract test on the platform-depend
 
 UI components carry tests that enumerate assertions against the component's salient facts, content, and markup where that proof makes sense. Authors make that judgment under the same assertion-cost and shape-price guidance as elsewhere ([#^assertion-cost](#^assertion-cost), [#^shape-price](#^shape-price)), and reviewers assess it; a stylesheet-only surface such as the foundation has no component to assert against. Suitable proof may be a markup smoke check over meaningful states, a functional test in a real browser or mocked DOM as fits the claim, or a contract test against a component's state machine. ^ui-suite-scope
 
-Appearance is checked by conformance: [story-by-story comparison](../spec-ui.md#^ui-conformance-test) for MDX surfaces, and the [earlier machinery](./ui/conformance.md) for retained frame and template contracts. The retained contracts also keep their staging and visual-review requirements. ^ui-styling-out
+Appearance is checked by conformance: [story-by-story comparison](../spec-ui.md#^ui-conformance-test) for MDX surfaces, and [frame and template conformance](./ui/conformance.md) for retained frame and template contracts. The retained contracts also keep their staging and visual-review requirements. ^ui-styling-out
 
 
 The DOM is the instrument, not the subject. Reading the DOM is how a browser test observes anything at all, so it can be neither ruled in nor ruled out: whether a test touches the DOM says nothing about what the test is for. Sometimes the DOM is part of a test; sometimes it is not. A spec never states blanket coverage of it. ^ui-dom-instrument

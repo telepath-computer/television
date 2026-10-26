@@ -186,7 +186,7 @@ The administrator guide covers the full upgrade and is written for your agent to
 - The server then starts from the config file, as for any foreground `tv serve`.
 - Each start on this path records in `<home>/logs/tv.log` that the service runs from a retired service definition, with the guidance to reinstall it with `tv serve --persist` and the administrator guide's address, `https://television.run/install.md`.
 
-This path is transitional. Linear TV-871 tracks its removal, after which these invocations get the refusal above.
+This path is transitional.
 
 ### The config file
 
@@ -357,7 +357,7 @@ The persisted environment sets `TELEVISION_DEVELOPER_HOME` to the installing use
 
 If a service already exists, `--persist` uninstalls it and then installs the new definition. That refresh is not atomic: if uninstall succeeds and install fails, the service is left down until `tv serve --persist` succeeds.
 
-After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. Linear TV-938 tracks this limitation. ^cli-persist-health-wait
+After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. ^cli-persist-health-wait
 
 Once a server answers, the command prints `Television service installed.` When stdout is an interactive terminal, it then prints the connect links of the server that answered, as `tv links` prints them:
 

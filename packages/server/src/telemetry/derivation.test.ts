@@ -437,7 +437,7 @@ describe("telemetry theme derivation", () => {
 
 // Contract: proofs/arch/telemetry/derivation.md#^t-theme-settings.
 // Authored registry/display fixtures; no mocks. Server attachment is tested separately.
-describe("TV-755 theme settings derivation", () => {
+describe("theme settings derivation", () => {
   const privateID = "alice-private-theme";
   const otherID = "alice-inactive-theme";
   const flagsOff = {

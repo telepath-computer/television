@@ -233,7 +233,7 @@ describe("server telemetry acceptance", () => {
 
   // Acceptance: proofs/product/telemetry.md#^ac-theme.
   // Real authenticated HTTP and package files; recording sink forfeits PostHog delivery only.
-  it("TV-755 classifies theme selections and fallback without private package data", async () => {
+  it("classifies theme selections and fallback without private package data", async () => {
     const h = await setup();
     const customThemeID = "alice-secret-theme";
     const bundledDisplayName = "Alice Edited Clouds";
@@ -272,7 +272,7 @@ describe("server telemetry acceptance", () => {
 
   // Acceptance: proofs/product/telemetry.md#^ac-theme-adoption.
   // Real boot, HTTP writes and metadata-bearing websocket activity; no mocked store/client.
-  it("TV-755 preserves adoption snapshots across consent, appearance, and later selection", async () => {
+  it("preserves adoption snapshots across consent, appearance, and later selection", async () => {
     const h = await setup(TEST_TELEMETRY_ENV, fileURLToPath(new URL("../assets/themes/", import.meta.url)));
     const boot = [...h.sink.events];
     const themeID = "private-adoption-theme";
