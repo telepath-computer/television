@@ -2,7 +2,7 @@
 
 ## Status
 
-Weather remains a proposed bundled artifact template. Rupert changed the data-source decision after the first implementation plan passed review, before implementation began. The Open-Meteo architecture and UI specs and their stories passed independent spec review; the Weather proofs are now re-derived from that accepted contract. Implementation slices remain withdrawn until these proofs pass independent review.
+Weather remains a proposed bundled artifact template. Rupert changed the data-source decision after the first implementation plan passed review, before implementation began. The Open-Meteo architecture and UI specs, stories and proofs have passed independent review. The implementation plan below replaces the withdrawn plan for the agent-written design.
 
 ## Decisions Rupert made
 
@@ -44,11 +44,14 @@ These choices were necessary to turn Rupert's direction into one exact contract.
 18. **Keep only the hourly entries the card can use before its next refresh.** After filtering, ordering, and deduplicating the provider response, the draft cache retains at most 24 future hourly entries: the 23 cells the card can display plus one extra for an hour boundary before the next refresh. A compact representative cache measured 15,868 bytes with all 168 provider hours and 2,886 bytes with 24, reducing its hourly-heavy stored form from 15.5 KiB to 2.8 KiB. If the card goes about a day without a successful response, those entries can all become past entries while daily forecasts remain; a large card then shows the current and daily panels without the hourly panel. The `LargeNoHourly` story records that consequence. This is a draft recommendation for Rupert because it trades unused offline horizon for smaller whole-store reads and writes.
 19. **Recommend town-level coordinates by default.** The future README asks agents to use only the precision the forecast needs because every configured page discloses the coordinates with the viewer's IP address to Open-Meteo. Finer coordinates remain valid when a person wants a more precise forecast.
 20. **Keep the ordinary condition stories fresh.** `Cloudy`, `Rain`, and `Snow` now show ages of 8, 10, and 12 minutes. This is a story change for Rupert: it keeps those condition examples within the 15-minute freshness window, so they remain ordinary successful states rather than implying that a refresh has failed or is still running.
+21. **Require a valid configured root when saving a response.** The transaction wording now says it commits only while the store holds a configured location whose coordinates and units match the request. This optional clarification from proof review 8 rules out treating an unreadable root with matching coordinate fields as configured; it does not change the intended transaction contract.
 
 ## Proof design after review
 
 - The shared creation walk installs a controlled browser clock before page code. After the first Celsius forecast appears and is saved, it runs the README place-change example while the card is populated and checks the label, unchanged forecast values and age, unchanged saved forecast, and absence of a provider request. It then holds the Fahrenheit response while making a further place change and adding an unknown field, and checks the newest place on the card and in the saved root after release.
 - The latitude, longitude and units abort passes also install a controlled clock before page code. Each starts with a compatible saved forecast whose `updatedAt` is 16 minutes earlier and holds the refresh that this stale forecast triggers. Changing the field under test must abort that request, start one for the new values, discard a late old response, and update the card and store from the new response.
+- A read-only page advances through visible minute checks before and after its in-memory forecast becomes stale. This isolates the in-memory freshness rule from the saved cache that a read-only page cannot write.
+- A held refresh starts from a stale saved forecast whose sky, artwork, current values, hourly values and daily values all differ from the captured response. The old card remains visible while the request runs, then every visible section changes together.
 
 ## Design decisions carried forward
 
@@ -114,6 +117,51 @@ As with Map's Esri gate, implementation review cannot substitute for this produc
 
 A device can wake from sleep before its network connection is ready. If the minute check runs in that interval, the attempt fails and the ordinary 15-minute retry rule applies, so the card may keep showing an older forecast until then. Its unchanged “Updated” age remains honest. This is recorded for implementation and field review; the specs deliberately add no special wake-up retry.
 
-## Next stage after proof review
+## Implementation slices
 
-After the re-derived Weather architecture and UI proofs pass independent review, derive new implementation slices from the Open-Meteo contract. The former two-slice plan and its plan-review refinements no longer apply because the store model, package logic, browser behavior, and proof surface all changed.
+Use two slices. The Open-Meteo design adds a deterministic forecast core whose parsing, WMO mapping, fixed-offset daily dates, display windows, request eligibility, selection and transaction behavior need focused review against captured provider responses. The live copied page is a second coherent unit: request timing, saves, access changes, responsive rendering, attribution and 25 conformance comparisons interact at the browser boundary and should be reviewed together. Combining both would make one review span the provider model, repository packaging, installation, licensing, real resource behavior and the complete visual surface. Splitting the browser work again would separate one page from the lifecycle and conformance evidence required to judge it.
+
+All test and build commands use the canonical runner. Every build and every spawned Television process uses a temporary Television home; no slice reads or writes the local Television home. Default tests block every external request and never contact Open-Meteo. The only live request is the separately selected opt-in seam, which is excluded from CI, `npm run verify` and every default run.
+
+### Slice 1 — provider model, package and shared inventory
+
+Write the contract tests first. Add the Weather source package with its manifest, `{}` seed, README, stylesheet, transparent loading shell, first-party Toolbox and condition artwork, copied Phosphor warning and spinner artwork, and generated folder notice. Implement importable production modules for configuration and cache validation, request construction, WMO normalization, fixed-offset daily dates, hourly and daily windows, current high and low, age, rounding, request eligibility, forecast selection and the root-transaction update. Use the five provider captures already committed with the proofs. Add `weather` to the bundled ID tuple and update the existing inventory, installer, onboarding-installer bundled-ID list, telemetry, licensing, notice-generation and packed-asset tests.
+
+This slice makes these proof assertions pass:
+
+- Weather package and guidance: `^templates-weather-t-package`, `^templates-weather-t-icon`, `^templates-weather-t-readme` and `^weather-review-icon`.
+- Weather store and provider contracts: `^templates-weather-t-validity`, `^templates-weather-t-windows`, `^templates-weather-t-current-values`, `^templates-weather-t-request`, `^templates-weather-t-response`, `^templates-weather-t-provider-time-zones`, `^templates-weather-t-request-check`, `^templates-weather-t-selection` and `^templates-weather-t-transaction`.
+- Shared inventory and installation: `^templates-bundled-t-inventory`, `^templates-install-t-validate`, `^templates-install-t-build`, `^templates-install-t-retry`, `^templates-install-t-containment` and `^templates-install-t-independent-ids`.
+- Telemetry and licensing: `^t-template-classify`, `^licensing-t-weather-icons`, and the Weather-folder coverage carried by `^licensing-ac-gate-passes` and `^licensing-ac-ignored-silent`.
+
+Validation criteria:
+
+- Package tests read the real folder and prove the exact schema, 340-by-340 transparent display default, `{}` seed, one `icon.svg` entry, copied dependencies and README guidance. Review records the Toolbox icon at 20 pixels on light and dark backgrounds.
+- Contract tests run the real parser and derivations over authored values and the five committed captures. They cover every WMO code, Celsius and Fahrenheit units, bad metadata and list entries, the 24-hour cache bound, both sides of UTC, the half-hour Kolkata zone, the repeated New York hour and fixed-offset daily dates, the current-date high and low, rounding and age boundaries, request throttling and resets, saved-versus-memory selection, and field-preserving transaction races. Inputs remain unchanged.
+- The real bundled inventory, installer, onboarding installer, telemetry classifier, asset manifest, notice generator, server build and CLI package include exactly the four accepted bundled IDs and the complete Weather folder. Generated notices match the committed files.
+- Targeted tests for each changed file pass through the canonical runner. Before slice review, the complete `unit:server`, `unit:root` and `e2e:node` surfaces pass, including their production builds and the onboarding-installer bundled-ID list. Those builds and processes use only temporary homes.
+- No default test opens a network connection to Open-Meteo. Contract tests read captured files; the opt-in live seam is not part of this slice.
+
+Temporary baseline: the red phase consists only of the new contract and shared-inventory tests failing because Weather files, modules or inventory entries do not exist yet. No failing test remains at slice review. The package can be installed and copied, but its page intentionally remains at the loading shell; delivery, live request lifecycle, UI and conformance assertions remain `test to be written` for slice 2.
+
+### Slice 2 — live page, access behavior and visual conformance
+
+Write the real-stack, live-seam and conformance tests first. Complete the copied page against the slice 1 modules: subscribe once at the store root, select and render saved or in-memory weather, perform the state-based request check, fetch and normalize Open-Meteo responses, save by root transaction when permitted, and handle timeouts, visibility, failures, disconnection, read-only access and revocation. Complete the three responsive compositions, all placeholder states, attribution, keyboard behavior and accessible names. Match the accepted stories without importing story code or styles into production.
+
+This slice makes these proof assertions pass:
+
+- Weather delivery and lifecycle: `^templates-weather-t-delivery`, `^templates-weather-ac-request-cycle`, `^templates-weather-ac-live`, `^templates-weather-ac-cache`, `^templates-weather-ac-access` and the separately selected `^templates-weather-live-provider` seam.
+- Weather UI behavior: `^weather-ui-ac-new`, `^weather-ui-ac-current`, `^weather-ui-ac-fixed-condition-day-night`, `^weather-ui-ac-time-zones`, `^weather-ui-ac-clock`, `^weather-ui-ac-size`, `^weather-ui-ac-accessibility`, `^weather-ui-ac-loading`, `^weather-ui-ac-failure`, `^weather-ui-ac-access`, `^weather-ui-ac-invalid` and `^weather-ui-ac-appearance`.
+- Weather visual output: `^weather-ui-ac-conformance` for all 25 stories. The shared creation walk also supplies the Weather evidence referenced by `proofs/product/templates.md` for `^artifact-template-bundled`.
+
+Validation criteria:
+
+- The delivery test copies a real installed package, removes the installed source and proves the copy still loads its stylesheet, SDK, artwork and notice and sends only the exact scripted provider request.
+- Real-stack tests cover the 340-by-340 Toolbox creation, one root subscription, README writes through a built `tv`, place-only reuse, Celsius and Fahrenheit fetches, a held whole-card refresh, coordinate and unit abort races, the ten-second timeout from both sides, hidden and visible checks, saved-versus-memory selection, two writers, refused saves, read-only in-memory freshness, ordinary disconnection, revocation, invalid caches, unavailable stores, provider errors and recovery. Every expected provider request is scripted from captured headers and bodies; any unexpected provider or other external request fails the test.
+- Time-zone browser cases use literal expected `en-US` labels in browser zones different from the forecast zone. They cover Kolkata from a `de-DE` browser, the `2 AM` whole-hour label, the repeated New York `1 AM`, both sides of UTC, provider fixed-offset daily dates, forecast-zone hour and midnight rollovers, and current and hourly `isDay` values.
+- Responsive and accessibility checks cover all specified one- and two-dimensional boundaries, minimum-size and wide-short cards, absent hourly or daily panels, scrollable hourly semantics, daily row semantics, visible keyboard focus, credit links and non-intersection at 230 and 340 pixels.
+- Conformance compares the complete `.weather-page` for all 25 exported stories at their declared CSS viewports and appearances. It binds the gradient-only skies, first-party artwork, white text, typography, spacing, panels, shadows, placeholders, attribution and non-default-theme appearance.
+- The opt-in live test is registered outside CI and default verification. When deliberately selected after changes to request or normalization code, it uses a temporary home, sends only the exact San Francisco Celsius and Fahrenheit requests from the sandboxed copied page, and may refresh only the two everyday captures. Every default test remains network-free.
+- Targeted `e2e:browser-app-real-stack` and `e2e:conformance` runs pass with one Playwright worker, alongside all slice 1 surfaces. Proof citations name the passing tests. The integrated tree passes lint, type checking, package-manifest checks and the full canonical suite, leaving `npm run verify` passable.
+
+Temporary baseline: the red phase may leave only the newly added Weather real-stack, live-seam and conformance tests failing while the page is still the slice 1 loading shell. No failure is accepted at slice review. This final slice resolves every `test to be written` assertion, leaves the full suite green and leaves `npm run verify` passable.
