@@ -82,27 +82,30 @@ export function refreshPackagedMarkdownEditor({
       recordPath: freshRecordPath,
       assets,
     });
+    const templateNoticeText = generateDocumentTemplateNotices({
+      root,
+      config,
+      assets,
+      record,
+    });
+    const sourceNoticeText = generateSourceNotices({
+      root,
+      config,
+      assets,
+      packagedMarkdownEditorRecord: record,
+    });
+    if (templateNoticeText === null || sourceNoticeText === null) {
+      throw new Error("The packaged Markdown editor requires both generated notices files");
+    }
 
     fs.mkdirSync(templateFolder, { recursive: true });
     fs.mkdirSync(path.dirname(recordPath), { recursive: true });
     fs.copyFileSync(path.join(outputFolder, "editor.js"), path.join(templateFolder, "editor.js"));
     fs.copyFileSync(path.join(outputFolder, "editor.css"), path.join(templateFolder, "editor.css"));
     fs.copyFileSync(freshRecordPath, recordPath);
-
-    generateDocumentTemplateNotices({
-      root,
-      outputPath: path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
-      config,
-      assets,
-      record,
-    });
-    generateSourceNotices({
-      root,
-      outputPath: sourceNoticePath,
-      config,
-      assets,
-      packagedMarkdownEditorRecord: record,
-    });
+    fs.writeFileSync(path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"), templateNoticeText);
+    fs.mkdirSync(path.dirname(sourceNoticePath), { recursive: true });
+    fs.writeFileSync(sourceNoticePath, sourceNoticeText);
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
   }

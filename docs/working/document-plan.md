@@ -34,6 +34,7 @@ Document is being added as a bundled artifact template. Its page is the existing
 
 ## Spec changes for Rupert's review
 
+- Use **Markdown file view** consistently for Television's trusted Markdown-file page. Earlier drafts also called that page the “Markdown file editor”; this is a terminology-only change and does not rename the shared editor implementation or the packaged Markdown editor.
 - Rename the licensing-record interface from `MarkdownTemplateEditorLicensingRecord` to `PackagedMarkdownEditorLicensingRecord`, matching the settled product term without changing its fields or validation.
 - Make an absent `view:markdown` inventory a named failure of the packaged Markdown editor check, and make the suite's pre-build refresh that inventory from the current Markdown file view first. This makes “same tree” reproducible instead of leaving it to whoever invokes the check.
 - Restore disposal's meaning at the internal editor boundary: disposal ends callbacks and releases the editor. This was lost when the boundary prose was simplified, but the existing implementation and derived proof still rely on it.

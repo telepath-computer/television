@@ -80,9 +80,14 @@ export async function checkPackagedMarkdownEditor({
     }
     return { ok: errors.length === 0, errors };
   } catch (error) {
+    const failure = message(error);
+    const errors = [failure];
+    if (!failure.includes(refreshCommand)) {
+      errors.push(`Run \`${refreshCommand}\` to rebuild the inventory and refresh the committed files.`);
+    }
     return {
       ok: false,
-      errors: [message(error), `Run \`${refreshCommand}\` to rebuild the inventory and refresh the committed files.`],
+      errors,
     };
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });

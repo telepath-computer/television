@@ -5344,13 +5344,16 @@ function xu(e) {
   e.pointerDown = !1;
 }
 function Su(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || Ql({ tableState: t, event: e });
 }
 function _u(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || ts({ tableState: t, event: e });
 }
 function yu(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || gi({ tableState: t, event: e });
 }
 const wi = "CellView";
 function ns(e) {
@@ -5379,7 +5382,8 @@ function hr(e, t) {
   return n ? { anchor: a, head: c } : { head: a, anchor: c };
 }
 function Ru(e) {
-  if (!e.editable || !e.interactive || _(e.tableElement) || Gl(e.document)) return;
+  if (!e.editable) return;
+  if (_(e.tableElement) || Gl(e.document)) return;
   const t = vu(e.document);
   if (_(t) || !Il(e.tableElement, t)) return;
   const n = _n(t);
@@ -5988,13 +5992,16 @@ function Cd({ metaKey: e, ctrlKey: t, key: n }) {
   return !t && !e && !wd.has(n) && !gd(n);
 }
 function xd(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || Ql({ tableState: t, event: e });
 }
 function Sd(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || ts({ tableState: t, event: e });
 }
 function _d(e, t) {
-  t.editable && t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
+  if (!t.editable) return;
+  t.selection.isCell() || gi({ tableState: t, event: e });
 }
 function yd(e, t) {
   if (!t.editable) return;
@@ -6945,7 +6952,7 @@ function Md(e, t) {
   }
 }
 function Hd(e, t) {
-  if (!t.editable || !t.interactive) return;
+  if (!t.editable) return;
   const n = e.target;
   if (_(n)) return;
   const o = Ci(n);
@@ -6961,7 +6968,8 @@ function Hd(e, t) {
   e.preventDefault();
 }
 function Bd(e, t) {
-  t.editable && t.interactive && e.preventDefault();
+  if (!t.editable) return;
+  e.preventDefault();
 }
 var Nd = /* @__PURE__ */ O("<!> <!> <!>", 1), Fd = /* @__PURE__ */ O('<tr class="tbl-table-row"></tr>'), $d = /* @__PURE__ */ O('<tbody class="tbl-table-body"></tbody>'), Ud = /* @__PURE__ */ O("<!> <!>", 1), Vd = /* @__PURE__ */ O("<!> <!>", 1), qd = /* @__PURE__ */ O("<!> <!> <!>", 1), Wd = /* @__PURE__ */ O("<!> <!>", 1), jd = /* @__PURE__ */ O("<!> <!>", 1), Kd = /* @__PURE__ */ O("<!> <!>", 1), Yd = /* @__PURE__ */ O("<!> <!>", 1), Xd = /* @__PURE__ */ O("<!> <!> <!> <!> <!>", 1), Gd = /* @__PURE__ */ O("<!> <!>", 1), Jd = /* @__PURE__ */ O("<!> <!>", 1), Zd = /* @__PURE__ */ O("<!> <!> <!>", 1), Qd = /* @__PURE__ */ O("<!> <!>", 1), tf = /* @__PURE__ */ O("<!> <!>", 1), ef = /* @__PURE__ */ O("<!> <!> <!>", 1), nf = /* @__PURE__ */ O("<!> <!>", 1), of = /* @__PURE__ */ O("<!> <!>", 1), rf = /* @__PURE__ */ O("<!> <!>", 1), lf = /* @__PURE__ */ O("<!> <!> <!> <!> <!> <!> <!>", 1), sf = /* @__PURE__ */ O('<div class="tbl-table-wrapper"><table class="tbl-table" role="grid" tabindex="-1"><thead class="tbl-table-head"><!></thead><!></table> <!> <!> <!> <!></div>');
 function af(e, t) {

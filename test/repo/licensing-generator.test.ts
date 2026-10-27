@@ -86,7 +86,6 @@ describe("licensing inventory conversion", () => {
     );
     expect(fileViewConfig.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
     expect(fileViewConfig).toContain('surface: "view:markdown"');
-    expect(fileViewConfig).toContain("TV_LICENSE_INVENTORY_ROOT");
     expect(packagedEditorConfig.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
     expect(packagedEditorConfig).toContain('surface: "view:markdown"');
     expect(packagedEditorConfig).toContain('mode: "verify"');

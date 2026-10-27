@@ -121,6 +121,7 @@ describe("product licensing outputs", () => {
     );
   });
 
+  // proofs/arch/licensing.md#^licensing-t-markdown-editor-build
   // proofs/product/licensing.md#^licensing-ac-gate-passes
   test("suite-run gate consumes all prebuilt inventories without rebuilding products", () => {
     const expectedSurfaces = [...LICENSE_INVENTORY_SURFACES].sort((left, right) => left.localeCompare(right, "en"));
@@ -300,7 +301,9 @@ describe("product licensing outputs", () => {
     try {
       const result = await checkPackagedMarkdownEditor({ root: repoRoot, inventoryRoot: emptyInventoryRoot });
       expect(result.ok).toBe(false);
-      expect(result.errors.join("\n")).toMatch(/missing.*view:markdown.*inventory/i);
+      const diagnostic = result.errors.join("\n");
+      expect(diagnostic).toMatch(/missing.*view:markdown.*inventory/i);
+      expect(diagnostic.match(/npm run refresh:packaged-markdown-editor/g) ?? []).toHaveLength(1);
       expect(readdirSync(emptyInventoryRoot)).toEqual([]);
       expect(observedPaths.map(fileSnapshot)).toEqual(before);
     } finally {

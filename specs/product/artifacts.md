@@ -136,3 +136,4 @@ Folder-source update acceptance must run against a running Television server in 
 Browser demo mode acceptance must run in a real browser against a running Television server. Its external pages must be served locally from an origin other than the Television server's, never fetched from a public site.
 
 Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), the [artifact bridge spec](../arch/artifact-frame/artifact-bridge.md) owns acceptance in a real browser and the real Electron app for shared artifacts through producer outage and recovery, including raw documents and documents whose Content Security Policy blocks the request that checks for fresh content. The [reload and navigation architecture spec](../arch/artifact-frame/reload-navigation.md) owns real-browser acceptance for fresh loading after a channel switch. This spec does not require duplicate acceptance cases for those promises.
+
