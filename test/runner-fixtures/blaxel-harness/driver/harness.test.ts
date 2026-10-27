@@ -27,7 +27,7 @@ async function remoteJson(worker: SandboxInstance, file: string) { try { return 
 
 function command(root: string, name: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   const log = path.join(root, `${name}.log`);
-  const child = spawn(process.execPath, [cli, ...args], { cwd: process.cwd(), env: {...process.env, ...env}, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [cli, ...args], { cwd: process.cwd(), detached: true, env: {...process.env, ...env}, stdio: ["ignore", "pipe", "pipe"] });
   children.add(child);
   const chunks: Buffer[] = [];
   child.stdout!.on("data", data => chunks.push(data)); child.stderr!.on("data", data => chunks.push(data));
@@ -165,9 +165,15 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     const absent = run(root, "absent-pool", targeted); expect(await absent.done).not.toBe(0);
     writeFileSync(path.join(root, "completed.json"), JSON.stringify({status: "passed", runs: readdirSync(root).filter(file => file.endsWith(".run"))}));
   } finally {
-    for (const child of children) child.kill("SIGTERM");
-    // Ordinary manager refusal is retained; never bypass a live lease to tidy up.
-    const cleanup = await poolCommand(root, "finally-delete", "delete");
+    const pending = [...children];
+    const stopped = Promise.all(pending.map(child => new Promise<void>(resolve => child.once("close", () => resolve()))));
+    for (const child of pending) { try { process.kill(-child.pid!, "SIGTERM"); } catch {} }
+    await Promise.race([stopped, pause(10_000)]);
+    for (const child of children) { try { process.kill(-child.pid!, "SIGKILL"); } catch {} }
+    // A valid lease is never bypassed. With our coordinators stopped, the same
+    // manager may delete an expired private worker, which is itself cleanup.
+    let cleanup = await poolCommand(root, "finally-delete", "delete");
+    if (cleanup !== 0) { await pause(65_000); cleanup = await poolCommand(root, "finally-delete-expired", "delete"); }
     writeFileSync(path.join(root, "cleanup.json"), JSON.stringify({exitCode: cleanup}));
   }
 });

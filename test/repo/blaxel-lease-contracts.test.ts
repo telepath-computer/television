@@ -1,9 +1,9 @@
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, symlinkSync, lstatSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { workerLeaseOperation, cleanWorkerTemporaryDirectories } from "../../scripts/test/blaxel-worker-lease.mjs";
-import { finishLease } from "../../scripts/test/blaxel-lease-lifecycle.mjs";
+import { finishLease, renewLease } from "../../scripts/test/blaxel-lease-lifecycle.mjs";
 import { publishWorker, deleteWorker } from "../../scripts/test/blaxel-pool-lifecycle.mjs";
 
 // Contract clocks, owner audits/signals and SDK operations are substitutions.
@@ -113,4 +113,36 @@ test("pool eligibility follows verification, and deletion reserves then unpublis
   calls.length = 0;
   await expect(deleteWorker(sandbox, { ...ops, reserve: async () => { throw Error("valid lease"); } })).rejects.toThrow();
   expect(calls).toEqual([]);
+});
+
+
+test("renewal continues while retrieval waits and stops on ownership loss", async () => {
+  vi.useFakeTimers();
+  try {
+    let lost: unknown = null;
+    const renew = vi.fn().mockResolvedValue(undefined);
+    const stop = renewLease({ renew, intervalMs: 10, onLost: (error: unknown) => { lost = error; } });
+    let continueDownload!: () => void;
+    const waiting = new Promise<void>(resolve => { continueDownload = resolve; });
+    const release = vi.fn();
+    const finishing = finishLease({ settleWrites: async () => {}, teardown: async () => {}, download: () => waiting, release, assertOwned: () => { if (lost) throw lost; } });
+    await vi.advanceTimersByTimeAsync(35);
+    expect(renew).toHaveBeenCalledTimes(3); expect(release).not.toHaveBeenCalled();
+    continueDownload(); await finishing; await stop();
+    await vi.advanceTimersByTimeAsync(30);
+    expect(renew).toHaveBeenCalledTimes(3); expect(release).toHaveBeenCalledOnce();
+    renew.mockRejectedValueOnce(Error("ownership lost"));
+    const stopLost = renewLease({ renew, intervalMs: 10, onLost: (error: unknown) => { lost = error; } });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(renew).toHaveBeenCalledTimes(4); expect(lost).toBeInstanceOf(Error);
+    await stopLost();
+  } finally { vi.useRealTimers(); }
+});
+
+test("failed deletion of never-published workers remains retryable without their runtime", async () => {
+  const sandbox = { metadata: { name: "partial", labels: { purpose: "testshards-provisioning" } } };
+  const ops = { reserve: vi.fn().mockRejectedValue(Error("no runtime")), update: vi.fn(), remove: vi.fn().mockRejectedValueOnce(Error("provider unavailable")).mockResolvedValueOnce(undefined) };
+  await expect(deleteWorker(sandbox, ops)).rejects.toThrow("provider unavailable");
+  await deleteWorker(sandbox, ops);
+  expect(ops.reserve).not.toHaveBeenCalled(); expect(ops.update).not.toHaveBeenCalled(); expect(ops.remove).toHaveBeenCalledTimes(2);
 });
