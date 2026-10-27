@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #12.** This proposal shaped the implemented test-harness cleanup and recovery requirements. It preserves the resource investigation's quantitative context, the reasons for limiting built-application conversion to five cases, and the tradeoffs behind one renewable recovery deadline. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Test-harness resource cleanup
 
 Converged proposal, revised 2026-10-27 with bounded proposal/spec review refinements. Owner: rose. Branch: `thopter/test-harness-resource-cleanup`, draft PR #12, originally based on `b5477211`. Main at `a8e73fbf` was integrated in `74d22941` before spec derivation. The supervisor arranges independent review of the proposal, specs, proofs, and implementation; Josh reviews every spec delta at PR time. No production behavior changes are proposed.
