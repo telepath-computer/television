@@ -35,7 +35,11 @@ for (const entry of ["planned", "targeted"] as const) {
       }
       expect(record.nativeEvidence).toMatchObject({ status: "complete", failedAttempt: true, recovered: true });
       expect(["available", "unavailable"]).toContain(record.kernel.status);
-      if (record.kernel.status === "unavailable") expect(record.kernel.reason).toEqual(expect.any(String));
+      if (record.kernel.status === "unavailable") {
+        // Expected host limitations stay unknown; malformed reader invocations
+        // must not masquerade as a successful probe of this installed tool.
+        expect(["EPERM", "EACCES", "ENOENT", "ENOTSUP", "ETIMEDOUT", "ENOBUFS"]).toContain(record.kernel.reason);
+      }
       const resultRecord = entry === "planned" ? read(path.join(fixture.dir, "results/shard-1.json")).tasks[0] : read(path.join(fixture.dir, "results/lifecycle.json"));
       expect(resultRecord.resourceDiagnosticsPaths).toHaveLength(1);
       expect(existsSync(resultRecord.resourceDiagnosticsPaths[0])).toBe(true);
