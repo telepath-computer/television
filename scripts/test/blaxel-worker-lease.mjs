@@ -56,15 +56,6 @@ export async function workerLeaseOperation(input, hooks = {}) {
   // or environments enter the evidence. Kernel threads and zombies own no work.
   function readProcess(pid) {
     const base = `/proc/${pid}`;
-    if (input.auditTokens) {
-      // Fixture tokens scope only processes belonging to the fixture user.
-      // Read actual UIDs: nondumpable processes have root-owned procfs files.
-      // Production has no token filter and must audit every user's processes.
-      const status = fs.readFileSync(`${base}/status`, "utf8");
-      const uids = status.match(/^Uid:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/m);
-      if (!uids) throw new Error("unreadable process user identity");
-      if (!uids.slice(1).some((uid) => Number(uid) === process.geteuid())) return null;
-    }
     const stat = fs.readFileSync(`${base}/stat`, "utf8");
     const fields = stat.slice(stat.lastIndexOf(")") + 1).trim().split(/\s+/);
     if (fields.length < 20) throw new Error("unreadable process identity");
@@ -74,18 +65,19 @@ export async function workerLeaseOperation(input, hooks = {}) {
     const shardToken = value("TV_TEST_SHARD_OWNER");
     const surfaceToken = value("TV_TEST_SURFACE_OWNER");
     if (!shardToken && !surfaceToken) return null;
-    if (input.auditTokens && !input.auditTokens.includes(shardToken) && !input.auditTokens.includes(surfaceToken)) return null;
     let command = "unavailable";
     try { command = path.basename(fs.readlinkSync(`${base}/exe`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
     return { pid, startTime: fields[19], shardToken, surfaceToken, command };
   }
   async function scan() {
     const owners = [];
-    for (const name of fs.readdirSync("/proc")) {
-      if (!/^\d+$/.test(name)) continue;
-      try { const entry = readProcess(Number(name)); if (entry) owners.push(entry); }
+    // Seam fixtures supply their process set before inspection. Production
+    // enumerates the whole worker and refuses any unreadable ownership.
+    const pids = input.auditPids ?? fs.readdirSync("/proc").filter((name) => /^\d+$/.test(name)).map(Number);
+    for (const pid of pids) {
+      try { const entry = readProcess(pid); if (entry) owners.push(entry); }
       catch (error) {
-        if (["EACCES", "EPERM"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${name} (${error.code}); worker reuse refused`);
+        if (["EACCES", "EPERM"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${pid} (${error.code}); worker reuse refused`);
         if (!["ENOENT", "ESRCH"].includes(error.code)) throw error;
       }
     }

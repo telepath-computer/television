@@ -7,7 +7,7 @@ import { afterEach, expect, test } from "vitest";
 import { workerLeaseCommand, workerEntryCommand, shardScratchPath } from "../../scripts/test/blaxel-worker-lease.mjs";
 
 // Real generated lock command, Linux flock/procfs and disposable files. The
-// fixture-user/token filter substitutes only the whole-worker audit's scope.
+// supplied process IDs substitute only the whole-worker audit's enumeration.
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture(unprivileged = false) {
@@ -16,7 +16,7 @@ function fixture(unprivileged = false) {
   const credentials = unprivileged && process.getuid?.() === 0 ? { uid: 65534, gid: 65534 } : {};
   const tmpRoot = mkdtempSync(path.join(unprivileged ? "/tmp" : os.tmpdir(), "lease-seam-")); roots.push(tmpRoot);
   if (credentials.uid !== undefined) chownSync(tmpRoot, credentials.uid, credentials.gid!);
-  const input = { lockId: "fixture-lock", runId: "fixture-run", shardIndex: 1, shardTotal: 1, attemptId: "fixture-attempt", owner: "fixture", expiresAt: Math.floor(Date.now() / 1000) + 1200, tmpRoot, resultsRoot: path.join(tmpRoot, "results"), auditTokens: ["fixture-lock", "unrelated-lock", "new-lock"] };
+  const input = { lockId: "fixture-lock", runId: "fixture-run", shardIndex: 1, shardTotal: 1, attemptId: "fixture-attempt", owner: "fixture", expiresAt: Math.floor(Date.now() / 1000) + 1200, tmpRoot, resultsRoot: path.join(tmpRoot, "results"), auditPids: [] as number[] };
   const recordPath = path.join(tmpRoot, "tv-testshard.lock", "owner.json");
   const run = (extra = {}) => spawnSync("bash", ["-c", workerLeaseCommand({ ...input, ...extra })], { encoding: "utf8", env: process.env, timeout: 15_000, ...credentials });
   return { input, recordPath, run, record: () => JSON.parse(readFileSync(recordPath, "utf8")) };
@@ -53,14 +53,14 @@ test.skipIf(process.platform !== "linux")("an unreadable whole-worker audit pres
   const sentinel = path.join(f.input.tmpRoot, "television-web-bundle-preserve");
   mkdirSync(sentinel);
   // No fixture scope: production must refuse reuse when ownership is unknown.
-  const prepared = f.run({ operation: "prepare", auditTokens: undefined });
+  const prepared = f.run({ operation: "prepare", auditPids: undefined });
   expect(prepared.status).toBe(2);
   expect(prepared.stderr).toMatch(/worker owner audit unreadable at PID \d+ \(EACCES\); worker reuse refused/);
   expect(readFileSync(f.recordPath, "utf8")).toBe(before);
   expect(existsSync(sentinel)).toBe(true);
 });
 
-test.skipIf(process.platform !== "linux" || process.getuid?.() !== 0)("fixture scope still refuses an unreadable process with its own user ID", async () => {
+test.skipIf(process.platform !== "linux" || process.getuid?.() !== 0)("fixture scope still refuses an unreadable process in its process set", async () => {
   const f = fixture(true);
   const ready = path.join(f.input.tmpRoot, "unreadable-ready");
   // Changing credentials after exec disables dumpability. procfs files become
@@ -69,7 +69,7 @@ test.skipIf(process.platform !== "linux" || process.getuid?.() !== 0)("fixture s
   const child = spawn(process.execPath, ["-e", source], { stdio: "ignore", env: { ...process.env, TV_TEST_SHARD_OWNER: "fixture-lock" } });
   try {
     await until(() => existsSync(ready));
-    const acquired = f.run();
+    const acquired = f.run({ auditPids: [child.pid!] });
     expect(acquired.status).toBe(2);
     expect(acquired.stderr).toContain(`worker owner audit unreadable at PID ${child.pid} (EACCES); worker reuse refused`);
     expect(existsSync(f.recordPath)).toBe(false);
@@ -160,6 +160,7 @@ test.skipIf(process.platform !== "linux")("recovery kills registered descendants
   try {
     await until(() => existsSync(ready));
     const observed = JSON.parse(readFileSync(ready, "utf8"));
+    f.input.auditPids.push(child.pid!, observed.pid, unrelated.pid!);
     expect(observed.outer).toBe(f.input.lockId); expect(observed.surface).toMatch(/^tv1\./);
     expect(f.record().dispatch.pid).toBeGreaterThan(0);
     writeFileSync(f.recordPath, JSON.stringify({ ...f.record(), recoverAfter: 1 }));
