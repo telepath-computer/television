@@ -174,8 +174,8 @@ function inlineStyles(): Plugin {
 //
 // Dev server port is 5182. The bundled file view iframe is served from the
 // fixed unauthenticated `/views/markdown/` route and remains self-contained.
-// `vite.editor.config.ts` builds the reusable v1 editor from its narrower
-// entry point in a second pass.
+// The packaged template's maintenance build uses its narrower editor entry;
+// it is not part of this file-view build.
 export default defineConfig({
   root: path.resolve(packageDir, "src"),
   base: "./",

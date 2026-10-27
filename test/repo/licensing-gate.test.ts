@@ -16,6 +16,7 @@ import {
 } from "../../scripts/licenses/generate-notices.mjs";
 import type {
   LicenseConfig,
+  LicenseSurface,
   VendoredAsset,
 } from "../../scripts/licenses/lib/config.mjs";
 import {
@@ -255,14 +256,22 @@ describe("license gate", () => {
     writeRecord({ packages: [], assets: ["unknown-asset"] });
     expect(evaluate().errors.join("\n")).toMatch(/unknown Markdown template editor asset.*unknown-asset/i);
 
-    const missingSurfaceAsset: VendoredAsset = { ...coveredAsset, surfaces: ["view:markdown"] };
     writeRecord({ packages: [], assets: ["covered-asset"] });
-    expect(evaluateLicenseGate({
-      root,
-      inventories: completeInventories([]),
-      config,
-      assets: [missingSurfaceAsset],
-    }).errors.join("\n")).toMatch(/covered-asset.*source/i);
+    for (const { surfaces, missingSurface } of [
+      { surfaces: ["view:markdown"], missingSurface: "source" },
+      { surfaces: ["source"], missingSurface: "view:markdown" },
+    ]) {
+      const missingSurfaceAsset: VendoredAsset = {
+        ...coveredAsset,
+        surfaces: surfaces as LicenseSurface[],
+      };
+      expect(evaluateLicenseGate({
+        root,
+        inventories: completeInventories([]),
+        config,
+        assets: [missingSurfaceAsset],
+      }).errors.join("\n")).toMatch(new RegExp(`covered-asset.*${missingSurface}`, "i"));
+    }
 
     writeRecord(validRecord);
     writeFileSync(path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"), "stale template notice\n");

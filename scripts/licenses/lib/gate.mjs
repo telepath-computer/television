@@ -9,6 +9,7 @@ import {
 import { isIgnoredPackage, loadAssetManifest, loadLicenseConfig } from "./config.mjs";
 import { readSurfaceInventory, resolveInventoryRoot, surfaceInventoryPath } from "./inventory.mjs";
 import {
+  markdownTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
   readMarkdownTemplateEditorRecord,
 } from "./markdown-template-editor.mjs";
@@ -40,7 +41,7 @@ export function evaluateLicenseGate(options = {}) {
   const markdownRecordPath = options.markdownTemplateRecordPath
     ?? markdownTemplateEditorRecordPath({ root });
   const markdownNoticePath = options.markdownTemplateNoticePath
-    ?? path.join(root, "packages/server/assets/templates/markdown/THIRD-PARTY-NOTICES.txt");
+    ?? path.join(markdownTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt");
   const checkMarkdownTemplateEditor = options.checkMarkdownTemplateEditor
     ?? (fs.existsSync(path.dirname(markdownNoticePath)) || fs.existsSync(markdownRecordPath));
   let markdownTemplateRecord = null;
@@ -180,7 +181,7 @@ export function markdownTemplateNoticeError({
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   record,
-  noticePath = path.join(root, "packages/server/assets/templates/markdown/THIRD-PARTY-NOTICES.txt"),
+  noticePath = path.join(markdownTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt"),
 } = {}) {
   let generated;
   try {

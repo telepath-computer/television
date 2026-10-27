@@ -11,6 +11,13 @@ export interface MarkdownTemplateEditorCheckResult {
   errors: string[];
 }
 
+export function buildMarkdownTemplateEditor(options: {
+  root?: string;
+  inventoryRoot?: string;
+  outputFolder: string;
+  recordPath: string;
+}): void;
+
 export function checkMarkdownTemplateEditor(options?: {
   root?: string;
   inventoryRoot?: string;

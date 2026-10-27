@@ -40,6 +40,7 @@
     "verify": "npm run test -- verify",
     "lint:package-manifests": "node scripts/check-publishable.mjs --manifest-only",
     "check:publish-tarballs": "node scripts/check-publishable.mjs --tarballs",
+    "refresh:markdown-template-editor": "node scripts/refresh-markdown-template-editor.mjs",
     "specs:index": "node scripts/specs-index.mjs",
     "frameset": "frameset ${TAILSCALE_REMOTE:+--host 0.0.0.0 --allowed-hosts all}"
   },

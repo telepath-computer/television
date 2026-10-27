@@ -19,6 +19,7 @@ import {
   loadAssetManifest,
   loadLicenseConfig,
   type LicenseConfig,
+  type LicenseSurface,
   type VendoredAsset,
 } from "../../scripts/licenses/lib/config.mjs";
 import {
@@ -119,6 +120,18 @@ describe("licensing inventory conversion", () => {
     expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
     expect(readJSON(recordOutputPath)).toEqual({ packages: inventory.packages, assets: [] });
 
+    writeSurfaceInventory(inventoryRoot, {
+      ...inventory,
+      packages: inventory.packages.map((record) => ({
+        ...record,
+        declaredLicense: record.declaredLicense === "MIT" ? "ISC" : "MIT",
+      })),
+    });
+    await expect(runViteGenerateBundle(plugin, outputDir, coveredModule)).rejects.toThrow(
+      /clsx@.*conflicts.*view:markdown.*license inventory/i,
+    );
+    writeSurfaceInventory(inventoryRoot, inventory);
+
     await expect(runViteGenerateBundle(plugin, outputDir, uncoveredModule)).rejects.toThrow(
       /marked@.*not covered.*view:markdown/i,
     );
@@ -159,22 +172,52 @@ describe("licensing inventory conversion", () => {
       packages: packageInventory.packages,
       assets: ["fixture-markdown-table"],
     });
-    expect(() => createTelevisionLicensePlugin({
+    for (const { surfaces, missingSurface } of [
+      { surfaces: ["view:markdown"], missingSurface: "source" },
+      { surfaces: ["source"], missingSurface: "view:markdown" },
+    ]) {
+      await expect(runViteGenerateBundle(createTelevisionLicensePlugin({
+        surface: "view:markdown",
+        mode: "verify",
+        root: repoRoot,
+        inventoryRoot,
+        assets: [{ ...asset, surfaces: surfaces as LicenseSurface[] }],
+        recordOutputPath,
+      }), temporaryRoot, [packageModule, localModule])).rejects.toThrow(
+        new RegExp(`fixture-markdown-table.*${missingSurface}`, "i"),
+      );
+    }
+
+    const secondPackageModule = path.join(repoRoot, "node_modules/marked/lib/marked.esm.js");
+    const secondLocalModule = path.join(repoRoot, "packages/view-markdown/src/source-table.ts");
+    const sortedInventory = inventoryFromModulePaths({
+      surface: "view:markdown",
+      modules: [
+        { id: secondPackageModule, renderedLength: 1 },
+        { id: packageModule, renderedLength: 1 },
+      ],
+      root: repoRoot,
+    });
+    writeSurfaceInventory(inventoryRoot, sortedInventory);
+    await runViteGenerateBundle(createTelevisionLicensePlugin({
       surface: "view:markdown",
       mode: "verify",
       root: repoRoot,
       inventoryRoot,
-      assets: [{ ...asset, surfaces: ["view:markdown"] }],
+      assets: [
+        { ...asset, id: "z-table-asset" },
+        {
+          ...asset,
+          id: "a-source-table-asset",
+          paths: ["packages/view-markdown/src/source-table.ts"],
+        },
+      ],
       recordOutputPath,
-    }).generateBundle).not.toThrow();
-    await expect(runViteGenerateBundle(createTelevisionLicensePlugin({
-      surface: "view:markdown",
-      mode: "verify",
-      root: repoRoot,
-      inventoryRoot,
-      assets: [{ ...asset, surfaces: ["view:markdown"] }],
-      recordOutputPath,
-    }), temporaryRoot, [packageModule, localModule])).rejects.toThrow(/fixture-markdown-table.*source/i);
+    }), temporaryRoot, [secondPackageModule, secondLocalModule, packageModule, localModule]);
+    expect(readJSON(recordOutputPath)).toEqual({
+      packages: sortedInventory.packages,
+      assets: ["a-source-table-asset", "z-table-asset"],
+    });
 
     const emptyInventoryRoot = path.join(temporaryRoot, "empty-inventories");
     mkdirSync(emptyInventoryRoot);

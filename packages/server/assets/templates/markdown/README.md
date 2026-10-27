@@ -49,6 +49,6 @@ available.
 `page.js` adapts the packaged editor to the artifact store. `editor.css` owns
 the editor treatment, while `styles.css` owns the page layout and the loading,
 status and error shell. For visual adaptations, change `styles.css` unless you
-intend to replace the editor. Keep the `#editor` mount element. If you replace
-the editor deliberately, update `page.js`, `editor.js`, `editor.css`, and
-`THIRD-PARTY-NOTICES.txt` together.
+intend to replace the editor. Keep the `#editor` mount element. Keep `page.js`,
+`editor.js`, `editor.css`, and `THIRD-PARTY-NOTICES.txt` together unless you
+deliberately replace the editor and its licensing material.

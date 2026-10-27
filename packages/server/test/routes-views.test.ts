@@ -56,20 +56,25 @@ describe("fixed markdown view routes", () => {
     await request(server.httpServer).get("/views/unknown/anything.js").expect(404);
   });
 
-  it("does not serve a template editor from the Markdown view route", async () => {
+  it("serves ordinary Markdown view files without the removed template-editor headers", async () => {
     const storagePath = tempDir("television-view-storage-");
     const viewsRoot = tempDir("television-view-dist-");
     dirs.push(storagePath, viewsRoot);
     const markdownDir = path.join(viewsRoot, "markdown");
-    mkdirSync(markdownDir, { recursive: true });
+    mkdirSync(path.join(markdownDir, "v1"), { recursive: true });
     writeFileSync(path.join(viewsRoot, "markdown", "index.html"), "<!doctype html><title>Markdown</title>");
+    writeFileSync(path.join(markdownDir, "v1/editor.js"), "window.fixture = true;\n");
+    writeFileSync(path.join(markdownDir, "v1/editor.css"), "#editor { color: red; }\n");
     const store = createServingStore(storagePath, { bundledViewsPath: viewsRoot });
     const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
     servers.push(server);
     await server.start();
 
-    await request(server.httpServer).get("/views/markdown/v1/editor.js").expect(404);
-    await request(server.httpServer).get("/views/markdown/v1/editor.css").expect(404);
+    for (const file of ["editor.js", "editor.css"]) {
+      const response = await request(server.httpServer).get(`/views/markdown/v1/${file}`).expect(200);
+      expect(response.headers["access-control-allow-origin"]).toBeUndefined();
+      expect(response.headers["cache-control"]).not.toBe("no-cache");
+    }
   });
 
   it("returns 404 when the markdown view index.html is missing", async () => {

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { markdownTemplateEditorFolderPath } from "./markdown-template-editor.mjs";
 import { isDeclaredLicenseSurface } from "./surfaces.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -127,7 +128,8 @@ function validateNoticesFolder(value, location, root) {
   if (path.isAbsolute(folder) || folder.split(/[\\/]/).includes("..")) {
     fail(location, `must be a repository-relative path; received ${JSON.stringify(folder)}`);
   }
-  if (folder.replace(/\\/g, "/") === "packages/server/assets/templates/markdown") {
+  const resolvedFolder = path.resolve(root, folder.replace(/\\/g, path.sep));
+  if (resolvedFolder === markdownTemplateEditorFolderPath({ root })) {
     fail(location, "the Markdown template notices are owned by the Markdown template editor licensing record");
   }
   const stats = fs.statSync(path.join(root, folder), { throwIfNoEntry: false });

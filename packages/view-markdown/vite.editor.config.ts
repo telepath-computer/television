@@ -24,7 +24,7 @@ function isolateEditorScript(): Plugin {
         throw new Error("Markdown editor entry chunk was not emitted");
       }
       // Vite's minifier may lift helper declarations out of Rollup's IIFE.
-      // Wrap the final chunk so the public assignment is its only global.
+      // Wrap the final chunk so the internal mount assignment is its only global.
       entry.code = `(() => {\n${entry.code}\n})();\n`;
     },
   };
@@ -69,6 +69,6 @@ export default defineConfig({
 
 function requireEnvironmentPath(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is required; run the Markdown template editor check`);
+  if (!value) throw new Error(`${name} is required; run the Markdown template editor check or refresh command`);
   return path.resolve(value);
 }

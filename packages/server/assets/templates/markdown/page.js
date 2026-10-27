@@ -21,8 +21,8 @@ const loading = document.querySelector(".markdown-loading");
 const unreadable = document.querySelector(".markdown-unreadable");
 const unreadableDetail = unreadable.querySelector("p");
 const status = document.querySelector(".markdown-status");
-const shared = window.TelevisionMarkdownEditor;
-const editorLoaded = typeof shared?.mount === "function";
+const templateEditor = window.TelevisionMarkdownEditor;
+const editorLoaded = typeof templateEditor?.mount === "function";
 
 let access = null;
 let connection = getConnectionStatus();
@@ -63,7 +63,7 @@ async function saveDocument(value) {
 
 function ensureEditor(value) {
   if (editor || !editorLoaded) return false;
-  editor = shared.mount({
+  editor = templateEditor.mount({
     parent: mount,
     value,
     editable: canEdit(),

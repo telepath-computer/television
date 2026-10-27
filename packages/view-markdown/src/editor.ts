@@ -307,7 +307,7 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
   };
 }
 
-/** The public v1 editor boundary used by copied Markdown template pages. */
+/** The internal mount boundary shared by the files in the packaged Markdown template. */
 export function mountMarkdownEditor(options: MarkdownEditorMountOptions): MarkdownEditorHandle {
   return createEditor(options, true).handle;
 }

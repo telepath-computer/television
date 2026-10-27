@@ -9,45 +9,66 @@ import {
 } from "./licenses/generate-notices.mjs";
 import { loadAssetManifest, loadLicenseConfig } from "./licenses/lib/config.mjs";
 import { resolveInventoryRoot } from "./licenses/lib/inventory.mjs";
+import {
+  markdownTemplateEditorFolderPath,
+  markdownTemplateEditorRecordPath,
+} from "./licenses/lib/markdown-template-editor.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(scriptPath), "..");
+const refreshCommand = "npm run refresh:markdown-template-editor";
+
+/** Build the packaged editor into caller-owned temporary output. */
+export function buildMarkdownTemplateEditor({
+  root = repositoryRoot,
+  inventoryRoot = resolveInventoryRoot({ root }),
+  outputFolder,
+  recordPath,
+}) {
+  const build = spawnSync(process.execPath, [
+    path.join(root, "node_modules/vite/bin/vite.js"),
+    "build",
+    "--config",
+    path.join(root, "packages/view-markdown/vite.editor.config.ts"),
+  ], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      TV_MARKDOWN_TEMPLATE_EDITOR_OUTPUT_DIR: path.resolve(outputFolder),
+      TV_MARKDOWN_TEMPLATE_EDITOR_RECORD_OUTPUT: path.resolve(recordPath),
+      TV_MARKDOWN_TEMPLATE_EDITOR_INVENTORY_ROOT: path.resolve(inventoryRoot),
+    },
+  });
+  if (build.status !== 0 || build.error !== undefined) {
+    const diagnostic = [build.stderr, build.stdout, build.error?.message]
+      .filter((value) => typeof value === "string" && value.length > 0)
+      .join("\n")
+      .trim();
+    throw new Error(`Markdown template editor build failed${diagnostic ? `:\n${diagnostic}` : ""}`);
+  }
+}
 
 /** Build the packaged editor privately and compare every generated result with its committed copy. */
 export async function checkMarkdownTemplateEditor({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
-  templateFolder = path.join(root, "packages/server/assets/templates/markdown"),
-  recordPath = path.join(root, "packages/view-markdown/template-editor-licenses.json"),
+  templateFolder = markdownTemplateEditorFolderPath({ root }),
+  recordPath = markdownTemplateEditorRecordPath({ root }),
   observeFreshOutput,
 } = {}) {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "television-markdown-template-editor-"));
   const outputFolder = path.join(temporaryRoot, "editor");
   const freshRecordPath = path.join(temporaryRoot, "template-editor-licenses.json");
   try {
-    const build = spawnSync(process.execPath, [
-      path.join(root, "node_modules/vite/bin/vite.js"),
-      "build",
-      "--config",
-      path.join(root, "packages/view-markdown/vite.editor.config.ts"),
-    ], {
-      cwd: root,
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-      env: {
-        ...process.env,
-        TV_MARKDOWN_TEMPLATE_EDITOR_OUTPUT_DIR: outputFolder,
-        TV_MARKDOWN_TEMPLATE_EDITOR_RECORD_OUTPUT: freshRecordPath,
-        TV_MARKDOWN_TEMPLATE_EDITOR_INVENTORY_ROOT: path.resolve(inventoryRoot),
-      },
+    buildMarkdownTemplateEditor({
+      root,
+      inventoryRoot,
+      outputFolder,
+      recordPath: freshRecordPath,
     });
-    if (build.status !== 0) {
-      const diagnostic = `${build.stderr ?? ""}\n${build.stdout ?? ""}`.trim();
-      return {
-        ok: false,
-        errors: [`Markdown template editor build failed${diagnostic ? `:\n${diagnostic}` : ""}`],
-      };
-    }
 
     const editorJavaScript = fs.readFileSync(path.join(outputFolder, "editor.js"));
     const editorStylesheet = fs.readFileSync(path.join(outputFolder, "editor.css"));
@@ -73,6 +94,9 @@ export async function checkMarkdownTemplateEditor({
       "repository THIRD-PARTY-NOTICES.txt",
       errors,
     );
+    if (errors.length > 0) {
+      errors.push(`Run \`${refreshCommand}\` to refresh the committed editor, licensing record, and notices.`);
+    }
     return { ok: errors.length === 0, errors };
   } catch (error) {
     return { ok: false, errors: [message(error)] };

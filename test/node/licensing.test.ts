@@ -32,6 +32,7 @@ import {
   checkMarkdownTemplateEditor,
   type MarkdownTemplateEditorCheckObservation,
 } from "../../scripts/check-markdown-template-editor.mjs";
+import { refreshMarkdownTemplateEditor } from "../../scripts/refresh-markdown-template-editor.mjs";
 import {
   generateMarkdownTemplateNotices,
   generateSourceNotices,
@@ -167,6 +168,55 @@ describe("product licensing outputs", () => {
     expect(observedPaths.map(fileSnapshot)).toEqual(before);
   });
 
+  test("the Markdown template editor refresh replaces only generated files and satisfies the check", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-refresh-"));
+    try {
+      const substituteTemplate = path.join(root, "markdown");
+      const substituteRecord = path.join(root, "template-editor-licenses.json");
+      const substituteSourceNotice = path.join(root, noticeName);
+      cpSync(markdownTemplateFolder, substituteTemplate, { recursive: true });
+      cpSync(markdownTemplateRecord, substituteRecord);
+      writeFileSync(path.join(substituteTemplate, "editor.js"), "stale JavaScript\n");
+      writeFileSync(path.join(substituteTemplate, "editor.css"), "stale stylesheet\n");
+      writeFileSync(path.join(substituteTemplate, noticeName), "stale template notice\n");
+      writeFileSync(substituteRecord, '{"packages":[],"assets":[]}\n');
+      writeFileSync(substituteSourceNotice, "stale source notice\n");
+      writeFileSync(path.join(substituteTemplate, "refresh-sentinel.txt"), "keep this file\n");
+
+      const generatedNames = new Set(["editor.js", "editor.css", noticeName]);
+      const otherTemplateFiles = listFiles(substituteTemplate)
+        .filter((file) => !generatedNames.has(path.basename(file)));
+      const before = otherTemplateFiles.map(fileSnapshot);
+      const packageManifest = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
+        scripts?: Record<string, string>;
+      };
+      expect(packageManifest.scripts?.["refresh:markdown-template-editor"])
+        .toBe("node scripts/refresh-markdown-template-editor.mjs");
+
+      await refreshMarkdownTemplateEditor({
+        root: repoRoot,
+        inventoryRoot,
+        templateFolder: substituteTemplate,
+        recordPath: substituteRecord,
+        sourceNoticePath: substituteSourceNotice,
+      });
+
+      expect(otherTemplateFiles.map(fileSnapshot)).toEqual(before);
+      expect(readFileSync(substituteSourceNotice, "utf8"))
+        .toBe(readFileSync(path.join(repoRoot, noticeName), "utf8"));
+      const result = await checkMarkdownTemplateEditor({
+        root: repoRoot,
+        inventoryRoot,
+        templateFolder: substituteTemplate,
+        recordPath: substituteRecord,
+      });
+      expect(result.errors).toEqual([]);
+      expect(result.ok).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   // proofs/arch/licensing.md#^licensing-t-markdown-editor-stale
   test("the Markdown template editor check names every stale committed item without changing files", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-stale-"));
@@ -217,6 +267,7 @@ describe("product licensing outputs", () => {
       expect(result.errors.join("\n")).toMatch(/editor\.css/);
       expect(result.errors.join("\n")).toMatch(/package record/i);
       expect(result.errors.join("\n")).toMatch(/asset ID/i);
+      expect(result.errors.join("\n")).toContain("npm run refresh:markdown-template-editor");
       expect([...committedPaths, ...substitutePaths].map(fileSnapshot)).toEqual(before);
     } finally {
       rmSync(root, { recursive: true, force: true });

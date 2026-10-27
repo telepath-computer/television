@@ -7,6 +7,10 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const recordKeys = ["packages", "assets"];
 const packageKeys = ["name", "version", "declaredLicense", "licenseFilePath"];
 
+export function markdownTemplateEditorFolderPath({ root = repositoryRoot } = {}) {
+  return path.join(root, "packages/server/assets/templates/markdown");
+}
+
 export function markdownTemplateEditorRecordPath({ root = repositoryRoot } = {}) {
   return path.join(root, "packages/view-markdown/template-editor-licenses.json");
 }

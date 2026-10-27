@@ -31,7 +31,7 @@ if (!parent) {
 
 function exposeTestEditor(view: EditorView): void {
   // Retain the file view's established hook for its browser and Electron
-  // tests. The separate v1 entry does not expose this editor-library object.
+  // tests. The packaged-template entry does not expose this editor object.
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
 

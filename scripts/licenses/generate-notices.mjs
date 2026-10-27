@@ -13,6 +13,7 @@ import {
   renderThirdPartyNotices,
 } from "./lib/notices.mjs";
 import {
+  markdownTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
   readMarkdownTemplateEditorRecord,
 } from "./lib/markdown-template-editor.mjs";
@@ -186,7 +187,7 @@ function runCLI() {
     }
     generateSourceNotices({ outputPath: options.output });
     generateMarkdownTemplateNotices({
-      outputPath: path.join(repositoryRoot, "packages/server/assets/templates/markdown/THIRD-PARTY-NOTICES.txt"),
+      outputPath: path.join(markdownTemplateEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
     });
     generateFolderNotices({ write: true });
     return;

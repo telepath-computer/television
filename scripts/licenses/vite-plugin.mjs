@@ -46,7 +46,7 @@ export function createTelevisionLicensePlugin({
         try {
           coveringInventory = readSurfaceInventory(inventoryRoot, surface);
         } catch (error) {
-          throw new Error(`missing ${surface} licence inventory: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error(`missing ${surface} license inventory: ${error instanceof Error ? error.message : String(error)}`);
         }
         verifyInventoryCoverage(inventory, coveringInventory);
         if (recordOutputPath !== undefined) {
@@ -103,10 +103,10 @@ function verifyInventoryCoverage(inventory, coveringInventory) {
   for (const record of inventory.packages) {
     const coveringRecord = covered.get(`${record.name}\0${record.version}`);
     if (coveringRecord === undefined) {
-      throw new Error(`${record.name}@${record.version} is not covered by the ${inventory.surface} licence inventory`);
+      throw new Error(`${record.name}@${record.version} is not covered by the ${inventory.surface} license inventory`);
     }
     if (coveringRecord.declaredLicense !== record.declaredLicense) {
-      throw new Error(`${record.name}@${record.version} conflicts with the ${inventory.surface} licence inventory`);
+      throw new Error(`${record.name}@${record.version} conflicts with the ${inventory.surface} license inventory`);
     }
   }
 }
