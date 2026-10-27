@@ -1,6 +1,6 @@
 # Resource-cleanup proposal: review response
 
-Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. All three implementation slices have converged; integrated validation is in progress. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. All three implementation slices have converged; the integrated gate passed and independent integrated review is next. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
 
 Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
@@ -337,3 +337,20 @@ The [integrated record](test-harness-resource-cleanup-integrated.md) carries the
 current-target reconciliation and full-gate evidence. The supervisor will arrange
 integrated review after the gate result. Docs preparation and marking PR #12 ready
 remain later steps.
+
+
+## Integrated checkpoint: full gate passed
+
+The [integrated record](test-harness-resource-cleanup-integrated.md) reports the
+whole-tree reconciliation against current main `a8e73fbf` and the standard
+36-shard gate at pushed `7c66d160`. It passed: 22 surfaces, 3,705 tests passed,
+eight skipped, zero failed or recovered tests, zero process leaks or infrastructure
+failures, and zero renewal-loss shard attempts. Static verification also passed.
+All results are retained locally; private infrastructure cleanup is recorded.
+
+Automatic attestation publication failed non-fatally with GitHub HTTP 403. Four
+worker candidates without the configured nvm runtime were skipped and replaced;
+they were not repaired. Neither issue is hidden by the passing gate. The exact
+tested commit is `7c66d160`; this following working-record update runs no tests.
+The contribution now stops for the supervisor's independent integrated review.
+Docs preparation and marking PR #12 ready have not begun.
