@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { ArtifactTemplateScan } from "@telepath-computer/television-shared";
 import { configureTestMotion } from "./helpers.ts";
 
@@ -10,6 +10,47 @@ async function set(page: Page, templates = items, errors: ArtifactTemplateScan["
 async function actions(page: Page) {
   return page.evaluate(() => (window as unknown as { toolbox: Fixture }).toolbox.actions);
 }
+
+type KeyCapture = {
+  key: string;
+  shiftKey: boolean;
+  altKey: boolean;
+  metaKey: boolean;
+  ctrlKey: boolean;
+  defaultPrevented: boolean | null;
+};
+
+type CapturingInput = HTMLInputElement & { __toolboxKeyCaptures?: KeyCapture[] };
+
+async function captureKeys(search: Locator) {
+  await search.evaluate((input: CapturingInput) => {
+    input.__toolboxKeyCaptures = [];
+    input.addEventListener("keydown", event => {
+      const capture: KeyCapture = {
+        key: event.key,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        defaultPrevented: null,
+      };
+      input.__toolboxKeyCaptures!.push(capture);
+      setTimeout(() => { capture.defaultPrevented = event.defaultPrevented; });
+    }, { capture: true });
+  });
+}
+
+async function pressAndCapture(search: Locator, chord: string): Promise<KeyCapture> {
+  const index = await search.evaluate((input: CapturingInput) => input.__toolboxKeyCaptures?.length ?? 0);
+  const key = chord.split("+").at(-1)!;
+  await search.press(chord);
+  await expect.poll(() => search.evaluate((input: CapturingInput, options) =>
+    input.__toolboxKeyCaptures?.slice(options.index).find(capture => capture.key === options.key)?.defaultPrevented ?? null,
+  { index, key })).not.toBeNull();
+  return search.evaluate((input: CapturingInput, options) =>
+    input.__toolboxKeyCaptures!.slice(options.index).find(capture => capture.key === options.key)!, { index, key });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/packages/web/test/e2e/fixtures/toolbox.html");
   await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeVisible();
@@ -25,23 +66,21 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   const rows = grid.getByRole("row");
   const tiles = grid.getByRole("gridcell");
   const body = page.locator(".toolbox-body");
-  const content = page.locator(".toolbox-scroll-content");
   const footer = page.locator(".toolbox-footer");
+  await captureKeys(search);
   const searchBox = (await search.boundingBox())!;
   expect((await body.boundingBox())!.y).toBeCloseTo(searchBox.y + searchBox.height);
   expect((await tiles.first().boundingBox())!.y).toBeGreaterThan(searchBox.y + searchBox.height);
   await expect(footer).toBeVisible();
   const footerBox = (await footer.boundingBox())!;
-  const scrollportRight = await body.evaluate(element => {
-    const bounds = element.getBoundingClientRect();
-    return bounds.left + element.clientLeft + element.clientWidth;
-  });
-  expect(footerBox.x + footerBox.width).toBeLessThanOrEqual(scrollportRight + 1);
   await expect(search).toBeFocused();
   await expect(search).toHaveAttribute("aria-haspopup", "grid");
   await expect(search).toHaveAttribute("aria-autocomplete", "list");
   await expect(search).toHaveAttribute("aria-expanded", "true");
-  await expect(search).toHaveAttribute("aria-controls", "toolbox-grid");
+  const gridID = await grid.getAttribute("id");
+  expect(gridID).toBeTruthy();
+  await expect(search).toHaveAttribute("aria-controls", gridID!);
+  await expect(page.locator(`[id="${gridID}"]`)).toHaveAttribute("role", "grid");
   await expect(rows).toHaveCount(8);
   await expect(rows.first().getByRole("gridcell")).toHaveCount(3);
   await expect(search).not.toHaveAttribute("aria-activedescendant");
@@ -52,32 +91,24 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await expect(search).toHaveAttribute("aria-expanded", "false");
   await expect(search).not.toHaveAttribute("aria-controls");
   for (const key of ["ArrowUp", "ArrowDown"]) {
-    const claimed = await search.evaluate((input, verticalKey) => {
-      const event = new KeyboardEvent("keydown", { key: verticalKey, bubbles: true, cancelable: true });
-      input.dispatchEvent(event);
-      return event.defaultPrevented;
-    }, key);
-    expect(claimed).toBe(false);
+    expect(await pressAndCapture(search, key)).toMatchObject({ key, defaultPrevented: false });
   }
   await search.fill("  ITEM 0  ");
   await expect(tiles).toHaveCount(10);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  await page.evaluate(() => history.pushState(null, "", `${location.pathname}${location.search}#toolbox-modifiers`));
   for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
-    for (const modifier of ["shiftKey", "altKey", "metaKey", "ctrlKey"] as const) {
-      const claimed = await search.evaluate((input, options) => {
-        const event = new KeyboardEvent("keydown", { key: options.key, [options.modifier]: true, bubbles: true, cancelable: true });
-        input.dispatchEvent(event);
-        return event.defaultPrevented;
-      }, { key, modifier });
-      expect(claimed).toBe(false);
+    for (const [modifier, property] of [["Shift", "shiftKey"], ["Alt", "altKey"], ["Meta", "metaKey"], ["Control", "ctrlKey"]] as const) {
+      const captured = await pressAndCapture(search, `${modifier}+${key}`);
+      expect(captured).toMatchObject({ key, [property]: true, defaultPrevented: false });
       await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
     }
-    const claimedDuringComposition = await search.evaluate((input, composedKey) => {
+    const composition = await search.evaluate((input, composedKey) => {
       const event = new KeyboardEvent("keydown", { key: composedKey, isComposing: true, bubbles: true, cancelable: true });
       input.dispatchEvent(event);
-      return event.defaultPrevented;
+      return { defaultPrevented: event.defaultPrevented, isTrusted: event.isTrusted };
     }, key);
-    expect(claimedDuringComposition).toBe(false);
+    expect(composition).toEqual({ defaultPrevented: false, isTrusted: false });
     await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   }
   const queryEnd = await search.evaluate((input: HTMLInputElement) => {
@@ -87,13 +118,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await search.press("Shift+ArrowLeft");
   expect(await search.evaluate((input: HTMLInputElement) => [input.selectionStart, input.selectionEnd])).toEqual([queryEnd - 1, queryEnd]);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
-  const firstEndpointClaimed = await search.evaluate(input => {
-    const event = new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true });
-    input.dispatchEvent(event);
-    return event.defaultPrevented;
-  });
-  expect(firstEndpointClaimed).toBe(true);
-  await search.press("ArrowLeft");
+  expect(await pressAndCapture(search, "ArrowLeft")).toMatchObject({ key: "ArrowLeft", defaultPrevented: true });
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowRight");
   await expect(tiles.nth(1)).toHaveAttribute("aria-selected", "true");
@@ -120,19 +145,9 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await expect(tiles.nth(3)).toHaveAttribute("aria-selected", "true");
   for (let index = 0; index < 10; index++) await search.press("ArrowRight");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
-  const lastEndpointClaimed = await search.evaluate(input => {
-    const event = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
-    input.dispatchEvent(event);
-    return event.defaultPrevented;
-  });
-  expect(lastEndpointClaimed).toBe(true);
+  expect(await pressAndCapture(search, "ArrowRight")).toMatchObject({ key: "ArrowRight", defaultPrevented: true });
   await search.fill("");
-  const unhighlightedUpClaimed = await search.evaluate(input => {
-    const event = new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true });
-    input.dispatchEvent(event);
-    return event.defaultPrevented;
-  });
-  expect(unhighlightedUpClaimed).toBe(true);
+  expect(await pressAndCapture(search, "ArrowUp")).toMatchObject({ key: "ArrowUp", defaultPrevented: true });
   await expect(search).not.toHaveAttribute("aria-activedescendant");
   await search.press("ArrowDown");
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
@@ -161,7 +176,12 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await page.mouse.move(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y - 2);
   await expect(tiles.nth(19)).toHaveAttribute("aria-selected", "true");
   expect(await body.evaluate(element => element.scrollTop)).toBe(scrollBeforeHover);
-  await page.mouse.click(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y + 2);
+  const coveredNeighbour = tiles.nth(20);
+  const coveredNeighbourBox = (await coveredNeighbour.boundingBox())!;
+  await page.mouse.move(coveredNeighbourBox.x + coveredNeighbourBox.width / 2, coveredFooterBox.y + 2);
+  await expect(tiles.nth(19)).toHaveAttribute("aria-selected", "true");
+  await expect(coveredNeighbour).toHaveAttribute("aria-selected", "false");
+  await page.mouse.click(coveredNeighbourBox.x + coveredNeighbourBox.width / 2, coveredFooterBox.y + 2);
   expect(await actions(page)).toEqual([]);
   await body.evaluate(element => { element.scrollTop = 0; });
   const scrollBeforeFooterWheel = await body.evaluate(element => element.scrollTop);
@@ -172,12 +192,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect(await footer.boundingBox()).toEqual(footerBox);
   await search.press("ArrowDown");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
-  const lastVerticalEndpointClaimed = await search.evaluate(input => {
-    const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
-    input.dispatchEvent(event);
-    return event.defaultPrevented;
-  });
-  expect(lastVerticalEndpointClaimed).toBe(true);
+  expect(await pressAndCapture(search, "ArrowDown")).toMatchObject({ key: "ArrowDown", defaultPrevented: true });
   await tiles.nth(2).hover();
   await expect(tiles.nth(2)).toHaveAttribute("aria-selected", "true");
   await page.mouse.down();
@@ -194,7 +209,8 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect((await tiles.first().boundingBox())!.y).toBeLessThan(searchBox.y + searchBox.height);
   expect(await search.boundingBox()).toEqual(searchBox);
   expect(await footer.boundingBox()).toEqual(footerBox);
-  expect(await content.evaluate(element => element.nextElementSibling?.classList.contains("toolbox-footer"))).toBe(true);
+  expect(await footer.evaluate(element => element.parentElement?.classList.contains("toolbox-body") === true
+    && element.parentElement.lastElementChild === element)).toBe(true);
   for (const target of [tiles.last(), tiles.last().locator(".toolbox-name"), tiles.last().locator(".toolbox-icon")]) {
     await expect(target).toHaveCSS("user-select", "none");
     expect(await target.evaluate(element => (element as HTMLElement).draggable)).toBe(false);
@@ -204,16 +220,84 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
   await expect(search).toHaveValue("");
   await expect(search).not.toHaveAttribute("aria-activedescendant");
-  await body.evaluate(element => { element.scrollTop = 0; });
   await search.fill("Item 23");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
-  expect((await tiles.last().boundingBox())!.y + (await tiles.last().boundingBox())!.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.holdAction = true; });
   await search.press("Enter");
   await expect.poll(() => actions(page)).toEqual(["id-23"]);
   await expect(page.getByRole("region", { name: "Toolbox" })).toBeVisible();
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.finishAction(); });
   await expect(page.getByRole("region", { name: "Toolbox" })).not.toBeVisible();
+});
+
+// proofs/ui/app/toolbox.md#^toolbox-t-browser-input
+test("keyboard and search reveal highlights at both scrolling edges", async ({ page }) => {
+  await set(page);
+  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const tiles = page.getByRole("gridcell");
+  const body = page.locator(".toolbox-body");
+  const footer = page.locator(".toolbox-footer");
+
+  for (let index = 0; index < 9; index++) await search.press("ArrowDown");
+  await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  const bodyBox = (await body.boundingBox())!;
+  expect((await tiles.first().boundingBox())!.y).toBeLessThan(bodyBox.y);
+
+  for (let index = 0; index < 7; index++) await search.press("ArrowUp");
+  await expect(tiles.nth(2)).toHaveAttribute("aria-selected", "true");
+  const topTileBox = (await tiles.nth(2).boundingBox())!;
+  expect(topTileBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
+  expect(topTileBox.y + topTileBox.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
+
+  for (let index = 0; index < 7; index++) await search.press("ArrowDown");
+  await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  const scrollBeforeSearch = await body.evaluate(element => element.scrollTop);
+  expect(scrollBeforeSearch).toBeGreaterThan(0);
+  expect((await tiles.first().boundingBox())!.y).toBeLessThan(bodyBox.y);
+  await search.fill("Item");
+  await expect(tiles).toHaveCount(items.length);
+  await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  const searchedTileBox = (await tiles.first().boundingBox())!;
+  expect(searchedTileBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
+  expect(searchedTileBox.y + searchedTileBox.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
+  expect(await body.evaluate(element => element.scrollTop)).toBeLessThan(scrollBeforeSearch);
+});
+
+// proofs/ui/app/toolbox.md#^toolbox-t-browser-input
+test("real scroll bar remains usable beside the sticky footer", async ({ browser, baseURL }) => {
+  const visibleScrollbars = await browser.browserType().launch({ ignoreDefaultArgs: ["--hide-scrollbars"] });
+  const page = await visibleScrollbars.newPage({ baseURL, viewport: { width: 640, height: 800 } });
+  try {
+    await page.goto("/packages/web/test/e2e/fixtures/toolbox.html");
+    await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeVisible();
+    await configureTestMotion(page);
+    await set(page);
+    await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+    const body = page.locator(".toolbox-body");
+    const footer = page.locator(".toolbox-footer");
+    const layout = await body.evaluate(element => {
+      const bodyBounds = element.getBoundingClientRect();
+      const footerBounds = element.querySelector<HTMLElement>(".toolbox-footer")!.getBoundingClientRect();
+      return {
+        gutterWidth: element.offsetWidth - element.clientWidth,
+        scrollportRight: bodyBounds.left + element.clientLeft + element.clientWidth,
+        footerRight: footerBounds.right,
+      };
+    });
+    expect(layout.gutterWidth).toBeGreaterThan(0);
+    expect(layout.footerRight).toBeLessThanOrEqual(layout.scrollportRight + 1);
+
+    const bodyBox = (await body.boundingBox())!;
+    const footerBox = (await footer.boundingBox())!;
+    await page.mouse.click(
+      bodyBox.x + bodyBox.width - layout.gutterWidth / 2,
+      footerBox.y + footerBox.height / 2,
+    );
+    await expect.poll(() => body.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  } finally {
+    await visibleScrollbars.close();
+  }
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-messages

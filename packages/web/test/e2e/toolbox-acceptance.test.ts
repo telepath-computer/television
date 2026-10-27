@@ -100,8 +100,11 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
     await expect(search).toHaveAttribute("aria-haspopup", "grid");
     await expect(search).toHaveAttribute("aria-autocomplete", "list");
     await expect(search).toHaveAttribute("aria-expanded", "true");
-    await expect(search).toHaveAttribute("aria-controls", "toolbox-grid");
     const grid = page.getByRole("grid", { name: "Toolbox" });
+    const gridID = await grid.getAttribute("id");
+    expect(gridID).toBeTruthy();
+    await expect(search).toHaveAttribute("aria-controls", gridID!);
+    await expect(page.locator(`[id="${gridID}"]`)).toHaveAttribute("role", "grid");
     const rows = grid.getByRole("row");
     await expect(rows).toHaveCount(2);
     await expect(rows.first().getByRole("gridcell")).toHaveCount(3);
