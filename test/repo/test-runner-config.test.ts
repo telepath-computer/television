@@ -242,3 +242,15 @@ function visit(dir: string, root: string, out: Set<string>): void {
     else if (/\.(test|spec)\.ts$/.test(entry.name)) out.add(path.relative(root, full));
   }
 }
+
+// Source contract; the private driver carries real planned/targeted transport.
+test("keeps Blaxel harness fixtures separate from the driver and ordinary suites", () => {
+  const registry = loadTestConfig();
+  for (const suite of ["all", "e2e-ci"]) expect(selectSurfaces(registry, { suite }).some(surface => surface.id.startsWith("experiment:blaxel-harness"))).toBe(false);
+  expect(selectSurfaces(registry, { tag: "blaxel-harness-fixture" }).map(surface => surface.id)).toEqual(["experiment:blaxel-harness-fixtures"]);
+  for (const surface of registry.surfaces.filter(surface => surface.id.startsWith("experiment:blaxel-harness"))) expect(surface.kind).toBe("experiment");
+  const source = readFileSync("test/runner-fixtures/blaxel-harness/driver/harness.test.ts", "utf8");
+  expect(source).toContain('["--tag", "blaxel-harness-fixture", "--shards", "2"');
+  expect(source).toContain('["--surface", "experiment:blaxel-harness-fixtures"]');
+  expect(source).not.toContain('["--surface", "experiment:blaxel-harness"]');
+});

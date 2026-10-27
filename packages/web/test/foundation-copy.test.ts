@@ -1,6 +1,7 @@
 import { globSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, expect } from "vitest";
+import { test } from "../../../test/helpers/vitest.ts";
 import { enumerateTrackedPaths } from "../../../scripts/test/file-inventory.mjs";
 import { buildVersionedWebBundle } from "../../../test/helpers/versioned-web-bundle.ts";
 import {

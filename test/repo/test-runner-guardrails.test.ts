@@ -737,6 +737,39 @@ describe("test runner guardrails", () => {
     expect(result.stderr).toContain("--provider must be one of: local, blaxel");
   });
 
+  // These two placement cases clear the outer shard token only for an immediate
+  // CLI dry run; the child retains ordinary surface ownership and starts no work.
+  test("accepts a configured Blaxel harness coordinator and private pool without fixed names", () => {
+    const result = runCli(["local", "--surface", "experiment:blaxel-harness"], selftestEnv({
+      TV_TEST_RUNNER_DRY_RUN: "1",
+      TV_TEST_SHARD_OWNER: undefined,
+      TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator",
+      TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool",
+    }));
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("surfaces=experiment:blaxel-harness");
+  });
+
+  test("refuses missing Blaxel harness configuration and leased or remote placement before preflight", () => {
+    const configured = {
+      TV_TEST_RUNNER_DRY_RUN: "1",
+      TV_TEST_SHARD_OWNER: undefined,
+      TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator",
+      TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool",
+    };
+    for (const [provider, env] of [
+      ["local", { ...configured, TV_BLAXEL_HARNESS_COORDINATOR: " " }],
+      ["local", { ...configured, TV_BLAXEL_HARNESS_POOL: undefined }],
+      ["local", { ...configured, TV_TEST_SHARD_OWNER: "fixture-owner" }],
+      ["blaxel", configured],
+    ] as const) {
+      const result = runCli([provider, "--surface", "experiment:blaxel-harness"], selftestEnv(env));
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain("dedicated coordinator outside the worker pool");
+      expect(result.stdout).not.toContain("[dry-run]");
+    }
+  });
+
   test("rejects isolated lifecycle fixtures on developer-host local execution before preflight", () => {
     const result = runCli(["local", "--surface", "experiment:lifecycle-leak"], selftestEnv({
       TV_TEST_RUNNER_DRY_RUN: "1",

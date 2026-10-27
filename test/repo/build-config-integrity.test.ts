@@ -15,7 +15,8 @@ import os from "node:os";
 import path from "node:path";
 // @ts-expect-error — jsdom is intentionally installed without a declaration package
 import { JSDOM } from "jsdom";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect } from "vitest";
+import { test } from "../helpers/vitest.ts";
 // @ts-expect-error — repository build script has no declaration file
 import { buildCanonicalVersions } from "../../packages/canonical/scripts/build-canonical.mjs";
 import { buildVersionedWebBundle } from "../helpers/versioned-web-bundle.ts";
