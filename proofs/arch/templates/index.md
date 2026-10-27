@@ -18,7 +18,7 @@ CSS-motion disablement in browser cases forfeits motion only; no template-cache 
 [Reload/navigation](../artifact-frame/reload-navigation.md) owns watcher mechanics and artifact-content events; template pushes do not replace those events.
 [Resources](../resources/index.md) owns durable first writes and uncertain saves; [artifact records](../artifacts/index.md) owns ordinary record shapes.
 [Isolation](../artifact-frame/isolation.md) owns route-wide CORS; [Toolbox](../../ui/app/toolbox.md) owns accessible interaction, default icons and appearance.
-The scanner validates general JSON seed rules. [Checklist](./checklist.md), [Calendar](./calendar.md), and [Sticky note](./sticky-note.md) architecture own their respective data shapes; [Checklist UI](../../ui/templates/checklist.md), [Calendar UI](../../ui/templates/calendar.md), and [Sticky note UI](../../ui/templates/sticky-note.md) own what the copied pages do with them.
+The scanner validates general JSON seed rules. [Checklist](./checklist.md), [Calendar](./calendar.md), [Sticky note](./sticky-note.md), and [Map](./map.md) architecture own their respective data shapes. Checklist, Calendar, and Sticky note UI proofs own what those copied pages do with them. The Map architecture proof owns what the Map store means and what the page shows, omits, falls back to, or reports; presentation remains code-authoritative.
 Evidence below covers creation, discovery and icons; browser cache evidence is recorded separately from its controlled-peer contracts.
 
 ## Test hooks

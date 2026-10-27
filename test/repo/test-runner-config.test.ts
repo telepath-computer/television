@@ -95,6 +95,7 @@ describe("test runner registry", () => {
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-checklist-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-calendar-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-sticky-note-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-map-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/toolbox-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/swipe-gesture.test.ts").map((surface) => surface.id)).toEqual(["unit:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/canonical/test/build-canonical.test.ts").map((surface) => surface.id)).toEqual(["unit:canonical"]);

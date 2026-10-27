@@ -23,6 +23,7 @@ const realStackTests = [
   "**/template-checklist-real-stack.test.ts",
   "**/template-calendar-real-stack.test.ts",
   "**/template-sticky-note-real-stack.test.ts",
+  "**/template-map-real-stack.test.ts",
   "**/templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];

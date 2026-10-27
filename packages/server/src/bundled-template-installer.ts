@@ -7,11 +7,21 @@ import {
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
-import { BUNDLED_ARTIFACT_TEMPLATE_IDS } from "./bundled-template-ids.ts";
+import { BUNDLED_ARTIFACT_TEMPLATE_IDS, type BundledArtifactTemplateID } from "./bundled-template-ids.ts";
 import { compareSemanticVersions } from "./themes.ts";
 import { getTemplatesDir, validateTemplatePackage } from "./templates.ts";
 
-export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({ id, minimumVersion: "1.0.0" }));
+const BUNDLED_ARTIFACT_TEMPLATE_MINIMUM_VERSIONS = {
+  checklist: "1.0.0",
+  calendar: "1.0.0",
+  "sticky-note": "1.0.0",
+  map: "2.1.0",
+} as const satisfies Record<BundledArtifactTemplateID, string>;
+
+export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({
+  id,
+  minimumVersion: BUNDLED_ARTIFACT_TEMPLATE_MINIMUM_VERSIONS[id],
+}));
 export { BUNDLED_ARTIFACT_TEMPLATE_IDS } from "./bundled-template-ids.ts";
 
 interface BundledTemplateState {

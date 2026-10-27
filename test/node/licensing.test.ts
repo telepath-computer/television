@@ -325,6 +325,31 @@ describe("shipped package licensing", () => {
     }
   });
 
+  // proofs/product/licensing.md#^licensing-ac-map-assets
+  test("Map carries Leaflet, Lucide and Feather notices wherever its vendored assets ship", () => {
+    const assets = loadAssetManifest({ root: repoRoot });
+    const components = ["map-leaflet", "map-lucide-icons"]
+      .flatMap((id) => assets.find((asset) => asset.id === id)!.components);
+    expect(readFileSync(path.join(packedCLI, "dist/templates/map/vendor/leaflet.js")))
+      .toEqual(readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/vendor/leaflet.js")));
+    const notices = [
+      path.join(repoRoot, noticeName),
+      path.join(repoRoot, "packages/server/assets/templates/map", noticeName),
+      path.join(packedCLI, "dist", noticeName),
+      path.join(packedCLI, "dist/templates/map", noticeName),
+    ];
+    for (const component of components) {
+      const identity = "package" in component
+        ? `${component.package}@${component.version}`
+        : component.name!;
+      for (const file of notices) {
+        const notice = readFileSync(file, "utf8");
+        expect(materialSection(notice, identity), file).toContain(component.noticeText);
+        expect(materialSection(notice, identity), file).toContain(`Licensed under ${component.license}.`);
+      }
+    }
+  });
+
   // proofs/product/licensing.md#^licensing-ac-ignored-silent
   test("every real artifact has notices exactly where entries exist, and every file is written for readers", () => {
     const sourceExpected = expectedSurfaceNotices("source", []);
@@ -488,6 +513,7 @@ function bundledFolderNotices(): { folder: string; text: string }[] {
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/checklist`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/calendar`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/sticky-note`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/map`);
   return owed;
 }
 
