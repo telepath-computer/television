@@ -73,10 +73,8 @@ async function createURLArtifact(
   return ((await response.json()) as { artifact: { id: string } }).artifact.id;
 }
 
-async function openApp(page: Page, server: ProductServer, baseURL: string | undefined, requests: ReturnType<typeof recordApplicationRequests>): Promise<void> {
-  if (!baseURL) throw new Error("Expected Playwright baseURL");
-  const appBaseURL = await server.appURL(baseURL);
-  await page.goto(`${appBaseURL}/packages/web/src/index.html`);
+async function openApp(page: Page, server: ProductServer, requests: ReturnType<typeof recordApplicationRequests>): Promise<void> {
+  await page.goto(server.serverURL);
   await waitForApp(page);
   requests.expectBuilt();
 }
@@ -129,7 +127,7 @@ test.describe("browser demo mode", () => {
   });
 
   // spec: proofs/product/artifacts.md#^af-ac-demo-mode
-  test("the home-directory marker turns direct external pages on and off at app load (^af-ac-demo-mode)", async ({ page, baseURL }) => {
+  test("the home-directory marker turns direct external pages on and off at app load (^af-ac-demo-mode)", async ({ page }) => {
     if (!server) throw new Error("Product server was not started");
     const [channel] = await channels(server);
     if (!channel) throw new Error("Expected a default channel");
@@ -137,7 +135,7 @@ test.describe("browser demo mode", () => {
     await createURLArtifact(server, pageURL, channel.id);
     const returnButton = page.getByRole("button", { name: RETURN_LABEL });
 
-    await openApp(page, server, baseURL, requests);
+    await openApp(page, server, requests);
     await expect(artifactFrame(page)).toHaveAttribute("src", /\/views\/url-unsupported\//);
     await expect(returnButton).toHaveCount(0);
 
@@ -157,7 +155,7 @@ test.describe("browser demo mode", () => {
   });
 
   // spec: proofs/product/artifacts.md#^af-ac-demo-return
-  test("the artifact icon, an app reload, and a channel round trip each return to the original page (^af-ac-demo-return)", async ({ page, baseURL }) => {
+  test("the artifact icon, an app reload, and a channel round trip each return to the original page (^af-ac-demo-return)", async ({ page }) => {
     if (!server) throw new Error("Product server was not started");
     writeFileSync(path.join(home, MARKER), "");
     const [channel] = await channels(server);
@@ -165,7 +163,7 @@ test.describe("browser demo mode", () => {
     await createChannel(server, "Elsewhere");
     await createURLArtifact(server, `${site.origin}/one`, channel.id);
 
-    await openApp(page, server, baseURL, requests);
+    await openApp(page, server, requests);
     await expect(frameHeading(page)).toHaveText("Fixture page one");
 
     await followNext(page);
@@ -186,7 +184,7 @@ test.describe("browser demo mode", () => {
   });
 
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-demo-inert-seam
-  test("bridge-shaped messages from a demo-mode page change nothing (^ab-ac-demo-inert-seam)", async ({ page, baseURL }) => {
+  test("bridge-shaped messages from a demo-mode page change nothing (^ab-ac-demo-inert-seam)", async ({ page }) => {
     if (!server) throw new Error("Product server was not started");
     writeFileSync(path.join(home, MARKER), "");
     const [channel] = await channels(server);
@@ -196,7 +194,7 @@ test.describe("browser demo mode", () => {
     await createURLArtifact(server, pageURL, channel.id);
     await createURLArtifact(server, `${site.origin}/two`, channel.id, "Second page");
 
-    await openApp(page, server, baseURL, requests);
+    await openApp(page, server, requests);
     const selected = page.getByRole("option", { name: channel.name, exact: true });
     await expect(selected).toHaveAttribute("aria-selected", "true");
     const tabs = page.locator(".top-bar .tab");

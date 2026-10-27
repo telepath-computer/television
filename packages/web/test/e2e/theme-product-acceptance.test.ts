@@ -14,6 +14,7 @@ import { test, expect } from "../../../../test/helpers/playwright.ts";
 import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 import { recordApplicationRequests } from "../../../../test/helpers/application-requests.ts";
+import { startStableFrontProxy } from "../../../../test/helpers/stable-front-proxy.ts";
 import { waitForApplicationShell } from "./helpers.ts";
 import {
   APPLICATION_SHELL_STATES,
@@ -612,13 +613,12 @@ test("Firefox refreshes a ready Markdown editor from a fixed-dark theme to light
 // proofs/arch/themes/delivery.md#^theme-delivery-t-active-package-refresh
 test("theme settings persist rendered app and artifact outcomes through a built-server restart", async ({
   browser,
-  baseURL,
 }) => {
-  if (!baseURL) throw new Error("Expected Playwright baseURL");
   const context = await browser.newContext({ colorScheme: null });
   const page = await context.newPage();
   const requests = recordApplicationRequests([page]);
   const product = await launchProductServer();
+  const front = await startStableFrontProxy(product.serverURL);
   try {
     const themeAPath = seedThemePackage(
       product.home,
@@ -693,8 +693,8 @@ test("theme settings persist rendered app and artifact outcomes through a built-
       "https://example.com/appearance",
     );
 
-    const appURL = await product.appURL(baseURL);
-    await page.goto(`${appURL}/packages/web/src/index.html`);
+    const appURL = front.url;
+    await page.goto(appURL);
     await waitForApplicationShell(page);
     requests.expectBuilt();
 
@@ -846,6 +846,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
     )).toHaveCount(0);
 
     await product.restart();
+    front.setTarget(product.serverURL);
     await waitForApplicationShell(page);
     await expectAppearance("dark", FIXED_DARK);
     const persistedDisplay = await fetch(new URL("/display", product.serverURL));
@@ -872,6 +873,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
       .not.toBe(beforeAdaptiveOverlay.instance);
   } finally {
     await requests.attach(test.info());
+    await front.dispose();
     await product.dispose();
     await context.close();
   }
@@ -884,7 +886,6 @@ test("theme settings persist rendered app and artifact outcomes through a built-
 // proofs/arch/themes/delivery.md#^theme-delivery-t-frame-appearance-browser
 test("executable themes run only in the Chromium application lifecycle and isolate failures", async ({
   page,
-  baseURL,
   browserName,
 }) => {
   test.skip(browserName !== "chromium", "Chromium owns executable-theme browser acceptance");
@@ -894,9 +895,9 @@ test("executable themes run only in the Chromium application lifecycle and isola
   const reconnectBackoffBudget = 30_000;
   const themeResetNavigationBudget = 30_000;
   test.setTimeout(test.info().timeout + reconnectBackoffBudget + 2 * themeResetNavigationBudget);
-  if (!baseURL) throw new Error("Expected Playwright baseURL");
 
   const product = await launchProductServer();
+  const front = await startStableFrontProxy(product.serverURL);
   const secondPage = await page.context().newPage();
   const applicationPages = [page, secondPage] as const;
   const requests = recordApplicationRequests(applicationPages);
@@ -1067,10 +1068,10 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
       "Executable Theme Artifact",
       artifactPath,
     );
-    const appURL = await product.appURL(baseURL);
+    const appURL = front.url;
     await Promise.all(applicationPages.map(async (applicationPage) => {
       await applicationPage.goto(
-        `${appURL}/packages/web/src/index.html`,
+        appURL,
       );
       await waitForApplicationShell(applicationPage);
     }));
@@ -1789,6 +1790,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     await expectExecutableRuns(applicationPages, 3);
 
     await product.restart();
+    front.setTarget(product.serverURL);
     // Allow one capped retry interval plus the usual 5s shell-ready budget.
     await Promise.all(applicationPages.map((applicationPage) =>
       waitForApplicationRender(
@@ -1852,6 +1854,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     expect(scriptRequests.every((owner) => owner === "application")).toBe(true);
   } finally {
     await requests.attach(test.info());
+    await front.dispose();
     await product.dispose();
     await secondPage.close();
   }

@@ -108,6 +108,7 @@ function getCLIEntryWithBundles(sharedEntry: string, options: {
 function installProductRuntimeAssets(buildDir: string): void {
   const webDist = path.join(REPO_ROOT, "packages/web/dist");
   const artifactMissingView = path.join(webDist, "views/artifact-missing");
+  const urlUnsupportedView = path.join(webDist, "views/url-unsupported");
   const markdownView = path.join(REPO_ROOT, "packages/view-markdown/dist");
   const canonical = path.join(REPO_ROOT, "packages/canonical/dist/canonical");
   const sdk = path.join(REPO_ROOT, "packages/server/dist/sdk");
@@ -115,6 +116,9 @@ function installProductRuntimeAssets(buildDir: string): void {
   const webAssets = path.join(webDist, "assets");
   if (!existsSync(path.join(artifactMissingView, "index.html"))) {
     throw new Error(`Web build produced no artifact-missing view at ${artifactMissingView}`);
+  }
+  if (!existsSync(path.join(urlUnsupportedView, "index.html"))) {
+    throw new Error(`Web build produced no url-unsupported view at ${urlUnsupportedView}`);
   }
   if (!existsSync(path.join(markdownView, "index.html"))) {
     throw new Error(`View build produced no markdown view at ${markdownView}`);
@@ -133,6 +137,7 @@ function installProductRuntimeAssets(buildDir: string): void {
   }
 
   cpSync(artifactMissingView, path.join(buildDir, "views/artifact-missing"), { recursive: true });
+  cpSync(urlUnsupportedView, path.join(buildDir, "views/url-unsupported"), { recursive: true });
   cpSync(markdownView, path.join(buildDir, "views/markdown"), { recursive: true });
   cpSync(canonical, path.join(buildDir, "canonical"), { recursive: true });
   cpSync(sdk, path.join(buildDir, "sdk"), { recursive: true });
