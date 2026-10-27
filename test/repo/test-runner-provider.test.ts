@@ -121,9 +121,9 @@ describe("provider result normalization", () => {
     });
 
     const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
-    expect(source).toContain("const dispatch = await transferShardInputs({");
+    expect(source).toContain("const dispatch = await (lease.pendingWrites = transferShardInputs({");
     expect(source).toContain("return dispatchFailureResult({ lease, outputDir, startedAt, logPath, dispatch });");
-    expect(source.indexOf("const dispatch = await transferShardInputs({")).toBeLessThan(source.indexOf("sandbox.process.exec({", source.indexOf("async function runShard")));
+    expect(source.indexOf("const dispatch = await (lease.pendingWrites = transferShardInputs({")).toBeLessThan(source.indexOf("sandbox.process.exec({", source.indexOf("async function runShard")));
   });
 
   test("preserves completed, running, and pending shard evidence before signal cleanup", async () => {
@@ -237,7 +237,7 @@ describe("provider result normalization", () => {
     const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
     expect(source).toContain("interruptedSnapshot = buildInterruptedReportSnapshot(signal)");
     expect(source).toContain("releaseLeases: async () => {");
-    expect(source).toContain("finalizeReport: () => writeInterruptedReportSnapshot(interruptedSnapshot)");
+    expect(source).toContain("finalizeReport: () => writeInterruptedReportSnapshot(buildInterruptedReportSnapshot(signal) ?? interruptedSnapshot)");
     expect(source).toContain("completedResults: activeAttempt.completedResults");
     expect(source).toContain("partialResults: activeAttempt.partialResults");
     expect(source).toContain("executionRequested: activeAttempt.executionRequested");
