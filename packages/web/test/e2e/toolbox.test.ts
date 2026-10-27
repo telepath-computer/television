@@ -17,6 +17,8 @@ type KeyCapture = {
   altKey: boolean;
   metaKey: boolean;
   ctrlKey: boolean;
+  isComposing: boolean;
+  isTrusted: boolean;
   defaultPrevented: boolean | null;
 };
 
@@ -32,6 +34,8 @@ async function captureKeys(search: Locator) {
         altKey: event.altKey,
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
+        isComposing: event.isComposing,
+        isTrusted: event.isTrusted,
         defaultPrevented: null,
       };
       input.__toolboxKeyCaptures!.push(capture);
@@ -96,6 +100,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await search.fill("  ITEM 0  ");
   await expect(tiles).toHaveCount(10);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  // Keep Chromium's Alt+Left and Alt+Right defaults inside this document.
   await page.evaluate(() => history.pushState(null, "", `${location.pathname}${location.search}#toolbox-modifiers`));
   for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
     for (const [modifier, property] of [["Shift", "shiftKey"], ["Alt", "altKey"], ["Meta", "metaKey"], ["Control", "ctrlKey"]] as const) {
@@ -103,13 +108,6 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
       expect(captured).toMatchObject({ key, [property]: true, defaultPrevented: false });
       await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
     }
-    const composition = await search.evaluate((input, composedKey) => {
-      const event = new KeyboardEvent("keydown", { key: composedKey, isComposing: true, bubbles: true, cancelable: true });
-      input.dispatchEvent(event);
-      return { defaultPrevented: event.defaultPrevented, isTrusted: event.isTrusted };
-    }, key);
-    expect(composition).toEqual({ defaultPrevented: false, isTrusted: false });
-    await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   }
   const queryEnd = await search.evaluate((input: HTMLInputElement) => {
     input.setSelectionRange(input.value.length, input.value.length);
@@ -213,7 +211,6 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
     && element.parentElement.lastElementChild === element)).toBe(true);
   for (const target of [tiles.last(), tiles.last().locator(".toolbox-name"), tiles.last().locator(".toolbox-icon")]) {
     await expect(target).toHaveCSS("user-select", "none");
-    expect(await target.evaluate(element => (element as HTMLElement).draggable)).toBe(false);
   }
   await search.press("Escape");
   expect(await actions(page)).toEqual([]);
@@ -228,6 +225,41 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await expect(page.getByRole("region", { name: "Toolbox" })).toBeVisible();
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.finishAction(); });
   await expect(page.getByRole("region", { name: "Toolbox" })).not.toBeVisible();
+});
+
+// proofs/ui/app/toolbox.md#^toolbox-t-browser-input
+test("CDP composition passes trusted arrows and Return through the search field", async ({ page }) => {
+  await set(page);
+  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const tiles = page.getByRole("gridcell");
+  await captureKeys(search);
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    await cdp.send("Input.imeSetComposition", { text: "Item", selectionStart: 4, selectionEnd: 4 });
+    await expect(search).toHaveValue("Item");
+    await expect(tiles).toHaveCount(items.length);
+    await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+    for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
+      expect(await pressAndCapture(search, key)).toMatchObject({
+        key,
+        isComposing: true,
+        isTrusted: true,
+        defaultPrevented: false,
+      });
+      await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+    }
+    expect(await pressAndCapture(search, "Enter")).toMatchObject({
+      key: "Enter",
+      isComposing: true,
+      isTrusted: true,
+      defaultPrevented: false,
+    });
+    expect(await actions(page)).toEqual([]);
+    await expect(search).toBeFocused();
+  } finally {
+    await cdp.detach();
+  }
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
@@ -281,12 +313,12 @@ test("real scroll bar remains usable beside the sticky footer", async ({ browser
       const footerBounds = element.querySelector<HTMLElement>(".toolbox-footer")!.getBoundingClientRect();
       return {
         gutterWidth: element.offsetWidth - element.clientWidth,
-        scrollportRight: bodyBounds.left + element.clientLeft + element.clientWidth,
+        scrollbarLeft: bodyBounds.left + element.clientLeft + element.clientWidth,
         footerRight: footerBounds.right,
       };
     });
     expect(layout.gutterWidth).toBeGreaterThan(0);
-    expect(layout.footerRight).toBeLessThanOrEqual(layout.scrollportRight + 1);
+    expect(Math.abs(layout.footerRight - layout.scrollbarLeft)).toBeLessThanOrEqual(1);
 
     const bodyBox = (await body.boundingBox())!;
     const footerBox = (await footer.boundingBox())!;

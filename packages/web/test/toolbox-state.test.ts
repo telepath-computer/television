@@ -16,6 +16,10 @@ describe("Toolbox consumer contracts", () => {
     selection.search("  ALP  ");
     expect(selection.matches.map(item => item.id)).toEqual(["a", "c"]);
     expect(selection.highlighted).toBe("a");
+    selection.search("");
+    expect(selection.matches).toEqual(items);
+    expect(selection.highlighted).toBeNull();
+    selection.search("  ALP  ");
     selection.move("right");
     selection.update([items[2]!, items[0]!, items[1]!]);
     expect(selection.query).toBe("  ALP  ");

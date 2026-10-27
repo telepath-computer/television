@@ -90,6 +90,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
 
   readonly #keydown = (event: KeyboardEvent): void => {
     if (event.key === "Enter") {
+      if (event.isComposing) return;
       const entry = this.#selection.matches.find(item => item.id === this.#selection.highlighted);
       if (entry) { event.preventDefault(); void this.#run(entry); }
       return;
