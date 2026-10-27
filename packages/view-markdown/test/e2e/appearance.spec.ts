@@ -80,7 +80,7 @@ test("resolves appearance before canonical and view styles", async ({ page, base
 });
 
 // proofs/ui/markdown-editor/index.md#^md-editor-t-stylesheet-crossing
-test("ships the authoritative color sheet after the implementation layout sheet", () => {
+test("ships the authoritative colour sheet after each implementation layout", () => {
   const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
   const layoutImportAt = main.indexOf('import "./styles.css";');
   const editorImportAt = main.indexOf('import "./editor.css";');
@@ -100,6 +100,18 @@ test("ships the authoritative color sheet after the implementation layout sheet"
   expect.soft(builtLayoutAt).toBeGreaterThanOrEqual(0);
   expect.soft(builtEditorAt).toBeGreaterThan(builtLayoutAt);
   expect.soft(builtColorsAt).toBeGreaterThan(builtEditorAt);
+
+  const editorEntry = readFileSync(new URL("../../src/editor-entry.ts", import.meta.url), "utf8");
+  const sharedEditorAt = editorEntry.indexOf('import "./editor.css";');
+  const sharedColorsAt = editorEntry.indexOf('import "./colors.css";');
+  expect.soft(sharedEditorAt).toBeGreaterThanOrEqual(0);
+  expect.soft(sharedColorsAt).toBeGreaterThan(sharedEditorAt);
+
+  const sharedBuiltStyle = readFileSync(new URL("../../dist/v1/editor.css", import.meta.url), "utf8");
+  const sharedBuiltEditorAt = sharedBuiltStyle.indexOf("#editor>.cm-editor{height:100%}");
+  const sharedBuiltColorsAt = sharedBuiltStyle.indexOf("--tbl-theme-row-background:");
+  expect.soft(sharedBuiltEditorAt).toBeGreaterThanOrEqual(0);
+  expect.soft(sharedBuiltColorsAt).toBeGreaterThan(sharedBuiltEditorAt);
 });
 
 test("uses a custom theme's text color for native and CodeMirror cursors", async ({ page }) => {

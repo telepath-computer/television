@@ -28,7 +28,7 @@ The document’s foundation-owned `color-scheme` supplies browser-native selecti
 
 ## Production crossing
 
-The stylesheet crosses byte-identically into the Markdown view package and is imported after the view’s implementation-owned layout sheet. The canonical foundation and active theme still load before both view sheets, so this surface consumes their resolved tokens without preventing a theme from setting those tokens. The stylesheet-copy and delivery mechanism is owned by [foundation architecture](../../arch/ui/foundation.md#distribution). ^md-editor-color-crossing
+The stylesheet crosses byte-identically into the Markdown view package: the file view imports it after its implementation-owned page and editor layout sheets, with the canonical foundation and active theme before all three. While v1 is live, `/views/markdown/v1/editor.css` carries the same colour sheet after its implementation-owned editor-layout sheet; copied Markdown templates load canonical v2 before that bundle and their local page-layout sheet after it. Its canonical-v2 compatibility, versioning and possible freeze follow the [v1 shared-asset contract](../../arch/templates/markdown.md#^bundled-artifact-template-markdown-shared-asset). The stylesheet-copy mechanism remains owned by [foundation architecture](../../arch/ui/foundation.md#distribution). ^md-editor-color-crossing
 
 ## Testing
 

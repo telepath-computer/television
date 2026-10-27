@@ -40,6 +40,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => window.__v1AddedGlobals)).toEqual([
       "TelevisionMarkdownEditor",
     ]);
+    expect(await page.evaluate(() => window.__v1TrustedPolicyCreates)).toEqual([]);
     expect(await page.locator("#editor > .cm-editor")).toHaveCount(0);
     const script = await page.evaluate(async () => (
       await fetch("/packages/view-markdown/dist/v1/editor.js")
@@ -443,6 +444,7 @@ declare global {
     __resolveFirstV1Save?: () => void;
     __v1GlobalsBefore: string[];
     __v1AddedGlobals: string[];
+    __v1TrustedPolicyCreates: string[];
     __v1Ready?: boolean;
   }
 }

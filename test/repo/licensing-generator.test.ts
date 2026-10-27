@@ -23,7 +23,9 @@ import {
 import {
   mergeSurfaceInventories,
   readSurfaceInventory,
+  surfaceInventoryPath,
   type SurfaceInventory,
+  writeSurfaceInventory,
 } from "../../scripts/licenses/lib/inventory.mjs";
 import {
   inventoryFromEsbuildMetafile,
@@ -62,6 +64,46 @@ describe("licensing inventory conversion", () => {
     expect(() => createTelevisionLicensePlugin({ surface: "source" as never })).toThrow(
       /source.*does not produce an inventory/i,
     );
+    expect(() => createTelevisionLicensePlugin({
+      surface: "web",
+      mode: "overwrite" as never,
+    })).toThrow(/mode.*write.*verify/i);
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-vite-seam
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
+  test("verifies a secondary Vite build without writing over its surface inventory", async () => {
+    const temporaryRoot = makeTempRoot();
+    const inventoryRoot = path.join(temporaryRoot, "inventories");
+    const outputDir = path.join(temporaryRoot, "dist");
+    mkdirSync(outputDir, { recursive: true });
+    const coveredModule = path.join(repoRoot, "node_modules/clsx/dist/clsx.mjs");
+    const uncoveredModule = path.join(repoRoot, "node_modules/marked/lib/marked.esm.js");
+    const inventory = inventoryFromModulePaths({
+      surface: "view:markdown",
+      modules: [{ id: coveredModule, renderedLength: 1 }],
+      root: repoRoot,
+    });
+    const inventoryPath = writeSurfaceInventory(inventoryRoot, inventory);
+    const noticesPath = path.join(outputDir, "THIRD-PARTY-NOTICES.txt");
+    writeFileSync(noticesPath, "primary build notices\n");
+    const inventoryBytes = readFileSync(inventoryPath, "utf8");
+
+    const plugin = createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      mode: "verify",
+      root: repoRoot,
+      inventoryRoot,
+    });
+    await runViteGenerateBundle(plugin, outputDir, coveredModule);
+    expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
+    expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
+
+    await expect(runViteGenerateBundle(plugin, outputDir, uncoveredModule)).rejects.toThrow(
+      /marked@.*not covered.*view:markdown/i,
+    );
+    expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
+    expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
   });
 
   test("maps emitted esbuild inputs to nearest scoped and nested package owners", () => {
@@ -712,4 +754,24 @@ function readJSON<T>(file: string): T {
 function writeJSON(file: string, value: unknown): void {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function runViteGenerateBundle(
+  plugin: ReturnType<typeof createTelevisionLicensePlugin>,
+  outputDir: string,
+  modulePath: string,
+): Promise<void> {
+  const hook = plugin.generateBundle;
+  if (typeof hook !== "function") throw new Error("Fixture plugin has no generateBundle hook");
+  await hook.call(
+    {} as never,
+    { dir: outputDir } as never,
+    {
+      "editor.js": {
+        type: "chunk",
+        modules: { [modulePath]: { renderedLength: 1 } },
+      },
+    } as never,
+    true,
+  );
 }

@@ -34,6 +34,8 @@ let receivedValid = false;
 let focusFirstBlank = false;
 let failure = false;
 let failureTimer;
+let hasPendingWrites = false;
+let lastPassed;
 
 function isMarkdownData(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -55,19 +57,22 @@ async function saveDocument(value) {
 }
 
 function ensureEditor(value) {
-  if (editor) return;
+  if (editor) return false;
   editor = shared.mount({
     parent: mount,
     value,
     editable: canEdit(),
     onSave: saveDocument,
   });
+  lastPassed = value;
+  return true;
 }
 
 function restoreStored() {
   if (!editor || !received || !valid) return;
   editor.setEditable(false);
   editor.setValue(latestStored);
+  lastPassed = latestStored;
 }
 
 function render() {
@@ -79,7 +84,8 @@ function render() {
   editor?.setEditable(canEdit());
   status.textContent = connection === "disconnected"
     ? "Reconnecting…"
-    : failure ? "Couldn't save that change." : "";
+    : hasPendingWrites ? "Saving…"
+      : failure ? "Couldn't save that change." : "";
   if (canEdit() && focusFirstBlank) {
     focusFirstBlank = false;
     requestAnimationFrame(() => editor?.focus());
@@ -88,8 +94,10 @@ function render() {
 
 function receive(snapshot) {
   received = true;
+  hasPendingWrites = snapshot.metadata.hasPendingWrites;
   const value = snapshot.val();
   if (!isMarkdownData(value)) {
+    restoreStored();
     valid = false;
     render();
     return;
@@ -99,10 +107,13 @@ function receive(snapshot) {
     receivedValid = true;
     focusFirstBlank = value.markdown === "";
   }
-  if (!snapshot.metadata.hasPendingWrites) {
+  if (!hasPendingWrites) {
     latestStored = value.markdown;
-    ensureEditor(value.markdown);
-    editor.setValue(value.markdown);
+    const mounted = ensureEditor(value.markdown);
+    if (!mounted && value.markdown !== lastPassed) {
+      editor.setValue(value.markdown);
+      lastPassed = value.markdown;
+    }
   }
   render();
 }
@@ -116,6 +127,7 @@ function subscribe() {
       restoreStored();
       render();
     } else if (error.code !== "disconnected") {
+      restoreStored();
       received = true;
       valid = false;
       render();

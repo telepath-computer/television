@@ -25,6 +25,8 @@ describe("bundled Markdown package", () => {
     const adapter = readFileSync(path.join(folder, "page.js"), "utf8");
     expect(page.indexOf('/canonical/v2/styles.css?authoredForAppVersion=1.5.4'))
       .toBeLessThan(page.indexOf("/views/markdown/v1/editor.css"));
+    expect(page.indexOf("/views/markdown/v1/editor.css"))
+      .toBeLessThan(page.indexOf('href="./styles.css"'));
     expect(page).toContain('<script src="/views/markdown/v1/editor.js"></script>');
     expect(page).toContain('<script type="module" src="./page.js"></script>');
     expect(page).toMatch(/<div id="editor"(?:\s|>)/);
@@ -63,8 +65,11 @@ describe("bundled Markdown package", () => {
     expect(prose).toMatch(/other root fields[\s\S]*preserved/i);
     expect(prose).toMatch(/last[- ]write[- ]wins/i);
     expect(prose).toMatch(/invalid or missing data[\s\S]*not repair/i);
+    expect(prose).toMatch(/read[\s\S]*again[\s\S]*immediately before[\s\S]*(?:replacing|writing)/i);
+    expect(prose).toMatch(/saved[\s\S]*since[\s\S]*(?:last )?read/i);
     expect(prose).toMatch(/unsaved typing[\s\S]*replaced|replaces[\s\S]*unsaved typing/i);
+    expect(readme).toContain("`#editor`");
     expect(prose).toMatch(/copied page files[\s\S]*independent/i);
-    expect(prose).toMatch(/current compatible v1 editor/i);
+    expect(prose).toMatch(/compatible v1 editor/i);
   });
 });

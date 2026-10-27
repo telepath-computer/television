@@ -11,6 +11,14 @@
     <div id="outside-editor" class="cm-editor">Outside the editor</div>
     <div id="editor"></div>
     <script>
+      window.__v1TrustedPolicyCreates = [];
+      if (window.trustedTypes) {
+        const createPolicy = window.trustedTypes.createPolicy.bind(window.trustedTypes);
+        window.trustedTypes.createPolicy = (...args) => {
+          window.__v1TrustedPolicyCreates.push(args[0]);
+          return createPolicy(...args);
+        };
+      }
       window.__v1GlobalsBefore = Object.getOwnPropertyNames(window);
     </script>
     <script src="/packages/view-markdown/dist/v1/editor.js"></script>

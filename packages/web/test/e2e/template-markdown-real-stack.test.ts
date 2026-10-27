@@ -33,7 +33,7 @@ function writes(): Record<string, unknown>[] {
 }
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-blank-save
-test("new Markdown from Toolbox starts blank and focused, then saves through the shared editor", async ({ page }) => {
+test("new Markdown from Toolbox starts blank, then saves through the shared editor", async ({ page }) => {
   const responses: string[] = [];
   page.on("response", response => {
     if (/canonical\/v2\/styles\.css|sdk\/v1\/resources\.js|views\/markdown\/v1\/editor\.(?:js|css)|\/styles\.css$/.test(response.url()) && response.ok()) {
@@ -112,6 +112,46 @@ test("agent writes update the open editor and local save echoes preserve the car
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify("LocalX complete string")]);
   await expect(content(page)).toContainText("LocalX complete string");
   expect(writes()).toHaveLength(2);
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-live
+test("an agent write to another field preserves in-progress typing", async ({ page }) => {
+  const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
+  const id = await h.createStored(initial);
+  await h.open(page, id);
+  await expect(content(page)).toHaveText(initial.markdown);
+  await content(page).press("ControlOrMeta+End");
+
+  await Promise.all([
+    content(page).pressSequentially(" person keeps typing", { delay: 50 }),
+    page.waitForTimeout(150).then(() => h.set(id, "Agent title", "title")),
+  ]);
+
+  const expected = "Starting text person keeps typing";
+  await expect(content(page)).toHaveText(expected);
+  await expect.poll(() => h.read(id, "markdown")).toBe(expected);
+  expect(await h.read(id, "title")).toBe("Agent title");
+  expect(await h.read(id, "extra")).toEqual({ preserved: true });
+  expect(writes()).toEqual([
+    { kind: "set", path: "markdown", value: { value: expected } },
+  ]);
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+test("a pending page write shows its saving status until confirmation", async ({ page }) => {
+  const id = await h.createStored({ markdown: "Stored document" });
+  await h.open(page, id);
+  await expect(content(page)).toHaveText("Stored document");
+
+  h.proxy.holdWrites();
+  await replaceDocument(page, "Pending document");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await expect(status(page)).toHaveText("Saving…");
+  expect(await h.read(id, "markdown")).toBe("Stored document");
+
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.read(id, "markdown")).toBe("Pending document");
+  await expect(status(page)).toHaveText("");
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states

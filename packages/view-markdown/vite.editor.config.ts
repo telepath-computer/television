@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { createTelevisionLicensePlugin } from "../../scripts/licenses/vite-plugin.mjs";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -28,7 +29,10 @@ function isolateEditorScript(): Plugin {
 // Vite's HTML module-preload polyfill.
 export default defineConfig({
   publicDir: false,
-  plugins: [isolateEditorScript()],
+  plugins: [
+    createTelevisionLicensePlugin({ surface: "view:markdown", mode: "verify" }),
+    isolateEditorScript(),
+  ],
   build: {
     outDir: path.resolve(packageDir, "dist/v1"),
     emptyOutDir: false,

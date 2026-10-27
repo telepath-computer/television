@@ -2561,14 +2561,12 @@ function No(e) {
     }
   }
 }
-const uh = (
-  // We gotta write it like this because after downleveling the pure comment may end up in the wrong location
-  globalThis?.window?.trustedTypes && /* @__PURE__ */ globalThis.window.trustedTypes.createPolicy("svelte-trusted-html", {
-    /** @param {string} html */
-    createHTML: (e) => e
-  })
-);
+let uh, televisionTrustedTypesPolicyInitialized = !1;
 function dh(e) {
+  televisionTrustedTypesPolicyInitialized || (televisionTrustedTypesPolicyInitialized = !0, uh = globalThis?.window?.trustedTypes && globalThis.window.trustedTypes.createPolicy("svelte-trusted-html", {
+    /** @param {string} html */
+    createHTML: (t) => t
+  }));
   return (
     /** @type {string} */
     uh?.createHTML(e) ?? e
