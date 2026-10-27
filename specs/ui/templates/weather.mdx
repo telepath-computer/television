@@ -95,7 +95,7 @@ This story places the empty message and credit at the minimum artifact size.
 
 ## Fetching, saved weather, and failure
 
-The architecture spec owns the [request cadence and mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-request). A compatible saved forecast appears immediately. When an update succeeds, the sky, conditions, panels, age, and current high and low update together.
+The architecture spec owns the [request cadence](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [response mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-wmo). A compatible saved forecast appears immediately. When an update succeeds, the sky, conditions, panels, age, and current high and low update together.
 
 When a refresh fails after the page has weather to show, the card keeps that weather and adds no failure message. The unchanged “Updated” age makes its freshness honest. This story represents a failed refresh using an older saved forecast.
 
@@ -109,7 +109,7 @@ When an attempt fails and there is no compatible forecast, the loading state bec
 
 When a person or agent changes either coordinate or the units, a forecast for the previous values is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units.
 
-An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection or revocation, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
+An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection or revocation, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
 
 ## Data the page cannot read
 

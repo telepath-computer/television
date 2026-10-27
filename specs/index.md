@@ -97,7 +97,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
-    - `weather.md` (200 lines) — *The bundled Weather artifact template: its display size, store contract, Open-Meteo forecast, packaged page, and adapting-agent guidance.*
+    - `weather.md` (201 lines) — *The bundled Weather artifact template: its display size, store contract, Open-Meteo forecast, packaged page, and adapting-agent guidance.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
     - `blaxel-testshards.md` (133 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
