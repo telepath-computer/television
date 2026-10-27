@@ -43,6 +43,9 @@ describe("bundled Markdown package", () => {
     expect(adapter).not.toContain("ctx:");
     expect(adapter).not.toContain("editor.view");
     expect(adapter).not.toContain("onSaveError");
+    expect(adapter).not.toContain("@codemirror/");
+    expect(adapter).not.toMatch(/\b(?:from|import)\s*["']codemirror(?:\/|["'])/);
+    expect(adapter).not.toContain(".cm-");
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-icon

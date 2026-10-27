@@ -66,6 +66,10 @@ test.describe("markdown editor integration", () => {
         expect(selector.trim()).toMatch(/^#editor(?:\s|>)/);
       }
     }
+    expect(await page.locator("#outside-editor").evaluate(element => ({
+      display: getComputedStyle(element).display,
+      position: getComputedStyle(element).position,
+    }))).toEqual({ display: "block", position: "static" });
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
@@ -97,6 +101,11 @@ test.describe("markdown editor integration", () => {
     await page.evaluate(() => window.__v1Handle!.setValue("Agent replacement"));
     await expect(page.locator(".cm-content")).toContainText("Agent replacement");
     expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
+
+    await page.locator(".cm-content").press("ControlOrMeta+End");
+    await page.keyboard.insertText(" edited");
+    await page.locator(".cm-content").press("ControlOrMeta+Z");
+    await expect(page.locator(".cm-content")).toHaveText("Agent replacement");
 
     await page.evaluate(() => window.__v1Handle!.focus());
     await expect(page.locator(".cm-content")).toBeFocused();
@@ -172,25 +181,35 @@ test.describe("markdown editor integration", () => {
       const parent = document.querySelector<HTMLElement>("#editor");
       if (!parent) throw new Error("missing editor parent");
       window.__v1Saves = [];
-      let handle: MarkdownEditorV1Handle;
-      handle = window.TelevisionMarkdownEditor!.mount({
+      const pendingSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectV1Save = reject;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
         parent,
         value: "Stored document",
         editable: true,
         async onSave(value) {
           window.__v1Saves!.push(value);
-          handle.setValue(value);
-          throw Object.assign(new Error("acknowledgement lost"), { code: "disconnected" });
+          window.__v1Handle!.setValue(value);
+          await pendingSave;
         },
       });
-      window.__v1Handle = handle;
     });
 
     const editor = page.locator(".cm-content");
     await editor.press("ControlOrMeta+A");
-    await editor.pressSequentially("Confirmed replacement");
+    await page.keyboard.insertText("Confirmed replacement");
     await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Confirmed replacement"]);
-    await expect(editor).toContainText("Confirmed replacement");
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__rejectV1Save!(
+      Object.assign(new Error("acknowledgement lost"), { code: "disconnected" }),
+    ));
+    await expect(editor).toHaveText("Confirmed replacement with newer typing");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "Confirmed replacement",
+      "Confirmed replacement with newer typing",
+    ]);
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
@@ -366,6 +385,41 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Completed save");
   });
 
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("a repeated completed save preserves newer typing and its pending save", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initial stored value",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Completed save");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Completed save"]);
+    await page.waitForTimeout(0);
+
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual(["Completed save"]);
+    await page.evaluate(() => window.__v1Handle!.setValue("Completed save"));
+    await expect(editor).toHaveText("Completed save with newer typing");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "Completed save",
+      "Completed save with newer typing",
+    ]);
+  });
+
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-markdown-bridge-seam
   test("loads markdown bytes after lifecycle adoption, saves edits, and treats script source as text", async ({ page }) => {
     await page.goto(FIXTURE);
@@ -386,6 +440,40 @@ test.describe("markdown editor integration", () => {
 
     await expect.poll(async () => page.evaluate(() => window.__savedMarkdown)).toEqual([
       { artifactID: "md", content: "# Saved markdown" },
+    ]);
+  });
+
+  test("file editor keeps newer typing when the watcher repeats a completed save", async ({ page }) => {
+    await page.goto(FIXTURE);
+    await page.waitForFunction(() => window.__fixtureReady === true);
+
+    const editor = page.frameLocator("iframe[src='/views/markdown/']").locator(".cm-content");
+    await expect(editor).toContainText("Hello");
+    await editor.click();
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+    await page.keyboard.insertText("First saved text");
+    await expect.poll(() => page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    // Let the save response and its first content echo finish before posing the
+    // later file-watcher delivery.
+    await page.waitForTimeout(50);
+
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await expect(editor).toHaveText("First saved text with newer typing");
+    expect(await page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    await page.evaluate(() => window.__emitArtifactChanged());
+    await page.waitForTimeout(50);
+    await expect(editor).toHaveText("First saved text with newer typing");
+    expect(await page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    await expect.poll(() => page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+      { artifactID: "md", content: "First saved text with newer typing" },
     ]);
   });
 

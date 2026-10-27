@@ -70,7 +70,7 @@ describe("licensing inventory conversion", () => {
     })).toThrow(/mode.*write.*verify/i);
   });
 
-  // proofs/arch/licensing.md#^licensing-t-vite-seam
+  // proofs/arch/licensing.md#^licensing-t-vite-verification-contract
   test("verifies a secondary Vite build without writing over its surface inventory", async () => {
     const fileViewConfig = readFileSync(
       path.join(repoRoot, "packages/view-markdown/vite.config.ts"),

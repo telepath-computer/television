@@ -161,11 +161,13 @@ interface InternalOptions extends MarkdownEditorMountOptions {
  *
  * - **Outgoing.** `docChanged` updates from local edits are debounced; on
  *   flush we send the complete current text through `onSave`.
- * - **Incoming.** `setValue` records an authoritative value. It cancels an
- *   unsent edit and replaces a different document without creating a save or
- *   history entry; the same document needs no editor transaction.
- * - **Error.** A rejected save rolls the doc back to the latest authoritative
- *   value unless a newer authoritative value arrived while it was pending.
+ * - **Incoming.** `setValue` records an authoritative value. A save
+ *   confirmation updates the stored baseline without replacing a newer local
+ *   edit; other values cancel an unsent edit and replace a different document
+ *   without creating a save or history entry.
+ * - **Error.** A rejected, unconfirmed save rolls the doc back to the latest
+ *   authoritative value unless a newer authoritative value arrived while it
+ *   was pending.
  */
 function createEditor(options: InternalOptions): InternalEditor {
   const { parent } = options;
@@ -176,6 +178,7 @@ function createEditor(options: InternalOptions): InternalEditor {
   let isEditable = options.editable;
   let incomingRevision = 0;
   const activeSaves = new Set<{ content: string; revision: number; awaitingEcho: boolean }>();
+  let lastCompletedSave: { content: string; revision: number } | null = null;
   const editable = new Compartment();
 
   const editability = (enabled: boolean): Extension => [
@@ -204,9 +207,12 @@ function createEditor(options: InternalOptions): InternalEditor {
     activeSaves.add(save);
     try {
       await options.onSave(content);
-      if (incomingRevision === save.revision) lastKnownGood = content;
+      if (incomingRevision === save.revision) {
+        lastKnownGood = content;
+        lastCompletedSave = { content, revision: incomingRevision };
+      }
     } catch (error) {
-      if (incomingRevision === save.revision) replaceDoc(lastKnownGood);
+      if (incomingRevision === save.revision && save.awaitingEcho) replaceDoc(lastKnownGood);
       options.onSaveError?.(error);
     } finally {
       activeSaves.delete(save);
@@ -259,12 +265,20 @@ function createEditor(options: InternalOptions): InternalEditor {
         const confirmedSave = [...activeSaves].find(
           (save) => save.awaitingEcho && save.content === incoming,
         );
-        incomingRevision += 1;
         lastKnownGood = incoming;
         if (confirmedSave) {
           confirmedSave.awaitingEcho = false;
           return;
         }
+        if (
+          isEditable &&
+          lastCompletedSave?.content === incoming &&
+          lastCompletedSave.revision === incomingRevision
+        ) {
+          return;
+        }
+        incomingRevision += 1;
+        lastCompletedSave = null;
         for (const save of activeSaves) save.awaitingEcho = false;
         cancelScheduledSave();
         replaceDoc(incoming);
@@ -275,6 +289,7 @@ function createEditor(options: InternalOptions): InternalEditor {
         if (!isEditable) {
           cancelScheduledSave();
           activeSaves.clear();
+          lastCompletedSave = null;
         }
         view.dispatch({
           effects: editable.reconfigure(editability(isEditable)),

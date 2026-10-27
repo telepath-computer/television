@@ -15,8 +15,11 @@ const content = (frame: Page | Frame): Locator => frame.locator(".cm-content").f
 const status = (frame: Page | Frame): Locator => frame.locator(".markdown-status");
 
 async function replaceDocument(frame: Page | Frame, value: string): Promise<void> {
-  await content(frame).press("ControlOrMeta+A");
-  await content(frame).pressSequentially(value);
+  const editor = content(frame);
+  await editor.click();
+  await editor.press("ControlOrMeta+A");
+  const page = "keyboard" in frame ? frame : frame.page();
+  await page.keyboard.insertText(value);
 }
 
 let h: TemplateHarness;
@@ -86,6 +89,7 @@ test("agent writes update the open editor and local save echoes preserve the car
   expect(writes()).toEqual([]);
 
   await replaceDocument(page, "Unsent person draft");
+  expect(writes()).toEqual([]);
   await h.set(id, { ...initial, markdown: "Agent interrupts before debounce" });
   await expect(content(page)).toContainText("Agent interrupts before debounce");
   await page.waitForTimeout(600);
@@ -100,9 +104,12 @@ test("agent writes update the open editor and local save echoes preserve the car
   await page.waitForTimeout(100);
   await content(page).press("ControlOrMeta+Home");
   for (let index = 0; index < 5; index += 1) await content(page).press("ArrowRight");
+  await page.keyboard.insertText("X");
+  await expect(content(page)).toHaveText("LocalX complete string");
+  expect(writes()).toHaveLength(1);
   h.proxy.releaseServerMessages(connection);
   await page.waitForTimeout(100);
-  await content(page).pressSequentially("X");
+  await expect(content(page)).toHaveText("LocalX complete string");
   await expect.poll(() => h.read(id, "markdown")).toBe("LocalX complete string");
   expect(await h.read(id, "extra")).toEqual({ preserved: true });
   expect(writes()).toEqual([
@@ -118,7 +125,7 @@ test("agent writes update the open editor and local save echoes preserve the car
   expect(writes()).toHaveLength(2);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-live
+// proofs/arch/templates/markdown.md#^templates-markdown-t-live-root-fields
 test("an agent write to another field preserves in-progress typing", async ({ page }) => {
   const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
@@ -126,10 +133,9 @@ test("an agent write to another field preserves in-progress typing", async ({ pa
   await expect(content(page)).toHaveText(initial.markdown);
   await content(page).press("ControlOrMeta+End");
 
-  await Promise.all([
-    content(page).pressSequentially(" person keeps typing", { delay: 50 }),
-    page.waitForTimeout(150).then(() => h.set(id, "Agent title", "title")),
-  ]);
+  await page.keyboard.insertText(" person keeps typing");
+  expect(writes()).toEqual([]);
+  await h.set(id, "Agent title", "title");
 
   const expected = "Starting text person keeps typing";
   await expect(content(page)).toHaveText(expected);
@@ -157,7 +163,7 @@ test("a pending page write shows its saving status until confirmation", async ({
   await expect(status(page)).toHaveText("");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/markdown.md#^templates-markdown-t-access
 test("read access blocks changes and a same-share upgrade resumes editing", async ({ page }) => {
   const stored = "- [ ] Keep this open\n\n| A |\n| - |\n| one |";
   const id = await h.createStored({ markdown: stored });
@@ -166,6 +172,7 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   await expect(content(page)).toContainText("Keep this open");
 
   await replaceDocument(page, "Unsent access-loss draft");
+  expect(writes()).toEqual([]);
   await h.client.resources.share({ artifactID: id, access: "read" });
   await expect(content(page)).toContainText("Keep this open");
   expect(await h.read(id, "markdown")).toBe(stored);
@@ -214,6 +221,7 @@ test("access, connection and unreadable data keep the editor from writing and re
   const writesBeforeDisconnect = writes().length;
   await replaceDocument(page, "Disconnected unsent draft");
   await expect(content(page)).toContainText("Disconnected unsent draft");
+  expect(writes()).toHaveLength(writesBeforeDisconnect);
   h.proxy.refuse(true);
   h.proxy.sever();
   await expect(status(page)).toHaveText("Reconnecting…");
@@ -229,6 +237,7 @@ test("access, connection and unreadable data keep the editor from writing and re
 
   const writesBeforeUnreadable = writes().length;
   await replaceDocument(page, "Unsent unreadable draft");
+  expect(writes()).toHaveLength(writesBeforeUnreadable);
   await h.set(id, { markdown: 7 } as unknown as JSONValue);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
   await expect(content(page)).toBeHidden();
@@ -241,6 +250,7 @@ test("access, connection and unreadable data keep the editor from writing and re
 
   const writesBeforeMissing = writes().length;
   await replaceDocument(page, "Unsent missing-data draft");
+  expect(writes()).toHaveLength(writesBeforeMissing);
   await h.remove(id);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
   await expect(content(page)).toBeHidden();
@@ -252,13 +262,14 @@ test("access, connection and unreadable data keep the editor from writing and re
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/markdown.md#^templates-markdown-t-reconnect-unchanged
 test("reconnection with unchanged data resumes editing", async ({ page }) => {
   const id = await h.createStored({ markdown: "Saved document" });
   await h.open(page, id);
   await expect(content(page)).toContainText("Saved document");
 
   await replaceDocument(page, "Unsent disconnected draft");
+  expect(writes()).toEqual([]);
   h.proxy.refuse(true);
   h.proxy.sever();
   await expect(content(page)).toContainText("Saved document");
@@ -272,7 +283,7 @@ test("reconnection with unchanged data resumes editing", async ({ page }) => {
   await expect.poll(() => h.read(id, "markdown")).toBe("Saved document after reconnect");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-live
+// proofs/arch/templates/markdown.md#^templates-markdown-t-live-lost-ack
 test("a confirmed save survives a lost acknowledgement", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -286,15 +297,18 @@ test("a confirmed save survives a lost acknowledgement", async ({ page }) => {
 
   h.proxy.refuse(true);
   h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(content(page)).toHaveAttribute("contenteditable", "false");
   await expect(content(page)).toContainText("Confirmed document");
   expect(await h.read(id, "markdown")).toBe("Confirmed document");
 
   h.proxy.refuse(false);
   await expect(content(page)).toHaveAttribute("contenteditable", "true");
   await expect(content(page)).toContainText("Confirmed document");
+  expect(await h.read(id, "markdown")).toBe("Confirmed document");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/markdown.md#^templates-markdown-t-damaged-recovery
 test("damaged saved bytes recover after repair and restart", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -315,7 +329,7 @@ test("damaged saved bytes recover after repair and restart", async ({ page }) =>
   await expect.poll(() => h.read(id, "markdown")).toBe("Stored document recovered");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/markdown.md#^templates-markdown-t-refused-save
 test("a refused save restores the stored document and reports the failure", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -325,8 +339,7 @@ test("a refused save restores the stored document and reports the failure", asyn
   const connection = h.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
   h.proxy.holdWrites();
   h.proxy.holdServerMessages(connection, message => message.type === "access");
-  await content(page).press("ControlOrMeta+A");
-  await content(page).pressSequentially("Refused draft");
+  await replaceDocument(page, "Refused draft");
   await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
   await h.client.resources.share({ artifactID: id, access: "read" });
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
@@ -340,13 +353,14 @@ test("a refused save restores the stored document and reports the failure", asyn
   await expect(status(page)).toHaveText("", { timeout: 5_000 });
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/markdown.md#^templates-markdown-t-page-close
 test("closing the page discards typing before its save pause", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
   await expect(content(page)).toHaveText("Stored document");
 
   await replaceDocument(page, "Unsent closing draft");
+  expect(writes()).toEqual([]);
   await page.close();
   await new Promise((resolve) => setTimeout(resolve, 600));
 
