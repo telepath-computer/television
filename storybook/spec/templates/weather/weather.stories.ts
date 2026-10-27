@@ -295,7 +295,7 @@ const edinburghNight: Forecast = {
   place: "Edinburgh",
   unit: "C",
   updated: "8 min ago",
-  current: { temperature: 8, condition: "partly-cloudy", summary: "Clouds and moonlight", isDay: false },
+  current: { temperature: 8, condition: "partly-cloudy", summary: "Partly cloudy", isDay: false },
   hourly: hours([8, 8, 7, 7, 6, 6, 5, 5], ["partly-cloudy", "cloudy"], nightLabels, 0),
   daily: [
     { label: "Today", temperatureHigh: 11, temperatureLow: 5, condition: "partly-cloudy" },
@@ -308,7 +308,7 @@ const sedonaNight: Forecast = {
   place: "Sedona",
   unit: "F",
   updated: "4 min ago",
-  current: { temperature: 52, condition: "clear", summary: "Clear night", isDay: false },
+  current: { temperature: 52, condition: "clear", summary: "Clear", isDay: false },
   hourly: hours([52, 50, 48, 46, 45, 44, 43, 44], ["clear"], nightLabels, 0),
   daily: [
     { label: "Today", temperatureHigh: 67, temperatureLow: 43, condition: "clear" },
@@ -334,7 +334,7 @@ const portlandRain: Forecast = {
   place: "Portland",
   unit: "C",
   updated: "18 min ago",
-  current: { temperature: 11, condition: "rain", summary: "Steady rain", isDay: true },
+  current: { temperature: 11, condition: "rain", summary: "Rain", isDay: true },
   hourly: hours([11, 11, 12, 12, 13, 12, 11, 10, 10, 9], ["rain", "rain", "cloudy"], daytimeLabels, 8),
   daily: [
     { label: "Today", temperatureHigh: 13, temperatureLow: 8, condition: "rain" },
@@ -360,7 +360,7 @@ const newOrleansStorm: Forecast = {
   place: "New Orleans",
   unit: "F",
   updated: "5 min ago",
-  current: { temperature: 76, condition: "thunderstorm", summary: "Thunderstorms", isDay: false },
+  current: { temperature: 76, condition: "thunderstorm", summary: "Thunderstorm", isDay: false },
   hourly: hours([76, 75, 74, 73, 73, 72, 72, 71, 71], ["thunderstorm", "rain"], nightLabels, 0),
   daily: [
     { label: "Today", temperatureHigh: 82, temperatureLow: 70, condition: "thunderstorm" },
@@ -377,7 +377,7 @@ const foggy: Forecast = {
   place: "Point Reyes",
   unit: "F",
   updated: "14 min ago",
-  current: { temperature: 54, condition: "fog", summary: "Dense fog", isDay: true },
+  current: { temperature: 54, condition: "fog", summary: "Fog", isDay: true },
   hourly: hours([54, 55, 56, 58, 60, 61, 59, 57], ["fog", "fog", "partly-cloudy"], daytimeLabels, 7),
   daily: [
     { label: "Today", temperatureHigh: 61, temperatureLow: 50, condition: "fog" },
@@ -390,7 +390,7 @@ const london: Forecast = {
   place: "London",
   unit: "C",
   updated: "9 min ago",
-  current: { temperature: 16, condition: "partly-cloudy", summary: "Sun and clouds", isDay: true },
+  current: { temperature: 16, condition: "partly-cloudy", summary: "Partly cloudy", isDay: true },
   hourly: hours([15, 17, 18, 18, 17, 16, 15, 14, 13, 12, 12, 11], ["rain", "clear", "cloudy", "rain"], daytimeLabels, 8),
   daily: [
     { label: "Today", temperatureHigh: 18, temperatureLow: 10, condition: "partly-cloudy" },
@@ -407,7 +407,7 @@ const deathValley: Forecast = {
   place: "Death Valley",
   unit: "F",
   updated: "7 min ago",
-  current: { temperature: 104, condition: "clear", summary: "Hot and clear", isDay: true },
+  current: { temperature: 104, condition: "clear", summary: "Clear", isDay: true },
   hourly: hours([104, 106, 108, 107, 105, 101], ["clear"], daytimeLabels, 6),
   daily: [
     { label: "Today", temperatureHigh: 108, temperatureLow: 81, condition: "clear" },

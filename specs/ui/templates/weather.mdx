@@ -17,7 +17,7 @@ The [store contract](../../arch/templates/weather.md#^bundled-artifact-template-
 
 ## Current conditions
 
-The card names the place. Below it, the “Updated” label says how long ago the page last received a successful forecast, followed by the unit as `°C` or `°F`. The current temperature is the largest type on the card. Beside it, first-party weather artwork depicts the current condition. The short description and the high and low from the daily entry for the current date sit together below. When the saved daily forecast has no entry for the current date, the high-and-low line is absent. The high-and-low line updates within one minute after the current date changes while the page remains open.
+The card names the place. Below it, the “Updated” label says how long ago the shown forecast was fetched, followed by the unit as `°C` or `°F`. The current temperature is the largest type on the card. Beside it, first-party weather artwork depicts the current condition. The short description and the high and low from the daily entry for the current date sit together below. When the shown daily forecast has no entry for the current date, the high-and-low line is absent. The high-and-low line updates within one minute after the current date changes while the page remains open.
 
 Temperatures are rounded to the nearest whole degree for display, with halves rounded away from zero. A result of zero is shown as `0°`, never `−0°`. The age uses completed elapsed units: less than a minute is “Updated now”; less than an hour is “Updated 1 min ago” or “Updated N min ago”; less than a day is “Updated 1 hr ago” or “Updated N hrs ago”; and older fetches use “Updated 1 day ago” or “Updated N days ago”. A fetch time in the future because of clock skew also says “Updated now”. The age updates within one minute after its displayed value should change while the page is open.
 
@@ -91,7 +91,7 @@ A new Weather artifact starts with an empty object and makes no forecast request
 
 ## Fetching, saved weather, and failure
 
-The page follows the [request cadence and mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-request). A compatible saved forecast appears immediately while the page refreshes it. A successful response updates the place's sky, conditions, panels, age, and current high and low together.
+The page follows the [request cadence and mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-request). A compatible saved forecast appears immediately. A forecast fetched fewer than 15 minutes ago remains without an opening refresh until the rest of that interval passes; an older one appears while the page refreshes it. A successful response updates the sky, conditions, panels, age, and current high and low together.
 
 When a refresh fails after the page has weather to show, the card keeps that weather and adds no failure message. The unchanged “Updated” age makes its freshness honest. This story represents a failed refresh using an older saved forecast.
 
@@ -103,13 +103,13 @@ When the first request fails and there is no compatible forecast, the loading st
 
 ## Changes, access, and disconnection
 
-When a person or agent changes the place, coordinates, or units, the page requests again. A saved forecast for different coordinates or units is not shown. A name-only change can keep showing the forecast for the same coordinates and units while it refreshes.
+When a person or agent changes either coordinate or the units, the page requests again. A saved forecast for different coordinates or units is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units without making a request.
 
 A page with write access saves each successful forecast. A read-only share looks and behaves like any other Weather page, fetches for itself, and does not save its result. While the page cannot reach the Television server or its share access has been revoked, it keeps showing and refreshing the last readable location in memory. When the Television connection returns, the page catches up by itself. If the first store result had not arrived before the connection was lost or access was revoked, it keeps showing loading.
 
 ## Data the page cannot read
 
-A person or agent can write incomplete location data, and saved data can otherwise break the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never rewrites data it cannot read. A structurally valid saved forecast for different coordinates or units is instead ignored as the store contract describes.
+A person or agent can write incomplete location data that breaks the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never rewrites configuration it cannot read. A saved forecast that fails its schema or page checks, or belongs to different coordinates or units, is instead ignored and replaced on the next successful save as the store contract describes.
 
 Any value other than the empty object or one configured location replaces the forecast with an alert: a warning icon in a softly ruled circle, “This forecast can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” The same alert appears when the server reports the store's saved data unavailable. Once the value is fixed, the page fetches and the forecast returns without reopening the page.
 
