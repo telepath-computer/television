@@ -9,10 +9,11 @@ import { TemplateHarness, TEST_HOST_LAUNCH } from "./template-harness.ts";
 test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 760, height: 770 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
-type Column = { order: number; name?: string; [key: string]: JSONValue };
+/** A stored column; `name` is optional and read through the index signature. */
+type Column = { order: number; [key: string]: JSONValue };
 type Row = { order: number; cells: Record<string, string | number | boolean>; [key: string]: JSONValue };
+/** The stored table; `showHeader` is optional and read through the index signature. */
 type TableData = {
-  showHeader?: boolean;
   columns: Record<string, Column>;
   rows: Record<string, Row>;
   [key: string]: JSONValue;
@@ -1003,8 +1004,8 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   h.proxy.releaseWrites();
   await expect.poll(async () => Object.values((await h.read<TableData>(id))!.rows.r1!.cells)).toContain("Deferred");
   const finalWrites = writes();
-  const transactionIndex = finalWrites.findLastIndex(write => write.kind === "compare-and-set" && write.path === "columns");
-  const cellWriteIndex = finalWrites.findLastIndex(write => write.kind === "set" && String(write.path).startsWith("rows/r1/cells/"));
+  const transactionIndex = lastIndexWhere(finalWrites, write => write.kind === "compare-and-set" && write.path === "columns");
+  const cellWriteIndex = lastIndexWhere(finalWrites, write => write.kind === "set" && String(write.path).startsWith("rows/r1/cells/"));
   expect(transactionIndex).toBeGreaterThanOrEqual(0);
   expect(cellWriteIndex).toBeGreaterThan(transactionIndex);
 
@@ -1518,3 +1519,10 @@ test("unreadable and unavailable states survive disconnection and recover", asyn
   await editor(page).press("Enter");
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Recovered");
 });
+
+function lastIndexWhere<T>(items: readonly T[], matches: (item: T) => boolean): number {
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    if (matches(items[index]!)) return index;
+  }
+  return -1;
+}
