@@ -11,9 +11,11 @@ const icon = (params: { name: string; size?: string; spinning?: boolean }): Html
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
 
 interface Column { key: string; name?: string }
-interface Row { key: string; cells: Record<string, string> }
+type CellValue = string | number | boolean;
+interface Row { key: string; cells: Record<string, CellValue> }
 type Selection =
   | { kind: "cell"; row: number; column: number }
+  | { kind: "header"; column: number }
   | { kind: "row"; start: number; end: number }
   | { kind: "column"; start: number; end: number }
   | null;
@@ -23,7 +25,7 @@ interface Args {
   rows: Row[];
   showHeader: boolean;
   selection: Selection;
-  menu: "row" | null;
+  menu: "row" | "column" | null;
   editable: boolean;
   status: "reconnecting" | "save-failed" | null;
   loading: boolean;
@@ -86,7 +88,12 @@ function referenceEmphasis(selection: Selection, axis: "row" | "column", index: 
   if (axis === "row" && rowSelected(selection, index)) return "selected";
   if (axis === "column" && columnSelected(selection, index)) return "selected";
   if (selection?.kind === "cell" && selection[axis] === index) return "related";
+  if (axis === "column" && selection?.kind === "header" && selection.column === index) return "related";
   return "none";
+}
+
+function headerSelected(selection: Selection, column: number): boolean {
+  return selection?.kind === "header" && selection.column === column;
 }
 
 function cellSelection(selection: Selection, row: number, column: number): "none" | "cell" | "range" {
@@ -95,12 +102,25 @@ function cellSelection(selection: Selection, row: number, column: number): "none
   return "none";
 }
 
-function rowMenu(showHeader: boolean) {
+function rowMenu(showHeader: boolean, selection: Selection) {
+  const count = selection?.kind === "row" ? selection.end - selection.start + 1 : 1;
   return html`
     <tv-menu class="table-context-menu" trigger="table-row-reference-2" aria-label="Row actions">
       <tv-menu-item><span>Insert row above</span><kbd>⌘⇧=</kbd></tv-menu-item>
       <tv-menu-item><span>Insert row below</span></tv-menu-item>
-      <tv-menu-item intent="danger"><span>Delete row</span><kbd>⌘−</kbd></tv-menu-item>
+      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span><kbd>⌘−</kbd></tv-menu-item>
+      <hr>
+      <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+    </tv-menu>`;
+}
+
+function columnMenu(showHeader: boolean, selection: Selection) {
+  const count = selection?.kind === "column" ? selection.end - selection.start + 1 : 1;
+  return html`
+    <tv-menu class="table-context-menu" trigger="table-column-reference-3" aria-label="Column actions">
+      <tv-menu-item><span>Insert column left</span><kbd>⌘⇧=</kbd></tv-menu-item>
+      <tv-menu-item><span>Insert column right</span></tv-menu-item>
+      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span><kbd>⌘−</kbd></tv-menu-item>
       <hr>
       <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
     </tv-menu>`;
@@ -144,8 +164,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     id="table-column-reference-${columnIndex + 1}"
                     data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
                     aria-label="Select column ${columnLetter(columnIndex)}"
-                    aria-haspopup="menu"
-                    aria-selected="${columnSelected(selection, columnIndex)}"
+                    aria-haspopup="${editable ? "menu" : "false"}"
+                    aria-pressed="${columnSelected(selection, columnIndex)}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
                   >${columnLetter(columnIndex)}</button>
                 </div>`)}
@@ -162,8 +182,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     id="table-row-reference-${rowIndex + 1}"
                     data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
                     aria-label="Select row ${rowIndex + 1}"
-                    aria-haspopup="menu"
-                    aria-selected="${rowSelected(selection, rowIndex)}"
+                    aria-haspopup="${editable ? "menu" : "false"}"
+                    aria-pressed="${rowSelected(selection, rowIndex)}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
                   >${rowIndex + 1}</button>
                 </div>`)}
@@ -171,19 +191,22 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                 <button type="button" class="table-reference-item table-add-item" aria-label="Add row at end" title="Add row at end">+</button>
               </div>` : ""}
             </div>
-            <table class="table-grid" role="grid" aria-label="Editable table" aria-rowcount="${rows.length}" aria-colcount="${columns.length}">
+            <table class="table-grid" role="grid" aria-label="Table" aria-rowcount="${rows.length + (showHeader ? 1 : 0)}" aria-colcount="${columns.length}" tabindex="${selection === null ? 0 : -1}">
               <colgroup>${columns.map(() => html`<col class="table-data-column">`)}</colgroup>
               ${showHeader ? html`
                 <thead>
-                  <tr>${columns.map((column, columnIndex) => html`
-                    <th class="table-header" scope="col" data-axis-selected="${columnSelected(selection, columnIndex)}" aria-selected="${columnSelected(selection, columnIndex)}">
-                      <div class="table-header-content">
-                        <button type="button" class="table-header-button" aria-label="Select column ${columnLetter(columnIndex)} name" tabindex="-1"><span>${column.name ?? ""}</span></button>
-                      </div>
-                    </th>`)}</tr>
+                  <tr aria-rowindex="1">${columns.map((column, columnIndex) => {
+                    const selected = headerSelected(selection, columnIndex);
+                    return html`
+                      <th class="table-header" scope="col" data-axis-selected="${columnSelected(selection, columnIndex)}" aria-selected="${columnSelected(selection, columnIndex) || selected}" aria-colindex="${columnIndex + 1}">
+                        <div class="table-header-content">
+                          <button type="button" class="table-header-button" data-selection="${selected ? "header" : "none"}" aria-label="Column ${columnLetter(columnIndex)} name" tabindex="${selected ? 0 : -1}"><span>${column.name ?? ""}</span></button>
+                        </div>
+                      </th>`;
+                  })}</tr>
                 </thead>` : ""}
               <tbody>${rows.map((row, rowIndex) => html`
-                <tr>${columns.map((column, columnIndex) => {
+                <tr aria-rowindex="${rowIndex + (showHeader ? 2 : 1)}">${columns.map((column, columnIndex) => {
                   const state = cellSelection(selection, rowIndex, columnIndex);
                   return html`
                     <td
@@ -191,6 +214,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                       role="gridcell"
                       data-selection="${state}"
                       aria-selected="${state !== "none"}"
+                      aria-label="Row ${rowIndex + 1}, column ${columnLetter(columnIndex)}"
+                      aria-colindex="${columnIndex + 1}"
                       tabindex="${state === "cell" ? 0 : -1}"
                     ><span>${row.cells[column.key] ?? ""}</span></td>`;
                 })}</tr>`)}</tbody>
@@ -198,7 +223,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
           </div>
         </div>
       </div>
-      ${menu === "row" && editable ? rowMenu(showHeader) : ""}
+      ${menu === "row" && editable ? rowMenu(showHeader, selection) : ""}
+      ${menu === "column" && editable ? columnMenu(showHeader, selection) : ""}
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : status === "save-failed" ? "Couldn't save that change." : ""}</div>
     </main>`;
 };
@@ -206,16 +232,16 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
 type Play = { canvasElement: HTMLElement };
 
 const focusSelection = ({ canvasElement }: Play) => {
-  canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-reference-item[aria-selected="true"]')?.focus();
+  canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-header-button[data-selection="header"], .table-reference-item[aria-pressed="true"]')?.focus();
 };
 
 const beginEditing = ({ canvasElement }: Play) => {
   const cell = canvasElement.querySelector<HTMLElement>('[data-selection="cell"]');
   const text = cell?.querySelector("span");
   if (!cell || !text) throw new Error("Editing story has no selected cell");
-  const input = cell.ownerDocument.createElement("input");
+  const input = cell.ownerDocument.createElement("textarea");
   input.className = "table-input table-cell-input";
-  input.type = "text";
+  input.rows = 1;
   input.value = text.textContent ?? "";
   input.setAttribute("aria-label", "Edit row 4, column A");
   input.spellcheck = false;
@@ -225,12 +251,13 @@ const beginEditing = ({ canvasElement }: Play) => {
   input.select();
 };
 
-const openRowMenu = async ({ canvasElement }: Play) => {
-  const trigger = canvasElement.querySelector<HTMLButtonElement>("#table-row-reference-2");
+const openMenu = async ({ canvasElement }: Play) => {
   const menu = canvasElement.querySelector<HTMLElement>("tv-menu");
-  if (!trigger || !menu) throw new Error("Menu story has no trigger or menu");
+  if (!menu) throw new Error("Menu story has no menu");
+  const triggerId = menu.getAttribute("trigger");
+  const trigger = triggerId === null ? null : canvasElement.querySelector<HTMLButtonElement>(`#${triggerId}`);
+  if (!trigger) throw new Error("Menu story has no trigger");
   await customElements.whenDefined("tv-menu");
-  trigger.focus();
   menu.setAttribute("open", "");
   await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 };
@@ -265,14 +292,18 @@ export default {
 export const Blank = { args: { columns: [], rows: [], showHeader: false } };
 export const WithData = { name: "With data" };
 export const HeaderOff = { name: "Header off", args: { columns: unnamedColumns, rows: scheduleRows, showHeader: false } };
-export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
-export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } }, play: focusSelection };
-export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } }, play: focusSelection };
+export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
+export const SelectedHeader = { name: "Selected header", args: { selection: { kind: "header", column: 1 } } };
+export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } } };
+export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
+export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
 export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
-export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: openRowMenu };
-export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
-export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
-export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: openMenu };
+export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" }, play: openMenu };
+export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" }, play: openMenu };
+export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } } };
+export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } } };
+export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } } };
 export const Loading = { args: { columns: [], rows: [], loading: true } };
 export const Unreadable = { args: { unreadable: true } };
-export const Dark = { args: { theme: "dark", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const Dark = { args: { theme: "dark", selection: { kind: "cell", row: 3, column: 1 } } };

@@ -19,7 +19,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   color: inherit;
   font: inherit;
 }
@@ -265,6 +266,12 @@ input {
   color: var(--color-text);
 }
 
+.table-header-button[data-selection="header"] {
+  background: color-mix(in oklab, var(--color-primary) 9%, var(--color-surface));
+  box-shadow: inset 0 0 0 2px var(--color-primary);
+  color: var(--color-text);
+}
+
 .table-header-button:focus-visible {
   outline: var(--outline-focus);
   outline-offset: -2px;
@@ -309,12 +316,14 @@ input {
 .table-input {
   display: block;
   min-width: 0;
+  overflow: hidden;
   border: 0;
   border-radius: 0;
   background: var(--color-surface);
   color: var(--color-text);
   outline: var(--outline-focus) !important;
   outline-offset: -2px !important;
+  resize: none;
 }
 
 .table-cell-input {
@@ -322,6 +331,8 @@ input {
   height: var(--table-row-height);
   margin: -9px calc(-1 * var(--space-12));
   padding: 9px var(--space-12);
+  line-height: 18px;
+  white-space: pre;
 }
 
 .table-context-menu { width: 216px; }

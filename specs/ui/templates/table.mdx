@@ -9,17 +9,17 @@ export const Artifact = ({ width = "760px", children }) => <div style={{ width, 
 
 # Table template
 
-The Table template makes an artifact that shows and edits text in rows and columns. Each story on this page is one state of the page, and the template page must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
+The Table template makes an artifact that shows and edits data in rows and columns. Each story on this page is one state of the page, and the template page must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
 
-The [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store) owns the data, order, and paths each change writes. The [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
+The architecture spec owns the [store schema](../../arch/templates/table.md#^bundled-artifact-template-table-store), [runtime reading and ordering](../../arch/templates/table.md#^bundled-artifact-template-table-behaviour), and paths each action writes. The [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
 
 <Artifact><Canvas of={Stories.WithData} /></Artifact>
 
 ## A new table
 
-A new Table draws four blank columns and four blank rows, with no header row. These cells are an editing surface, not stored data: opening the Table makes no write.
+A new Table draws four blank columns and four blank rows, with no header row. Opening it makes no write. Each axis behaves independently: if a Table has stored columns but no stored rows, it draws four rows, and the reverse is also true.
 
-Typing in a drawn cell creates that row and column. It also creates each drawn column to the left and each drawn row above, so the cell keeps the position where the person entered it. Drawn rows and columns after that cell stay unstored.
+The [drawn-entry rules](../../arch/templates/table.md#drawn-rows-and-columns) state which entries an edit or structural action stores. A body or header edit writes only when it is committed. Escape, unchanged text, and an empty edit in a drawn position make no write.
 
 <Artifact><Canvas of={Stories.Blank} /></Artifact>
 
@@ -31,11 +31,11 @@ Until store data arrives, a spinning activity icon is centred below the ruled to
 
 ## Rows, columns and cells
 
-Rows and columns follow their stored order. Cells contain plain text. An absent cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. The grid scrolls in either direction when it is larger than the artifact; the header and the reference strips stay with the visible grid while it scrolls.
+Rows and columns follow their stored order. String, number, and boolean cells appear as text; an empty cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact; the header and reference strips stay with the visible grid while it scrolls.
 
-There is no search or page-only sorting. The position a person sees is always stored order, so inserting beside a selection has one unambiguous stored position.
+There is no search or sorting. The visible position is always the stored position.
 
-When the header row is on, its cells show the stored column names. When it is off, the names stay stored but the row is absent. An unnamed column has a blank header cell.
+When the header row is on, its cells show the column names. When it is off, the row is absent. An unnamed column has a blank header cell.
 
 This story shows data with the header row on.
 
@@ -47,53 +47,71 @@ This story shows data with the header row off and unnamed columns.
 
 ## Selecting cells, rows and columns
 
-Clicking a cell selects it. The cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. The strips use the page surface, a muted border, and dividers between items. They are hidden while nothing is selected.
+Clicking a cell or header cell selects it. The selected cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. The strips use the page surface, a muted border, and dividers between items. They are hidden while nothing is selected.
 
-For a selected cell, only its row number and column letter receive a quiet emphasis. Clicking a letter selects that whole column; clicking a number selects that whole row. A whole-row or whole-column selection uses the accent colour on its strip item and a pale accent across the selected cells. Shift-clicking another item in the same strip extends the selection from its anchor.
+For a selected body or header cell, its row number when it has one and its column letter receive a quiet emphasis. Clicking a letter selects that whole column; clicking a number selects that whole row. A whole-row or whole-column selection uses the accent colour on its strip item and a pale accent across the selected body cells. Shift-clicking another item in the same strip extends the selection from its anchor.
+
+These stories show pointer selection at rest, without the keyboard-focus treatment.
 
 <Artifact><Canvas of={Stories.SelectedCell} /></Artifact>
+
+<Artifact><Canvas of={Stories.SelectedHeader} /></Artifact>
 
 <Artifact><Canvas of={Stories.SelectedRow} /></Artifact>
 
 <Artifact><Canvas of={Stories.SelectedColumn} /></Artifact>
 
-When a cell is selected and not being edited, the arrow keys move the selection by one cell. Escape clears the selection and hides the strips. A cell, row number, or column letter that has keyboard focus shows the foundation focus ring. The grid, cells, header fields, and strip controls expose their roles, selection, positions, and names to assistive technology.
+Escape clears the selection and hides the strips. Selection follows row and column keys when agents insert or reorder entries. Removing any selected row or column clears the selection.
+
+## Keyboard and assistive technology
+
+The table control is one Tab stop. Tab into it returns to the selected cell or selected strip item, or selects the first body cell when there is no selection. When the selection is not being edited, Tab or Shift-Tab leaves the control. The selected cell has its quiet accent outline at rest; keyboard focus adds the inner surface-coloured ring shown below. A focused strip control uses the foundation focus outline.
+
+<Artifact><Canvas of={Stories.KeyboardFocus} /></Artifact>
+
+When a body or header cell is selected and not being edited, Left and Right move between columns. Up from the first body row selects the header cell when the header is shown; Down from a header selects the first body row. Other Up and Down presses move one row. Shift-Space selects the current body row, and Ctrl-Space selects the current column.
+
+The table is a grid named “Table”. A body cell and its editor are named by position, such as “Row 4, column B”; a header cell and its editor are named by letter, such as “Column B name”. Strip buttons are named “Select row” followed by the number and “Select column” followed by the letter. Plus buttons are named “Add row at end” and “Add column at end”. Selection state is exposed through the grid and strip controls.
 
 ## Editing cells and headers
 
-Typing while a cell is selected replaces its contents and starts editing in place. Double-clicking it, pressing Return, or pressing F2 starts editing with the existing text. The editor is the cell itself with the foundation focus outline; arrow keys and the usual text-editing keys then work in the text.
+Typing while a cell is selected replaces its contents and starts editing in place. Double-clicking it, pressing Return, or pressing F2 starts editing with the existing text. The editor fills the cell and has the foundation focus outline. Arrow keys and the usual text-editing keys then work in the text.
 
-Return commits the text and selects the cell below. Tab commits and selects the cell to the right. Holding Shift reverses either direction. Clicking another cell commits before selecting it. Escape cancels the edit and restores the stored text.
+Return commits and selects the cell below. From a header it selects the first body cell; at the last body row it stays at the last row and does not add one. Shift-Return moves in the opposite direction, including from the first body row to the header when it is shown. Tab commits and selects the cell to the right; Shift-Tab moves left. At the outer column, Tab or Shift-Tab commits and leaves the grid without adding a column. Clicking another cell commits before selecting it. Escape cancels the edit and restores the stored text.
 
 <Artifact><Canvas of={Stories.EditingCell} /></Artifact>
 
-Header cells use the same selection and editing rules. Committing an empty body cell removes its stored cell value. Committing an empty header removes the column name.
+Header cells use the same editing commands. The editor preserves stored and pasted line breaks, even though the grid displays them as spaces. Copying, pasting, text selection, and browser undo work inside the editor as in another text field. Whole-cell and range copy or paste are not supported. After an edit or structural action is committed, the page provides no undo.
+
+The [page-write rules](../../arch/templates/table.md#page-writes) own empty and unchanged commits. In visible terms, clearing stored text leaves a blank cell or header; leaving unchanged text does not replace a newer stored value.
 
 ## Clearing contents
 
-Delete or Backspace clears the selected cell, the cells in selected rows, or the cells in selected columns. It never removes a row or column. When a header cell is selected, it clears that column name.
+Delete or Backspace clears the selected cell or the body cells in selected rows or columns. It never removes a row or column. Clearing a column selection leaves the column name. When a header cell itself is selected, Delete or Backspace clears that name.
 
 ## Adding, inserting, and deleting structure
 
-A plus sign at the end of each visible reference strip adds a row or column at the end. Right-clicking a row number or column letter selects it and opens a canonical `<tv-menu>` below that strip item.
+A plus sign at the end of each visible reference strip adds a row or column at the end. Right-clicking an item outside the current range selects only that row or column. Right-clicking inside a selected range keeps the range. Either action opens a canonical `<tv-menu>` below that strip item.
 
-The row menu contains “Insert row above”, “Insert row below”, “Delete row” or “Delete rows”, and “Show header row” or “Hide header row”. The column menu has the corresponding “Insert column left”, “Insert column right”, and column deletion actions, followed by the same header action. Destructive actions use the canonical danger treatment.
+The row menu contains “Insert row above”, “Insert row below”, “Delete row” or “Delete rows”, and “Show header row” or “Hide header row”. The column menu has “Insert column left”, “Insert column right”, “Delete column” or “Delete columns”, followed by the same header action. Destructive actions use the canonical danger treatment.
 
 <Artifact><Canvas of={Stories.OpenMenu} /></Artifact>
 
-With a row or column selection, Cmd-Shift-= on macOS or Ctrl-Shift-= elsewhere inserts before the selection. Cmd-minus or Ctrl-minus deletes the selected rows or columns. Inserting gives each new entry an order between its neighbours, so the other entries do not move in the store. Deleting a column does not remove values left under that column key in rows.
+<Artifact><Canvas of={Stories.OpenColumnMenu} /></Artifact>
 
-Showing or hiding the header changes only the `showHeader` setting. It does not add, remove, or rename a column.
+<Artifact><Canvas of={Stories.OpenMultiRowMenu} /></Artifact>
+
+Insert adds one row above or below the selected row range, or one column to the left or right of the selected column range. With a row or column selection, Cmd-Shift-= on macOS or Ctrl-Shift-= elsewhere inserts before the selection. Cmd-minus or Ctrl-minus deletes the selected rows or columns. The [store contract](../../arch/templates/table.md#page-writes) owns ordering, deletion, and header-setting writes.
 
 ## Changes from elsewhere
 
-The page follows the whole store live. Changes outside the cell or header currently being edited appear at once, without disturbing the selection.
+The page follows the whole store live. Changes outside the field currently being edited appear at once. A selected cell, header, row, column, or range follows the keys it selected when entries move. If any selected entry is removed, the selection clears; an editor on that entry closes.
 
-While a person is editing one field, an incoming change to that same field does not replace the text or move the caret. Committing writes the local text, so the last write applied to that path wins. Cancelling shows the latest stored value. A row or column removed elsewhere disappears; if it held the active editor, editing ends and the nearest remaining cell is selected.
+While a person is editing one field, an incoming change to that field does not replace the text or move the caret. A changed edit commits through the ordinary last-write-wins store rule. An unchanged edit closes without writing, so it reveals the current stored value. Cancelling also shows the current stored value. A late edit that races with deletion can be lost under the [tolerant reading rule](../../arch/templates/table.md#^bundled-artifact-template-table-behaviour).
 
 ## Read-only and access loss
 
-When the page can only read its store, as through a read-only share, the table can still be selected and navigated. Cells and headers cannot enter editing, Delete and the structural shortcuts do nothing, the plus signs are absent, and right-clicking a strip item does not open an action menu. The page switches between editable and read-only as access changes.
+When the page can only read its store, as through a read-only share, the table can still be selected and navigated. Cells and headers cannot enter editing, Delete and structural shortcuts do nothing, plus signs are absent, and right-clicking a strip item does not open an action menu. The page switches between editable and read-only as access changes.
 
 <Artifact><Canvas of={Stories.ReadOnly} /></Artifact>
 
@@ -101,7 +119,7 @@ When all access is lost, as after a share link is revoked, the page keeps the la
 
 ## Saving and disconnection
 
-Each change saves when it is committed. Normal saving shows no message. While the page cannot reach its server, it keeps the last table it received, becomes read-only, and shows “Reconnecting…” in muted text in a strip ruled off along the bottom. It becomes editable and catches up with stored changes after reconnecting.
+Each changed edit saves when committed. Normal saving shows no message. While the page cannot reach its server, the table keeps its last data, disables every write affordance except an editor that was already open, and shows “Reconnecting…” in muted text in a strip ruled off along the bottom. The open editor keeps its draft and remains usable. Escape still cancels it. On reconnection with write access, the page commits the latest draft; if write access is gone, it discards the draft and becomes read-only.
 
 If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
 
@@ -111,11 +129,11 @@ If a save is refused, the affected path returns to its stored value and “Could
 
 ## Data the page cannot read
 
-Agents can write Table data directly, so it can break the [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store). The page never rewrites data it cannot read.
+The page reads the table as one value, while deliberately tolerating bad entries under the [runtime reading rules](../../arch/templates/table.md#^bundled-artifact-template-table-behaviour). No store value and a partial root object show the empty grid and are not repaired.
 
-When the whole value breaks the contract, the store has no value, or the server reports that saved data is unavailable, an error page replaces the table: centred in the page, a warning icon in a ruled circle, “This table can't be shown”, and below it in muted text, “Its saved data isn't in the form this page reads. Ask your agent to check it.” Nothing on it can be edited. The error page is an alert, so a screen reader hears it when it replaces the table.
+When the value is not a table at all, because the root is not an object or a present `columns` or `rows` value is not an object map, an error page replaces the table: centred in the page, a warning icon in a ruled circle, “This table can't be shown”, and below it in muted text, “Its saved data isn't in the form this page reads. Ask your agent to check it.” Nothing on it can be edited. The error page is an alert, so a screen reader hears it when it replaces the table.
 
-The error page follows the data live. Once an agent fixes the data, the table returns.
+The error page follows data live. Once an agent supplies a readable table value, the grid returns.
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
 
