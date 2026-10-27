@@ -275,3 +275,13 @@ A further Primitive warning named `dec_8e3d38a8`, check
 `td7crdek1b1n4dhajyww5p174s8h23bq`. Its decision text was not read. Per the
 supervisor's direction, record the unread warning and continue with the converged
 ordinary Linux fixture seam and private live-driver proof; do not debug the CLI.
+
+## Slice 3: implemented for independent review
+
+The final executable checkpoint is `45202ee9`. The [slice 3 record](test-harness-resource-cleanup-slice-3.md) preserves the original renewable-lock red, intermediate serialization/overlay/checkout-reset failures, focused green runs, live-driver corrections, and the late prepared-but-undispatched evidence regression and fix. The complete slice 2 review remains preserved and all three bounded refinements are addressed.
+
+Ownership now serializes through a short worker guard, renews through downloads, registers dispatch before checkout, audits and stops attributed descendants, and releases only after retained evidence. Expired renewal performs the same cleanup for active and quiet abandoned runs and keeps a bounded receipt. Known temporary prefixes and attempt scratch are reclaimed under that ownership; pool publication and deletion obey the same exclusion. Older timestamp-only records retain the reviewed transition behavior. The preparation-retention fix distinguishes requesting preparation from requesting execution and retains available artifacts even when a required log read fails.
+
+Seven real Linux lease seam cases and ten lifecycle/cleanup/pool contracts have passed, alongside affected provider, discovery, stale-owner, registry, diagnostic, shard-worker and process-helper files. Lint and type checking passed at the final executable checkpoint. The final full live driver passed on its first native attempt in 4m 31s, with zero outer failures, recovered retries, process leaks or infrastructure failures. Its intentional failed/recovered native fixtures, competing and absent-pool refusals, killed-coordinator reports, receipt links, and final cleanup are retained. The proof citations now name the implemented coverage, resolving the temporary live-provider obligations from slices 1 and 2.
+
+Both private workers were deleted and confirmed absent; the dedicated coordinator remains for the integrated gate. No tests or static checks ran on the shared host, and no shared-pool experiments occurred. Independent slice review and then integrated review/full verification remain; the draft PR is not ready to merge. No new lasting team decision was made. Primitive's unread conflict ID and incomplete hook scans are recorded in the validation record, and its CLI received no further debugging.
