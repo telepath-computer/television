@@ -43,7 +43,7 @@ Across this page, the stories show every condition, both designs for clear and p
 
 ## Attribution
 
-At the bottom trailing edge of every card, including placeholders, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every sky without competing with the weather, remains clear of the card content at every size down to 230×230 pixels, and has a visible keyboard-focus treatment. The unavailable and unreadable content also fits clear of the credit at that minimum size. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
+At the bottom trailing edge of every card, including placeholders, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every sky without competing with the weather, remains clear of the card content at every size down to 230×230 pixels, and has a visible keyboard-focus treatment. The empty, unavailable, and unreadable content also fits clear of the credit at that minimum size. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
 
 ## Size
 
@@ -81,13 +81,17 @@ The hourly strip is named “Hourly forecast; scroll for later hours” and can 
 
 ## Opening and an empty location
 
-Before the first store value arrives, the card keeps a quiet blue sky and shows a compact loading state. It is a status region named “Loading weather”. A configured location with no compatible saved forecast keeps that state while it waits for weather.
+Before the first store value arrives, the card keeps a quiet blue sky and shows a compact loading state. It is a status region named “Loading weather”. A configured location with no compatible forecast, saved or in memory, keeps that state while it waits for weather.
 
 <Artifact><Canvas of={Stories.Loading} /></Artifact>
 
 A new Weather artifact starts with an empty object. It shows a calm sky, a partly cloudy glyph, “No location yet”, and “Ask your agent to choose a place for this weather card.” The same state appears when the store has no value.
 
 <Artifact><Canvas of={Stories.Empty} /></Artifact>
+
+This story places the empty message and credit at the minimum artifact size.
+
+<Artifact width="230px"><Canvas of={Stories.MinimumEmpty} /></Artifact>
 
 ## Fetching, saved weather, and failure
 
@@ -97,7 +101,7 @@ When a refresh fails after the page has weather to show, the card keeps that wea
 
 <Artifact><Canvas of={Stories.SavedAfterFailure} /></Artifact>
 
-When an attempt fails and there is no compatible forecast, the loading state becomes a status region with a warning icon, “Forecast unavailable”, and “Weather couldn't be updated. It will try again soon.” A later attempt returns to loading, and a successful response restores the forecast.
+When an attempt fails and there is no compatible forecast, the loading state becomes a status region with a warning icon, “Forecast unavailable”, and “Weather couldn't be updated. It will try again in about 15 minutes.” A later attempt returns to loading, and a successful response restores the forecast.
 
 <Artifact><Canvas of={Stories.Unavailable} /></Artifact>
 
@@ -105,7 +109,7 @@ When an attempt fails and there is no compatible forecast, the loading state bec
 
 When a person or agent changes either coordinate or the units, a forecast for the previous values is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units.
 
-A page with write access saves each successful forecast. A read-only share looks and behaves like any other Weather page but does not save its result. An ordinary Television disconnection keeps the last readable location and shown forecast, and provider refreshes continue in memory while the document remains visible. Once `onAccessChanged(null)` reports revocation, the page stops new Open-Meteo requests and keeps showing the forecast already shown. When the Television connection returns after an ordinary disconnection, the page catches up by itself. If the first store result had not arrived before the connection was lost or access was revoked, it keeps showing loading.
+An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection or revocation, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
 
 ## Data the page cannot read
 

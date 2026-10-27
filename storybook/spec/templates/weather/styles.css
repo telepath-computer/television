@@ -587,6 +587,29 @@ body {
 }
 
 @media (max-width: 280px), (max-height: 280px) {
+  .weather-empty {
+    padding: var(--space-12) var(--space-12) var(--space-32);
+  }
+
+  .weather-empty .weather-glyph-empty {
+    width: 68px;
+    height: 68px;
+    flex: none;
+  }
+
+  .weather-empty h1 {
+    max-width: 180px;
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  .weather-empty p {
+    max-width: 180px;
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.25;
+  }
+
   .weather-error {
     padding: var(--space-12) var(--space-12) var(--space-32);
   }

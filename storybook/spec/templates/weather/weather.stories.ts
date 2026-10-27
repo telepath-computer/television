@@ -219,7 +219,7 @@ const placeholder = (state: Exclude<State, "ready">) => {
     <div class="weather-placeholder-content weather-error" role="status" aria-label="Forecast unavailable">
       <span class="weather-placeholder-icon">${icon({ name: "warning", size: "xl" })}</span>
       <h1>Forecast unavailable</h1>
-      <p>Weather couldn't be updated. It will try again soon.</p>
+      <p>Weather couldn't be updated. It will try again in about 15 minutes.</p>
     </div>`;
   return html`
     <div class="weather-placeholder-content weather-empty">
@@ -464,6 +464,7 @@ export const Large = { ...sized("largeBoundary"), args: { forecast: london } };
 export const ShortForecast = { name: "Four-day forecast", ...sized("large"), args: { forecast: londonShort } };
 export const Loading = { args: { state: "loading" } };
 export const Empty = { args: { state: "empty" } };
+export const MinimumEmpty = { name: "Empty at minimum size", ...sized("minimum"), args: { state: "empty" } };
 // A failed refresh keeps the compatible saved forecast and its honest age.
 export const SavedAfterFailure = { name: "Saved forecast after a failed refresh", args: { forecast: savedAfterFailure } };
 export const Unavailable = { name: "Forecast unavailable", args: { state: "unavailable" } };
