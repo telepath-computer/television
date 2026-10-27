@@ -1,6 +1,6 @@
 # Slice 3: exclusive Blaxel worker lifecycle
 
-Status: review round 1 corrected and privately qualified; ready for independent re-review.
+Status: [review round 2](test-harness-resource-cleanup-slice-3-review-r2.md) passed at `dc1d9f2e`; slice 3 has converged. Integrated validation is recorded [separately](test-harness-resource-cleanup-integrated.md).
 Final executable checkpoint: `7b0213bb`. The repeated live qualification passed on
 its first native attempt in 4m 56s. The correction and evidence follow the original
 qualification history below.

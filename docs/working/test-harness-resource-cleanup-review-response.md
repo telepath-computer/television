@@ -1,6 +1,6 @@
 # Resource-cleanup proposal: review response
 
-Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. Slices 1 and 2 have converged; slice 3 round 1 is corrected and ready for re-review. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. All three implementation slices have converged; integrated validation is in progress. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
 
 Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
@@ -323,3 +323,17 @@ then passed on its first attempt in 4m 56s with fresh private workers. Both work
 were deleted and confirmed absent; the complete reports are retained. No shared
 host tests or shared-pool experiments ran. The correction is ready for re-review;
 the subsequent documentation/proof commit changes no executable behavior.
+
+
+## Slice 3 round 2: convergence and integrated validation
+
+The [complete review](test-harness-resource-cleanup-slice-3-review-r2.md) passes
+`dc1d9f2e` with no blocker. Both observations are accepted under the bounded rule:
+add one comment explaining why the two immediate CLI dry runs deliberately clear
+the inherited shard token, and count shards that report `Lease renewal lost` in
+the ordinary 36-shard gate. No lifecycle, default or retry policy changes follow.
+
+The [integrated record](test-harness-resource-cleanup-integrated.md) carries the
+current-target reconciliation and full-gate evidence. The supervisor will arrange
+integrated review after the gate result. Docs preparation and marking PR #12 ready
+remain later steps.

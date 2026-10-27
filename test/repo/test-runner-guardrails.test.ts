@@ -737,6 +737,8 @@ describe("test runner guardrails", () => {
     expect(result.stderr).toContain("--provider must be one of: local, blaxel");
   });
 
+  // These two placement cases clear the outer shard token only for an immediate
+  // CLI dry run; the child retains ordinary surface ownership and starts no work.
   test("accepts a configured Blaxel harness coordinator and private pool without fixed names", () => {
     const result = runCli(["local", "--surface", "experiment:blaxel-harness"], selftestEnv({
       TV_TEST_RUNNER_DRY_RUN: "1",
