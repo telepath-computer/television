@@ -76,6 +76,10 @@ type FocusTarget = "none" | "selection" | "editor";
 
 const BLANK_GRID_SIZE = 4;
 const MAX_WRITE_LOG_ENTRIES = 40;
+/** Length of a generated key's random part. */
+const OPAQUE_KEY_LENGTH = 19;
+const LETTER_A_CODE = 65;
+const ALPHABET_LENGTH = 26;
 let experimentInstanceCount = 0;
 
 /** Build one isolated instance of the interactive Table editing experiment. */
@@ -885,7 +889,7 @@ function insertedOrder(orders: number[], targetIndex: number, side: "before" | "
 function opaqueKey(records: Record<string, unknown>): string {
   let key: string;
   do {
-    key = `-${crypto.randomUUID().replaceAll("-", "").slice(0, 19)}`;
+    key = `-${crypto.randomUUID().replaceAll("-", "").slice(0, OPAQUE_KEY_LENGTH)}`;
   } while (Object.hasOwn(records, key));
   return key;
 }
@@ -895,8 +899,8 @@ function columnLetter(index: number): string {
   let value = index + 1;
   while (value > 0) {
     value -= 1;
-    label = String.fromCharCode(65 + (value % 26)) + label;
-    value = Math.floor(value / 26);
+    label = String.fromCharCode(LETTER_A_CODE + (value % ALPHABET_LENGTH)) + label;
+    value = Math.floor(value / ALPHABET_LENGTH);
   }
   return label;
 }
