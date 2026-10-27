@@ -10,19 +10,14 @@ test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 800, height: 700 
 test.setTimeout(180_000);
 
 type MarkdownData = { markdown: string; [key: string]: JSONValue };
-type MarkdownWindow = Window & {
-  __cmView?: {
-    state: { doc: { toString(): string }; selection: { main: { head: number } } };
-    dispatch(spec: unknown): void;
-  };
-};
 
 const content = (frame: Page | Frame): Locator => frame.locator(".cm-content").first();
 const status = (frame: Page | Frame): Locator => frame.locator(".markdown-status");
-const source = (frame: Page | Frame): Promise<string> => frame.evaluate(() =>
-  (window as MarkdownWindow).__cmView?.state.doc.toString() ?? "");
-const caret = (frame: Page | Frame): Promise<number> => frame.evaluate(() =>
-  (window as MarkdownWindow).__cmView?.state.selection.main.head ?? -1);
+
+async function replaceDocument(frame: Page | Frame, value: string): Promise<void> {
+  await content(frame).press("ControlOrMeta+A");
+  await content(frame).pressSequentially(value);
+}
 
 let h: TemplateHarness;
 test.beforeEach(async ({ page }) => {
@@ -49,7 +44,8 @@ test("new Markdown from Toolbox starts blank and focused, then saves through the
   const { artifactID: id, frame } = await h.create(page);
   await expect(content(frame)).toBeVisible();
   await expect(content(frame)).toBeFocused();
-  expect(await source(frame)).toBe("");
+  await expect(content(frame)).toHaveText("");
+  expect(await frame.evaluate(() => "__cmView" in window)).toBe(false);
   expect(await h.read(id)).toEqual({ markdown: "" });
   expect(writes()).toEqual([]);
   expect(h.proxy.messages.filter(({ message }) => message.type === "subscribe").map(({ message }) => message.path)).toContain("");
@@ -68,7 +64,7 @@ test("new Markdown from Toolbox starts blank and focused, then saves through the
   renameSync(path.join(h.home, "templates/markdown"), path.join(h.home, "markdown-outside-discovery"));
   await page.reload();
   const independent = await h.frame(page, id);
-  await expect.poll(() => source(independent)).toBe(markdown);
+  await expect(content(independent)).toContainText("Project notes");
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-live
@@ -76,68 +72,73 @@ test("agent writes update the open editor and local save echoes preserve the car
   const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
-  await expect.poll(() => source(page)).toBe(initial.markdown);
+  await expect(content(page)).toContainText(initial.markdown);
   expect(writes()).toEqual([]);
 
   const agentText = "# Agent replacement\n\n| A | B |\n| - | - |\n| 1 | 2 |";
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify(agentText)]);
-  await expect.poll(() => source(page)).toBe(agentText);
+  await expect(content(page)).toContainText("Agent replacement");
+  await expect(page.locator(".tbl-cell-view").filter({ hasText: "1" })).toBeVisible();
   expect(writes()).toEqual([]);
 
-  await page.evaluate(() => {
-    const view = (window as MarkdownWindow).__cmView;
-    view?.dispatch({ selection: { anchor: 0, head: view.state.doc.toString().length } });
-  });
-  await content(page).pressSequentially("Unsent person draft");
+  await replaceDocument(page, "Unsent person draft");
   await h.set(id, { ...initial, markdown: "Agent interrupts before debounce" });
-  await expect.poll(() => source(page)).toBe("Agent interrupts before debounce");
+  await expect(content(page)).toContainText("Agent interrupts before debounce");
   await page.waitForTimeout(600);
   expect(await h.read(id, "markdown")).toBe("Agent interrupts before debounce");
   expect(writes()).toEqual([]);
 
   const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
   h.proxy.holdServerMessages(connection, message => message.type === "applied");
-  await page.evaluate(() => {
-    const view = (window as MarkdownWindow).__cmView;
-    view?.dispatch({ selection: { anchor: 0, head: view.state.doc.toString().length } });
-  });
-  await content(page).pressSequentially("Local complete string");
+  await replaceDocument(page, "Local complete string");
   await expect.poll(() => h.read(id, "markdown")).toBe("Local complete string");
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
-  await page.evaluate(() => (window as MarkdownWindow).__cmView?.dispatch({ selection: { anchor: 5 } }));
-  expect(await caret(page)).toBe(5);
+  await page.waitForTimeout(100);
+  await content(page).press("ControlOrMeta+Home");
+  for (let index = 0; index < 5; index += 1) await content(page).press("ArrowRight");
   h.proxy.releaseServerMessages(connection);
-  await expect.poll(() => caret(page)).toBe(5);
+  await page.waitForTimeout(100);
+  await content(page).pressSequentially("X");
+  await expect.poll(() => h.read(id, "markdown")).toBe("LocalX complete string");
   expect(await h.read(id, "extra")).toEqual({ preserved: true });
-  expect(writes()).toEqual([{ kind: "set", path: "markdown", value: { value: "Local complete string" } }]);
+  expect(writes()).toEqual([
+    { kind: "set", path: "markdown", value: { value: "Local complete string" } },
+    { kind: "set", path: "markdown", value: { value: "LocalX complete string" } },
+  ]);
 
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify("Agent wins last")]);
-  await expect.poll(() => source(page)).toBe("Agent wins last");
-  expect(writes()).toHaveLength(1);
-  h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify("Local complete string")]);
-  await expect.poll(() => source(page)).toBe("Local complete string");
-  expect(writes()).toHaveLength(1);
+  await expect(content(page)).toContainText("Agent wins last");
+  expect(writes()).toHaveLength(2);
+  h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify("LocalX complete string")]);
+  await expect(content(page)).toContainText("LocalX complete string");
+  expect(writes()).toHaveLength(2);
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states
-test("read access blocks task, table and document changes", async ({ page }) => {
+test("read access blocks changes and a same-share upgrade resumes editing", async ({ page }) => {
   const stored = "- [ ] Keep this open\n\n| A |\n| - |\n| one |";
   const id = await h.createStored({ markdown: stored });
-  const share = await h.client.resources.share({ artifactID: id, access: "read" });
+  const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
   await h.open(page, id, share.shareID);
-  await expect.poll(() => source(page)).toBe(stored);
+  await expect(content(page)).toContainText("Keep this open");
+
+  await replaceDocument(page, "Unsent access-loss draft");
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await expect(content(page)).toContainText("Keep this open");
+  expect(await h.read(id, "markdown")).toBe(stored);
 
   const checkbox = page.locator(".cm-md-task-checkbox");
   const cell = page.locator(".tbl-cell-view").first();
   await expect(checkbox).toBeDisabled();
   await expect(cell).toHaveAttribute("contenteditable", "false");
   await checkbox.evaluate((element) => (element as HTMLInputElement).click());
-  await page.evaluate(() => {
-    const view = (window as MarkdownWindow).__cmView;
-    view?.dispatch({ changes: { from: 0, insert: "blocked" } });
-  });
-  expect(await source(page)).toBe(stored);
+  expect(await h.read(id, "markdown")).toBe(stored);
   expect(writes()).toEqual([]);
+
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(content(page)).toHaveAttribute("contenteditable", "true");
+  await replaceDocument(page, "Editable again");
+  await expect.poll(() => h.read(id, "markdown")).toBe("Editable again");
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states
@@ -146,45 +147,41 @@ test("access, connection and unreadable data keep the editor from writing and re
   h.proxy.hold("to-browser");
   await h.open(page, id);
   await expect(page.locator(".markdown-loading")).toBeVisible();
-  await expect(content(page)).toBeHidden();
-  await expect(content(page)).toHaveAttribute("contenteditable", "false");
+  await expect(content(page)).toHaveCount(0);
   h.proxy.release("to-browser");
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
 
   const share = await h.client.resources.share({ artifactID: id, access: "read" });
   await h.open(page, id, share.shareID);
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
   await expect(content(page)).toHaveAttribute("contenteditable", "false");
   await h.client.resources.unshare({ artifactID: id });
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
   await expect(content(page)).toHaveAttribute("contenteditable", "false");
   expect(writes()).toEqual([]);
 
   await h.open(page, id);
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
   await expect(content(page)).not.toBeFocused();
   await h.set(id, { markdown: "" });
-  await expect.poll(() => source(page)).toBe("");
+  await expect(content(page)).toHaveText("");
   await expect(content(page)).not.toBeFocused();
   await h.set(id, { markdown: "Saved document" });
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
   const writesBeforeDisconnect = writes().length;
-  await page.evaluate(() => {
-    const view = (window as MarkdownWindow).__cmView;
-    view?.dispatch({ changes: { from: 0, to: view.state.doc.toString().length, insert: "Disconnected unsent draft" } });
-  });
-  expect(await source(page)).toBe("Disconnected unsent draft");
+  await replaceDocument(page, "Disconnected unsent draft");
+  await expect(content(page)).toContainText("Disconnected unsent draft");
   h.proxy.refuse(true);
   h.proxy.sever();
   await expect(status(page)).toHaveText("Reconnecting…");
-  await expect.poll(() => source(page)).toBe("Saved document");
+  await expect(content(page)).toContainText("Saved document");
   await expect(content(page)).toHaveAttribute("contenteditable", "false");
   await page.waitForTimeout(600);
   expect(writes()).toHaveLength(writesBeforeDisconnect);
   expect(await h.read(id, "markdown")).toBe("Saved document");
   await h.set(id, { markdown: "Changed while disconnected" });
   h.proxy.refuse(false);
-  await expect.poll(() => source(page)).toBe("Changed while disconnected");
+  await expect(content(page)).toContainText("Changed while disconnected");
   await expect(content(page)).toHaveAttribute("contenteditable", "true");
 
   await h.set(id, { markdown: 7 } as unknown as JSONValue);
@@ -195,7 +192,7 @@ test("access, connection and unreadable data keep the editor from writing and re
   await page.waitForTimeout(600);
   expect(writes()).toHaveLength(count);
   await h.set(id, { markdown: "Repaired" });
-  await expect.poll(() => source(page)).toBe("Repaired");
+  await expect(content(page)).toContainText("Repaired");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
   await h.remove(id);
@@ -203,15 +200,57 @@ test("access, connection and unreadable data keep the editor from writing and re
   await expect(content(page)).toBeHidden();
   expect(await h.read(id)).toBeUndefined();
   await h.set(id, { markdown: "Restored after missing data" });
-  await expect.poll(() => source(page)).toBe("Restored after missing data");
+  await expect(content(page)).toContainText("Restored after missing data");
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+test("reconnection with unchanged data resumes editing", async ({ page }) => {
+  const id = await h.createStored({ markdown: "Saved document" });
+  await h.open(page, id);
+  await expect(content(page)).toContainText("Saved document");
+
+  await replaceDocument(page, "Unsent disconnected draft");
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(content(page)).toContainText("Saved document");
+  await expect(content(page)).toHaveAttribute("contenteditable", "false");
+  expect(await h.read(id, "markdown")).toBe("Saved document");
+
+  h.proxy.refuse(false);
+  await expect(content(page)).toHaveAttribute("contenteditable", "true");
+  await content(page).press("ControlOrMeta+End");
+  await content(page).pressSequentially(" after reconnect");
+  await expect.poll(() => h.read(id, "markdown")).toBe("Saved document after reconnect");
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-live
+test("a confirmed save survives a lost acknowledgement", async ({ page }) => {
+  const id = await h.createStored({ markdown: "Stored document" });
+  await h.open(page, id);
+  await expect(content(page)).toContainText("Stored document");
+
+  const connection = h.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
+  h.proxy.holdServerMessages(connection, message => message.type === "applied");
+  await replaceDocument(page, "Confirmed document");
+  await expect.poll(() => h.read(id, "markdown")).toBe("Confirmed document");
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(content(page)).toContainText("Confirmed document");
+  expect(await h.read(id, "markdown")).toBe("Confirmed document");
+
+  h.proxy.refuse(false);
+  await expect(content(page)).toHaveAttribute("contenteditable", "true");
+  await expect(content(page)).toContainText("Confirmed document");
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states
 test("damaged saved bytes recover after repair and restart", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
-  await expect.poll(() => source(page)).toBe("Stored document");
+  await expect(content(page)).toContainText("Stored document");
   const file = h.contentFile(id);
   const original = readFileSync(file);
 
@@ -221,12 +260,9 @@ test("damaged saved bytes recover after repair and restart", async ({ page }) =>
   expect(readFileSync(file, "utf8")).toBe("{damaged json");
 
   await h.restart(() => writeFileSync(file, original));
-  await expect.poll(() => source(page), { timeout: 20_000 }).toBe("Stored document");
+  await expect(content(page)).toContainText("Stored document", { timeout: 20_000 });
   await expect(page.getByRole("alert")).toHaveCount(0);
-  await page.evaluate(() => {
-    const view = (window as MarkdownWindow).__cmView;
-    view?.dispatch({ selection: { anchor: view.state.doc.toString().length } });
-  });
+  await content(page).press("ControlOrMeta+End");
   await content(page).pressSequentially(" recovered");
   await expect.poll(() => h.read(id, "markdown")).toBe("Stored document recovered");
 });
@@ -236,7 +272,7 @@ test("a refused save restores the stored document and reports the failure", asyn
   const id = await h.createStored({ markdown: "Stored document" });
   const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
   await h.open(page, id, share.shareID);
-  await expect.poll(() => source(page)).toBe("Stored document");
+  await expect(content(page)).toContainText("Stored document");
 
   const connection = h.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
   h.proxy.holdWrites();
@@ -248,7 +284,7 @@ test("a refused save restores the stored document and reports the failure", asyn
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
   h.proxy.releaseWrites();
 
-  await expect.poll(() => source(page)).toBe("Stored document");
+  await expect(content(page)).toContainText("Stored document");
   await expect(status(page)).toHaveText("Couldn't save that change.");
   expect(await h.read(id, "markdown")).toBe("Stored document");
   h.proxy.releaseServerMessages(connection);

@@ -44,8 +44,8 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
-    - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
-    - `isolation.md` (118 lines) — *Artifact isolation: the sandbox HTML artifact documents run in, in a browser, and the separate sessions that isolate them in the desktop app; the browser features artifact documents are granted; the cross-origin rules on the routes they load; and the known limitations of each.*
+    - `index.md` (50 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `isolation.md` (119 lines) — *Artifact isolation: the sandbox HTML artifact documents run in, in a browser, and the separate sessions that isolate them in the desktop app; the browser features artifact documents are granted; the cross-origin rules on the routes they load; and the known limitations of each.*
     - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
     - `reload-navigation.md` (138 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
@@ -96,7 +96,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `calendar.md` (73 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
-    - `markdown.md` (55 lines) — *The bundled Markdown artifact template: its shared editor, store contract, packaged page, and adapting-agent guidance.*
+    - `markdown.md` (79 lines) — *The bundled Markdown artifact template: its shared editor, store contract, packaged page, and adapting-agent guidance.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*

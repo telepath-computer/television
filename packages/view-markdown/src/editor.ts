@@ -12,9 +12,8 @@ import { tableLinks } from "./table-links.ts";
 
 const DEFAULT_DEBOUNCE_MS = 500;
 
-// Annotation tagged on transactions applied from remote `content-updated`
-// notifications so the save listener can skip them — otherwise an incoming
-// remote edit would round-trip back as a save.
+// Annotation tagged on authoritative document replacements so the save
+// listener does not round-trip them back through the persistence boundary.
 const Remote = Annotation.define<true>();
 
 const markdownHighlight = HighlightStyle.define([
@@ -109,8 +108,8 @@ const markdownTablesExtension = markdownTables({
 /**
  * Shared editor extensions — the markdown grammar, our custom highlight,
  * line wrapping, history, default keymap, and the disappearing-markers
- * decoration plugin. Used by both the production ctx-wired path
- * (`installEditor`) and the dev-mode standalone bootstrap in `main.ts`.
+ * decoration plugin. Used by the shared mount, the file-artifact adapter and
+ * the dev-mode standalone bootstrap in `main.ts`.
  */
 export const editorExtensions: Extension = [
   history(),
@@ -133,38 +132,62 @@ export interface EditorHooks {
   onSaveError?: (error: unknown) => void;
 }
 
-export interface Editor {
-  view: EditorView;
+export interface MarkdownEditorMountOptions {
+  parent: HTMLElement;
+  value: string;
+  editable: boolean;
+  onSave(value: string): Promise<void>;
+}
+
+export interface MarkdownEditorHandle {
+  setValue(value: string): void;
   setEditable(editable: boolean): void;
+  focus(): void;
   dispose(): void;
 }
 
+interface InternalEditor {
+  handle: MarkdownEditorHandle;
+  view: EditorView;
+}
+
+interface InternalOptions extends MarkdownEditorMountOptions {
+  debounceMs?: number;
+  onSaveError?: (error: unknown) => void;
+}
+
 /**
- * Bidirectional wiring between an `EditorView` and an `ArtifactContext`:
+ * Store-neutral wiring between an `EditorView` and an authoritative string:
  *
  * - **Outgoing.** `docChanged` updates from local edits are debounced; on
- *   flush we send the current doc text via `ctx.updateContent`.
- * - **Incoming.** A notification matching a save still in flight is its echo
- *   and is suppressed, so the caret stays put. Any other notification wins
- *   over an unsent local debounce and replaces the doc as a `Remote`-
- *   annotated transaction that's excluded from history and skipped by the
- *   save listener.
- * - **Error.** A rejected `updateContent` rolls the doc back to the last
- *   known-good (initial content or last successful save).
- *
- * The first `content-updated` after mount seeds both the doc and the
- * last-known-good baseline.
+ *   flush we send the complete current text through `onSave`.
+ * - **Incoming.** `setValue` records an authoritative value. It cancels an
+ *   unsent edit and replaces a different document without creating a save or
+ *   history entry; the same document needs no editor transaction.
+ * - **Error.** A rejected save rolls the doc back to the latest authoritative
+ *   value unless a newer authoritative value arrived while it was pending.
  */
-export function installEditor(hooks: EditorHooks): Editor {
-  const { parent, ctx } = hooks;
-  const debounceMs = hooks.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+function createEditor(options: InternalOptions): InternalEditor {
+  const { parent } = options;
+  const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
 
-  let lastKnownGood: string | null = null;
+  let lastKnownGood = options.value;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
-  let isEditable = hooks.editable ?? true;
+  let isEditable = options.editable;
   let incomingRevision = 0;
-  const activeSaves = new Set<{ content: string; incomingRevision: number }>();
+  const activeSaves = new Set<{ content: string; revision: number; awaitingEcho: boolean }>();
   const editable = new Compartment();
+
+  const editability = (enabled: boolean): Extension => [
+    EditorState.readOnly.of(!enabled),
+    EditorView.editable.of(enabled),
+  ];
+
+  const cancelScheduledSave = (): void => {
+    if (saveTimer === null) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  };
 
   const replaceDoc = (next: string): void => {
     if (view.state.doc.toString() === next) return;
@@ -177,14 +200,14 @@ export function installEditor(hooks: EditorHooks): Editor {
   const flushSave = async (): Promise<void> => {
     saveTimer = null;
     const content = view.state.doc.toString();
-    const save = { content, incomingRevision };
+    const save = { content, revision: incomingRevision, awaitingEcho: true };
     activeSaves.add(save);
     try {
-      await ctx.updateContent(content);
-      if (incomingRevision === save.incomingRevision) lastKnownGood = content;
+      await options.onSave(content);
+      if (incomingRevision === save.revision) lastKnownGood = content;
     } catch (error) {
-      if (incomingRevision === save.incomingRevision) replaceDoc(lastKnownGood ?? "");
-      hooks.onSaveError?.(error);
+      if (incomingRevision === save.revision) replaceDoc(lastKnownGood);
+      options.onSaveError?.(error);
     } finally {
       activeSaves.delete(save);
     }
@@ -197,8 +220,7 @@ export function installEditor(hooks: EditorHooks): Editor {
 
   const saveListener = EditorView.updateListener.of((update) => {
     if (!update.docChanged) return;
-    const isRemote = update.transactions.some((tr) => tr.annotation(Remote));
-    if (isRemote) return;
+    if (update.transactions.some((tr) => tr.annotation(Remote))) return;
     if (saveTimer !== null) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
       void flushSave();
@@ -208,13 +230,10 @@ export function installEditor(hooks: EditorHooks): Editor {
   const view = new EditorView({
     parent,
     state: EditorState.create({
-      doc: "",
+      doc: options.value,
       extensions: [
         editorExtensions,
-        editable.of([
-          EditorState.readOnly.of(!isEditable),
-          EditorView.editable.of(isEditable),
-        ]),
+        editable.of(editability(isEditable)),
         readOnlyGuard,
         saveListener,
       ],
@@ -233,45 +252,76 @@ export function installEditor(hooks: EditorHooks): Editor {
   embeddedControls.observe(parent, { childList: true, subtree: true });
   syncEmbeddedControls();
 
-  const handleContentUpdated = (event: { content: string }): void => {
-    const incoming = event.content;
-    if ([...activeSaves].some((save) => save.content === incoming)) return;
-    if (saveTimer !== null) {
-      clearTimeout(saveTimer);
-      saveTimer = null;
-    }
-    incomingRevision += 1;
-    replaceDoc(incoming);
-    lastKnownGood = incoming;
-  };
-
-  ctx.addEventListener("content-updated", handleContentUpdated);
-
   return {
     view,
-    setEditable(next: boolean): void {
-      if (next === isEditable) return;
-      isEditable = next;
-      if (!isEditable && saveTimer !== null) {
-        clearTimeout(saveTimer);
-        saveTimer = null;
-      }
-      view.dispatch({
-        effects: editable.reconfigure([
-          EditorState.readOnly.of(!isEditable),
-          EditorView.editable.of(isEditable),
-        ]),
-      });
-      syncEmbeddedControls();
+    handle: {
+      setValue(incoming: string): void {
+        const confirmedSave = [...activeSaves].find(
+          (save) => save.awaitingEcho && save.content === incoming,
+        );
+        incomingRevision += 1;
+        lastKnownGood = incoming;
+        if (confirmedSave) {
+          confirmedSave.awaitingEcho = false;
+          return;
+        }
+        for (const save of activeSaves) save.awaitingEcho = false;
+        cancelScheduledSave();
+        replaceDoc(incoming);
+      },
+      setEditable(next: boolean): void {
+        if (next === isEditable) return;
+        isEditable = next;
+        if (!isEditable) {
+          cancelScheduledSave();
+          activeSaves.clear();
+        }
+        view.dispatch({
+          effects: editable.reconfigure(editability(isEditable)),
+        });
+        syncEmbeddedControls();
+      },
+      focus(): void {
+        view.focus();
+      },
+      dispose(): void {
+        cancelScheduledSave();
+        embeddedControls.disconnect();
+        view.destroy();
+      },
     },
+  };
+}
+
+/** The public v1 editor boundary used by copied Markdown template pages. */
+export function mountMarkdownEditor(options: MarkdownEditorMountOptions): MarkdownEditorHandle {
+  return createEditor(options).handle;
+}
+
+/** Adapts the file-artifact host protocol to the store-neutral editor. */
+export function installEditor(
+  hooks: EditorHooks,
+  exposeView?: (view: EditorView) => void,
+): MarkdownEditorHandle {
+  const editor = createEditor({
+    parent: hooks.parent,
+    value: "",
+    editable: hooks.editable ?? true,
+    debounceMs: hooks.debounceMs,
+    onSave: (content) => hooks.ctx.updateContent(content),
+    onSaveError: hooks.onSaveError,
+  });
+  const handleContentUpdated = (event: { content: string }): void => {
+    editor.handle.setValue(event.content);
+  };
+  hooks.ctx.addEventListener("content-updated", handleContentUpdated);
+  exposeView?.(editor.view);
+
+  return {
+    ...editor.handle,
     dispose(): void {
-      if (saveTimer !== null) {
-        clearTimeout(saveTimer);
-        saveTimer = null;
-      }
-      embeddedControls.disconnect();
-      ctx.removeEventListener("content-updated", handleContentUpdated);
-      view.destroy();
+      hooks.ctx.removeEventListener("content-updated", handleContentUpdated);
+      editor.handle.dispose();
     },
   };
 }

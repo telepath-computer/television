@@ -25,10 +25,8 @@ const CANONICAL_CONTENT_TYPES: Record<string, string> = {
 
 /**
  * Inline every `<script type="module" src="...">` tag in the entry HTML so
- * the built view has no external JS/CSS assets. The view bundle is a fixed
- * Television-shipped static asset under `/views/markdown/` with no auth and
- * no user-specific content. Inlining keeps that asset self-contained and
- * avoids extra HTTP fetches from the iframe.
+ * the hosted view remains self-contained. The same bundle is also emitted at
+ * the versioned path used by Markdown template pages.
  */
 function appearanceBootstrap(): Plugin {
   return {
@@ -85,6 +83,19 @@ function developmentStyles(): Plugin {
   };
 }
 
+function developmentTestHook(): Plugin {
+  return {
+    name: "view-markdown-development-test-hook",
+    apply: "serve",
+    transformIndexHtml(html) {
+      return html.replace(
+        "<body data-television-markdown-hosted>",
+        '<body data-television-markdown-hosted data-television-markdown-test-hook>',
+      );
+    },
+  };
+}
+
 function sendDevelopmentStyle(
   res: { setHeader(name: string, value: string): void; end(body?: string | Buffer): void },
   contentType: string,
@@ -102,21 +113,15 @@ function inlineScripts(): Plugin {
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {
-      const htmlEntries = Object.entries(bundle).filter(
-        ([, asset]) => asset.type === "asset" && asset.fileName.endsWith(".html"),
-      );
-      for (const [, asset] of htmlEntries) {
-        if (asset.type !== "asset") continue;
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".html")) continue;
         const html = typeof asset.source === "string" ? asset.source : asset.source.toString();
-        let rewritten = html;
         const scriptTag =
           /<script\b([^>]*?)\ssrc="([^"]+)"([^>]*)><\/script>/g;
         const consumedChunks: string[] = [];
-        rewritten = rewritten.replace(scriptTag, (match, pre: string, src: string, post: string) => {
+        const rewritten = html.replace(scriptTag, (match, pre: string, src: string, post: string) => {
           const normalized = src.startsWith("./") ? src.slice(2) : src;
-          const chunkKey = Object.keys(bundle).find((key) => key === normalized);
-          if (!chunkKey) return match;
-          const chunk = bundle[chunkKey];
+          const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "chunk") return match;
           bundle["v1/editor.js"] = {
             type: "asset",
@@ -124,7 +129,7 @@ function inlineScripts(): Plugin {
             name: "editor.js",
             source: chunk.code,
           };
-          consumedChunks.push(chunkKey);
+          consumedChunks.push(normalized);
           const attrs = `${pre} ${post}`
             .replace(/\scrossorigin(="[^"]*")?/g, "")
             .replace(/\s+/g, " ")
@@ -146,16 +151,12 @@ function inlineStyles(): Plugin {
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {
-      const htmlEntries = Object.entries(bundle).filter(
-        ([, asset]) => asset.type === "asset" && asset.fileName.endsWith(".html"),
-      );
-      for (const [, asset] of htmlEntries) {
-        if (asset.type !== "asset") continue;
+      for (const asset of Object.values(bundle)) {
+        if (asset.type !== "asset" || !asset.fileName.endsWith(".html")) continue;
         const html = typeof asset.source === "string" ? asset.source : asset.source.toString();
-        let rewritten = html;
         const linkTag = /<link\b[^>]*\srel="stylesheet"[^>]*\shref="([^"]+)"[^>]*>/g;
         const consumed: string[] = [];
-        rewritten = rewritten.replace(linkTag, (match, href: string) => {
+        const rewritten = html.replace(linkTag, (match, href: string) => {
           const normalized = href.startsWith("./") ? href.slice(2) : href;
           const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "asset") return match;
@@ -184,9 +185,9 @@ function inlineStyles(): Plugin {
 // so `public/manifest.json` is copied verbatim into `dist/` during build and
 // served at `/manifest.json` during dev.
 //
-// Dev server port is 5182. The bundled view iframe is served from the fixed
-// unauthenticated `/views/markdown/` route. The inline plugins below keep the
-// shipped editor as a single self-contained `index.html`.
+// Dev server port is 5182. The bundled view iframe and the reusable v1 editor
+// are served from the fixed unauthenticated `/views/markdown/` route. The
+// hosted `index.html` keeps its own copy of the editor inline.
 export default defineConfig({
   root: path.resolve(packageDir, "src"),
   base: "./",
@@ -212,6 +213,7 @@ export default defineConfig({
   plugins: [
     appearanceBootstrap(),
     developmentStyles(),
+    developmentTestHook(),
     createTelevisionLicensePlugin({ surface: "view:markdown" }),
     inlineScripts(),
     inlineStyles(),

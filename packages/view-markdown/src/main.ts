@@ -7,7 +7,7 @@ import {
 } from "@telepath-computer/television-artifact/browser";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { editorExtensions, installEditor } from "./editor.ts";
+import { editorExtensions, installEditor, mountMarkdownEditor } from "./editor.ts";
 import seed from "../fixtures/seed.md?raw";
 
 // Live-preview markdown view.
@@ -25,21 +25,19 @@ import seed from "../fixtures/seed.md?raw";
 
 const parent = document.getElementById("editor");
 
-function exposeEditor(view: EditorView): void {
+const testHookEnabled = import.meta.env.DEV
+  && document.body.hasAttribute("data-television-markdown-test-hook");
+
+function exposeTestEditor(view: EditorView): void {
+  if (!testHookEnabled) return;
   // Expose the EditorView for e2e tests. Inline-code body text is a bare
   // text node inside `.cm-line` (lang-markdown's CodeText tag has no rule
   // in `markdownHighlight`), so Playwright's `getByText` can't locate it.
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
 
-const sharedMount = (hooks: Parameters<typeof installEditor>[0]): ReturnType<typeof installEditor> => {
-  const editor = installEditor(hooks);
-  exposeEditor(editor.view);
-  return editor;
-};
-
 Object.assign(window, {
-  TelevisionMarkdownEditor: { mount: sharedMount },
+  TelevisionMarkdownEditor: { mount: mountMarkdownEditor },
 });
 
 const hosted = document.body.hasAttribute("data-television-markdown-hosted");
@@ -72,12 +70,14 @@ function mountHostedEditor(parent: HTMLElement): void {
     current.href = next.href;
   });
 
-  const view = context === null
-    ? new EditorView({
-        parent,
-        state: EditorState.create({ doc: seed, extensions: editorExtensions }),
-      })
-    : sharedMount({ parent, ctx: context }).view;
+  if (context === null) {
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({ doc: seed, extensions: editorExtensions }),
+    });
+    exposeTestEditor(view);
+    return;
+  }
 
-  exposeEditor(view);
+  installEditor({ parent, ctx: context }, exposeTestEditor);
 }

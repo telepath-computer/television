@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { appearanceResolverScriptSource } from "@telepath-computer/television-artifact/browser";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/markdown-editor-integration.html";
+const V1_FIXTURE = "/packages/web/test/e2e/fixtures/markdown-v1-integration.html";
 
 // Trust has no public presentation state; this helper is reserved for lifecycle-adoption evidence.
 async function artifactTrustGuid(page: Page): Promise<string | null> {
@@ -19,12 +20,157 @@ test.describe("markdown editor integration", () => {
           "<head>",
           `<head><script>${appearanceResolverScriptSource('"system"')}</script>`,
         )
+        .replace(
+          "<body data-television-markdown-hosted>",
+          '<body data-television-markdown-hosted data-television-markdown-test-hook>',
+        )
         .replace('src="./main.ts"', 'src="/packages/view-markdown/src/main.ts"');
       await route.fulfill({
         contentType: "text/html; charset=utf-8",
         body,
       });
     });
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
+  test("the v1 mount exposes only document controls and no production editor test hook", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+
+    const keys = await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      const handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+        },
+      });
+      window.__v1Saves = [];
+      window.__v1Handle = handle;
+      return Object.keys(handle).sort();
+    });
+
+    expect(keys).toEqual(["dispose", "focus", "setEditable", "setValue"]);
+    expect(await page.evaluate(() => "__cmView" in window)).toBe(false);
+    await expect(page.locator(".cm-content")).toContainText("Stored document");
+
+    await page.evaluate(() => window.__v1Handle!.setValue("Agent replacement"));
+    await expect(page.locator(".cm-content")).toContainText("Agent replacement");
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
+
+    await page.evaluate(() => window.__v1Handle!.focus());
+    await expect(page.locator(".cm-content")).toBeFocused();
+    await page.evaluate(() => window.__v1Handle!.setEditable(false));
+    await page.locator(".cm-content").press("ControlOrMeta+A");
+    await page.keyboard.type("blocked");
+    await expect(page.locator(".cm-content")).toContainText("Agent replacement");
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
+
+    await page.evaluate(() => window.__v1Handle!.setEditable(true));
+    await page.locator(".cm-content").press("ControlOrMeta+End");
+    await page.locator(".cm-content").pressSequentially(" pending save");
+    await page.evaluate(() => window.__v1Handle!.dispose());
+    await expect(page.locator(".cm-editor")).toHaveCount(0);
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
+  });
+
+  test("a matching authoritative value remains after its save promise rejects", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      let handle: MarkdownEditorV1Handle;
+      handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          handle.setValue(value);
+          throw Object.assign(new Error("acknowledgement lost"), { code: "disconnected" });
+        },
+      });
+      window.__v1Handle = handle;
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Confirmed replacement");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Confirmed replacement"]);
+    await expect(editor).toContainText("Confirmed replacement");
+  });
+
+  test("an older save confirmation preserves a newer local edit", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      window.__resolveFirstV1Save = undefined;
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstV1Save = resolve;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("First saved string");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["First saved string"]);
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Newer pending string");
+    await page.evaluate(() => window.__v1Handle!.setValue("First saved string"));
+    await expect(editor).toContainText("Newer pending string");
+    await page.evaluate(() => window.__resolveFirstV1Save!());
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "First saved string",
+      "Newer pending string",
+    ]);
+  });
+
+  test("a later authoritative value is not mistaken for an earlier save confirmation", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const pendingSave = new Promise<void>(() => {});
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          await pendingSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Saved A");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Saved A"]);
+
+    await page.evaluate(() => window.__v1Handle!.setValue("Authoritative B"));
+    await expect(editor).toContainText("Authoritative B");
+    await page.evaluate(() => window.__v1Handle!.setValue("Saved A"));
+    await expect(editor).toContainText("Saved A");
   });
 
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-markdown-bridge-seam
@@ -222,6 +368,13 @@ test.describe("markdown editor integration", () => {
 });
 
 declare global {
+  interface MarkdownEditorV1Handle {
+    setValue(value: string): void;
+    setEditable(editable: boolean): void;
+    focus(): void;
+    dispose(): void;
+  }
+
   interface Window {
     __fixtureReady?: boolean;
     __markdownContent: string;
@@ -242,5 +395,16 @@ declare global {
     __emitAppearanceChanged(): void;
     __pwned?: boolean;
     __cmView?: { state: { doc: { toString(): string } } };
+    TelevisionMarkdownEditor?: {
+      mount(options: {
+        parent: HTMLElement;
+        value: string;
+        editable: boolean;
+        onSave(value: string): Promise<void>;
+      }): MarkdownEditorV1Handle;
+    };
+    __v1Handle?: MarkdownEditorV1Handle;
+    __v1Saves?: string[];
+    __resolveFirstV1Save?: () => void;
   }
 }

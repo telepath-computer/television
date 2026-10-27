@@ -9,8 +9,6 @@ body,
   position: relative;
   display: flex;
   min-width: 0;
-  background: var(--color-surface);
-  color: var(--color-text);
 }
 
 .markdown-page #editor {

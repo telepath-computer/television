@@ -22,11 +22,17 @@ describe("bundled Markdown package", () => {
   // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
   it("loads canonical and one versioned shared Markdown editor", () => {
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
+    const adapter = readFileSync(path.join(folder, "page.js"), "utf8");
     expect(page.indexOf('/canonical/v2/styles.css?authoredForAppVersion=1.5.4'))
       .toBeLessThan(page.indexOf("/views/markdown/v1/editor.css"));
     expect(page).toContain('<script src="/views/markdown/v1/editor.js"></script>');
     expect(page).toContain('<script type="module" src="./page.js"></script>');
     expect(page).not.toMatch(/<iframe\b/i);
+    expect(adapter).toContain("onSave:");
+    expect(adapter).toContain("editor.setValue(");
+    expect(adapter).not.toContain("ctx:");
+    expect(adapter).not.toContain("editor.view");
+    expect(adapter).not.toContain("onSaveError");
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-icon
@@ -46,13 +52,17 @@ describe("bundled Markdown package", () => {
     const prose = readme.replace(/\s+/g, " ");
     expect(readme).toContain("`markdown`");
     expect(readme).toContain('{"markdown":""}');
+    expect(readme).toContain('tv resource json get --artifact "$ARTIFACT_ID" markdown');
+    expect(readme).toContain("jq -Rs . document.md");
+    expect(readme).toContain("--file -");
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" markdown');
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" markdown \'""\'');
     expect(prose).toMatch(/spaces and line breaks[\s\S]*kept/i);
     expect(prose).toMatch(/other root fields[\s\S]*preserved/i);
     expect(prose).toMatch(/last[- ]write[- ]wins/i);
     expect(prose).toMatch(/invalid or missing data[\s\S]*not repair/i);
-    expect(prose).toMatch(/shared editor[\s\S]*Television/i);
-    expect(prose).toMatch(/copied artifacts[\s\S]*independent/i);
+    expect(prose).toMatch(/unsaved typing[\s\S]*replaced|replaces[\s\S]*unsaved typing/i);
+    expect(prose).toMatch(/copied page files[\s\S]*independent/i);
+    expect(prose).toMatch(/current compatible v1 editor/i);
   });
 });
