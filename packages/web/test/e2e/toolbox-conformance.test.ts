@@ -1,11 +1,9 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
 import { conform } from "@telepath-computer/conform";
 import type { StorybookSource } from "@telepath-computer/conform/storybook";
 import { test, expect } from "@playwright/test";
 import type { ArtifactTemplateScan } from "@telepath-computer/television-shared";
-import { specStories, storybook } from "./conformance-harness.ts";
+import { specDocs, specStories, storybook } from "./conformance-harness.ts";
 
 // Use Conform's Playwright peer for capture; the runner uses the root toolchain.
 let browser: Browser;
@@ -110,12 +108,7 @@ for (const id of stories) {
 }
 
 test("Toolbox has one docs entry rendering its MDX and all embedded stories", async () => {
-  const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
-    entries: Record<string, { id: string; title: string; type: string }>;
-  };
-  const toolboxDocs = Object.values(index.entries)
-    .filter(entry => entry.type === "docs" && entry.title.split("/").at(-1)?.toLowerCase() === "toolbox");
-  expect(toolboxDocs.map(entry => entry.id)).toEqual(["spec-toolbox--docs"]);
+  expect(specDocs("toolbox")).toEqual(["spec-toolbox--docs"]);
   const page = await browser.newPage();
   try {
     const errors: string[] = [];

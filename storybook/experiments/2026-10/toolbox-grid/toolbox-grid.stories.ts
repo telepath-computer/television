@@ -69,7 +69,7 @@ const installed: Item[] = [
   { id: "elevation-map", name: "Elevation map" },
   { id: "feed", name: "Feed" },
   { id: "fridge-poetry", name: "Fridge poetry" },
-  { id: "fastmail", name: "Inbox" },
+  { id: "inbox", name: "Inbox" },
   { id: "map", name: "Map" },
   { id: "pet", name: "Pet" },
   { id: "place", name: "Place" },

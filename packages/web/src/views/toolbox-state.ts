@@ -38,7 +38,11 @@ export class ToolboxSelection<T extends ToolboxItem = ToolboxItem> {
       return;
     }
     let next = index;
-    if (direction === "up") next = index < TOOLBOX_COLUMNS ? -1 : index - TOOLBOX_COLUMNS;
+    if (direction === "up" && index < TOOLBOX_COLUMNS) {
+      this.highlighted = null;
+      return;
+    }
+    if (direction === "up") next = index - TOOLBOX_COLUMNS;
     if (direction === "down") next = index + TOOLBOX_COLUMNS < matches.length ? index + TOOLBOX_COLUMNS : matches.length - 1;
     if (direction === "left") next = Math.max(0, index - 1);
     if (direction === "right") next = Math.min(matches.length - 1, index + 1);

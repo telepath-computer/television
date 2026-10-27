@@ -65,18 +65,15 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   };
 
   readonly #cacheChanged = (): void => {
-    this.#renderAndRevealMovedHighlight(this.#highlightPosition());
+    const previous = this.#highlightPosition();
+    this.render();
+    const current = this.#highlightPosition();
+    if (current[0] !== previous[0] || current[1] !== previous[1]) this.#revealHighlight();
   };
 
   #highlightPosition(): HighlightPosition {
     const id = this.#selection.highlighted;
     return [id, this.#selection.matches.findIndex(item => item.id === id)];
-  }
-
-  #renderAndRevealMovedHighlight(previous: HighlightPosition): void {
-    this.render();
-    const current = this.#highlightPosition();
-    if (current[0] !== previous[0] || current[1] !== previous[1]) this.#revealHighlight();
   }
 
   #revealHighlight(): void {
@@ -93,28 +90,29 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   }
 
   readonly #input = (event: Event): void => {
-    const previous = this.#highlightPosition();
     this.#selection.search((event.currentTarget as HTMLInputElement).value);
-    this.#renderAndRevealMovedHighlight(previous);
+    this.render();
+    this.#revealHighlight();
   };
 
   readonly #keydown = (event: KeyboardEvent): void => {
+    const composing = event.isComposing || event.keyCode === 229;
     if (event.key === "Enter") {
-      if (event.isComposing) return;
+      if (composing) return;
       const entry = this.#selection.matches.find(item => item.id === this.#selection.highlighted);
       if (entry) { event.preventDefault(); void this.#run(entry); }
       return;
     }
     const direction = ARROW_DIRECTIONS[event.key];
     if (!direction || !this.#tilesVisible) return;
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || composing) return;
     const horizontal = direction === "left" || direction === "right";
     if (horizontal && this.#selection.highlighted === null) return;
     event.preventDefault();
     event.stopPropagation();
-    const previous = this.#highlightPosition();
     this.#selection.move(direction);
-    this.#renderAndRevealMovedHighlight(previous);
+    this.render();
+    this.#revealHighlight();
   };
 
   readonly #pointerMove = (event: PointerEvent): void => {

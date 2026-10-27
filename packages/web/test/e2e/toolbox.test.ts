@@ -58,6 +58,20 @@ async function pressAndCapture(search: Locator, chord: string): Promise<KeyCaptu
     input.__toolboxKeyCaptures!.slice(options.index).find(capture => capture.key === options.key)!, { index, key });
 }
 
+async function dispatchWebKitCompositionKey(search: Locator, key: string) {
+  return search.evaluate((input, eventKey) => {
+    const event = new KeyboardEvent("keydown", { key: eventKey, bubbles: true, cancelable: true });
+    Object.defineProperty(event, "keyCode", { value: 229 });
+    input.dispatchEvent(event);
+    return {
+      defaultPrevented: event.defaultPrevented,
+      isComposing: event.isComposing,
+      isTrusted: event.isTrusted,
+      keyCode: event.keyCode,
+    };
+  }, key);
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/packages/web/test/e2e/fixtures/toolbox.html");
   await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeVisible();
@@ -197,7 +211,12 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect(await footer.boundingBox()).toEqual(footerBox);
   await search.press("ArrowDown");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  const scrollWithLastTileVisible = await body.evaluate(element => element.scrollTop);
+  await page.mouse.wheel(0, -400);
+  await expect.poll(() => body.evaluate(element => element.scrollTop)).toBeLessThan(scrollWithLastTileVisible);
+  expect((await tiles.last().boundingBox())!.y).toBeGreaterThanOrEqual((await footer.boundingBox())!.y);
   expect(await pressAndCapture(search, "ArrowDown")).toMatchObject({ key: "ArrowDown", defaultPrevented: true });
+  expect((await tiles.last().boundingBox())!.y + (await tiles.last().boundingBox())!.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
   await tiles.nth(2).hover();
   await expect(tiles.nth(2)).toHaveAttribute("aria-selected", "true");
   await page.mouse.down();
@@ -270,6 +289,33 @@ test("CDP composition passes trusted arrows and Return through the search field"
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
+test("WebKit composition guards pass arrows and Return through the search field", async ({ page }) => {
+  await set(page);
+  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const tiles = page.getByRole("gridcell");
+  await search.fill("Item");
+  await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
+    expect(await dispatchWebKitCompositionKey(search, key)).toEqual({
+      defaultPrevented: false,
+      isComposing: false,
+      isTrusted: false,
+      keyCode: 229,
+    });
+    await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  }
+  expect(await dispatchWebKitCompositionKey(search, "Enter")).toEqual({
+    defaultPrevented: false,
+    isComposing: false,
+    isTrusted: false,
+    keyCode: 229,
+  });
+  expect(await actions(page)).toEqual([]);
+  await expect(search).toBeFocused();
+});
+
+// proofs/ui/app/toolbox.md#^toolbox-t-browser-input
 test("keyboard and search reveal highlights at both scrolling edges", async ({ page }) => {
   await set(page);
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
@@ -301,6 +347,14 @@ test("keyboard and search reveal highlights at both scrolling edges", async ({ p
   expect(searchedTileBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
   expect(searchedTileBox.y + searchedTileBox.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
   expect(await body.evaluate(element => element.scrollTop)).toBeLessThan(scrollBeforeSearch);
+
+  await body.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  expect((await tiles.first().boundingBox())!.y).toBeLessThan(bodyBox.y);
+  await search.fill(" Item ");
+  await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  const repeatedSearchTileBox = (await tiles.first().boundingBox())!;
+  expect(repeatedSearchTileBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
+  expect(repeatedSearchTileBox.y + repeatedSearchTileBox.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input

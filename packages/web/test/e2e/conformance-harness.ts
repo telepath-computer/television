@@ -20,6 +20,24 @@ export const client = new TelevisionClient(server.serverURL, { token: server.tok
 
 export const storybook = new StorybookSource({ url: process.env.TV_SPEC_STORYBOOK_URL });
 
+interface SpecStorybookEntry {
+  id: string;
+  importPath: string;
+  title: string;
+  type: string;
+}
+
+let specStorybookEntries: SpecStorybookEntry[] | undefined;
+
+function readSpecStorybookEntries(): SpecStorybookEntry[] {
+  if (specStorybookEntries) return specStorybookEntries;
+  const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
+    entries: Record<string, SpecStorybookEntry>;
+  };
+  specStorybookEntries = Object.values(index.entries);
+  return specStorybookEntries;
+}
+
 export interface Conformance {
   // conform drives its own Playwright, so each worker's browser comes from that version rather than the runner's.
   browser: Browser;
@@ -54,10 +72,14 @@ export function artifactURL(proxy: NetworkProxy, artifactOrShareID: string): str
  * embed, from the index of the built Storybook.
  */
 export function specStories(importPath: string): string[] {
-  const index = JSON.parse(readFileSync(path.resolve(import.meta.dirname, "../../../../storybook/dist/index.json"), "utf8")) as {
-    entries: Record<string, { id: string; type: string; importPath: string }>;
-  };
-  return Object.values(index.entries)
+  return readSpecStorybookEntries()
     .filter((entry) => entry.type === "story" && entry.importPath === importPath)
     .map((entry) => entry.id);
+}
+
+/** IDs of built docs entries whose final title segment is `name`. */
+export function specDocs(name: string): string[] {
+  return readSpecStorybookEntries()
+    .filter(entry => entry.type === "docs" && entry.title.split("/").at(-1)?.toLowerCase() === name.toLowerCase())
+    .map(entry => entry.id);
 }
