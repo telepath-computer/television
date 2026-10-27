@@ -33,9 +33,11 @@ Markdown is being added as a bundled artifact template. Its page is the existing
 
 ## Spec changes for Rupert's review
 
-- Make an absent `view:markdown` inventory a failure of the Markdown template editor check, and make the suite's pre-build refresh that inventory from the current Markdown file view first. This makes “same tree” reproducible instead of leaving it to whoever invokes the check.
+- Make an absent `view:markdown` inventory a named failure of the Markdown template editor check, and make the suite's pre-build refresh that inventory from the current Markdown file view first. This makes “same tree” reproducible instead of leaving it to whoever invokes the check.
 - Restore disposal's meaning at the internal editor boundary: disposal ends callbacks and releases the editor. This was lost when the boundary prose was simplified, but the existing implementation and derived proof still rely on it.
 - Define an invalid Markdown template editor licensing record as the wrong exact shape, unsorted or duplicate package or asset entries, an invalid package record or asset ID, or a named asset that lacks `view:markdown` or `source` coverage. A well-formed ID absent from the asset manifest remains the separate unknown-asset failure. This makes the license gate's rejection deterministic.
+- Make it a license-gate rule that no asset record may name the Markdown template folder in `noticesFolder`. The editor licensing record is the only input that owns notices for this folder, so rejecting the second ownership path prevents duplicate or conflicting generators.
+- Require the Markdown template editor check to name every differing JavaScript file, stylesheet, package record and asset ID. A complete diagnostic makes a stale committed bundle actionable in one run instead of revealing one mismatch at a time.
 
 ## Visual review for Rupert
 
