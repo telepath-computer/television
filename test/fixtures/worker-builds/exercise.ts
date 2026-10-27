@@ -15,6 +15,8 @@ export async function exerciseWorkerBuilds(caseNumber: number): Promise<void> {
       onboardingBundle: path.join(temporaryRoot, "absent-bundle"),
       env: { VITEST: "" },
     }), /ENOENT/);
+    assert.deepEqual(readdirSync(temporaryRoot).filter((entry) => entry.startsWith("television-product-e2e-")), [],
+      "the failed launch removes its home and private runtime before another launch");
   }
 
   const server = await launchProductServer({ env: { VITEST: "" } });

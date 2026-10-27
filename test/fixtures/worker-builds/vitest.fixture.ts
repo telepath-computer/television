@@ -1,4 +1,4 @@
-import { test } from "vitest";
+import { test } from "../../helpers/vitest.ts";
 import { exerciseWorkerBuilds } from "./exercise.ts";
 
 test("first case prepares usable builds", async () => exerciseWorkerBuilds(1));
