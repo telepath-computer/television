@@ -133,7 +133,10 @@ export function planCellCommit(value: unknown, target: TableCellPosition, opened
 /** Plans showing or hiding the header row. */
 export function planSetHeader(headerRow: boolean): TablePlanResult;
 
-/** Plans one stored or drawn row-height or column-width change. */
+/**
+ * Plans one stored or drawn size change. `openedSize` is the size shown when resizing began;
+ * finite committed sizes clamp to the axis limits, while a non-finite size produces no write.
+ */
 export function planResize(value: unknown, axis: "rows" | "columns", targetIndex: number,
   openedSize: number, committedSize: number, keys: TableCommitKeys): TablePlanResult;
 

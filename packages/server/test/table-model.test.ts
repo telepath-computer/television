@@ -162,10 +162,23 @@ describe("Table drawn axes", () => {
   });
 
   it("keeps drawn identity through value changes and invalidates it when stored count changes", () => {
-    const before = displayAxis([{ key: "c1", order: 1, width: 160 }])[2]!;
-    expect(displayAxis([{ key: "c1", order: 9, width: 220 }])[2]!.id).toBe(before.id);
-    expect(displayAxis([{ key: "c2", order: 1, height: 80, cells: { c1: "changed" } }])[2]!.id).toBe(before.id);
-    expect(displayAxis([{ key: "c1", order: 1 }, { key: "c2", order: 2 }])[2]!.id).not.toBe(before.id);
+    const before = readTable({
+      columns: { c1: { order: 1, width: 160 } },
+      rows: { r1: { order: 1, height: 38, cells: { c1: "before" } } },
+    })!;
+    const changed = readTable({
+      columns: { c1: { order: 9, width: 220 } },
+      rows: { r1: { order: 9, height: 80, cells: { c1: "changed" } } },
+    })!;
+    expect(displayAxis(changed.columns)[2]!.id).toBe(displayAxis(before.columns)[2]!.id);
+    expect(displayAxis(changed.rows)[2]!.id).toBe(displayAxis(before.rows)[2]!.id);
+
+    const added = readTable({
+      columns: { c1: { order: 1 }, c2: { order: 2 } },
+      rows: { r1: { order: 1, cells: {} }, r2: { order: 2, cells: {} } },
+    })!;
+    expect(displayAxis(added.columns)[2]!.id).not.toBe(displayAxis(before.columns)[2]!.id);
+    expect(displayAxis(added.rows)[2]!.id).not.toBe(displayAxis(before.rows)[2]!.id);
   });
 
   it("keeps both writers' valid key sets after a blank-axis race", () => {
@@ -375,7 +388,13 @@ describe("Table write planning", () => {
       .toEqual(noWrite("unchanged"));
     expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 200, {}))
       .toEqual(operations(set(["columns", "c1", "width"], 200)));
-    expect(planResize({ columns: { c1: { order: 0, width: 160 } }, rows: {} }, "columns", 0, 160, Number.NaN, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 300, 0, {}))
+      .toEqual(operations(set(["columns", "c1", "width"], 64)));
+    expect(planResize({ columns: {}, rows: { r1: { order: 0, height: 80, cells: {} } } }, "rows", 0, 80, -10, {}))
+      .toEqual(operations(set(["rows", "r1", "height"], 28)));
+    expect(planResize({ columns: { c1: { order: 0, width: 200 } }, rows: {} }, "columns", 0, 200, Number.NaN, {}))
+      .toEqual(noWrite("unchanged"));
+    expect(planResize({ columns: { c1: { order: 0, width: 64 } }, rows: {} }, "columns", 0, 64, 54, {}))
       .toEqual(noWrite("unchanged"));
 
     expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 210, { columns: ["c1", "c2"] })).toEqual(operations(
