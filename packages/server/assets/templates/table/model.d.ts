@@ -90,6 +90,7 @@ export type TableNoWriteReason =
   | "unchanged"
   | "empty-drawn"
   | "unreadable"
+  | "invalid-size"
   | "invalid-target"
   | "missing-keys"
   | "invalid-keys"

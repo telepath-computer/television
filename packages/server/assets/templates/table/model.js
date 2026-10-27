@@ -183,9 +183,7 @@ function renumber(axis, request, extraOperations = []) {
 function newAxisEntries(axis, entries, keys, additions = {}) {
   const values = keys.map(key => ({
     key,
-    value: axis === "rows"
-      ? { cells: {}, ...(Object.hasOwn(additions, key) ? additions[key] : {}) }
-      : { ...(Object.hasOwn(additions, key) ? additions[key] : {}) },
+    value: axis === "rows" ? { cells: {}, ...additions[key] } : { ...additions[key] },
   }));
   const orders = ordersAtEnd(entries, keys.length);
   if (orders === null) return { kind: "renumber", request: { mode: "append", entries: values } };
@@ -259,7 +257,7 @@ export function planSetHeader(headerRow) {
 /** Plans one stored or drawn row-height or column-width change. */
 export function planResize(value, axis, targetIndex, openedSize, committedSize, keys) {
   const rules = AXIS_SIZES[axis];
-  if (!Number.isFinite(committedSize)) return noWrite("unchanged");
+  if (!Number.isFinite(committedSize)) return noWrite("invalid-size");
   const size = Math.max(rules.minimum, Math.min(committedSize, rules.maximum));
   if (size === openedSize) return noWrite("unchanged");
   const state = planningState(value);

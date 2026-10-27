@@ -88,15 +88,16 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/header row[^.]*first displayed row[^.]*ordinary row/i);
     expect(prose).toMatch(/160[^.]*64[^.]*640[^.]*column/i);
     expect(prose).toMatch(/38[^.]*28[^.]*240[^.]*row/i);
+    expect(prose).toMatch(/zero[^.]*negative[^.]*non-number[^.]*default/i);
     expect(prose).toMatch(/person[^.]*editing[^.]*path-level/i);
     for (const command of [
       "export ARTIFACT_ID=<id>",
       'tv resource json set --artifact "$ARTIFACT_ID" \'{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":38,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}\'',
-      'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":1,"width":160}\'',
+      'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":1}\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'2\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/width" \'200\'',
       'tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"',
-      'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":1,"height":38,"cells":{}}\'',
+      'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":1,"cells":{}}\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" \'2\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/height" \'52\'',
       'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"',

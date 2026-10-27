@@ -393,9 +393,12 @@ describe("Table write planning", () => {
     expect(planResize({ columns: {}, rows: { r1: { order: 0, height: 80, cells: {} } } }, "rows", 0, 80, -10, {}))
       .toEqual(operations(set(["rows", "r1", "height"], 28)));
     expect(planResize({ columns: { c1: { order: 0, width: 200 } }, rows: {} }, "columns", 0, 200, Number.NaN, {}))
-      .toEqual(noWrite("unchanged"));
+      .toEqual(noWrite("invalid-size"));
     expect(planResize({ columns: { c1: { order: 0, width: 64 } }, rows: {} }, "columns", 0, 64, 54, {}))
       .toEqual(noWrite("unchanged"));
+    expect(planResize(table, "columns", 8, 160, 200, {})).toEqual(noWrite("invalid-target"));
+    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 200, { columns: ["same", "same"] }))
+      .toEqual(noWrite("invalid-keys"));
 
     expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 210, { columns: ["c1", "c2"] })).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1, width: 210 }),
