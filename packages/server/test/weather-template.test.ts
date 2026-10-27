@@ -106,6 +106,7 @@ describe("bundled Weather package", () => {
     for (const file of ["index.html", "styles.css", "page.js", "model.js", "provider.js", "icon.svg", "artwork.svg", "README.md", "THIRD-PARTY-NOTICES.txt"]) {
       expect(existsSync(path.join(folder, file)), file).toBe(true);
     }
+    expect(readFileSync(path.join(folder, "index.html"), "utf8")).not.toContain("weather-credit");
   });
 
   // proofs/arch/templates/weather.md#^templates-weather-t-icon
@@ -128,7 +129,7 @@ describe("bundled Weather package", () => {
     expect(prose).toMatch(/town-level[\s\S]*coordinates[\s\S]*IP address/i);
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" \'{"place":"San Francisco","latitude":37.7749,"longitude":-122.4194,"units":"celsius"}\'');
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" place \'"San Francisco Bay Area"\'');
-    expect(readme).toContain('tv resource json update --artifact "$ARTIFACT_ID" \'{"latitude":40.7128,"longitude":-74.006}\'');
+    expect(readme).toContain('tv resource json update --artifact "$ARTIFACT_ID" \'{"place":"New York","latitude":40.7128,"longitude":-74.006}\'');
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" units \'"fahrenheit"\'');
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" \'{}\'');
     expect(prose).toMatch(/do not (?:write|edit)[\s\S]*`forecast`/i);

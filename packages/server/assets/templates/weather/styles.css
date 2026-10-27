@@ -57,20 +57,6 @@ body {
   animation: weather-spin 1s linear infinite;
 }
 
-.weather-credit {
-  position: absolute;
-  right: 16px;
-  bottom: 11px;
-  margin: 0;
-  color: rgb(255 255 255 / 82%);
-  font: 500 10px / 1.2 var(--font-sans);
-  text-shadow: 0 1px 3px rgb(14 43 75 / 45%);
-}
-
-.weather-credit a {
-  color: inherit;
-}
-
 @keyframes weather-spin {
   to { transform: rotate(360deg); }
 }

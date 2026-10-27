@@ -77,34 +77,79 @@ export function isWeatherDay(value: unknown): value is WeatherDay;
 export function isWeatherForecast(value: unknown): value is WeatherForecast;
 
 /** Classifies a store value and returns a compatible saved forecast when present. */
-export function readWeatherValue(value: unknown): { kind: "empty" } | { kind: "unreadable" } | { kind: "configured"; configuration: WeatherConfiguration; forecast: WeatherForecast | null };
+export function readWeatherValue(value: unknown):
+  | { kind: "empty" }
+  | { kind: "unreadable" }
+  | {
+    kind: "configured";
+    configuration: WeatherConfiguration;
+    forecast: WeatherForecast | null;
+  };
 
 /** Selects later hourly entries for display or response retention. */
-export function getHourlyWindow(forecast: WeatherForecast, now: string | number | Date, limit?: number): WeatherHour[];
+export function getHourlyWindow(
+  forecast: WeatherForecast,
+  now: string | number | Date,
+  limit?: number,
+): WeatherHour[];
 
 /** Selects the first seven daily entries on or after the current local date. */
-export function getDailyWindow(forecast: WeatherForecast, now: string | number | Date): WeatherDay[];
+export function getDailyWindow(
+  forecast: WeatherForecast,
+  now: string | number | Date,
+): WeatherDay[];
 
 /** Returns high and low only for the current local date. */
-export function getCurrentHighLow(forecast: WeatherForecast, now: string | number | Date): { high: number; low: number } | null;
+export function getCurrentHighLow(
+  forecast: WeatherForecast,
+  now: string | number | Date,
+): { high: number; low: number } | null;
 
 /** Rounds a temperature half away from zero without producing negative zero. */
 export function roundTemperature(value: number): number;
 
 /** Returns the completed unit and value used for the forecast age label. */
-export function forecastAge(updatedAt: string, now: string | number | Date): { unit: "now" | "minute" | "hour" | "day"; value: number };
+export function forecastAge(
+  updatedAt: string,
+  now: string | number | Date,
+): { unit: "now" | "minute" | "hour" | "day"; value: number };
 
 /** Resets attempt state for new request values while retaining usable memory. */
-export function reconcileRequestContext(state: RequestState, configuration: WeatherConfiguration | null): { state: RequestState; abortRunning: boolean };
+export function reconcileRequestContext(
+  state: RequestState,
+  configuration: WeatherConfiguration | null,
+): { state: RequestState; abortRunning: boolean };
 
 /** Reports whether a response still belongs to the current request values. */
-export function canReplaceMemoryForecast(configuration: WeatherConfiguration | null, requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">): boolean;
+export function canReplaceMemoryForecast(
+  configuration: WeatherConfiguration | null,
+  requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
+): boolean;
+
+/** Reports whether a failure still belongs to the current request values. */
+export function canRecordRequestFailure(
+  configuration: WeatherConfiguration | null,
+  requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
+): boolean;
 
 /** Chooses between compatible saved and in-memory forecasts. */
-export function selectForecast(savedForecast: WeatherForecast | null, memoryForecast: WeatherForecast | null, now: string | number | Date): WeatherForecast | null;
+export function selectForecast(
+  savedForecast: WeatherForecast | null,
+  memoryForecast: WeatherForecast | null,
+  now: string | number | Date,
+): WeatherForecast | null;
 
 /** Reports whether the current request state permits a provider attempt. */
-export function shouldRequestForecast(input: { configuration: WeatherConfiguration | null; state: RequestState; savedForecast: WeatherForecast | null; now: string | number | Date }): boolean;
+export function shouldRequestForecast(input: {
+  configuration: WeatherConfiguration | null;
+  state: RequestState;
+  savedForecast: WeatherForecast | null;
+  now: string | number | Date;
+}): boolean;
 
 /** Returns the transaction root for a response that still matches the store. */
-export function updateForecastRoot(currentRoot: unknown, requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">, normalizedForecast: WeatherForecast): WeatherConfiguration | undefined;
+export function updateForecastRoot(
+  currentRoot: unknown,
+  requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
+  normalizedForecast: WeatherForecast,
+): WeatherConfiguration | undefined;

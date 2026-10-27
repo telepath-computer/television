@@ -274,6 +274,10 @@ export function canReplaceMemoryForecast(configuration, requestIdentity) {
   return isConfiguration(configuration) && sameIdentity(configuration, requestIdentity);
 }
 
+export function canRecordRequestFailure(configuration, requestIdentity) {
+  return canReplaceMemoryForecast(configuration, requestIdentity);
+}
+
 export function selectForecast(savedForecast, memoryForecast, now) {
   if (!savedForecast) return memoryForecast || null;
   if (!memoryForecast) return savedForecast;

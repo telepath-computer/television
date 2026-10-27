@@ -21,10 +21,10 @@ Change only the displayed name without fetching different weather:
 tv resource json set --artifact "$ARTIFACT_ID" place '"San Francisco Bay Area"'
 ```
 
-Change both coordinates together when moving the card to another place:
+Change the place and both coordinates together when moving the card:
 
 ```sh
-tv resource json update --artifact "$ARTIFACT_ID" '{"latitude":40.7128,"longitude":-74.006}'
+tv resource json update --artifact "$ARTIFACT_ID" '{"place":"New York","latitude":40.7128,"longitude":-74.006}'
 ```
 
 Change units independently:

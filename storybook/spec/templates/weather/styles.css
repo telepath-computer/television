@@ -588,7 +588,7 @@ body {
 
 @media (max-width: 280px), (max-height: 280px) {
   .weather-empty {
-    padding: var(--space-12) var(--space-12) var(--space-32);
+    padding: var(--space-12);
   }
 
   .weather-empty .weather-glyph-empty {
@@ -611,7 +611,7 @@ body {
   }
 
   .weather-error {
-    padding: var(--space-12) var(--space-12) var(--space-32);
+    padding: var(--space-12);
   }
 
   .weather-error .weather-placeholder-icon {
