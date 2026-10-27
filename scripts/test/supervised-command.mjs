@@ -4,17 +4,29 @@ import path from "node:path";
 import process from "node:process";
 import { createSurfaceSupervisor } from "./surface-supervisor.mjs";
 import { startSurfaceServices } from "./surface-services.mjs";
+import { writeVitestRunnerConfig } from "./execution-groups.mjs";
+import { surfaceResourceDiagnostics } from "./resource-diagnostics.mjs";
 
 const { runId, surfaceIds, resultPath, preCommand, services, command, args } = parseArgs(process.argv.slice(2));
 const supervisor = createSurfaceSupervisor({ runId, surfaceIds });
+const diagnostics = surfaceResourceDiagnostics({ resultsDir: path.dirname(resultPath), surfaceId: surfaceIds.join(","), runId });
+let executionEnv = process.env;
+let attemptResultPath = null;
 let commandResult = { exitCode: 127, signal: null, error: null };
 let cleanupError = null;
 let executionFailure = null;
 let processLeaks = [];
 let serviceScope = null;
 try {
+  if (process.env.TV_TARGET_RUNNER === "vitest" && process.env.TV_TARGET_CONFIG) {
+    const runnerConfig = path.join(path.dirname(resultPath), "target.runner.config.mjs");
+    attemptResultPath = `${process.env.TV_TARGET_NATIVE_RESULT}.attempts.ndjson`;
+    fs.rmSync(attemptResultPath, { force: true });
+    writeVitestRunnerConfig({ configPath: runnerConfig, baseConfigPath: process.env.TV_TARGET_CONFIG, runnerPath: "scripts/test/vitest-attempt-reporter.mjs" });
+    executionEnv = { ...process.env, TV_TARGET_VITEST_CONFIG: runnerConfig, TV_VITEST_ATTEMPT_FILE: attemptResultPath };
+  }
   if (preCommand) {
-    const preResult = await supervisor.run(preCommand[0], preCommand.slice(1), { cwd: process.cwd(), env: process.env, stdio: "inherit" });
+    const preResult = await supervisor.run(preCommand[0], preCommand.slice(1), { cwd: process.cwd(), env: executionEnv, stdio: "inherit" });
     const preLeaks = await supervisor.checkForLeaks();
     if (preResult.exitCode !== 0 || preLeaks.length > 0) {
       commandResult = preResult;
@@ -23,14 +35,14 @@ try {
   }
   if (!executionFailure && services.length > 0) {
     try {
-      serviceScope = await startSurfaceServices(services, { env: supervisor.childEnv(process.env) });
+      serviceScope = await startSurfaceServices(services, { env: supervisor.childEnv(executionEnv) });
     } catch (error) {
       commandResult = { exitCode: 1, signal: null, error };
       executionFailure = { kind: "surface-service", message: error.message ?? String(error), step: "surface-service-start" };
     }
   }
   if (!executionFailure) {
-    commandResult = await supervisor.run(command, args, { cwd: process.cwd(), env: serviceScope?.env ?? process.env, stdio: "inherit" });
+    commandResult = await supervisor.run(command, args, { cwd: process.cwd(), env: serviceScope?.env ?? executionEnv, stdio: "inherit" });
   }
 } finally {
   if (serviceScope) {
@@ -50,6 +62,7 @@ try {
 }
 
 const failedForLifecycle = processLeaks.length > 0 || cleanupError !== null;
+const resourceDiagnosticsPaths = diagnostics.finish({ runner: process.env.TV_TARGET_RUNNER, nativeResultPath: process.env.TV_TARGET_NATIVE_RESULT, attemptResultPath, exitCode: commandResult.exitCode, incomplete: failedForLifecycle || Boolean(executionFailure) });
 const publishedServices = serviceScope?.services ?? [];
 const result = {
   schemaVersion: 1,
@@ -62,6 +75,8 @@ const result = {
   exitCode: commandResult.exitCode,
   signal: commandResult.signal,
   processLeaks,
+  resourceDiagnosticsPaths,
+  attemptResultPath: attemptResultPath && fs.existsSync(attemptResultPath) ? attemptResultPath : null,
   failureKind: cleanupError?.name === "UnconfirmedSurfaceCleanupError" ? "unconfirmed-process-cleanup" : executionFailure?.kind ?? (failedForLifecycle ? "process-leak" : null),
   failureStep: executionFailure?.step ?? null,
   failureMessage: cleanupError?.message ?? executionFailure?.message ?? (processLeaks.length > 0 ? `${processLeaks.length} owned process leak(s) were reaped` : null),

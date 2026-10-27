@@ -10,6 +10,7 @@ import { blaxelCheckoutScript, blaxelDependencyScript, resolveBlaxelRepositoryUr
 import { transferShardInputs } from "./test/blaxel-shard-dispatch.mjs";
 import { buildLinuxStaleOwnerAuditInvocation, parseLinuxStaleOwnerAuditOutput } from "./test/blaxel-stale-owner-audit.mjs";
 import { normalizeSetupTimingStatus, normalizeTimingPhase } from "./test/phase-metrics.mjs";
+import { RESOURCE_SIDECAR_BYTES, RESOURCE_ATTEMPT_BYTES } from "./test/resource-diagnostics.mjs";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -438,6 +439,8 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
   const command = `bash ${remoteScript}`;
   let stream;
   let retainedResultProgress = null;
+  let resourceDiagnosticsPaths = [];
+  const copiedArtifacts = new Map();
   let failureStep = "worker-execution";
   try {
     lease.executionRequested = true;
@@ -484,6 +487,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
         summaryPath: fs.existsSync(summaryPath) ? summaryPath : null,
         summaryError: shardSummaryError,
         nativeResultPath,
+        resourceDiagnosticsPaths: [...resourceDiagnosticsPaths],
         logPath: fs.existsSync(logPath) ? logPath : null,
         setupTimings,
         planId: shardSummary?.planId ?? shardPlan?.planId,
@@ -525,9 +529,11 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       }
     } catch {}
     retainResultProgress();
-    const copiedArtifacts = new Map();
+    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts });
+    retainResultProgress();
     for (const [taskIndex, task] of (shardSummary?.tasks ?? []).entries()) {
       const copiedTask = { ...tasks[taskIndex] };
+      copiedTask.resourceDiagnosticsPaths = (task.resourceDiagnosticsPaths ?? []).map((remotePath) => copiedArtifacts.get(remotePath)).filter(Boolean);
       for (const field of ["nativeResultPath", "attemptResultPath", "workspaceNativeResultPath", "lifecycleResultPath", "processLeakResultPath"]) {
         if (!task[field]) continue;
         copiedTask[field] = await copyRemoteArtifact(sandbox, task[field], { outputDir, shardIndex, copiedArtifacts });
@@ -569,15 +575,17 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       failureStep: hasSummaryFile ? "summary-parse" : "summary-read",
       failureMessage: shardSummaryError ?? `Shard ${shardIndex}/${shardTotal} produced no readable summary.`,
     } : null;
-    return { shardIndex, shardTotal, shard: `${shardIndex}/${shardTotal}`, sandbox: sandbox.metadata.name, outputDir, status, exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt, durationMs: Date.now() - overallStarted, summaryPath: fs.existsSync(summaryPath) ? summaryPath : null, summaryError: shardSummaryError, nativeResultPath, logPath, setupTimings, planId: shardSummary?.planId ?? shardPlan?.planId, timingProvider: shardSummary?.timingProvider ?? shardPlan?.timingProvider, testedTree: shardSummary?.testedTree ?? shardPlan?.testedTree, testedCommit: shardSummary?.testedCommit ?? shardPlan?.testedCommit, predictedDurationMs: shardSummary?.predictedDurationMs, phases: [...(shardSummary?.phases ?? []), reportPhase], assignedFiles: shardSummary?.assignedFiles ?? [], collectedFiles: shardSummary?.collectedFiles ?? [], failureKind: identityError ? "plan-validation" : resultError ? "result-report" : missingSummaryFailure?.failureKind ?? shardSummary?.failureKind ?? failedInfrastructureTask?.failureKind, failureStep: identityError ? "plan-validation" : resultError ? "summary-validation" : missingSummaryFailure?.failureStep ?? shardSummary?.failureStep ?? failedInfrastructureTask?.failureStep, failureMessage: identityError ?? resultError ?? missingSummaryFailure?.failureMessage ?? shardSummary?.failureMessage ?? failedInfrastructureTask?.failureMessage, processLeaks: shardSummary?.processLeaks ?? [], tasks };
+    return { shardIndex, shardTotal, shard: `${shardIndex}/${shardTotal}`, sandbox: sandbox.metadata.name, outputDir, status, exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt, durationMs: Date.now() - overallStarted, summaryPath: fs.existsSync(summaryPath) ? summaryPath : null, summaryError: shardSummaryError, nativeResultPath, resourceDiagnosticsPaths, logPath, setupTimings, planId: shardSummary?.planId ?? shardPlan?.planId, timingProvider: shardSummary?.timingProvider ?? shardPlan?.timingProvider, testedTree: shardSummary?.testedTree ?? shardPlan?.testedTree, testedCommit: shardSummary?.testedCommit ?? shardPlan?.testedCommit, predictedDurationMs: shardSummary?.predictedDurationMs, phases: [...(shardSummary?.phases ?? []), reportPhase], assignedFiles: shardSummary?.assignedFiles ?? [], collectedFiles: shardSummary?.collectedFiles ?? [], failureKind: identityError ? "plan-validation" : resultError ? "result-report" : missingSummaryFailure?.failureKind ?? shardSummary?.failureKind ?? failedInfrastructureTask?.failureKind, failureStep: identityError ? "plan-validation" : resultError ? "summary-validation" : missingSummaryFailure?.failureStep ?? shardSummary?.failureStep ?? failedInfrastructureTask?.failureStep, failureMessage: identityError ?? resultError ?? missingSummaryFailure?.failureMessage ?? shardSummary?.failureMessage ?? failedInfrastructureTask?.failureMessage, processLeaks: shardSummary?.processLeaks ?? [], tasks };
   } catch (error) {
     stream?.close?.();
+    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts });
     appendLog(logPath, `\n[coordinator] ${error.stack || error.message}\n`);
     const completedAt = new Date().toISOString();
     const plannedShard = shardPlan?.shards?.[shardIndex - 1];
     const failure = classifyBlaxelCoordinatorFailure({ failureStep, message: error.message });
     return {
       ...retainedResultProgress,
+      resourceDiagnosticsPaths,
       shardIndex,
       shardTotal,
       shard: `${shardIndex}/${shardTotal}`,
@@ -647,6 +655,37 @@ function retainTaskWithoutRemoteArtifacts(task) {
     if (retained[field]) retained[field] = null;
   }
   if (Array.isArray(retained.generatedInputPaths)) retained.generatedInputPaths = [];
+  retained.resourceDiagnosticsPaths = [];
+  return retained;
+}
+
+async function copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts }) {
+  const root = "/workspace/television/.testshards/results/resources";
+  const retained = [];
+  let bytes = 0;
+  try {
+    const listing = await sandbox.fs.ls(root);
+    for (const entry of (listing.files ?? []).slice(0, 1024)) {
+      if (!/^[A-Za-z0-9_.-]+\.json$/.test(entry.name)) continue;
+      try {
+        if (entry.size > RESOURCE_SIDECAR_BYTES || bytes + entry.size > RESOURCE_ATTEMPT_BYTES) throw new Error("budget");
+        const remotePath = `${root}/${entry.name}`;
+        const raw = await sandbox.fs.read(remotePath);
+        const size = Buffer.byteLength(raw);
+        if (size > RESOURCE_SIDECAR_BYTES || bytes + size > RESOURCE_ATTEMPT_BYTES) throw new Error("budget");
+        const record = JSON.parse(raw);
+        if (record.schemaVersion !== 1 || record.identity?.runId !== runId || record.identity?.shardIndex !== shardIndex || record.identity?.attemptId !== lockId) throw new Error("identity");
+        const localPath = path.join(outputDir, "artifacts", `shard-${shardIndex}`, "resources", entry.name);
+        fs.mkdirSync(path.dirname(localPath), { recursive: true });
+        fs.writeFileSync(localPath, raw);
+        copiedArtifacts.set(remotePath, localPath);
+        retained.push(localPath); bytes += size;
+      } catch { console.error(`[resource diagnostics] shard ${shardIndex}: sidecar unavailable, invalid or over budget`); }
+    }
+    if ((listing.files?.length ?? 0) > 1024) console.error(`[resource diagnostics] shard ${shardIndex}: file listing truncated`);
+  } catch (error) {
+    if (error?.status !== 404 && error?.response?.status !== 404) console.error(`[resource diagnostics] shard ${shardIndex}: directory unavailable`);
+  }
   return retained;
 }
 
@@ -707,7 +746,7 @@ function targetCommand() {
   if (target.runner) {
     const args = ["cd", shellQuote(target.cwd), "&&"];
     if (target.runner === "vitest") {
-      args.push("npx", "vitest", "run", "--config", shellQuote(target.config), "--reporter=json", '--outputFile "$TV_TARGET_NATIVE_RESULT"');
+      args.push("npx", "vitest", "run", "--config", '"$TV_TARGET_VITEST_CONFIG"', "--reporter=json", '--outputFile "$TV_TARGET_NATIVE_RESULT"');
       if (target.file) args.push(shellQuote(target.file));
       if (target.grep) args.push("-t", shellQuote(target.grep));
       if (target.retries) args.push(`--retry=${target.retries}`);
@@ -783,6 +822,9 @@ export npm_config_fund=false
 export PLAYWRIGHT_BROWSERS_PATH=${playwrightBrowsersPath}
 export TEST_RETRIES=${testRetries}
 export TV_TEST_TIMING_PROVIDER=blaxel-playwright-x64-4vcpu
+export TV_TEST_RUN_ID=${shellQuote(runId)}
+export TV_TEST_SHARD_INDEX=${shardIndex}
+export TV_TEST_SHARD_ATTEMPT=${shellQuote(lockId)}
 mkdir -p /workspace /cache/npm
 if [ -z "\${GH_TOKEN:-}" ]; then echo "GH_TOKEN missing" >&2; exit 2; fi
 setup_metrics=/tmp/tv-testshard-setup-${shardIndex}.jsonl
@@ -934,6 +976,7 @@ elif [ ${shellQuote(suite)} = target ]; then
   export TV_TARGET_RUN_ID=${shellQuote(`${runId}:${shardIndex}`)}
   export TV_TARGET_NAME=${shellQuote(`${targetOptions()?.workspace ?? "target"} ${targetOptions()?.file ?? ""} ${targetOptions()?.grep ?? ""}`)}
   export TV_TARGET_RUNNER=${shellQuote(targetOptions()?.runner ?? "target")}
+  export TV_TARGET_CONFIG=${shellQuote(targetOptions()?.config ? path.posix.join("/workspace/television", targetOptions().config) : "")}
   export TV_TARGET_COMMAND=${shellQuote(targetCommand())}
   export TV_TARGET_LIFECYCLE_RESULT="/workspace/television/.testshards/results/target-lifecycle-${shardIndex}.json"
   export TV_TARGET_NATIVE_RESULT="/workspace/television/.testshards/results/native-shard-${shardIndex}.json"
@@ -970,6 +1013,8 @@ const task = {
   durationMs: Date.now() - Date.parse(startedAt),
   nativeResultPath: fs.existsSync(process.env.TV_TARGET_NATIVE_RESULT) ? process.env.TV_TARGET_NATIVE_RESULT : null,
   lifecycleResultPath: process.env.TV_TARGET_LIFECYCLE_RESULT,
+  attemptResultPath: lifecycle.attemptResultPath || null,
+  resourceDiagnosticsPaths: lifecycle.resourceDiagnosticsPaths || [],
   processLeaks,
   failureKind: lifecycle.failureKind || null,
   failureStep: lifecycle.failureStep || null,

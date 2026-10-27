@@ -79,6 +79,7 @@ export function buildReports({ runId, provider = null, commandProvider = provide
       logPath: surface.logPath,
       nativeResultPath: Array.isArray(surface.nativeResultPath) ? (surface.nativeResultPath[0] ?? null) : surface.nativeResultPath,
       nativeResultPaths: surface.nativeResultPaths ?? (Array.isArray(surface.nativeResultPath) ? surface.nativeResultPath : [surface.nativeResultPath].filter(Boolean)),
+      resourceDiagnosticsPaths: retainedResourcePaths(surface.resourceDiagnosticsPaths).map((file) => path.relative(runDir, file).replaceAll("\\", "/")),
       failureKind: surface.failureKind ?? null,
       failureStep: surface.failureStep ?? null,
       failureMessage: surface.failureMessage ?? null,
@@ -135,7 +136,7 @@ function compactObject(value) {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined && item !== null));
 }
 
-export function normalizeSurfaceResult({ surface, command, exitCode, durationMs, logPath, nativeResultPath, attemptResultPath = null, processLeaks = [] }) {
+export function normalizeSurfaceResult({ surface, command, exitCode, durationMs, logPath, nativeResultPath, attemptResultPath = null, resourceDiagnosticsPaths = [], processLeaks = [] }) {
   const nativeReport = readJsonResult(nativeResultPath);
   const native = nativeReport.value;
   const base = {
@@ -148,6 +149,7 @@ export function normalizeSurfaceResult({ surface, command, exitCode, durationMs,
     logPath,
     nativeResultPath,
     attemptResultPath,
+    resourceDiagnosticsPaths: retainedResourcePaths(resourceDiagnosticsPaths),
     infraStatus: "completed",
     processLeaks: deduplicateProcessLeaks(processLeaks),
   };
@@ -168,6 +170,12 @@ export function normalizeSurfaceResult({ surface, command, exitCode, durationMs,
   if (surface.runner === "playwright") return { ...base, ...normalizePlaywright(native, exitCode, surface) };
   if (surface.runner === "vitest") return { ...base, ...normalizeVitest(native, exitCode, surface, readNdjson(attemptResultPath)) };
   return { ...base, status: exitCode === 0 ? "passed" : "failed", counts: emptyCounts(), failedTests: [], flakyRecoveredTests: [], files: [] };
+}
+
+// Exact paths only: a basename lookup could attach another infrastructure
+// attempt's observation when this attempt's download is absent.
+export function retainedResourcePaths(paths = []) {
+  return [...new Set(paths.filter((file) => typeof file === "string" && fs.existsSync(file)).map((file) => path.resolve(file)))].sort();
 }
 
 function normalizePlaywright(native, exitCode, surface) {
