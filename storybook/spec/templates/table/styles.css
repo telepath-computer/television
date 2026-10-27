@@ -359,7 +359,11 @@ textarea {
   font-size: var(--text-sm);
 }
 
-.table-status:empty { display: none; }
+.table-status:empty {
+  min-height: 0;
+  padding-block: 0;
+  border-top: 0;
+}
 
 .table-loading {
   display: grid;

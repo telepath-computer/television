@@ -317,6 +317,7 @@ function render(focus = "none", nextAxes = buildAxes()) {
   if (nextEditor instanceof HTMLTextAreaElement && editing) nextEditor.value = editing.text;
   if (focus === "leave" || focus === "none" && !tableControlFocused) return;
   queueMicrotask(() => {
+    if (!document.hasFocus()) return;
     const preservingEditor = focus === "none" && editorState?.focused;
     const preservingSelection = focus === "none" && selectionFocused;
     const preservingMenu = focus === "none" && focusedMenuIndex >= 0;
@@ -326,7 +327,7 @@ function render(focus = "none", nextAxes = buildAxes()) {
         : focus === "menu" ? main.querySelector("tv-menu-item")
           : preservingMenu ? main.querySelectorAll("tv-menu-item")[focusedMenuIndex]
             : preservingGrid ? main.querySelector(".table-grid")
-          : preservingSelection || focus === "selection" ? selectionTarget() : null;
+              : preservingSelection || focus === "selection" ? selectionTarget() : null;
     const target = intendedTarget ?? selectionTarget() ?? main.querySelector(".table-grid");
     suppressGridEntry = target === main.querySelector(".table-grid");
     target?.focus({ preventScroll: true });
@@ -413,10 +414,7 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
       onLocalApply?.();
       const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
-      if (!canWrite()) {
-        if (connection === "connected" && received && !unavailable && model !== null && access !== "read-write") showFailure();
-        return false;
-      }
+      if (received && (unavailable || model === null)) return false;
     }
     if (plan.operations.length > 0) {
       const pending = startWithActionEcho(() => applyOperations(plan.operations), currentPageActionSelection);
@@ -424,8 +422,8 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
       await pending;
     }
     return true;
-  } catch {
-    showFailure();
+  } catch (error) {
+    if (error?.code !== "disconnected") showFailure();
     return false;
   }
 }
@@ -464,10 +462,10 @@ function reconcileEditing(active, displayed, showHeader) {
   return rowIndex < 0 ? null : { ...active, rowIndex, columnIndex };
 }
 
-async function commitEditing(command = null, restoreFocus = true, onLocalApply = null) {
+async function commitEditing(command = null, restoreFocus = true, onLocalApply = null, refocusWhenDisconnected = true) {
   if (!editing) return false;
   if (!canWrite()) {
-    render("editor");
+    render(refocusWhenDisconnected ? "editor" : "leave");
     return false;
   }
   const active = editing;
@@ -648,7 +646,9 @@ main.addEventListener("focusin", event => {
 main.addEventListener("focusout", event => {
   if (rendering || !(event.target instanceof HTMLTextAreaElement) || !editing) return;
   queueMicrotask(() => {
-    if (!rendering && !pointerMovedFocus && editing && document.activeElement !== event.target) void commitEditing(null, false);
+    if (!rendering && !pointerMovedFocus && editing && document.activeElement !== event.target) {
+      void commitEditing(null, false, null, false);
+    }
   });
 });
 

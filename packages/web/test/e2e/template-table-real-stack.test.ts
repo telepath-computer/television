@@ -496,17 +496,64 @@ test("right-button presses on body and header cells keep the editor focused", as
 test("moving focus to another artifact frame commits and keeps selection", async ({ page }) => {
   const id = await h.createStored(fixture());
   const otherID = await h.createStored(fixture());
+  const firstTab = page.locator(`.tab-strip > .tab[data-artifact-id="${id}"]`);
+  const otherTab = page.locator(`.tab-strip > .tab[data-artifact-id="${otherID}"]`);
   await h.openApp(page);
-  await page.locator(`.tab-strip > .tab[data-artifact-id="${id}"]`).click();
+  await firstTab.click();
   await expect(page.locator(`.stage .page[data-page-key="${id}"]`)).toHaveAttribute("selected", "");
   const firstFrame = await h.frame(page, id);
+  const otherFrame = await h.frame(page, otherID);
   await cell(firstFrame, 1, 0).click();
   await page.keyboard.press("Enter");
   await editor(firstFrame).fill("Committed on frame leave");
-  await page.locator(`.tab-strip > .tab[data-artifact-id="${otherID}"]`).click();
+  await otherTab.click();
   await expect(page.locator(`.stage .page[data-page-key="${otherID}"]`)).toHaveAttribute("selected", "");
   await expect.poll(() => h.read(id, "rows/r2/cells/c1")).toBe("Committed on frame leave");
   await expect(cell(firstFrame, 1, 0)).toHaveAttribute("data-selection", "cell");
+  const firstConnection = h.proxy.messages.find(({ message }) => message.type === "write"
+    && (message.write as { path?: string }).path === "rows/r2/cells/c1")!.connection;
+
+  await firstTab.click();
+  await cell(firstFrame, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(firstFrame).fill("Offline draft");
+  h.proxy.refuse(true);
+  h.proxy.severConnection(firstConnection);
+  await expect(status(firstFrame)).toHaveText("Reconnecting…");
+  await otherTab.click();
+  await cell(otherFrame, 0, 0).click();
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
+  const otherArtifactKeptFocusWhileDisconnected = await cell(otherFrame, 0, 0)
+    .evaluate(element => element === element.ownerDocument.activeElement);
+  await expect(editor(firstFrame)).toHaveValue("Offline draft");
+  const disconnectedTableEditorTookFocus = await editor(firstFrame)
+    .evaluate(element => element === element.ownerDocument.activeElement);
+
+  h.proxy.refuse(false);
+  await expect(firstFrame.locator(".table-page")).toHaveAttribute("data-editable", "true");
+  await firstTab.click();
+  await cell(firstFrame, 1, 1).click();
+  await expect(cell(firstFrame, 1, 1)).toBeFocused();
+  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
+  await toolbox.focus();
+  await expect(toolbox).toBeFocused();
+  await h.set(id, "Agent update after frame leave", "rows/r3/cells/c3");
+  await expect(cell(firstFrame, 2, 2)).toHaveText("Agent update after frame leave");
+  const televisionShellKeptFocusAfterAgentWrite = await toolbox.evaluate(element => element === document.activeElement);
+  const tableSelectionTookFocusAfterAgentWrite = await cell(firstFrame, 1, 1)
+    .evaluate(element => element === element.ownerDocument.activeElement);
+
+  expect({
+    otherArtifactKeptFocusWhileDisconnected,
+    disconnectedTableEditorTookFocus,
+    televisionShellKeptFocusAfterAgentWrite,
+    tableSelectionTookFocusAfterAgentWrite,
+  }).toEqual({
+    otherArtifactKeptFocusWhileDisconnected: true,
+    disconnectedTableEditorTookFocus: false,
+    televisionShellKeptFocusAfterAgentWrite: true,
+    tableSelectionTookFocusAfterAgentWrite: false,
+  });
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -955,10 +1002,11 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
   await expect.poll(async () => Object.values((await h.read<TableData>(id))!.columns)
     .map(column => column.order).sort((left, right) => left - right)).toEqual([0, 1]);
+  await h.set(id, drawn);
+  await expect(grid(page)).toBeVisible();
   const guardedWrites = writes().slice(beforeUnreadableAxis);
   expect(guardedWrites).toHaveLength(1);
   expect(guardedWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
-  expect(await h.read(id, "rows")).toBe("not an axis");
 
   await h.set(id, drawn);
   await expect(cell(page, 0, 1)).toBeVisible();
@@ -1182,6 +1230,7 @@ test("real share access changes preserve a navigable read-only table and close w
   await expect(page.getByRole("menu")).toHaveCount(0);
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
   await cell(page, 0, 0).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Revoked draft");
@@ -1220,6 +1269,7 @@ test("first load keeps one status region through disconnection and recovery", as
   h.proxy.release("to-browser");
   h.proxy.refuse(false);
   await expect(grid(page)).toBeVisible();
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
   await expect(status(page)).toHaveText("");
 });
 
@@ -1279,6 +1329,7 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(editor(page)).toHaveCount(0);
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await expect(status(page)).toHaveText("");
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Confirmed online");
 });
 

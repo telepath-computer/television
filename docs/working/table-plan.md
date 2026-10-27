@@ -18,6 +18,7 @@ Plan revision after review: slice 2 now owns the renumbering transaction proof a
 10. **Should the experiment's insert and delete shortcuts remain?** The draft drops Cmd/Ctrl-Shift-= and Cmd/Ctrl-minus because they conflict with browser zoom. Recommendation: leave them out; the context-menu key and Shift-F10 provide keyboard access to the same commands.
 11. **Should open-menu stories model the canonical panel clip and exterior rim?** Each open-menu story `play` function calls a foundation-owned helper. The helper sets native content scrolling and the private `--_panel-edge-*` properties that the runtime panel controller sets, keeping the edge rim outside that clip. Recommendation: keep this correction and mechanism so later open-panel stories reuse the same foundation treatment.
 12. **Should non-editable stories stop reserving space for add controls?** The draft sets `data-editable="false"` for read-only, disconnected and loading stories, matching production and activating the existing no-add-controls layout. Recommendation: keep this visual correction because the reserved edge serves no purpose when the controls are absent.
+13. **Should a rollback caused by disconnection show a save-failure message after reconnecting?** The implementation leaves `Reconnecting…` as the only message because the server may have received an unacknowledged write. Recommendation: keep this honest uncertainty instead of reporting a definite save failure.
 
 ## Draft decisions
 
