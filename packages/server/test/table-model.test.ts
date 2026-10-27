@@ -15,6 +15,8 @@ import {
   planSetHeader,
   readTable,
   type TableAxisEntry,
+  type TablePlanResult,
+  type TableRenumberRequest,
   type TableWriteOperation,
 } from "../assets/templates/table/model.js";
 
@@ -32,6 +34,16 @@ const table = {
 
 const set = (path: string[], value: unknown): TableWriteOperation => ({ kind: "set", path, value });
 const remove = (path: string[]): TableWriteOperation => ({ kind: "remove", path });
+const operations = (...writes: TableWriteOperation[]): TablePlanResult => ({ kind: "operations", operations: writes });
+const noWrite = (reason: Extract<TablePlanResult, { kind: "no-write" }>["reason"]): TablePlanResult => ({
+  kind: "no-write",
+  reason,
+});
+const renumber = (
+  axis: "columns" | "rows",
+  request: TableRenumberRequest,
+  writes: TableWriteOperation[] = [],
+): TablePlanResult => ({ kind: "renumber", axis, request, operations: writes });
 
 // Contract: proofs/arch/templates/table.md#^templates-table-t-model.
 describe("Table tolerant reading and stored order", () => {
@@ -143,6 +155,21 @@ describe("Table ordering and renumbering", () => {
     expect(ordersAtEnd([{ key: "a", order: Number.MAX_VALUE }], 1)).toBeNull();
   });
 
+  it("uses a farther representable order before requesting renumbering", () => {
+    const positive = 2 ** 53;
+    const negative = -(2 ** 53);
+    expect(insertionOrder([{ key: "a", order: positive }], ["a"], "after")).toSatisfy(
+      order => Number.isFinite(order) && order > positive,
+    );
+    expect(insertionOrder([{ key: "a", order: negative }], ["a"], "before")).toSatisfy(
+      order => Number.isFinite(order) && order < negative,
+    );
+    const appended = ordersAtEnd([{ key: "a", order: positive }], 2)!;
+    expect(appended).toHaveLength(2);
+    expect(appended[0]).toBeGreaterThan(positive);
+    expect(appended[1]).toBeGreaterThan(appended[0]);
+  });
+
   it("renumbers an insert from each current axis and preserves fields and ignored entries", () => {
     const update = createAxisRenumberUpdate({
       mode: "insert", selectedKeys: ["a", "b"], side: "after",
@@ -178,102 +205,191 @@ describe("Table ordering and renumbering", () => {
     expect(update({ a: { order: 0 }, c: { name: "ignored" } })).toBeUndefined();
   });
 
-  it.each(["add at end", "store through a drawn position"])("renumbers the max-order end for %s", () => {
-    const update = createAxisRenumberUpdate({
+  it("plans and applies an add-at-end renumbering", () => {
+    const request: TableRenumberRequest = {
       mode: "append",
-      entries: [{ key: "new-1", value: {} }, { key: "new-2", value: { cells: {}, extra: true } }],
-    });
+      entries: ["r1", "r2", "r3", "r4"].map(key => ({ key, value: { cells: {} } })),
+    };
+    expect(planAdd({ rows: { last: { order: Number.MAX_VALUE } }, columns: {} }, "rows", ["r1", "r2", "r3", "r4"]))
+      .toEqual(renumber("rows", request));
+    const update = createAxisRenumberUpdate(request);
     expect(update({ last: { order: Number.MAX_VALUE, name: "Last" }, ignored: { order: "bad", keep: true } })).toEqual({
       last: { order: 0, name: "Last" }, ignored: { order: "bad", keep: true },
-      "new-1": { order: 1 }, "new-2": { order: 2, cells: {}, extra: true },
+      r1: { order: 1, cells: {} }, r2: { order: 2, cells: {} },
+      r3: { order: 3, cells: {} }, r4: { order: 4, cells: {} },
     });
+  });
+
+  it("plans an insertion renumbering from the selected stored keys", () => {
+    const next = 1 + Number.EPSILON;
+    expect(planInsert({
+      columns: {},
+      rows: { a: { order: 1, cells: {} }, b: { order: next, cells: {} } },
+    }, "rows", { start: 0, end: 0 }, "after", ["new"])).toEqual(renumber("rows", {
+      mode: "insert",
+      selectedKeys: ["a"],
+      side: "after",
+      entries: [{ key: "new", value: { cells: {} } }],
+    }));
   });
 });
 
 // Contract: proofs/arch/templates/table.md#^templates-table-t-write-plan.
 describe("Table write planning", () => {
   it("plans body commits across stored and drawn axes without overlapping paths", () => {
-    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 1 }, "CA", "California", {})).toEqual([
+    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 1 }, "CA", "California", {})).toEqual(operations(
       set(["rows", "r1", "cells", "c2"], "California"),
-    ]);
+    ));
     expect(planCellCommit({ columns: table.columns, rows: {} }, { rowIndex: 2, columnIndex: 1 }, "", "Yosemite", {
       rows: ["r1", "r2", "r3"],
-    })).toEqual([
+    })).toEqual(operations(
       set(["rows", "r1"], { order: 0, cells: {} }), set(["rows", "r2"], { order: 1, cells: {} }),
       set(["rows", "r3"], { order: 2, cells: { c2: "Yosemite" } }),
-    ]);
+    ));
     expect(planCellCommit({ columns: {}, rows: table.rows }, { rowIndex: 0, columnIndex: 1 }, "", "CA", {
       columns: ["c1", "c2"],
-    })).toEqual([
+    })).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1 }),
       set(["rows", "r1", "cells", "c2"], "CA"),
-    ]);
+    ));
     expect(planCellCommit({ columns: {}, rows: {} }, { rowIndex: 2, columnIndex: 1 }, "", "Yosemite", {
       columns: ["c1", "c2"], rows: ["r1", "r2", "r3"],
-    })).toEqual([
+    })).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1 }),
       set(["rows", "r1"], { order: 0, cells: {} }), set(["rows", "r2"], { order: 1, cells: {} }),
       set(["rows", "r3"], { order: 2, cells: { c2: "Yosemite" } }),
-    ]);
+    ));
   });
 
   it("writes names, header visibility and edited primitive text at only their own paths", () => {
-    expect(planHeaderCommit(table, 0, "Park", "National park", {})).toEqual([
+    expect(planHeaderCommit(table, 0, "Park", "National park", {})).toEqual(operations(
       set(["columns", "c1", "name"], "National park"),
-    ]);
-    expect(planHeaderCommit({ columns: {}, rows: {} }, 1, "", "State", { columns: ["c1", "c2"] })).toEqual([
+    ));
+    expect(planHeaderCommit({ columns: {}, rows: {} }, 1, "", "State", { columns: ["c1", "c2"] })).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1, name: "State" }),
-    ]);
-    expect(planSetHeader(true)).toEqual([set(["showHeader"], true)]);
+    ));
+    expect(planSetHeader(true)).toEqual(operations(set(["showHeader"], true)));
     expect(planCellCommit({ columns: { c1: { order: 0 } }, rows: { r1: { order: 0, cells: { c1: 12 } } } },
-      { rowIndex: 0, columnIndex: 0 }, "12", "13", {})).toEqual([
+      { rowIndex: 0, columnIndex: 0 }, "12", "13", {})).toEqual(operations(
       set(["rows", "r1", "cells", "c1"], "13"),
-    ]);
+    ));
   });
 
-  it("removes empty stored text and plans no write for empty drawn, unchanged or cancelled edits", () => {
-    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", " \n ", {})).toEqual([
+  it("removes empty stored text and treats blank stored text as unchanged", () => {
+    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", " \n ", {})).toEqual(operations(
       remove(["rows", "r1", "cells", "c1"]),
-    ]);
-    expect(planHeaderCommit(table, 0, "Park", "", {})).toEqual([remove(["columns", "c1", "name"])]);
-    expect(planCellCommit({ columns: {}, rows: {} }, { rowIndex: 0, columnIndex: 0 }, "", " ", {})).toEqual([]);
-    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", "Yosemite", {})).toEqual([]);
-    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", null, {})).toEqual([]);
-    expect(planHeaderCommit(table, 0, "Park", null, {})).toEqual([]);
+    ));
+    expect(planHeaderCommit(table, 0, "Park", "", {})).toEqual(operations(remove(["columns", "c1", "name"])));
+    const emptyStored = { columns: { c1: { order: 0 } }, rows: { r1: { order: 0, cells: {} } } };
+    expect(planCellCommit(emptyStored, { rowIndex: 0, columnIndex: 0 }, "", " \n ", {})).toEqual(noWrite("unchanged"));
+    expect(planHeaderCommit(emptyStored, 0, "", "  ", {})).toEqual(noWrite("unchanged"));
+  });
+
+  it("distinguishes cancelled, unchanged, empty-drawn and invalid no-write outcomes", () => {
+    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", null, {})).toEqual(noWrite("cancelled"));
+    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", "Yosemite", {})).toEqual(noWrite("unchanged"));
+    expect(planCellCommit({ columns: {}, rows: {} }, { rowIndex: 0, columnIndex: 0 }, "", " ", {}))
+      .toEqual(noWrite("empty-drawn"));
+    expect(planCellCommit(null, { rowIndex: 0, columnIndex: 0 }, "", "text", {})).toEqual(noWrite("unreadable"));
+    expect(planCellCommit(table, { rowIndex: 8, columnIndex: 0 }, "", "text", {})).toEqual(noWrite("invalid-target"));
+    expect(planCellCommit({ columns: {}, rows: {} }, { rowIndex: 0, columnIndex: 0 }, "", "text", {}))
+      .toEqual(noWrite("missing-keys"));
+    expect(planInsert(table, "rows", { start: 2, end: 1 }, "after", ["new"]))
+      .toEqual(noWrite("invalid-selection"));
   });
 
   it("preserves surrounding whitespace and line breaks in changed text", () => {
-    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", " Yosemite\nValley ", {})).toEqual([
+    expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Yosemite", " Yosemite\nValley ", {})).toEqual(operations(
       set(["rows", "r1", "cells", "c1"], " Yosemite\nValley "),
-    ]);
+    ));
   });
 
-  it("adds through all drawn positions, inserts only through positions before the new entry, and adds one entry", () => {
-    expect(planAdd({ columns: {}, rows: {} }, "rows", ["r1", "r2", "r3", "r4", "r5"])).toEqual([
+  it("adds through drawn positions and inserts at the end, through drawn positions or between stored entries", () => {
+    expect(planAdd({ columns: {}, rows: {} }, "rows", ["r1", "r2", "r3", "r4", "r5"])).toEqual(operations(
       set(["rows", "r1"], { order: 0, cells: {} }), set(["rows", "r2"], { order: 1, cells: {} }),
       set(["rows", "r3"], { order: 2, cells: {} }), set(["rows", "r4"], { order: 3, cells: {} }),
       set(["rows", "r5"], { order: 4, cells: {} }),
-    ]);
-    expect(planInsert({ columns: {}, rows: {} }, "columns", { start: 2, end: 3 }, "before", ["c1", "c2", "new"])).toEqual([
+    ));
+    expect(planInsert({ columns: {}, rows: {} }, "columns", { start: 2, end: 3 }, "before", ["c1", "c2", "new"])).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1 }),
       set(["columns", "new"], { order: 2 }),
-    ]);
-    expect(planInsert(table, "rows", { start: 0, end: 1 }, "after", ["new"])).toEqual([
+    ));
+    expect(planInsert(table, "rows", { start: 0, end: 1 }, "after", ["new"])).toEqual(operations(
       set(["rows", "new"], { order: 3, cells: {} }),
-    ]);
+    ));
+    expect(planInsert(table, "rows", { start: 1, end: 1 }, "before", ["between"])).toEqual(operations(
+      set(["rows", "between"], { order: 1.5, cells: {} }),
+    ));
   });
 
-  it("deletes only stored entries and clears only non-empty body-cell paths", () => {
-    expect(planDelete(table, "columns", { start: 1, end: 3 })).toEqual([remove(["columns", "c2"])]);
-    expect(planDelete({ columns: {}, rows: {} }, "rows", { start: 1, end: 3 })).toEqual([]);
+  it("carries the edit in the target row when storing a drawn row through renumbering", () => {
+    const request: TableRenumberRequest = {
+      mode: "append",
+      entries: [{ key: "new-row", value: { cells: { c1: "Yosemite" } } }],
+    };
+    const result = planCellCommit({
+      columns: { c1: { order: 0 } },
+      rows: { last: { order: Number.MAX_VALUE, cells: {} } },
+    }, { rowIndex: 1, columnIndex: 0 }, "", "Yosemite", { rows: ["new-row"] });
+    expect(result).toEqual(renumber("rows", request));
+    expect(createAxisRenumberUpdate(request)({ last: { order: Number.MAX_VALUE, cells: {} } })).toEqual({
+      last: { order: 0, cells: {} },
+      "new-row": { order: 1, cells: { c1: "Yosemite" } },
+    });
+  });
+
+  it("carries a drawn header name, and keeps a stored-row cell write separate when only columns renumber", () => {
+    const headerRequest: TableRenumberRequest = {
+      mode: "append",
+      entries: [{ key: "new-column", value: { name: "State" } }],
+    };
+    const atMaximum = { columns: { last: { order: Number.MAX_VALUE } }, rows: {} };
+    expect(planHeaderCommit(atMaximum, 1, "", "State", { columns: ["new-column"] }))
+      .toEqual(renumber("columns", headerRequest));
+
+    const cellRequest: TableRenumberRequest = {
+      mode: "append",
+      entries: [{ key: "new-column", value: {} }],
+    };
+    expect(planCellCommit({
+      columns: atMaximum.columns,
+      rows: { r1: { order: 0, cells: {} } },
+    }, { rowIndex: 0, columnIndex: 1 }, "", "CA", { columns: ["new-column"] })).toEqual(renumber(
+      "columns",
+      cellRequest,
+      [set(["rows", "r1", "cells", "new-column"], "CA")],
+    ));
+  });
+
+  it("deletes only stored entries and distinguishes an entirely drawn selection", () => {
+    expect(planDelete(table, "columns", { start: 1, end: 3 })).toEqual(operations(remove(["columns", "c2"])));
+    expect(planDelete({ columns: {}, rows: {} }, "rows", { start: 1, end: 3 })).toEqual(noWrite("nothing-to-delete"));
+  });
+
+  it("clears header names, cells and row cells, while a drawn position makes no write", () => {
+    expect(planClear(table, { kind: "header", columnIndex: 0 })).toEqual(operations(
+      remove(["columns", "c1", "name"]),
+    ));
+    expect(planClear(table, { kind: "cell", rowIndex: 0, columnIndex: 1 })).toEqual(operations(
+      remove(["rows", "r1", "cells", "c2"]),
+    ));
+    expect(planClear(table, { kind: "rows", start: 0, end: 0 })).toEqual(operations(
+      remove(["rows", "r1", "cells", "c1"]),
+      remove(["rows", "r1", "cells", "c2"]),
+    ));
+    expect(planClear({ columns: {}, rows: {} }, { kind: "cell", rowIndex: 0, columnIndex: 0 }))
+      .toEqual(noWrite("nothing-to-clear"));
+  });
+
+  it("clears only non-empty body-cell paths for a whole column", () => {
     expect(planClear({
       columns: { c1: { order: 0, name: "Kept" }, c2: { order: 1 } },
       rows: {
         r1: { order: 0, cells: { c1: "one", c2: "" } },
         r2: { order: 1, cells: { c1: true, c2: null } },
       },
-    }, { kind: "columns", start: 0, end: 1 })).toEqual([
+    }, { kind: "columns", start: 0, end: 1 })).toEqual(operations(
       remove(["rows", "r1", "cells", "c1"]), remove(["rows", "r2", "cells", "c1"]),
-    ]);
+    ));
   });
 });

@@ -5,7 +5,7 @@ function clamp(value, minimum, maximum) {
 }
 
 function itemAt(items, index) {
-  return items[clamp(index, 0, items.length - 1)];
+  return Number.isInteger(index) && index >= 0 && index < items.length ? items[index] : undefined;
 }
 
 function indexOfId(items, id) {
@@ -125,10 +125,12 @@ export function enterTable(selection, axes) {
 export function selectionForMenu(selection, axes) {
   if (selection?.kind === "rows" || selection?.kind === "columns") return selection;
   if (selection?.kind === "cell") {
-    return selectAxis(null, "rows", indexOfId(axes.rows, selection.rowId), false, axes);
+    const index = indexOfId(axes.rows, selection.rowId);
+    return index < 0 ? null : selectAxis(null, "rows", index, false, axes);
   }
   if (selection?.kind === "header") {
-    return selectAxis(null, "columns", indexOfId(axes.columns, selection.columnId), false, axes);
+    const index = indexOfId(axes.columns, selection.columnId);
+    return index < 0 ? null : selectAxis(null, "columns", index, false, axes);
   }
   return null;
 }
@@ -160,27 +162,22 @@ export function selectionAfterAdd(previous, axis, newKey, axes) {
   if (axis === "rows") {
     const rowIndex = indexOfId(axes.rows, newId);
     const columnIndex = previous?.kind === "cell" ? indexOfId(axes.columns, previous.columnId) : 0;
-    return cellSelectionAt(axes, rowIndex, Math.max(0, columnIndex));
+    return rowIndex < 0 || columnIndex < 0 ? null : cellSelectionAt(axes, rowIndex, columnIndex);
   }
   const columnIndex = indexOfId(axes.columns, newId);
   const rowIndex = previous?.kind === "cell" ? indexOfId(axes.rows, previous.rowId) : 0;
-  return cellSelectionAt(axes, Math.max(0, rowIndex), columnIndex);
+  return rowIndex < 0 || columnIndex < 0 ? null : cellSelectionAt(axes, rowIndex, columnIndex);
 }
 
 /** Selects the one new whole row or column after insertion. */
 export function selectionAfterInsert(axis, newKey, axes) {
   const kind = axis;
   const index = indexOfId(axisItems(axes, kind), `stored:${newKey}`);
-  return selectAxis(null, kind, index, false, axes);
+  return index < 0 ? null : selectAxis(null, kind, index, false, axes);
 }
 
 /** Selects the former position, or the new last position, after deletion. */
 export function selectionAfterDelete(axis, formerIndex, axes) {
   const items = axisItems(axes, axis);
   return selectAxis(null, axis, Math.min(formerIndex, items.length - 1), false, axes);
-}
-
-/** Keeps the current selection after clearing contents. */
-export function selectionAfterClear(selection) {
-  return selection;
 }

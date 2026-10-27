@@ -8,7 +8,6 @@ import {
   reconcileSelection,
   selectAxis,
   selectionAfterAdd,
-  selectionAfterClear,
   selectionAfterDelete,
   selectionAfterInsert,
   selectionForMenu,
@@ -42,6 +41,11 @@ describe("Table selection model", () => {
     expect(moveSelection(start, "up", grid, { showHeader: true }).selection).toEqual(headerSelectionAt(grid, 1));
     expect(moveSelection(headerSelectionAt(grid, 1), "down", grid, { showHeader: true }).selection).toEqual(start);
     expect(moveSelection(start, "left", grid, { showHeader: true }).selection).toEqual(cellSelectionAt(grid, 0, 0));
+    expect(moveSelection(start, "tab-forward", grid, { showHeader: true }).selection).toEqual(cellSelectionAt(grid, 0, 2));
+    expect(moveSelection(start, "tab-backward", grid, { showHeader: true }).selection).toEqual(cellSelectionAt(grid, 0, 0));
+    expect(moveSelection(null, "right", grid, { showHeader: false }).selection).toEqual(cellSelectionAt(grid, 0, 0));
+    expect(moveSelection(cellSelectionAt(grid, 0, 1), "up", grid, { showHeader: false }).selection)
+      .toEqual(cellSelectionAt(grid, 0, 1));
     expect(moveSelection(cellSelectionAt(grid, 0, 3), "tab-forward", grid, { showHeader: false })).toEqual({
       selection: cellSelectionAt(grid, 0, 3), exit: "after",
     });
@@ -72,13 +76,13 @@ describe("Table selection model", () => {
     expect(moveSelection(extended, "down", grid, { showHeader: false, extend: true }).selection).toEqual(range);
   });
 
-  it("enters at the retained selection or first body cell and leaves unsupported whole-axis actions unchanged", () => {
+  it("enters at the retained selection or first body cell and leaves irrelevant axis movement unchanged", () => {
     const grid = axes();
     const retained = cellSelectionAt(grid, 2, 2);
     expect(enterTable(null, grid)).toEqual(cellSelectionAt(grid, 0, 0));
     expect(enterTable(retained, grid)).toEqual(retained);
     const rows = selectAxis(null, "rows", 1, false, grid);
-    for (const command of ["left", "right", "enter", "f2", "type", "space"] as const) {
+    for (const command of ["left", "right"] as const) {
       expect(moveSelection(rows, command, grid, { showHeader: false }).selection).toEqual(rows);
     }
   });
@@ -91,6 +95,16 @@ describe("Table selection model", () => {
     expect(selectionForMenu(header, grid)).toEqual(selectAxis(null, "columns", 2, false, grid));
     const rows = selectAxis(selectAxis(null, "rows", 0, false, grid), "rows", 2, true, grid);
     expect(selectionForMenu(rows, grid)).toEqual(rows);
+  });
+
+  it("returns null when a referenced stored ID is absent", () => {
+    const grid = axes(["r1"], ["c1"]);
+    expect(selectionAfterAdd({ kind: "cell", rowId: "stored:missing", columnId: "stored:c1" }, "rows", "r2", grid))
+      .toBeNull();
+    expect(selectionAfterAdd(null, "columns", "missing", grid)).toBeNull();
+    expect(selectionAfterInsert("rows", "missing", grid)).toBeNull();
+    expect(selectionForMenu({ kind: "cell", rowId: "stored:missing", columnId: "stored:c1" }, grid)).toBeNull();
+    expect(selectionForMenu({ kind: "header", columnId: "stored:missing" }, grid)).toBeNull();
   });
 
   it("follows stored keys through reorder and clears removed, hidden, split or changed drawn selections", () => {
@@ -125,10 +139,5 @@ describe("Table selection model", () => {
     expect(selectionAfterDelete("rows", 3, fewerRows)).toEqual(selectAxis(null, "rows", 3, false, fewerRows));
     const shortenedLongAxis = axes(["r1", "r2", "r3", "r4"], ["c1", "c2"]);
     expect(selectionAfterDelete("rows", 4, shortenedLongAxis)).toEqual(selectAxis(null, "rows", 3, false, shortenedLongAxis));
-  });
-
-  it("keeps selection after clearing contents", () => {
-    const selection = cellSelectionAt(axes(), 1, 1)!;
-    expect(selectionAfterClear(selection)).toBe(selection);
   });
 });

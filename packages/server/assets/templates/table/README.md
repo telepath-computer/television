@@ -6,16 +6,23 @@ This template makes an editable table that a person and an agent can change at t
 {
   "showHeader": true,
   "columns": {
-    "c1": { "order": 1, "name": "Park" },
-    "c2": { "order": 2, "name": "State" }
+    "b57c9dd8-00d4-49c2-a382-e5cd6e45d935": { "order": 1, "name": "Park" },
+    "9caebdb4-b15f-45ca-8ea9-0ea730a7e4c4": { "order": 2, "name": "State" }
   },
   "rows": {
-    "r1": { "order": 1, "cells": { "c1": "Yosemite", "c2": "CA" } }
+    "514c6a2b-1324-4d21-9810-595750df8493": {
+      "order": 1,
+      "cells": {
+        "b57c9dd8-00d4-49c2-a382-e5cd6e45d935": "Yosemite",
+        "9caebdb4-b15f-45ca-8ea9-0ea730a7e4c4": "CA"
+      }
+    }
   }
 }
 ```
 
 `showHeader` is optional. Only `true` shows the header row. Each entry in `columns` has a finite numeric `order` and may have a string `name`. Each entry in `rows` has its own finite numeric `order` and a `cells` object. `cells` is an object keyed by column key, never an array. Empty cells are left out.
+Cell values may be strings, finite numbers, or booleans; other values appear blank.
 
 Column and row keys are opaque IDs. Never derive a key from a column name, and never reuse a deleted key. `push` is the normal way to add one row or column. When writing a whole table in one `set`, generate a fresh random key, such as a UUID, for every row and column.
 

@@ -75,6 +75,25 @@ export type TableRenumberRequest =
   | { mode: "append"; entries: TableRenumberEntry[] }
   | { mode: "insert"; selectedKeys: string[]; side: "before" | "after"; entries: TableRenumberEntry[] };
 
+/** Why a planner intentionally produces no store write. */
+export type TableNoWriteReason =
+  | "cancelled"
+  | "unchanged"
+  | "empty-drawn"
+  | "unreadable"
+  | "invalid-target"
+  | "missing-keys"
+  | "invalid-selection"
+  | "nothing-to-delete"
+  | "nothing-to-clear"
+  | "multiple-renumbering-required";
+
+/** A complete write plan, a retry-safe axis renumbering, or an intentional no-write outcome. */
+export type TablePlanResult =
+  | { kind: "operations"; operations: TableWriteOperation[] }
+  | { kind: "renumber"; axis: "rows" | "columns"; request: TableRenumberRequest; operations: TableWriteOperation[] }
+  | { kind: "no-write"; reason: TableNoWriteReason };
+
 /** Orders keys the same way JSON store child events do. */
 export function compareStoreKeys(left: string, right: string): number;
 
@@ -99,24 +118,24 @@ export function createAxisRenumberUpdate(request: TableRenumberRequest):
 
 /** Plans a body-cell commit; null text means that editing was cancelled. */
 export function planCellCommit(value: unknown, target: TableCellPosition, openedText: string, text: string | null,
-  keys: TableCommitKeys): TableWriteOperation[] | null;
+  keys: TableCommitKeys): TablePlanResult;
 
 /** Plans a header-name commit; null text means that editing was cancelled. */
 export function planHeaderCommit(value: unknown, columnIndex: number, openedText: string, text: string | null,
-  keys: TableCommitKeys): TableWriteOperation[] | null;
+  keys: TableCommitKeys): TablePlanResult;
 
 /** Plans showing or hiding the header row. */
-export function planSetHeader(showHeader: boolean): TableWriteOperation[];
+export function planSetHeader(showHeader: boolean): TablePlanResult;
 
 /** Plans adding one row or column after storing every drawn position on that axis. */
-export function planAdd(value: unknown, axis: "rows" | "columns", keys: string[]): TableWriteOperation[] | null;
+export function planAdd(value: unknown, axis: "rows" | "columns", keys: string[]): TablePlanResult;
 
 /** Plans inserting one row or column and only the drawn positions before it. */
 export function planInsert(value: unknown, axis: "rows" | "columns", selection: TableAxisRange,
-  side: "before" | "after", keys: string[]): TableWriteOperation[] | null;
+  side: "before" | "after", keys: string[]): TablePlanResult;
 
 /** Plans removing the stored entries in a displayed row or column range. */
-export function planDelete(value: unknown, axis: "rows" | "columns", selection: TableAxisRange): TableWriteOperation[] | null;
+export function planDelete(value: unknown, axis: "rows" | "columns", selection: TableAxisRange): TablePlanResult;
 
 /** Plans clearing the selected name or non-empty body cells without removing structure. */
-export function planClear(value: unknown, selection: TableClearSelection): TableWriteOperation[] | null;
+export function planClear(value: unknown, selection: TableClearSelection): TablePlanResult;

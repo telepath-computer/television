@@ -32,7 +32,7 @@ export type TableSelection = TableCellSelection | TableHeaderSelection | TableAx
 
 /** A keyboard command that can affect selection. */
 export type TableSelectionCommand = "left" | "right" | "up" | "down" | "tab-forward" | "tab-backward"
-  | "select-row" | "select-column" | "enter" | "f2" | "type" | "space";
+  | "select-row" | "select-column";
 
 /** The result of one keyboard selection command. */
 export interface TableSelectionMove {
@@ -75,6 +75,3 @@ export function selectionAfterInsert(axis: "rows" | "columns", newKey: string,
 /** Selects the former position, or the new last position, after deletion. */
 export function selectionAfterDelete(axis: "rows" | "columns", formerIndex: number,
   axes: TableDisplayAxes): TableAxisSelection | null;
-
-/** Keeps the current selection after clearing contents. */
-export function selectionAfterClear(selection: TableSelection): TableSelection;

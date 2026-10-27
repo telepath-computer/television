@@ -43,7 +43,7 @@ describe("bundled Table package", () => {
     });
   });
 
-  // Contract: proofs/arch/templates/table.md#^templates-table-t-assets.
+  // Cheap source check; the browser seam remains in the slice 2 asset test.
   it("loads the canonical stylesheet before its own stylesheet, and the canonical components", () => {
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
     expect(page.indexOf('/canonical/v2/styles.css?authoredForAppVersion=1.5.4')).toBeLessThan(page.indexOf("./styles.css"));
@@ -63,11 +63,16 @@ describe("bundled Table package", () => {
   it("documents the shared editable store, opaque keys, tolerant reading and scoped commands", () => {
     const readme = readFileSync(path.join(folder, "README.md"), "utf8");
     const prose = readme.replace(/\s+/g, " ");
+    const firstExample = JSON.parse(readme.match(/```json\n([\s\S]*?)\n```/)![1]);
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    expect(Object.keys(firstExample.columns).every(key => uuid.test(key))).toBe(true);
+    expect(Object.keys(firstExample.rows).every(key => uuid.test(key))).toBe(true);
     for (const field of ["showHeader", "columns", "rows", "order", "name", "cells"]) {
       expect(readme).toContain(`\`${field}\``);
     }
     expect(prose).toMatch(/cells[^.]*object keyed by column key[^.]*never an array/i);
     expect(prose).toMatch(/empty cells[^.]*left out/i);
+    expect(prose).toMatch(/cell values[^.]*strings[^.]*numbers[^.]*booleans[^.]*other values[^.]*blank/i);
     expect(prose).toMatch(/drawn positions[^.]*not stored/i);
     expect(prose).toMatch(/B3[^.]*columns A and B[^.]*rows 1 through 3/i);
     expect(prose).toMatch(/never derive[^.]*name[^.]*never reuse/i);
