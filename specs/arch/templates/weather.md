@@ -43,7 +43,7 @@ The template `data.json` seeds the [JSON store belonging to the artifact](../../
       "type": "object",
       "required": ["time", "temperature", "condition", "isDay"],
       "properties": {
-        "time": { "$ref": "#/$defs/dateTime", "description": "Forecast instant. Any explicit UTC offset is accepted." },
+        "time": { "$ref": "#/$defs/dateTime", "description": "Forecast instant. An explicit Z or numeric UTC offset is required." },
         "temperature": { "type": "number", "description": "Forecast temperature in the selected units." },
         "condition": { "$ref": "#/$defs/condition" },
         "isDay": { "type": "boolean", "description": "Whether this hour is during local daylight." }
@@ -61,22 +61,20 @@ The template `data.json` seeds the [JSON store belonging to the artifact](../../
     },
     "forecast": {
       "type": "object",
-      "required": ["place", "timeZone", "units", "observedAt", "current", "hourly", "daily"],
+      "required": ["place", "timeZone", "units", "updatedAt", "current", "hourly", "daily"],
       "properties": {
         "place": { "type": "string", "minLength": 1, "description": "Place name shown on the page." },
         "timeZone": { "type": "string", "minLength": 1, "description": "IANA time-zone identifier for the place." },
         "units": { "enum": ["celsius", "fahrenheit"], "description": "Temperature units for every value in the forecast." },
-        "observedAt": { "$ref": "#/$defs/dateTime", "description": "Instant when the agent fetched this forecast. Any explicit UTC offset is accepted." },
+        "updatedAt": { "$ref": "#/$defs/dateTime", "description": "Instant when the agent fetched this forecast. An explicit Z or numeric UTC offset is required." },
         "current": { "$ref": "#/$defs/current" },
         "hourly": {
           "type": "array",
-          "minItems": 1,
           "items": { "$ref": "#/$defs/hour" },
           "description": "Forecast hours."
         },
         "daily": {
           "type": "array",
-          "minItems": 1,
           "items": { "$ref": "#/$defs/day" },
           "description": "Forecast days."
         }
@@ -86,24 +84,26 @@ The template `data.json` seeds the [JSON store belonging to the artifact](../../
 }
 ```
 
-The schema checks the forms of dates and times, not that they exist, and cannot enumerate IANA time-zone identifiers. The page additionally requires real dates and timestamp instants, a `timeZone` recognized by the browser, and each daily high to be at least its low. These checks keep the page from displaying dates, local times, or temperature ranges it cannot determine correctly. A complete value that breaks one of these rules is shown as the [Weather UI spec](../../ui/templates/weather.mdx#data-the-page-cannot-read) describes. Extra fields are ignored.
+The schema checks the forms of dates and times, not that they are valid calendar dates or valid instants, and cannot enumerate IANA time-zone identifiers. The page additionally requires valid dates and instants, a `timeZone` recognized by the browser, and each daily high to be at least its low. These checks keep the page from displaying dates, local times, or temperature ranges it cannot determine correctly. A complete value that breaks one of these rules is shown as the [Weather UI spec](../../ui/templates/weather.mdx#data-the-page-cannot-read) describes. Extra fields are ignored.
 
-The page parses every timestamp as an instant, regardless of its written offset. The current hour at `timeZone` is the local clock-hour interval containing the current instant; an hourly entry is current when its instant falls within that interval. The current date at `timeZone` is the local calendar date containing the current instant. These definitions distinguish repeated clock hours during a daylight-saving fallback.
+The page parses every timestamp as an instant, regardless of its written offset. The current hour at `timeZone` is the local clock-hour interval containing the current instant. The current date at `timeZone` is the local calendar date containing the current instant. These definitions distinguish repeated clock hours during a daylight-saving fallback.
 
-The page stably sorts hourly entries by instant and daily entries by date, then keeps the first entry for each duplicate instant or date. It omits hourly entries before the current hour and shows at most 24 entries from the current hour forward. The first entry within the current hour is labelled “Now”; any further entry in that hour uses its time label. If no entry falls within the current hour, the page starts with the first later instant and does not show “Now”. If no hourly entries remain, the page omits the hourly panel.
+The hourly display window contains `current` followed by at most 23 stored hourly entries. To select those stored entries, the page stably sorts `hourly` by instant, keeps the first entry for each duplicate instant, and retains entries whose instants fall after the current hour. ^bundled-artifact-template-weather-hourly-window
 
-The page omits daily entries before the current date, then shows the first seven sorted, distinct entries. The entry for the current date is labelled “Today”. If no daily entries remain, the page omits the daily panel. The page refreshes the hourly and daily windows and the “Now” and “Today” labels while it remains open. Having more than either displayed limit does not make an otherwise valid forecast unreadable; every stored entry must still satisfy the schema and the page checks. ^bundled-artifact-template-weather-windows
+To form the daily display window, the page stably sorts `daily` by date, keeps the first entry for each duplicate date, omits entries before the current date, and retains at most seven entries. ^bundled-artifact-template-weather-daily-window
 
-The current high and low come from the retained daily entry whose date is the current date at `timeZone`. If no daily entry matches, the page omits the high-and-low line rather than using another day. The README tells agents to include the current date in `daily`.
+Having more stored entries than either displayed limit does not make an otherwise valid forecast unreadable; every stored entry must still satisfy the schema and the page checks.
 
-The page subscribes to the whole store through the [resource SDK](../resources/sdk.md) and makes no store writes. Before the subscription returns its first result, the page shows the loading state. Once it returns, no value or the empty object shows the empty forecast state. Any other value must be one complete forecast. The page derives the “Updated” age shown below the place from the time in `observedAt`, when the agent fetched the forecast; it never fetches weather or changes the stored forecast. Changes from an agent appear live.
+The current high and low, when available, come from the retained daily entry whose date is the current date at `timeZone`; the page never substitutes another date. The README tells agents to include the current date in `daily`.
+
+The page subscribes to the whole store through the [resource SDK](../resources/sdk.md) and makes no store writes. Before the subscription returns its first result, the page shows the loading state. Once it returns, no value or the empty object shows the empty forecast state. Any other value must be one complete forecast. The page derives elapsed time from `updatedAt`, when the agent fetched the forecast; it never fetches weather or changes the stored forecast. Changes from an agent appear live.
 
 ## Packaged page and guidance
 
 The page loads the canonical Television stylesheet and resource SDK, and includes its other page dependencies inside the template folder so copied artifacts work independently. Its stylesheet is `styles.css` in the template folder; [conformance](../../spec-ui.md#conformance) holds the page to the UI spec stories. Weather-condition artwork and the square `icon.svg` are first-party SVG drawings included in the template. The manifest `icons` lists `icon.svg`; [icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-weather-page
 
-The bundled `README.md` explains the empty starting object and every forecast field, including the IANA time zone, condition and units vocabularies, timestamp instants, sorting, displayed limits, and daily high-and-low rule. It says that `observedAt` is the time when the agent fetched the complete forecast and supplies the “Updated” age. It says that `Z` means UTC and that any explicit offset is accepted because the page converts each instant to `timeZone` for display.
+The bundled `README.md` explains the empty starting object and every forecast field, including the IANA time zone, condition and units vocabularies, timestamp instants, sorting, displayed limits, and daily high-and-low rule. It says that `updatedAt` is the time when the agent fetched the complete forecast and supplies the elapsed age. It says that every timestamp requires `Z` or a numeric UTC offset. `Z` means UTC; a local clock time must carry the numeric offset in force at that instant and must not be marked `Z` unless it is UTC. The page converts each instant to `timeZone` for display.
 
 The README maps common source conditions onto the closed vocabulary: clear or sunny to `clear`; mixed sun and clouds, mostly clear, or partly cloudy to `partly-cloudy`; cloudy, mostly cloudy, or overcast to `cloudy`; drizzle, showers, rain, or freezing rain to `rain`; snow, flurries, sleet, ice pellets, or wintry mix to `snow`; thunder or lightning to `thunderstorm`; and mist, fog, haze, smoke, dust, or sand to `fog`.
 
-The README tells an adapting agent to fetch weather from a source the agent is allowed to use and replace the root in one `tv resource json set` command. It tells the agent to include the current date in `daily`; include one `hourly` entry for each local clock hour, on the hour at `timeZone`; include the current hour; set `observedAt` to the fetch time; and refresh the forecast on a schedule, such as hourly. It says that the page reads the store live without writing to it or making requests to a weather service, that invalid or partial data is not repaired, and that copied artifacts are independent. It identifies `styles.css` and the first-party SVGs as the places to adapt the visual design, and explains that the transparent document background works with the manifest display setting applied at creation. ^bundled-artifact-template-weather-readme
+The README tells an adapting agent to fetch weather from a source the agent is allowed to use and replace the root in one `tv resource json set` command. It tells the agent to include the current date in `daily`, set `updatedAt` to the fetch time, and refresh the forecast on a schedule, such as hourly. It tells the agent to clear the card by replacing the root with `{}`, not `null`. It says that the page reads the store live without writing to it or making requests to a weather service, that invalid or partial data is not repaired, and that copied artifacts are independent. It identifies `styles.css` and the first-party SVGs as the places to adapt the visual design, and explains that the transparent document background works with the manifest display setting applied at creation. ^bundled-artifact-template-weather-readme

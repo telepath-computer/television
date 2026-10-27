@@ -40,7 +40,7 @@ body {
   --header-ink: white;
   --header-muted-ink: white;
   --header-shadow: 0 1px 4px rgb(3 20 38 / 48%);
-  --hero-size: clamp(108px, 35vw, 140px);
+  --hero-size: clamp(72px, 35vw, 140px);
 
   position: relative;
   width: 100%;
@@ -209,10 +209,13 @@ body {
 .weather-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: clamp(var(--space-8), 3.5vw, var(--space-12));
   width: 100%;
   height: 100%;
-  padding: var(--space-20) var(--space-20) var(--space-16);
+  padding:
+    clamp(var(--space-12), 5.9vw, var(--space-20))
+    clamp(var(--space-12), 5.9vw, var(--space-20))
+    clamp(var(--space-10), 4.7vw, var(--space-16));
 }
 
 .weather-header {
@@ -228,7 +231,7 @@ body {
   max-width: 100%;
   margin: 0;
   overflow: hidden;
-  font-size: var(--text-2xl);
+  font-size: clamp(17px, 5.9vw, var(--text-2xl));
   font-weight: var(--font-weight-semibold);
   letter-spacing: -0.01em;
   line-height: 1.1;
@@ -257,7 +260,7 @@ body {
 .weather-temperature {
   align-self: center;
   min-width: 0;
-  font-size: clamp(66px, 21vw, 94px);
+  font-size: clamp(48px, 21vw, 94px);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.07em;
@@ -285,8 +288,8 @@ body {
   display: flex;
   align-items: end;
   justify-content: space-between;
-  gap: var(--space-8);
-  padding-top: var(--space-6);
+  gap: clamp(var(--space-4), 2.35vw, var(--space-8));
+  padding-top: clamp(var(--space-4), 1.8vw, var(--space-6));
 }
 
 .weather-summary,
@@ -296,7 +299,7 @@ body {
 
 .weather-summary {
   overflow: hidden;
-  font-size: var(--text-lg);
+  font-size: clamp(var(--text-md), 5.3vw, var(--text-lg));
   font-weight: var(--font-weight-medium);
   letter-spacing: -0.01em;
   text-overflow: ellipsis;
@@ -306,9 +309,9 @@ body {
 .weather-high-low {
   display: flex;
   flex: none;
-  gap: var(--space-8);
+  gap: clamp(var(--space-4), 2.35vw, var(--space-8));
   color: var(--muted-ink);
-  font-size: var(--text-md);
+  font-size: clamp(11px, 4.1vw, var(--text-md));
   font-variant-numeric: tabular-nums;
 }
 
@@ -597,7 +600,7 @@ body {
 
 @media (min-width: 760px) and (min-height: 740px) {
   .weather-content {
-    gap: var(--space-16);
+    gap: var(--space-12);
     padding: var(--space-32) var(--space-32) var(--space-24);
   }
 

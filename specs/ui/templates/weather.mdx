@@ -17,11 +17,11 @@ The [store contract](../../arch/templates/weather.md#^bundled-artifact-template-
 
 ## Current conditions
 
-The card names the place and says how long ago the agent fetched the forecast. The unit follows the age as `°C` or `°F`. The current temperature is the largest type on the card. Beside it, first-party weather artwork depicts the current condition. The short description and the high and low from the daily entry for the current date sit together below. When the stored daily forecast has no entry for the current date, the high-and-low line is absent.
+The card names the place. Below it, the “Updated” label says how long ago the agent fetched the forecast, followed by the unit as `°C` or `°F`. The current temperature is the largest type on the card. Beside it, first-party weather artwork depicts the current condition. The short description and the high and low from the daily entry for the current date sit together below. When the stored daily forecast has no entry for the current date, the high-and-low line is absent. The high-and-low line follows the current date while the page remains open.
 
 Temperatures are rounded to the nearest whole degree for display, with halves rounded away from zero. A result of zero is shown as `0°`, never `−0°`. The age uses completed elapsed units: less than a minute is “Updated now”; less than an hour is “Updated 1 min ago” or “Updated N min ago”; less than a day is “Updated 1 hr ago” or “Updated N hrs ago”; and older fetches use “Updated 1 day ago” or “Updated N days ago”. A fetch time in the future because of clock skew also says “Updated now”. The age updates while the page is open.
 
-The current condition chooses the sky. `isDay` changes the clear and partly cloudy skies and their sun-or-moon artwork. Clear daylight is saturated blue with a warm sun; clear night is deep indigo with a moon glow. Partial cloud softens either sky. Cloudy, rain, snow, thunderstorm, and fog use the same sky and artwork by day and night: overcast uses a cooler layered-cloud sky, rain darkens it to blue slate, snow cools it to icy blue-grey, a thunderstorm turns it ink-blue and violet, and fog mutes it to silver-blue. Every sky uses white type with subtle text shadows and a local dark gradient behind the upper-left text. Condition artwork uses the same visual language at every size and stays clear of the summary and high-and-low line.
+The current condition chooses the sky. `isDay` changes the clear and partly cloudy skies and their sun-or-moon artwork. Clear daylight is saturated blue with a warm sun; clear night is deep indigo with a moon glow. Partial cloud softens either sky. Cloudy, rain, snow, thunderstorm, and fog use the same sky and artwork by day and night: cloudy uses a cooler layered-cloud sky, rain darkens it to blue slate, snow cools it to icy blue-grey, a thunderstorm turns it ink-blue and violet, and fog mutes it to silver-blue. Every sky uses white type with subtle text shadows and a local dark gradient behind the upper-left text. Condition artwork uses the same visual language at every size and stays clear of the summary and high-and-low line.
 
 These stories show every condition, both designs for clear and partly cloudy, a thunderstorm at night, and both unit systems.
 
@@ -45,25 +45,29 @@ These stories show every condition, both designs for clear and partly cloudy, a 
 
 The artifact document is transparent. The weather card sits inside it with rounded corners, a fine light rim, and a soft shadow, so it reads as one floating object in the transparent artifact frame.
 
-The small layout is used below 600 pixels wide or below 480 pixels high. It shows current conditions only and is what a new artifact opens in at 340 by 340 pixels. The current temperature and artwork scale with the card so three-character readings fit without crowding.
+The small layout is used below 600 pixels wide or below 480 pixels high. It shows current conditions only and is what a new artifact opens in at 340 by 340 pixels. The current temperature and artwork continue to scale down to the 230-by-230-pixel artifact-frame minimum so three-character readings fit without crowding.
 
 <Artifact><Canvas of={Stories.ThreeDigitTemperature} /></Artifact>
+
+This story shows the same three-digit reading at the minimum artifact size.
+
+<Artifact width="230px"><Canvas of={Stories.MinimumSize} /></Artifact>
 
 This state has no daily entry for the current date, so it keeps the current summary and leaves out the high-and-low line.
 
 <Artifact><Canvas of={Stories.NoCurrentDay} /></Artifact>
 
-At least 600 pixels wide and 480 pixels high, the medium layout adds a translucent hourly panel when the [hourly display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-windows) is not empty. Requiring both dimensions is intentional: a wide artifact below 480 pixels high keeps the balanced current-only layout instead of squeezing in a short forecast panel. If the window begins with “Now”, that cell uses the temperature and condition from `current`, even when the matching hourly entry differs. The remaining cells use the hourly entries. The strip scrolls horizontally when all entries do not fit.
+At least 600 pixels wide and 480 pixels high, the medium layout adds a translucent hourly panel for the [hourly display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-hourly-window), independently of the daily window. Requiring both dimensions is intentional: a wide artifact below 480 pixels high keeps the balanced current-only layout instead of squeezing in a short forecast panel. The first cell is labelled “Now” and uses `temperature`, `condition`, and `isDay` from `current`. The following cells use the retained hourly entries. The window and labels follow the clock while the page remains open. The strip scrolls horizontally when all entries do not fit.
 
 <Artifact width="700px"><Canvas of={Stories.Medium} /></Artifact>
 
-At least 760 pixels wide and 740 pixels high, the large layout also adds a translucent daily panel below the hourly strip when the [daily display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-windows) is not empty. The heading says “N-day forecast”, where N is the number of displayed rows. Each day has a weekday, condition glyph, low, shared-scale temperature-range bar, and high. The bars share the lowest low and highest high in the displayed daily forecast, so their positions can be compared.
+At least 760 pixels wide and 740 pixels high, the large layout also places a translucent daily panel after the hourly panel when the [daily display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-daily-window) is not empty. Its presence depends only on the daily window. The heading says “N-day forecast”, where N is the number of displayed rows. Each row has “Today” or a weekday, a condition glyph, a low, a shared-scale temperature-range bar, and a high. The bars share the lowest low and highest high in the displayed daily forecast, so their positions can be compared. The window and “Today” label follow the clock while the page remains open.
 
-Generated hour and weekday labels use the `en-US` locale. “Now”, “Today”, the “Updated” forms, headings, and other page copy remain in English.
+Generated hour and weekday labels use the `en-US` locale. Each hour label shows the entry instant as a clock time at `timeZone`; it includes minutes when the local time is not on the hour. “Now”, “Today”, the “Updated” forms, headings, and other page copy remain in English.
 
-The hourly strip is named “Hourly forecast hours; scroll for later hours” and can receive keyboard focus, so left and right arrow keys can reach hours outside the visible area. Each hourly entry exposes its local time, condition name, and temperature to assistive technology. Each daily entry exposes its date label, condition name, low, and high; the range bar adds visual comparison but no separate meaning.
+The hourly strip is named “Hourly forecast; scroll for later hours” and can receive keyboard focus, so left and right arrow keys can reach hours outside the visible area. Each hourly entry exposes its local time, condition name, and temperature to assistive technology. Each daily entry exposes its date label, condition name, low, and high; the range bar adds visual comparison but no separate meaning.
 
-<Artifact width="900px"><Canvas of={Stories.Large} /></Artifact>
+<Artifact width="760px"><Canvas of={Stories.Large} /></Artifact>
 
 <Artifact width="900px"><Canvas of={Stories.ShortForecast} /></Artifact>
 
@@ -87,7 +91,7 @@ A read-only share looks and behaves like any other Weather page. While the page 
 
 Agents write forecast data by hand, so it can break the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never rewrites data it cannot read.
 
-Any non-empty value that is partial or breaks the contract replaces the forecast with an alert: a warning icon in a softly ruled circle, “This forecast can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” Saved-data unavailability shows the same alert. Once an agent fixes the value, the forecast returns without reopening the page.
+Any value other than the empty object or one complete forecast replaces the forecast with an alert: a warning icon in a softly ruled circle, “This forecast can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” Saved-data unavailability shows the same alert. Once an agent fixes the value, the forecast returns without reopening the page.
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
 

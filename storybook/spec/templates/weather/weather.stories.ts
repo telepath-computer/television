@@ -152,22 +152,27 @@ const currentWeather = (forecast: Forecast) => {
   </section>`;
 };
 
-const hourlyForecast = (forecast: Forecast) => html`
+const hourlyForecast = (forecast: Forecast) => {
+  const hoursWithCurrent: Hour[] = [
+    {
+      label: "Now",
+      temperature: forecast.current.temperature,
+      condition: forecast.current.condition,
+      isDay: forecast.current.isDay,
+    },
+    ...forecast.hourly,
+  ];
+  return html`
   <section class="weather-panel weather-hourly" aria-label="Hourly forecast">
     <h2>Hourly forecast</h2>
-    <div class="weather-hourly-strip" tabindex="0" aria-label="Hourly forecast hours; scroll for later hours">${forecast.hourly.map((hour, index) => {
-      const isNow = index === 0 && hour.label === "Now";
-      const temperature = isNow ? forecast.current.temperature : hour.temperature;
-      const condition = isNow ? forecast.current.condition : hour.condition;
-      const isDay = isNow ? forecast.current.isDay : hour.isDay;
-      return html`
+    <div class="weather-hourly-strip" tabindex="0" aria-label="Hourly forecast; scroll for later hours">${hoursWithCurrent.map((hour) => html`
       <div class="weather-hour">
         <span class="weather-hour-label">${hour.label}</span>
-        <span class="weather-hour-condition" role="img" aria-label="${conditionNames[condition]}">${weatherGlyph(condition, isDay, "hour")}</span>
-        <strong>${degree(temperature)}</strong>
-      </div>`;
-    })}</div>
+        <span class="weather-hour-condition" role="img" aria-label="${conditionNames[hour.condition]}">${weatherGlyph(hour.condition, hour.isDay, "hour")}</span>
+        <strong>${degree(hour.temperature)}</strong>
+      </div>`)}</div>
   </section>`;
+};
 
 const dailyForecast = (forecast: Forecast) => {
   const floor = Math.min(...forecast.daily.map((day) => day.temperatureLow));
@@ -234,15 +239,15 @@ const render = ({ theme, state, forecast }: Args) => {
           </div>
         </header>
         ${currentWeather(forecast)}
-        ${forecast.hourly.length > 0 ? hourlyForecast(forecast) : html``}
+        ${hourlyForecast(forecast)}
         ${forecast.daily.length > 0 ? dailyForecast(forecast) : html``}
       </div>
     </article>
   </main>`;
 };
 
-const daytimeLabels = ["Now", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM"];
-const nightLabels = ["Now", "11 PM", "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM"];
+const daytimeLabels = ["11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM", "10 PM"];
+const nightLabels = ["11 PM", "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM"];
 
 const hours = (temperatures: number[], conditions: Condition[], labels = daytimeLabels, nightFrom = temperatures.length + 1): Hour[] => {
   return temperatures.map((temperature, index) => ({
@@ -371,8 +376,6 @@ const london: Forecast = {
   unit: "C",
   updated: "9 min ago",
   current: { temperature: 16, condition: "partly-cloudy", summary: "Sun and clouds", isDay: true },
-  // The stored current-hour forecast intentionally differs from current;
-  // the visible Now cell must use current conditions.
   hourly: hours([15, 17, 18, 18, 17, 16, 15, 14, 13, 12, 12, 11], ["rain", "clear", "cloudy", "rain"], daytimeLabels, 8),
   daily: [
     { label: "Today", temperatureHigh: 18, temperatureLow: 10, condition: "partly-cloudy" },
@@ -402,8 +405,10 @@ const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slic
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
 const viewports = {
+  minimum: { name: "Minimum weather", styles: { width: "230px", height: "230px" }, type: "mobile" },
   small: { name: "Small weather", styles: { width: "340px", height: "340px" }, type: "mobile" },
   medium: { name: "Medium weather", styles: { width: "700px", height: "540px" }, type: "desktop" },
+  largeBoundary: { name: "Large weather boundary", styles: { width: "760px", height: "740px" }, type: "desktop" },
   large: { name: "Large weather", styles: { width: "900px", height: "780px" }, type: "desktop" },
 };
 
@@ -434,9 +439,10 @@ export const ThunderstormNight = { name: "Thunderstorm at night", ...sized("medi
 export const ThunderstormNightLarge = { name: "Thunderstorm at night, large", ...sized("large"), args: { forecast: newOrleansStorm } };
 export const Fog = { args: { forecast: foggy } };
 export const ThreeDigitTemperature = { name: "Three-digit temperature", args: { forecast: deathValley } };
+export const MinimumSize = { name: "Minimum size", ...sized("minimum"), args: { forecast: deathValley } };
 export const NoCurrentDay = { name: "No current daily forecast", args: { forecast: noCurrentDay } };
 export const Medium = { ...sized("medium"), args: { forecast: london } };
-export const Large = { ...sized("large"), args: { forecast: london } };
+export const Large = { ...sized("largeBoundary"), args: { forecast: london } };
 export const ShortForecast = { name: "Four-day forecast", ...sized("large"), args: { forecast: londonShort } };
 export const Loading = { args: { state: "loading" } };
 export const Empty = { args: { state: "empty" } };
