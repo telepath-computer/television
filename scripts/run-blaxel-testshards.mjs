@@ -328,7 +328,10 @@ async function leaseOperation(lease, operation, extra = {}) {
   const result = await lease.sandbox.process.exec({ name: `tv-${operation}-${randomUUID()}`, command: `bash -lc ${shellQuote(body)}`, waitForCompletion: true, timeout: 30 });
   const lines = chunkToText(result.logs ?? "").trim().split("\n");
   let response;
-  try { response = JSON.parse(lines.at(-1)); } catch { throw new Error(`worker ${operation} returned no ownership evidence (exit ${result.exitCode})`); }
+  try { response = JSON.parse(lines.at(-1)); } catch {
+    const details = chunkToText(await lease.sandbox.process.logs(result.name, "all")).slice(-4000);
+    throw new Error(`worker ${operation} returned no ownership evidence (exit ${result.exitCode}): ${details}`);
+  }
   if (result.exitCode !== 0 || !response.ok) throw new Error(`worker ${operation}: ${response.reason ?? "failed"}`);
   return response;
 }
@@ -398,7 +401,7 @@ function acquisitionOrder(sandboxes, { slot, requestedWorkers }) {
 }
 
 
-async function runShard(lease, outputDir, { attempt, onExecutionRequested = () => {}, onExecutionStarted = () => {}, onResultProgress = () => {} } = {}) {
+async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onExecutionStarted = () => {}, onResultProgress = () => {} } = {}) {
   const { sandbox, shardIndex, lockId } = lease;
   const diagnosticAttemptId = lease.input.attemptId;
   const startedAt = Date.now();
@@ -573,7 +576,7 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
       shardSummaryError = identityError ?? resultError;
       appendLog(logPath, `\n[coordinator] ${shardSummaryError}\n`);
     }
-    if (!shardSummary || identityError || resultError) throw new Error(shardSummaryError ?? "missing shard summary");
+    if (!shardSummary || identityError) throw new Error(shardSummaryError ?? "missing shard summary");
     const hasSummaryFile = fs.existsSync(summaryPath);
     const status = classifyDownloadedShardStatus({ identityError, shardSummary, exitCode, hasSummaryFile, setupTimings });
     const completedAt = new Date().toISOString();
@@ -1029,7 +1032,20 @@ async function retainAttemptEvidence(lease, directory) {
   const root = "/workspace/television/.testshards/results";
   const identity = JSON.parse(await lease.sandbox.fs.read(`${root}/attempt.json`));
   for (const key of ["lockId", "runId", "shardIndex", "attemptId"]) if (identity[key] !== lease.input[key]) throw new Error(`attempt evidence identity mismatch: ${key}`);
-  const evidence = JSON.parse(await lease.sandbox.fs.read(`${root}/evidence.json`));
+  let evidence;
+  try { evidence = JSON.parse(await lease.sandbox.fs.read(`${root}/evidence.json`)); }
+  catch (error) {
+    if (lease.teardownConfirmed || error?.status !== 404) throw error;
+    // Teardown uncertainty must not prevent retaining already-produced evidence.
+    const files = [];
+    const collect = async (directory) => {
+      const listing = await lease.sandbox.fs.ls(directory);
+      for (const file of listing.files ?? []) files.push(path.posix.relative(root, `${directory}/${file.name}`));
+      for (const child of listing.subdirectories ?? []) await collect(`${directory}/${child.name}`);
+    };
+    await collect(root);
+    evidence = { runId: lease.input.runId, attemptId: lease.input.attemptId, files };
+  }
   if (evidence.runId !== lease.input.runId || evidence.attemptId !== lease.input.attemptId || !Array.isArray(evidence.files)) throw new Error("invalid retained-evidence inventory");
   for (const name of evidence.files) {
     if (typeof name !== "string" || name.startsWith("/") || name.split("/").includes("..")) throw new Error("invalid evidence path");

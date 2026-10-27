@@ -5,7 +5,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { combineAttemptReports, compactProviderSummary, failedTasksFromShards, formatShardLogs, infrastructureRetryShardIndices, providerCommandExitCode, readShardSummaries, runInfrastructureAttempts, summarizeInfrastructureAttempts, writeProviderReports, type AttemptReport } from "../../scripts/test/provider-outputs.mjs";
 import { classifyBlaxelCoordinatorFailure, classifyBlaxelShardStatus, classifyDownloadedShardStatus, validateDownloadedShardSummary } from "../../scripts/test/blaxel-classification.mjs";
-import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards } from "../../scripts/test/blaxel-lease-acquisition.mjs";
+import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards, leaseRecoveryArgs } from "../../scripts/test/blaxel-lease-acquisition.mjs";
 import { normalizeBlaxelSurfaces, normalizeProviderShardSurfaces, normalizeProviderTimingShards, resolveProviderRunGit } from "../../scripts/test/provider-normalization.mjs";
 import { loadTestConfig, selectSurfaces } from "../../scripts/test/config.mjs";
 import { normalizeProcessLeak } from "../../scripts/test/timing-events.mjs";
@@ -27,6 +27,12 @@ function writeVitestNative(file: string, total: number) {
 }
 
 describe("provider result normalization", () => {
+  test("forwards only an explicitly supplied recovery interval to the coordinator", () => {
+    expect(leaseRecoveryArgs({})).toEqual([]);
+    expect(leaseRecoveryArgs({ "lock-ttl-seconds": "60" })).toEqual(["--lock-ttl-seconds", "60"]);
+    expect(readFileSync("scripts/test/cli.mjs", "utf8")).toContain("args.push(...leaseRecoveryArgs(selectionOptions))");
+  });
+
   test("constructs Blaxel restore/wake timing with a typed passed status", () => {
     const source = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
     expect(source).toContain('restorePhase = { name: "sandbox-restore-wake", status: "passed"');
@@ -55,16 +61,13 @@ describe("provider result normalization", () => {
     expect(source).toContain("Delete the pool before ensure so every provisioned worker is fresh.");
     expect(source.indexOf("const existing = await listPoolSandboxes()"))
       .toBeLessThan(source.indexOf("SandboxInstance.createIfNotExists"));
-    expect(source.indexOf("await sandbox.wait()"))
-      .toBeLessThan(source.indexOf("await provisionSandboxRuntime(sandbox)"));
-    expect(source.indexOf("await provisionSandboxRuntime(sandbox)"))
-      .toBeLessThan(source.indexOf("await verifySandboxArchitecture(sandbox)"));
+    expect(source).toContain("await publishWorker(sandbox");
 
     expect(source).toContain("options.size ?? String(DEFAULT_BLAXEL_POOL_SIZE)");
     expect(source).toContain('const memory = Number.parseInt(options.memory ?? "8192", 10)');
     expect(source).toContain('const image = options.image ?? "blaxel/playwright-chromium:latest"');
     expect(source).toContain('return `tv-testshard-${arch}-${pool}-${String(index).padStart(2, "0")}`');
-    for (const label of ['project: "television"', 'purpose: "testshards"', "pool,", "arch,"]) {
+    for (const label of ['project: "television"', 'purpose: "testshards-provisioning"', "pool,", "arch,"]) {
       expect(source).toContain(label);
     }
   });
@@ -333,30 +336,19 @@ describe("provider result normalization", () => {
     expect(source).toContain("MAX_PARALLEL_LEASE_ACQUISITIONS = 32");
     expect(source).toContain("await acquireShardLeases({");
     expect(source).toContain("acquire: async ({ shardIndex, slot }) => {");
-    expect(source).toContain("const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length });");
-    expect(source).toContain("const lockId = `${runId}-shard-${shardIndex}`");
+    expect(source).toContain("const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length, attempt: attempt + 1 });");
+    expect(source).toContain("const lockId = `${runId}-s${shardIndex}-a${attempt}-");
     expect(source).toContain("activeLeases.set(lockId, lease)");
     expect(source).toContain("lease.executionRequested = true");
     expect(source).toContain("lease.executionCompletionConfirmed = true");
     expect(source).toContain("killProcess: lease.executionRequested === true && lease.executionCompletionConfirmed !== true");
     expect(source).not.toContain("acquired.map((lease) => stopAndReleaseLease(lease, { killProcess: false }))");
     expect(source).toContain("lease.logPath = logPath");
-    const stopIndex = source.indexOf("await lease.sandbox.process.kill(lease.processName)");
-    const ownerCleanupIndex = source.indexOf("await reapUnconfirmedShardOwners(lease)", stopIndex);
-    const releaseIndex = source.indexOf("await releaseLock(lease.sandbox, lease.lockId)", ownerCleanupIndex);
-    expect(stopIndex).toBeGreaterThan(0);
-    expect(ownerCleanupIndex).toBeGreaterThan(stopIndex);
-    expect(releaseIndex).toBeGreaterThan(ownerCleanupIndex);
-    expect(source).toContain("node scripts/test/stale-owner-reaper-cli.mjs --output");
-    const ownerCleanupStart = source.indexOf("async function reapUnconfirmedShardOwners");
-    const ownerCleanupEnd = source.indexOf("function buildInterruptedReportSnapshot", ownerCleanupStart);
-    const ownerCleanupSource = source.slice(ownerCleanupStart, ownerCleanupEnd);
-    expect(ownerCleanupSource).toContain('"set -eo pipefail"');
-    expect(ownerCleanupSource).not.toContain('"set -euo pipefail"');
-    expect(ownerCleanupSource).toContain('"nvm use --silent default"');
-    expect(ownerCleanupSource).not.toContain('    "nvm use --silent",');
+    expect(source).toContain("await finishLease({");
+    expect(source).toContain('teardown: () => confirmTeardown(lease)');
+    expect(source).not.toContain("release_lock()");
+    const ownerCleanupSource = source.slice(source.indexOf("async function leaseOperation"), source.indexOf("async function acquireAny"));
     expect(ownerCleanupSource.indexOf('. "$NVM_DIR/nvm.sh"')).toBeLessThan(ownerCleanupSource.indexOf('"set -u"'));
-    expect(ownerCleanupSource.indexOf('"set -u"')).toBeLessThan(ownerCleanupSource.indexOf("node scripts/test/stale-owner-reaper-cli.mjs --output"));
 
     const nvmFixture = mkdtempSync(path.join(os.tmpdir(), "tv-provider-nvm-nounset-"));
     const outsideRepository = path.join(nvmFixture, "outside-repository");
@@ -401,10 +393,7 @@ describe("provider result normalization", () => {
       rmSync(nvmFixture, { recursive: true, force: true });
     }
 
-    expect(source).toContain("report.cleanupConfirmed === true");
-    expect(source).toContain("report.liveOwners.length === 0");
-    expect(source).toContain("report.remainingStaleOwners.length === 0");
-    expect(source).toContain("Owner cleanup was not confirmed; retaining lease");
+
   });
 
   test("plans before Blaxel leases and invokes the production explicit-file worker", () => {

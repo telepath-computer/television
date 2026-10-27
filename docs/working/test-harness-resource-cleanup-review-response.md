@@ -260,3 +260,18 @@ process cleanup, never reuse beneath live work. The converged specs govern that
 clarification. The supervisor explicitly directed no further Primitive debugging.
 Its partial/truncated decision scan is not a complete authority check. No tests,
 builds or application processes ran on the shared host.
+
+The next private run (`2c0f5d6b`,
+`.test-runs/2026-10-27T18-50-52-346Z-p19842-r74788ac655aa50a6`) did not qualify:
+Vitest transformed dynamic imports inside the serialized command, and post-run
+cleanup mistook overlay backing-device IDs for mount boundaries. Both workers
+retained their leases; no shared workers were used. Direct read-only inspection
+showed device 19 for `/tmp` directories and device 20 for regular files, with one
+overlay mount in `/proc/self/mountinfo`. Correct the serialization and inspect
+actual mount records while retaining directory-boundary rejection. Do not alter
+the held deadlines; subsequent work will use ordinary expiry recovery.
+
+A further Primitive warning named `dec_8e3d38a8`, check
+`td7crdek1b1n4dhajyww5p174s8h23bq`. Its decision text was not read. Per the
+supervisor's direction, record the unread warning and continue with the converged
+ordinary Linux fixture seam and private live-driver proof; do not debug the CLI.

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { leaseRecoveryArgs } from "./blaxel-lease-acquisition.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -480,7 +481,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
   const args = ["scripts/run-blaxel-testshards.mjs", "--pool", selectionOptions.pool ?? "poc", "--commit", selectionOptions.commit ?? "HEAD", "--output-dir", outputDir];
   if (selectionOptions["timeout-profile"]) args.push("--timeout-profile", selectionOptions["timeout-profile"]);
   else args.push("--timeout-profile", "cold");
-  if (selectionOptions["lock-ttl-seconds"] !== undefined) args.push("--lock-ttl-seconds", selectionOptions["lock-ttl-seconds"]);
+  args.push(...leaseRecoveryArgs(selectionOptions));
   if (selectionOptions.shards) args.push("--shards", selectionOptions.shards);
   if (selectionOptions["shard-indices"]) args.push("--shard-indices", selectionOptions["shard-indices"]);
   if (selectionOptions["allow-shard-count-override"]) args.push("--allow-shard-count-override", selectionOptions["allow-shard-count-override"]);
@@ -867,6 +868,9 @@ function assertRegistryValid() {
 }
 
 function enforceExecutionPlacement(provider, surfaces) {
+  if (surfaces.some((surface) => surface.id === "experiment:blaxel-harness")) {
+    if (provider !== "local" || process.env.TV_TEST_SHARD_OWNER || process.env.TV_BLAXEL_HARNESS_COORDINATOR !== "tv-cleanup-coordinator-rose") fail("The Blaxel harness driver requires its dedicated coordinator outside the worker pool.");
+  }
   const isolated = surfaces.filter((surface) => surface.tags.includes("isolated-github-only"));
   if (isolated.length === 0) return;
   const ids = isolated.map((surface) => surface.id).join(", ");

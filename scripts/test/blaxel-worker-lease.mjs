@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 
 export const DEFAULT_RECOVERY_SECONDS = 1200;
 export const SHARD_OWNER_ENV = "TV_TEST_SHARD_OWNER";
@@ -12,8 +14,8 @@ export function shardScratchPath({ tmpRoot = "/tmp", lockId, shardIndex, attempt
 // Serialize the actual implementation; never read a helper from the worker clone.
 export function workerLeaseCommand(input) {
   const tmpRoot = input.tmpRoot ?? "/tmp";
-  const source = `${cleanWorkerTemporaryDirectories.toString()}\n${workerLeaseOperation.toString()}\ntry { const result = await workerLeaseOperation(JSON.parse(Buffer.from(process.argv[1], 'base64url'))); console.log(JSON.stringify(result)); if (!result.ok) process.exitCode = 42; } catch (error) { console.error(error.message); process.exitCode = 2; }`;
-  return `flock -w 20 -o ${quote(`${tmpRoot}/tv-testshard.guard`)} node --input-type=module -e ${quote(source)} ${quote(Buffer.from(JSON.stringify({ ...input, scratch: input.scratch ?? shardScratchPath(input) })).toString("base64url"))}`;
+  const source = `${cleanWorkerTemporaryDirectories.toString()}\n${workerLeaseOperation.toString()}\nworkerLeaseOperation(JSON.parse(Buffer.from(process.argv[1], 'base64url'))).then(result => { console.log(JSON.stringify(result)); if (!result.ok) process.exitCode = 42; }).catch(error => { console.error(error.message); process.exitCode = 2; });`;
+  return `flock -w 20 -o ${quote(`${tmpRoot}/tv-testshard.guard`)} node -e ${quote(source)} ${quote(Buffer.from(JSON.stringify({ ...input, scratch: input.scratch ?? shardScratchPath(input) })).toString("base64url"))}`;
 }
 
 export function workerEntryCommand(input, script) {
@@ -27,8 +29,8 @@ function quote(value) { return `'${String(value).replaceAll("'", `'"'"'`)}'`; }
 
 /** Must run under the short flock guard. Hooks substitute only declared seams. */
 export async function workerLeaseOperation(input, hooks = {}) {
-  const fs = await import("node:fs");
-  const path = await import("node:path");
+  const fs = require("node:fs");
+  const path = require("node:path");
   const now = hooks.now ?? Date.now;
   const tmpRoot = input.tmpRoot ?? "/tmp";
   const resultsRoot = input.resultsRoot ?? "/workspace/television/.testshards/results";
@@ -211,11 +213,12 @@ export async function workerLeaseOperation(input, hooks = {}) {
 
 /** Direct allowed directories only; lstat traversal never follows symlinks. */
 export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", current, onlyCurrent = false }, probes = {}) {
-  const fs = await import("node:fs");
-  const path = await import("node:path");
+  const fs = require("node:fs");
+  const path = require("node:path");
   const lstat = probes.lstat ?? fs.lstatSync;
   const remove = probes.remove ?? ((file) => fs.rmSync(file, { recursive: true, force: false }));
   const scratchRoot = path.join(tmpRoot, "tv-testshards");
+  const mountPoints = new Set(fs.readFileSync("/proc/self/mountinfo", "utf8").trim().split("\n").map((line) => line.split(" ")[4].replace(/\\([0-7]{3})/g, (_match, code) => String.fromCharCode(parseInt(code, 8)))));
   const free = () => { const value = fs.statfsSync(tmpRoot); return { availableBytes: value.bavail * value.bsize, freeBytes: value.bfree * value.bsize }; };
   const report = { ok: true, before: free(), after: null, removed: {}, skips: [], errors: [] };
   for (const root of [tmpRoot, scratchRoot]) {
@@ -225,7 +228,9 @@ export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", curren
   }
   function allocated(file, device) {
     const stat = lstat(file);
-    if (stat.dev !== device) throw new Error("unexpected mount boundary");
+    // Overlay files may expose their backing device while directories expose
+    // overlay's device. A regular file's st_dev alone is not a mount boundary.
+    if (mountPoints.has(file) || (stat.isDirectory() && stat.dev !== device)) throw new Error("unexpected mount boundary");
     let bytes = stat.blocks * 512;
     if (stat.isDirectory()) for (const name of fs.readdirSync(file)) bytes += allocated(path.join(file, name), device);
     return bytes;
