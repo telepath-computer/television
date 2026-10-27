@@ -96,8 +96,8 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `preflight.md` (92 lines) — *The checks the test runner runs before tests: local capability checks for the selected surfaces, and the git-safety and provider-auth checks that gate a committed-revision remote run.*
     - `reporting.md` (426 lines) — *The run directory, normalized reports, resource diagnostics, timing events, and CI run artifacts test runs produce.*
     - `sharded-execution.md` (343 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
-    - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
-    - `test-runner.md` (262 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
+    - `test-registry.md` (182 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
+    - `test-runner.md` (268 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
   - **themes/**
     - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
     - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*

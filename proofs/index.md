@@ -28,7 +28,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `licensing.md` (24 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (18 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
-  - `testing-policy.md` (27 lines) — *How worker-owned test builds are proven, and how testing discipline is reviewed.*
+  - `testing-policy.md` (25 lines) — *How worker-owned test builds are proven, and how testing discipline is reviewed.*
   - **artifact-frame/**
     - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
     - `index.md` (24 lines) — *How the promises in Artifact frame (architecture) are proven.*

@@ -19,7 +19,7 @@ Planned and targeted execution both cross parent capture and download. The same 
 
 `TV_VITEST_ATTEMPT_FILE` supplies the NDJSON output path to the production Vitest attempt recorder. The canonical runner and the planned shard worker set it to the current native run's attempt-result path. A Vitest invocation that configures the recorder outside those entrypoints must set it; the recorder fails without it.
 
-The resource collector accepts a probe reader and clock; contract tests provide authored readings/errors and times, while production reads Linux counters, memory information and filesystem statistics at the current time. The writer accepts an output root and write operation; tests use disposable directories and may inject a write failure, while production writes into the current results tree. Native fixture selection uses the runner's existing guarded registry hook, not a replacement reporter or fabricated native result.
+The resource collector accepts a probe reader and clock; contract tests provide authored readings/errors and times, while production reads Linux counters, memory information and filesystem statistics at the current time. The writer accepts an output root and write operation; tests use disposable directories and may inject a write failure, while production writes into the current results tree. Local parent/child seam fixtures use the runner’s existing guarded registry hook, not a replacement reporter or fabricated native result. That hook is not forwarded to Blaxel workers.
 
 ## Assertions
 

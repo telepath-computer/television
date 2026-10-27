@@ -169,6 +169,6 @@ Under the testing policy's [rule for integration against paid services or comple
 
 A change to pool provisioning or runtime selection requires the live run to use freshly provisioned workers, since `ensure` refuses a populated pool ([#Pool](#Pool)). A dedicated pool may supply this evidence without deleting shared `poc` workers.
 
-Recovery and cleanup experiments use disposable owned processes on a dedicated pool, never intentionally contaminating shared workers. Temporary-file placement needs live observation of Node-created paths and Chromium shared-memory descriptor paths under the attempt's `TMPDIR`.
+Recovery and cleanup experiments use disposable owned processes on a dedicated pool, never intentionally contaminating shared workers. Automated qualification uses the runner's [Blaxel harness placement](./test-runner.md#^blaxel-harness-placement) and the registry's explicitly selected experiment surfaces, excluded from `all` and ordinary CI. Temporary-file placement needs live observation of Node-created paths and Chromium shared-memory descriptor paths under the attempt's `TMPDIR`.
 
 A change to repository selection, or to how a worker's checkout moves between repositories, requires live runs from checkouts of two repositories on the same pool, including a run on workers whose checkout last served the other repository.
