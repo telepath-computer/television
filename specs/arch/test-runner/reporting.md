@@ -1,10 +1,10 @@
-*The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
+*The run directory, normalized reports, resource diagnostics, timing events, and CI run artifacts test runs produce.*
 
 # Reporting
 
 Every test run leaves a compact result for people and agents, detailed files for debugging, and machine-readable timing records. The timing records that Blaxel runs leave in their run directories are the input for balancing future test runs across parallel machines.
 
-This spec is authoritative for the *run directory*, the *normalized surface result* model, the per-run timing event stream, compact-summary discipline, status accounting, and the run artifacts GitHub Actions jobs upload. Local runs, regular GitHub CI jobs, and Blaxel runs all produce this model; Blaxel provider results are translated into it by [sharded-execution.md](./sharded-execution.md). The runner that drives reporting is [test-runner.md](./test-runner.md); the testing discipline behind the honesty of these reports is [testing-policy.md](../testing-policy.md). Duration rollups and shard planning are owned by [sharded-execution.md](./sharded-execution.md).
+This spec is authoritative for the *run directory*, the *normalized surface result* model, Blaxel resource diagnostics, the per-run timing event stream, compact-summary discipline, status accounting, and the run artifacts GitHub Actions jobs upload. Local runs, regular GitHub CI jobs, and Blaxel runs all produce the shared reporting model; Blaxel provider results are translated into it by [sharded-execution.md](./sharded-execution.md). The runner that drives reporting is [test-runner.md](./test-runner.md); the testing discipline behind the honesty of these reports is [testing-policy.md](../testing-policy.md). Duration rollups and shard planning are owned by [sharded-execution.md](./sharded-execution.md).
 
 ## Run directory
 
@@ -82,6 +82,7 @@ interface NormalizedSurfaceResult {
   logPath: string | null;
   nativeResultPath?: string | null;
   nativeResultPaths?: string[];
+  resourceDiagnosticsPaths?: string[];
   counts: Counts;
   failedTests: Array<Record<string, unknown>>;
   flakyRecoveredTests: Array<Record<string, unknown>>;
@@ -209,6 +210,20 @@ A process leak makes every surface named by `owningSurfaceIds` failed with `infr
 `summary.json` enumerates failed tests, recovered flakes, and process leaks but never enumerates passed test cases; counts represent observed passes. Each enumerated test is compacted to file, line, title, attempts, `flakyAnnotated`, status, and an `errorSummary` truncated to 800 characters with ANSI codes stripped. A leak is already compact and is preserved in full because PID, command, owning surfaces, and sockets are the evidence needed to identify the leaking harness. `results.json` enumerates each selected surface for which an outcome was retained and its leak records, while `selection` remains the authority for the complete requested set. Work with no evidence receives no per-surface pass or failure.
 
 `events.ndjson` is an explicit exception to compact-summary discipline. It enumerates every test attempt because its purpose is machine analysis; it is not printed into agent context as a normal command result.
+
+## Resource diagnostics
+
+Each Blaxel surface execution, planned or targeted, records available RAM, shared-memory usage, free bytes on the effective temporary filesystem, and the Linux OOM-kill counter at start and end. The parent captures and immediately retains the start observation before surface preparation, then captures the end after teardown, so a browser or test-worker crash does not erase the baseline. Each value records its units and observation time; unavailable probes and missing final observations are explicit, never substituted with zero. Counter resets cannot be reported as negative OOM events. ^resource-diagnostics
+
+One sidecar identifies the run, shard attempt, and surface execution and links to its native attempt evidence. Retain it for failed tests, failures that recover on retry, and missing native output. The surface result's `resourceDiagnosticsPaths` links only retained files relative to the owning run directory. Attempt history keeps its own sidecars when an infrastructure retry supersedes that attempt; aggregation does not overwrite them with the successful retry's evidence. A sidecar with missing native evidence does not invent a test result or a selected-surface outcome.
+
+If any native attempt failed, or execution evidence is incomplete, capture relevant kernel OOM lines for the execution interval through a bounded read. Keep at most 64 KiB of these lines per surface execution, 128 KiB for the entire sidecar, and 8 MiB of resource diagnostics per shard attempt, including recovery receipts. Reserve space for compact start/end records before optional excerpts. State truncation or omission and unavailable-probe reasons. Probe or diagnostic-write failure adds an observability warning without changing the test outcome or masking its original failure. ^resource-diagnostic-bounds
+
+Start/end observations give context and an OOM-counter delta, not a peak-memory measurement or the exact failing allocation. A system counter increase alone does not identify which process was killed. Kernel evidence may identify the process; absent or inaccessible kernel output is unknown, not evidence of no OOM. No periodic sampler, full process inventory, heap snapshot, video, or NetLog is required by this contract.
+
+A recovery receipt records the prior worker/run/lock identity, last renewal and deadline, process identities stopped and cleanup outcome, and whether undownloaded reports were discarded. Preserve it with the incoming attempt's setup evidence across results reset and download, within the same attempt diagnostic budget. A receipt disclosing discarded reports supplies no passing evidence for that abandoned run. [Blaxel's lifecycle](./blaxel-testshards.md#Abandoned-run recovery) owns when such discard is permitted and how worker retention stays bounded.
+
+These artifacts contain no credentials, request query strings or bodies, or arbitrary process environments; process identities exclude arguments. They remain outside disposable scratch and are downloaded with the provider artifacts. Resource samples and kernel excerpts stay out of the timing event stream and compact console output; links make the detailed evidence available. Existing native retry records and trace policy remain unchanged.
 
 ## Timing event stream
 

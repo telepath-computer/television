@@ -40,7 +40,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `licensing.md` (294 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
   - `making-skills.md` (30 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
-  - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - `testing-policy.md` (238 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
     - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
@@ -90,14 +90,14 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `sink.md` (63 lines) — *The telemetry sink: the PostHog transport, its bounded in-memory buffer, fire-and-forget delivery that never blocks or crashes the server, and the platform operations (region, key, agent access).*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
-    - `blaxel-testshards.md` (131 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
+    - `blaxel-testshards.md` (174 lines) — *The Blaxel shard coordinator: persistent workers, exclusive leases and abandoned-run recovery, owned temporary files, remote checkout and execution, and retained shard results.*
     - `flaky-tests.md` (74 lines) — *The flaky-test policy: the runner's retry budget, the per-test `FLAKY_TEST_RETRIES` annotation, and how recovered flakes are surfaced.*
     - `github-ci.md` (137 lines) — *The GitHub Actions CI execution contract: PR concurrency, per-job dependency and browser environment, build-once fan-out with an artifact manifest, cleanup tool prerequisites, worker counts, and the retirement record for the Blacksmith-dispatched shard provider.*
     - `preflight.md` (92 lines) — *The checks the test runner runs before tests: local capability checks for the selected surfaces, and the git-safety and provider-auth checks that gate a committed-revision remote run.*
-    - `reporting.md` (411 lines) — *The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
-    - `sharded-execution.md` (341 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
+    - `reporting.md` (426 lines) — *The run directory, normalized reports, resource diagnostics, timing events, and CI run artifacts test runs produce.*
+    - `sharded-execution.md` (343 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
     - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
-    - `test-runner.md` (261 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
+    - `test-runner.md` (262 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
   - **themes/**
     - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
     - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*

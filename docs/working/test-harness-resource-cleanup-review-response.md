@@ -1,6 +1,8 @@
 # Resource-cleanup proposal: review response
 
-Independent round 1 reviewed `1652787e`. Reviewer: Claude Fable (Nina), arranged by the supervisor. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. This response records the revised proposal following his 2026-10-27 instruction; it does not claim reviewer convergence.
+Independent round 3 reviewed `57a701d0`: **PASS**, relayed by the supervisor. The proposal has converged. The round 1 and 2 sections below retain the response history; [round 3](#Round 3: convergence and spec derivation) records the bounded refinements and current spec checkpoint. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+
+Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
 ## Josh's scope decisions
 
@@ -66,3 +68,32 @@ Refinement 1 is resolved by contributor judgment: **five cases in two files**, t
 | 4b: credentials for the Blaxel coordinator sandbox | Accepted. Specify process-environment injection of `BL_WORKSPACE`, an authorized `BL_API_KEY`, and `BLAXEL_TV_GH_TOKEN`, loaded in memory on the launching host. The installed SDK's authentication source and repository token reader support these paths. Do not copy credential files, embed values in commands/scripts/logs, or persist them in sandbox/Git configuration; verify availability before dispatch and end the credential-bearing process after report retrieval. No secret was read, copied, or transmitted while preparing this revision. |
 
 The revision is ready for independent re-review; the historical FAIL is unchanged until that review converges. No spec, proof, or implementation was edited. No test, build, browser/server launch, remote experiment, or worker operation ran. Live renewal/recovery behavior, browser versions, `TMPDIR` placement, and incremental resource benefit remain unmeasured; the proposal names the private Blaxel validation needed after spec/proof convergence.
+
+## Round 3: convergence and spec derivation
+
+The [round 3 report](test-harness-resource-cleanup-review-r3.md) is copied verbatim. It passes the proposal and raises no blocker. Under the workflow's bounded-refinement rule, apply the four substantive improvements without reopening cosmetic review or adding another proposal stage:
+
+| Refinement | Judgment and disposition |
+| --- | --- |
+| 1: fixed recovery interval | Accepted. Use 20 minutes, preserving the existing cold-profile allowance, independent of shard timeout. Reuse `--lock-ttl-seconds` for the interval override and derive renewal cadence from it. A healthy coordinator renews throughout ownership, so tying recovery to execution timeout bought no safety. Remove the custom-timeout field/case and the 19/23-minute distinction. This remains a proposed operating allowance to validate on Blaxel. |
+| 2: delete a worker that cannot be cleaned | Accepted. Normal test acquisition still requires a clean audit. Explicit pool deletion refuses a valid reservation but may destroy an expired worker despite failed process cleanup. It first removes test-dispatch eligibility so a delayed provider deletion cannot hit a new test run. Failed deletion stays visible to pool management and unavailable to tests. Fresh-only `ensure` does not refill a partly deleted pool. This makes the stated operator repair path usable. |
+| 3: live legacy work | Accepted. Skip/report it after TTL expiry and allow its matching-ID exit trap to free it normally. Do not call every live legacy run a repair case or add a second recovery mechanism. An old run that never exits still has the explicit pool deletion path. |
+| 4: receipt and provisioning wording | Remove the separate receipt limit; the 8 MiB attempt budget already bounds it. Replace the undefined pool-draining language with delayed publication of test-discovery labels until runtime setup and architecture verification succeed. The existing architecture probe alone is insufficient to exclude a worker in the middle of setup once Node becomes available. Keep incomplete provisioning visible to the manager, with no silent reuse. No new pool-wide coordination protocol. |
+
+Main at `a8e73fbf` is integrated in `74d22941`, with the policy-level reconciliation in that merge message. Preserve the Vite full-response fix, PR #9's built reset, origin repository selection, single-origin app helper, SDK assets and current proxy API. PR #30 separately fixed demo-mode fixture teardown by closing idle HTTP connections; revise the resource proposal to say so. The five-case conversion is retained for its shipped-asset boundary and repeated loads, with no claim that it cures that flake or produces the historical memory saving.
+
+### Spec checkpoint
+
+| Owner | Derived delta |
+| --- | --- |
+| `specs/arch/testing-policy.md` | Worker-owned reusable builds with Playwright/Vitest teardown and failed-preparation cleanup; built application default limited to new/substantially changed `ProductServer` browser acceptances. |
+| `specs/arch/test-runner/blaxel-testshards.md` | Exclusive renewable reservation through teardown and retrieval; fixed recovery interval and existing option; automatic owned-process cleanup and explicit abandoned-report loss; legacy skip; pool provisioning/deletion exclusion; per-attempt scratch and exact pre/post-run cleanup. Replace the TTL-only release promises rather than leaving contradictory authority. Dedicated fresh workers can prove provisioning without recreating the shared pool. |
+| `specs/arch/test-runner/reporting.md` | Parent start/end resource observations, failed/recovered attempt retention, missing-evidence honesty, bounded kernel excerpts and sidecars, recovery receipts, and normalized links to retained diagnostics. |
+| `specs/arch/test-runner/test-runner.md` | Cross-reference the Blaxel abandonment exception while preserving ordinary live-owner protection; preserve outer attempt attribution through nested scopes. |
+| `specs/arch/test-runner/sharded-execution.md` | Carry the outer attempt environment and diagnostic artifact references across shared execution and provider normalization. No planning, shard-count, or retry change. |
+
+The rewritten spec policy on main governs this derivation. The proposal retains implementation rationale and the future experiment plan; specs own the lasting lifecycle decisions and cross-process/reporting contracts. Mirrored proofs and theme setup descriptions are intentionally unchanged at this checkpoint: they follow independent spec convergence. Product promises, production code, and the five conversion implementations are unchanged by this checkpoint.
+
+Validation is read-only source/policy review, exact-copy comparison of the independent review, and Git diff/whitespace inspection. No tests, builds, browser/server launches, remote experiments, or worker operations ran. Live recovery, temporary-file placement and bounded evidence transport remain to be proven on committed/pushed Blaxel revisions. The supervisor arranges independent spec review; Josh accepts the spec changes at PR time.
+
+Primitive surfaced the known recovery decisions and their later correction, alongside unrelated scope matches. Its discovery scan was truncated, so it was not a complete governing-set check. Repository policy and the supervisor's latest instructions governed the assessment; no decision was overridden or reconciled.
