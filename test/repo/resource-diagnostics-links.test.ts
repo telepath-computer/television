@@ -33,7 +33,7 @@ test("keeps only retained resource links across infrastructure replacement, norm
     expect(results.surfaces[0].resourceDiagnosticsPaths).toEqual(["attempt-0/resources.json", "attempt-1/resources.json"]);
     for (const link of results.surfaces[0].resourceDiagnosticsPaths as string[]) expect(existsSync(path.join(root, link))).toBe(true);
     expect(summary.run.status).toBe("passed");
-    const events = serializeTimingEvents(buildTimingEvents({ run: { id: "resource-run", commandProvider: "blaxel", timingProvider: "blaxel-playwright-x64-4vcpu", status: "passed", startedAt: start, completedAt: end, durationMs: 1000, selection: { surfaces: ["e2e:fixture"] }, git: { commit: null, tree: null, dirty: false }, environment: { ci: true, os: "linux", arch: "x64", node: process.version }, phases: [] }, shards: [{ index: 1, total: 1, status: "passed", phases: [], surfaces: normalized as any }] }));
+    const events = serializeTimingEvents(buildTimingEvents({ run: { runId: "resource-run", commandProvider: "blaxel", timingProvider: "blaxel-playwright-x64-4vcpu", status: "passed", startedAt: start, completedAt: end, durationMs: 1000, selection: { surfaces: ["e2e:fixture"] }, git: { commit: null, tree: null, dirty: false }, environment: { ci: true, os: "linux", arch: "x64", node: process.version }, phases: [] }, shards: [{ index: 1, total: 1, status: "passed", phases: [], surfaces: normalized as any }] }));
     for (const compact of [JSON.stringify(summary), JSON.stringify(compactProviderSummary(combined)), events]) {
       expect(compact).not.toContain("KERNEL-DETAIL-SENTINEL");
       expect(compact).not.toContain("memoryAvailable");

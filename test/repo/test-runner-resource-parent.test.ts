@@ -64,6 +64,7 @@ test("interrupted surface parent leaves an explicit missing final observation", 
   const child = spawnOwnedProcess(process.execPath, fixture.args, { env: fixture.env, stdio: "ignore" });
   try {
     await expect.poll(() => existsSync(path.join(fixture.dir, "preparation.json")), { timeout: 10_000, interval: 20 }).toBe(true);
+    await expect.poll(() => child.child.signalCode, { timeout: 5_000, interval: 20 }).toBe("SIGKILL");
     expect((await child.dispose()).outcome).not.toBe("survived");
     const records = readDiagnostics(fixture.dir);
     expect(records).toHaveLength(1);

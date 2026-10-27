@@ -64,8 +64,11 @@ test("bounds sidecars and the attempt including receipts, reserving compact obse
   expect(record.kernel.truncated).toBe(true);
   expect(Buffer.byteLength(record.kernel.lines.join("\n"))).toBeLessThanOrEqual(64 * 1024);
   expect(statSync(collector.file!).size).toBeLessThanOrEqual(128 * 1024);
+  const pending = startResourceDiagnostics({ root, identity, readProbe: () => 2, warn: (message) => warnings.push(message) });
   const receipt = { kind: "recovery", identity, previous: { runId: "old", lockId: "old-lock", worker: "private-worker", lastRenewal: startTime, recoverAfter: endTime, args: secret }, discardedReports: true, cleanup: "confirmed", processes: Array.from({ length: 3000 }, (_, i) => ({ pid: i + 1, startTime: "123", command: "node", outcome: "terminated", args: secret })), env: secret };
   for (let i = 0; i < 80; i++) writeResourceDiagnostic(root, `receipt-${i}`, receipt, { warn: (message) => warnings.push(message) });
+  pending.finish({ runner: "vitest", nativeResultPath: null, exitCode: 17 });
+  expect(read(pending.file).end.memoryAvailable.value).toBe(2);
   const files = readdirSync(path.join(root, "resources")).map((name) => path.join(root, "resources", name));
   expect(files.reduce((sum, file) => sum + statSync(file).size, 0)).toBeLessThanOrEqual(8 * 1024 * 1024);
   expect(files.every((file) => statSync(file).size <= 128 * 1024)).toBe(true);
