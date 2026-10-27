@@ -71,11 +71,6 @@ export function displayAxis(entries) {
   return [...stored, ...drawn];
 }
 
-/** Reports whether two displayed items are the same still-current drawn position. */
-export function isCurrentDrawnPosition(previous, current) {
-  return previous?.kind === "drawn" && current?.kind === "drawn" && previous.id === current.id;
-}
-
 function selectedBounds(entries, selectedKeys) {
   if (selectedKeys.length === 0) return entries.length === 0 ? { start: 0, end: -1 } : null;
   const positions = selectedKeys.map(key => entries.findIndex(([entryKey]) => entryKey === key));
@@ -223,6 +218,9 @@ export function planCellCommit(value, target, openedText, text, keys) {
   const columnKeys = neededKeys(keys.columns, columnCount);
   const rowKeys = neededKeys(keys.rows, rowCount);
   if (columnKeys === null || rowKeys === null) return noWrite("missing-keys");
+  if (new Set(columnKeys).size !== columnKeys.length || new Set(rowKeys).size !== rowKeys.length) {
+    return noWrite("invalid-keys");
+  }
   const columnKey = column.kind === "stored" ? column.key : columnKeys.at(-1);
   const rowKey = row.kind === "stored" ? row.key : rowKeys.at(-1);
   const addedColumns = newAxisEntries("columns", state.model.columns, columnKeys);
@@ -266,6 +264,7 @@ export function planHeaderCommit(value, columnIndex, openedText, text, keys) {
   const count = columnIndex - state.model.columns.length + 1;
   const columnKeys = neededKeys(keys.columns, count);
   if (columnKeys === null) return noWrite("missing-keys");
+  if (new Set(columnKeys).size !== columnKeys.length) return noWrite("invalid-keys");
   const targetKey = columnKeys.at(-1);
   const entries = newAxisEntries("columns", state.model.columns, columnKeys, { [targetKey]: { name: text } });
   if (entries === null) return noWrite("missing-keys");
@@ -286,6 +285,7 @@ export function planAdd(value, axis, keys) {
   const count = Math.max(0, MINIMUM_AXIS_SIZE - entries.length) + 1;
   const selectedKeys = neededKeys(keys, count);
   if (selectedKeys === null) return noWrite("missing-keys");
+  if (new Set(selectedKeys).size !== selectedKeys.length) return noWrite("invalid-keys");
   const added = newAxisEntries(axis, entries, selectedKeys);
   if (added === null) return noWrite("missing-keys");
   if (added.kind === "renumber") return renumber(axis, added.request);
@@ -305,18 +305,26 @@ export function planInsert(value, axis, selection, side, keys) {
   const drawnBefore = Math.max(0, insertionIndex - entries.length);
   const selectedKeys = neededKeys(keys, drawnBefore + 1);
   if (selectedKeys === null) return noWrite("missing-keys");
+  if (new Set(selectedKeys).size !== selectedKeys.length) return noWrite("invalid-keys");
   const drawnKeys = selectedKeys.slice(0, drawnBefore);
   const newKey = selectedKeys.at(-1);
+  const storedSelectionKeys = displayed.slice(selection.start, selection.end + 1)
+    .filter(item => item.kind === "stored").map(item => item.key);
 
   if (insertionIndex >= entries.length) {
     const added = newAxisEntries(axis, entries, [...drawnKeys, newKey]);
     if (added === null) return noWrite("missing-keys");
-    if (added.kind === "renumber") return renumber(axis, added.request);
+    if (added.kind === "renumber") {
+      return renumber(axis, storedSelectionKeys.length === 0 ? added.request : {
+        mode: "insert",
+        selectedKeys: storedSelectionKeys,
+        side,
+        entries: added.request.entries,
+      });
+    }
     return operations(added.entries.map(entry => set([axis, entry.key], entry.value)));
   }
 
-  const storedSelectionKeys = displayed.slice(selection.start, selection.end + 1)
-    .filter(item => item.kind === "stored").map(item => item.key);
   const order = insertionOrder(entries, storedSelectionKeys, side);
   if (order === undefined) return noWrite("invalid-selection");
   if (order === null) {
@@ -362,6 +370,16 @@ export function planClear(value, selection) {
     if (column === undefined) return noWrite("invalid-target");
     return column.kind === "stored" && typeof state.columns[column.key]?.name === "string"
       ? operations([remove(["columns", column.key, "name"])]) : noWrite("nothing-to-clear");
+  }
+  if (selection.kind === "cell"
+    && (rows[selection.rowIndex] === undefined || columns[selection.columnIndex] === undefined)) {
+    return noWrite("invalid-target");
+  }
+  if ((selection.kind === "rows" || selection.kind === "columns")) {
+    const axis = selection.kind === "rows" ? rows : columns;
+    if (selection.start < 0 || selection.end < selection.start || selection.end >= axis.length) {
+      return noWrite("invalid-selection");
+    }
   }
 
   const selectedRows = selection.kind === "cell" ? rows.slice(selection.rowIndex, selection.rowIndex + 1)

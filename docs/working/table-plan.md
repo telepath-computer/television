@@ -1,6 +1,8 @@
 # Editable Table spec plan
 
-The architecture and UI specs and their proofs have passed independent review. This document records the remaining product decisions and the three implementation slices for plan review. Tests, packaged assets, and production code wait for that review.
+The architecture and UI specs, their proofs, and this plan have passed independent review. This document records the product decisions and three implementation slices. Slice 1 is under implementation review; slices 2 and 3 have not begun.
+
+Plan revision after review: slice 2 now owns the renumbering transaction proof and the README file-pointer check. Replacing the read-only real-stack file removes its search, sort, access, disconnection, loading, unreadable-data, scrolling, and appearance cases; the later slices provide the specified replacements. Slice 3 validation now includes the CLI assets test.
 
 ## Open decisions for Rupert
 
@@ -26,6 +28,7 @@ The architecture and UI specs and their proofs have passed independent review. T
 - An insert stores only the drawn positions before the new entry and the new entry. A row or column menu for an entirely drawn selection has no Delete item. These actions use distinct update paths.
 - Use the architecture [drawn-position identity rule](../../specs/arch/templates/table.md#^bundled-artifact-template-table-drawn-identity) to decide when the page can still write to a drawn position. Accept that two writers can store the same drawn positions, and that an insert racing a renumber can appear in a different position, rather than adding coordination.
 - Keep ordinary writes at the changed cell, name, row, column, or `showHeader` path. Storing a drawn column beside a stored row writes only the cell path within that row. Multi-selection actions use one atomic update of distinct paths. Only the renumbering transaction rewrites other entries.
+- Near `Number.MAX_VALUE`, an edit in drawn positions can require renumbering. If both axes need it, or if the one-axis transaction aborts, treat the edit as a failed save and show the standard message. Apply any other-axis writes only after the transaction commits.
 - Keep stale cell values after column deletion. A column selection clears body cells only; a selected header cell clears the name.
 - Keep ranges contiguous by displayed position. Incoming reordering that separates the selected keys clears the range. Insert selects the new whole row or column. An add control selects and focuses a cell in the new entry at the previously selected body cell's other-axis position, or at the first position. Delete keeps one selection at the first displayed position formerly occupied by the deleted selection; clearing contents keeps the current selection.
 - Keep “Show header row” and “Hide header row” in both menus, as Rupert designed. Shift-F10 and the context-menu key open the applicable row or column menu; Shift-Space selects a row and Ctrl-Shift-Space selects a column. Typing with a whole axis selected does nothing, and right-clicking a body or header cell opens no Table menu.

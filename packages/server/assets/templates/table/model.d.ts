@@ -83,12 +83,16 @@ export type TableNoWriteReason =
   | "unreadable"
   | "invalid-target"
   | "missing-keys"
+  | "invalid-keys"
   | "invalid-selection"
   | "nothing-to-delete"
   | "nothing-to-clear"
   | "multiple-renumbering-required";
 
-/** A complete write plan, a retry-safe axis renumbering, or an intentional no-write outcome. */
+/**
+ * A complete write plan, a retry-safe axis renumbering, or an intentional no-write outcome.
+ * For a renumber result, run the transaction first and apply `operations` only after it commits.
+ */
 export type TablePlanResult =
   | { kind: "operations"; operations: TableWriteOperation[] }
   | { kind: "renumber"; axis: "rows" | "columns"; request: TableRenumberRequest; operations: TableWriteOperation[] }
@@ -103,10 +107,7 @@ export function readTable(value: unknown): TableModel | null;
 /** Adds stable stored identities and enough count-based drawn identities to reach four positions. */
 export function displayAxis(entries: TableAxisEntry[]): DisplayAxisItem[];
 
-/** Reports whether two displayed items are the same still-current drawn position. */
-export function isCurrentDrawnPosition(previous: DisplayAxisItem | undefined, current: DisplayAxisItem | undefined): boolean;
-
-/** Chooses a strict order beside a contiguous stored selection, or null when the axis needs renumbering. */
+/** Chooses a strict order, null when the axis needs renumbering, or undefined for an invalid selection. */
 export function insertionOrder(entries: TableAxisEntry[], selectedKeys: string[], side: "before" | "after"): number | null | undefined;
 
 /** Chooses consecutive strict orders after an axis, or null when its end must be renumbered. */

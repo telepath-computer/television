@@ -62,7 +62,13 @@ describe("Table selection model", () => {
     expect(row).toEqual(selectAxis(null, "rows", 1, false, grid));
     expect(column).toEqual(selectAxis(null, "columns", 2, false, grid));
     expect(moveSelection(row, "left", grid, { showHeader: true }).selection).toEqual(row);
+    expect(moveSelection(column, "left", grid, { showHeader: true }).selection)
+      .toEqual(selectAxis(null, "columns", 1, false, grid));
+    expect(moveSelection(column, "right", grid, { showHeader: true }).selection)
+      .toEqual(selectAxis(null, "columns", 3, false, grid));
     expect(moveSelection(column, "up", grid, { showHeader: true }).selection).toEqual(column);
+    expect(moveSelection(headerSelectionAt(grid, 2), "select-column", grid, { showHeader: true }).selection)
+      .toEqual(column);
     expect(moveSelection(row, "tab-forward", grid, { showHeader: true }).exit).toBe("after");
     expect(moveSelection(column, "tab-backward", grid, { showHeader: true }).exit).toBe("before");
   });
@@ -74,6 +80,13 @@ describe("Table selection model", () => {
     const extended = moveSelection(range, "up", grid, { showHeader: false, extend: true }).selection;
     expect(extended).toEqual(selectAxis(selectAxis(null, "rows", 1, false, grid), "rows", 2, true, grid));
     expect(moveSelection(extended, "down", grid, { showHeader: false, extend: true }).selection).toEqual(range);
+  });
+
+  it("starts a one-item axis selection when Shift-click switches from a cell", () => {
+    const grid = axes();
+    const cell = cellSelectionAt(grid, 1, 1);
+    expect(selectAxis(cell, "rows", 3, true, grid)).toEqual(selectAxis(null, "rows", 3, false, grid));
+    expect(selectAxis(cell, "columns", 0, true, grid)).toEqual(selectAxis(null, "columns", 0, false, grid));
   });
 
   it("enters at the retained selection or first body cell and leaves irrelevant axis movement unchanged", () => {

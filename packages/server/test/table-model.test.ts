@@ -4,7 +4,6 @@ import {
   createAxisRenumberUpdate,
   displayAxis,
   insertionOrder,
-  isCurrentDrawnPosition,
   ordersAtEnd,
   planAdd,
   planCellCommit,
@@ -130,9 +129,9 @@ describe("Table drawn axes", () => {
   it("keeps drawn identity while displayed stored count is fixed and invalidates it when that count changes", () => {
     const before = displayAxis([{ key: "c1", order: 1 }])[2]!;
     const renamed = displayAxis([{ key: "c1", order: 9, name: "Changed" }])[2]!;
-    expect(isCurrentDrawnPosition(before, renamed)).toBe(true);
-    expect(isCurrentDrawnPosition(before, displayAxis([{ key: "c2", order: 1 }])[2]!)).toBe(true);
-    expect(isCurrentDrawnPosition(before, displayAxis([{ key: "c1", order: 1 }, { key: "c2", order: 2 }])[2]!)).toBe(false);
+    expect(renamed.id).toBe(before.id);
+    expect(displayAxis([{ key: "c2", order: 1 }])[2]!.id).toBe(before.id);
+    expect(displayAxis([{ key: "c1", order: 1 }, { key: "c2", order: 2 }])[2]!.id).not.toBe(before.id);
   });
 });
 
@@ -232,6 +231,18 @@ describe("Table ordering and renumbering", () => {
       entries: [{ key: "new", value: { cells: {} } }],
     }));
   });
+
+  it("keeps an end insertion tied to its selected stored key when renumbering", () => {
+    expect(planInsert({
+      columns: {},
+      rows: { a: { order: 0, cells: {} }, b: { order: Number.MAX_VALUE, cells: {} } },
+    }, "rows", { start: 1, end: 1 }, "after", ["new"])).toEqual(renumber("rows", {
+      mode: "insert",
+      selectedKeys: ["b"],
+      side: "after",
+      entries: [{ key: "new", value: { cells: {} } }],
+    }));
+  });
 });
 
 // Contract: proofs/arch/templates/table.md#^templates-table-t-write-plan.
@@ -296,6 +307,8 @@ describe("Table write planning", () => {
       .toEqual(noWrite("missing-keys"));
     expect(planInsert(table, "rows", { start: 2, end: 1 }, "after", ["new"]))
       .toEqual(noWrite("invalid-selection"));
+    expect(planAdd({ columns: {}, rows: {} }, "columns", ["same", "same", "c3", "c4", "c5"]))
+      .toEqual(noWrite("invalid-keys"));
   });
 
   it("preserves surrounding whitespace and line breaks in changed text", () => {
@@ -336,6 +349,29 @@ describe("Table write planning", () => {
       last: { order: 0, cells: {} },
       "new-row": { order: 1, cells: { c1: "Yosemite" } },
     });
+  });
+
+  it("renumbers a drawn row carrying its cell before writing the drawn column", () => {
+    expect(planCellCommit({
+      columns: { c1: { order: 0 } },
+      rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
+    }, { rowIndex: 1, columnIndex: 1 }, "", "CA", {
+      columns: ["new-column"],
+      rows: ["new-row"],
+    })).toEqual(renumber("rows", {
+      mode: "append",
+      entries: [{ key: "new-row", value: { cells: { "new-column": "CA" } } }],
+    }, [set(["columns", "new-column"], { order: 1 })]));
+  });
+
+  it("fails a drawn-cell save that would need both axes renumbered", () => {
+    expect(planCellCommit({
+      columns: { c1: { order: Number.MAX_VALUE } },
+      rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
+    }, { rowIndex: 1, columnIndex: 1 }, "", "CA", {
+      columns: ["new-column"],
+      rows: ["new-row"],
+    })).toEqual(noWrite("multiple-renumbering-required"));
   });
 
   it("carries a drawn header name, and keeps a stored-row cell write separate when only columns renumber", () => {
@@ -379,6 +415,8 @@ describe("Table write planning", () => {
     ));
     expect(planClear({ columns: {}, rows: {} }, { kind: "cell", rowIndex: 0, columnIndex: 0 }))
       .toEqual(noWrite("nothing-to-clear"));
+    expect(planClear(table, { kind: "cell", rowIndex: 8, columnIndex: 0 }))
+      .toEqual(noWrite("invalid-target"));
   });
 
   it("clears only non-empty body-cell paths for a whole column", () => {

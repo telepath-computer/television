@@ -55,6 +55,8 @@ The page displays columns and rows by ascending `order`, then by key in the [JSO
 
 When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not a JSON object, if a selected key is gone, or if the selected keys no longer form one contiguous range. For adding at the end or storing drawn positions, the transaction adds the needed entries after the current displayed entries. It gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
 
+If an edit in drawn positions would require transactions on both axes, or if its one-axis renumbering transaction aborts, the save fails and the page shows [“Couldn't save that change.”](../../ui/templates/table.mdx#saving-and-disconnection); when one axis renumbers, the page applies any remaining path updates only after that transaction commits.
+
 ### Runtime reading
 
 The page reads later writes tolerantly because the manifest schema does not validate them. No store value, `{}`, or a root object missing `columns` or `rows` is an empty or partial Table. A root value that is not a JSON object, or a present `columns` or `rows` value that is not a JSON object, is unreadable.
@@ -78,7 +80,7 @@ Rows and columns are separate axes. The page draws stored entries followed by en
 
 Committing non-empty text in a body cell in a drawn row or column stores the drawn columns and rows through that position. The resulting row entry includes the cell. If the row is already stored, the update does not replace it and writes only the cell path within that row. Naming a drawn header stores the drawn columns through it, with the resulting column entry carrying the name. Adding at the end stores every drawn position on that axis and adds one entry after them.
 
-Inserting a row or column stores the drawn positions before the new entry on that axis, followed by the new entry. It does not store drawn positions after the new entry. Deleting rows or columns removes the selected stored entries; selected drawn positions need no write. A new row that does not receive an edited cell has an empty `cells` object. Each action in these two paragraphs uses one atomic update of distinct entry and cell paths. Exact order values for these entries are code-governed.
+Inserting a row or column stores the drawn positions before the new entry on that axis, followed by the new entry. It does not store drawn positions after the new entry. Deleting rows or columns removes the selected stored entries; selected drawn positions need no write. A new row that does not receive an edited cell has an empty `cells` object. Each action in these two paragraphs that does not need renumbering uses one atomic update of distinct entry and cell paths. Exact order values for these entries are code-governed.
 
 Showing or hiding the header does not store drawn columns. Clearing a drawn cell, header, row, or column has nothing to clear and makes no write.
 
