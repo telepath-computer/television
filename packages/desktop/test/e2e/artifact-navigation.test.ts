@@ -1,7 +1,7 @@
 import type { ElectronApplication, Page } from "@playwright/test";
 import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { appURLForServer } from "../../../../test/helpers/product-server.ts";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHTTPServer, type Server as HTTPServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -13,6 +13,7 @@ const START_URL = desktopE2EURL("/packages/desktop/test/e2e/fixtures/electron-ur
 const PAGE2_URL = desktopE2EURL("/packages/desktop/test/e2e/fixtures/electron-url-nav-page2.html", { hostname: "localhost" });
 
 type NavigationRecord = { entries: Array<{ url: string }>; cursor: number } | null;
+type WebviewSnapshot = { contentsID: number; documentInstance: string; loadCount: number; url: string };
 
 function createDataDir(): string {
   return mkdtempSync(path.join(os.tmpdir(), "television-electron-navigation-e2e-"));
@@ -35,6 +36,33 @@ async function createURLArtifact(server: Server, store: ServerStore): Promise<st
   expect(response.status).toBe(201);
   const body = (await response.json()) as { artifact: { id: string } };
   return body.artifact.id;
+}
+
+function createPathArtifact(store: ServerStore, storagePath: string): string {
+  const artifactPath = path.join(storagePath, "same-document-artifact");
+  mkdirSync(artifactPath, { recursive: true });
+  const sameDocumentPage = `<!doctype html>
+      <html data-document-instance="">
+        <body>
+          <button id="replace" onclick="history.replaceState(history.state, '', location.pathname + location.search + '#replace')">Replace</button>
+          <button id="push" onclick="history.pushState(history.state, '', 'pushed.html')">Push</button>
+          <button id="hash" onclick="location.hash = '#hash'">Hash</button>
+          <script>
+            document.documentElement.dataset.documentInstance = String(Math.random());
+            const loadCount = Number(sessionStorage.getItem("same-document-load-count") ?? 0) + 1;
+            sessionStorage.setItem("same-document-load-count", String(loadCount));
+            document.documentElement.dataset.loadCount = String(loadCount);
+          </script>
+        </body>
+      </html>`;
+  writeFileSync(path.join(artifactPath, "index.html"), sameDocumentPage, "utf8");
+  writeFileSync(path.join(artifactPath, "pushed.html"), sameDocumentPage, "utf8");
+  return store.createArtifact({
+    kind: "path",
+    title: "Same-document navigation fixture",
+    path: `${artifactPath}${path.sep}`,
+    channelID: store.listChannels()[0]!.id,
+  }).id;
 }
 
 async function launchNavigationApp(server: Server): Promise<{ app: ElectronApplication; page: Page }> {
@@ -75,6 +103,23 @@ async function clickInWebview(app: ElectronApplication, selector: string): Promi
     if (!contents) throw new Error("No webview found");
     await contents.executeJavaScript(`document.querySelector(${JSON.stringify(targetSelector)})?.click()`);
   }, selector);
+}
+
+async function webviewSnapshot(app: ElectronApplication): Promise<WebviewSnapshot | null> {
+  return await app.evaluate(async ({ webContents }) => {
+    const contents = webContents.getAllWebContents().find((candidate) => candidate.getType() === "webview");
+    if (!contents) return null;
+    const documentState = (await contents.executeJavaScript(`({
+      documentInstance: document.documentElement.dataset.documentInstance,
+      loadCount: Number(document.documentElement.dataset.loadCount)
+    })`)) as { documentInstance: string; loadCount: number };
+    return {
+      contentsID: contents.id,
+      documentInstance: documentState.documentInstance,
+      loadCount: documentState.loadCount,
+      url: contents.getURL(),
+    };
+  });
 }
 
 async function navigationRecord(page: Page, artifactID: string): Promise<NavigationRecord> {
@@ -137,4 +182,71 @@ test.describe("Electron URL artifact navigation", () => {
     }
   });
 
-})
+});
+
+test.describe("Electron local folder same-document navigation", () => {
+  let storagePath: string;
+  let server: Server;
+  let artifactID: string;
+
+  test.beforeEach(async () => {
+    storagePath = createDataDir();
+    const store = createServingStore(storagePath);
+    server = new Server({ store, port: 0 });
+    artifactID = createPathArtifact(store, storagePath);
+    await server.start();
+  });
+
+  test.afterEach(async () => {
+    await server.dispose();
+    rmSync(storagePath, { recursive: true, force: true });
+  });
+
+  // spec: proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-same-document-continuity
+  test("preserves the document through replaceState, pushState, and location.hash", async () => {
+    const { app, page } = await launchNavigationApp(server);
+    try {
+      await expect(page.locator(".artifact-view webview.artifact-content")).toBeVisible({ timeout: 15_000 });
+      await expect.poll(() => webviewURL(app), { timeout: 15_000 }).toContain(`/artifact/${artifactID}/`);
+      const initialSnapshot = await webviewSnapshot(app);
+      expect(initialSnapshot).not.toBeNull();
+      expect(initialSnapshot).toMatchObject({ loadCount: 1 });
+      const artifactURL = (suffix: string) => `${new URL(initialSnapshot!.url).origin}/artifact/${artifactID}/${suffix}`;
+      expect(initialSnapshot!.url).toBe(artifactURL(""));
+
+      await clickInWebview(app, "#replace");
+      await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({
+        entries: [{ url: `/artifact/${artifactID}/#replace` }],
+        cursor: 0,
+      });
+      await expect.poll(() => webviewSnapshot(app)).toEqual({ ...initialSnapshot!, url: artifactURL("#replace") });
+
+      await clickInWebview(app, "#push");
+      await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({
+        entries: [{ url: `/artifact/${artifactID}/#replace` }, { url: `/artifact/${artifactID}/pushed.html` }],
+        cursor: 1,
+      });
+      await expect.poll(() => webviewSnapshot(app)).toEqual({ ...initialSnapshot!, url: artifactURL("pushed.html") });
+
+      await clickInWebview(app, "#hash");
+      await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({
+        entries: [
+          { url: `/artifact/${artifactID}/#replace` },
+          { url: `/artifact/${artifactID}/pushed.html` },
+          { url: `/artifact/${artifactID}/pushed.html#hash` },
+        ],
+        cursor: 2,
+      });
+      await expect.poll(() => webviewSnapshot(app)).toEqual({ ...initialSnapshot!, url: artifactURL("pushed.html#hash") });
+
+      await page.locator(".artifact-view button[aria-label='Back']").click();
+      await expect.poll(() => webviewURL(app)).toBe(artifactURL("pushed.html"));
+      await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 1 });
+      await page.locator(".artifact-view button[aria-label='Forward']").click();
+      await expect.poll(() => webviewURL(app)).toBe(artifactURL("pushed.html#hash"));
+      await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 2 });
+    } finally {
+      await app.close();
+    }
+  });
+});

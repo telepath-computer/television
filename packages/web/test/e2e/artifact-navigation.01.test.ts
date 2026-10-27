@@ -97,28 +97,28 @@ test.describe("artifact iframe navigation", () => {
     server = new Server({ store, port: 0 });
     const channelID = store.listChannels()[0]!.id;
 
-    writeFileSync(
-      path.join(artifactDir, "index.html"),
-      html(`
+    const sameDocumentPage = html(`
         <h1>Index</h1>
         <a id="page1" href="page1.html">Page 1</a>
-        <a id="fragment" href="#section">Section</a>
         <a id="handled" href="page2.html">Handled by the page</a>
-        <button id="push" onclick="history.pushState({}, '', 'pushed.html')">Push</button>
+        <button id="replace" onclick="history.replaceState(history.state, '', location.pathname + location.search + '#replace')">Replace</button>
+        <button id="push" onclick="history.pushState(history.state, '', 'pushed.html')">Push</button>
+        <button id="hash" onclick="location.hash = '#hash'">Hash</button>
         <form id="search" action="results.html">
           <input name="q" value="cats"><input type="hidden" name="action" value="search">
           <button id="submit-search">Search</button>
         </form>
         <script>
+          document.documentElement.dataset.documentInstance = String(Math.random());
           document.getElementById("handled").addEventListener("click", (event) => {
             event.preventDefault();
             document.body.dataset.handled = "yes";
           });
         </script>
         <div class="spacer"></div><h2 id="section">Section</h2>
-      `),
-      "utf8",
-    );
+      `);
+    writeFileSync(path.join(artifactDir, "index.html"), sameDocumentPage, "utf8");
+    writeFileSync(path.join(artifactDir, "pushed.html"), sameDocumentPage, "utf8");
     writeFileSync(
       path.join(artifactDir, "page1.html"),
       html(`
@@ -216,25 +216,50 @@ test.describe("artifact iframe navigation", () => {
   });
 
   // spec: proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-sandboxed-recording-seam
-  test("a sandboxed frame records links, pushState, fragments and GET forms, and not a click the page handled", async ({ page }) => {
+  // spec: proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-same-document-continuity
+  test("a sandboxed frame records same-document moves without reloading through replaceState, pushState, and location.hash", async ({ page }) => {
     const frame = page.frameLocator(".artifact-view iframe.artifact-content").first();
+    const iframe = page.locator(".artifact-view iframe.artifact-content").first();
     const frameDocument = () => page.frames().find((candidate) => candidate.url().includes(`/artifact/${artifactID}/`))!;
     await expect.poll(() => frameDocument()?.evaluate(() => window.origin)).toBe("null");
+    const initialFrameSource = await iframe.getAttribute("src");
+    const initialDocumentInstance = await frameDocument().evaluate(() => document.documentElement.dataset.documentInstance);
 
     await frame.locator("#handled").click();
     await expect(frame.locator("body")).toHaveAttribute("data-handled", "yes");
     await expect(frame.locator("h1")).toHaveText("Index");
 
-    await frame.locator("#fragment").click();
-    await expect.poll(() => historyURLs(page, artifactID)).toEqual([`/artifact/${artifactID}/#section`]);
-    await expect.poll(() => frameDocument().evaluate(() => location.hash)).toBe("#section");
+    await frame.locator("#replace").click();
+    await expect.poll(() => historyURLs(page, artifactID)).toEqual([`/artifact/${artifactID}/#replace`]);
+    await expect.poll(() => frameDocument().evaluate(() => location.hash)).toBe("#replace");
+    expect(await iframe.getAttribute("src")).toBe(initialFrameSource);
+    expect(await frameDocument().evaluate(() => document.documentElement.dataset.documentInstance)).toBe(initialDocumentInstance);
 
     await frame.locator("#push").click();
     await expect.poll(() => historyURLs(page, artifactID)).toEqual([
-      `/artifact/${artifactID}/#section`,
+      `/artifact/${artifactID}/#replace`,
       `/artifact/${artifactID}/pushed.html`,
     ]);
     await expect.poll(() => frameDocument().evaluate(() => location.pathname)).toBe(`/artifact/${artifactID}/pushed.html`);
+    expect(await iframe.getAttribute("src")).toBe(initialFrameSource);
+    expect(await frameDocument().evaluate(() => document.documentElement.dataset.documentInstance)).toBe(initialDocumentInstance);
+
+    await frame.locator("#hash").click();
+    await expect.poll(() => historyURLs(page, artifactID)).toEqual([
+      `/artifact/${artifactID}/#replace`,
+      `/artifact/${artifactID}/pushed.html`,
+      `/artifact/${artifactID}/pushed.html#hash`,
+    ]);
+    await expect.poll(() => frameDocument().evaluate(() => location.hash)).toBe("#hash");
+    expect(await iframe.getAttribute("src")).toBe(initialFrameSource);
+    expect(await frameDocument().evaluate(() => document.documentElement.dataset.documentInstance)).toBe(initialDocumentInstance);
+
+    await clickBackButton(page);
+    await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 1 });
+    await expect.poll(() => frameDocument().evaluate(() => `${location.pathname}${location.hash}`)).toBe(`/artifact/${artifactID}/pushed.html`);
+    await clickForwardButton(page);
+    await expect.poll(() => navigationRecord(page, artifactID)).toMatchObject({ cursor: 2 });
+    await expect.poll(() => frameDocument().evaluate(() => `${location.pathname}${location.hash}`)).toBe(`/artifact/${artifactID}/pushed.html#hash`);
 
     await frame.locator("#submit-search").click();
     await expect(frame.locator("h1")).toHaveText("Results");
@@ -243,8 +268,9 @@ test.describe("artifact iframe navigation", () => {
     await frame.locator("#page1").click();
     await expect(frame.locator("h1")).toHaveText("Page 1");
     await expect.poll(() => historyURLs(page, artifactID)).toEqual([
-      `/artifact/${artifactID}/#section`,
+      `/artifact/${artifactID}/#replace`,
       `/artifact/${artifactID}/pushed.html`,
+      `/artifact/${artifactID}/pushed.html#hash`,
       `/artifact/${artifactID}/results.html?q=cats&action=search`,
       `/artifact/${artifactID}/page1.html`,
     ]);
