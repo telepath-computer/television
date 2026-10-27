@@ -95,6 +95,17 @@ describe("Table tolerant reading and stored order", () => {
     expect(result.rows.map(row => row.cells)).toEqual([{ c1: "text", c2: "12", c3: "true", c4: "false" }, {}, {}]);
   });
 
+  it("treats __proto__ as an ordinary column and cell key", () => {
+    const result = readTable({
+      columns: Object.fromEntries([["__proto__", { order: 0, name: "Prototype" }]]),
+      rows: {
+        r1: { order: 0, cells: Object.fromEntries([["__proto__", "kept"]]) },
+      },
+    })!;
+    expect(result.columns).toEqual([{ key: "__proto__", order: 0, name: "Prototype" }]);
+    expect(result.rows[0].cells).toEqual(Object.fromEntries([["__proto__", "kept"]]));
+  });
+
   it("keeps both writers' valid key sets after a blank-axis race", () => {
     const result = readTable({
       columns: { firstA: { order: 0 }, firstB: { order: 1 }, secondA: { order: 0 }, secondB: { order: 1 } },
@@ -216,6 +227,10 @@ describe("Table ordering and renumbering", () => {
       last: { order: 0, name: "Last" }, ignored: { order: "bad", keep: true },
       r1: { order: 1, cells: {} }, r2: { order: 2, cells: {} },
       r3: { order: 3, cells: {} }, r4: { order: 4, cells: {} },
+    });
+    expect(update(undefined)).toEqual({
+      r1: { order: 0, cells: {} }, r2: { order: 1, cells: {} },
+      r3: { order: 2, cells: {} }, r4: { order: 3, cells: {} },
     });
   });
 

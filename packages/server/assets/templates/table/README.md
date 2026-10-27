@@ -28,7 +28,7 @@ Column and row keys are opaque IDs. Never derive a key from a column name, and n
 
 The page orders rows and columns by `order`, then by key when orders match. Give every row and column a distinct finite `order`. To insert between two entries, use a value between their orders. The page may renumber one axis when no numeric value fits.
 
-The displayed letters and numbers are positions after malformed entries have been ignored and the remaining entries have been ordered. Blank positions after stored entries are drawn positions; these drawn positions are not stored. For example, B3 in an empty table means creating columns A and B and rows 1 through 3, each with an `order`.
+The displayed letters and numbers are positions after ignored entries have been left out and the remaining entries have been ordered. Blank positions after stored entries are drawn positions; these drawn positions are not stored. For example, B3 in an empty table means creating columns A and B and rows 1 through 3, each with an `order`.
 
 ## Change the table
 

@@ -49,12 +49,10 @@ export function readTable(value) {
   const displayedColumnKeys = new Set(columns.map(column => column.key));
   const rows = orderedEntries(rowAxis).map(([key, row]) => {
     const sourceCells = isObject(row.cells) ? row.cells : {};
-    const cells = {};
-    for (const [columnKey, value] of Object.entries(sourceCells)) {
-      if (!displayedColumnKeys.has(columnKey)) continue;
+    const cells = Object.fromEntries(Object.entries(sourceCells).flatMap(([columnKey, value]) => {
       const text = cellText(value);
-      if (text !== null) cells[columnKey] = text;
-    }
+      return displayedColumnKeys.has(columnKey) && text !== null ? [[columnKey, text]] : [];
+    }));
     return { key, order: row.order, cells };
   });
   return { columns, rows, showHeader: root.showHeader === true };
@@ -124,9 +122,10 @@ export function ordersAtEnd(entries, count) {
 /** Creates a retry-safe callback that inserts or appends entries while renumbering one current axis. */
 export function createAxisRenumberUpdate(request) {
   return (current) => {
-    if (!isObject(current)) return undefined;
-    if (request.entries.some(entry => Object.hasOwn(current, entry.key))) return undefined;
-    const displayed = orderedEntries(current);
+    const axis = current === undefined ? {} : current;
+    if (!isObject(axis)) return undefined;
+    if (request.entries.some(entry => Object.hasOwn(axis, entry.key))) return undefined;
+    const displayed = orderedEntries(axis);
     let insertionIndex = displayed.length;
     if (request.mode === "insert") {
       const bounds = selectedBounds(displayed, request.selectedKeys);
@@ -136,7 +135,7 @@ export function createAxisRenumberUpdate(request) {
 
     const sequence = [...displayed];
     sequence.splice(insertionIndex, 0, ...request.entries.map(entry => [entry.key, entry.value]));
-    const result = { ...current };
+    const result = { ...axis };
     for (const [order, [key, entry]] of sequence.entries()) result[key] = { ...entry, order };
     return result;
   };
@@ -174,7 +173,6 @@ function renumber(axis, request, extraOperations = []) {
 }
 
 function newAxisEntries(axis, entries, keys, additions = {}) {
-  if (new Set(keys).size !== keys.length) return null;
   const values = keys.map(key => ({
     key,
     value: axis === "rows" ? { cells: {}, ...additions[key] } : { ...additions[key] },
@@ -226,8 +224,6 @@ export function planCellCommit(value, target, openedText, text, keys) {
   const addedColumns = newAxisEntries("columns", state.model.columns, columnKeys);
   const addedRows = newAxisEntries("rows", state.model.rows, rowKeys, row.kind === "drawn"
     ? { [rowKey]: { cells: { [columnKey]: text } } } : {});
-  if (addedColumns === null || addedRows === null) return noWrite("missing-keys");
-
   const writes = [];
   if (addedColumns.kind === "ordered") {
     writes.push(...addedColumns.entries.map(entry => set(["columns", entry.key], entry.value)));
@@ -267,7 +263,6 @@ export function planHeaderCommit(value, columnIndex, openedText, text, keys) {
   if (new Set(columnKeys).size !== columnKeys.length) return noWrite("invalid-keys");
   const targetKey = columnKeys.at(-1);
   const entries = newAxisEntries("columns", state.model.columns, columnKeys, { [targetKey]: { name: text } });
-  if (entries === null) return noWrite("missing-keys");
   if (entries.kind === "renumber") return renumber("columns", entries.request);
   return operations(entries.entries.map(entry => set(["columns", entry.key], entry.value)));
 }
@@ -287,7 +282,6 @@ export function planAdd(value, axis, keys) {
   if (selectedKeys === null) return noWrite("missing-keys");
   if (new Set(selectedKeys).size !== selectedKeys.length) return noWrite("invalid-keys");
   const added = newAxisEntries(axis, entries, selectedKeys);
-  if (added === null) return noWrite("missing-keys");
   if (added.kind === "renumber") return renumber(axis, added.request);
   return operations(added.entries.map(entry => set([axis, entry.key], entry.value)));
 }
@@ -313,7 +307,6 @@ export function planInsert(value, axis, selection, side, keys) {
 
   if (insertionIndex >= entries.length) {
     const added = newAxisEntries(axis, entries, [...drawnKeys, newKey]);
-    if (added === null) return noWrite("missing-keys");
     if (added.kind === "renumber") {
       return renumber(axis, storedSelectionKeys.length === 0 ? added.request : {
         mode: "insert",
@@ -375,7 +368,7 @@ export function planClear(value, selection) {
     && (rows[selection.rowIndex] === undefined || columns[selection.columnIndex] === undefined)) {
     return noWrite("invalid-target");
   }
-  if ((selection.kind === "rows" || selection.kind === "columns")) {
+  if (selection.kind === "rows" || selection.kind === "columns") {
     const axis = selection.kind === "rows" ? rows : columns;
     if (selection.start < 0 || selection.end < selection.start || selection.end >= axis.length) {
       return noWrite("invalid-selection");

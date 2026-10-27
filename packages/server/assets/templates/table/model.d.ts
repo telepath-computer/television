@@ -40,7 +40,11 @@ export type TableWriteOperation =
   | { kind: "set"; path: string[]; value: unknown }
   | { kind: "remove"; path: string[] };
 
-/** Fresh keys reserved before planning a drawn-position commit. */
+/**
+ * Fresh keys reserved before planning a drawn-position commit.
+ * Supply one key for every drawn position through the target on each drawn axis;
+ * planners ignore any keys after those positions.
+ */
 export interface TableCommitKeys {
   columns?: string[];
   rows?: string[];
@@ -75,7 +79,10 @@ export type TableRenumberRequest =
   | { mode: "append"; entries: TableRenumberEntry[] }
   | { mode: "insert"; selectedKeys: string[]; side: "before" | "after"; entries: TableRenumberEntry[] };
 
-/** Why a planner intentionally produces no store write. */
+/** A no-write outcome that the page reports as a failed save. */
+export type TableFailedSaveReason = "multiple-renumbering-required";
+
+/** Why a planner produces no store write. */
 export type TableNoWriteReason =
   | "cancelled"
   | "unchanged"
@@ -87,7 +94,7 @@ export type TableNoWriteReason =
   | "invalid-selection"
   | "nothing-to-delete"
   | "nothing-to-clear"
-  | "multiple-renumbering-required";
+  | TableFailedSaveReason;
 
 /**
  * A complete write plan, a retry-safe axis renumbering, or an intentional no-write outcome.

@@ -67,6 +67,7 @@ describe("Table selection model", () => {
     expect(moveSelection(column, "right", grid, { showHeader: true }).selection)
       .toEqual(selectAxis(null, "columns", 3, false, grid));
     expect(moveSelection(column, "up", grid, { showHeader: true }).selection).toEqual(column);
+    expect(moveSelection(column, "down", grid, { showHeader: true }).selection).toEqual(column);
     expect(moveSelection(headerSelectionAt(grid, 2), "select-column", grid, { showHeader: true }).selection)
       .toEqual(column);
     expect(moveSelection(row, "tab-forward", grid, { showHeader: true }).exit).toBe("after");
@@ -122,13 +123,16 @@ describe("Table selection model", () => {
 
   it("follows stored keys through reorder and clears removed, hidden, split or changed drawn selections", () => {
     const before = axes(["r1", "r2", "r3"], ["c1", "c2", "c3"]);
-    const cell = cellSelectionAt(before, 1, 1);
+    const cell = cellSelectionAt(before, 0, 0);
     const reordered = axes(["r3", "r2", "r1"], ["c3", "c2", "c1"]);
-    expect(reconcileSelection(cell, reordered, true)).toEqual(cellSelectionAt(reordered, 1, 1));
-    expect(reconcileSelection(cell, axes(["r1", "r3"], ["c1", "c2", "c3"]), true)).toBeNull();
+    expect(reconcileSelection(cell, reordered, true)).toEqual(cellSelectionAt(reordered, 2, 2));
+    expect(reconcileSelection(cell, axes(["r2", "r3"], ["c1", "c2", "c3"]), true)).toBeNull();
     expect(reconcileSelection(headerSelectionAt(before, 1), before, false)).toBeNull();
 
     const range = selectAxis(selectAxis(null, "rows", 0, false, before), "rows", 1, true, before);
+    expect(reconcileSelection(range, axes(["r2", "r1", "r3"], ["c1", "c2", "c3"]), true)).toEqual({
+      kind: "rows", ids: ["stored:r2", "stored:r1"], anchorId: "stored:r1", activeId: "stored:r2",
+    });
     expect(reconcileSelection(range, axes(["r1", "r3", "r2"], ["c1", "c2", "c3"]), true)).toBeNull();
 
     const blank = axes([], []);

@@ -43,7 +43,7 @@ describe("bundled Table package", () => {
     });
   });
 
-  // Cheap source check; the browser seam remains in the slice 2 asset test.
+  // Cheap source check for ^templates-table-t-assets; its browser seam checks the served files.
   it("loads the canonical stylesheet before its own stylesheet, and the canonical components", () => {
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
     expect(page.indexOf('/canonical/v2/styles.css?authoredForAppVersion=1.5.4')).toBeLessThan(page.indexOf("./styles.css"));
@@ -82,10 +82,22 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/do not repair[^.]*without an order/i);
     expect(prose).toMatch(/number or boolean[\s\S]*writes[^.]*string/i);
     expect(prose).toMatch(/person[^.]*editing[^.]*path-level/i);
-    for (const path of ["columns/$COLUMN_KEY", "columns/$COLUMN_KEY/name", "rows/$ROW_KEY", "rows/$ROW_KEY/cells/$COLUMN_KEY", "showHeader"]) {
-      expect(readme).toContain(path);
-    }
-    expect(readme).toMatch(/tv resource json push --artifact "\$ARTIFACT_ID" (?:columns|rows)/);
+    for (const command of [
+      "export ARTIFACT_ID=<id>",
+      'tv resource json set --artifact "$ARTIFACT_ID" \'{"showHeader":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"name":"Park"}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}\'',
+      'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":1}\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/name" \'"Park"\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'2\'',
+      'tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"',
+      'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":1,"cells":{}}\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" \'2\'',
+      'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"',
+      'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY" \'"Yosemite"\'',
+      'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY"',
+      'tv resource json set --artifact "$ARTIFACT_ID" showHeader \'true\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" showHeader \'false\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" \'{"columns":{},"rows":{}}\'',
+    ]) expect(readme).toContain(command);
     for (const file of ["page.js", "model.js", "selection-model.js", "styles.css"]) expect(readme).toContain(`\`${file}\``);
     expect(prose).toMatch(/copied artifacts[^.]*independent/i);
   });
