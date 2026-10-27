@@ -32,6 +32,7 @@ let rendering = false;
 let interactionVersion = 0;
 let menuObserver = null;
 let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
+let pageActionSelection = null;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -207,6 +208,16 @@ function selectionTarget() {
   return null;
 }
 
+function selectionAtSamePosition(selected, sourceAxes, targetAxes) {
+  if (selected?.kind === "cell") {
+    return cellSelectionAt(targetAxes, indexOf(sourceAxes.rows, selected.rowId), indexOf(sourceAxes.columns, selected.columnId));
+  }
+  if (selected?.kind === "header") {
+    return headerSelectionAt(targetAxes, indexOf(sourceAxes.columns, selected.columnId));
+  }
+  return null;
+}
+
 function replaceContents(markup) {
   menuObserver?.disconnect();
   menuObserver = null;
@@ -227,6 +238,8 @@ function replaceContents(markup) {
 }
 
 function render(focus = "none", nextAxes = buildAxes()) {
+  const previousSelectionTarget = selectionTarget();
+  const selectionFocused = previousSelectionTarget !== null && document.activeElement === previousSelectionTarget;
   renderedAxes = nextAxes;
   const scroll = main.querySelector(".table-scroll");
   const scrollPosition = scroll ? { left: scroll.scrollLeft, top: scroll.scrollTop } : null;
@@ -281,12 +294,14 @@ function render(focus = "none", nextAxes = buildAxes()) {
   if (nextScroll && scrollPosition) nextScroll.scrollTo(scrollPosition.left, scrollPosition.top);
   const nextEditor = main.querySelector(".table-input");
   if (nextEditor instanceof HTMLTextAreaElement && editing) nextEditor.value = editing.text;
-  if (focus === "none" && !editorState?.focused) return;
+  if (focus === "none" && !editorState?.focused && !selectionFocused) return;
   queueMicrotask(() => {
     const preservingEditor = focus === "none" && editorState?.focused;
+    const preservingSelection = focus === "none" && selectionFocused;
     const target = preservingEditor || focus === "editor" ? main.querySelector(".table-input")
       : focus === "grid" ? main.querySelector(".table-grid")
-        : focus === "menu" ? main.querySelector("tv-menu-item") : selectionTarget();
+        : focus === "menu" ? main.querySelector("tv-menu-item")
+          : preservingSelection || focus === "selection" ? selectionTarget() : null;
     suppressGridEntry = focus === "grid";
     target?.focus({ preventScroll: true });
     suppressGridEntry = false;
@@ -297,7 +312,7 @@ function render(focus = "none", nextAxes = buildAxes()) {
         target.setSelectionRange(target.value.length, target.value.length);
       }
     }
-    if ((preservingEditor || focus === "editor" || focus === "selection") && target) {
+    if ((preservingEditor || preservingSelection || focus === "editor" || focus === "selection") && target) {
       target.scrollIntoView({ block: "nearest", inline: "nearest" });
     }
   });
@@ -329,10 +344,20 @@ function showFailure() {
   render();
 }
 
-async function applyPlan(plan) {
+async function applyPlan(plan, echoSelection = null, focusEcho = true) {
   if (!canWrite()) return false;
+  const previousPageActionSelection = pageActionSelection;
+  const actionVersion = interactionVersion;
+  const currentPageActionSelection = echoSelection
+    ? nextAxes => {
+      const selected = interactionVersion === actionVersion ? echoSelection(nextAxes) : null;
+      return selected ? { selection: selected, focus: focusEcho } : null;
+    }
+    : null;
+  pageActionSelection = currentPageActionSelection;
   if (plan.kind === "no-write") {
     if (plan.reason === "multiple-renumbering-required") showFailure();
+    if (pageActionSelection === currentPageActionSelection) pageActionSelection = previousPageActionSelection;
     return !["unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys", "multiple-renumbering-required"].includes(plan.reason);
   }
   try {
@@ -345,6 +370,8 @@ async function applyPlan(plan) {
   } catch {
     showFailure();
     return false;
+  } finally {
+    if (pageActionSelection === currentPageActionSelection) pageActionSelection = previousPageActionSelection;
   }
 }
 
@@ -390,10 +417,13 @@ async function commitEditing(command = null, restoreFocus = true) {
   const provisionalMove = command
     ? moveSelection(selection, command, beforeSave, { showHeader: model.showHeader }) : null;
   if (provisionalMove) selection = provisionalMove.selection;
-  render(provisionalMove?.exit || !restoreFocus ? "none" : "selection");
-  const saved = await applyPlan(plan);
+  const targetSelection = selection;
+  const echoSelection = nextAxes => selectionAtSamePosition(targetSelection, beforeSave, nextAxes);
+  const focusTarget = !provisionalMove?.exit && restoreFocus;
+  render(focusTarget ? "selection" : "leave");
+  const saved = await applyPlan(plan, echoSelection, focusTarget);
   if (!saved) {
-    if (interactionVersion === completionVersion) render(restoreFocus ? "selection" : "none");
+    if (interactionVersion === completionVersion) render(focusTarget ? "selection" : "leave");
     return false;
   }
   if (interactionVersion !== completionVersion) return true;
@@ -405,8 +435,8 @@ async function commitEditing(command = null, restoreFocus = true) {
   if (command) {
     const moved = moveSelection(selection, command, displayed, { showHeader: model.showHeader });
     selection = moved.selection;
-    render(moved.exit || !restoreFocus ? "none" : "selection");
-  } else render(restoreFocus ? "selection" : "none");
+    render(moved.exit || !restoreFocus ? "leave" : "selection");
+  } else render(restoreFocus ? "selection" : "leave");
   return true;
 }
 
@@ -423,7 +453,9 @@ async function clearContents() {
   if (selection.kind === "cell") logical = { kind: "cell", ...selectedCellPosition() };
   else if (selection.kind === "header") logical = { kind: "header", ...selectedHeaderPosition() };
   else logical = { kind: selection.kind, ...axisRange(selection.kind) };
-  if (await applyPlan(planClear(value, logical))) render("selection");
+  if (await applyPlan(planClear(value, logical), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader))) {
+    render("selection");
+  }
 }
 
 async function addAtEnd(axis) {
@@ -432,7 +464,7 @@ async function addAtEnd(axis) {
   const count = Math.max(0, 4 - model[axis].length) + 1;
   const keys = reserveKeys(axis);
   const newKey = keys[count - 1];
-  if (!await applyPlan(planAdd(value, axis, keys))) return;
+  if (!await applyPlan(planAdd(value, axis, keys), nextAxes => selectionAfterAdd(previous, axis, newKey, nextAxes))) return;
   selection = selectionAfterAdd(previous, axis, newKey, axes());
   menu = null;
   render("selection");
@@ -445,12 +477,14 @@ async function performMenuAction(action) {
   if (!range) return;
   menu = null;
   if (action === "toggle-header") {
-    if (await applyPlan(planSetHeader(!model.showHeader))) render("selection");
+    if (await applyPlan(planSetHeader(!model.showHeader), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader))) {
+      render("selection");
+    }
     return;
   }
   if (action === "delete") {
     const formerIndex = range.start;
-    if (await applyPlan(planDelete(value, axis, range))) {
+    if (await applyPlan(planDelete(value, axis, range), nextAxes => selectionAfterDelete(axis, formerIndex, nextAxes))) {
       selection = selectionAfterDelete(axis, formerIndex, axes());
       render("selection");
     }
@@ -461,7 +495,7 @@ async function performMenuAction(action) {
   const drawnBefore = Math.max(0, insertionIndex - model[axis].length);
   const keys = reserveKeys(axis);
   const newKey = keys[drawnBefore];
-  if (await applyPlan(planInsert(value, axis, range, side, keys))) {
+  if (await applyPlan(planInsert(value, axis, range, side, keys), nextAxes => selectionAfterInsert(axis, newKey, nextAxes))) {
     selection = selectionAfterInsert(axis, newKey, axes());
     render("selection");
   }
@@ -578,6 +612,11 @@ main.addEventListener("keydown", event => {
     }
     return;
   }
+  if (editing) {
+    event.preventDefault();
+    main.querySelector(".table-input")?.focus();
+    return;
+  }
   if (!selection) {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
       event.preventDefault();
@@ -590,6 +629,7 @@ main.addEventListener("keydown", event => {
 
   if (event.key === "Delete" || event.key === "Backspace") {
     event.preventDefault();
+    if (menu) return;
     void clearContents();
     return;
   }
@@ -632,6 +672,7 @@ main.addEventListener("keydown", event => {
   const moved = moveSelection(selection, command, axes(), { showHeader: model.showHeader, extend: event.shiftKey });
   if (moved.exit) return;
   event.preventDefault();
+  if (menu && moved.selection !== selection) menu = null;
   selection = moved.selection;
   render("selection");
 });
@@ -687,16 +728,23 @@ function acceptValue(next) {
   unavailable = false;
   model = readTable(value);
   const nextAxes = buildAxes();
+  let focus = "none";
   if (model !== null) {
-    const reconciled = reconcileSelection(selection, nextAxes, model.showHeader);
-    if (selection && !reconciled) { selection = null; editing = null; menu = null; }
-    else selection = reconciled;
+    const actionEcho = pageActionSelection?.(nextAxes);
+    if (actionEcho) {
+      selection = actionEcho.selection;
+      focus = editing ? "none" : actionEcho.focus ? "selection" : "leave";
+    } else {
+      const reconciled = reconcileSelection(selection, nextAxes, model.showHeader);
+      if (selection && !reconciled) { selection = null; editing = null; menu = null; }
+      else selection = reconciled;
+    }
   } else {
     selection = null;
     editing = null;
     menu = null;
   }
-  render("none", nextAxes);
+  render(focus, nextAxes);
 }
 
 onValue(root, snapshot => acceptValue(snapshot.val()), error => {

@@ -253,12 +253,16 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await header(page, 1).press("Enter");
   await expect(editor(page)).toHaveAccessibleName("Column B name");
   await editor(page).fill("Region");
+  const beforeHeaderEdit = writes().length;
   await editor(page).press("Tab");
   await expect.poll(() => h.read(id, "columns/c2/name")).toBe("Region");
+  expect(writes().slice(beforeHeaderEdit)).toContainEqual(expect.objectContaining({ kind: "set", path: "columns/c2/name" }));
   await expect(header(page, 2)).toHaveAttribute("data-selection", "header");
 
+  const beforeHeaderClear = writes().length;
   await header(page, 2).press("Delete");
   await expect.poll(() => h.read(id, "columns/c3/name")).toBeUndefined();
+  expect(writes().slice(beforeHeaderClear)).toContainEqual(expect.objectContaining({ kind: "remove", path: "columns/c3/name" }));
   await expect(header(page, 2)).toHaveAttribute("data-selection", "header");
 
   await cell(page, 0, 4).click();
@@ -366,6 +370,13 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
   await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Moved left");
   await expect(cell(page, 1, 0)).toBeFocused();
 
+  await cell(page, 0, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Moved to header");
+  await editor(page).press("Shift+Enter");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Moved to header");
+  await expect(header(page, 1)).toBeFocused();
+
   await header(page, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Region");
@@ -466,6 +477,10 @@ test("moving focus to another artifact frame commits and keeps selection", async
 test("an editor survives redraw and a pending Return accepts the next edit", async ({ page }) => {
   const id = await open(page);
   await cell(page, 0, 0).click();
+  await h.set(id, "Grid redraw", "rows/r2/cells/c2");
+  await expect(cell(page, 0, 0)).toBeFocused();
+
+  await cell(page, 0, 0).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Local draft");
   await editor(page).evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(3, 3));
@@ -489,6 +504,36 @@ test("an editor survives redraw and a pending Return accepts the next edit", asy
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("First save");
   await expect(editor(page)).toBeFocused();
   await expect(editor(page)).toHaveValue("N");
+});
+
+// proofs/ui/templates/table.md#^table-ac-new
+// proofs/ui/templates/table.md#^table-ac-editing
+test("a held first commit in a blank Table keeps drawn-cell entry continuous", async ({ page }) => {
+  const id = await open(page, { columns: {}, rows: {} });
+  h.proxy.holdWrites();
+  await cell(page, 2, 1).click();
+  await page.keyboard.type("Alice");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await expect(cell(page, 3, 1)).toBeFocused();
+  await page.keyboard.type("Bob");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Bob");
+
+  h.proxy.releaseWrites();
+  await expect.poll(async () => {
+    const table = await h.read<TableData>(id);
+    const rows = Object.values(table!.rows).sort((left, right) => left.order - right.order);
+    const column = Object.entries(table!.columns).sort((left, right) => left[1].order - right[1].order)[1]?.[0];
+    return rows[2]?.cells[column!];
+  }).toBe("Alice");
+  await editor(page).press("Enter");
+  await expect.poll(async () => {
+    const table = await h.read<TableData>(id);
+    const rows = Object.values(table!.rows).sort((left, right) => left.order - right.order);
+    const column = Object.entries(table!.columns).sort((left, right) => left[1].order - right[1].order)[1]?.[0];
+    return rows[3]?.cells[column!];
+  }).toBe("Bob");
 });
 
 // proofs/ui/templates/table.md#^table-ac-selection
@@ -528,12 +573,22 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const rowMenu = page.getByRole("menu", { name: "Row actions" });
   await expect(rowMenu).toHaveAttribute("open", "");
   await expect(rowMenu.getByText("Delete rows", { exact: true })).toBeVisible();
+  const rowsBeforeInsert = Object.keys((await h.read<TableData>(id))!.rows);
+  const beforeRowInsert = writes().length;
   await rowMenu.getByText("Insert row below", { exact: true }).click();
   await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(7);
+  const insertedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeInsert.includes(key));
+  expect(insertedRowKey).toBeDefined();
+  expect(writes().slice(beforeRowInsert)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${insertedRowKey}` }));
   await expect(page.locator('.table-reference-item[aria-pressed="true"]')).toHaveText(/\d/);
 
+  const rowsBeforeAdd = Object.keys((await h.read<TableData>(id))!.rows);
+  const beforeRowAdd = writes().length;
   await page.getByRole("button", { name: "Add row at end" }).click();
   await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(8);
+  const addedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeAdd.includes(key));
+  expect(addedRowKey).toBeDefined();
+  expect(writes().slice(beforeRowAdd)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${addedRowKey}` }));
   await expect(page.locator('[data-cell][data-selection="cell"]')).toBeFocused();
 
   await columnButton(page, "A").click();
@@ -548,16 +603,25 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   ]);
 
   await columnButton(page, "A").click({ button: "right" });
+  const columnsBeforeInsert = Object.keys((await h.read<TableData>(id))!.columns);
+  const beforeColumnInsert = writes().length;
   await page.getByRole("menu", { name: "Column actions" }).getByText("Insert column right", { exact: true }).click();
   await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.columns).length).toBe(5);
   await expect(page.locator('.table-reference-item[aria-pressed="true"]')).toHaveText("B");
   const insertedColumnKey = Object.keys((await h.read<TableData>(id))!.columns)
     .find(key => !["c1", "c2", "c3", "c4"].includes(key));
   expect(insertedColumnKey).toBeDefined();
+  expect(columnsBeforeInsert).not.toContain(insertedColumnKey);
+  expect(writes().slice(beforeColumnInsert)).toContainEqual(expect.objectContaining({ kind: "set", path: `columns/${insertedColumnKey}` }));
   expect(["Park", "State", "Open", "Rating"]).not.toContain(insertedColumnKey);
 
+  const columnsBeforeAdd = Object.keys((await h.read<TableData>(id))!.columns);
+  const beforeColumnAdd = writes().length;
   await page.getByRole("button", { name: "Add column at end" }).click();
   await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.columns).length).toBe(6);
+  const addedColumnKey = Object.keys((await h.read<TableData>(id))!.columns).find(key => !columnsBeforeAdd.includes(key));
+  expect(addedColumnKey).toBeDefined();
+  expect(writes().slice(beforeColumnAdd)).toContainEqual(expect.objectContaining({ kind: "set", path: `columns/${addedColumnKey}` }));
   await expect(page.locator('[data-cell][data-selection="cell"]')).toBeFocused();
 
   await columnButton(page, "A").click({ button: "right" });
@@ -591,6 +655,18 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   expect(writes().some(write => write.kind === "set" && write.path === "showHeader")).toBe(true);
   expect(writes().some(write => write.kind === "remove" && write.path === "columns/c2")).toBe(true);
   expect(writes().some(write => write.kind === "remove" && write.path === "rows/r1")).toBe(true);
+
+  await h.set(id, { columns: {}, rows: {} });
+  await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  await cell(page, 0, 0).click();
+  const beforeDrawnAdd = writes().length;
+  await page.getByRole("button", { name: "Add row at end" }).click();
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(5);
+  const drawnAddWrites = writes().slice(beforeDrawnAdd);
+  expect(drawnAddWrites).toHaveLength(1);
+  expect(drawnAddWrites[0]).toMatchObject({ kind: "update", path: "" });
+  expect(updateKeys(drawnAddWrites[0]!)).toHaveLength(5);
+  expect(updateKeys(drawnAddWrites[0]!).every(path => path.startsWith("rows/"))).toBe(true);
 });
 
 // proofs/ui/templates/table.md#^table-ac-structure
@@ -616,6 +692,14 @@ test("menus preserve ranges, expose applicable actions and stay out of an active
   await expect(keyboardMenu).toBeVisible();
   await expect(keyboardMenu.locator("tv-menu-item").first()).toBeFocused();
   await page.keyboard.press("Escape");
+
+  await cell(page, 2, 1).click();
+  await page.keyboard.press("Shift+F10");
+  keyboardMenu = page.getByRole("menu", { name: "Row actions" });
+  await expect(keyboardMenu).toBeVisible();
+  await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("Escape");
+
   await cell(page, 2, 1).click();
   await rowButton(page, 2).click();
   await page.keyboard.press("ContextMenu");
@@ -655,6 +739,40 @@ test("menus preserve ranges, expose applicable actions and stay out of an active
   await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
 });
 
+// proofs/ui/templates/table.md#^table-ac-structure
+test("an open menu isolates destructive keys and closes before keyboard movement", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 0, 1).click();
+  await columnButton(page, "B").click({ button: "right" });
+  const menu = page.getByRole("menu", { name: "Column actions" });
+  await expect(menu).toBeVisible();
+  const before = await h.read(id, "rows/r1/cells/c2");
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Backspace");
+  await expect(menu).toBeVisible();
+  expect(await h.read(id, "rows/r1/cells/c2")).toBe(before);
+  await page.keyboard.press("ArrowRight");
+  await expect(menu).toHaveCount(0);
+  await expect(columnButton(page, "C")).toHaveAttribute("aria-pressed", "true");
+});
+
+// proofs/ui/templates/table.md#^table-ac-editing
+test("a grid key returns focus to an editor stranded by another button press", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Uncommitted draft");
+  await page.getByRole("button", { name: "Add row at end" }).click({ button: "right" });
+  await page.keyboard.type("Z");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Uncommitted draft");
+  await page.getByRole("button", { name: "Add row at end" }).click({ button: "right" });
+  await page.keyboard.press("Backspace");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Uncommitted draft");
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+});
+
 // proofs/arch/templates/table.md#^templates-table-t-write-scope
 // proofs/arch/templates/table.md#^templates-table-t-transaction
 test("late descendant writes stay ignored and renumbering retries before deferred writes", async ({ page }) => {
@@ -668,6 +786,9 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   h.proxy.releaseWrites();
   await expect.poll(() => h.read(id, "rows/r1")).toEqual({ cells: { c1: "Late" } });
   await expect(page.locator('[data-row-key="r1"]')).toHaveCount(0);
+  await expect(grid(page)).toBeVisible();
+  await expect(page.locator('[data-row-key="r2"]')).toHaveCount(4);
+  await expect(cell(page, 0, 0)).toHaveText("Arches");
 
   const renumbered = {
     columns: { c1: { order: 0, name: "A" } },
@@ -686,11 +807,21 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
   await h.set(id, { order: 7, cells: {}, agent: true }, "rows/agent");
   h.proxy.releaseWrites();
-  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(4);
-  expect(await h.read(id, "rows/agent/agent")).toBe(true);
-  expect(await h.read(id, "rows/a/retained")).toBe("first");
-  expect(await h.read(id, "rows/b/retained")).toBe("last");
-  expect(await h.read(id, "rows/ignored/retained")).toBe("ignored");
+  await expect.poll(async () => {
+    const rows = (await h.read<TableData>(id))!.rows;
+    return Object.keys(rows).find(key => !["a", "agent", "b", "ignored"].includes(key));
+  }).toBeTruthy();
+  const retriedRows = (await h.read<TableData>(id))!.rows;
+  const insertedKey = Object.keys(retriedRows).find(key => !["a", "agent", "b", "ignored"].includes(key));
+  expect(insertedKey).toBeDefined();
+  expect(retriedRows).toMatchObject({
+    a: { order: 0, retained: "first" },
+    agent: { order: 1, agent: true },
+    b: { order: 2, retained: "last" },
+    [insertedKey!]: { order: 3 },
+  });
+  expect(retriedRows.ignored).toEqual({ cells: {}, retained: "ignored" });
+  await expect(rowButton(page, 3)).toHaveAttribute("aria-pressed", "true");
   expect(writes().filter(write => write.kind === "compare-and-set" && write.path === "rows").length).toBeGreaterThanOrEqual(2);
 
   const append: TableData = {

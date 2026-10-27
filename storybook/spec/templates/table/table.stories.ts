@@ -4,6 +4,7 @@
 import "../../../../specs/ui/foundation/index.css";
 import "./styles.css";
 import { html, Html } from "../../../lib/html.ts";
+import { poseOpenFoundationPanel } from "../../../lib/foundation.ts";
 import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
 
 const icon = (params: { name: string; size?: string; spinning?: boolean }): Html =>
@@ -256,11 +257,7 @@ const focusSelection = ({ canvasElement }: Play) => {
 const poseOpenMenu = ({ canvasElement }: Play) => {
   const menu = canvasElement.querySelector<HTMLElement>(".table-context-menu");
   if (!menu) throw new Error("Open-menu story has no menu");
-  const box = menu.getBoundingClientRect();
-  menu.style.setProperty("--_panel-edge-position", "fixed");
-  menu.style.setProperty("--_panel-edge-inset", `${box.top}px auto auto ${box.left}px`);
-  menu.style.setProperty("--_panel-edge-width", `${box.width}px`);
-  menu.style.setProperty("--_panel-edge-height", `${box.height}px`);
+  poseOpenFoundationPanel(menu);
 };
 
 const beginEditing = ({ canvasElement }: Play) => {
