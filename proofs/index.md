@@ -173,7 +173,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
     - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
     - `sticky-note.md` (73 lines) — *Proves Sticky note editing, live changes, offline drafts, access and failure states in a real browser, and rendered conformance to every spec story.*
-    - `table.md` (89 lines) — *Proves the Table page behaviour and rendered conformance to every UI-spec story in a real browser against a running server.*
+    - `table.md` (91 lines) — *Proves the Table page behaviour and rendered conformance to every UI-spec story in a real browser against a running server.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

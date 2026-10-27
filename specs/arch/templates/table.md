@@ -53,7 +53,7 @@ A column has a numeric `order` and may have a string `name`. A row has a numeric
 
 The page displays columns and rows by ascending `order`, then by key in the [JSON store key order](../../product/resources/json-store.md#^js-child-events). It normally inserts between two neighbours with an `order` strictly between theirs, or beyond the outer entry. Exact order values are code-governed.
 
-When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not a JSON object, if a selected key is gone, or if the selected keys no longer form one contiguous range. It gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
+When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not a JSON object, if a selected key is gone, or if the selected keys no longer form one contiguous range. For adding at the end or storing drawn positions, the transaction adds the needed entries after the current displayed entries. It gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
 
 ### Runtime reading
 
