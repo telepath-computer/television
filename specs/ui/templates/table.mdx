@@ -37,7 +37,7 @@ If the page disconnects while waiting, the loading state stays in place and the 
 
 ## Rows, columns and cells
 
-Rows and columns follow their stored order. Strings and numbers appear as text, and booleans appear as `true` and `false`; an empty cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact; the header and the two position strips stay with the visible grid while it scrolls.
+Rows and columns follow their stored order. Strings and numbers appear as text, and booleans appear as `true` and `false`; an empty cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact; the header stays with the visible grid while it scrolls.
 
 There is no search or sorting. Stored entries always appear in stored order.
 
@@ -53,7 +53,7 @@ This story shows data with the header row off and unnamed columns.
 
 ## Selecting cells, rows and columns
 
-Clicking a cell or header cell selects it. The selected cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. These are the *column strip* and *row strip*. They use the page surface, a muted border, and dividers between items, and they are hidden while nothing is selected. Each “+” at the end of a strip is an *add control*.
+Clicking a cell or header cell selects it. The selected cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. These are the *column strip* and *row strip*. They use the page surface, a muted border, and dividers between items, stay with the visible grid while it scrolls, and are hidden while nothing is selected. Each “+” at the end of a strip is an *add control*. The grid, strips and add controls together are the *table control*.
 
 For a selected body or header cell, its row number when it has one and its column letter receive a quiet emphasis. Clicking a letter selects that whole column; clicking a number selects that whole row. A whole-row or whole-column selection uses the accent colour on its strip item and a pale accent across the selected body cells. Shift-clicking another item in the same strip extends an existing row or column selection from its anchor. With a cell selected, or with the other strip selected, Shift-clicking selects only the row or column clicked.
 
@@ -67,7 +67,7 @@ These stories show pointer selection at rest, without the keyboard-focus treatme
 
 <Artifact><Canvas of={Stories.SelectedColumn} /></Artifact>
 
-Escape clears the selection and hides the strips. A click outside the table control does the same. Moving focus out of the table control does not clear the selection.
+Escape clears the selection, hides the strips, and leaves focus on the grid; arrow keys then do nothing until a cell, row or column is selected. A click outside the table control also clears the selection and hides the strips. Moving focus out of the table control does not clear the selection.
 
 ## Keyboard and assistive technology
 
@@ -81,7 +81,7 @@ Shift-Space selects the current body row. Ctrl-Shift-Space selects the current c
 
 Only the strip item at the anchor of a whole-row or whole-column selection can receive focus. Return, F2, or typing while a whole row or column is selected does nothing. Space keeps the selection and does not open its menu. Hidden strip items and the add controls are not focusable.
 
-The table is a grid named “Table”. A body cell and its editor are named by position, such as “Row 4, column B”; a header cell and its editor are named by letter, such as “Column B name”. Strip buttons are named “Select row” followed by the number and “Select column” followed by the letter. The add controls are named “Add row at end” and “Add column at end”. Selection state is exposed through the grid and strip controls.
+The table is a grid named “Table”. Body and header cells take their names from their displayed contents; the grid's row and column positions convey position. A body-cell editor is named by position, such as “Row 4, column B”, and a header editor is named by letter, such as “Column B name”. Strip buttons are named “Select row” followed by the number and “Select column” followed by the letter. The add controls are named “Add row at end” and “Add column at end”. Selection state is exposed through the grid and strip controls.
 
 ## Editing cells and headers
 
@@ -89,7 +89,7 @@ Typing a character while a cell is selected replaces its contents with that char
 
 Return commits and selects the cell below. From a header it selects the first body cell; at the last body row it stays at the last row and does not add one. Shift-Return moves in the opposite direction, including from the first body row to the header when it is shown. Tab commits and selects the cell to the right; Shift-Tab moves left. At the last displayed column, Tab commits and leaves the table; at the first, Shift-Tab does the same. Neither key adds an entry merely by reaching an edge.
 
-Clicking another cell, a header, a strip item, or an add control commits before acting on that target. Clicking outside the table control commits and clears the selection. Moving focus out by keyboard commits but keeps the selection. Escape cancels the edit, restores the stored text, and clears the selection. The sections below state the cases where an editor instead closes without writing.
+Clicking another cell, a header, a strip item, or an add control commits before acting on that target. Clicking outside the table control commits and clears the selection. Moving focus out by keyboard commits but keeps the selection. Escape cancels the edit, restores the stored text, and returns focus to the selected cell. A second Escape clears the selection. The sections below state the cases where an editor instead closes without writing.
 
 <Artifact><Canvas of={Stories.EditingCell} /></Artifact>
 
@@ -105,9 +105,9 @@ Delete or Backspace clears the selected cell or the body cells in selected rows 
 
 The add control at the end of a visible row or column strip adds a row or column at the end. Right-clicking an item outside the current range selects only that row or column. Right-clicking inside a selected range keeps the range. Either action opens a canonical `<tv-menu>` below that strip item. Right-clicking a body or header cell does not open a Table menu, change the selection, or commit an edit.
 
-The context-menu key or Shift-F10 opens the menu from the keyboard. For a whole-row or whole-column selection, it opens the corresponding menu below the range anchor. For a body cell, it selects the row containing that cell and opens the row menu below that strip item; for a header cell, it selects that column and opens the column menu below that strip item. Opening a menu commits an active edit first. A normal press on a strip item selects the row or column without opening a menu.
+When no editor is open, the context-menu key or Shift-F10 opens the menu from the keyboard. For a whole-row or whole-column selection, it opens the corresponding menu below the range anchor. For a body cell, it selects the row containing that cell and opens the row menu below that strip item; for a header cell, it selects that column and opens the column menu below that strip item. While an editor is open, right-clicking inside it, the context-menu key and Shift-F10 use the browser's text menu without committing. Opening a Table menu commits an active edit first. A normal press on a strip item selects the row or column without opening a menu.
 
-The row menu contains “Insert row above” and “Insert row below”, followed by “Delete row” or “Delete rows” when the selection contains a stored row, then “Show header row” or “Hide header row”. The column menu follows the same order with “Insert column left”, “Insert column right”, and “Delete column” or “Delete columns”. A selection made entirely of drawn positions has no Delete item. Destructive actions use the canonical danger treatment.
+The row menu contains “Insert row above” and “Insert row below”, followed by “Delete row” or “Delete rows” when the selection contains a stored row, then “Show header row” or “Hide header row”. The column menu follows the same order with “Insert column left”, “Insert column right”, and “Delete column” or “Delete columns”. The Delete label is singular or plural according to the number of stored entries the action will delete, not the number of drawn positions in the selection. A selection made entirely of drawn positions has no Delete item. Destructive actions use the canonical danger treatment.
 
 <Artifact><Canvas of={Stories.OpenMenu} /></Artifact>
 
@@ -120,6 +120,8 @@ Insert adds one row above or below the selected row range, or one column to the 
 ## Changes from elsewhere
 
 The page follows the whole store live. Changes outside the field currently being edited appear at once. A selected stored cell, header, row, column, or range follows the keys it selected when entries move. A range remains selected only while those keys occupy one contiguous range; otherwise the selection clears. If any selected stored entry is removed, the selection clears and an editor on it closes without writing.
+
+An open menu closes when its selection clears.
 
 A selected drawn position follows the architecture [identity rule](../../arch/templates/table.md#^bundled-artifact-template-table-drawn-identity).
 
@@ -137,13 +139,13 @@ When all access is lost, as after a share link is revoked, the page keeps the la
 
 ## Saving and disconnection
 
-Each changed edit saves when committed. Normal saving shows no message. While the page cannot reach its server, the table keeps its last data, removes the add controls and action menus, disables new editing, and shows “Reconnecting…” in muted text in a strip ruled off along the bottom. An editor already open stays open and remains usable. Escape cancels it and clears the selection.
+Each changed edit saves when committed. Normal saving shows no message. While the page cannot reach its server, the table keeps its last data, removes the add controls and action menus, disables new editing, and shows “Reconnecting…” in muted text in a strip ruled off along the bottom. An editor already open stays open and remains usable. Escape cancels it and keeps the cell selected.
 
 Return, Tab, or a click that would commit has no effect while disconnected: it does not write, close the editor, move or clear the selection, or act on the click target. Once the connection returns, commit gestures work normally.
 
 A write sent before the connection drops is not turned back into a draft when the SDK rolls it back. That edit can be lost, although the server can still apply a write whose outcome is [uncertain after disconnection](../../product/resources/json-store.md#^js-disconnect). This is an accepted limitation.
 
-If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
+If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. An insertion whose renumbering transaction does not complete shows the same message. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
 
 <Artifact><Canvas of={Stories.Disconnected} /></Artifact>
 

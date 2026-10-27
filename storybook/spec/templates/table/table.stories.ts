@@ -218,7 +218,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     return html`
                       <th class="table-header" scope="col" data-axis-selected="${columnSelected(selection, columnIndex)}" aria-selected="${columnSelected(selection, columnIndex) || selected}" aria-colindex="${columnIndex + 1}">
                         <div class="table-header-content">
-                          <button type="button" class="table-header-button" data-selection="${selected ? "header" : "none"}" aria-label="Column ${columnLetter(columnIndex)} name" tabindex="${selected ? 0 : -1}"><span>${column.name ?? ""}</span></button>
+                          <button type="button" class="table-header-button" data-selection="${selected ? "header" : "none"}" tabindex="${selected ? 0 : -1}"><span>${column.name ?? ""}</span></button>
                         </div>
                       </th>`;
                   })}</tr>
@@ -232,7 +232,6 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                       role="gridcell"
                       data-selection="${state}"
                       aria-selected="${state !== "none"}"
-                      aria-label="Row ${rowIndex + 1}, column ${columnLetter(columnIndex)}"
                       aria-colindex="${columnIndex + 1}"
                       tabindex="${state === "cell" ? 0 : -1}"
                     ><span>${row.cells[column.key] ?? ""}</span></td>`;
