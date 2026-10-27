@@ -369,7 +369,7 @@ test("real scroll bar remains usable beside the sticky footer", async ({ browser
     await page.getByRole("button", { name: "Toolbox", exact: true }).click();
     const body = page.locator(".toolbox-body");
     const footer = page.locator(".toolbox-footer");
-    const layout = await body.evaluate(element => {
+    const layout = await body.evaluate((element: HTMLElement) => {
       const bodyBounds = element.getBoundingClientRect();
       const footerBounds = element.querySelector<HTMLElement>(".toolbox-footer")!.getBoundingClientRect();
       return {
