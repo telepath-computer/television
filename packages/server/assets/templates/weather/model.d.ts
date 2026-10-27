@@ -121,24 +121,12 @@ export function reconcileRequestContext(
   configuration: WeatherConfiguration | null,
 ): { state: RequestState; abortRunning: boolean };
 
-/** Settles only the attempt that the page still tracks. */
+/** Settles only the tracked attempt, installing success or recording failure. */
 export function settleRequestAttempt(
   state: RequestState,
   attemptId: number,
-  failedStartedAt: string | null,
+  normalizedForecast: WeatherForecast | null,
 ): RequestState | null;
-
-/** Reports whether a response still belongs to the current request values. */
-export function canReplaceMemoryForecast(
-  configuration: WeatherConfiguration | null,
-  requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
-): boolean;
-
-/** Reports whether a failure still belongs to the current request values. */
-export function canRecordRequestFailure(
-  configuration: WeatherConfiguration | null,
-  requestIdentity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
-): boolean;
 
 /** Chooses between compatible saved and in-memory forecasts. */
 export function selectForecast(

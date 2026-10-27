@@ -2,8 +2,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
-  canRecordRequestFailure,
-  canReplaceMemoryForecast,
   forecastAge,
   getCurrentHighLow,
   getDailyWindow,
@@ -168,6 +166,19 @@ describe("Weather store validity", () => {
     expect(readWeatherValue({ ...configuration, forecast: valid })).toMatchObject({ kind: "configured", forecast: valid });
     expect(readWeatherValue({ ...configuration, place: "Bay Area", forecast: valid })).toMatchObject({ kind: "configured", forecast: valid });
 
+    const offsetForecast = forecast({
+      updatedAt: "2026-10-27T22:30:00+05:30",
+      hourly: [
+        { time: "2026-10-27T23:30:00+05:30", temperature: 19, condition: "clear", isDay: false },
+      ],
+    });
+    expect(validateTemplateData(forecastSchema, offsetForecast, "weather forecast")).toBeUndefined();
+    expect(isWeatherForecast(offsetForecast)).toBe(true);
+    expect(readWeatherValue({ ...configuration, forecast: offsetForecast })).toMatchObject({
+      kind: "configured",
+      forecast: offsetForecast,
+    });
+
     const invalid = [
       { value: null, schemaAccepts: false },
       { value: "forecast", schemaAccepts: false },
@@ -283,6 +294,7 @@ describe("Open-Meteo contract", () => {
   // proofs/arch/templates/weather.md#^templates-weather-t-request
   it("builds the exact provider request from coordinates and units only", () => {
     for (const input of [configuration, { ...configuration, place: "Elsewhere", latitude: -33.8688, longitude: 151.2093, units: "fahrenheit" as const, forecast: forecast() }]) {
+      const original = clone(input);
       const request = buildOpenMeteoRequest(input);
       expect(request.method).toBe("GET");
       const url = new URL(request.url);
@@ -300,6 +312,7 @@ describe("Open-Meteo contract", () => {
       });
       for (const key of url.searchParams.keys()) expect(url.searchParams.getAll(key)).toHaveLength(1);
       expect(url.searchParams.has("place")).toBe(false);
+      expect(input).toEqual(original);
     }
   });
 
@@ -325,8 +338,11 @@ describe("Open-Meteo contract", () => {
   ] as const)("normalizes the captured %s response", (name, units, symbol) => {
     const captured = fixture(name);
     const body = captured.response.body as any;
+    const bodyOriginal = clone(body);
+    const identity = { latitude: configuration.latitude, longitude: configuration.longitude, units };
+    const identityOriginal = clone(identity);
     const receivedAt = new Date(body.current.time * 1000 + 60_000).toISOString();
-    const result = normalizeOpenMeteoResponse(body, { latitude: configuration.latitude, longitude: configuration.longitude, units }, receivedAt);
+    const result = normalizeOpenMeteoResponse(body, identity, receivedAt);
     expect(result).not.toBeNull();
     expect(result).toMatchObject({
       latitude: configuration.latitude,
@@ -346,6 +362,8 @@ describe("Open-Meteo contract", () => {
     expect(new Set(result!.hourly.map(({ isDay }) => isDay))).toEqual(new Set([true, false]));
     expect(result!.daily).toEqual(expectedDailyEntries(body));
     expect(isWeatherForecast(result)).toBe(true);
+    expect(body).toEqual(bodyOriginal);
+    expect(identity).toEqual(identityOriginal);
   });
 
   it("orders and deduplicates the 24 saved hours at receipt", () => {
@@ -395,6 +413,11 @@ describe("Open-Meteo contract", () => {
     ] as const) rejected.push({ ...body, [group]: { ...body[group], [field]: "not an array" } });
     for (const value of rejected) expect(normalizeOpenMeteoResponse(value, identity, receivedAt)).toBeNull();
 
+    const capturedError = fixture("error-latitude-out-of-range.json").response.body;
+    const capturedErrorOriginal = clone(capturedError);
+    expect(normalizeOpenMeteoResponse(capturedError, identity, receivedAt)).toBeNull();
+    expect(capturedError).toEqual(capturedErrorOriginal);
+
     const night = clone(body);
     night.current.is_day = 0;
     expect(normalizeOpenMeteoResponse(night, identity, receivedAt)!.current.isDay).toBe(false);
@@ -432,11 +455,14 @@ describe("Open-Meteo contract", () => {
     expect(normalizeOpenMeteoResponse(missingValue, identity, receivedAt)).toMatchObject({ hourly: [] });
 
     const extendedYears = clone(body);
+    for (const field of ["time", "temperature_2m", "weather_code", "is_day"] as const) {
+      extendedYears.hourly[field] = extendedYears.hourly[field].slice(0, damagedIndices[0] + 2);
+    }
     extendedYears.hourly.time[damagedIndices[0]] = 253402387200;
     extendedYears.daily.time[0] = 253402387200;
     const withoutExtendedYears = normalizeOpenMeteoResponse(extendedYears, identity, receivedAt);
     expect(withoutExtendedYears).not.toBeNull();
-    expect(withoutExtendedYears!.hourly.some(({ time }) => time.startsWith("+"))).toBe(false);
+    expect(withoutExtendedYears!.hourly).toEqual(expectedHourlyEntries(extendedYears, receivedAt));
     expect(withoutExtendedYears!.daily).toEqual(expectedDailyEntries(extendedYears));
   });
 
@@ -463,8 +489,22 @@ describe("Open-Meteo contract", () => {
 
     const kolkata = fixture("kolkata-2026-10-27.json").response.body as any;
     const kolkataForecast = normalizeOpenMeteoResponse(kolkata, { latitude: 22.5726, longitude: 88.3639, units: "celsius" }, "2026-10-27T20:00:00Z")!;
-    expect(kolkataForecast.hourly[0]!.time).toBe("2026-10-27T20:30:00.000Z");
-    expect(getDailyWindow(kolkataForecast, "2026-10-27T20:00:00Z")[0]!.date).toBe("2026-10-28");
+    expect(kolkataForecast.hourly.map((entry) => entry.time)).toEqual([
+      "2026-10-27T20:30:00.000Z", "2026-10-27T21:30:00.000Z", "2026-10-27T22:30:00.000Z",
+      "2026-10-27T23:30:00.000Z", "2026-10-28T00:30:00.000Z", "2026-10-28T01:30:00.000Z",
+      "2026-10-28T02:30:00.000Z", "2026-10-28T03:30:00.000Z", "2026-10-28T04:30:00.000Z",
+      "2026-10-28T05:30:00.000Z", "2026-10-28T06:30:00.000Z", "2026-10-28T07:30:00.000Z",
+      "2026-10-28T08:30:00.000Z", "2026-10-28T09:30:00.000Z", "2026-10-28T10:30:00.000Z",
+      "2026-10-28T11:30:00.000Z", "2026-10-28T12:30:00.000Z", "2026-10-28T13:30:00.000Z",
+      "2026-10-28T14:30:00.000Z", "2026-10-28T15:30:00.000Z", "2026-10-28T16:30:00.000Z",
+      "2026-10-28T17:30:00.000Z", "2026-10-28T18:30:00.000Z", "2026-10-28T19:30:00.000Z",
+    ]);
+    expect(kolkataForecast.daily.map((entry) => entry.date)).toEqual([
+      "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02",
+    ]);
+    expect(getDailyWindow(kolkataForecast, "2026-10-27T20:00:00Z").map((entry) => entry.date)).toEqual([
+      "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02",
+    ]);
   });
 });
 
@@ -547,29 +587,7 @@ describe("Weather request state and saving", () => {
     expect(shouldRequestForecast({ configuration, state: restored.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(true);
   });
 
-  it("accepts a response only while its coordinates and units are current", () => {
-    const requestIdentity = { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units };
-    expect(canReplaceMemoryForecast(configuration, requestIdentity)).toBe(true);
-    expect(canReplaceMemoryForecast({ ...configuration, place: "Newest place" }, requestIdentity)).toBe(true);
-    expect(canReplaceMemoryForecast({ ...configuration, longitude: -73.9857 }, requestIdentity)).toBe(false);
-    expect(canReplaceMemoryForecast({ ...configuration, units: "fahrenheit" }, requestIdentity)).toBe(false);
-    expect(canReplaceMemoryForecast(null, requestIdentity)).toBe(false);
-
-    const lateRequest = { latitude: 40.7128, longitude: -74.006, units: "celsius" as const };
-    const currentConfiguration = { ...configuration, latitude: 34.0522, longitude: -118.2437 };
-    expect(canReplaceMemoryForecast(currentConfiguration, lateRequest)).toBe(false);
-  });
-
-  it("records a failure only while its coordinates and units are current", () => {
-    const requestIdentity = { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units };
-    expect(canRecordRequestFailure(configuration, requestIdentity)).toBe(true);
-    expect(canRecordRequestFailure({ ...configuration, place: "Newest place" }, requestIdentity)).toBe(true);
-    expect(canRecordRequestFailure({ ...configuration, latitude: 40.7128 }, requestIdentity)).toBe(false);
-    expect(canRecordRequestFailure({ ...configuration, units: "fahrenheit" }, requestIdentity)).toBe(false);
-    expect(canRecordRequestFailure(null, requestIdentity)).toBe(false);
-  });
-
-  it("settles only the tracked request attempt after A to B to A", () => {
+  it("settles success or failure only for the tracked attempt after A to B to A", () => {
     const firstA = {
       ...reconcileRequestContext(
         { identity: null, runningAttemptId: null, runningStartedAt: null, failedStartedAt: null, memoryForecast: null },
@@ -589,15 +607,17 @@ describe("Weather request state and saving", () => {
       runningStartedAt: "2026-10-27T17:00:20Z",
     };
 
-    expect(settleRequestAttempt(secondA, 1, "2026-10-27T17:00:00Z")).toBeNull();
+    const successfulForecast = forecast({ updatedAt: "2026-10-27T17:00:30Z" });
+    expect(settleRequestAttempt(secondA, 1, successfulForecast)).toBeNull();
     expect(secondA).toMatchObject({ runningAttemptId: 3, runningStartedAt: "2026-10-27T17:00:20Z", failedStartedAt: null });
-    expect(settleRequestAttempt(secondA, 3, null)).toEqual({
+    expect(settleRequestAttempt(secondA, 3, successfulForecast)).toEqual({
       ...secondA,
       runningAttemptId: null,
       runningStartedAt: null,
       failedStartedAt: null,
+      memoryForecast: successfulForecast,
     });
-    expect(settleRequestAttempt(secondA, 3, "2026-10-27T17:00:20Z")).toEqual({
+    expect(settleRequestAttempt(secondA, 3, null)).toEqual({
       ...secondA,
       runningAttemptId: null,
       runningStartedAt: null,

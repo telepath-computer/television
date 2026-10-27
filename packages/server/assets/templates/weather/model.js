@@ -274,22 +274,16 @@ export function reconcileRequestContext(state, configuration) {
   };
 }
 
-export function settleRequestAttempt(state, attemptId, failedStartedAt) {
+export function settleRequestAttempt(state, attemptId, normalizedForecast) {
   if (state.runningAttemptId !== attemptId) return null;
+  const failed = normalizedForecast === null;
   return {
     ...state,
     runningAttemptId: null,
     runningStartedAt: null,
-    failedStartedAt,
+    failedStartedAt: failed ? state.runningStartedAt : null,
+    memoryForecast: failed ? state.memoryForecast : normalizedForecast,
   };
-}
-
-export function canReplaceMemoryForecast(configuration, requestIdentity) {
-  return isConfiguration(configuration) && sameIdentity(configuration, requestIdentity);
-}
-
-export function canRecordRequestFailure(configuration, requestIdentity) {
-  return canReplaceMemoryForecast(configuration, requestIdentity);
 }
 
 export function selectForecast(savedForecast, memoryForecast, now) {
