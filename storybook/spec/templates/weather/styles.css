@@ -372,7 +372,6 @@ body {
   translate: 0 -4px;
 }
 
-.weather-fog-orb { opacity: 0.52; }
 .weather-fog-lines path {
   fill: none;
   stroke: rgb(244 250 252 / 88%);
@@ -570,17 +569,6 @@ body {
 }
 
 .weather-empty h1 { margin-top: 0; }
-
-@media (min-width: 380px) and (min-height: 380px) {
-  .weather-page { padding: var(--space-16); }
-
-  .weather-content {
-    padding: var(--space-24) var(--space-24) var(--space-20);
-  }
-
-  .weather-summary { font-size: var(--text-xl); }
-  .weather-high-low { font-size: var(--text-lg); }
-}
 
 @media (min-width: 600px) and (min-height: 480px) {
   .weather-page { padding: var(--space-16); }
