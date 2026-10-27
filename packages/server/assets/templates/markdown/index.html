@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Markdown</title>
+  <link data-television-style="canonical" rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+  <link rel="stylesheet" href="/views/markdown/v1/editor.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="/canonical/v2/components.js"></script>
+</head>
+<body>
+  <main class="markdown-page" data-state="loading">
+    <div id="editor" hidden></div>
+    <div class="markdown-loading" role="status">
+      <tv-icon name="spinner" size="lg"></tv-icon>
+      <span>Loading document…</span>
+    </div>
+    <div class="markdown-unreadable" role="alert" hidden>
+      <tv-icon name="warning" size="xl"></tv-icon>
+      <h1>This document can't be shown</h1>
+      <p>Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </div>
+    <p class="markdown-status" role="status"></p>
+  </main>
+  <script src="/views/markdown/v1/editor.js"></script>
+  <script type="module" src="./page.js"></script>
+</body>
+</html>

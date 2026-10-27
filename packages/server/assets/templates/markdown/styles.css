@@ -1,0 +1,76 @@
+html,
+body,
+.markdown-page {
+  height: 100%;
+  margin: 0;
+}
+
+.markdown-page {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.markdown-page #editor {
+  flex: 1;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.markdown-loading,
+.markdown-unreadable {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.markdown-loading {
+  flex-direction: row;
+}
+
+.markdown-loading span,
+.markdown-unreadable h1,
+.markdown-unreadable p,
+.markdown-status {
+  margin: 0;
+}
+
+.markdown-unreadable h1 {
+  color: var(--color-text);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.markdown-unreadable p {
+  max-width: 420px;
+  font-size: var(--text-sm);
+}
+
+.markdown-status {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 4;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-sm);
+}
+
+.markdown-status:empty {
+  display: none;
+}

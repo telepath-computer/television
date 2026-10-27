@@ -88,8 +88,9 @@ describe("the resource guidance document", () => {
       expect(passage, where).toMatch(/`sessionStorage`[^.]*`SecurityError`/);
       expect(passage, where).toMatch(/such as a library[^.]*catch/);
       expect(passage, where).toMatch(/no storage that stays in one browser/);
-      expect(passage, where).toMatch(/Markdown artifact[^.]*shared, synchronized, editable state/);
-      expect(passage, where).toMatch(/Markdown artifact[^.]*within Television[^.]*share link[^.]*read-only, unlike a JSON store/);
+      expect(passage, where).toMatch(/Markdown file artifact[^.]*shared, synchronized, editable state/);
+      expect(passage, where).toMatch(/Markdown file artifact[^.]*within Television[^.]*share link[^.]*read-only, unlike a JSON store/);
+      expect(passage, where).toMatch(/bundled Markdown template[^.]*document[^.]*JSON store[^.]*access/);
       expect(passage, where).toMatch(/presentational flexibility and interactivity/);
       expect(passage, where).toMatch(/third-party API[^.]*external service|external service[^.]*third-party API/);
       expect(passage, where).toMatch(/design[^.]*\buse\b[^.]*person[^.]*\bdecide\b/);
@@ -181,8 +182,9 @@ describe("what the resource guidance teaches", () => {
     expect(sharing).toMatch(/^tv share-artifact --id <artifact-id> --access read-write$/m);
     // The default level, `read` when --access is left out.
     expect(sentences(sharing).some((sentence) => /`--access`/.test(sentence) && /`read`/.test(sentence) && /\b(default|[Ww]ithout)\b/.test(sentence))).toBe(true);
-    // Never `read-write` for a Markdown artifact.
-    expect(sentences(sharing).some((sentence) => /`(?:--access )?read-write`/.test(sentence) && /\bMarkdown\b/.test(sentence) && /\b(only|refused|cannot|never)\b/.test(sentence))).toBe(true);
+    // Never `read-write` for a Markdown file artifact; the store-backed template follows its store.
+    expect(sentences(sharing).some((sentence) => /`(?:--access )?read-write`/.test(sentence) && /\bMarkdown file\b/.test(sentence) && /\b(only|refused|cannot|never)\b/.test(sentence))).toBe(true);
+    expect(sharing).toMatch(/bundled Markdown template[^.]*HTML folder artifact[^.]*store's share level/);
     // Whether an artifact has a store decides nothing about sharing.
     expect(sentences(sharing).filter((sentence) => /`(?:--access )?read-write`/.test(sentence) && /\bstore\b/.test(sentence) && /\b(only|without)\b/i.test(sentence))).toEqual([]);
     expect(sharing).toMatch(/^tv unshare-artifact --id <artifact-id>$/m);

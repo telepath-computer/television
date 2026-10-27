@@ -26,6 +26,7 @@ export default defineConfig({
     "**/sidebar-resize.test.ts",
     "**/template-checklist-real-stack.test.ts",
     "**/template-calendar-real-stack.test.ts",
+    "**/template-markdown-real-stack.test.ts",
     "**/template-sticky-note-real-stack.test.ts",
     "**/templates-real-stack.test.ts",
     "**/theme-product-acceptance.test.ts",

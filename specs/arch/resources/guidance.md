@@ -18,7 +18,7 @@ The guidance leads with the JSON store's purpose, in `SKILL.md`'s paragraph and 
 
 - a JSON store, a small database that Television keeps on its server, inspired by Firebase's Realtime Database, keeps an artifact's data durably, shares it live with every client viewing the artifact, and lets the agent read and write it through the `tv` CLI;
 - `localStorage`, cookies and IndexedDB do not work in artifacts, because artifacts run under the CSP sandbox ([isolation.md](../artifact-frame/isolation.md#^iso-limitations)): touching them, or `sessionStorage`, throws `SecurityError`, so code that cannot avoid touching them, such as a library, catches the exception, and Television offers no storage that stays in one browser;
-- a Markdown artifact can also act as shared, synchronized, editable state, which the person edits in Television and the agent edits on disk, but it is editable only within Television: shared through a share link, it is read-only, unlike a JSON store; it also lacks an HTML page's presentational flexibility and interactivity;
+- a Markdown file artifact can also act as shared, synchronized, editable state, which the person edits in Television and the agent edits on disk, but it is editable only within Television: shared through a share link, it is read-only, unlike a JSON store; the bundled Markdown template instead keeps its text in its JSON store and follows that store's access; Markdown also lacks an HTML page's presentational flexibility and interactivity;
 - an artifact's state can also live in the third-party APIs or external services it integrates with;
 - which of these fits depends on the artifact's design, its use and the person, and the agent decides; for a to-do list, the standard choice is a JSON store.
 
@@ -38,7 +38,7 @@ The shipped guidance teaches only what is available while [the bindings flag](..
 - where the store differs from Firebase: `set(ref, null)` stores `null`, deletion uses `remove` or `deleteValue()`, and arrays stay arrays;
 - the APIs that do not exist, especially Firebase APIs agents may reach for, such as queries like `orderByChild`, `onDisconnect` and offline persistence;
 - checking the page's access level with `getAccess` or `onAccessChanged` and rendering a read-only view when it is `read`, since a share link may open the artifact at `read`;
-- share links, with `tv share-artifact` and `tv unshare-artifact`, for when the person asks to share an artifact: the link's level, `read` unless `--access read-write` is given, which a Markdown artifact cannot have, changing it, revoking it, and that the artifact's own links stay relative, so that its ID never appears in what a share viewer receives;
+- share links, with `tv share-artifact` and `tv unshare-artifact`, for when the person asks to share an artifact: the link's level, `read` unless `--access read-write` is given, which a Markdown file artifact cannot have, changing it, revoking it, and that the artifact's own links stay relative, so that its ID never appears in what a share viewer receives;
 - that no artifact ID, share ID, token or other secret ever goes into artifact source or the data its store holds, which a share viewer's page receives as it receives the source. ^rg-teaches
 
 The guidance's wording on the JSON store's API presents it as inspired by Firebase's, familiar to developers who know that API, and never as having Firebase's shape or behaving as Firebase's does: the store's own specs define its behavior. ^rg-firebase

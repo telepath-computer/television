@@ -1,0 +1,22 @@
+{
+  "name": "Markdown",
+  "description": "A Markdown document you and an agent can edit together.",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml"
+    }
+  ],
+  "dataSchema": {
+    "type": "object",
+    "required": [
+      "markdown"
+    ],
+    "properties": {
+      "markdown": {
+        "type": "string"
+      }
+    }
+  }
+}

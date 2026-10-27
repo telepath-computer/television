@@ -1,5 +1,5 @@
 import type { ArtifactContextLike } from "@telepath-computer/television-artifact/browser";
-import { Annotation, EditorSelection, EditorState, Prec, Transaction, type Extension, type StateCommand } from "@codemirror/state";
+import { Annotation, Compartment, EditorSelection, EditorState, Prec, Transaction, type Extension, type StateCommand } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { HighlightStyle, indentUnit, syntaxHighlighting } from "@codemirror/language";
@@ -129,10 +129,13 @@ export interface EditorHooks {
   parent: HTMLElement;
   ctx: ArtifactContextLike;
   debounceMs?: number;
+  editable?: boolean;
+  onSaveError?: (error: unknown) => void;
 }
 
 export interface Editor {
   view: EditorView;
+  setEditable(editable: boolean): void;
   dispose(): void;
 }
 
@@ -141,11 +144,11 @@ export interface Editor {
  *
  * - **Outgoing.** `docChanged` updates from local edits are debounced; on
  *   flush we send the current doc text via `ctx.updateContent`.
- * - **Incoming.** `content-updated` notifications from the host are
- *   compared against the last payload we sent. Equal → save echo, suppress
- *   (no transaction dispatched, caret stays put). Different → genuine
- *   remote edit, replaced into the doc as a `Remote`-annotated transaction
- *   that's excluded from history and skipped by the save listener.
+ * - **Incoming.** A notification matching a save still in flight is its echo
+ *   and is suppressed, so the caret stays put. Any other notification wins
+ *   over an unsent local debounce and replaces the doc as a `Remote`-
+ *   annotated transaction that's excluded from history and skipped by the
+ *   save listener.
  * - **Error.** A rejected `updateContent` rolls the doc back to the last
  *   known-good (initial content or last successful save).
  *
@@ -156,9 +159,12 @@ export function installEditor(hooks: EditorHooks): Editor {
   const { parent, ctx } = hooks;
   const debounceMs = hooks.debounceMs ?? DEFAULT_DEBOUNCE_MS;
 
-  let lastSent: string | null = null;
   let lastKnownGood: string | null = null;
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let isEditable = hooks.editable ?? true;
+  let incomingRevision = 0;
+  const activeSaves = new Set<{ content: string; incomingRevision: number }>();
+  const editable = new Compartment();
 
   const replaceDoc = (next: string): void => {
     if (view.state.doc.toString() === next) return;
@@ -171,16 +177,23 @@ export function installEditor(hooks: EditorHooks): Editor {
   const flushSave = async (): Promise<void> => {
     saveTimer = null;
     const content = view.state.doc.toString();
-    lastSent = content;
+    const save = { content, incomingRevision };
+    activeSaves.add(save);
     try {
       await ctx.updateContent(content);
-      lastKnownGood = content;
-    } catch {
-      const good = lastKnownGood ?? "";
-      replaceDoc(good);
-      lastSent = good;
+      if (incomingRevision === save.incomingRevision) lastKnownGood = content;
+    } catch (error) {
+      if (incomingRevision === save.incomingRevision) replaceDoc(lastKnownGood ?? "");
+      hooks.onSaveError?.(error);
+    } finally {
+      activeSaves.delete(save);
     }
   };
+
+  const readOnlyGuard = EditorState.transactionFilter.of((transaction) => {
+    if (isEditable || !transaction.docChanged || transaction.annotation(Remote)) return transaction;
+    return [];
+  });
 
   const saveListener = EditorView.updateListener.of((update) => {
     if (!update.docChanged) return;
@@ -196,16 +209,38 @@ export function installEditor(hooks: EditorHooks): Editor {
     parent,
     state: EditorState.create({
       doc: "",
-      extensions: [editorExtensions, saveListener],
+      extensions: [
+        editorExtensions,
+        editable.of([
+          EditorState.readOnly.of(!isEditable),
+          EditorView.editable.of(isEditable),
+        ]),
+        readOnlyGuard,
+        saveListener,
+      ],
     }),
   });
 
+  const syncEmbeddedControls = (): void => {
+    for (const checkbox of parent.querySelectorAll<HTMLInputElement>(".cm-md-task-checkbox")) {
+      checkbox.disabled = !isEditable;
+    }
+    for (const cell of parent.querySelectorAll<HTMLElement>(".tbl-cell-view")) {
+      cell.contentEditable = isEditable ? "true" : "false";
+    }
+  };
+  const embeddedControls = new MutationObserver(syncEmbeddedControls);
+  embeddedControls.observe(parent, { childList: true, subtree: true });
+  syncEmbeddedControls();
+
   const handleContentUpdated = (event: { content: string }): void => {
     const incoming = event.content;
-    if (lastSent !== null && incoming === lastSent) {
-      // Save echo — doc already matches; leave it alone to preserve caret.
-      return;
+    if ([...activeSaves].some((save) => save.content === incoming)) return;
+    if (saveTimer !== null) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
     }
+    incomingRevision += 1;
     replaceDoc(incoming);
     lastKnownGood = incoming;
   };
@@ -214,11 +249,27 @@ export function installEditor(hooks: EditorHooks): Editor {
 
   return {
     view,
+    setEditable(next: boolean): void {
+      if (next === isEditable) return;
+      isEditable = next;
+      if (!isEditable && saveTimer !== null) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+      }
+      view.dispatch({
+        effects: editable.reconfigure([
+          EditorState.readOnly.of(!isEditable),
+          EditorView.editable.of(isEditable),
+        ]),
+      });
+      syncEmbeddedControls();
+    },
     dispose(): void {
       if (saveTimer !== null) {
         clearTimeout(saveTimer);
         saveTimer = null;
       }
+      embeddedControls.disconnect();
       ctx.removeEventListener("content-updated", handleContentUpdated);
       view.destroy();
     },

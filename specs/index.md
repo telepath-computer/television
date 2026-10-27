@@ -92,10 +92,11 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **templates/**
     - `authoring.md` (23 lines) — *Artifact template guidance: using copies, saving artifact snapshots, and maintaining templates through the bundled television skill.*
     - `bundled-installation.md` (36 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (13 lines) — *The bundled artifact template inventory and shared rules.*
+    - `bundled-templates.md` (14 lines) — *The bundled artifact template inventory and shared rules.*
     - `calendar.md` (73 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
+    - `markdown.md` (55 lines) — *The bundled Markdown artifact template: its shared editor, store contract, packaged page, and adapting-agent guidance.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*

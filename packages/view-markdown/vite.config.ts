@@ -118,6 +118,12 @@ function inlineScripts(): Plugin {
           if (!chunkKey) return match;
           const chunk = bundle[chunkKey];
           if (!chunk || chunk.type !== "chunk") return match;
+          bundle["v1/editor.js"] = {
+            type: "asset",
+            fileName: "v1/editor.js",
+            name: "editor.js",
+            source: chunk.code,
+          };
           consumedChunks.push(chunkKey);
           const attrs = `${pre} ${post}`
             .replace(/\scrossorigin(="[^"]*")?/g, "")
@@ -154,6 +160,12 @@ function inlineStyles(): Plugin {
           const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "asset") return match;
           const source = typeof chunk.source === "string" ? chunk.source : chunk.source.toString();
+          bundle["v1/editor.css"] = {
+            type: "asset",
+            fileName: "v1/editor.css",
+            name: "editor.css",
+            source,
+          };
           consumed.push(normalized);
           return `<style>${source}</style>`;
         });

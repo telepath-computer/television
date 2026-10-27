@@ -568,7 +568,7 @@ describe("Onboarding installer", () => {
         watchContentFile: (file, change, options) => {
           starts.push(file);
           if (file === path.join(storagePath, "templates")) {
-            for (const id of ["checklist", "calendar", "sticky-note"]) {
+            for (const id of ["checklist", "calendar", "sticky-note", "markdown"]) {
               expect(existsSync(path.join(file, id, "manifest.json"))).toBe(true);
             }
             expect(existsSync(getDisplayStatePath(storagePath))).toBe(false);
@@ -580,7 +580,7 @@ describe("Onboarding installer", () => {
         },
       });
       stores.push(store);
-      expect(store.templateCache?.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist", "calendar", "sticky-note"].sort());
+      expect(store.templateCache?.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist", "calendar", "sticky-note", "markdown"].sort());
       expect(starts[0]).toBe(path.join(storagePath, "templates"));
       expect(starts).toHaveLength(3);
       expect(scanAtDisplayStates).toEqual([false]);
