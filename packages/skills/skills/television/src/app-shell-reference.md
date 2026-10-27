@@ -284,7 +284,7 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/index.md sha256: 4181001af0760ec1c2d175e1cc2ff096e5391d046154760fb59291f3131b17d8 -->
 <!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 5f997a907d86c1a878352a303280d4ed51a2482fcf8a535d40e4bd519fb5fa69 -->
 <!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 22293135040936fb5e74585e389f9d28e4d9d3a687e431cf5617a1b61399accd -->
-<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: 489f1a18fef32293e22bc50fcce2b4770a669258e7ce5e1d27d73591b932d9de -->
+<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: f4a9b0577abaa9a7fdfdfbc7b8a6c74c3950daac2d5c58d8d79c1f47e3e3413a -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: f47185669d83657172fe57d896c56b30d6ae6f55157f68fb97d0e27894713716 -->
 <!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 7fbb3adcfc70ec9ab9e232b09707a5f276f74de56cee0346d9dc3daeb771a230 -->

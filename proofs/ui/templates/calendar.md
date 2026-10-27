@@ -58,7 +58,7 @@ Each browser assertion is **Acceptance** (real browser → artifact page → run
 
 ## Review
 
-- Under [Icon](../../../specs/ui/templates/calendar.mdx#icon), review checks that the template's icon shows a white calendar page with a red top and the date 17, and that it reads at 20 pixels on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/calendar.md#^templates-calendar-t-icon) shows that the Toolbox receives this file. *(reviewed at 20 pixels; no automated test)* ^calendar-review-icon
+- Under [Icon](../../../specs/ui/templates/calendar.mdx#icon) and the [28-pixel Toolbox icon slot](../../../specs/ui/app/toolbox.mdx#^toolbox-icons), review checks that the template icon shows a white calendar page with a red top and a legible date 17 on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/calendar.md#^templates-calendar-t-icon) shows that the Toolbox receives this file. *(reviewed in the 28-pixel Toolbox slot on light and dark backgrounds; no automated test)* ^calendar-review-icon
 
 ## Conformance
 

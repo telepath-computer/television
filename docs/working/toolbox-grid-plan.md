@@ -21,6 +21,8 @@ This document records the decisions and open questions for moving the approved T
 - Use real `row` wrappers, each containing a three-column CSS grid. This avoids relying on `display: contents` for accessibility semantics.
 - Keep the historical Templates popover alternatives under `2026-10/templates-popover-alternatives`; neither its folder nor Storybook title uses an outcome category.
 - Delete the empty Templates popover pilot placeholder because it declares no stories and nothing references it.
+- A visual review rendered the Checklist, Calendar, Sticky note, and experimental Table icons in the 28-pixel Toolbox slot on light and dark backgrounds. Each icon remains clear: the Checklist marks, Calendar date, Sticky note writing and fold, and Table cells are distinguishable.
+- The input-method test uses the Chromium DevTools protocol. It does not cover Safari composition behavior or key delivery from an operating-system input method.
 
 ## Open questions
 

@@ -58,7 +58,7 @@ Unless an assertion says otherwise, each acceptance below uses the browser/serve
 
 ## Review
 
-- Under [Icon](../../../specs/ui/templates/checklist.mdx#icon), review checks that the template's icon shows a page with a ticked box and an empty one, and that it reads at 20 pixels on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/checklist.md#^templates-checklist-t-icon) shows that the Toolbox receives this file. *(reviewed at 20 pixels; no automated test)* ^checklist-review-icon
+- Under [Icon](../../../specs/ui/templates/checklist.mdx#icon) and the [28-pixel Toolbox icon slot](../../../specs/ui/app/toolbox.mdx#^toolbox-icons), review checks that the template icon shows a page with a ticked box and an empty one, and that both marks remain clear on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/checklist.md#^templates-checklist-t-icon) shows that the Toolbox receives this file. *(reviewed in the 28-pixel Toolbox slot on light and dark backgrounds; no automated test)* ^checklist-review-icon
 
 ## Layout and conformance
 

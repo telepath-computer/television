@@ -1,17 +1,16 @@
 import { View, view } from "@telepath-computer/utils/lit-view";
 import { html, nothing, type TemplateResult } from "lit-html";
 import { ref } from "lit-html/directives/ref.js";
-import { repeat } from "lit-html/directives/repeat.js";
 import type { AppTemplate } from "@telepath-computer/television-shared";
 import type { TemplateCache } from "../services/template-cache.ts";
-import { defaultToolboxIcon, ToolboxSelection, type ToolboxDirection } from "./toolbox-state.ts";
+import { defaultToolboxIcon, TOOLBOX_COLUMNS, ToolboxSelection, type ToolboxDirection } from "./toolbox-state.ts";
 import "../elements/icon.ts";
 import "../elements/popover.ts";
 import "./toolbox.css";
 
 type ToolboxSource = Pick<TemplateCache, "scan" | "icons" | "setOpen" | "addEventListener" | "removeEventListener">;
 type Activate = (item: AppTemplate) => Promise<void>;
-const TOOLBOX_COLUMNS = 3;
+type HighlightPosition = readonly [id: string | null, index: number];
 const ARROW_DIRECTIONS: Partial<Record<string, ToolboxDirection>> = {
   ArrowUp: "up",
   ArrowDown: "down",
@@ -29,6 +28,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   readonly #selection = new ToolboxSelection<AppTemplate>();
   #pressed: string | null = null;
   #activating = false;
+  #tilesVisible = false;
   readonly #failedIcons = new Map<string, string>();
 
   connected(): void {
@@ -65,9 +65,19 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   };
 
   readonly #cacheChanged = (): void => {
-    this.render();
-    this.#revealHighlight();
+    this.#renderAndRevealMovedHighlight(this.#highlightPosition());
   };
+
+  #highlightPosition(): HighlightPosition {
+    const id = this.#selection.highlighted;
+    return [id, this.#selection.matches.findIndex(item => item.id === id)];
+  }
+
+  #renderAndRevealMovedHighlight(previous: HighlightPosition): void {
+    this.render();
+    const current = this.#highlightPosition();
+    if (current[0] !== previous[0] || current[1] !== previous[1]) this.#revealHighlight();
+  }
 
   #revealHighlight(): void {
     if (!this.#open) return;
@@ -83,9 +93,9 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   }
 
   readonly #input = (event: Event): void => {
+    const previous = this.#highlightPosition();
     this.#selection.search((event.currentTarget as HTMLInputElement).value);
-    this.render();
-    this.#revealHighlight();
+    this.#renderAndRevealMovedHighlight(previous);
   };
 
   readonly #keydown = (event: KeyboardEvent): void => {
@@ -96,15 +106,15 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
       return;
     }
     const direction = ARROW_DIRECTIONS[event.key];
-    if (!direction || this.#selection.matches.length === 0) return;
+    if (!direction || !this.#tilesVisible) return;
     if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) return;
     const horizontal = direction === "left" || direction === "right";
     if (horizontal && this.#selection.highlighted === null) return;
     event.preventDefault();
     event.stopPropagation();
+    const previous = this.#highlightPosition();
     this.#selection.move(direction);
-    this.render();
-    this.#revealHighlight();
+    this.#renderAndRevealMovedHighlight(previous);
   };
 
   readonly #pointerMove = (event: PointerEvent): void => {
@@ -175,7 +185,8 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     const folderError = scan?.errors.find(({ folder }) => folder === null)?.error ?? null;
     const invalid = scan?.errors.filter(({ folder }) => folder !== null) ?? [];
     const matches = this.#selection.matches;
-    const showGrid = folderError === null && matches.length > 0;
+    const tilesVisible = folderError === null && matches.length > 0;
+    this.#tilesVisible = tilesVisible;
     const highlighted = matches.findIndex(item => item.id === this.#selection.highlighted);
     const query = this.#selection.query;
     const gridRows = Array.from(
@@ -192,20 +203,20 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
           <tv-icon name="search"></tv-icon>
           <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off"
             aria-haspopup="grid" aria-autocomplete="list"
-            aria-expanded=${showGrid ? "true" : "false"}
-            aria-controls=${showGrid ? "toolbox-grid" : nothing}
-            aria-activedescendant=${showGrid && highlighted >= 0 ? `toolbox-item-${highlighted}` : nothing}
+            aria-expanded=${tilesVisible ? "true" : "false"}
+            aria-controls=${tilesVisible ? "toolbox-grid" : nothing}
+            aria-activedescendant=${tilesVisible && highlighted >= 0 ? `toolbox-item-${highlighted}` : nothing}
             .value=${query} @input=${this.#input} @keydown=${this.#keydown}>
         </label>
         <div class="toolbox-body">
           <div class="toolbox-scroll-content">
             ${!scan ? nothing : folderError !== null ? html`
               <div class="toolbox-folder-error"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>
-            ` : showGrid ? html`
+            ` : tilesVisible ? html`
               <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
                 ${gridRows.map((entries, rowIndex) => html`
                   <div class="toolbox-grid-row" role="row">
-                    ${repeat(entries, entry => entry.id, (entry, columnIndex) => {
+                    ${entries.map((entry, columnIndex) => {
                       const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
                       return html`
                         <div role="gridcell" id=${`toolbox-item-${index}`} class="toolbox-tile" data-id=${entry.id}
@@ -223,7 +234,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
             ` : query.trim() ? html`<p class="toolbox-empty">${`Nothing matches “${query}”.`}</p>`
               : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet.</p>`}
             ${scan && folderError === null && invalid.length ? html`
-              ${showGrid || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
+              ${tilesVisible || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
               <div class="toolbox-invalid" role="note">
                 <tv-icon name="warning" size="sm"></tv-icon>
                 <span class="toolbox-error-text"><span class="toolbox-error-folder">${invalid.length === 1 ? "1 template had errors" : `${invalid.length} templates had errors`}</span><span>Ask your agent to read the Television skill and fix ${invalid.length === 1 ? "it" : "them"}.</span></span>

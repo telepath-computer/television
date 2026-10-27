@@ -4,8 +4,11 @@ import { configureTestMotion } from "./helpers.ts";
 
 type Fixture = { actions: string[]; holdAction: boolean; finishAction(): void; set(scan: ArtifactTemplateScan | null, icons?: [string, string][]): void };
 const items = Array.from({ length: 24 }, (_, index) => ({ id: `id-${index}`, name: `Item ${String(index).padStart(2, "0")}`, description: "Description only", version: "1.0.0", path: `/templates/id-${index}`, hasIcon: false }));
-async function set(page: Page, templates = items, errors: ArtifactTemplateScan["errors"] = []) {
-  await page.evaluate(scan => (window as unknown as { toolbox: Fixture }).toolbox.set(scan), { templates, errors, watching: true });
+async function set(page: Page, templates = items, errors: ArtifactTemplateScan["errors"] = [], icons?: [string, string][]) {
+  await page.evaluate(({ scan, icons }) => (window as unknown as { toolbox: Fixture }).toolbox.set(scan, icons), {
+    scan: { templates, errors, watching: true },
+    icons,
+  });
 }
 async function actions(page: Page) {
   return page.evaluate(() => (window as unknown as { toolbox: Fixture }).toolbox.actions);
@@ -173,6 +176,10 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   const scrollBeforeHover = await body.evaluate(element => element.scrollTop);
   await page.mouse.move(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y - 2);
   await expect(tiles.nth(19)).toHaveAttribute("aria-selected", "true");
+  expect(await body.evaluate(element => element.scrollTop)).toBe(scrollBeforeHover);
+  const updatedIcon = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="blue"/></svg>');
+  await set(page, items.slice(2), [], [["id-21", updatedIcon]]);
+  await expect(tiles.nth(19).locator("img")).toBeVisible();
   expect(await body.evaluate(element => element.scrollTop)).toBe(scrollBeforeHover);
   const coveredNeighbour = tiles.nth(20);
   const coveredNeighbourBox = (await coveredNeighbour.boundingBox())!;

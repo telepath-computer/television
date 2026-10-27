@@ -5,7 +5,8 @@ interface ToolboxItem {
 
 export type ToolboxDirection = "up" | "down" | "left" | "right";
 
-const TOOLBOX_COLUMNS = 3;
+/** Number of tiles in each Toolbox row. */
+export const TOOLBOX_COLUMNS = 3;
 
 /** Search and highlight survive grid replacements independently of tile positions. */
 export class ToolboxSelection<T extends ToolboxItem = ToolboxItem> {

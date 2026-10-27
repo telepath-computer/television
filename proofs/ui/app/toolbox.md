@@ -46,13 +46,13 @@ The following state map applies to **contract** comparisons at the production re
 | `SuppliedIcons` | Resolve the story tiles and supplied image bytes. |
 | `DefaultIcons` | Resolve the story tiles without supplied icons. |
 | `FailedIcon` | Resolve the Calendar tile and settle its failed icon request. |
-| `LongName` | Resolve the two story tiles, including the full long name. |
+| `LongName` | Resolve the three story tiles, including the long name and the unbroken long word. |
 | `WithErrors` | Resolve the default tiles and one invalid-folder error. |
 | `SearchWithErrors` | Use that scan and type the unmatched story query. |
 | `MultipleErrors` | Resolve the default tiles and all three story errors. |
 | `ManyItems` | Resolve all story tiles. |
 
-- **Contract** (the real-browser comparisons and service mock declared above): under [Toolbox story authority](../../../specs/ui/app/toolbox.mdx#toolbox) and [story conformance](../../../specs/spec-ui.md#^ui-conformance-test), one conformance file runs one comparison per story in the imported module and rejects uncovered stories. It proves the specified appearance, including trigger, three-column tiles, spacing, two-line names and long-word wrapping, supplied/default icons, press/highlight tints, empty/error layouts, floating footer and constrained panel; any new story joins this inventory. *(policy-grade tests: `packages/web/test/e2e/toolbox-conformance.test.ts`, “Toolbox conforms: ${id}” — one test for every Toolbox story in the built Storybook index; the same file's “Toolbox documentation renders its MDX and all embedded stories” checks the spec MDX docs page)* ^toolbox-t-conformance
+- **Contract** (the real-browser comparisons and service mock declared above): under [Toolbox story authority](../../../specs/ui/app/toolbox.mdx#toolbox) and [story conformance](../../../specs/spec-ui.md#^ui-conformance-test), one conformance file runs one comparison per story in the imported module and rejects uncovered stories. It proves the specified appearance, including trigger, three-column tiles, spacing, two-line names and long-word wrapping, supplied/default icons, press/highlight tints, empty/error layouts, floating footer and constrained panel; any new story joins this inventory. *(policy-grade tests: `packages/web/test/e2e/toolbox-conformance.test.ts`, “Toolbox conforms: ${id}” — one test for every Toolbox story in the built Storybook index; “Toolbox has one docs entry rendering its MDX and all embedded stories” checks that the built index contains exactly one Toolbox docs entry and that it renders the spec MDX page)* ^toolbox-t-conformance
 
 ## Consumer contracts
 

@@ -50,7 +50,7 @@ Unless stated otherwise, each acceptance uses the real browser/server/store boun
 
 ## Review
 
-- Under [Icon](../../../specs/ui/templates/sticky-note.mdx#icon), review checks that the template's icon shows a yellow note with writing and a folded corner, and that it reads at 20 pixels on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/sticky-note.md#^templates-sticky-note-t-icon) shows that the Toolbox receives this file. *(reviewed at 20 pixels; no automated test)* ^sticky-note-review-icon
+- Under [Icon](../../../specs/ui/templates/sticky-note.mdx#icon) and the [28-pixel Toolbox icon slot](../../../specs/ui/app/toolbox.mdx#^toolbox-icons), review checks that the template icon shows a yellow note whose writing and folded corner remain clear on light and dark backgrounds. A file check cannot prove how an icon reads at that size. [The package proof](../../arch/templates/sticky-note.md#^templates-sticky-note-t-icon) shows that the Toolbox receives this file. *(reviewed in the 28-pixel Toolbox slot on light and dark backgrounds; no automated test)* ^sticky-note-review-icon
 
 ## Layout and conformance
 

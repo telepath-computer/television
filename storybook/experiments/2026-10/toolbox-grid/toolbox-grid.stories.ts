@@ -7,7 +7,7 @@ import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
 
-// The icons of the templates installed on Rupert's Television, copied here.
+// First-party icons drawn for the Television templates used in this experiment.
 const icons = import.meta.glob<string>("./icons/*.svg", { eager: true, import: "default", query: "?url" });
 const iconFor = (id: string) => icons[`./icons/${id}.svg`];
 
@@ -58,7 +58,7 @@ const tile = (item: Item, index: number, highlighted: boolean) => {
     </li>`;
 };
 
-// Everything installed on Rupert's Television.
+// The full template set used for this finished experiment.
 const installed: Item[] = [
   { id: "agent-inbox", name: "Agent inbox" },
   { id: "calendar", name: "Calendar" },
