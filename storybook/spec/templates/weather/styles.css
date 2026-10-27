@@ -198,7 +198,7 @@ body {
   padding:
     clamp(var(--space-12), 5.9vw, var(--space-20))
     clamp(var(--space-12), 5.9vw, var(--space-20))
-    clamp(var(--space-10), 4.7vw, var(--space-16));
+    clamp(var(--space-24), 7vw, var(--space-32));
 }
 
 .weather-header {
@@ -555,6 +555,36 @@ body {
 }
 
 .weather-empty h1 { margin-top: 0; }
+
+.weather-credit {
+  position: absolute;
+  z-index: 2;
+  right: clamp(var(--space-10), 4vw, var(--space-16));
+  bottom: var(--space-8);
+  margin: 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: clamp(9px, min(3vw, 3vh), 10px);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgb(3 20 38 / 58%);
+  white-space: nowrap;
+}
+
+.weather-credit a {
+  border-radius: 2px;
+  color: inherit;
+  text-decoration-color: rgb(255 255 255 / 46%);
+  text-underline-offset: 2px;
+}
+
+.weather-credit a:hover { color: white; }
+
+.weather-credit a:focus-visible {
+  color: white;
+  outline: 1px solid rgb(255 255 255 / 86%);
+  outline-offset: 2px;
+}
 
 @media (min-width: 600px) and (min-height: 480px) {
   .weather-page { padding: var(--space-16); }

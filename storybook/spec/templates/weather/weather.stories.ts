@@ -12,7 +12,7 @@ const icon = (params: { name: string; size?: string; spinning?: boolean }): Html
 
 type Theme = "light" | "dark";
 type Condition = "clear" | "partly-cloudy" | "cloudy" | "rain" | "snow" | "thunderstorm" | "fog";
-type State = "ready" | "empty" | "loading" | "unreadable";
+type State = "ready" | "empty" | "loading" | "unavailable" | "unreadable";
 
 interface Current {
   temperature: number;
@@ -137,6 +137,13 @@ const atmosphere = html`
     <span class="weather-haze weather-haze-two"></span>
   </div>`;
 
+const credit = html`
+  <p class="weather-credit">
+    <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>
+    <span> data · adapted · </span>
+    <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
+  </p>`;
+
 const currentWeather = (forecast: Forecast) => {
   const today = forecast.daily.find((day) => day.label === "Today");
   return html`
@@ -208,11 +215,17 @@ const placeholder = (state: Exclude<State, "ready">) => {
       <h1>This forecast can't be shown</h1>
       <p>Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
     </div>`;
+  if (state === "unavailable") return html`
+    <div class="weather-placeholder-content weather-error" role="status" aria-label="Forecast unavailable">
+      <span class="weather-placeholder-icon">${icon({ name: "warning", size: "xl" })}</span>
+      <h1>Forecast unavailable</h1>
+      <p>Weather couldn't be updated. It will try again soon.</p>
+    </div>`;
   return html`
     <div class="weather-placeholder-content weather-empty">
       ${weatherGlyph("partly-cloudy", true, "empty")}
-      <h1>No forecast yet</h1>
-      <p>Ask your agent to add a forecast for a place.</p>
+      <h1>No location yet</h1>
+      <p>Ask your agent to choose a place for this weather card.</p>
     </div>`;
 };
 
@@ -223,6 +236,7 @@ const render = ({ theme, state, forecast }: Args) => {
     <article class="weather-card weather-card-${state}" data-condition="clear" data-day="true">
       ${atmosphere}
       ${placeholder(state)}
+      ${credit}
     </article>
   </main>`;
 
@@ -242,6 +256,7 @@ const render = ({ theme, state, forecast }: Args) => {
         ${forecast.hourly.length > 0 ? hourlyForecast(forecast) : html``}
         ${forecast.daily.length > 0 ? dailyForecast(forecast) : html``}
       </div>
+      ${credit}
     </article>
   </main>`;
 };
@@ -402,6 +417,7 @@ const deathValley: Forecast = {
 
 const londonShort: Forecast = { ...london, daily: london.daily.slice(0, 4) };
 const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slice(1) };
+const savedAfterFailure: Forecast = { ...sanFrancisco, updated: "2 hrs ago" };
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
 const viewports = {
@@ -448,5 +464,8 @@ export const Large = { ...sized("largeBoundary"), args: { forecast: london } };
 export const ShortForecast = { name: "Four-day forecast", ...sized("large"), args: { forecast: londonShort } };
 export const Loading = { args: { state: "loading" } };
 export const Empty = { args: { state: "empty" } };
+// A failed refresh keeps the compatible saved forecast and its honest age.
+export const SavedAfterFailure = { name: "Saved forecast after a failed refresh", args: { forecast: savedAfterFailure } };
+export const Unavailable = { name: "Forecast unavailable", args: { state: "unavailable" } };
 export const Unreadable = { args: { state: "unreadable" } };
 export const DarkAppearance = { name: "Dark appearance", args: { theme: "dark" } };
