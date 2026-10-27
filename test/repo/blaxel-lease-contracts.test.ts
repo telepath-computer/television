@@ -25,7 +25,7 @@ test("expired active and quiet leases use the same cleanup; uncertain owners hol
     let owners = active ? [{ shardToken: "old" }] : [];
     const result = await workerLeaseOperation(f.input, { now: () => 3000, scanOwners: async () => owners, stopOwners: async (token: string) => { calls.push(token); owners = []; return []; } });
     expect(result.ok).toBe(true); expect(calls).toEqual(["old"]);
-    expect(result.record.recovery.discardedReports).toBe(true);
+    expect(result.record.recovery?.discardedReports).toBe(true);
   }
   const f = fixture(expired);
   const result = await workerLeaseOperation(f.input, { now: () => 3000, stopOwners: async () => [], scanOwners: async () => [{ shardToken: "unrelated" }] });
@@ -99,7 +99,7 @@ test("retrieval retries after teardown without rerunning work; uncertainty never
 test("pool eligibility follows verification, and deletion reserves then unpublishes", async () => {
   const calls: string[] = [];
   const sandbox = { metadata: { name: "fixture", labels: { purpose: "testshards-provisioning", pool: "private" } }, wait: async () => { calls.push("wait"); } };
-  const update = async (_name: string, metadata: { labels: { purpose: string } }) => { calls.push(metadata.labels.purpose); };
+  const update = async (_name: string, metadata: { labels: Record<string, string> }) => { calls.push(metadata.labels.purpose); };
   await publishWorker(sandbox, { provision: async () => { calls.push("provision"); }, verify: async () => { calls.push("verify"); }, update });
   expect(calls).toEqual(["wait", "provision", "verify", "testshards"]);
   calls.length = 0;

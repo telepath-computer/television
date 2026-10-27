@@ -43,6 +43,7 @@ const timeouts = resolveTimeouts(timeoutProfile, options);
 const playwrightBrowsersPath = options["playwright-browsers-path"] ?? "/home/playwright/.cache/ms-playwright";
 const runId = `${new Date().toISOString().replace(/[:.]/g, "-")}-${process.pid}`;
 const activeLeases = new Map();
+const pendingAcquisitions = new Set();
 const attempts = [];
 let finalReport = null;
 let activeAttempt = null;
@@ -243,6 +244,7 @@ async function runAttempt({ attempt, shardIndices, excludedSandboxes = [], outpu
       attemptState.leases.set(outcome.shardIndex, outcome.lease);
       acquired.push(outcome.lease);
     }
+    if (shuttingDown) await shutdownPromise;
     const acquisitionIncomplete = acquisitionOutcomes.some((outcome) => !outcome.lease);
     let results;
     if (acquisitionIncomplete) {
@@ -336,7 +338,13 @@ async function leaseOperation(lease, operation, extra = {}) {
   return response;
 }
 
-async function acquireAny(sandboxes, { shardIndex, slot, requestedWorkers, verifyArchitecture = true, attempt = 1 }) {
+function acquireAny(sandboxes, options) {
+  const pending = acquireWorker(sandboxes, options);
+  pendingAcquisitions.add(pending);
+  return pending.finally(() => pendingAcquisitions.delete(pending));
+}
+
+async function acquireWorker(sandboxes, { shardIndex, slot, requestedWorkers, verifyArchitecture = true, attempt = 1 }) {
   const lockId = `${runId}-s${shardIndex}-a${attempt}-${randomUUID().slice(0, 8)}`;
   const input = { lockId, runId, shardIndex, attempt, attemptId: lockId, owner: `${os.hostname()}:${process.pid}`, ttlSeconds: timeouts.lockTtlSeconds, audit: auditStaleOwners };
   input.scratch = shardScratchPath(input);
@@ -358,6 +366,7 @@ async function acquireAny(sandboxes, { shardIndex, slot, requestedWorkers, verif
     });
     if (verifyArchitecture && !(await verifySandboxArchitecture(sandbox))) {
       await stopAndReleaseLease(lease, { killProcess: false });
+      activeLeases.delete(lockId);
       continue;
     }
     return lease;
@@ -419,7 +428,10 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
   const summaryPath = path.join(outputDir, `shard-${shardIndex}.json`);
   const planRemotePath = shardPlanRaw ? `${lease.input.scratch}/plan.json` : null;
   const dispatch = await (lease.pendingWrites = transferShardInputs({
-    write: (remotePath, contents) => sandbox.fs.write(remotePath, contents),
+    write: (remotePath, contents) => {
+      if (lease.lost || shuttingDown) throw lease.lost ?? new Error("coordinator interrupted before upload");
+      return sandbox.fs.write(remotePath, contents);
+    },
     planRemotePath,
     planRaw: shardPlanRaw,
     remoteScript,
@@ -440,6 +452,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
   try {
     await leaseOperation(lease, "prepare");
     await leaseOperation(lease, "dispatch", { processName });
+    if (lease.lost || shuttingDown) throw lease.lost ?? new Error("coordinator interrupted before dispatch");
     lease.executionRequested = true;
     onExecutionRequested();
     const proc = await (lease.dispatchRequest = sandbox.process.exec({ name: processName, command, env: { GH_TOKEN: blaxelGithubToken }, timeout: timeouts.workerTimeoutSeconds, keepAlive: true }));
@@ -1020,11 +1033,13 @@ exit "$test_status"
 `;
 }
 
-async function confirmTeardown(lease) {
-  if (lease.teardownConfirmed) return;
-  const result = await leaseOperation(lease, "teardown");
-  lease.teardownConfirmed = true;
-  if (lease.logPath) appendLog(lease.logPath, `\n[coordinator] owner teardown: ${JSON.stringify(result.record.teardown)}\n`);
+function confirmTeardown(lease) {
+  lease.teardownPromise ??= (async () => {
+    const result = await leaseOperation(lease, "teardown");
+    lease.teardownConfirmed = true;
+    if (lease.logPath) appendLog(lease.logPath, `\n[coordinator] owner teardown: ${JSON.stringify(result.record.teardown)}\n`);
+  })();
+  return lease.teardownPromise;
 }
 
 async function retainAttemptEvidence(lease, directory) {
@@ -1050,7 +1065,6 @@ async function retainAttemptEvidence(lease, directory) {
   for (const name of evidence.files) {
     if (typeof name !== "string" || name.startsWith("/") || name.split("/").includes("..")) throw new Error("invalid evidence path");
     const raw = await lease.sandbox.fs.read(`${root}/${name}`);
-    if (name.endsWith(".json")) JSON.parse(raw);
     const target = path.join(directory, "artifacts", `shard-${lease.shardIndex}`, name);
     fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, raw);
   }
@@ -1077,6 +1091,7 @@ async function stopAndReleaseLease(lease, { killProcess }) {
       // Even a successful named process wait is not a descendant audit.
       await confirmTeardown(lease);
       if (killProcess && lease.workPromise) await lease.workPromise;
+      if (lease.released) return;
       if (!lease.executionRequested) lease.retrieved = true;
       if (!lease.retrieved) throw new Error("results not fully retained; keeping lease for recovery");
       await leaseOperation(lease, "release", { retrieved: true });
@@ -1144,9 +1159,10 @@ function installSignalHandlers({ killProcesses }) {
       process.exit(130);
     }
     shuttingDown = true;
-    const leases = [...activeLeases.values()];
-    console.error(`Received ${signal}; preserving the interrupted attempt, then ${killProcesses ? "stopping remote processes and " : ""}releasing ${leases.length} Blaxel lease(s)...`);
+    console.error(`Received ${signal}; waiting for in-flight acquisitions, then retaining results and cleaning up owned workers...`);
     shutdownPromise = (async () => {
+      await Promise.allSettled([...pendingAcquisitions]);
+      const leases = [...activeLeases.values()];
       let interruptedSnapshot = null;
       const { reportError, releaseError, finalizeError } = await finishInterruptedRun({
         preserveReport: () => {
@@ -1154,8 +1170,10 @@ function installSignalHandlers({ killProcesses }) {
           writeInterruptedReportSnapshot(interruptedSnapshot);
         },
         releaseLeases: async () => {
-          await Promise.allSettled(leases.map((lease) => stopAndReleaseLease(lease, { killProcess: killProcesses })));
-          for (const lease of leases) activeLeases.delete(lease.lockId);
+          const results = await Promise.allSettled(leases.map((lease) => stopAndReleaseLease(lease, { killProcess: killProcesses })));
+          for (const lease of leases) if (lease.released) activeLeases.delete(lease.lockId);
+          const failures = results.flatMap((result, index) => result.status === "rejected" ? [`${leases[index].sandbox.metadata.name}: ${result.reason.message}`] : []);
+          if (failures.length) throw new Error(failures.join("; "));
         },
         finalizeReport: () => writeInterruptedReportSnapshot(buildInterruptedReportSnapshot(signal) ?? interruptedSnapshot),
       });
