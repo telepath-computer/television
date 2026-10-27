@@ -210,3 +210,9 @@ Four contract cases and the real two-framework seam have intended red/green evid
 All execution occurred on the named private Blaxel hosts at pushed revisions; nothing ran on the shared development host and no shared worker was modified. The five mirrored proof files now cite the implemented, passing coverage. The optional Firefox project was unavailable; no new Firefox validation is claimed. Slice 1's killed-worker backstop, diagnostic transport, renewable worker ownership and recovery remain assigned to slices 2 and 3. Full verification and integrated review are still pending. The private hosts remain allocated for those slices.
 
 The supervisor arranges independent review of this slice before further implementation. No new durable team decision was made; this work implements the converged proposal, specs, proofs and plan.
+
+## Slice 1 round 1: convergence and slice 2
+
+The supervisor relayed **PASS** at `036d0491`; the [complete review](test-harness-resource-cleanup-slice-1-review-r1.md) is preserved unchanged. Apply the proof-only refinement by attributing per-case server disposal to the real seam, and clarify that the final static log ends with the separately recorded fetch interruption. Keep the second framework invocation: it directly exercises the reviewed later-worker lifetime assertion, and removing it now would change that proof's scope. This optional cost reduction does not block convergence.
+
+The reported 143 deployed shared sandboxes remain an operator question for Josh and an integrated-review documentation item. Do not infer quota semantics or change the pool. Slice 2 implements bounded parent diagnostics, retained links and retry history; live provider recovery/diagnostic qualification and the lease/download race remain explicitly pending until slice 3.
