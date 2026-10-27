@@ -1098,6 +1098,8 @@ async function stopAndReleaseLease(lease, { killProcess }) {
       await lease.dispatchRequest?.catch(() => {});
       // Even a successful named process wait is not a descendant audit.
       await confirmTeardown(lease);
+      // Teardown always stops owned processes. On interruption, also wait for
+      // the in-flight work promise to finish retaining its reports.
       if (killProcess && lease.workPromise) await lease.workPromise;
       if (lease.released) return;
       if (!lease.preparationRequested && !lease.executionRequested) lease.retrieved = true;

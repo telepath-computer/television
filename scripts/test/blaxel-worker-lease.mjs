@@ -2,9 +2,6 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-export const DEFAULT_RECOVERY_SECONDS = 1200;
-export const SHARD_OWNER_ENV = "TV_TEST_SHARD_OWNER";
-
 export function shardScratchPath({ tmpRoot = "/tmp", lockId, shardIndex, attempt = 1 }) {
   const digest = createHash("sha256").update(lockId).digest("hex").slice(0, 20);
   return `${tmpRoot}/tv-testshards/r-${digest}-s${shardIndex}-a${attempt}`;

@@ -1,6 +1,6 @@
 # Test-harness resource cleanup: integrated validation
 
-Status: all three slices converged; target reconciliation and the full gate passed. Ready for independent integrated review.
+Status: independent integrated review passed at `30774259`; the contribution has converged. Pre-merge docs preparation and ready-PR CI follow.
 Owner: rose. Draft PR #12. Branch: `thopter/test-harness-resource-cleanup`.
 No test, build, lint, type check, browser or server runs on the shared development
 host. The dedicated Blaxel coordinator performs all execution below.
@@ -110,7 +110,7 @@ cause remains unknown and is independent of the passing selected-shard results.
 Automatic attestation publication was attempted after verification and failed
 non-fatally: GitHub returned HTTP 403, permission denied to `jwhiting`, during the
 ref update/fallback fetch. **The gate passed; no attestation publication is
-claimed.** No credential changes, attestation retry or bypass was attempted.
+claimed.** Ready-PR CI must therefore run its heavy jobs in full rather than reuse this Blaxel result through a `refs/testpass` attestation. No credential changes, attestation retry or bypass was attempted.
 
 A fresh `git fetch origin` after the gate still resolves main to `a8e73fbf`.
 The tested tree contains that full target. Subsequent record edits change only
@@ -151,3 +151,19 @@ hook listed eight existing decisions, including superseded conversation wording,
 and reported a truncated scan. This is not a complete governing check; the user
 corrections and converged specs remain authoritative. The earlier unread warning
 remains in the slice record; its CLI received no further debugging.
+
+
+## Integrated review refinements
+
+The independent integrated review passed at `30774259`. Removed the two unused
+lease-module constants and their declarations, corrected the stale pending-proof
+sentence, and commented the release helper's interruption flag without changing
+its behavior. The attestation paragraph now states the consequence for ready-PR
+CI. No additional live qualification is needed for these bounded corrections.
+
+The stale pool-size example and four workers with missing nvm remain visible
+observations for human spec review and operations; this contribution does not
+repair or resize the shared pool. The zero-renewal-loss gate remains one observation,
+not a long-term reliability rate. Pre-merge docs prep will retain the proposal and
+plan as coherent design records, delete completed checkpoint/review records, and
+carry essential validation facts and limitations into the PR description.

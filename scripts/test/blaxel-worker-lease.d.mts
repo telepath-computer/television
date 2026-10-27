@@ -1,6 +1,4 @@
 import type { Stats } from "node:fs";
-export const DEFAULT_RECOVERY_SECONDS: number;
-export const SHARD_OWNER_ENV: string;
 export interface LeaseInput { lockId: string; runId?: string; shardIndex?: number; shardTotal?: number; attempt?: number; attemptId?: string; owner?: string; ttlSeconds?: number; expiresAt?: number; tmpRoot?: string; resultsRoot?: string; scratch?: string; auditTokens?: string[]; audit?: boolean; operation?: string; processName?: string; pid?: number; pidFromEnv?: boolean; retrieved?: boolean; worker?: string; summaryIdentity?: Record<string, unknown> }
 export interface CleanupReport { ok: boolean; before: {availableBytes: number; freeBytes: number}; after: {availableBytes: number; freeBytes: number}; removed: Record<string, {directories: number; allocatedBytes: number}>; skips: unknown[]; errors: unknown[] }
 export interface LeaseRecord { lockId: string; runId: string; attemptId: string; recoverAfter: number; lastRenewal: number; expiresAt: number; recovery: {discardedReports: boolean} | null }
