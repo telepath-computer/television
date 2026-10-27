@@ -124,7 +124,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
       const processes = await stopOwners(record.lockId);
       if (!await auditClean()) return denied("other live or stale owners remain");
       await clean(null);
-      recovery = { kind: "recovery", previous: { runId: record.runId, lockId: record.lockId, worker: input.worker ?? "unknown", lastRenewal: record.lastRenewal, recoverAfter: record.recoverAfter }, cleanup: "confirmed", discardedReports: true, processes: processes.slice(0, 128) };
+      recovery = { kind: "recovery", previous: { runId: record.runId, lockId: record.lockId, worker: input.worker ?? "unknown", lastRenewal: record.lastRenewal, recoverAfter: record.recoverAfter }, cleanup: "confirmed", discardedReports: true, processes: processes.slice(0, 128), omittedProcesses: Math.max(0, processes.length - 128) };
     } else if (!input.audit && !await auditClean()) return denied("live or stale owners remain");
     if (operation === "delete") {
       write({ lockId: input.lockId, deleting: true });
@@ -164,6 +164,9 @@ export async function workerLeaseOperation(input, hooks = {}) {
       fs.mkdirSync(path.join(resultsRoot, "resources"));
       fs.writeFileSync(path.join(resultsRoot, "resources/recovery.json"), raw);
     }
+    // Checkout can clone/reset the entire repository. Keep this evidence in
+    // attempt scratch until the shell or teardown restores it after checkout.
+    fs.cpSync(resultsRoot, path.join(record.scratch, "evidence"), { recursive: true });
     record.prepared = true; write(record);
   } else if (operation === "dispatch") {
     if (!record.prepared || record.dispatch) return denied("invalid dispatch state");
@@ -181,6 +184,9 @@ export async function workerLeaseOperation(input, hooks = {}) {
     const processes = await stopOwners(record.lockId);
     if (!record.audit && !await auditClean()) return denied("worker audit not clean");
     if (record.prepared) {
+      fs.mkdirSync(resultsRoot, { recursive: true });
+      const preserved = path.join(record.scratch, "evidence");
+      if (fs.existsSync(preserved)) fs.cpSync(preserved, resultsRoot, { recursive: true });
       const setupFile = path.join(resultsRoot, `setup-shard-${record.shardIndex}.json`);
       if (!fs.existsSync(setupFile)) {
         const inputFile = path.join(record.scratch, "setup.jsonl");

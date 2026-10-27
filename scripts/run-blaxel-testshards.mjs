@@ -857,8 +857,12 @@ runtime_versions() {
   node --version
   npm --version
 }
+restore_attempt_evidence() {
+  mkdir -p /workspace/television/.testshards/results
+  cp -R ${shellQuote(`${scratch}/evidence/.`)} /workspace/television/.testshards/results/
+}
 write_setup_metrics() {
-  mkdir -p /workspace/television/.testshards/results 2>/dev/null || true
+  restore_attempt_evidence
   node - "$setup_metrics" "/workspace/television/.testshards/results/setup-shard-${shardIndex}.json" "/workspace/television/.testshards/results/shard-${shardIndex}.json" "$deps_cache_status" <<'METRICS_NODE'
 const fs = require('fs');
 const [input, setupOutput, shardOutput, depsCacheStatusFile] = process.argv.slice(2);
@@ -904,6 +908,7 @@ export GIT_ASKPASS=${scratch}/git-askpass.sh
 export GIT_TERMINAL_PROMPT=0
 run_step checkout bash -lc ${shellQuote(blaxelCheckoutScript({ repoUrl, commit }))}
 cd /workspace/television
+restore_attempt_evidence
 run_step runtime-activation activate_runtime
 run_step runtime-versions runtime_versions
 run_step deps bash -c ${shellQuote(blaxelDependencyScript())}

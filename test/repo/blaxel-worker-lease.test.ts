@@ -125,3 +125,18 @@ test.skipIf(process.platform !== "linux")("recovery kills registered descendants
     try { process.kill(-unrelated.pid!, "SIGKILL"); } catch {}
   }
 }, 20_000);
+
+
+test.skipIf(process.platform !== "linux")("attempt identity and recovery evidence survive checkout resetting the result tree", () => {
+  const f = fixture();
+  mkdirSync(path.dirname(f.recordPath));
+  writeFileSync(f.recordPath, JSON.stringify({ lockId: "abandoned", runId: "old-run", attemptId: "old-attempt", expiresAt: 0, lastRenewal: 1, recoverAfter: 2 }));
+  expect(f.run().status).toBe(0);
+  expect(f.run({ operation: "prepare" }).status).toBe(0);
+  rmSync(f.input.resultsRoot, { recursive: true }); // checkout's real reset boundary
+  expect(f.run({ operation: "teardown" }).status).toBe(0);
+  expect(JSON.parse(readFileSync(path.join(f.input.resultsRoot, "attempt.json"), "utf8"))).toMatchObject({lockId: f.input.lockId, runId: f.input.runId});
+  expect(JSON.parse(readFileSync(path.join(f.input.resultsRoot, "resources/recovery.json"), "utf8"))).toMatchObject({previous: {lockId: "abandoned"}, discardedReports: true});
+  expect(JSON.parse(readFileSync(path.join(f.input.resultsRoot, "evidence.json"), "utf8")).files).toContain("temporary-cleanup.json");
+  expect(existsSync(shardScratchPath(f.input))).toBe(false);
+});
