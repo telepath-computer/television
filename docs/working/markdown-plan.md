@@ -28,7 +28,7 @@ Markdown is being added as a bundled artifact template. Its page is the existing
 - Use a small first-party Markdown icon, so the icon adds no third-party material. The packaged editor adds a generator-owned `THIRD-PARTY-NOTICES.txt` to the template folder.
 - Keep the Markdown file view build as the one writer of the `view:markdown` license inventory. Run the same plugin in non-writing verification mode for the template build after a current file view build, so the build fails if the template includes a package that the same-tree surface inventory does not cover. This matters because the CLI umbrella attributes the template packages through that inventory. Match emitted repository-local module paths against `scripts/licenses/assets.json`, require every match to cover both `view:markdown` and `source`, and render the template notice from both the exact package set and the matched asset records. The notices generator alone renders notices; the plugin records inputs. This keeps package and license text discovery in the existing inventory, asset manifest and generator.
 - Require the bundled README to say that the copied artifact contains `editor.js`, `editor.css`, and `THIRD-PARTY-NOTICES.txt`, and that later Television or template updates do not replace those copied editor files. An adapting agent keeps the `#editor` mount, updates `page.js`, `editor.js`, `editor.css`, and the notices file together, and uses `styles.css` to adapt the look unless it deliberately replaces the editor and licensing material.
-- During the code stage, update `packages/view-markdown/src/vendor/markdown-tables/README.md`: its description of a “versioned editor script” no longer matches the self-contained template editor.
+- Describe the vendored table runtime's global-side-effect changes in terms of the packaged template editor, not the removed versioned editor route.
 - Clarify the Television resource skill's state-choice paragraph: a Markdown *file* artifact is file-backed and read-only through a share link, while the bundled Markdown template is store-backed and follows its store access. This prevents the new template from making the old generic wording misleading.
 
 ## Spec changes for Rupert's review
@@ -36,8 +36,13 @@ Markdown is being added as a bundled artifact template. Its page is the existing
 - Make an absent `view:markdown` inventory a named failure of the Markdown template editor check, and make the suite's pre-build refresh that inventory from the current Markdown file view first. This makes “same tree” reproducible instead of leaving it to whoever invokes the check.
 - Restore disposal's meaning at the internal editor boundary: disposal ends callbacks and releases the editor. This was lost when the boundary prose was simplified, but the existing implementation and derived proof still rely on it.
 - Define an invalid Markdown template editor licensing record as the wrong exact shape, unsorted or duplicate package or asset entries, an invalid package record or asset ID, or a named asset that lacks `view:markdown` or `source` coverage. A well-formed ID absent from the asset manifest remains the separate unknown-asset failure. This makes the license gate's rejection deterministic.
-- Make it a license-gate rule that no asset record may name the Markdown template folder in `noticesFolder`. The editor licensing record is the only input that owns notices for this folder, so rejecting the second ownership path prevents duplicate or conflicting generators.
+- Make it a manifest-loader rule that no asset record may name the Markdown template folder in `noticesFolder`. The editor licensing record is the only input that owns notices for this folder, so rejecting the second ownership path before generation prevents duplicate or conflicting generators.
 - Require the Markdown template editor check to name every differing JavaScript file, stylesheet, package record and asset ID. A complete diagnostic makes a stale committed bundle actionable in one run instead of revealing one mismatch at a time.
+- Give the Markdown template editor build rules their own spec anchor so changes to verification mode, inventory coverage, asset matching, surfaces and output shape remain traceable to the proof assertions.
+
+## Implementation slice
+
+This is one slice that reworks the previously passed shared-route implementation into the self-contained design. Red/green work adapts every proof assertion still marked `(test to be written)`, confirms that each test fails for the expected shared-route or missing-licensing reason, then changes the build, licensing, template and tests together until the targeted validation is green.
 
 ## Visual review for Rupert
 

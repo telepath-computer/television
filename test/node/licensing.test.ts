@@ -1,5 +1,6 @@
 import { spawnSync, type ChildProcessByStdio } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -7,6 +8,7 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -26,6 +28,14 @@ import {
 } from "../../scripts/licenses/lib/inventory.mjs";
 import { renderFolderNotices, renderThirdPartyNotices } from "../../scripts/licenses/lib/notices.mjs";
 import { includedLicenseSurfaces, LICENSE_INVENTORY_SURFACES } from "../../scripts/licenses/lib/surfaces.mjs";
+import {
+  checkMarkdownTemplateEditor,
+  type MarkdownTemplateEditorCheckObservation,
+} from "../../scripts/check-markdown-template-editor.mjs";
+import {
+  generateMarkdownTemplateNotices,
+  generateSourceNotices,
+} from "../../scripts/licenses/generate-notices.mjs";
 import { spawnOwnedProcess, type OwnedProcess } from "../helpers/owned-process.ts";
 import { writeHomeConfig } from "../helpers/television-home.ts";
 
@@ -35,6 +45,8 @@ const desktopDist = path.join(repoRoot, "packages/desktop/dist");
 const builtCLI = path.join(cliDist, "cli.cjs");
 const inventoryRoot = resolveInventoryRoot({ root: repoRoot });
 const noticeName = "THIRD-PARTY-NOTICES.txt";
+const markdownTemplateFolder = path.join(repoRoot, "packages/server/assets/templates/markdown");
+const markdownTemplateRecord = path.join(repoRoot, "packages/view-markdown/template-editor-licenses.json");
 const startTimeoutMs = 30_000;
 
 const sourceNotices = {
@@ -105,6 +117,7 @@ describe("product licensing outputs", () => {
     );
   });
 
+  // proofs/product/licensing.md#^licensing-ac-gate-passes
   test("suite-run gate consumes all prebuilt inventories without rebuilding products", () => {
     const expectedSurfaces = [...LICENSE_INVENTORY_SURFACES].sort((left, right) => left.localeCompare(right, "en"));
     const observedFiles = [
@@ -119,6 +132,117 @@ describe("product licensing outputs", () => {
     expect(result.errors).toEqual([]);
     expect(result.surfaces).toEqual(expectedSurfaces);
     expect(observedFiles.map(fileSnapshot)).toEqual(before);
+    expect(readFileSync(path.join(repoRoot, noticeName), "utf8"))
+      .toBe(generateSourceNotices({ root: repoRoot }));
+    expect(readFileSync(path.join(markdownTemplateFolder, noticeName), "utf8"))
+      .toBe(generateMarkdownTemplateNotices({ root: repoRoot }));
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-markdown-editor-build
+  test("the Markdown template editor check matches fresh output and notices without changing committed files", async () => {
+    const observedPaths = [
+      path.join(markdownTemplateFolder, "editor.js"),
+      path.join(markdownTemplateFolder, "editor.css"),
+      markdownTemplateRecord,
+      path.join(markdownTemplateFolder, noticeName),
+      path.join(repoRoot, noticeName),
+    ];
+    const before = observedPaths.map(fileSnapshot);
+    let observation: MarkdownTemplateEditorCheckObservation | undefined;
+
+    const result = await checkMarkdownTemplateEditor({
+      root: repoRoot,
+      inventoryRoot,
+      observeFreshOutput(value) { observation = value; },
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.ok).toBe(true);
+    expect(observation).toBeDefined();
+    expect(observation!.editorJavaScript).toEqual(readFileSync(path.join(markdownTemplateFolder, "editor.js")));
+    expect(observation!.editorStylesheet).toEqual(readFileSync(path.join(markdownTemplateFolder, "editor.css")));
+    expect(observation!.record).toEqual(JSON.parse(readFileSync(markdownTemplateRecord, "utf8")));
+    expect(observation!.record.packages.length).toBeGreaterThan(0);
+    expect(observation!.record.assets).toContain("markdown-table-editor");
+    expect(observedPaths.map(fileSnapshot)).toEqual(before);
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-markdown-editor-stale
+  test("the Markdown template editor check names every stale committed item without changing files", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-stale-"));
+    try {
+      const substituteTemplate = path.join(root, "markdown");
+      const substituteRecord = path.join(root, "template-editor-licenses.json");
+      cpSync(markdownTemplateFolder, substituteTemplate, { recursive: true });
+      cpSync(markdownTemplateRecord, substituteRecord);
+      const changeByte = (file: string) => {
+        const bytes = readFileSync(file);
+        bytes[bytes.length - 1] = bytes[bytes.length - 1] === 10 ? 32 : 10;
+        writeFileSync(file, bytes);
+      };
+      changeByte(path.join(substituteTemplate, "editor.js"));
+      changeByte(path.join(substituteTemplate, "editor.css"));
+      writeFileSync(path.join(substituteTemplate, noticeName), "deliberately different notice\n");
+      const record = JSON.parse(readFileSync(substituteRecord, "utf8")) as {
+        packages: Array<{ name: string; version: string }>;
+        assets: string[];
+      };
+      record.packages[0] = { ...record.packages[0], version: `${record.packages[0]!.version}-different` };
+      record.assets[0] = `${record.assets[0]}-different`;
+      writeFileSync(substituteRecord, `${JSON.stringify(record, null, 2)}\n`);
+      const committedPaths = [
+        path.join(markdownTemplateFolder, "editor.js"),
+        path.join(markdownTemplateFolder, "editor.css"),
+        markdownTemplateRecord,
+        path.join(markdownTemplateFolder, noticeName),
+        path.join(repoRoot, noticeName),
+      ];
+      const substitutePaths = [
+        path.join(substituteTemplate, "editor.js"),
+        path.join(substituteTemplate, "editor.css"),
+        substituteRecord,
+        path.join(substituteTemplate, noticeName),
+      ];
+      const before = [...committedPaths, ...substitutePaths].map(fileSnapshot);
+
+      const result = await checkMarkdownTemplateEditor({
+        root: repoRoot,
+        inventoryRoot,
+        templateFolder: substituteTemplate,
+        recordPath: substituteRecord,
+      });
+
+      expect(result.ok).toBe(false);
+      expect(result.errors.join("\n")).toMatch(/editor\.js/);
+      expect(result.errors.join("\n")).toMatch(/editor\.css/);
+      expect(result.errors.join("\n")).toMatch(/package record/i);
+      expect(result.errors.join("\n")).toMatch(/asset ID/i);
+      expect([...committedPaths, ...substitutePaths].map(fileSnapshot)).toEqual(before);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-markdown-editor-missing-inventory
+  test("the Markdown template editor check names a missing view inventory without changing files", async () => {
+    const emptyInventoryRoot = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-inventory-"));
+    const observedPaths = [
+      path.join(markdownTemplateFolder, "editor.js"),
+      path.join(markdownTemplateFolder, "editor.css"),
+      markdownTemplateRecord,
+      path.join(markdownTemplateFolder, noticeName),
+      path.join(repoRoot, noticeName),
+    ];
+    const before = observedPaths.map(fileSnapshot);
+    try {
+      const result = await checkMarkdownTemplateEditor({ root: repoRoot, inventoryRoot: emptyInventoryRoot });
+      expect(result.ok).toBe(false);
+      expect(result.errors.join("\n")).toMatch(/missing.*view:markdown.*inventory/i);
+      expect(readdirSync(emptyInventoryRoot)).toEqual([]);
+      expect(observedPaths.map(fileSnapshot)).toEqual(before);
+    } finally {
+      rmSync(emptyInventoryRoot, { recursive: true, force: true });
+    }
   });
 
   // proofs/arch/licensing.md#^licensing-t-aggregation-seam
@@ -336,6 +460,7 @@ describe("shipped package licensing", () => {
     const calendarExpected = expectedSurfaceNotices("onboarding:calendar", ["onboarding:calendar"]);
     const tasksExpected = expectedSurfaceNotices("onboarding:tasks", ["onboarding:tasks"]);
     const sdkExpected = expectedSurfaceNotices("sdk:resources", ["sdk:resources"]);
+    const markdownTemplateExpected = generateMarkdownTemplateNotices({ root: repoRoot });
     const sourceFolders = renderFolderNotices({
       assets: loadAssetManifest({ root: repoRoot }).filter((asset) => asset.surfaces.every((surface) => surface === "source")),
     });
@@ -359,6 +484,8 @@ describe("shipped package licensing", () => {
       [path.join(packedCLI, "dist/onboarding/productivity/company-todos", noticeName), tasksExpected],
       [sdkNotices.built, sdkExpected],
       [path.join(packedCLI, "dist/sdk/v1", noticeName), sdkExpected],
+      [path.join(markdownTemplateFolder, noticeName), markdownTemplateExpected],
+      [path.join(packedCLI, "dist/templates/markdown", noticeName), markdownTemplateExpected],
       ...bundledFolderNotices().flatMap(({ folder, text }) => [
         [path.join(repoRoot, folder, noticeName), text],
         [path.join(packedCLI, "dist", path.relative(bundledAssetsSource, folder), noticeName), text],
@@ -367,6 +494,21 @@ describe("shipped package licensing", () => {
     for (const [file, expected] of locations) {
       expect(existsSync(file), file).toBe(expected !== null);
       if (expected !== null) expect(readFileSync(file, "utf8"), file).toBe(expected);
+    }
+    const markdownNotice = readFileSync(path.join(markdownTemplateFolder, noticeName), "utf8");
+    const markdownRecord = JSON.parse(readFileSync(markdownTemplateRecord, "utf8")) as {
+      packages: Array<{ name: string }>;
+      assets: string[];
+    };
+    for (const { name } of markdownRecord.packages) expect(packageNamesFromNotice(markdownNotice)).toContain(name);
+    const assets = loadAssetManifest({ root: repoRoot });
+    for (const id of markdownRecord.assets) {
+      const asset = assets.find(candidate => candidate.id === id);
+      expect(asset, id).toBeDefined();
+      for (const component of asset!.components) {
+        expect(markdownNotice).toContain(component.package ?? component.name!);
+        expect(markdownNotice).toContain(component.noticeText.trim());
+      }
     }
 
     const noticeFiles = [
@@ -512,11 +654,9 @@ function expectedSurfaceNotices(
   inventorySurfaces: InventorySurface[],
   assetSurfaces: LicenseSurface[] = inventorySurfaces,
 ): string | null {
+  if (surface === "source") return generateSourceNotices({ root: repoRoot });
   const inventories = inventorySurfaces.map((candidate) => readSurfaceInventory(inventoryRoot, candidate));
-  if (surface === "source" && inventories.length > 0) {
-    throw new Error("The source surface cannot consume build inventories");
-  }
-  const inventory = surface === "source" || inventories.length === 0
+  const inventory = inventories.length === 0
     ? { surface, packages: [] }
     : mergeSurfaceInventories(surface, inventories);
   const config = loadLicenseConfig({ root: repoRoot });

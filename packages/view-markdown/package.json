@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "type-check": "tsc -p tsconfig.json --noEmit",
-    "build": "vite build --config vite.config.ts && vite build --config vite.editor.config.ts",
+    "build": "vite build --config vite.config.ts",
     "dev": "vite --config vite.config.ts --host 127.0.0.1 --port 5182 --strictPort"
   },
   "dependencies": {

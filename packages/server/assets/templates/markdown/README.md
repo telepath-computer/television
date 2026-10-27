@@ -40,12 +40,15 @@ offline queue, so the editor becomes read-only while it reconnects.
 Invalid or missing data shows an error and is not repaired by the page. Restore
 a root object with a `markdown` string to recover it.
 
-The Markdown editing implementation and its styles are the shared editor that
-Television serves. `page.js` adapts that editor to this artifact's store, while
-`styles.css` owns the template page's layout and its loading, status and error
-shell. Tables, links, task lists and the editor's other Markdown gestures
-remain available. If you adapt the page, keep the `#editor` mount element; the
-shared colour rules depend on it. Copied page files and stores are independent
-of the installed template and of other copies. Each copy loads the compatible
-v1 editor served by Television, so it receives compatible updates while that
-version remains live.
+Each copied artifact contains `editor.js`, `editor.css`, and
+`THIRD-PARTY-NOTICES.txt`. It keeps those exact editor files: a Television
+update does not replace them, and a later installed template does not replace
+them. Tables, links, task lists and the editor's other Markdown gestures remain
+available.
+
+`page.js` adapts the packaged editor to the artifact store. `editor.css` owns
+the editor treatment, while `styles.css` owns the page layout and the loading,
+status and error shell. For visual adaptations, change `styles.css` unless you
+intend to replace the editor. Keep the `#editor` mount element. If you replace
+the editor deliberately, update `page.js`, `editor.js`, `editor.css`, and
+`THIRD-PARTY-NOTICES.txt` together.

@@ -12,6 +12,10 @@ import {
   renderFolderNotices,
   renderThirdPartyNotices,
 } from "./lib/notices.mjs";
+import {
+  markdownTemplateEditorRecordPath,
+  readMarkdownTemplateEditorRecord,
+} from "./lib/markdown-template-editor.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -21,12 +25,41 @@ export function generateSourceNotices({
   outputPath,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
+  markdownTemplateRecord,
+  markdownTemplateRecordPath = markdownTemplateEditorRecordPath({ root }),
 } = {}) {
+  const record = markdownTemplateRecord ?? (
+    fs.existsSync(markdownTemplateRecordPath)
+      ? readMarkdownTemplateEditorRecord({ root, recordPath: markdownTemplateRecordPath, assets })
+      : { packages: [], assets: [] }
+  );
   const text = renderThirdPartyNotices({
     surface: "source",
-    inventory: { surface: "source", packages: [] },
+    inventory: { surface: "source", packages: record.packages },
     config,
     assets,
+    root,
+  });
+  if (outputPath !== undefined) syncOutput(outputPath, text);
+  return text;
+}
+
+/** Render the notices carried beside the self-contained Markdown template editor. */
+export function generateMarkdownTemplateNotices({
+  root = repositoryRoot,
+  outputPath,
+  config = loadLicenseConfig({ root }),
+  assets = loadAssetManifest({ root, config }),
+  record,
+  recordPath = markdownTemplateEditorRecordPath({ root }),
+} = {}) {
+  const resolvedRecord = record ?? readMarkdownTemplateEditorRecord({ root, recordPath, assets });
+  const recordedAssets = new Set(resolvedRecord.assets);
+  const text = renderThirdPartyNotices({
+    surface: "view:markdown",
+    inventory: { surface: "view:markdown", packages: resolvedRecord.packages },
+    config,
+    assets: assets.filter((asset) => recordedAssets.has(asset.id)),
     root,
   });
   if (outputPath !== undefined) syncOutput(outputPath, text);
@@ -152,6 +185,9 @@ function runCLI() {
       throw new Error("The source surface does not accept a bundle inventory");
     }
     generateSourceNotices({ outputPath: options.output });
+    generateMarkdownTemplateNotices({
+      outputPath: path.join(repositoryRoot, "packages/server/assets/templates/markdown/THIRD-PARTY-NOTICES.txt"),
+    });
     generateFolderNotices({ write: true });
     return;
   }

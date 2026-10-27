@@ -127,6 +127,9 @@ function validateNoticesFolder(value, location, root) {
   if (path.isAbsolute(folder) || folder.split(/[\\/]/).includes("..")) {
     fail(location, `must be a repository-relative path; received ${JSON.stringify(folder)}`);
   }
+  if (folder.replace(/\\/g, "/") === "packages/server/assets/templates/markdown") {
+    fail(location, "the Markdown template notices are owned by the Markdown template editor licensing record");
+  }
   const stats = fs.statSync(path.join(root, folder), { throwIfNoEntry: false });
   if (stats === undefined || !stats.isDirectory()) fail(location, `must name an existing folder; received ${JSON.stringify(folder)}`);
   return folder;

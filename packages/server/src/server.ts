@@ -326,25 +326,10 @@ export class Server {
     for (const viewID of ["artifact-missing", "markdown"]) {
       const viewPath = this.store.getViewPath(viewID);
       if (viewPath) {
-        // The missing-file document and the Markdown template's two shared
-        // editor assets load in artifact origins, so those files allow any
-        // origin (specs/arch/artifact-frame/isolation.md#^iso-routes).
-        const markdownCrossOriginFiles = viewID === "markdown"
-          ? new Set([
-            path.resolve(viewPath, "v1/editor.js"),
-            path.resolve(viewPath, "v1/editor.css"),
-          ])
-          : null;
         this.app.use(`/views/${viewID}`, express.static(viewPath, {
-          setHeaders: (res, filePath) => {
-            const isMarkdownSharedAsset = markdownCrossOriginFiles?.has(
-              path.resolve(filePath),
-            ) === true;
-            if (viewID === "artifact-missing" || isMarkdownSharedAsset) {
+          setHeaders: (res) => {
+            if (viewID === "artifact-missing") {
               res.setHeader("Access-Control-Allow-Origin", "*");
-            }
-            if (isMarkdownSharedAsset) {
-              res.setHeader("Cache-Control", "no-cache");
             }
           },
         }));

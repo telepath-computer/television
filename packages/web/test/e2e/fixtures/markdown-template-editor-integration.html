@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown template editor integration fixture</title>
+    <link rel="stylesheet" href="/canonical/v2/styles.css" />
+    <link rel="stylesheet" href="/packages/server/assets/templates/markdown/editor.css" />
+  </head>
+  <body>
+    <div id="outside-editor" class="cm-editor">Outside the editor</div>
+    <div id="editor"></div>
+    <script>
+      window.__templateTrustedPolicyCreates = [];
+      if (window.trustedTypes) {
+        const createPolicy = window.trustedTypes.createPolicy.bind(window.trustedTypes);
+        window.trustedTypes.createPolicy = (...args) => {
+          window.__templateTrustedPolicyCreates.push(args[0]);
+          return createPolicy(...args);
+        };
+      }
+      window.__templateHeadBefore = document.head.innerHTML;
+      window.__templateGlobalsBefore = Object.getOwnPropertyNames(window);
+    </script>
+    <script src="/packages/server/assets/templates/markdown/editor.js"></script>
+    <script>
+      window.__templateAddedGlobals = Object.getOwnPropertyNames(window).filter(
+        name => !window.__templateGlobalsBefore.includes(name)
+          && name !== "__templateGlobalsBefore"
+          && name !== "__templateAddedGlobals"
+          && name !== "__templateHeadBefore"
+          && name !== "__templateReady",
+      );
+      window.__templateReady = true;
+    </script>
+  </body>
+</html>

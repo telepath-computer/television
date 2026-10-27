@@ -36,11 +36,11 @@ function writes(): Record<string, unknown>[] {
 }
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-blank-save
-test("new Markdown from Toolbox starts blank, then saves and clears through the shared editor", async ({ page }) => {
-  const responses: string[] = [];
-  page.on("response", response => {
-    if (/canonical\/v2\/styles\.css|sdk\/v1\/resources\.js|views\/markdown\/v1\/editor\.(?:js|css)|\/styles\.css$/.test(response.url()) && response.ok()) {
-      responses.push(response.url());
+test("new Markdown from Toolbox starts blank, then saves and clears through its packaged editor", async ({ page }) => {
+  const artifactFrameRequests: string[] = [];
+  page.on("request", request => {
+    if (request.frame().parentFrame() === page.mainFrame()) {
+      artifactFrameRequests.push(new URL(request.url()).pathname);
     }
   });
 
@@ -52,6 +52,14 @@ test("new Markdown from Toolbox starts blank, then saves and clears through the 
   expect(await h.read(id)).toEqual({ markdown: "" });
   expect(writes()).toEqual([]);
   expect(h.proxy.messages.filter(({ message }) => message.type === "subscribe").map(({ message }) => message.path)).toContain("");
+  const record = JSON.parse(readFileSync(
+    path.join(h.home, "state/artifacts", `${id}.json`),
+    "utf8",
+  )) as { path: string };
+  const copiedFolder = record.path;
+  for (const file of ["editor.js", "editor.css", "THIRD-PARTY-NOTICES.txt"]) {
+    expect(readFileSync(path.join(copiedFolder, file)).length, file).toBeGreaterThan(0);
+  }
 
   await content(frame).pressSequentially("# Project notes");
   await content(frame).press("Enter");
@@ -60,10 +68,14 @@ test("new Markdown from Toolbox starts blank, then saves and clears through the 
   const markdown = "# Project notes\n\n[OpenAI](https://openai.com)";
   await expect.poll(() => h.read(id, "markdown")).toBe(markdown);
   expect(writes().at(-1)).toEqual({ kind: "set", path: "markdown", value: { value: markdown } });
-  expect(responses.some(url => url.includes("/views/markdown/v1/editor.js"))).toBe(true);
-  expect(responses.some(url => url.includes("/views/markdown/v1/editor.css"))).toBe(true);
-  expect(responses.some(url => url.includes("/sdk/v1/resources.js"))).toBe(true);
-  expect(responses.some(url => url.includes("/canonical/v2/styles.css"))).toBe(true);
+  expect(artifactFrameRequests).toEqual(expect.arrayContaining([
+    "/canonical/v2/styles.css",
+    "/canonical/v2/components.js",
+    "/sdk/v1/resources.js",
+    `/artifact/${id}/editor.js`,
+    `/artifact/${id}/editor.css`,
+  ]));
+  expect(artifactFrameRequests.some(url => url.startsWith("/views/"))).toBe(false);
 
   renameSync(path.join(h.home, "templates/markdown"), path.join(h.home, "markdown-outside-discovery"));
   await page.reload();
@@ -301,9 +313,9 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   ]);
 });
 
-test("a missing shared editor script shows the error state", async ({ page }) => {
+test("a missing packaged editor script shows the error state", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
-  await page.route("**/views/markdown/v1/editor.js", route => route.abort());
+  await page.route("**/artifact/*/editor.js", route => route.abort());
 
   await h.open(page, id);
 
