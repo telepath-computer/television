@@ -79,7 +79,7 @@ test("resolves appearance before canonical and view styles", async ({ page, base
   ]));
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-shared-source
+// proofs/arch/templates/document.md#^templates-document-t-shared-source
 test("uses one shared editor implementation in both source entries", () => {
   const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
   const editorEntry = readFileSync(new URL("../../src/editor-entry.ts", import.meta.url), "utf8");
@@ -87,7 +87,7 @@ test("uses one shared editor implementation in both source entries", () => {
   expect(editorEntry).toMatch(/from ["']\.\/editor\.ts["']/);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-editor-build
+// proofs/arch/templates/document.md#^templates-document-t-editor-build
 test("builds a self-contained file view and narrow packaged editor files", () => {
   const fileView = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
   expect(fileView).not.toMatch(/<script\b[^>]*\bsrc=/i);
@@ -95,8 +95,8 @@ test("builds a self-contained file view and narrow packaged editor files", () =>
   expect(fileView).toContain("The view never transforms the source");
 
   expect(fileView).toContain("__cmView");
-  const packagedScript = readFileSync(new URL("../../../server/assets/templates/markdown/editor.js", import.meta.url), "utf8");
-  const packagedStyle = readFileSync(new URL("../../../server/assets/templates/markdown/editor.css", import.meta.url), "utf8");
+  const packagedScript = readFileSync(new URL("../../../server/assets/templates/document/editor.js", import.meta.url), "utf8");
+  const packagedStyle = readFileSync(new URL("../../../server/assets/templates/document/editor.css", import.meta.url), "utf8");
   expect(packagedScript).toMatch(/^\(\(\) => \{/);
   expect(packagedScript).not.toMatch(/^\s*(?:import|export)\b/m);
   expect(packagedScript).toContain("TelevisionMarkdownEditor");
@@ -133,7 +133,7 @@ test("ships the authoritative colour sheet after each implementation layout", ()
   expect.soft(sharedEditorAt).toBeGreaterThanOrEqual(0);
   expect.soft(sharedColorsAt).toBeGreaterThan(sharedEditorAt);
 
-  const sharedBuiltStyle = readFileSync(new URL("../../../server/assets/templates/markdown/editor.css", import.meta.url), "utf8");
+  const sharedBuiltStyle = readFileSync(new URL("../../../server/assets/templates/document/editor.css", import.meta.url), "utf8");
   const sharedBuiltEditorAt = sharedBuiltStyle.indexOf("#editor>.cm-editor{height:100%}");
   const sharedBuiltColorsAt = sharedBuiltStyle.indexOf("--tbl-theme-row-background:");
   expect.soft(sharedBuiltEditorAt).toBeGreaterThanOrEqual(0);

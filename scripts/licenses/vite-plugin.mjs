@@ -88,7 +88,7 @@ function matchEmittedAssets(modules, { root, assets }) {
   for (const asset of matched) {
     for (const requiredSurface of ["view:markdown", "source"]) {
       if (!asset.surfaces.includes(requiredSurface)) {
-        throw new Error(`Markdown template editor asset ${asset.id} must cover the ${requiredSurface} surface`);
+        throw new Error(`packaged Markdown editor asset ${asset.id} must cover the ${requiredSurface} surface`);
       }
     }
   }

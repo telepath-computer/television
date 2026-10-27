@@ -1,6 +1,6 @@
 {
-  "name": "Markdown",
-  "description": "A Markdown document you and an agent can edit together.",
+  "name": "Document",
+  "description": "A document you and an agent write together, in Markdown.",
   "version": "1.0.0",
   "icons": [
     {

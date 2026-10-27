@@ -7,8 +7,8 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const recordKeys = ["packages", "assets"];
 const packageKeys = ["name", "version", "declaredLicense", "licenseFilePath"];
 
-export function markdownTemplateEditorFolderPath({ root = repositoryRoot } = {}) {
-  return path.join(root, "packages/server/assets/templates/markdown");
+export function documentTemplateEditorFolderPath({ root = repositoryRoot } = {}) {
+  return path.join(root, "packages/server/assets/templates/document");
 }
 
 export function markdownTemplateEditorRecordPath({ root = repositoryRoot } = {}) {
@@ -40,7 +40,7 @@ export function readMarkdownTemplateEditorRecord({
 
   let packages;
   try {
-    packages = normalizePackageRecords(value.packages, "Markdown template editor packages");
+    packages = normalizePackageRecords(value.packages, "packaged Markdown editor packages");
   } catch (error) {
     throw invalid(message(error));
   }
@@ -63,10 +63,10 @@ export function readMarkdownTemplateEditorRecord({
     const assetsByID = new Map(assets.map((asset) => [asset.id, asset]));
     for (const assetID of assetIDs) {
       const asset = assetsByID.get(assetID);
-      if (asset === undefined) throw new Error(`unknown Markdown template editor asset: ${assetID}`);
+      if (asset === undefined) throw new Error(`unknown packaged Markdown editor asset: ${assetID}`);
       for (const surface of ["view:markdown", "source"]) {
         if (!asset.surfaces.includes(surface)) {
-          throw new Error(`Markdown template editor asset ${assetID} must cover the ${surface} surface`);
+          throw new Error(`packaged Markdown editor asset ${assetID} must cover the ${surface} surface`);
         }
       }
     }
@@ -98,7 +98,7 @@ function isObject(value) {
 }
 
 function invalid(detail) {
-  return new Error(`invalid Markdown template editor licensing record: ${detail}`);
+  return new Error(`invalid packaged Markdown editor licensing record: ${detail}`);
 }
 
 function message(error) {

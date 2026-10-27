@@ -378,11 +378,11 @@ describe("licensing configuration", () => {
         .toThrow(/malformed-asset.*noticesFolder/i);
     }
 
-    const markdownFolder = "packages/server/assets/templates/markdown";
-    mkdirSync(path.join(root, markdownFolder), { recursive: true });
-    writeJSON(assetsPath, [assetFixture({ noticesFolder: markdownFolder })]);
+    const documentFolder = "packages/server/assets/templates/document";
+    mkdirSync(path.join(root, documentFolder), { recursive: true });
+    writeJSON(assetsPath, [assetFixture({ noticesFolder: documentFolder })]);
     expect(() => loadAssetManifest({ root, assetsPath, config: fixtureConfig() }))
-      .toThrow(/malformed-asset.*noticesFolder.*Markdown template/i);
+      .toThrow(/malformed-asset.*noticesFolder.*Document template/i);
   });
 
   test("rejects invalid surfaces and missing asset paths with the asset identity", () => {

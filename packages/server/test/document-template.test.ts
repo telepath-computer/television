@@ -3,11 +3,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { selectTemplateIcon, validateTemplatePackage } from "../src/templates.ts";
 
-const folder = path.resolve(import.meta.dirname, "../assets/templates/markdown");
+const folder = path.resolve(import.meta.dirname, "../assets/templates/document");
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
 
-describe("bundled Markdown package", () => {
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-package
+describe("bundled Document package", () => {
+  // proofs/arch/templates/document.md#^templates-document-t-package
   it("provides the page, exact store schema and exact blank seed using the shared display default", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest).not.toHaveProperty("display");
@@ -20,7 +20,7 @@ describe("bundled Markdown package", () => {
     });
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-files
+  // proofs/arch/templates/document.md#^templates-document-t-editor-files
   // proofs/ui/markdown-editor/index.md#^md-editor-t-template-order
   it("ships and loads its packaged Markdown editor", () => {
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
@@ -54,7 +54,7 @@ describe("bundled Markdown package", () => {
     expect(adapter).not.toContain(".cm-");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-build-boundary
+  // proofs/arch/templates/document.md#^templates-document-t-build-boundary
   it("keeps the packaged editor check outside product builds", () => {
     const viewManifest = JSON.parse(readFileSync(
       path.join(repoRoot, "packages/view-markdown/package.json"),
@@ -71,12 +71,12 @@ describe("bundled Markdown package", () => {
     ].map(file => readFileSync(path.join(repoRoot, file), "utf8")).join("\n");
     expect(productBuildSources).not.toContain("vite.editor.config.ts");
     expect(productBuildSources).not.toContain("check-markdown-template-editor");
-    expect(productBuildSources).not.toMatch(/(?:write|build).{0,80}assets\/templates\/markdown/is);
+    expect(productBuildSources).not.toMatch(/(?:write|build).{0,80}assets\/templates\/document/is);
     expect(readFileSync(path.join(repoRoot, "packages/server/scripts/build.sh"), "utf8"))
       .toMatch(/cp -R .*assets\/templates\/\." .*templates_dist/s);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-icon
+  // proofs/arch/templates/document.md#^templates-document-t-icon
   it("supplies its SVG icon to the Toolbox", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     const icon = readFileSync(path.join(folder, "icon.svg"), "utf8");
@@ -87,17 +87,18 @@ describe("bundled Markdown package", () => {
     expect(viewBox?.[2]).toBeGreaterThan(0);
     expect(viewBox?.[3]).toBeGreaterThan(0);
     expect(viewBox?.[2]).toBe(viewBox?.[3]);
-    const { template } = validateTemplatePackage(folder, "markdown");
+    const { template } = validateTemplatePackage(folder, "document");
     expect(selectTemplateIcon(template!)).toEqual({
       path: realpathSync(path.join(folder, "icon.svg")),
       contentType: "image/svg+xml",
     });
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-readme
+  // proofs/arch/templates/document.md#^templates-document-t-readme
   it("documents the shared Markdown, replacement rules, errors and packaged editor", () => {
     const readme = readFileSync(path.join(folder, "README.md"), "utf8");
     const prose = readme.replace(/\s+/g, " ");
+    expect(prose).toMatch(/document is Markdown text/i);
     expect(readme).toContain("`markdown`");
     expect(readme).toContain('{"markdown":""}');
     expect(readme).toContain('tv resource json get --artifact "$ARTIFACT_ID" markdown');

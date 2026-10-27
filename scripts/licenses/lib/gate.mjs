@@ -3,13 +3,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   generateFolderNotices,
-  generateMarkdownTemplateNotices,
+  generateDocumentTemplateNotices,
   generateSourceNotices,
 } from "../generate-notices.mjs";
 import { isIgnoredPackage, loadAssetManifest, loadLicenseConfig } from "./config.mjs";
 import { readSurfaceInventory, resolveInventoryRoot, surfaceInventoryPath } from "./inventory.mjs";
 import {
-  markdownTemplateEditorFolderPath,
+  documentTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
   readMarkdownTemplateEditorRecord,
 } from "./markdown-template-editor.mjs";
@@ -38,19 +38,19 @@ export function evaluateLicenseGate(options = {}) {
   const declaringManifestPaths = options.declaringManifestPaths ?? defaultDeclaringManifestPaths;
   const errors = [];
   const inventories = options.inventories ?? readDeclaredInventories(inventoryRoot, errors);
-  const markdownRecordPath = options.markdownTemplateRecordPath
+  const editorRecordPath = options.templateEditorRecordPath
     ?? markdownTemplateEditorRecordPath({ root });
-  const markdownNoticePath = options.markdownTemplateNoticePath
-    ?? path.join(markdownTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt");
-  const checkMarkdownTemplateEditor = options.checkMarkdownTemplateEditor
-    ?? (fs.existsSync(path.dirname(markdownNoticePath)) || fs.existsSync(markdownRecordPath));
-  let markdownTemplateRecord = null;
+  const documentNoticePath = options.documentTemplateNoticePath
+    ?? path.join(documentTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt");
+  const checkDocumentTemplateEditor = options.checkDocumentTemplateEditor
+    ?? (fs.existsSync(path.dirname(documentNoticePath)) || fs.existsSync(editorRecordPath));
+  let templateEditorRecord = null;
 
-  if (checkMarkdownTemplateEditor) {
+  if (checkDocumentTemplateEditor) {
     try {
-      markdownTemplateRecord = readMarkdownTemplateEditorRecord({
+      templateEditorRecord = readMarkdownTemplateEditorRecord({
         root,
-        recordPath: markdownRecordPath,
+        recordPath: editorRecordPath,
         assets,
       });
     } catch (error) {
@@ -77,10 +77,10 @@ export function evaluateLicenseGate(options = {}) {
       checkPackage(packageRecord, inventory.surface, { root, config, errors, requireNotice: true });
     }
   }
-  if (markdownTemplateRecord !== null) {
-    for (const packageRecord of markdownTemplateRecord.packages) {
+  if (templateEditorRecord !== null) {
+    for (const packageRecord of templateEditorRecord.packages) {
       scannedPackageNames.add(packageRecord.name);
-      checkPackage(packageRecord, "Markdown template editor", {
+      checkPackage(packageRecord, "packaged Markdown editor", {
         root,
         config,
         errors,
@@ -109,21 +109,21 @@ export function evaluateLicenseGate(options = {}) {
       config,
       assets,
       sourceNoticePath: options.sourceNoticePath,
-      markdownTemplateRecord: checkMarkdownTemplateEditor
-        ? (markdownTemplateRecord ?? { packages: [], assets: [] })
+      templateEditorRecord: checkDocumentTemplateEditor
+        ? (templateEditorRecord ?? { packages: [], assets: [] })
         : undefined,
     });
     if (sourceError !== null) errors.push(sourceError);
     errors.push(...folderNoticeErrors({ root, config, assets }));
-    if (markdownTemplateRecord !== null) {
-      const markdownError = markdownTemplateNoticeError({
+    if (templateEditorRecord !== null) {
+      const documentError = documentTemplateNoticeError({
         root,
         config,
         assets,
-        record: markdownTemplateRecord,
-        noticePath: markdownNoticePath,
+        record: templateEditorRecord,
+        noticePath: documentNoticePath,
       });
-      if (markdownError !== null) errors.push(markdownError);
+      if (documentError !== null) errors.push(documentError);
     }
   }
 
@@ -154,11 +154,11 @@ export function sourceNoticeError({
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   sourceNoticePath = path.join(root, "THIRD-PARTY-NOTICES.txt"),
-  markdownTemplateRecord,
+  templateEditorRecord,
 } = {}) {
   let generated;
   try {
-    generated = generateSourceNotices({ root, config, assets, markdownTemplateRecord });
+    generated = generateSourceNotices({ root, config, assets, templateEditorRecord });
   } catch (error) {
     return `could not generate source notices for comparison: ${errorMessage(error)}`;
   }
@@ -175,19 +175,19 @@ export function sourceNoticeError({
     : `${sourceNoticePath} is stale; regenerate the source-surface notices`;
 }
 
-/** Compare the packaged Markdown editor notice with the record that owns it. */
-export function markdownTemplateNoticeError({
+/** Compare the Document template notice with the packaged editor record that owns it. */
+export function documentTemplateNoticeError({
   root = repositoryRoot,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   record,
-  noticePath = path.join(markdownTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt"),
+  noticePath = path.join(documentTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt"),
 } = {}) {
   let generated;
   try {
-    generated = generateMarkdownTemplateNotices({ root, config, assets, record });
+    generated = generateDocumentTemplateNotices({ root, config, assets, record });
   } catch (error) {
-    return `could not generate Markdown template notices for comparison: ${errorMessage(error)}`;
+    return `could not generate Document template notices for comparison: ${errorMessage(error)}`;
   }
   let committed;
   try {
@@ -197,7 +197,7 @@ export function markdownTemplateNoticeError({
   }
   return committed === generated
     ? null
-    : `${noticePath} is stale; regenerate the Markdown template notices`;
+    : `${noticePath} is stale; regenerate the Document template notices`;
 }
 
 /** Compare every generated folder notices file with its committed copy, without writing. */

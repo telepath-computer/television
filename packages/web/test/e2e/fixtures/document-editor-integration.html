@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Markdown template editor integration fixture</title>
+    <title>Document packaged Markdown editor integration fixture</title>
     <link rel="stylesheet" href="/canonical/v2/styles.css" />
-    <link rel="stylesheet" href="/packages/server/assets/templates/markdown/editor.css" />
+    <link rel="stylesheet" href="/packages/server/assets/templates/document/editor.css" />
   </head>
   <body>
     <div id="outside-editor" class="cm-editor">Outside the editor</div>
@@ -22,7 +22,7 @@
       window.__templateHeadBefore = document.head.innerHTML;
       window.__templateGlobalsBefore = Object.getOwnPropertyNames(window);
     </script>
-    <script src="/packages/server/assets/templates/markdown/editor.js"></script>
+    <script src="/packages/server/assets/templates/document/editor.js"></script>
     <script>
       window.__templateAddedGlobals = Object.getOwnPropertyNames(window).filter(
         name => !window.__templateGlobalsBefore.includes(name)

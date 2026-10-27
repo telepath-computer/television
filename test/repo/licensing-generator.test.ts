@@ -11,7 +11,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import {
   generateFolderNotices,
-  generateMarkdownTemplateNotices,
+  generateDocumentTemplateNotices,
   generateNoticesFromEsbuild,
   generateSourceNotices,
 } from "../../scripts/licenses/generate-notices.mjs";
@@ -233,7 +233,7 @@ describe("licensing inventory conversion", () => {
     const outputPlugin = createTemplateEditorOutputPlugin();
     await expect(runOutputGenerateBundle(outputPlugin, ["editor.js", "editor.css"])).resolves.toBeUndefined();
     await expect(runOutputGenerateBundle(outputPlugin, ["editor.js", "editor.css", "extra.js"])).rejects.toThrow(
-      /unexpected Markdown template editor output.*extra\.js/i,
+      /unexpected packaged Markdown editor output.*extra\.js/i,
     );
   });
 
@@ -526,7 +526,7 @@ describe("package notice and license resolution", () => {
   });
 });
 
-describe("Markdown template editor notices", () => {
+describe("Document packaged Markdown editor notices", () => {
   // proofs/arch/licensing.md#^licensing-t-generator-contract
   test("renders the recorded packages and matched assets into template and source notices", () => {
     const root = createInventoryTree();
@@ -546,8 +546,8 @@ describe("Markdown template editor notices", () => {
     writeFileSync(path.join(root, "licensed.js"), "export {};\n");
     const record = { packages: [packageEntry], assets: ["template-vendor"] };
 
-    const templateNotice = generateMarkdownTemplateNotices({ root, config, assets, record });
-    const sourceNotice = generateSourceNotices({ root, config, assets, markdownTemplateRecord: record });
+    const templateNotice = generateDocumentTemplateNotices({ root, config, assets, record });
+    const sourceNotice = generateSourceNotices({ root, config, assets, templateEditorRecord: record });
     for (const notice of [templateNotice, sourceNotice]) {
       expect(notice).toContain("plain-package@1.0.0");
       expect(notice).toContain("Template vendor\nLicensed under MIT.");

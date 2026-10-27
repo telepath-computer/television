@@ -1,17 +1,17 @@
 html,
 body,
-.markdown-page {
+.document-page {
   height: 100%;
   margin: 0;
 }
 
-.markdown-page {
+.document-page {
   position: relative;
   display: flex;
   min-width: 0;
 }
 
-.markdown-page #editor {
+.document-page #editor {
   flex: 1;
   min-width: 0;
   overflow: auto;
@@ -21,8 +21,8 @@ body,
   display: none !important;
 }
 
-.markdown-loading,
-.markdown-unreadable {
+.document-loading,
+.document-unreadable {
   box-sizing: border-box;
   width: 100%;
   min-height: 100%;
@@ -36,29 +36,29 @@ body,
   text-align: center;
 }
 
-.markdown-loading {
+.document-loading {
   flex-direction: row;
 }
 
-.markdown-loading span,
-.markdown-unreadable h1,
-.markdown-unreadable p,
-.markdown-status {
+.document-loading span,
+.document-unreadable h1,
+.document-unreadable p,
+.document-status {
   margin: 0;
 }
 
-.markdown-unreadable h1 {
+.document-unreadable h1 {
   color: var(--color-text);
   font-size: var(--text-base);
   font-weight: var(--font-weight-semibold);
 }
 
-.markdown-unreadable p {
+.document-unreadable p {
   max-width: 420px;
   font-size: var(--text-sm);
 }
 
-.markdown-status {
+.document-status {
   position: absolute;
   right: 12px;
   bottom: 12px;
@@ -71,6 +71,6 @@ body,
   box-shadow: var(--shadow-sm);
 }
 
-.markdown-status:empty {
+.document-status:empty {
   display: none;
 }

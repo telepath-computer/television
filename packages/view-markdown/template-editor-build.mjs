@@ -14,7 +14,7 @@ export function createTemplateEditorOutputPlugin() {
           unexpected.length > 0 ? `unexpected: ${unexpected.join(", ")}` : null,
           missing.length > 0 ? `missing: ${missing.join(", ")}` : null,
         ].filter(Boolean).join("; ");
-        throw new Error(`Unexpected Markdown template editor output (${details})`);
+        throw new Error(`Unexpected packaged Markdown editor output (${details})`);
       }
     },
   };

@@ -13,7 +13,7 @@ import {
   renderThirdPartyNotices,
 } from "./lib/notices.mjs";
 import {
-  markdownTemplateEditorFolderPath,
+  documentTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
   readMarkdownTemplateEditorRecord,
 } from "./lib/markdown-template-editor.mjs";
@@ -26,12 +26,12 @@ export function generateSourceNotices({
   outputPath,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
-  markdownTemplateRecord,
-  markdownTemplateRecordPath = markdownTemplateEditorRecordPath({ root }),
+  templateEditorRecord,
+  templateEditorRecordPath = markdownTemplateEditorRecordPath({ root }),
 } = {}) {
-  const record = markdownTemplateRecord ?? (
-    fs.existsSync(markdownTemplateRecordPath)
-      ? readMarkdownTemplateEditorRecord({ root, recordPath: markdownTemplateRecordPath, assets })
+  const record = templateEditorRecord ?? (
+    fs.existsSync(templateEditorRecordPath)
+      ? readMarkdownTemplateEditorRecord({ root, recordPath: templateEditorRecordPath, assets })
       : { packages: [], assets: [] }
   );
   const text = renderThirdPartyNotices({
@@ -45,8 +45,8 @@ export function generateSourceNotices({
   return text;
 }
 
-/** Render the notices carried beside the self-contained Markdown template editor. */
-export function generateMarkdownTemplateNotices({
+/** Render the notices carried beside Document's self-contained Markdown editor. */
+export function generateDocumentTemplateNotices({
   root = repositoryRoot,
   outputPath,
   config = loadLicenseConfig({ root }),
@@ -186,8 +186,8 @@ function runCLI() {
       throw new Error("The source surface does not accept a bundle inventory");
     }
     generateSourceNotices({ outputPath: options.output });
-    generateMarkdownTemplateNotices({
-      outputPath: path.join(markdownTemplateEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
+    generateDocumentTemplateNotices({
+      outputPath: path.join(documentTemplateEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
     });
     generateFolderNotices({ write: true });
     return;

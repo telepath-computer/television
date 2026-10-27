@@ -1,4 +1,4 @@
-/** Real browser acceptance for the copied Markdown page and its shared JSON store. */
+/** Real browser acceptance for the copied Document page and its shared JSON store. */
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Frame, Locator, Page } from "@playwright/test";
@@ -9,10 +9,10 @@ import { TemplateHarness, TEST_HOST_LAUNCH } from "./template-harness.ts";
 test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 800, height: 700 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
-type MarkdownData = { markdown: string; [key: string]: JSONValue };
+type DocumentData = { markdown: string; [key: string]: JSONValue };
 
 const content = (frame: Page | Frame): Locator => frame.locator(".cm-content").first();
-const status = (frame: Page | Frame): Locator => frame.locator(".markdown-status");
+const status = (frame: Page | Frame): Locator => frame.locator(".document-status");
 
 async function replaceDocument(frame: Page | Frame, value: string): Promise<void> {
   const editor = content(frame);
@@ -24,8 +24,8 @@ async function replaceDocument(frame: Page | Frame, value: string): Promise<void
 
 let h: TemplateHarness;
 test.beforeEach(async ({ page }) => {
-  page.on("pageerror", error => console.error("Markdown page error:", error));
-  h = await TemplateHarness.start({ id: "markdown", name: "Markdown" });
+  page.on("pageerror", error => console.error("Document page error:", error));
+  h = await TemplateHarness.start({ id: "document", name: "Document" });
 });
 test.afterEach(async () => { await h?.cleanup(); });
 
@@ -35,8 +35,8 @@ function writes(): Record<string, unknown>[] {
     .map(({ message }) => message.write as Record<string, unknown>);
 }
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-blank-save
-test("new Markdown from Toolbox starts blank, then saves and clears through its packaged editor", async ({ page }) => {
+// proofs/arch/templates/document.md#^templates-document-t-blank-save
+test("new Document from Toolbox starts blank, then saves and clears through its packaged editor", async ({ page }) => {
   const artifactFrameRequests: string[] = [];
   page.on("request", request => {
     if (request.frame().parentFrame() === page.mainFrame()) {
@@ -77,7 +77,7 @@ test("new Markdown from Toolbox starts blank, then saves and clears through its 
   ]));
   expect(artifactFrameRequests.some(url => url.startsWith("/views/"))).toBe(false);
 
-  renameSync(path.join(h.home, "templates/markdown"), path.join(h.home, "markdown-outside-discovery"));
+  renameSync(path.join(h.home, "templates/document"), path.join(h.home, "document-outside-discovery"));
   await page.reload();
   const independent = await h.frame(page, id);
   await expect(content(independent)).toContainText("Project notes");
@@ -87,10 +87,10 @@ test("new Markdown from Toolbox starts blank, then saves and clears through its 
   await expect.poll(() => h.read(id)).toEqual({ markdown: "" });
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-live
+// proofs/arch/templates/document.md#^templates-document-t-live
 test("agent writes update the open editor and local save echoes preserve newer typing", async ({ page }) => {
   await page.clock.install();
-  const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
+  const initial: DocumentData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
   await expect(content(page)).toContainText(initial.markdown);
@@ -146,10 +146,10 @@ test("agent writes update the open editor and local save echoes preserve newer t
   expect(writes()).toHaveLength(2);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-live-root-fields
+// proofs/arch/templates/document.md#^templates-document-t-live-root-fields
 test("an agent write to another field preserves in-progress typing", async ({ page }) => {
   await page.clock.install();
-  const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
+  const initial: DocumentData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
   await expect(content(page)).toHaveText(initial.markdown);
@@ -203,7 +203,7 @@ test("a pending page write shows its saving status until confirmation", async ({
   await page.clock.resume();
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-access
+// proofs/arch/templates/document.md#^templates-document-t-access
 test("read access blocks changes and a same-share upgrade resumes editing", async ({ page }) => {
   await page.clock.install();
   const stored = "- [ ] Keep this open\n\n| A |\n| - |\n| one |";
@@ -320,18 +320,18 @@ test("a missing packaged editor script shows the error state", async ({ page }) 
   await h.open(page, id);
 
   await expect(page.getByRole("alert")).toContainText("The Markdown editor didn't load");
-  await expect(page.locator(".markdown-loading")).toBeHidden();
+  await expect(page.locator(".document-loading")).toBeHidden();
   await expect(content(page)).toBeHidden();
   expect(await h.read(id, "markdown")).toBe("Stored document");
   expect(writes()).toEqual([]);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+// proofs/arch/templates/document.md#^templates-document-t-states
 test("access, connection and unreadable data keep the editor from writing and recover live", async ({ page }) => {
   const id = await h.createStored({ markdown: "Saved document" });
   h.proxy.hold("to-browser");
   await h.open(page, id);
-  await expect(page.locator(".markdown-loading")).toBeVisible();
+  await expect(page.locator(".document-loading")).toBeVisible();
   await expect(content(page)).toHaveCount(0);
   h.proxy.release("to-browser");
   await expect(content(page)).toContainText("Saved document");
@@ -397,7 +397,7 @@ test("access, connection and unreadable data keep the editor from writing and re
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-reconnect-unchanged
+// proofs/arch/templates/document.md#^templates-document-t-reconnect-unchanged
 test("reconnection with unchanged data resumes editing", async ({ page }) => {
   const id = await h.createStored({ markdown: "Saved document" });
   await h.open(page, id);
@@ -418,7 +418,7 @@ test("reconnection with unchanged data resumes editing", async ({ page }) => {
   await expect.poll(() => h.read(id, "markdown")).toBe("Saved document after reconnect");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-live-lost-ack
+// proofs/arch/templates/document.md#^templates-document-t-live-lost-ack
 test("a confirmed save survives a lost acknowledgement", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -443,7 +443,7 @@ test("a confirmed save survives a lost acknowledgement", async ({ page }) => {
   expect(await h.read(id, "markdown")).toBe("Confirmed document");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-damaged-recovery
+// proofs/arch/templates/document.md#^templates-document-t-damaged-recovery
 test("damaged saved bytes recover after repair and restart", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -464,7 +464,7 @@ test("damaged saved bytes recover after repair and restart", async ({ page }) =>
   await expect.poll(() => h.read(id, "markdown")).toBe("Stored document recovered");
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-refused-save
+// proofs/arch/templates/document.md#^templates-document-t-refused-save
 test("a refused save restores the stored document and reports the failure", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -488,7 +488,7 @@ test("a refused save restores the stored document and reports the failure", asyn
   await expect(status(page)).toHaveText("", { timeout: 5_000 });
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-page-close
+// proofs/arch/templates/document.md#^templates-document-t-page-close
 test("closing the page discards typing before its save pause", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -503,7 +503,7 @@ test("closing the page discards typing before its save pause", async ({ page }) 
   expect(writes()).toEqual([]);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-links
+// proofs/arch/templates/document.md#^templates-document-t-links
 test("relative links resolve from the sandboxed copied page", async ({ page }) => {
   const id = await h.createStored({
     markdown: "| Link |\n| - |\n| [Read me](./README.md) |",

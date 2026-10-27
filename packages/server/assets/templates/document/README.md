@@ -1,6 +1,7 @@
-# Markdown
+# Document
 
-The page and your agent share the JSON store owned by this artifact. The root
+This document is Markdown text. The page and your agent share the JSON store
+owned by this artifact. The root
 object has one required `markdown` string, and a new document starts blank as
 `{"markdown":""}`. Spaces and line breaks are kept exactly. Other root fields
 are ignored by the page and preserved when it saves.
@@ -40,8 +41,8 @@ offline queue, so the editor becomes read-only while it reconnects.
 Invalid or missing data shows an error and is not repaired by the page. Restore
 a root object with a `markdown` string to recover it.
 
-Each copied artifact contains `editor.js`, `editor.css`, and
-`THIRD-PARTY-NOTICES.txt`. It keeps those exact editor files: a Television
+Each copied artifact created from Document contains `editor.js`, `editor.css`,
+and `THIRD-PARTY-NOTICES.txt`. It keeps those exact editor files: a Television
 update does not replace them, and a later installed template does not replace
 them. Tables, links, task lists and the editor's other Markdown gestures remain
 available.

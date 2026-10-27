@@ -4,13 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  generateMarkdownTemplateNotices,
+  generateDocumentTemplateNotices,
   generateSourceNotices,
 } from "./licenses/generate-notices.mjs";
 import { loadAssetManifest, loadLicenseConfig } from "./licenses/lib/config.mjs";
 import { resolveInventoryRoot } from "./licenses/lib/inventory.mjs";
 import {
-  markdownTemplateEditorFolderPath,
+  documentTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
 } from "./licenses/lib/markdown-template-editor.mjs";
 
@@ -47,7 +47,7 @@ export function buildMarkdownTemplateEditor({
       .filter((value) => typeof value === "string" && value.length > 0)
       .join("\n")
       .trim();
-    throw new Error(`Markdown template editor build failed${diagnostic ? `:\n${diagnostic}` : ""}`);
+    throw new Error(`packaged Markdown editor build failed${diagnostic ? `:\n${diagnostic}` : ""}`);
   }
 }
 
@@ -55,7 +55,7 @@ export function buildMarkdownTemplateEditor({
 export async function checkMarkdownTemplateEditor({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
-  templateFolder = markdownTemplateEditorFolderPath({ root }),
+  templateFolder = documentTemplateEditorFolderPath({ root }),
   recordPath = markdownTemplateEditorRecordPath({ root }),
   observeFreshOutput,
 } = {}) {
@@ -83,13 +83,13 @@ export async function checkMarkdownTemplateEditor({
     const config = loadLicenseConfig({ root });
     const assets = loadAssetManifest({ root, config });
     compareText(
-      generateMarkdownTemplateNotices({ root, config, assets, record }),
+      generateDocumentTemplateNotices({ root, config, assets, record }),
       path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
-      "Markdown template THIRD-PARTY-NOTICES.txt",
+      "Document template THIRD-PARTY-NOTICES.txt",
       errors,
     );
     compareText(
-      generateSourceNotices({ root, config, assets, markdownTemplateRecord: record }),
+      generateSourceNotices({ root, config, assets, templateEditorRecord: record }),
       path.join(root, "THIRD-PARTY-NOTICES.txt"),
       "repository THIRD-PARTY-NOTICES.txt",
       errors,
@@ -113,7 +113,7 @@ function compareBytes(fresh, committedPath, label, errors) {
     errors.push(`${label} differs: ${committedPath} could not be read (${message(error)})`);
     return;
   }
-  if (!fresh.equals(committed)) errors.push(`${label} differs from the fresh Markdown template editor build`);
+  if (!fresh.equals(committed)) errors.push(`${label} differs from the fresh packaged Markdown editor build`);
 }
 
 function compareText(fresh, committedPath, label, errors) {
@@ -138,12 +138,12 @@ function compareRecord(fresh, committedPath, errors) {
   const freshPackages = new Set((fresh.packages ?? []).map(packageIdentity));
   const committedPackages = new Set((committed.packages ?? []).map(packageIdentity));
   for (const identity of symmetricDifference(freshPackages, committedPackages)) {
-    errors.push(`package record ${identity} differs from the fresh Markdown template editor build`);
+    errors.push(`package record ${identity} differs from the fresh packaged Markdown editor build`);
   }
   const freshAssets = new Set(fresh.assets ?? []);
   const committedAssets = new Set(committed.assets ?? []);
   for (const assetID of symmetricDifference(freshAssets, committedAssets)) {
-    errors.push(`asset ID ${String(assetID)} differs from the fresh Markdown template editor build`);
+    errors.push(`asset ID ${String(assetID)} differs from the fresh packaged Markdown editor build`);
   }
 }
 

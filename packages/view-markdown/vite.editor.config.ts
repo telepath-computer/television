@@ -69,6 +69,6 @@ export default defineConfig({
 
 function requireEnvironmentPath(name: string): string {
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is required; run the Markdown template editor check or refresh command`);
+  if (!value) throw new Error(`${name} is required; run the packaged Markdown editor check or refresh command`);
   return path.resolve(value);
 }

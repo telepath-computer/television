@@ -4,13 +4,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildMarkdownTemplateEditor } from "./check-markdown-template-editor.mjs";
 import {
-  generateMarkdownTemplateNotices,
+  generateDocumentTemplateNotices,
   generateSourceNotices,
 } from "./licenses/generate-notices.mjs";
 import { loadAssetManifest, loadLicenseConfig } from "./licenses/lib/config.mjs";
 import { resolveInventoryRoot } from "./licenses/lib/inventory.mjs";
 import {
-  markdownTemplateEditorFolderPath,
+  documentTemplateEditorFolderPath,
   markdownTemplateEditorRecordPath,
   readMarkdownTemplateEditorRecord,
 } from "./licenses/lib/markdown-template-editor.mjs";
@@ -22,7 +22,7 @@ const repositoryRoot = path.resolve(path.dirname(scriptPath), "..");
 export function refreshMarkdownTemplateEditor({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
-  templateFolder = markdownTemplateEditorFolderPath({ root }),
+  templateFolder = documentTemplateEditorFolderPath({ root }),
   recordPath = markdownTemplateEditorRecordPath({ root }),
   sourceNoticePath = path.join(root, "THIRD-PARTY-NOTICES.txt"),
 } = {}) {
@@ -50,7 +50,7 @@ export function refreshMarkdownTemplateEditor({
     fs.copyFileSync(path.join(outputFolder, "editor.css"), path.join(templateFolder, "editor.css"));
     fs.copyFileSync(freshRecordPath, recordPath);
 
-    generateMarkdownTemplateNotices({
+    generateDocumentTemplateNotices({
       root,
       outputPath: path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
       config,
@@ -62,7 +62,7 @@ export function refreshMarkdownTemplateEditor({
       outputPath: sourceNoticePath,
       config,
       assets,
-      markdownTemplateRecord: record,
+      templateEditorRecord: record,
     });
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });

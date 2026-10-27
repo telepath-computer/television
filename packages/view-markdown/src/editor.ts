@@ -307,7 +307,7 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
   };
 }
 
-/** The internal mount boundary shared by the files in the packaged Markdown template. */
+/** The internal mount boundary shared by the Markdown editor files packaged with Document. */
 export function mountMarkdownEditor(options: MarkdownEditorMountOptions): MarkdownEditorHandle {
   return createEditor(options, true).handle;
 }

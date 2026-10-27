@@ -17,11 +17,11 @@ export function generateSourceNotices(options?: {
   outputPath?: string;
   config?: LicenseConfig;
   assets?: VendoredAsset[];
-  markdownTemplateRecord?: MarkdownTemplateEditorLicensingRecord;
-  markdownTemplateRecordPath?: string;
+  templateEditorRecord?: MarkdownTemplateEditorLicensingRecord;
+  templateEditorRecordPath?: string;
 }): string | null;
 
-export function generateMarkdownTemplateNotices(options?: {
+export function generateDocumentTemplateNotices(options?: {
   root?: string;
   outputPath?: string;
   config?: LicenseConfig;

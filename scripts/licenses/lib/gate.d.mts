@@ -17,9 +17,9 @@ export interface EvaluateLicenseGateOptions {
   declaringManifestPaths?: string[];
   sourceNoticePath?: string;
   checkSourceNotice?: boolean;
-  markdownTemplateRecordPath?: string;
-  markdownTemplateNoticePath?: string;
-  checkMarkdownTemplateEditor?: boolean;
+  templateEditorRecordPath?: string;
+  documentTemplateNoticePath?: string;
+  checkDocumentTemplateEditor?: boolean;
 }
 
 export function evaluateLicenseGate(options?: EvaluateLicenseGateOptions): LicenseGateResult;
@@ -29,10 +29,10 @@ export function sourceNoticeError(options?: {
   config?: LicenseConfig;
   assets?: VendoredAsset[];
   sourceNoticePath?: string;
-  markdownTemplateRecord?: MarkdownTemplateEditorLicensingRecord | null;
+  templateEditorRecord?: MarkdownTemplateEditorLicensingRecord | null;
 }): string | null;
 
-export function markdownTemplateNoticeError(options?: {
+export function documentTemplateNoticeError(options?: {
   root?: string;
   config?: LicenseConfig;
   assets?: VendoredAsset[];

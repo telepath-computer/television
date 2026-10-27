@@ -6,7 +6,7 @@ export interface MarkdownTemplateEditorLicensingRecord {
   assets: string[];
 }
 
-export function markdownTemplateEditorFolderPath(options?: { root?: string }): string;
+export function documentTemplateEditorFolderPath(options?: { root?: string }): string;
 
 export function markdownTemplateEditorRecordPath(options?: { root?: string }): string;
 

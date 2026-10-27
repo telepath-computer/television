@@ -15,12 +15,12 @@ const store = getStore();
 const root = ref(store);
 const markdown = ref(store, "markdown");
 
-const page = document.querySelector(".markdown-page");
+const page = document.querySelector(".document-page");
 const mount = document.querySelector("#editor");
-const loading = document.querySelector(".markdown-loading");
-const unreadable = document.querySelector(".markdown-unreadable");
+const loading = document.querySelector(".document-loading");
+const unreadable = document.querySelector(".document-unreadable");
 const unreadableDetail = unreadable.querySelector("p");
-const status = document.querySelector(".markdown-status");
+const status = document.querySelector(".document-status");
 const templateEditor = window.TelevisionMarkdownEditor;
 const editorLoaded = typeof templateEditor?.mount === "function";
 

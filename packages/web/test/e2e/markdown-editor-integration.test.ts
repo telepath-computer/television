@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { appearanceResolverScriptSource } from "@telepath-computer/television-artifact/browser";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/markdown-editor-integration.html";
-const TEMPLATE_EDITOR_FIXTURE = "/packages/web/test/e2e/fixtures/markdown-template-editor-integration.html";
+const TEMPLATE_EDITOR_FIXTURE = "/packages/web/test/e2e/fixtures/document-editor-integration.html";
 
 // Trust has no public presentation state; this helper is reserved for lifecycle-adoption evidence.
 async function artifactTrustGuid(page: Page): Promise<string | null> {
@@ -28,7 +28,7 @@ test.describe("markdown editor integration", () => {
     });
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-build
+  // proofs/arch/templates/document.md#^templates-document-t-editor-build
   test("the template editor files add only the editor API and editor-scoped styles", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -42,14 +42,14 @@ test.describe("markdown editor integration", () => {
     );
     await expect(page.locator("#editor > .cm-editor")).toHaveCount(0);
     const script = await page.evaluate(async () => (
-      await fetch("/packages/server/assets/templates/markdown/editor.js")
+      await fetch("/packages/server/assets/templates/document/editor.js")
     ).text());
     expect(script).not.toContain("modulepreload");
     expect(script).not.toContain("The view never transforms the source");
 
     const rules = await page.evaluate(() => {
       const sheet = [...document.styleSheets].find(
-        candidate => candidate.href?.endsWith("/packages/server/assets/templates/markdown/editor.css"),
+        candidate => candidate.href?.endsWith("/packages/server/assets/templates/document/editor.css"),
       );
       if (!sheet) throw new Error("missing template editor stylesheet");
       return [...sheet.cssRules].map(rule => ({
@@ -70,7 +70,7 @@ test.describe("markdown editor integration", () => {
     }))).toEqual({ display: "block", position: "static" });
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("the template editor mount exposes only document controls and no production editor test hook", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -122,7 +122,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => window.__templateSaves)).toEqual([]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("an equal authoritative value records the current text without replacing it", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -171,7 +171,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Current local string");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a matching authoritative value remains after its save promise rejects", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -210,7 +210,7 @@ test.describe("markdown editor integration", () => {
     ]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("an older save confirmation preserves a newer local edit", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -248,7 +248,7 @@ test.describe("markdown editor integration", () => {
     ]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("repeated confirmation of a save in progress preserves newer typing", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -289,7 +289,7 @@ test.describe("markdown editor integration", () => {
     ]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a value received during a save disqualifies its later completed-save echo", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -324,7 +324,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toContainText("Saved A");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a completed save does not replace a newer authoritative rollback baseline", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -370,7 +370,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Authoritative B");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("disabling editing cancels a local change waiting for its save pause", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -397,7 +397,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => window.__templateSaves)).toEqual([]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("setValue replaces a newer draft after editing is disabled", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -434,7 +434,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => window.__templateSaves)).toEqual(["Stored document"]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a temporary disabled interval does not forget a save still in progress", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -476,7 +476,7 @@ test.describe("markdown editor integration", () => {
     ]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a refused save does not replace a newer authoritative value", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -509,7 +509,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Newer stored value");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a completed save becomes the rollback baseline", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -543,7 +543,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Completed save");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("restoring after a refused save cancels a newer scheduled save", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -577,7 +577,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => window.__templateSaves)).toEqual(["Refused save"]);
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a later successful save replaces a document restored after an older refusal", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
@@ -624,7 +624,7 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Second successful save");
   });
 
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-editor-interface
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a repeated completed save preserves newer typing and its pending save", async ({ page }) => {
     await page.goto(TEMPLATE_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__templateReady === true);
