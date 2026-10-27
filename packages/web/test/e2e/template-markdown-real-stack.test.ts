@@ -63,6 +63,7 @@ test("new Markdown from Toolbox starts blank, then saves and clears through the 
   expect(responses.some(url => url.includes("/views/markdown/v1/editor.js"))).toBe(true);
   expect(responses.some(url => url.includes("/views/markdown/v1/editor.css"))).toBe(true);
   expect(responses.some(url => url.includes("/sdk/v1/resources.js"))).toBe(true);
+  expect(responses.some(url => url.includes("/canonical/v2/styles.css"))).toBe(true);
 
   renameSync(path.join(h.home, "templates/markdown"), path.join(h.home, "markdown-outside-discovery"));
   await page.reload();
@@ -135,10 +136,19 @@ test("an agent write to another field preserves in-progress typing", async ({ pa
 
   await page.keyboard.insertText(" person keeps typing");
   expect(writes()).toEqual([]);
+  const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
+  h.proxy.holdServerMessages(connection, message => (
+    message.type === "value" && JSON.stringify(message).includes("Agent title")
+  ));
   await h.set(id, "Agent title", "title");
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+  expect(writes()).toEqual([]);
+  h.proxy.releaseServerMessages(connection);
+  await page.waitForTimeout(0);
 
   const expected = "Starting text person keeps typing";
   await expect(content(page)).toHaveText(expected);
+  expect(writes()).toEqual([]);
   await expect.poll(() => h.read(id, "markdown")).toBe(expected);
   expect(await h.read(id, "title")).toBe("Agent title");
   expect(await h.read(id, "extra")).toEqual({ preserved: true });
@@ -189,6 +199,9 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   await expect(content(page)).toHaveAttribute("contenteditable", "true");
   await replaceDocument(page, "Editable again");
   await expect.poll(() => h.read(id, "markdown")).toBe("Editable again");
+  expect(writes()).toEqual([
+    { kind: "set", path: "markdown", value: { value: "Editable again" } },
+  ]);
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states

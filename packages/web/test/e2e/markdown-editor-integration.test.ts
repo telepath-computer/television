@@ -20,10 +20,6 @@ test.describe("markdown editor integration", () => {
           "<head>",
           `<head><script>${appearanceResolverScriptSource('"system"')}</script>`,
         )
-        .replace(
-          "<body data-television-markdown-hosted>",
-          '<body data-television-markdown-hosted data-television-markdown-test-hook>',
-        )
         .replace('src="./main.ts"', 'src="/packages/view-markdown/src/main.ts"');
       await route.fulfill({
         contentType: "text/html; charset=utf-8",
@@ -251,14 +247,16 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
-  test("a later authoritative value is not mistaken for an earlier save confirmation", async ({ page }) => {
+  test("a value received during a save disqualifies its later completed-save echo", async ({ page }) => {
     await page.goto(V1_FIXTURE);
     await page.waitForFunction(() => window.__v1Ready === true);
     await page.evaluate(() => {
       const parent = document.querySelector<HTMLElement>("#editor");
       if (!parent) throw new Error("missing editor parent");
       window.__v1Saves = [];
-      const pendingSave = new Promise<void>(() => {});
+      const pendingSave = new Promise<void>((resolve) => {
+        window.__resolveFirstV1Save = resolve;
+      });
       window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
         parent,
         value: "Stored document",
@@ -277,8 +275,37 @@ test.describe("markdown editor integration", () => {
 
     await page.evaluate(() => window.__v1Handle!.setValue("Authoritative B"));
     await expect(editor).toContainText("Authoritative B");
+    await page.evaluate(() => window.__resolveFirstV1Save!());
+    await page.waitForTimeout(0);
     await page.evaluate(() => window.__v1Handle!.setValue("Saved A"));
     await expect(editor).toContainText("Saved A");
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("disabling editing cancels a local change waiting for its save pause", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" unsent draft");
+    await page.evaluate(() => window.__v1Handle!.setEditable(false));
+    await expect(editor).toHaveAttribute("contenteditable", "false");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface

@@ -26,14 +26,9 @@ import seed from "../fixtures/seed.md?raw";
 
 const parent = document.getElementById("editor");
 
-const testHookEnabled = import.meta.env.DEV
-  && document.body.hasAttribute("data-television-markdown-test-hook");
-
 function exposeTestEditor(view: EditorView): void {
-  if (!testHookEnabled) return;
-  // Expose the EditorView for e2e tests. Inline-code body text is a bare
-  // text node inside `.cm-line` (lang-markdown's CodeText tag has no rule
-  // in `markdownHighlight`), so Playwright's `getByText` can't locate it.
+  // Retain the file view's established hook for its browser and Electron
+  // tests. The separate v1 entry does not expose this editor-library object.
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
 

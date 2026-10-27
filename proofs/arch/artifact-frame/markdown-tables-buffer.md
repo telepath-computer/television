@@ -14,7 +14,7 @@ Alignment, structural menu operations, and widget full-table paste converge on t
 
 ## Test hooks
 
-- The Markdown view's `window.__cmView` exposes the root CodeMirror view for document/selection observation and setup dispatches; production users interact through the editor.
+- The Markdown file view's `window.__cmView` exposes the root CodeMirror view in development and production for document/selection observation and setup dispatches; the shared v1 editor entry does not define it, and production users interact through the editor.
 - Tests supply `window.__televisionContentBridge` to capture update-content messages and deliver content/replies; production uses the host content bridge.
 - Link tests replace `window.open` and capture navigation-request messages instead of creating browser contexts or navigating the parent.
 

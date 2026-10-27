@@ -16,7 +16,7 @@ The narrow table-interaction buffer adopts existing Chromium browser tests as in
 
 ## Test hooks
 
-Table cases observe the root editor through `window.__cmView`, which the source view exposes only in a development build when its hosted page opts in with `data-television-markdown-test-hook`; production and the v1 build omit it. They substitute `window.__televisionContentBridge` for host-message capture and replace `window.open` to record requested destinations. Production uses the real editor, host bridge, and browser context creation.
+Table cases observe the root editor through `window.__cmView`, which the Markdown file view exposes in development and production for its established browser and Electron tests; the separate v1 editor entry omits it. They substitute `window.__televisionContentBridge` for host-message capture and replace `window.open` to record requested destinations. Production uses the real editor, host bridge, and browser context creation.
 
 ## Assertions
 

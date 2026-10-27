@@ -79,19 +79,6 @@ function developmentStyles(): Plugin {
   };
 }
 
-function developmentTestHook(): Plugin {
-  return {
-    name: "view-markdown-development-test-hook",
-    apply: "serve",
-    transformIndexHtml(html) {
-      return html.replace(
-        "<body data-television-markdown-hosted>",
-        '<body data-television-markdown-hosted data-television-markdown-test-hook>',
-      );
-    },
-  };
-}
-
 function sendDevelopmentStyle(
   res: { setHeader(name: string, value: string): void; end(body?: string | Buffer): void },
   contentType: string,
@@ -199,7 +186,6 @@ export default defineConfig({
   plugins: [
     appearanceBootstrap(),
     developmentStyles(),
-    developmentTestHook(),
     createTelevisionLicensePlugin({ surface: "view:markdown" }),
     inlineScripts(),
     inlineStyles(),
