@@ -73,7 +73,7 @@ describe("bundled Markdown package", () => {
     expect(readme).toContain("`markdown`");
     expect(readme).toContain('{"markdown":""}');
     expect(readme).toContain('tv resource json get --artifact "$ARTIFACT_ID" markdown');
-    expect(readme).toContain("jq -r .value > document.md");
+    expect(readme).toContain("jq -j .value > document.md");
     expect(readme).toContain("jq -Rs . document.md");
     expect(readme).toContain("--file -");
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" markdown');
@@ -85,6 +85,8 @@ describe("bundled Markdown package", () => {
     expect(prose).toMatch(/last[- ]write[- ]wins/i);
     expect(prose).toMatch(/no offline queue[\s\S]*read-only/i);
     expect(prose).toMatch(/invalid or missing data[\s\S]*not repair/i);
+    expect(prose).toMatch(/commands[\s\S]*require `jq`/i);
+    expect(prose).toMatch(/field is absent[\s\S]*writes `null`/i);
     expect(prose).toMatch(/read[\s\S]*again[\s\S]*immediately before[\s\S]*(?:replacing|writing)/i);
     expect(prose).toMatch(/saved[\s\S]*since[\s\S]*(?:last )?read/i);
     expect(prose).toMatch(/unsaved typing[\s\S]*replaced|replaces[\s\S]*unsaved typing/i);

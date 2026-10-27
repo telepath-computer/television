@@ -77,6 +77,7 @@ test("new Markdown from Toolbox starts blank, then saves and clears through the 
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-live
 test("agent writes update the open editor and local save echoes preserve newer typing", async ({ page }) => {
+  await page.clock.install();
   const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
@@ -95,13 +96,15 @@ test("agent writes update the open editor and local save echoes preserve newer t
   ));
   await h.set(id, { ...initial, markdown: "Agent interrupts before debounce" });
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+  await page.clock.pauseAt(Date.now() + 1000);
   await replaceDocument(page, "Unsent person draft");
   expect(writes()).toEqual([]);
   h.proxy.releaseServerMessages(connection);
   await expect(content(page)).toContainText("Agent interrupts before debounce");
-  await page.waitForTimeout(600);
+  await page.clock.runFor(600);
   expect(await h.read(id, "markdown")).toBe("Agent interrupts before debounce");
   expect(writes()).toEqual([]);
+  await page.clock.resume();
 
   h.proxy.holdServerMessages(connection, message => message.type === "applied");
   await replaceDocument(page, "Local complete string");
@@ -163,23 +166,32 @@ test("an agent write to another field preserves in-progress typing", async ({ pa
 });
 
 test("a pending page write shows its saving status until confirmation", async ({ page }) => {
+  await page.clock.install();
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
   await expect(content(page)).toHaveText("Stored document");
 
   h.proxy.holdWrites();
+  await page.clock.pauseAt(Date.now() + 1000);
   await replaceDocument(page, "Pending document");
+  await page.clock.runFor(500);
   await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  expect(await status(page).textContent()).toBe("");
+  await page.clock.runFor(299);
+  expect(await status(page).textContent()).toBe("");
+  await page.clock.runFor(1);
   await expect(status(page)).toHaveText("Saving…");
   expect(await h.read(id, "markdown")).toBe("Stored document");
 
   h.proxy.releaseWrites();
   await expect.poll(() => h.read(id, "markdown")).toBe("Pending document");
   await expect(status(page)).toHaveText("");
+  await page.clock.resume();
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-access
 test("read access blocks changes and a same-share upgrade resumes editing", async ({ page }) => {
+  await page.clock.install();
   const stored = "- [ ] Keep this open\n\n| A |\n| - |\n| one |";
   const id = await h.createStored({ markdown: stored });
   const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -190,19 +202,29 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   h.proxy.holdServerMessages(connection, message => message.type === "access");
   await h.client.resources.share({ artifactID: id, access: "read" });
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
-  await replaceDocument(page, "Unsent access-loss draft");
+  await page.clock.pauseAt(Date.now() + 1000);
+  const cell = page.locator(".tbl-cell", { hasText: "one" }).locator(".tbl-cell-view");
+  await cell.click();
+  const staleCellEditor = page.locator(".tbl-cell-editor .cm-content");
+  await expect(staleCellEditor).toHaveCount(1);
+  await staleCellEditor.press("ControlOrMeta+End");
+  await page.keyboard.insertText(" stale draft");
+  await expect(staleCellEditor).toContainText("one stale draft");
   expect(writes()).toEqual([]);
   h.proxy.releaseServerMessages(connection);
   await expect(content(page)).toContainText("Keep this open");
+  await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
+  await page.clock.runFor(600);
   expect(await h.read(id, "markdown")).toBe(stored);
+  expect(writes()).toEqual([]);
 
   const checkbox = page.locator(".cm-md-task-checkbox");
-  const cell = page.locator(".tbl-cell", { hasText: "one" }).locator(".tbl-cell-view");
   await expect(checkbox).toBeDisabled();
   await expect(cell).toHaveAttribute("contenteditable", "false");
   await checkbox.evaluate((element) => (element as HTMLInputElement).click());
 
   await cell.click({ force: true });
+  await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
   await page.keyboard.insertText(" changed");
   await expect(cell).toHaveText("one");
 
@@ -211,6 +233,7 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
     await (location === "row" ? handles.last() : handles.first()).click({ force: true });
     const menuItem = page.locator(".tbl-menu-item", { hasText: item });
     if (await menuItem.isVisible()) await menuItem.click({ force: true });
+    await expect(menuItem).toHaveCount(0);
   }
   await expect(page.locator(".tbl-cell")).toHaveCount(2);
   await expect(cell).toHaveText("one");
@@ -219,6 +242,10 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
   await expect(content(page)).toHaveAttribute("contenteditable", "true");
+  await page.clock.runFor(600);
+  expect(await h.read(id, "markdown")).toBe(stored);
+  expect(writes()).toEqual([]);
+  await page.clock.resume();
   await replaceDocument(page, "Editable again");
   await expect.poll(() => h.read(id, "markdown")).toBe("Editable again");
   expect(writes()).toEqual([

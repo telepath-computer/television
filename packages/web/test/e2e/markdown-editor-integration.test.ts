@@ -249,6 +249,47 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("repeated confirmation of a save in progress preserves newer typing", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstV1Save = resolve;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("First saved string");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["First saved string"]);
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => {
+      window.__v1Handle!.setValue("First saved string");
+      window.__v1Handle!.setValue("First saved string");
+    });
+    await expect(editor).toHaveText("First saved string with newer typing");
+
+    await page.evaluate(() => window.__resolveFirstV1Save!());
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "First saved string",
+      "First saved string with newer typing",
+    ]);
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
   test("a value received during a save disqualifies its later completed-save echo", async ({ page }) => {
     await page.goto(V1_FIXTURE);
     await page.waitForFunction(() => window.__v1Ready === true);
@@ -500,6 +541,40 @@ test.describe("markdown editor integration", () => {
       "Refused later save",
     ]);
     await expect(editor).toHaveText("Completed save");
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("restoring after a refused save cancels a newer scheduled save", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const firstSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectV1Save = reject;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Refused save");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Refused save"]);
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__rejectV1Save!(new Error("save refused")));
+    await expect(editor).toHaveText("Stored document");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__v1Saves)).toEqual(["Refused save"]);
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface

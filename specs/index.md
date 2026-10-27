@@ -44,7 +44,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
-    - `index.md` (50 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
     - `isolation.md` (118 lines) — *Artifact isolation: the sandbox HTML artifact documents run in, in a browser, and the separate sessions that isolate them in the desktop app; the browser features artifact documents are granted; the cross-origin rules on the routes they load; and the known limitations of each.*
     - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
@@ -116,7 +116,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **ui/**
     - `conformance.md` (17 lines) — *Conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
     - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
-    - `foundation.md` (43 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
+    - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
     - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*
     - `keyboard-navigation.md` (43 lines) — *The keyboard-navigation architecture: the shell's single navigation handler, the three paths that deliver the chord into it, and the delegation map across the specs that own each piece.*
     - `lit-view.md` (50 lines) — *Arch spec: the lit-view module — stateful views for lit-html; what each member does with lit's directive machinery.*

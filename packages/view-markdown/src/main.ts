@@ -25,6 +25,9 @@ import seed from "../fixtures/seed.md?raw";
 // suite has a deterministic doc to drive without needing a host stub.
 
 const parent = document.getElementById("editor");
+if (!parent) {
+  throw new Error("Editor mount point #editor not found");
+}
 
 function exposeTestEditor(view: EditorView): void {
   // Retain the file view's established hook for its browser and Electron
@@ -32,41 +35,35 @@ function exposeTestEditor(view: EditorView): void {
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
 
-if (!parent) throw new Error("Editor mount point #editor not found");
-mountHostedEditor(parent);
+const isWebview = !!(window as Window & { __televisionContentBridge?: unknown }).__televisionContentBridge;
+const isFramed = window.parent !== window;
+const standalone = !isWebview && !isFramed;
 
-function mountHostedEditor(parent: HTMLElement): void {
-  const isWebview = !!(window as Window & { __televisionContentBridge?: unknown }).__televisionContentBridge;
-  const isFramed = window.parent !== window;
-  const standalone = !isWebview && !isFramed;
+if (isFramed) {
+  installBridge(window);
+}
 
-  if (isFramed) {
-    installBridge(window);
-  }
+const context = standalone
+  ? null
+  : isWebview ? new WebviewArtifactContext() : new ArtifactContext();
+let styleRevision = 0;
+context?.onStylesChanged(() => {
+  const current = document.querySelector<HTMLLinkElement>(
+    'link[data-television-style="canonical"]',
+  );
+  if (!current) return;
+  const next = new URL(current.href);
+  styleRevision += 1;
+  next.searchParams.set("tv-styles", `${Date.now()}-${styleRevision}`);
+  current.href = next.href;
+});
 
-  const context = standalone
-    ? null
-    : isWebview ? new WebviewArtifactContext() : new ArtifactContext();
-  let styleRevision = 0;
-  context?.onStylesChanged(() => {
-    const current = document.querySelector<HTMLLinkElement>(
-      'link[data-television-style="canonical"]',
-    );
-    if (!current) return;
-    const next = new URL(current.href);
-    styleRevision += 1;
-    next.searchParams.set("tv-styles", `${Date.now()}-${styleRevision}`);
-    current.href = next.href;
+if (context === null) {
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({ doc: seed, extensions: editorExtensions }),
   });
-
-  if (context === null) {
-    const view = new EditorView({
-      parent,
-      state: EditorState.create({ doc: seed, extensions: editorExtensions }),
-    });
-    exposeTestEditor(view);
-    return;
-  }
-
+  exposeTestEditor(view);
+} else {
   installEditor({ parent, ctx: context }, exposeTestEditor);
 }

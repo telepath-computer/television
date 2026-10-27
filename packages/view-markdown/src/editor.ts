@@ -209,7 +209,10 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
         lastCompletedSave = { content, revision: incomingRevision };
       }
     } catch {
-      if (incomingRevision === save.revision && save.awaitingEcho) replaceDoc(lastKnownGood);
+      if (incomingRevision === save.revision && save.awaitingEcho) {
+        cancelScheduledSave();
+        replaceDoc(lastKnownGood);
+      }
     } finally {
       activeSaves.delete(save);
     }
@@ -244,24 +247,42 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
 
   const syncEmbeddedControls = (): void => {
     for (const checkbox of parent.querySelectorAll<HTMLInputElement>(".cm-md-task-checkbox")) {
-      checkbox.disabled = !isEditable;
+      if (checkbox.disabled !== !isEditable) checkbox.disabled = !isEditable;
     }
     for (const cell of parent.querySelectorAll<HTMLElement>(".tbl-cell-view")) {
-      cell.contentEditable = isEditable ? "true" : "false";
+      const contentEditable = isEditable ? "true" : "false";
+      if (cell.contentEditable !== contentEditable) cell.contentEditable = contentEditable;
     }
+    for (const cellEditor of parent.querySelectorAll<HTMLElement>(".tbl-cell-editor .cm-content")) {
+      const contentEditable = isEditable ? "true" : "false";
+      if (cellEditor.contentEditable !== contentEditable) cellEditor.contentEditable = contentEditable;
+    }
+  };
+  const guardReadOnlyTable = (event: Event): void => {
+    if (isEditable) return;
+    const target = event.target;
+    if (!(target instanceof Element) || !target.closest(".tbl-table-widget, .tbl-menu")) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
   };
   const embeddedControls = editabilityCanChange
     ? new MutationObserver(syncEmbeddedControls)
     : null;
   embeddedControls?.observe(parent, { childList: true, subtree: true });
-  if (editabilityCanChange) syncEmbeddedControls();
+  if (editabilityCanChange) {
+    syncEmbeddedControls();
+    parent.addEventListener("pointerdown", guardReadOnlyTable, true);
+    parent.addEventListener("click", guardReadOnlyTable, true);
+    parent.addEventListener("beforeinput", guardReadOnlyTable, true);
+    parent.addEventListener("keydown", guardReadOnlyTable, true);
+  }
 
   return {
     view,
     handle: {
       setValue(incoming: string): void {
         const confirmedSave = [...activeSaves].find(
-          (save) => save.awaitingEcho && save.content === incoming,
+          (save) => save.content === incoming && save.revision === incomingRevision,
         );
         lastKnownGood = incoming;
         if (confirmedSave && isEditable) {
@@ -298,6 +319,12 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
       dispose(): void {
         cancelScheduledSave();
         embeddedControls?.disconnect();
+        if (editabilityCanChange) {
+          parent.removeEventListener("pointerdown", guardReadOnlyTable, true);
+          parent.removeEventListener("click", guardReadOnlyTable, true);
+          parent.removeEventListener("beforeinput", guardReadOnlyTable, true);
+          parent.removeEventListener("keydown", guardReadOnlyTable, true);
+        }
         view.destroy();
       },
     },

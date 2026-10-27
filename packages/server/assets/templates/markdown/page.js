@@ -36,7 +36,11 @@ let focusFirstBlank = false;
 let failure = false;
 let failureTimer;
 let hasPendingWrites = false;
+let showSaving = false;
+let savingTimer;
 let lastPassed;
+
+const SAVING_DELAY_MS = 300;
 
 function isMarkdownData(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value)
@@ -76,7 +80,22 @@ function restoreStored() {
   lastPassed = latestStored;
 }
 
+function updateSavingNotice() {
+  if (!hasPendingWrites) {
+    clearTimeout(savingTimer);
+    savingTimer = undefined;
+    showSaving = false;
+  } else if (!showSaving && savingTimer === undefined) {
+    savingTimer = setTimeout(() => {
+      savingTimer = undefined;
+      showSaving = true;
+      render();
+    }, SAVING_DELAY_MS);
+  }
+}
+
 function render() {
+  updateSavingNotice();
   const mode = !editorLoaded ? "unreadable" : !received ? "loading" : valid ? "editor" : "unreadable";
   page.dataset.state = mode;
   mount.hidden = mode !== "editor";
@@ -88,7 +107,7 @@ function render() {
   editor?.setEditable(canEdit());
   status.textContent = connection === "disconnected"
     ? "Reconnecting…"
-    : hasPendingWrites ? "Saving…"
+    : showSaving ? "Saving…"
       : failure ? "Couldn't save that change." : "";
   if (canEdit() && focusFirstBlank) {
     focusFirstBlank = false;

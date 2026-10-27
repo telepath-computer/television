@@ -5,13 +5,16 @@ object has one required `markdown` string, and a new document starts blank as
 `{"markdown":""}`. Spaces and line breaks are kept exactly. Other root fields
 are ignored by the page and preserved when it saves.
 
-Set `ARTIFACT_ID` to the ID of the document. Read the current Markdown again
-immediately before replacing it, even if you read it earlier while preparing
-the change:
+The commands below require `jq`. Set `ARTIFACT_ID` to the ID of the document.
+Read the current Markdown again immediately before replacing it, even if you
+read it earlier while preparing the change:
 
 ```sh
-tv resource json get --artifact "$ARTIFACT_ID" markdown | jq -r .value > document.md
+tv resource json get --artifact "$ARTIFACT_ID" markdown | jq -j .value > document.md
 ```
+
+This keeps every line break exactly as stored. If the field is absent, the
+command writes `null` instead; do not replace the document from that file.
 
 To replace the complete Markdown from a file, JSON-encode it and write it to
 the field while leaving other root fields alone:
