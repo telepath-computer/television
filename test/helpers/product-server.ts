@@ -137,12 +137,12 @@ function installProductRuntimeAssets(buildDir: string): void {
   }
 
   cpSync(artifactMissingView, path.join(buildDir, "views/artifact-missing"), { recursive: true });
-  cpSync(urlUnsupportedView, path.join(buildDir, "views/url-unsupported"), { recursive: true });
   cpSync(markdownView, path.join(buildDir, "views/markdown"), { recursive: true });
   cpSync(canonical, path.join(buildDir, "canonical"), { recursive: true });
   cpSync(sdk, path.join(buildDir, "sdk"), { recursive: true });
   const staticDir = path.join(buildDir, "web");
   mkdirSync(staticDir, { recursive: true });
+  cpSync(urlUnsupportedView, path.join(staticDir, "views/url-unsupported"), { recursive: true });
   cpSync(webIndex, path.join(staticDir, "index.html"));
   cpSync(webAssets, path.join(staticDir, "assets"), { recursive: true });
 }
