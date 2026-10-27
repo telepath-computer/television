@@ -1,6 +1,6 @@
 # Resource-cleanup proposal: review response
 
-Proposal round 3 at `57a701d0` and spec round 1 at `cd8aa453` both **PASS**, relayed by the supervisor. Proof round 1 at `9fd51f49` **FAILS** on missing spec-owned placement for the live tests and their deliberate-failure fixtures. The [proof response below](#Proof round 1: placement finding and refinements) returns that narrow delta to spec review and records the independent proof corrections. Earlier sections retain the response history. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, and proof round 2 at `3fa15d47` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. The [round 2 response](#Proof round 2: convergence and implementation planning) records the bounded bindings/refinements and the three-slice plan ready for independent review. Earlier sections retain the response history. Reviewer: Claude Fable (Nina), arranged by the supervisor.
 
 Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
@@ -153,3 +153,21 @@ After placement spec convergence, complete the dependent proof binding: name bot
 Validation is document/source inspection, exact comparison of the saved review, Markdown index regeneration and Git diff/whitespace inspection. No tests, builds, browser/server launches, provider experiments or worker operations ran. Test and harness implementation remains unstarted.
 
 Primitive's file check returned existing recovery and placement decisions with `truncated: true`; it was not a complete constraint check. No decision was overridden or reconciled. The latest 20 decisions contained no duplicate of the proposed automated experiment placement; it is recorded as agent-attributed `dec_7893f958`, with the repeatability rationale and operator-only alternative. That record does not substitute for independent spec convergence or Josh's PR review.
+
+## Proof round 2: convergence and implementation planning
+
+The supervisor relayed **PASS** on `3fa15d47`; the [complete report](test-harness-resource-cleanup-proof-review-r2.md) is preserved verbatim. The reviewer approved the placement spec delta and explicitly allowed the deferred proof binding as a bounded follow-up without another round. Complete that binding: both experiment surfaces, the dedicated coordinator host, planned/tag and targeted/surface commands, and one source-level registry/driver selection contract. Reporting's live assertion shares the same driver and placement. No new live scenario, suite, kind or test hook is introduced.
+
+| Refinement | Assessment and disposition |
+| --- | --- |
+| 1: general selector description | Accepted. State package/runner/tag planned selection alongside the existing target path; this documents the current routing used by the reviewed placement. |
+| 2: broad-run guardrail description | Accepted. Cross-reference the Blaxel harness surfaces and their exclusion from `all` alongside the other opt-in suites. |
+| 3: minimum fixture shape | Accepted in the shared proof declaration and implementation plan. At least two native files are needed for the reviewed two-shard, file-atomic fixture run. This is derived test design, so it does not need a permanent minimum inventory rule in the registry spec. |
+
+The work is not clearly one slice. The [implementation plan](test-harness-resource-cleanup-plan.md) proposes three coherent slices: worker-owned builds plus the five built-app conversions; bounded diagnostic capture/reporting; then exclusive leases, recovery, scratch/pool operations and the shared live qualification. Keeping the entire remote ownership lifecycle together avoids partially integrated exclusion rules. Separating diagnostics and helpers makes their real framework/process boundaries reviewable without repeating the paid-service scenarios. Slice 3 explicitly owns the pending remote diagnostic evidence and killed-worker backstop from the earlier slices. Each slice has its red/green criteria and expected baseline; the integrated result has a separate review and full gate.
+
+Every test/build runs on a pushed revision on Blaxel. All worker-affecting validation uses `rose-cleanup`; the driver runs on `tv-cleanup-coordinator-rose` outside the pool. The plan also chooses the same private two-worker pool for complete `all` verification using the existing shard-count override, replacing the proposal's earlier shared-pool final-run arrangement. The complete selection still qualifies under the runner spec; private capacity and timeout headroom are unmeasured and must be reported if they block the gate. No silent shared-pool fallback is authorized by this plan.
+
+Validation for this planning checkpoint is document/source inspection, exact review-copy comparison, Markdown index regeneration, and Git diff/whitespace inspection. No tests, builds, browser/server launches, provider experiments or worker operations ran. Implementation waits for the supervisor-arranged independent plan review. Josh's spec review remains at PR time.
+
+Primitive surfaced the already-recorded opt-in experiment choice after the prior turn. That was consistent context but added no new requirement. Its edit hook reported a truncated governing-set scan, so it did not establish a complete constraint check; no decision was overridden. This turn follows the settled direction; the slice ordering and private validation arrangement are contribution-scoped execution choices, so no new durable decision was recorded.

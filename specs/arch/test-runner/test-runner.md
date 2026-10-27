@@ -67,7 +67,7 @@ A *selector* chooses which tests run; the runner resolves selectors against [tes
 | `--runner <vitest\|playwright>` | Surfaces using a runner. |
 | `--tag <tag>` | Surfaces carrying a registry tag, such as `browser` or `electron`. |
 
-The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path.
+The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path, or package, runner, or tag selection through the planned selection path.
 
 `--file` must resolve to exactly one owning surface: if no surface owns the file the runner fails; if several do, it fails and asks for `--surface` to disambiguate. On the local execution path, a `--file` or `--grep` selection against a surface that does not declare support for it is rejected while building that surface's command. The targeted Blaxel path does not currently apply this `supports` check. The runner parses these selectors itself and rejects unknown positional arguments; the sole positional accepted is the `verify` provider.
 
@@ -89,7 +89,7 @@ Production attestations have exactly two source classes: a publication-qualifyin
 
 A *broad run* is a provider shortcut that runs the full `all` set with no narrowing selector. A broad run skips lint and type-check, so the provider shortcuts refuse it with a message directing the caller to `npm run verify`.
 
-The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites are not broad verification. They are specialized, opt-in local suites and are excluded from `all`. The first crosses the live telemetry ↔ PostHog boundary; the second replaces the active global `tv` package and the literal `com.television.server` user service on a designated developer host. Build-config-integrity tests are not part of either suite: `unit:build-config` is a normal unit surface in `all` and uses no secrets, network, or host service mutation.
+The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites and [Blaxel harness surfaces](#Blaxel harness qualification) are not broad verification and are excluded from `all`. The two suites are specialized, opt-in local suites: the first crosses the live telemetry ↔ PostHog boundary; the second replaces the active global `tv` package and the literal `com.television.server` user service on a designated developer host. The harness surfaces have the separate coordinator/worker placement below. Build-config-integrity tests are not part of either suite: `unit:build-config` is a normal unit surface in `all` and uses no secrets, network, or host service mutation.
 
 The guardrail trips only on the effective `all` suite with nothing narrowing it: a bare provider (which defaults to `--suite all`), an explicit `--suite all` or `--all`, or a bare `--grep` with no other selector. Everything else passes through:
 
