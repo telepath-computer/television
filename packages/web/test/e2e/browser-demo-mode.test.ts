@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
 import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
+import { recordApplicationRequests } from "../../../../test/helpers/application-requests.ts";
 import { APPLICATION_SHELL_STATES, waitForApplicationRender } from "../../../../test/helpers/application-readiness.ts";
 import { configureTestMotion, pickChannelByName } from "./helpers.ts";
 
@@ -72,11 +73,12 @@ async function createURLArtifact(
   return ((await response.json()) as { artifact: { id: string } }).artifact.id;
 }
 
-async function openApp(page: Page, server: ProductServer, baseURL: string | undefined): Promise<void> {
+async function openApp(page: Page, server: ProductServer, baseURL: string | undefined, requests: ReturnType<typeof recordApplicationRequests>): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const appBaseURL = await server.appURL(baseURL);
   await page.goto(`${appBaseURL}/packages/web/src/index.html`);
   await waitForApp(page);
+  requests.expectBuilt();
 }
 
 async function waitForApp(page: Page): Promise<void> {
@@ -106,8 +108,10 @@ test.describe("browser demo mode", () => {
   let home: string;
   let site: Awaited<ReturnType<typeof startExternalSite>>;
   let server: ProductServer | null = null;
+  let requests: ReturnType<typeof recordApplicationRequests>;
 
-  test.beforeEach(async () => {
+  test.beforeEach(async ({ page }) => {
+    requests = recordApplicationRequests([page]);
     home = mkdtempSync(path.join(os.tmpdir(), "television-demo-home-"));
     site = await startExternalSite();
     server = await launchProductServer({
@@ -117,6 +121,7 @@ test.describe("browser demo mode", () => {
   });
 
   test.afterEach(async () => {
+    await requests.attach(test.info());
     await server?.dispose();
     server = null;
     await site.close();
@@ -132,7 +137,7 @@ test.describe("browser demo mode", () => {
     await createURLArtifact(server, pageURL, channel.id);
     const returnButton = page.getByRole("button", { name: RETURN_LABEL });
 
-    await openApp(page, server, baseURL);
+    await openApp(page, server, baseURL, requests);
     await expect(artifactFrame(page)).toHaveAttribute("src", /\/views\/url-unsupported\//);
     await expect(returnButton).toHaveCount(0);
 
@@ -160,7 +165,7 @@ test.describe("browser demo mode", () => {
     await createChannel(server, "Elsewhere");
     await createURLArtifact(server, `${site.origin}/one`, channel.id);
 
-    await openApp(page, server, baseURL);
+    await openApp(page, server, baseURL, requests);
     await expect(frameHeading(page)).toHaveText("Fixture page one");
 
     await followNext(page);
@@ -191,7 +196,7 @@ test.describe("browser demo mode", () => {
     await createURLArtifact(server, pageURL, channel.id);
     await createURLArtifact(server, `${site.origin}/two`, channel.id, "Second page");
 
-    await openApp(page, server, baseURL);
+    await openApp(page, server, baseURL, requests);
     const selected = page.getByRole("option", { name: channel.name, exact: true });
     await expect(selected).toHaveAttribute("aria-selected", "true");
     const tabs = page.locator(".top-bar .tab");

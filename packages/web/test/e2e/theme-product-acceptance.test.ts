@@ -13,6 +13,7 @@ import { TelevisionClient } from "@telepath-computer/television-shared";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
 import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
+import { recordApplicationRequests } from "../../../../test/helpers/application-requests.ts";
 import { waitForApplicationShell } from "./helpers.ts";
 import {
   APPLICATION_SHELL_STATES,
@@ -616,6 +617,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const context = await browser.newContext({ colorScheme: null });
   const page = await context.newPage();
+  const requests = recordApplicationRequests([page]);
   const product = await launchProductServer();
   try {
     const themeAPath = seedThemePackage(
@@ -694,6 +696,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
     const appURL = await product.appURL(baseURL);
     await page.goto(`${appURL}/packages/web/src/index.html`);
     await waitForApplicationShell(page);
+    requests.expectBuilt();
 
     await openSettings(page);
     await page.getByRole("button", { name: "Refresh themes" }).click();
@@ -868,6 +871,7 @@ test("theme settings persist rendered app and artifact outcomes through a built-
     expect((await expectSandboxFrame(page, "overlay")).instance)
       .not.toBe(beforeAdaptiveOverlay.instance);
   } finally {
+    await requests.attach(test.info());
     await product.dispose();
     await context.close();
   }
@@ -895,6 +899,7 @@ test("executable themes run only in the Chromium application lifecycle and isola
   const product = await launchProductServer();
   const secondPage = await page.context().newPage();
   const applicationPages = [page, secondPage] as const;
+  const requests = recordApplicationRequests(applicationPages);
   const selectReloadingTheme = async (value: string): Promise<void> => {
     // A consented script is cleared by replacing both application documents.
     // Observe that navigation before applying ordinary post-render assertions.
@@ -1069,6 +1074,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
       );
       await waitForApplicationShell(applicationPage);
     }));
+    requests.expectBuilt();
     await openSettings(page);
     await page.getByRole("button", { name: "Refresh themes" }).click();
     const themeSelect = page.locator('tv-select[name="theme"]');
@@ -1845,6 +1851,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     expect(scriptRequests.length).toBeGreaterThan(0);
     expect(scriptRequests.every((owner) => owner === "application")).toBe(true);
   } finally {
+    await requests.attach(test.info());
     await product.dispose();
     await secondPage.close();
   }
