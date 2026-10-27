@@ -173,7 +173,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
     - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
     - `sticky-note.md` (73 lines) — *Proves Sticky note editing, live changes, offline drafts, access and failure states in a real browser, and rendered conformance to every spec story.*
-    - `weather.md` (70 lines) — *Proves Weather states, time-zone and clock behavior, responsive forecast panels, access and recovery in a real browser, and rendered conformance to every spec story.*
+    - `weather.md` (76 lines) — *Proves Weather states, time-zone and clock behavior, responsive forecast panels, access and recovery in a real browser, and rendered conformance to every spec story.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

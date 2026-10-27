@@ -406,7 +406,7 @@ const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slic
 
 const viewports = {
   minimum: { name: "Minimum weather", styles: { width: "230px", height: "230px" }, type: "mobile" },
-  wideShort: { name: "Wide short weather", styles: { width: "590px", height: "230px" }, type: "mobile" },
+  wideShort: { name: "Wide short weather", styles: { width: "760px", height: "300px" }, type: "mobile" },
   small: { name: "Small weather", styles: { width: "340px", height: "340px" }, type: "mobile" },
   medium: { name: "Medium weather", styles: { width: "700px", height: "540px" }, type: "desktop" },
   largeBoundary: { name: "Large weather boundary", styles: { width: "760px", height: "740px" }, type: "desktop" },
