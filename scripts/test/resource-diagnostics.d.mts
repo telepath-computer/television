@@ -4,3 +4,4 @@ export const RESOURCE_SIDECAR_BYTES: number;
 export const RESOURCE_ATTEMPT_BYTES: number;
 export function surfaceResourceDiagnostics(options: { resultsDir: string; surfaceId: string; env?: NodeJS.ProcessEnv; runId: string }): ReturnType<typeof startResourceDiagnostics>;
 export function readLinuxResourceProbe(name: string, options?: Record<string, string>): unknown;
+export function kernelLinesInInterval(lines: string[], interval: { since: string; until: string }): { lines: string[]; omittedUnrecognizedLines: number };

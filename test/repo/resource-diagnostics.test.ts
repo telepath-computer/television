@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSyn
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { startResourceDiagnostics, writeResourceDiagnostic } from "../../scripts/test/resource-diagnostics.mjs";
+import { kernelLinesInInterval, startResourceDiagnostics, writeResourceDiagnostic } from "../../scripts/test/resource-diagnostics.mjs";
 
 const roots: string[] = [];
 const identity = { runId: "run-one", shardIndex: 1, attemptId: "lock-one", surfaceId: "e2e:fixture" };
@@ -12,6 +12,16 @@ const secret = "credential-query-body-environment-argument-SENTINEL";
 const temporary = () => { const dir = mkdtempSync(path.join(os.tmpdir(), "tv-resource-contract-")); roots.push(dir); return dir; };
 const read = (file: string | null) => JSON.parse(readFileSync(file!, "utf8"));
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
+
+test("restricts a whole-second kernel read to the observed interval and discloses missing timestamps", () => {
+  const line = (time: string) => `${time} Out of memory: Killed process 23 (node)`;
+  const within = line("2026-10-27T00:00:00,500000+00:00");
+  expect(kernelLinesInInterval([
+    line("2026-10-27T00:00:00,100000+00:00"), within,
+    line("2026-10-27T00:00:00,900000+00:00"),
+    "Killed process 24 (node)", "unrelated kernel message",
+  ], { since: "2026-10-27T00:00:00.200Z", until: "2026-10-27T00:00:00.800Z" })).toEqual({ lines: [within], omittedUnrecognizedLines: 1 });
+});
 
 test("retains a baseline, honest units and reset evidence, and kernel evidence for a recovered native attempt", () => {
   const root = temporary();

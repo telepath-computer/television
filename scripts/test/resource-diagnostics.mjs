@@ -107,6 +107,10 @@ function counterDelta(start, end) {
   return { value: end.value - start.value, unit: "count" };
 }
 
+export function kernelLinesInInterval(lines, interval) {
+  return { lines, omittedUnrecognizedLines: 0 };
+}
+
 function nativeEvidence(outcome, diagnosticDir, warn) {
   const nativeExists = outcome.nativeResultPath && fs.existsSync(outcome.nativeResultPath);
   const attemptExists = outcome.attemptResultPath && fs.existsSync(outcome.attemptResultPath);
