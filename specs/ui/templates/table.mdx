@@ -5,93 +5,117 @@ import * as Stories from "../../../storybook/spec/templates/table/table.stories.
 
 export const Artifact = ({ width = "760px", children }) => <div style={{ width, maxWidth: "100%" }}>{children}</div>;
 
-*UI spec: the bundled Table template page, a compact browser for records that an agent keeps in the artifact store.*
+*UI spec: the bundled Table template page, an editable grid that a person and an agent can fill together.*
 
 # Table template
 
-The Table template makes an artifact that shows keyed records as rows and their fields as columns. The page lets a person search, sort and select without changing the store. Each story on this page is one state of the page, and the page in the template must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
+The Table template makes an artifact that shows and edits text in rows and columns. Each story on this page is one state of the page, and the template page must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
 
-The [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store) owns the row shape and stored order.
+The [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store) owns the data, order, and paths each change writes. The [resource SDK](../../arch/resources/sdk.md#^sdk-access) owns how the page learns its access level.
 
-<Artifact><Canvas of={Stories.WithRows} /></Artifact>
+<Artifact><Canvas of={Stories.WithData} /></Artifact>
 
 ## A new table
 
-A new Table has no rows. The toolbar has an empty count and an available search field. Below it, the ruled table frame shows a table icon, “No rows”, and “This table is empty.”
+A new Table draws four blank columns and four blank rows, with no header row. These cells are an editing surface, not stored data: opening the Table makes no write.
 
-<Artifact><Canvas of={Stories.New} /></Artifact>
+Typing in a drawn cell creates that row and column. It also creates each drawn column to the left and each drawn row above, so the cell keeps the position where the person entered it. Drawn rows and columns after that cell stay unstored.
+
+<Artifact><Canvas of={Stories.Blank} /></Artifact>
 
 ## Opening a table
 
-Until store data arrives, the toolbar and frame are in place, the count is empty, and a spinning activity icon is centred in the frame.
+Until store data arrives, a spinning activity icon is centred below the ruled top edge of the grid area.
 
 <Artifact><Canvas of={Stories.Loading} /></Artifact>
 
 ## Rows, columns and cells
 
-The toolbar shows the total stored row count, whether or not search hides some rows. The table fills the width when its columns fit. Column headers stay at the top while rows scroll. Alternate rows use the muted surface, and the row under the pointer uses a quiet hover fill.
+Rows and columns follow their stored order. Cells contain plain text. An absent cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. The grid scrolls in either direction when it is larger than the artifact; the header and the reference strips stay with the visible grid while it scrolls.
 
-Rows follow ascending stored `order`, then key. The page does not show either value. Columns follow the first appearance of their cell names across all stored rows in that base order. Search and page sorting do not change the columns or their order.
+There is no search or page-only sorting. The position a person sees is always stored order, so inserting beside a selection has one unambiguous stored position.
 
-A missing, null or empty-string cell shows an em dash. `true` shows a green check announced as “Yes”; `false` shows “No” in muted text. Numbers align right when every non-empty value in that column is numeric. Whole numbers smaller than 10,000 have no thousands separator; other numbers use the browser locale. Objects and lists show as compact JSON in monospace type.
+When the header row is on, its cells show the stored column names. When it is off, the names stay stored but the row is absent. An unnamed column has a blank header cell.
 
-Short text stays on one line and ends in an ellipsis when it is wider than 260 pixels. A column with any string longer than 40 characters wraps text to at most three lines and has a wider limit. Selecting the row shows that long text in full.
+This story shows data with the header row on.
 
-This story shows 80 rows and vertical scrolling.
+<Artifact><Canvas of={Stories.WithData} /></Artifact>
 
-<Artifact><Canvas of={Stories.ManyRows} /></Artifact>
+This story shows data with the header row off and unnamed columns.
 
-## Search
+<Artifact><Canvas of={Stories.HeaderOff} /></Artifact>
 
-The search field filters rows as a person types. Matching is case-insensitive, ignores space at the start and end of the query, and looks at stored cell values converted to text, with objects and lists as compact JSON. It does not search row keys or `order`. Escape in the field clears it. Filtering changes only the page.
+## Selecting cells, rows and columns
 
-<Artifact><Canvas of={Stories.Filtered} /></Artifact>
+Clicking a cell selects it. The cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. The strips use the page surface, a muted border, and dividers between items. They are hidden while nothing is selected.
 
-When nothing matches, the table frame shows a search icon, “No results”, and `No rows match “<query>”.` The count remains the total stored row count.
+For a selected cell, only its row number and column letter receive a quiet emphasis. Clicking a letter selects that whole column; clicking a number selects that whole row. A whole-row or whole-column selection uses the accent colour on its strip item and a pale accent across the selected cells. Shift-clicking another item in the same strip extends the selection from its anchor.
 
-<Artifact><Canvas of={Stories.NoResults} /></Artifact>
+<Artifact><Canvas of={Stories.SelectedCell} /></Artifact>
 
-## Sort
+<Artifact><Canvas of={Stories.SelectedRow} /></Artifact>
 
-Each column header is a button. Pressing it first sorts ascending, then descending, then returns to stored order. The active header shows a chevron pointing up for ascending and down for descending, and exposes the same direction through `aria-sort`.
+<Artifact><Canvas of={Stories.SelectedColumn} /></Artifact>
 
-Two numbers compare numerically. Other pairs compare as localized, case-insensitive text with number-like parts in natural order. Missing, null and empty-string cells stay after non-empty cells in both directions. Equal values keep stored order. Sorting changes only the page.
+When a cell is selected and not being edited, the arrow keys move the selection by one cell. Escape clears the selection and hides the strips. A cell, row number, or column letter that has keyboard focus shows the foundation focus ring. The grid, cells, header fields, and strip controls expose their roles, selection, positions, and names to assistive technology.
 
-<Artifact><Canvas of={Stories.Sorted} /></Artifact>
+## Editing cells and headers
 
-## Selection
+Typing while a cell is selected replaces its contents and starts editing in place. Double-clicking it, pressing Return, or pressing F2 starts editing with the existing text. The editor is the cell itself with the foundation focus outline; arrow keys and the usual text-editing keys then work in the text.
 
-Pressing a row selects it. A selected row uses a neutral fill while the table does not have focus, and the primary fill with readable reversed text while the scroll region has focus. Selection shows long text in full. While that region itself has focus, Arrow Up and Arrow Down select the preceding or following visible row, and Escape clears selection. A removed row loses selection; a row merely hidden by search keeps it.
+Return commits the text and selects the cell below. Tab commits and selects the cell to the right. Holding Shift reverses either direction. Clicking another cell commits before selecting it. Escape cancels the edit and restores the stored text.
 
-<Artifact><Canvas of={Stories.Selected} /></Artifact>
+<Artifact><Canvas of={Stories.EditingCell} /></Artifact>
 
-## Scrolling and narrow artifacts
+Header cells use the same selection and editing rules. Committing an empty body cell removes its stored cell value. Committing an empty header removes the column name.
 
-The frame scrolls vertically and horizontally when needed. A soft surface fade appears at each horizontal edge that has more columns beyond it. The sticky headers stay visible. Below 520 pixels, the toolbar insets, search width and frame insets shrink.
+## Clearing contents
 
-This story shows a 400-pixel artifact scrolled sideways.
+Delete or Backspace clears the selected cell, the cells in selected rows, or the cells in selected columns. It never removes a row or column. When a header cell is selected, it clears that column name.
 
-<Artifact width="400px"><Canvas of={Stories.Narrow} /></Artifact>
+## Adding, inserting, and deleting structure
+
+A plus sign at the end of each visible reference strip adds a row or column at the end. Right-clicking a row number or column letter selects it and opens a canonical `<tv-menu>` below that strip item.
+
+The row menu contains “Insert row above”, “Insert row below”, “Delete row” or “Delete rows”, and “Show header row” or “Hide header row”. The column menu has the corresponding “Insert column left”, “Insert column right”, and column deletion actions, followed by the same header action. Destructive actions use the canonical danger treatment.
+
+<Artifact><Canvas of={Stories.OpenMenu} /></Artifact>
+
+With a row or column selection, Cmd-Shift-= on macOS or Ctrl-Shift-= elsewhere inserts before the selection. Cmd-minus or Ctrl-minus deletes the selected rows or columns. Inserting gives each new entry an order between its neighbours, so the other entries do not move in the store. Deleting a column does not remove values left under that column key in rows.
+
+Showing or hiding the header changes only the `showHeader` setting. It does not add, remove, or rename a column.
 
 ## Changes from elsewhere
 
-The page follows the whole store live. Adding, changing or removing rows redraws the rows and keeps the current page search and column sort. Selection stays when its key remains and clears when that key is removed. The page never writes to the store.
+The page follows the whole store live. Changes outside the cell or header currently being edited appear at once, without disturbing the selection.
+
+While a person is editing one field, an incoming change to that same field does not replace the text or move the caret. Committing writes the local text, so the last write applied to that path wins. Cancelling shows the latest stored value. A row or column removed elsewhere disappears; if it held the active editor, editing ends and the nearest remaining cell is selected.
 
 ## Read-only and access loss
 
-The page never changes the store, so a Table opened through a read-only share looks and behaves like any other. Search, sorting and selection remain available. While the page has no access at all, as after that share link is revoked, it keeps showing the last table it received.
+When the page can only read its store, as through a read-only share, the table can still be selected and navigated. Cells and headers cannot enter editing, Delete and the structural shortcuts do nothing, the plus signs are absent, and right-clicking a strip item does not open an action menu. The page switches between editable and read-only as access changes.
 
-## Disconnection
+<Artifact><Canvas of={Stories.ReadOnly} /></Artifact>
 
-While the page cannot reach its server, it keeps showing the last table it received, with no message. Once it reconnects, it catches up with changes made in the meantime by itself.
+When all access is lost, as after a share link is revoked, the page keeps the last table it received and becomes read-only. An active editor closes and shows the last confirmed value.
+
+## Saving and disconnection
+
+Each change saves when it is committed. Normal saving shows no message. While the page cannot reach its server, it keeps the last table it received, becomes read-only, and shows “Reconnecting…” in muted text in a strip ruled off along the bottom. It becomes editable and catches up with stored changes after reconnecting.
+
+If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
+
+<Artifact><Canvas of={Stories.Disconnected} /></Artifact>
+
+<Artifact><Canvas of={Stories.SaveFailed} /></Artifact>
 
 ## Data the page cannot read
 
-Agents write Table data by hand, so it can break the [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store). The page never rewrites data it cannot read.
+Agents can write Table data directly, so it can break the [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store). The page never rewrites data it cannot read.
 
-When the whole value breaks the contract, as when `rows` is not an object, a row has no finite numeric `order`, the store has no value, or the server reports that saved data is unavailable, the page shows an error page instead of the table: centred in the page, a warning icon in a ruled circle, “This table can't be shown”, and below it in muted text, “Its saved data isn't in the form this page reads. Ask your agent to check it.” The error page is an alert, so a person using a screen reader hears it when it replaces the table.
+When the whole value breaks the contract, the store has no value, or the server reports that saved data is unavailable, an error page replaces the table: centred in the page, a warning icon in a ruled circle, “This table can't be shown”, and below it in muted text, “Its saved data isn't in the form this page reads. Ask your agent to check it.” Nothing on it can be edited. The error page is an alert, so a screen reader hears it when it replaces the table.
 
-The error page follows data live. Once an agent fixes the data, the table returns with the page search, sort and any still-valid selection retained.
+The error page follows the data live. Once an agent fixes the data, the table returns.
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
 
@@ -104,7 +128,3 @@ In the Toolbox, the template icon is a pale teal table with a solid teal header 
 The page uses only foundation tokens, so it follows the active theme and light or dark appearance.
 
 <Artifact><Canvas of={Stories.Dark} /></Artifact>
-
-This story shows the error page in the dark appearance.
-
-<Artifact><Canvas of={Stories.UnreadableDark} /></Artifact>

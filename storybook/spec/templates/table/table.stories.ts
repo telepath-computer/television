@@ -2,6 +2,7 @@
 // in specs/ui/templates/table.mdx; this file owns independent story markup.
 
 import "../../../../specs/ui/foundation/index.css";
+import "../../../../packages/web/src/elements/menu.ts";
 import "./styles.css";
 import { html, Html } from "../../../lib/html.ts";
 import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
@@ -9,178 +10,233 @@ import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
 const icon = (params: { name: string; size?: string; spinning?: boolean }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
 
-type Value = string | number | boolean | null | Record<string, unknown> | unknown[];
-interface Row { key: string; cells: Record<string, Value> }
-interface Sort { column: string; direction: "ascending" | "descending" }
+interface Column { key: string; name?: string }
+interface Row { key: string; cells: Record<string, string> }
+type Selection =
+  | { kind: "cell"; row: number; column: number }
+  | { kind: "row"; start: number; end: number }
+  | { kind: "column"; start: number; end: number }
+  | null;
 interface Args {
   theme: "light" | "dark";
+  columns: Column[];
   rows: Row[];
-  filter: string;
-  sort: Sort | null;
-  selected: string | null;
+  showHeader: boolean;
+  selection: Selection;
+  menu: "row" | null;
+  editable: boolean;
+  status: "reconnecting" | "save-failed" | null;
   loading: boolean;
   unreadable: boolean;
 }
 
-const parks: Row[] = [
-  { key: "acadia", cells: { Park: "Acadia", State: "Maine", Open: true, Rating: 4.9, Notes: "Granite peaks, woodland paths and the rocky Atlantic coast.", Details: { region: "Northeast" } } },
-  { key: "arches", cells: { Park: "Arches", State: "Utah", Open: true, Rating: 4.8, Notes: "More than two thousand natural sandstone arches.", Details: { region: "West" } } },
-  { key: "everglades", cells: { Park: "Everglades", State: "Florida", Open: false, Rating: 4.6, Notes: "A slow river of grass, mangroves and coastal prairie.", Details: { region: "South" } } },
-  { key: "olympic", cells: { Park: "Olympic", State: "Washington", Open: true, Rating: 4.8, Notes: "Glacier-capped mountains, old-growth rainforest and a wild Pacific shoreline.", Details: { region: "West" } } },
-  { key: "yosemite", cells: { Park: "Yosemite", State: "California", Open: true, Rating: 4.9, Notes: "Waterfalls, deep valleys, grand meadows and ancient giant sequoias.", Details: { region: "West" } } },
-  { key: "zion", cells: { Park: "Zion", State: "Utah", Open: true, Rating: null, Notes: "Sandstone cliffs above a narrow canyon.", Details: { region: "West" } } },
+const blankColumns: Column[] = Array.from({ length: 4 }, (_, index) => ({ key: `virtual-column-${index}` }));
+const blankRows: Row[] = Array.from({ length: 4 }, (_, index) => ({ key: `virtual-row-${index}`, cells: {} }));
+
+const parkColumns: Column[] = [
+  { key: "c1", name: "Park" },
+  { key: "c2", name: "State" },
+  { key: "c3", name: "Open" },
+  { key: "c4", name: "Rating" },
 ];
 
-const textOf = (value: Value) => typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
-const empty = (value: Value | undefined) => value === undefined || value === null || value === "";
-const cellValue = (cells: Record<string, Value>, name: string) => Object.hasOwn(cells, name) ? cells[name] : undefined;
+const parkRows: Row[] = [
+  { key: "r1", cells: { c1: "Acadia", c2: "Maine", c3: "Yes", c4: "4.9" } },
+  { key: "r2", cells: { c1: "Arches", c2: "Utah", c3: "Yes", c4: "4.8" } },
+  { key: "r3", cells: { c1: "Everglades", c2: "Florida", c3: "No", c4: "4.6" } },
+  { key: "r4", cells: { c1: "Olympic", c2: "Washington", c3: "Yes", c4: "4.8" } },
+  { key: "r5", cells: { c1: "Yosemite", c2: "California", c3: "Yes", c4: "4.9" } },
+  { key: "r6", cells: { c1: "Zion", c2: "Utah", c3: "Yes" } },
+];
 
-function columnsOf(rows: Row[]) {
-  const names: string[] = [];
-  for (const row of rows) for (const name of Object.keys(row.cells)) if (!names.includes(name)) names.push(name);
-  return names.map(name => {
-    const values = rows.map(row => cellValue(row.cells, name)).filter(value => !empty(value));
-    return {
-      name,
-      numeric: values.length > 0 && values.every(value => typeof value === "number"),
-      long: values.some(value => typeof value === "string" && value.length > 40),
-    };
-  });
-}
+const unnamedColumns: Column[] = [
+  { key: "c1" },
+  { key: "c2" },
+  { key: "c3" },
+];
 
-function compare(left: Value | undefined, right: Value | undefined) {
-  if (empty(left) || empty(right)) return Number(empty(left)) - Number(empty(right));
-  if (typeof left === "number" && typeof right === "number") return left - right;
-  return textOf(left!).localeCompare(textOf(right!), undefined, { numeric: true, sensitivity: "base" });
-}
+const columnAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-function shownRows(rows: Row[], filter: string, sort: Sort | null) {
-  const query = filter.trim().toLowerCase();
-  let shown = query
-    ? rows.filter(row => Object.values(row.cells).some(value => value != null && textOf(value).toLowerCase().includes(query)))
-    : [...rows];
-  if (sort) {
-    const sign = sort.direction === "descending" ? -1 : 1;
-    shown = shown.sort((left, right) => {
-      const a = cellValue(left.cells, sort.column);
-      const b = cellValue(right.cells, sort.column);
-      const result = compare(a, b);
-      return empty(a) || empty(b) ? result : sign * result;
-    });
+const scheduleRows: Row[] = [
+  { key: "r1", cells: { c1: "Morning", c2: "Train", c3: "08:40" } },
+  { key: "r2", cells: { c1: "Afternoon", c2: "Walk" } },
+  { key: "r3", cells: { c1: "Evening", c3: "Dinner" } },
+];
+
+function columnLetter(index: number): string {
+  let label = "";
+  let value = index + 1;
+  while (value > 0) {
+    value -= 1;
+    label = columnAlphabet[value % columnAlphabet.length] + label;
+    value = Math.floor(value / columnAlphabet.length);
   }
-  return shown;
+  return label;
 }
 
-function cell(value: Value | undefined, long: boolean) {
-  if (empty(value)) return html`<span class="table-muted">—</span>`;
-  if (typeof value === "boolean") return value
-    ? html`<span class="table-yes" aria-label="Yes">${icon({ name: "check" })}</span>`
-    : html`<span class="table-muted">No</span>`;
-  if (typeof value === "number") {
-    const shown = Number.isInteger(value) && Math.abs(value) < 10000 ? String(value) : value.toLocaleString();
-    return html`${shown}`;
-  }
-  if (typeof value === "object") return html`<span class="table-text table-code">${textOf(value)}</span>`;
-  return html`<span class="table-text${long ? " table-text-long" : ""}" title="${value}">${value}</span>`;
+function rowSelected(selection: Selection, row: number): boolean {
+  return selection?.kind === "row" && row >= selection.start && row <= selection.end;
 }
 
-function placeholder(filter: string, loading: boolean) {
-  if (loading) return html`<div class="table-placeholder">${icon({ name: "spinner", size: "md", spinning: true })}</div>`;
-  const query = filter.trim();
-  if (query) return html`
-    <div class="table-placeholder">
-      ${icon({ name: "search", size: "xl" })}
-      <strong>No results</strong>
-      <span>No rows match “${query}”.</span>
-    </div>`;
+function columnSelected(selection: Selection, column: number): boolean {
+  return selection?.kind === "column" && column >= selection.start && column <= selection.end;
+}
+
+function referenceEmphasis(selection: Selection, axis: "row" | "column", index: number): "none" | "related" | "selected" {
+  if (axis === "row" && rowSelected(selection, index)) return "selected";
+  if (axis === "column" && columnSelected(selection, index)) return "selected";
+  if (selection?.kind === "cell" && selection[axis] === index) return "related";
+  return "none";
+}
+
+function cellSelection(selection: Selection, row: number, column: number): "none" | "cell" | "range" {
+  if (selection?.kind === "cell") return selection.row === row && selection.column === column ? "cell" : "none";
+  if (rowSelected(selection, row) || columnSelected(selection, column)) return "range";
+  return "none";
+}
+
+function rowMenu(showHeader: boolean) {
   return html`
-    <div class="table-placeholder">
-      ${icon({ name: "table", size: "xl" })}
-      <strong>No rows</strong>
-      <span>This table is empty.</span>
-    </div>`;
+    <tv-menu class="table-context-menu" trigger="table-row-reference-2" aria-label="Row actions">
+      <tv-menu-item><span>Insert row above</span><kbd>⌘⇧=</kbd></tv-menu-item>
+      <tv-menu-item><span>Insert row below</span></tv-menu-item>
+      <tv-menu-item intent="danger"><span>Delete row</span><kbd>⌘−</kbd></tv-menu-item>
+      <hr>
+      <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+    </tv-menu>`;
 }
 
-const render = ({ theme, rows, filter, sort, selected, loading, unreadable }: Args) => {
+const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, selection, menu, editable, status, loading, unreadable }: Args) => {
   document.documentElement.dataset.theme = theme;
-  if (unreadable) return html`
-  <main class="table-page">
-    <section class="table-unreadable" role="alert">
-      <span class="table-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
-      <h1 class="table-unreadable-title">This table can't be shown</h1>
-      <p class="table-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
-    </section>
-  </main>`;
 
-  const shown = loading ? [] : shownRows(rows, filter, sort);
-  const columns = loading ? [] : columnsOf(rows);
-  const count = !loading && rows.length > 0 ? rows.length === 1 ? "1 row" : `${rows.length.toLocaleString()} rows` : "";
-  return html`
-  <main class="table-page">
-    <header class="table-bar">
-      <span class="table-count" id="count">${count}</span>
-      <label class="table-search">
-        ${icon({ name: "search", size: "sm" })}
-        <input id="filter" type="search" placeholder="Search" aria-label="Search rows" spellcheck="false" value="${filter}">
-      </label>
-    </header>
-    <div class="table-frame" id="frame">
-      <div class="table-scroll" id="scroll" tabindex="0">
-        <table id="table">
-          <thead id="head">${columns.length === 0 ? "" : html`
-            <tr>${columns.map(column => {
-              const active = sort?.column === column.name;
-              return html`
-              <th class="${column.numeric ? "numeric" : ""}" aria-sort="${active ? sort!.direction : "none"}">
-                <button class="table-sort" data-column="${column.name}"${active ? html` data-active data-direction="${sort!.direction}"` : ""}>${column.name}${icon({ name: "collapse-up" })}</button>
-              </th>`;
-            })}</tr>`}</thead>
-          <tbody id="body">${shown.map(row => html`
-            <tr data-key="${row.key}" aria-selected="${row.key === selected}">${columns.map(column => html`
-              <td class="${column.numeric ? "numeric" : ""}">${cell(cellValue(row.cells, column.name), column.long)}</td>`)}</tr>`)}</tbody>
-        </table>
-        <div id="placeholder">${shown.length === 0 ? placeholder(filter, loading) : ""}</div>
+  if (unreadable) return html`
+    <main class="table-page">
+      <section class="table-unreadable" role="alert">
+        <span class="table-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
+        <h1 class="table-unreadable-title">This table can't be shown</h1>
+        <p class="table-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+      </section>
+    </main>`;
+
+  if (loading) return html`
+    <main class="table-page" data-editable="${editable}">
+      <div class="table-loading" role="status" aria-label="Loading table">
+        ${icon({ name: "spinner", size: "md", spinning: true })}
       </div>
-      <div class="table-edge table-edge-start"></div>
-      <div class="table-edge table-edge-end"></div>
-    </div>
-  </main>`;
+    </main>`;
+
+  const columns = storedColumns.length === 0 ? blankColumns : storedColumns;
+  const rows = storedRows.length === 0 ? blankRows : storedRows;
+  const referencesVisible = selection !== null;
+
+  return html`
+    <main class="table-page" data-editable="${editable}">
+      <div class="table-frame" data-reference-visible="${referencesVisible ? "shown" : "hidden"}">
+        <div class="table-scroll">
+          <div class="table-sheet" style="--table-column-count: ${columns.length}">
+            <div class="table-reference-corner" aria-hidden="true"></div>
+            <div class="table-column-strip table-reference-strip" aria-label="Column references">
+              ${columns.map((_, columnIndex) => html`
+                <div class="table-column-reference-item">
+                  <button
+                    type="button"
+                    class="table-reference-item"
+                    id="table-column-reference-${columnIndex + 1}"
+                    data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
+                    aria-label="Select column ${columnLetter(columnIndex)}"
+                    aria-haspopup="menu"
+                    aria-selected="${columnSelected(selection, columnIndex)}"
+                    tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
+                  >${columnLetter(columnIndex)}</button>
+                </div>`)}
+              ${editable ? html`<div class="table-column-add-item">
+                <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end">+</button>
+              </div>` : ""}
+            </div>
+            <div class="table-row-strip table-reference-strip${showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references">
+              ${rows.map((_, rowIndex) => html`
+                <div class="table-row-reference-item">
+                  <button
+                    type="button"
+                    class="table-reference-item"
+                    id="table-row-reference-${rowIndex + 1}"
+                    data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
+                    aria-label="Select row ${rowIndex + 1}"
+                    aria-haspopup="menu"
+                    aria-selected="${rowSelected(selection, rowIndex)}"
+                    tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
+                  >${rowIndex + 1}</button>
+                </div>`)}
+              ${editable ? html`<div class="table-row-add-item">
+                <button type="button" class="table-reference-item table-add-item" aria-label="Add row at end" title="Add row at end">+</button>
+              </div>` : ""}
+            </div>
+            <table class="table-grid" role="grid" aria-label="Editable table" aria-rowcount="${rows.length}" aria-colcount="${columns.length}">
+              <colgroup>${columns.map(() => html`<col class="table-data-column">`)}</colgroup>
+              ${showHeader ? html`
+                <thead>
+                  <tr>${columns.map((column, columnIndex) => html`
+                    <th class="table-header" scope="col" data-axis-selected="${columnSelected(selection, columnIndex)}" aria-selected="${columnSelected(selection, columnIndex)}">
+                      <div class="table-header-content">
+                        <button type="button" class="table-header-button" aria-label="Select column ${columnLetter(columnIndex)} name" tabindex="-1"><span>${column.name ?? ""}</span></button>
+                      </div>
+                    </th>`)}</tr>
+                </thead>` : ""}
+              <tbody>${rows.map((row, rowIndex) => html`
+                <tr>${columns.map((column, columnIndex) => {
+                  const state = cellSelection(selection, rowIndex, columnIndex);
+                  return html`
+                    <td
+                      class="table-cell"
+                      role="gridcell"
+                      data-selection="${state}"
+                      aria-selected="${state !== "none"}"
+                      tabindex="${state === "cell" ? 0 : -1}"
+                    ><span>${row.cells[column.key] ?? ""}</span></td>`;
+                })}</tr>`)}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      ${menu === "row" && editable ? rowMenu(showHeader) : ""}
+      <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : status === "save-failed" ? "Couldn't save that change." : ""}</div>
+    </main>`;
 };
 
 type Play = { canvasElement: HTMLElement };
-function setEdges(frame: HTMLElement, scroll: HTMLElement) {
-  const more = scroll.scrollWidth - scroll.clientWidth;
-  frame.toggleAttribute("data-more-start", more > 1 && scroll.scrollLeft > 1);
-  frame.toggleAttribute("data-more-end", more > 1 && scroll.scrollLeft < more - 1);
-}
-
-const settle = ({ canvasElement }: Play) => {
-  const frame = canvasElement.querySelector<HTMLElement>(".table-frame");
-  const scroll = canvasElement.querySelector<HTMLElement>(".table-scroll");
-  if (frame && scroll) setEdges(frame, scroll);
-};
 
 const focusSelection = ({ canvasElement }: Play) => {
-  settle({ canvasElement });
-  canvasElement.querySelector<HTMLElement>(".table-scroll")?.focus();
+  canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-reference-item[aria-selected="true"]')?.focus();
 };
 
-const scrollSideways = ({ canvasElement }: Play) => {
-  const frame = canvasElement.querySelector<HTMLElement>(".table-frame");
-  const scroll = canvasElement.querySelector<HTMLElement>(".table-scroll");
-  if (!frame || !scroll) return;
-  scroll.scrollLeft = 180;
-  setEdges(frame, scroll);
+const beginEditing = ({ canvasElement }: Play) => {
+  const cell = canvasElement.querySelector<HTMLElement>('[data-selection="cell"]');
+  const text = cell?.querySelector("span");
+  if (!cell || !text) throw new Error("Editing story has no selected cell");
+  const input = cell.ownerDocument.createElement("input");
+  input.className = "table-input table-cell-input";
+  input.type = "text";
+  input.value = text.textContent ?? "";
+  input.setAttribute("aria-label", "Edit row 4, column A");
+  input.spellcheck = false;
+  text.replaceWith(input);
+  cell.dataset.editing = "true";
+  input.focus();
+  input.select();
 };
 
-const manyRows: Row[] = Array.from({ length: 80 }, (_, index) => {
-  const park = parks[index % parks.length]!;
-  return { key: `${park.key}-${index}`, cells: { ...park.cells, Visit: index + 1 } };
-});
+const openRowMenu = async ({ canvasElement }: Play) => {
+  const trigger = canvasElement.querySelector<HTMLButtonElement>("#table-row-reference-2");
+  const menu = canvasElement.querySelector<HTMLElement>("tv-menu");
+  if (!trigger || !menu) throw new Error("Menu story has no trigger or menu");
+  await customElements.whenDefined("tv-menu");
+  trigger.focus();
+  menu.setAttribute("open", "");
+  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+};
 
 const viewports = {
   artifact: { name: "Artifact, shared starting size", styles: { width: "760px", height: "770px" }, type: "desktop" },
-  narrow: { name: "Narrow artifact", styles: { width: "400px", height: "600px" }, type: "mobile" },
 };
 
 export default {
@@ -192,21 +248,31 @@ export default {
   },
   globals: { viewport: { value: "artifact", isRotated: false } },
   render,
-  args: { theme: "light", rows: parks, filter: "", sort: null, selected: null, loading: false, unreadable: false } satisfies Args,
+  args: {
+    theme: "light",
+    columns: parkColumns,
+    rows: parkRows,
+    showHeader: true,
+    selection: null,
+    menu: null,
+    editable: true,
+    status: null,
+    loading: false,
+    unreadable: false,
+  } satisfies Args,
 };
 
-export const WithRows = { name: "With rows", play: settle };
-export const New = { args: { rows: [] }, play: settle };
-export const Filtered = { args: { filter: "Utah" }, play: settle };
-export const NoResults = { name: "No results", args: { filter: "Redwood" }, play: settle };
-export const Sorted = { args: { sort: { column: "Rating", direction: "ascending" } }, play: settle };
-export const Selected = { args: { selected: "olympic" }, play: focusSelection };
-export const ManyRows = { name: "Many rows", args: { rows: manyRows }, play: settle };
-export const Narrow = {
-  globals: { viewport: { value: "narrow", isRotated: false } },
-  play: scrollSideways,
-};
-export const Loading = { args: { rows: [], loading: true }, play: settle };
+export const Blank = { args: { columns: [], rows: [], showHeader: false } };
+export const WithData = { name: "With data" };
+export const HeaderOff = { name: "Header off", args: { columns: unnamedColumns, rows: scheduleRows, showHeader: false } };
+export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } }, play: focusSelection };
+export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } }, play: focusSelection };
+export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
+export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: openRowMenu };
+export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const Loading = { args: { columns: [], rows: [], loading: true } };
 export const Unreadable = { args: { unreadable: true } };
-export const Dark = { args: { theme: "dark" }, play: settle };
-export const UnreadableDark = { name: "Unreadable, dark", args: { theme: "dark", unreadable: true } };
+export const Dark = { args: { theme: "dark", selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
