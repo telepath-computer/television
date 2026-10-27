@@ -30,6 +30,16 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect((await body.boundingBox())!.y).toBeCloseTo(searchBox.y + searchBox.height);
   expect((await tiles.first().boundingBox())!.y).toBeGreaterThan(searchBox.y + searchBox.height);
   await expect(footer).toBeVisible();
+  const footerPaddingDifference = async () => {
+    const footerHeight = (await footer.boundingBox())!.height;
+    const padding = await body.evaluate(element => Number.parseFloat(getComputedStyle(element).paddingBottom));
+    return Math.abs(footerHeight - padding);
+  };
+  await expect.poll(footerPaddingDifference).toBeLessThan(1);
+  await footer.evaluate(element => { element.style.fontSize = "24px"; });
+  await expect.poll(footerPaddingDifference).toBeLessThan(1);
+  await footer.evaluate(element => { element.style.removeProperty("font-size"); });
+  await expect.poll(footerPaddingDifference).toBeLessThan(1);
   const footerBox = (await footer.boundingBox())!;
   await expect(search).toBeFocused();
   await expect(search).toHaveAttribute("aria-haspopup", "grid");
@@ -48,13 +58,22 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await search.fill("  ITEM 0  ");
   await expect(tiles).toHaveCount(10);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
-  for (const modifier of ["shiftKey", "altKey", "metaKey", "ctrlKey"] as const) {
-    const claimed = await search.evaluate((input, modified) => {
-      const event = new KeyboardEvent("keydown", { key: "ArrowLeft", [modified]: true, bubbles: true, cancelable: true });
+  for (const key of ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]) {
+    for (const modifier of ["shiftKey", "altKey", "metaKey", "ctrlKey"] as const) {
+      const claimed = await search.evaluate((input, options) => {
+        const event = new KeyboardEvent("keydown", { key: options.key, [options.modifier]: true, bubbles: true, cancelable: true });
+        input.dispatchEvent(event);
+        return event.defaultPrevented;
+      }, { key, modifier });
+      expect(claimed).toBe(false);
+      await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+    }
+    const claimedDuringComposition = await search.evaluate((input, composedKey) => {
+      const event = new KeyboardEvent("keydown", { key: composedKey, isComposing: true, bubbles: true, cancelable: true });
       input.dispatchEvent(event);
       return event.defaultPrevented;
-    }, modifier);
-    expect(claimed).toBe(false);
+    }, key);
+    expect(claimedDuringComposition).toBe(false);
     await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   }
   const queryEnd = await search.evaluate((input: HTMLInputElement) => {
@@ -64,6 +83,12 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await search.press("Shift+ArrowLeft");
   expect(await search.evaluate((input: HTMLInputElement) => [input.selectionStart, input.selectionEnd])).toEqual([queryEnd - 1, queryEnd]);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  const firstEndpointClaimed = await search.evaluate(input => {
+    const event = new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true, cancelable: true });
+    input.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(firstEndpointClaimed).toBe(true);
   await search.press("ArrowLeft");
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowRight");
@@ -89,6 +114,14 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await expect(tiles.nth(4)).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowLeft");
   await expect(tiles.nth(3)).toHaveAttribute("aria-selected", "true");
+  for (let index = 0; index < 10; index++) await search.press("ArrowRight");
+  await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  const lastEndpointClaimed = await search.evaluate(input => {
+    const event = new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true });
+    input.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(lastEndpointClaimed).toBe(true);
   await search.fill("");
   await search.press("ArrowUp");
   await expect(search).not.toHaveAttribute("aria-activedescendant");
@@ -100,8 +133,22 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await set(page, items.slice(2));
   await expect(search).not.toHaveAttribute("aria-activedescendant");
   await expect(search).toBeFocused();
-  await tiles.nth(19).hover();
+  const partlyCoveredTile = tiles.nth(19);
+  await body.evaluate((element, index) => {
+    const tile = element.querySelectorAll<HTMLElement>('[role="gridcell"]')[index]!;
+    const footerElement = document.querySelector<HTMLElement>(".toolbox-footer")!;
+    element.scrollTop += tile.getBoundingClientRect().bottom - footerElement.getBoundingClientRect().top - 12;
+  }, 19);
+  const coveredTileBox = (await partlyCoveredTile.boundingBox())!;
+  const coveredFooterBox = (await footer.boundingBox())!;
+  expect(coveredTileBox.y).toBeLessThan(coveredFooterBox.y);
+  expect(coveredTileBox.y + coveredTileBox.height).toBeGreaterThan(coveredFooterBox.y);
+  const scrollBeforeHover = await body.evaluate(element => element.scrollTop);
+  await page.mouse.move(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y - 2);
   await expect(tiles.nth(19)).toHaveAttribute("aria-selected", "true");
+  expect(await body.evaluate(element => element.scrollTop)).toBe(scrollBeforeHover);
+  await page.mouse.click(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y + 2);
+  expect(await actions(page)).toEqual([]);
   await search.press("ArrowDown");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
   await tiles.nth(2).hover();

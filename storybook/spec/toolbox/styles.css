@@ -45,10 +45,10 @@
 .toolbox-body {
   min-height: 0;
   overflow-y: auto;
-  /* The footer floats over the grid, so the trailing space lets the last row
-     scroll completely clear of it. */
-  padding: var(--space-6) 0 64px;
-  scroll-padding-bottom: 64px;
+  /* The footer floats over the grid, so the trailing space lets the end of
+     the scrolling content move completely clear of it. */
+  padding: var(--space-6) 0 var(--toolbox-footer-height, 64px);
+  scroll-padding-bottom: var(--toolbox-footer-height, 64px);
 }
 
 /* A translucent bar floats over the scrolling grid like a macOS window bar. */
@@ -65,6 +65,8 @@
   backdrop-filter: blur(14px) saturate(1.6);
   font-size: var(--text-md);
   color: var(--color-text-muted);
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .toolbox-grid {

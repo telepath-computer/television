@@ -25,6 +25,8 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   #activate: Activate | undefined;
   #panel: HTMLElement | null = null;
   #observer: MutationObserver | null = null;
+  #footer: HTMLElement | null = null;
+  #footerObserver: ResizeObserver | null = null;
   #open = false;
   readonly #selection = new ToolboxSelection<AppTemplate>();
   #pressed: string | null = null;
@@ -38,6 +40,9 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   disconnected(): void {
     this.#observer?.disconnect();
     this.#observer = null;
+    this.#footerObserver?.disconnect();
+    this.#footerObserver = null;
+    this.#footer = null;
     this.#panel = null;
     this.#source?.removeEventListener("change", this.#cacheChanged);
     this.#source?.setOpen(false);
@@ -63,6 +68,24 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     });
     this.#observer.observe(this.#panel, { attributes: true, attributeFilter: ["open"] });
   };
+
+  readonly #observeFooter = (element: Element | undefined): void => {
+    const footer = element instanceof HTMLElement ? element : null;
+    if (footer === this.#footer) return;
+    this.#footerObserver?.disconnect();
+    this.#footerObserver = null;
+    this.#footer = footer;
+    if (!footer) return;
+    this.#syncFooterHeight();
+    if (typeof ResizeObserver === "undefined") return;
+    this.#footerObserver = new ResizeObserver(() => this.#syncFooterHeight());
+    this.#footerObserver.observe(footer);
+  };
+
+  #syncFooterHeight(): void {
+    if (!this.#panel || !this.#footer) return;
+    this.#panel.style.setProperty("--toolbox-footer-height", `${this.#footer.getBoundingClientRect().height}px`);
+  }
 
   readonly #cacheChanged = (): void => {
     this.render();
@@ -96,8 +119,9 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     }
     const direction = ARROW_DIRECTIONS[event.key];
     if (!direction || this.#selection.matches.length === 0) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) return;
     const horizontal = direction === "left" || direction === "right";
-    if (horizontal && (this.#selection.highlighted === null || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing)) return;
+    if (horizontal && this.#selection.highlighted === null) return;
     event.preventDefault();
     event.stopPropagation();
     this.#selection.move(direction);
@@ -110,7 +134,6 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     if (this.#selection.highlighted === id) return;
     this.#selection.highlighted = id;
     this.render();
-    this.#revealHighlight();
   };
 
   readonly #pointerDown = (event: PointerEvent): void => {
@@ -228,7 +251,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
             </div>
           ` : nothing}
         </div>
-        <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
+        <p class="toolbox-footer" ${ref(this.#observeFooter)}>Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
       </tv-popover>
     `;
   }

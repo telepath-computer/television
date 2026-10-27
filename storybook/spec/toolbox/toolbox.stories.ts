@@ -121,7 +121,13 @@ export default {
   title: "Spec/Toolbox",
   render,
   args: { open: true, hasList: true, search: "", items, highlighted: null, pressed: null, invalid: [], folderError: null } satisfies Args,
-  play: ({ canvasElement, args }: { canvasElement: HTMLElement; args: Args }) => {
+  play: async ({ canvasElement, args }: { canvasElement: HTMLElement; args: Args }) => {
+    const panel = canvasElement.querySelector<HTMLElement>(".toolbox-popover");
+    const footer = canvasElement.querySelector<HTMLElement>(".toolbox-footer");
+    if (panel && footer) {
+      await canvasElement.ownerDocument.fonts.ready;
+      panel.style.setProperty("--toolbox-footer-height", `${footer.getBoundingClientRect().height}px`);
+    }
     if (args.open) canvasElement.querySelector<HTMLInputElement>(".toolbox-search input")?.focus();
   },
 };

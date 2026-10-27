@@ -9,7 +9,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
 - `spec-migration.md` (59 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
 - `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
-- `spec-ui.md` (40 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
+- `spec-ui.md` (42 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
 - `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The workshop for retained frame and template UI specs: the frameset viewer, the frames tree, and their staging conventions.*
 - `terms.md` (205 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
