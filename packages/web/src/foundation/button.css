@@ -212,6 +212,16 @@
   padding: var(--space-2);
 }
 
+:where(button[size="lg"]) {
+  font-size: var(--text-lg);
+  line-height: var(--line-control-lg);
+  padding: var(--space-8) var(--space-20);
+}
+
+:where(button[size="lg"][icon]) {
+  padding: var(--space-8);
+}
+
 /* A sized control sizes the icon it holds: whatever size the composer put on
    the icon, the control's own wins — `tv-icon[size]` names a fixed pixel
    size, so left alone the icon would ignore the control shrinking around it.

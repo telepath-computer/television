@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildRemoteURL, normalizeConnectURL, resolveDesktopAppVersion } from "../src/connect-url.ts";
+import { buildRemoteURL, normalizeConnectURL, parseDesktopConnectURL, resolveDesktopAppVersion } from "../src/connect-url.ts";
 
 describe("normalizeConnectURL", () => {
   it("accepts explicit http URLs", () => {
@@ -20,6 +20,20 @@ describe("normalizeConnectURL", () => {
     expect(() => normalizeConnectURL("ftp://example.com")).toThrow(/valid http or https/i);
     expect(() => normalizeConnectURL("not a url!!!")).toThrow(/valid http or https/i);
   });
+});
+
+// proofs/arch/desktop/connect-flow.md#^desktop-t-connect-link
+// Pure parser boundary: authored links, no mechanism replacements.
+it("reads one link as an HTTP origin and its decoded token", () => {
+  for (const [link, serverURL, token] of [
+    ["http://example.test/path?extra=yes&token=a%2Bb%26c", "http://example.test", "a+b&c"],
+    ["https://example.test:8443/deep?token=secret#fragment", "https://example.test:8443", "secret"],
+    ["example.test", "http://example.test", null],
+    ["localhost:32848/?ignored=yes", "http://localhost:32848", null],
+  ]) expect(parseDesktopConnectURL(link!)).toEqual({ serverURL, token });
+  for (const link of ["", "not a url!!!", "ftp://example.test", "file:///tmp/example", "mailto:person@example.test"]) {
+    expect(() => parseDesktopConnectURL(link)).toThrow(/valid http or https/i);
+  }
 });
 
 // Contract tests for the shell's desktopAppVersion resolution

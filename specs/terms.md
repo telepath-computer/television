@@ -46,6 +46,10 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *bridge* (artifact bridge) — the injected in-frame script, Electron preload behavior, and host-side handling that carry lifecycle, navigation, keyboard, and content-update messages across the iframe/webview boundary. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *readiness tracking* (*readiness gate*) — the lifecycle bookkeeping of a frame's most recently adopted, not-yet-retired document identity (normally the current document's); knowledge only, never a shield on the frame. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *bridge document GUID* — a random per-load identity stamped on bridge lifecycle messages so the host can distinguish the displayed document from stale messages sent by a document that is leaving. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
+- *sandbox header* — the `Content-Security-Policy: sandbox` header, without `allow-same-origin`, that the server sends with every artifact document and theme file so the document runs with an opaque origin. Owned by [arch/artifact-frame/isolation.md](arch/artifact-frame/isolation.md).
+- *artifact partition* — the persistent Electron partition the desktop app gives each artifact a connected server serves from its own files, keyed by the server's origin and the artifact's ID. Owned by [arch/desktop/artifact-partitions.md](arch/desktop/artifact-partitions.md).
+- *URL-artifact partition* — the one persistent Electron partition every external page artifact and shared artifact uses in the desktop app, whatever server it is connected to. Owned by [arch/desktop/artifact-partitions.md](arch/desktop/artifact-partitions.md).
+- *fallback partition* — the persistent Electron partition the desktop app gives the webviews of a served interface that names no partition, so that no webview uses the window's session. Owned by [arch/desktop/artifact-partitions.md](arch/desktop/artifact-partitions.md).
 - *navigation-key message* — the bridge message forwarding the navigation chord (option+arrow on macOS, ctrl+arrow on Windows/Linux) out of an embedded document. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *ready message* — the `bridge-ready` lifecycle message by which a loaded document asks the host to trust its bridge. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *leaving message* — the `leaving` lifecycle message by which a document tells the host it is entering `pagehide` and its trust should be retired if it is still the trusted document. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
@@ -85,8 +89,9 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *Television home* (also *home*) — the directory holding one Television installation: its optional config file and all the state and content the server keeps. Selected by `--home`, otherwise the default home; distinct from the operating-system home directory. Owned by [product/cli.md](product/cli.md#^cli-home).
 - *default home* — the Television home a command uses when it is given no `--home`: the directory named in `~/.tv-home` when that file exists, otherwise `~/.television`. Owned by [product/cli.md](product/cli.md#^cli-home-selection); `~/.tv-home` by [product/cli.md](product/cli.md#^cli-home-pointer).
 - *config file* — a home's optional `config.json`, holding the settings the server and local commands share: port, additional listeners, authentication, and the installed-by agent. Owned by [product/cli.md](product/cli.md#^cli-config-file); its reader and writer by [arch/cli/index.md](arch/cli/index.md).
+- *connect link* — the URL a person opens to use Television, in a browser or the desktop app: the server's origin for one listening address, with `/?token=<token>` when the server requires the bearer token. Owned by [product/cli.md](product/cli.md#^cli-connect-link).
 - *directive error* — a usage error the CLI itself detects while parsing arguments or validating whether a command and its options can be dispatched. Owned by `product/cli.md`.
-- *focus directive* — a creation-command flag that asks for the new channel or artifact to be shown immediately. CLI spelling and signal emission are owned by [product/cli.md](product/cli.md); the resulting focus behavior by the product owner below.
+- *focus directive* — a creation- or move-command flag that asks for the new channel, or the new or moved artifact, to be shown immediately. CLI spelling and signal emission are owned by [product/cli.md](product/cli.md); the resulting focus behavior by the product owner below.
 - *channel focus* — the persisted active channel. Owned by [product/channels.md](product/channels.md) and its shared-state contracts.
 - *artifact focus* — a transient one-shot request to select an artifact's tab page, switching to its channel when needed, with no highlight effect. Owned by [product/tab-pages.md#^tp-focus-selects](product/tab-pages.md#^tp-focus-selects); CLI request syntax is [product/cli.md](product/cli.md)'s.
 - *bundled skill collection* — the Television agent skills shipped beside the built CLI. Membership is defined by `packages/skills/skills.json`; shipping and installation behavior is owned by `product/cli.md` and `arch/cli/index.md`.
@@ -95,6 +100,9 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 ## Desktop
 
 - *desktop application* — defined and owned by [product/desktop-app.md](product/desktop-app.md).
+- *setup screen* — the desktop app's connect screen when it has no saved server connection. Owned by [ui/setup/index.md](ui/setup/index.md).
+- *local page* — the desktop app's packaged `connect.html`, which shows the setup screen and the connection dialogs while a saved connection is starting. Owned by [arch/desktop/connect-flow.md](arch/desktop/connect-flow.md#^desktop-local-page).
+- *Disconnect from Server* — the desktop app's command that forgets the saved connection and returns to the setup screen. Owned by [arch/desktop/connect-flow.md](arch/desktop/connect-flow.md#^desktop-disconnect-server).
 - *Electron runtime* — defined and owned by [arch/desktop/runtime.md](arch/desktop/runtime.md).
 - *valid Electron runtime* — defined and owned by [arch/desktop/runtime.md](arch/desktop/runtime.md).
 - *upload directory* — defined and owned by [arch/desktop/distribution.md](arch/desktop/distribution.md).
@@ -156,10 +164,30 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *onboarding channel* — a bundled starter channel Television installs exactly once per Television home. Owned by `product/onboarding/onboarding-channels.md`.
 - *channel slug* — the stable identity key of an onboarding channel across releases, data directories, and browsers; the content folder name. Owned by `arch/onboarding/content.md`.
 - *artifact slug* — the stable identity key of an onboarding artifact within its channel. Owned by `arch/onboarding/content.md`.
+- *copy name* — `television-onboarding--<channel-slug>--<artifact-slug>`, the deterministic name of an installed onboarding artifact's copied content. Owned by `arch/onboarding/installer.md`.
 - *onboarding config* — the root config file in the bundled content tree that owns channel install order, the designated focus channel, display names, artifact titles, and each channel's initial tab-page order. Owned by `arch/onboarding/content.md`.
 - *bake* — the manually-run script that ports an onboarding channel design from the UI spec's design sources into the bundled content tree and config; its output is committed and reviewed like any other content change. Owned by `arch/onboarding/bake.md`.
 - *onboarding state file* — `state/onboarding.json`, the per-data-directory record of which channel slugs have been received. Owned by `arch/onboarding/installer.md`.
 - *onboarding channel marker* — the `onboarding` field persisted in a channel's metadata, carrying its slug. Owned by `arch/onboarding/installer.md`.
+
+## Resources
+
+- *resource* — something the server keeps on behalf of artifacts and agents, with a lifetime independent of any artifact. Owned by [product/resources/resources.md](product/resources/resources.md).
+- *resource ID* — the random ID every resource is given when it is created, unrelated to any artifact's ID; a resource has no name, so its resource ID is the only way to address it. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-resource-id).
+- *resource type* — what a resource holds and which operations it offers; Television has one, `json`. Owned by [product/resources/resources.md](product/resources/resources.md).
+- *JSON store* — a resource of type `json`: one persistent JSON value. Owned by [product/resources/json-store.md](product/resources/json-store.md).
+- *artifact's store*, *own store* — the JSON store that belongs to one local path artifact, which its pages use by default and its record points to; an ordinary store that its owner is bound to at `read-write`, implicitly. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-own-store).
+- *share link* — an address, `/artifact/<share-id>/`, that reaches one artifact at one access level; an artifact has at most one. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-share).
+- *share ID* — the random ID in a share link, separate from the artifact's own ID. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-share-id).
+- *access level* — `read` or `read-write`, carried by every ID that reaches an artifact and stated by every binding. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-id-levels).
+- *bindings flag* — the constant in the shipped code, off by default, that makes creating stores explicitly and binding them to artifacts available. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-flag).
+- *description* — the required line that says what a resource holds and what uses it. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-usage).
+- *usage* — a resource's free-text account of its content's structure and the rules its readers and writers follow, written by an agent. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-usage).
+- *binding* — a grant of one artifact's access to one store, by its resource ID, at one access level; an owner's binding to its own store is implicit, and the others need the bindings flag. Owned by [product/resources/resources.md](product/resources/resources.md#^rs-binding).
+- *resource layer* — the part of Television every resource type shares: resource IDs, descriptions, storage, artifacts' stores and share links, access checks, routes, connections, events, and the common CLI commands. Owned by [arch/resources/index.md](arch/resources/index.md).
+- *page connection* — the WebSocket an artifact's page uses for all its resource traffic, authorized by the artifact ID or share ID in its path. Owned by [arch/resources/index.md](arch/resources/index.md#^rs-page-connection).
+- *resource SDK* — the browser module at `/sdk/v1/resources.js` through which an artifact's page uses its store. Owned by [arch/resources/sdk.md](arch/resources/sdk.md).
+- *resource guidance document* — `resources.md` in the `television` skill, which teaches agents to use an artifact's store and share links. Owned by [arch/resources/guidance.md](arch/resources/guidance.md).
 
 ## Licensing
 

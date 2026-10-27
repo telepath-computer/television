@@ -3,8 +3,8 @@
  * `import sheet from "./x.css" with { type: "css" }` yields a constructed
  * `CSSStyleSheet` holding the file's rules, and every importer of the same
  * file receives the same instance. The transform compiles the platform's
- * CSS module script syntax so those semantics hold across the app build,
- * tests, and Storybook regardless of native browser support.
+ * CSS module script syntax so those semantics hold across app builds and
+ * tests regardless of native browser support.
  *
  * Two stages:
  *

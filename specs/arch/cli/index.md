@@ -44,6 +44,7 @@ export function resolveCanonicalDir(): string | undefined;
 export function resolveOnboardingContentPath(): string | undefined;
 export function resolveBundledThemesPath(): string | undefined;
 export function resolveBundledSkillsRoot(): string | undefined;
+export function resolveSdkDir(): string | undefined;
 
 export function listVisibleCLICommandNames(): string[];
 export function runCLI(
@@ -68,14 +69,14 @@ import type { TelevisionClient } from "@telepath-computer/television-shared";
 
 export type Writable = {
   write(chunk: string | Uint8Array): unknown;
+  /** True when the stream is an interactive terminal; decides link formatting. */
+  isTTY?: boolean;
 };
 
 export type CLIServer = Pick<
   Server,
-  "start" | "dispose" | "getBaseURL" | "getAuthToken"
-> & {
-  getBaseURLs?: () => string[];
-};
+  "start" | "dispose" | "getAuthToken" | "getOrigins" | "getListeningPort"
+>;
 
 export type CLIServerOptions = {
   home: string; // absolute Television home
@@ -88,8 +89,10 @@ export type CLIServerOptions = {
   bundledViewsPath?: string;
   onboardingContentPath?: string;
   bundledThemesPath?: string;
+  sdkDir?: string;
   acpProfile?: ACPAgentProfile;
   launchMode: LaunchMode;
+  resourceBindings: boolean; // the bindings flag (resources/index.md)
 };
 
 export type CLIDaemonOptions = {
@@ -111,6 +114,9 @@ export interface CLIEnvironment {
   resolveOnboardingContentPath: () => string | undefined;
   resolveBundledThemesPath: () => string | undefined;
   resolveBundledSkillsRoot: () => string | undefined;
+  resolveSdkDir: () => string | undefined;
+  /** The bindings flag; RESOURCE_BINDINGS_ENABLED by default, and only tests replace it. */
+  resourceBindings: boolean;
   resolveHomeDir: () => string; // the operating-system home directory, not the Television home
   runSkillsInstaller: (args: string[]) => Promise<void>;
   emitSkillInstalledTelemetry: (
@@ -239,11 +245,13 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 
 | Command | Client call(s) |
 |---|---|
-| `create-path-artifact` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID })`; if focused, `client.display.focus({ artifactID })`. |
-| `create-url-artifact` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID })`; if focused, `client.display.focus({ artifactID })`. |
+| `create-path-artifact` | `client.artifacts.create({ kind: "path", path: opts.path.trim(), title, channelID, before?, after? })`; if focused, `client.display.focus({ artifactID })`. |
+| `create-url-artifact` | `client.artifacts.create({ kind: "url", url: opts.url.trim(), title, channelID, before?, after? })`; if focused, `client.display.focus({ artifactID })`. |
 | `update-artifact` | `client.artifacts.update({ artifactID, title?, path?: opts.path.trim(), url?: opts.url.trim() })`. |
 | `delete-artifact` | `client.artifacts.delete({ artifactID })`. |
 | `get-artifact` | `client.artifacts.get({ artifactID })`. |
+| `reposition-artifact` | `client.channels.list()` to find the channel whose layout holds the artifact, then `client.channels.update({ channelID, layout })` with that channel's layout, changed only in the page that holds the artifact. A page moved by `--position` is removed from the list and inserted at index `n − 1`; one moved by `--before` or `--after` is removed and inserted immediately before or after the page holding the named artifact. The CLI checks the options, including that the position is within the channel's page count and that the named artifact is on the channel, before the update, so a rejected command sends no update. When the update is refused with HTTP 409 because the channel's membership changed after the list, the command reports the product's changed-channel error rather than the server's message. |
+| `move-artifact` | `client.artifacts.move({ artifactID, channelID, before?, after? })`, which reports whether the artifact moved, was repositioned on the channel already holding it, or was already in place; if focused, `client.display.focus({ artifactID })`. |
 | `list-artifacts` | `client.artifacts.list({})` or `client.artifacts.list({ channelID })`. |
 | `create-channel` | `client.channels.create({ name })`; if focused, `client.display.patch({ focusedChannelId: channel.id })`. |
 | `update-channel` | `client.channels.update({ channelID, name })`. The command passes both values unchanged and formats the returned channel's id and name in its success output. |
@@ -255,10 +263,18 @@ The CLI contract with `TelevisionClient` is the exact set of client calls each c
 | `set-theme` | First attempt `client.display.get()` to capture the selection in effect when the command began; a failure marks the previous selection unavailable and does not abort. For any case-insensitive spelling of `none`, call `client.display.patch({ activeThemeName: null })` without refreshing. Otherwise preserve the theme ID argument exactly, call `client.themes.refresh()`, report an error when the refreshed registry contains one for that exact theme ID, then call `client.display.patch({ activeThemeName: themeID })`. After a successful patch, print the applicable success form below. |
 | `focus-artifact` | `client.display.focus({ artifactID })`. |
 | `status` | `client.health()`, then `client.telemetry.status()`, inside a health check that catches all errors. Health fields are assigned before the telemetry call, so a telemetry failure preserves `healthy: true`, `version`, `bindAddresses`, and `port` while omitting `telemetry`. `home` comes from the invocation's resolved home, and the config read and client-port rule run before the health check, so their failures are command errors rather than `healthy: false`. |
+| `links` | `client.health()`, then an authenticated request through the client to learn whether the running server accepts the home's token, and an unauthenticated one to learn whether it requires a token at all. Each origin in the health response's `origins` ([the server's origins](#^cli-server-origins)) becomes `buildConnectURL(origin, token)`, in the order the response gives them, where `token` is the `readAuthToken(home)` value when the server requires a token and `null` otherwise. A failed health request, or a `401` for the home's token, is a command error. The config file's `auth` setting does not decide token inclusion, because the server reads it only at startup. |
+| `serve --persist` | After `daemon.install()` resolves, `client.health()` until a call resolves or the [health-check deadline](#^cli-persist-health-check) passes; then, when it [prints links](#^cli-persist-links-calls), the calls `links` makes. |
 | `telemetry enable` | `client.telemetry.enable()`. |
 | `telemetry disable` | `client.telemetry.disable()`. |
+| `resource` and its subcommands | The calls the [resource architecture](../resources/index.md#^rs-cli-integration) and the [JSON store architecture](../resources/json-store.md#^js-arch-cli) define. |
+| `share-artifact`, `unshare-artifact` | The calls the [resource architecture](../resources/index.md#^rs-share-cli-integration) defines. |
+
+Every link the CLI prints — the connect links `tv serve` and `tv serve --persist` print, `tv links` output and the share links `tv share-artifact` prints — passes through one formatter that wraps it as an OSC-8 hyperlink only when the output stream it writes to reports `isTTY` as `true`, and writes the plain URL otherwise ([product link output](../../product/cli.md#^cli-link-output)).
 
 The health response may supply an exact release version. `tv status` copies that value unchanged, including the `0.0.0` development sentinel, and omits `version` when the health response does not supply the field. Other health fields pass through unchanged.
+
+**Buffer: the server's origins.** After `start()`, `Server.getOrigins()` returns the origins the server can be reached at ([connect links](../../product/cli.md#^cli-connect-link)): for each resolved bind address in order, `http://<address>:<port>` with the port it bound, except that `0.0.0.0` becomes one origin for each IPv4 address that `os.networkInterfaces()` reports when it is called, in that order, loopback included. An origin that would repeat appears once. `GET /health` carries the list as `origins`, beside `bindAddresses` and `port`, and the share reply carries it with the link's path ([resources](../resources/index.md#^rs-share-cli-integration)). `/health` answers without the token, so anyone who can reach the server can read the machine's IPv4 addresses when it listens on `0.0.0.0`; serving the list from a response that requires the token is [TV-952](https://linear.app/telepath-computer/issue/TV-952). The server's other routes stay code-authoritative. ^cli-server-origins
 
 Help and user-facing command documentation describe `none` as using no theme, without the internal term `null theme`. Successful `set-theme` output renders non-null selections as exact theme IDs and `null` as the product's user-facing `None` label. A known changed selection prints exactly `Active theme changed from '<previous>' to '<new>'.`; a known unchanged selection prints exactly `Active theme unchanged: '<selection>'.`; and an unavailable previous selection prints only `Active theme: '<new>'.`. The opening display read's failure is suppressed. A refresh, registry error, or display write failure produces no success output.
 
@@ -273,9 +289,9 @@ Help and user-facing command documentation describe `none` as using no theme, wi
 5. resolves the optional ACP agent profile and checks that its command is available before starting the server;
 6. prints `PORT_ZERO_WARNING` to stderr when foreground `tv serve` reads config port `0`.
 
-Foreground `tv serve` calls `env.createServer` with a `CLIServerOptions` value: `home`; the settings' `listen`, `port`, `auth`, and `installedByAgent`; the resolved static, canonical, bundled-view, onboarding, and bundled-theme paths; the optional ACP profile; and `launchMode`. `launchMode` is `"daemon"` only when `TELEVISION_LAUNCH_MODE=daemon`; every other value resolves to `"cli"`. The production `createServer` constructs a `ServerStore` whose `storagePath` is `home`, passes bundled view, onboarding, and bundled-theme paths when present, and always sets `installOnboardingChannels: true`. It passes `auth` to `Server` explicitly, including the config default `true`, because the `Server` constructor's own default is tokenless. It passes the launch mode and optional installed-by agent value into the server's telemetry options. `Server` and `ServerStore` keep their constructor options, so package tests and embedders construct isolated servers directly without a home or config file. ^cli-serve-adapter
+Foreground `tv serve` calls `env.createServer` with a `CLIServerOptions` value: `home`; the settings' `listen`, `port`, `auth`, and `installedByAgent`; the resolved static, canonical, bundled-view, onboarding, bundled-theme, and [resource SDK](../resources/sdk.md#^sdk-packaging) paths; the optional ACP profile; `launchMode`; and the environment's `resourceBindings`. `launchMode` is `"daemon"` only when `TELEVISION_LAUNCH_MODE=daemon`; every other value resolves to `"cli"`. The production `createServer` constructs a `ServerStore` whose `storagePath` is `home`, passes bundled view, onboarding, and bundled-theme paths when present, and always sets `installOnboardingChannels: true`. It passes `sdkDir` to `Server` when present, and `resourceBindings` always. It passes `auth` to `Server` explicitly, including the config default `true`, because the `Server` constructor's own default is tokenless. It passes the launch mode and optional installed-by agent value into the server's telemetry options. `Server` and `ServerStore` keep their constructor options, so package tests and embedders construct isolated servers directly without a home or config file. ^cli-serve-adapter
 
-After `server.start()` succeeds, `tv serve` prints startup URLs from `server.getBaseURLs()` when available, otherwise `[server.getBaseURL()]`. Under config port `0`, `Server.start()` binds the first listener to an operating-system-chosen port and reuses that port for every other listener, so these URLs carry the acquired port. The printed token is `server.getAuthToken()` only when `auth === true`; starts that do not require auth print no token. The command then registers `SIGINT` and `SIGTERM` handlers via `env.onSignal`; the first signal calls `server.dispose(signal)`, and later signals during shutdown are ignored.
+After `server.start()` succeeds, `tv serve` prints its [startup output](../../product/cli.md#^cli-startup-links). When `env.stdout.isTTY` is `true`, it prints a connect link for each of `server.getOrigins()`, carrying `server.getAuthToken()` only when `auth === true`. Under config port `0`, `Server.start()` binds the first listener to an operating-system-chosen port and reuses that port for every other listener, so the origins carry the acquired port. Otherwise it prints the `tv links` line, whose command carries `--home <home>` with the absolute home when the invocation chose the home, with `--home` or with the storage path of the [transitional service path](../../product/cli.md#^cli-retired-service-compat), and `--port <server.getListeningPort()>` when config port is `0`; a home whose path holds a character outside letters, digits and `_@%+=:,./-` is single-quoted for a POSIX shell. A hidden `--print-links` flag, which help does not list, makes `tv serve` and `tv serve --persist` print the links whatever stdout is. The repository's tests pass it to find a server they start ([test-runner recipe](../test-runner/test-runner.md#^test-dynamic-ports)); it is not a product option. The command then registers `SIGINT` and `SIGTERM` handlers via `env.onSignal`; the first signal calls `server.dispose(signal)`, and later signals during shutdown are ignored.
 
 If `TELEVISION_ACP_AGENT` resolves to `openclaw` or `hermes`, the CLI requires the selected command to be executable on `PATH` before constructing the server. Unsupported `TELEVISION_ACP_AGENT` values throw from the server config helper before binding. The ACP bridge itself is outside this CLI spec.
 
@@ -308,7 +324,15 @@ When an ACP agent is configured for persistence, `tv serve --persist` checks the
 
 Install refresh is deliberately simple: `daemon.status()` runs first; if `installed` or `running` is true, the CLI calls `daemon.uninstall()`; then it calls `daemon.install()`. Install success and failure are logged with the command, arguments, and redacted environment. If uninstall succeeds and install fails, the service remains down.
 
-`tv serve --persist` derives output addresses with `resolveBindAddresses(settings.listen)` and prints one connect URL for every resolved bind address with `settings.port`, rather than the eventual service's runtime health result. A specific listener therefore appears beside `127.0.0.1`, while `0.0.0.0` collapses the output to the all-interfaces URL. When `settings.auth` is true, the URLs carry the token from a [token-only `ServerStore` construction](../onboarding/installer.md#^token-only-boot) for `home`, which creates `<home>/state/token` when it is missing and does not create `config.json`.
+When `settings.auth` is true, `tv serve --persist` first makes the home's token through a [token-only `ServerStore` construction](../onboarding/installer.md#^token-only-boot) for `home`, which creates `<home>/state/token` when it is missing and does not create `config.json`, so the service starts with it.
+
+After `daemon.install()` resolves, the CLI performs the [product health wait](../../product/cli.md#^cli-persist-health-wait). It constructs a client as the [client boundary](#Client boundary) describes, with `settings.port`, and calls its `health()` until a call resolves, pausing briefly after each rejected call. The 15-second deadline starts when `install()` resolves and bounds every call: a call still pending at the deadline counts as no answer, so a peer that accepts the connection and never responds cannot hold the command open. A resolved `health()` is the whole test. The CLI does not compare the response with the installation, so any server that answers the health request on that port, such as a foreground `tv serve` already using it, satisfies it. ^cli-persist-health-check
+
+The deadline allows for one restart by the service manager. A startup that fails for a reason that clears on its own, such as the reinstall race against a terminating prior instance or a listener address that appears moments later, makes the server exit; the service manager relaunches it after its [restart cadence](./startup-bind-failure.md#Generated service definitions), at most about 10 seconds on macOS, and the relaunched server still has time to answer before the deadline.
+
+When the deadline passes without an answer, the CLI writes a `persisted service did not respond` record to `<home>/logs/tv.log` with the daemon name, the health URL, and the deadline in milliseconds. It then writes the telemetry notice when [the notice rule](../../product/telemetry.md#^disclose-cli) calls for one, because the service is installed, and throws the [product error](../../product/cli.md#^cli-persist-health-timeout), which `runCLI` writes to stderr with exit status `1`. It does not call the daemon again. When the server answers, the CLI writes its startup output, below, and then the notice.
+
+Once a server answers, the CLI prints `Television service installed.` and then, when `env.stdout.isTTY` is `true` or `--print-links` is given, `Open Television:` and the links that `links` prints, through the same calls, from the health response that answered ([persisted links](../../product/cli.md#^cli-persist-links)). The health-check deadline also bounds those calls, so one still pending when it passes ends them. When stdout is not a terminal and the flag is absent, or when those calls fail or have not finished by the deadline, it prints the `tv links` line instead, carrying `--home` as foreground startup's does. ^cli-persist-links-calls
 
 `tv stop` and `tv serve --persist-uninstall` both call `env.createDaemon()` with no options, call `daemon.uninstall()`, log to `<home>/logs/tv.log` for the resolved home, and print `{ "status": "stopped" }`. Neither reads the config file.
 
@@ -358,7 +382,7 @@ The foreground startup mechanics are defined in [#Server process boundary](#Serv
 8. persists the CLI surface inventory and writes the preliminary CLI-only `dist/THIRD-PARTY-NOTICES.txt`;
 9. copies renderer output to `dist/web/`;
 10. copies the missing-artifact view to `dist/views/artifact-missing/`;
-11. copies every canonical artifact version to `dist/canonical/`;
+11. copies every canonical artifact version to `dist/canonical/`, and the server's built [resource SDK](../resources/sdk.md#^sdk-build) tree, `packages/server/dist/sdk/`, to `dist/sdk/`;
 12. verifies that `packages/server/dist/onboarding/onboarding-channels.json` exists, then copies the whole server onboarding content tree to `dist/onboarding/`;
 13. copies the validated server bundled-theme tree to `dist/themes/`;
 14. copies the manifest-produced skill bundles to `dist/skills/`;
@@ -375,6 +399,7 @@ __TV_VIEWS_DIR__ = "./views";
 __TV_CANONICAL_DIR__ = "./canonical";
 __TV_ONBOARDING_CONTENT_DIR__ = "./onboarding";
 __TV_BUNDLED_THEMES_DIR__ = "./themes";
+__TV_SDK_DIR__ = "./sdk";
 __TV_TELEMETRY_BUILD__ = process.env.TV_NPM_RELEASE === "1" ? "production" : "development";
 __TV_VERSION__ = packageJson.version;
 __TV_DEVELOPER_COMMIT__ = developerCommitSha;
@@ -386,11 +411,11 @@ The version flags append the baked commit only when it is a non-empty string and
 
 `inspectTelemetryBuildConfig(env, options)` exposes the baked telemetry-build marker, the current environment suppression reason, and the selected PostHog project as a build diagnostic. Build-marker selection follows [telemetry release build configuration](../telemetry/sink.md#Behavior and operations); direct source execution has no baked telemetry marker and reports `null`.
 
-The onboarding content schema, source tree, and server build validation remain owned by [arch/onboarding/content.md](../onboarding/content.md). This spec owns the CLI build's copy into `dist/onboarding/`, the build-time path constant, and the runtime resolver that hands that directory to the serving store. [Bundled theme installation](../themes/bundled-installation.md) owns the corresponding theme source, package copies, resolver, and store handoff.
+The onboarding content schema, source tree, and server build validation remain owned by [arch/onboarding/content.md](../onboarding/content.md). This spec owns the CLI build's copy into `dist/onboarding/`, the build-time path constant, and the runtime resolver that hands that directory to the serving store. [Bundled theme installation](../themes/bundled-installation.md) owns the corresponding theme source, package copies, resolver, and store handoff. The [resource SDK spec](../resources/sdk.md) owns the SDK's source, its build into the server package, and how the server serves it; this spec owns the CLI build's copy into `dist/sdk/`, its path constant, and the resolver that hands the directory to the server.
 
 The external Vercel `skills` package is not bundled; it remains a runtime dependency so the packaged CLI can resolve its executable.
 
-`build.mjs --outfile <path>` builds only a standalone executable bundle at the requested path. It does not copy renderer, view, canonical, onboarding, theme, or skill assets, and it does not claim a shipped-surface inventory, notices tree, or package-root license copy. Tests use this mode when they need a binary outside the repository tree.
+`build.mjs --outfile <path>` builds only a standalone executable bundle at the requested path. It does not copy renderer, view, canonical, SDK, onboarding, theme, or skill assets, and it does not claim a shipped-surface inventory, notices tree, or package-root license copy. Tests use this mode when they need a binary outside the repository tree.
 
 `build-views.mjs` reads `packages/cli/bundled-views.json`, builds each declared view workspace, copies the workspace `dist/` to `packages/cli/dist/views/<view-id>/`, and fails unless `manifest.json` exists at the destination. The current bundled view manifest maps `markdown` to `packages/view-markdown`.
 
@@ -404,6 +429,7 @@ The exported asset resolvers follow this contract:
 | `resolveOnboardingContentPath()` | `realpath(dirname(process.argv[1]))/onboarding` when it exists. | `packages/server/assets/onboarding-channels` when it exists. |
 | `resolveBundledThemesPath()` | `realpath(dirname(process.argv[1]))/themes` when it exists. | `packages/server/assets/themes` when it exists. |
 | `resolveBundledSkillsRoot()` | `realpath(dirname(process.argv[1]))/skills` when it exists. | `packages/skills/dist` when it exists. |
+| `resolveSdkDir()` | `realpath(dirname(process.argv[1]))/sdk` when it exists. | `packages/server/dist/sdk` when it exists. |
 
 Resolver behavior against corrupted or partially populated build directories is deliberately untested. Full-build verification owns catching incomplete asset trees before a package ships; resolver tests cover successful lookup in the two supported layouts and do not restate build validation as missing-directory cases.
 
@@ -449,11 +475,11 @@ When testing or manually exercising server-backed commands, pass `--home <temp-d
 
 ## Testing
 
-The persisted-service paths — install, reinstall, stop, and uninstall — are proven by the `daemon-acceptance` suite, which [arch/test-runner/test-runner.md](../test-runner/test-runner.md) owns (Production daemon acceptance suite). That suite is not part of `verify` or CI: a developer runs it by hand, on a designated developer host. ^cli-persist-suite-note
+The persisted-service paths — install, reinstall, an install whose server does not answer, stop, and uninstall — are proven by the `daemon-acceptance` suite, which [arch/test-runner/test-runner.md](../test-runner/test-runner.md) owns (Production daemon acceptance suite). That suite is not part of `verify` or CI: a developer runs it by hand, on a designated developer host. ^cli-persist-suite-note
 
 Help is proven for top-level help and the `create-path-artifact`, `list-artifacts`, `update-channel`, and `set-theme` pages: those checks pin where the agent routing note appears ([product/cli.md](../../product/cli.md), Command model, help, version, and recovery text) and the option text those checks name. Checking every other subcommand's page would repeat them without catching another plausible, consequential failure.
 
-No spawned CLI test covers a wildcard `listen` address. The config reader validates each `listen` item as an IPv4 address, and the CLI hands the same values, unchanged, to the server constructor, which resolves them with `resolveBindAddresses`; wildcard resolution and the wildcard listener are therefore proven on the server side and compose across that handoff ([arch/testing-policy.md#Compositional coverage across clean seams](../testing-policy.md#Compositional coverage across clean seams)). The product CLI proof's multi-listener acceptance ([proofs/product/cli.md#^cli-ac-multi-listener-success](../../../proofs/product/cli.md#^cli-ac-multi-listener-success)) covers foreground serve with several specific addresses.
+No spawned CLI test covers a wildcard `listen` address. The config reader validates each `listen` item as an IPv4 address, and the CLI hands the same values, unchanged, to the server constructor, which resolves them with `resolveBindAddresses`; wildcard resolution, the wildcard listener and the expansion of `0.0.0.0` into origins are therefore proven on the server side and compose across that handoff ([arch/testing-policy.md#Compositional coverage across clean seams](../testing-policy.md#Compositional coverage across clean seams)). The product CLI proof's multi-listener acceptance ([proofs/product/cli.md#^cli-ac-multi-listener-success](../../../proofs/product/cli.md#^cli-ac-multi-listener-success)) covers foreground serve with several specific addresses.
 
 The ACP wiring is experimental ([Experimental ACP agent wiring](#Experimental ACP agent wiring)), so the CLI suite proves only the missing-command startup failure and includes no ACP success test; the bridge, protocol, and agent behavior past the CLI handoff are governed by code rather than by a spec. The exception is the [home-context buffer](#^cli-acp-home-context): its proof shows that the context a launched agent receives carries `--home` with the served home, and `--port` only under config port `0`. A CLI-side success test becomes warranted only if ACP enters the supported product surface.
 

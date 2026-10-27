@@ -46,10 +46,8 @@
       const detection = detectElectronContext({ search: window.location.search });
       const desktopUpdate = new DesktopUpdateState({ electron: detection.electron, bridge });
 
-      const PRIMARY = "http://primary.test";
       const owner = new EventTarget();
       const connection = {
-        url: PRIMARY,
         status: "connected",
         serverVersion: null,
         updateState: null,
@@ -67,7 +65,6 @@
       controller = new UpdateNotificationController(draw);
       controller.configure({
         connectionOwner: owner,
-        primaryServerURL: PRIMARY,
         // In-memory dismissal store: fixture loads stay isolated from each other.
         dismissalStorage: {
           getItem: (key) => dismissalBacking.get(key) ?? null,
@@ -89,7 +86,7 @@
         // The retention invariant the real ServerConnection maintains.
         connection.serverVersion = message.version;
         connection.updateState = message.update ?? null;
-        owner.dispatchEvent(new ServerStatusEvent("server-status", { serverURL: PRIMARY, message }));
+        owner.dispatchEvent(new ServerStatusEvent("server-status", { message }));
       };
       window.__renderMarkdown = renderMarkdown;
       window.__desktopSelfUpdateNoticeMarkdown = desktopSelfUpdateNoticeMarkdown;

@@ -1,13 +1,13 @@
 # The system modal's copy ([[ui/app/system-modal/index.md]], States). The
-# reattempt line interpolates the template's `seconds`.
+# reconnect line interpolates the template's `seconds`.
 connecting_title: Connecting
 disconnected_title: Disconnected
-reattempting: "Reattempting in {{ seconds }}s…"
-reattempting_now: Reattempting now…
-unauthorized_title: Enter access token
-unauthorized_copy: This server requires an access token to connect.
-unauthorized_placeholder: paste token here
-unauthorized_field_label: Access token
-unauthorized_invalid: The previous token was rejected. Try again.
-unauthorized_submit: Connect
+reconnecting: "Reconnecting in {{ seconds }}s…"
+reconnecting_now: Reconnecting now…
+unauthorized_title: Access token required
+unauthorized_copy_browser: This server requires a valid access token to connect. Ask your agent for the current link, and paste the whole link into the address bar.
+unauthorized_copy_desktop: This server requires a valid access token to connect. Choose Television › Disconnect from Server, then try again.
+unauthorized_copy_local: This server requires a valid access token to connect. Disconnect from Server, then paste the current link from your agent.
 error_title: Can’t connect with server
+error_copy: Check your internet connection and that the server is running.
+disconnect: Disconnect from Server

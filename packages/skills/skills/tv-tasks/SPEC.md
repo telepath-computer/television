@@ -93,8 +93,13 @@ chips (`due`, `tag`) stand alone; `tv-task-meta-item` is the one that *groups* a
 
 **Headers** are plain HTML, not `tv-task-*`: the page header (`<header>` with `<h1>` and
 an optional `<p>` subtitle, usually the date) sits *above* `<tv-task-list>` and is the
-canonical page-header idiom — house typography styles it, the skill only aligns it with
-the list's interior padding. Sections title themselves with a `<header><h2>` inside.
+canonical page-header idiom — house typography styles it. The skill gives the page one
+default inset (`--space-16`), at zero specificity so an artifact's own `body` rule
+replaces it, which the header, the list and anything placed between them, such as an
+add form or a toolbar, share; and it stands each of the page's blocks one gap
+(`--space-12`) below the one before. The gap below the header is the same whether it
+ends with its `<h1>`, its subtitle or a message, and whether or not it sits in a prose
+region. Sections title themselves with a `<header><h2>` inside.
 This is deliberate — real `<h1>`/`<h2>` keep the document outline and let a screen
 reader navigate section-to-section, which a styled `tv-task-*` wrapper can't. The
 example pins the exact shape so the agent doesn't improvise the heading level or

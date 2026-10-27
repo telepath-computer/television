@@ -15,7 +15,7 @@ Television derives specs → proofs → tests → code, with implementation plan
 
 - **Proposal:** Does it faithfully develop intent, expose unresolved decisions, and support its intended next step?
 - **Specs:** Do they capture the intended promises coherently and resolve the decisions needed for derivation?
-- **Proofs:** Do they faithfully cover those promises and testing directives without inventing requirements or concealing coverage gaps?
+- **Proofs:** Do they faithfully cover those promises and testing guidance without inventing requirements or concealing coverage gaps?
 - **Plan:** Does it derive complete, feasible work with sensible sequencing, slices, and validation?
 - **Implementation slice:** Does it fulfill its obligations and integrate correctly with the work so far?
 - **Integrated result:** Is the whole promised outcome delivered, with the authority chain in agreement, obligations resolved, and completion verified?
@@ -32,7 +32,7 @@ For example, incoherence or conflicting contracts in specs, comments, or test as
 
 Use high standards for quality and impeccable standards for assessing consequences and severity.
 
-A spec’s `## Testing` section holds directives for proof derivation, not promises ([spec-proofs.md](../../specs/spec-proofs.md#^testing-directive-standing)). Check a directive by reading whether the tests follow it. Do not ask the suite to prove that it follows a directive, and do not treat a way the tests could stop following it under a future defect as a coverage gap. A finding that would apply equally to a whole class of existing tests across the repository is not a blocker for the change under review; raise it as a refinement, or as a separate concern outside the review.
+A spec’s `## Testing guidance` section holds guidance for proof derivation, not promises ([spec-proofs.md](../../specs/spec-proofs.md#^testing-guidance-standing)). Check an item by reading whether the tests follow it. Do not ask the suite to prove that it follows an item, and do not treat a way the tests could stop following it under a future defect as a coverage gap. A finding that would apply equally to a whole class of existing tests across the repository is not a blocker for the change under review; raise it as a refinement, or as a separate concern outside the review.
 
 Use `specs/spec-proofs.md` for proof obligations, `specs/arch/testing-policy.md` for test and verification requirements, and the workflow’s “Planning and slices” and “Independent review and convergence” for plans and convergence. UI review follows `specs/spec-ui.md` and `specs/arch/ui/conformance.md`. Apply [complexity-inoculation](../complexity-inoculation/SKILL.md), [cold-reader](../cold-reader/SKILL.md), and [plain-English](../plain-english-full/SKILL.md) to the work and findings.
 

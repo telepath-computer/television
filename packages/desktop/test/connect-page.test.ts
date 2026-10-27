@@ -1,273 +1,132 @@
 // @vitest-environment jsdom
+// Renderer contracts replace the local bridge, clipboard and animation scheduler.
+// Real IPC, native input and CSS motion are crossed by connect-screen acceptance.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import {
-  bindConnectPage,
-  initConnectPage,
-  MIN_CONNECT_MS,
-  type ConnectPageAPI,
-  type ConnectPageElements,
-} from "../src/connect-page.ts";
+import type { ConnectPageAPI } from "../src/connect-page.ts";
+import type { ConnectScreenState } from "../src/connect-screen.ts";
 
-const connectHtmlPath = path.join(__dirname, "../src/connect.html");
+let dispose: (() => void) | undefined;
+let init: typeof import("../src/connect-page.ts").initConnectPage;
+const frameCallbacks: FrameRequestCallback[] = [];
 
-function mockElements(): ConnectPageElements {
-  const form = document.createElement("form");
-  const errorEl = document.createElement("div");
-  const submitButton = document.createElement("button");
-  const submitLabel = document.createElement("span");
-  submitLabel.className = "button-label";
-  submitLabel.textContent = "Connect";
-  submitButton.append(submitLabel);
-  const serverInput = document.createElement("input");
-  const tokenInput = document.createElement("input");
-  form.append(errorEl, submitButton, serverInput, tokenInput);
-  document.body.append(form);
-  return { form, errorEl, submitButton, submitLabel, serverInput, tokenInput };
-}
-
-async function flushMicrotasks(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
-describe("bindConnectPage", () => {
-  beforeEach(() => {
-    vi.useFakeTimers({ now: new Date(0) });
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-    document.body.innerHTML = "";
-  });
-
-  it("prefills saved connection but does not auto-connect in manual mode", async () => {
-    const elements = mockElements();
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    const api: ConnectPageAPI = {
-      getConnectScreenIntent: async () => "manual",
-      getConnection: async () => ({ serverURL: "http://localhost:1", token: "saved-token" }),
-      connect,
-    };
-
-    bindConnectPage(api, elements);
-    await vi.waitFor(() => {
-      expect(elements.serverInput.value).toBe("http://localhost:1");
-    });
-    expect(elements.tokenInput.value).toBe("saved-token");
-    expect(connect).not.toHaveBeenCalled();
-  });
-
-  it("auto-connects saved connection only in bootstrap mode", async () => {
-    const elements = mockElements();
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    const api: ConnectPageAPI = {
-      getConnectScreenIntent: async () => "bootstrap",
-      getConnection: async () => ({ serverURL: "http://localhost:1", token: "saved-token" }),
-      connect,
-    };
-
-    bindConnectPage(api, elements);
-    await vi.waitFor(() => {
-      expect(connect).toHaveBeenCalledWith("http://localhost:1", "saved-token");
-    });
-  });
-
-  it("bootstrap prefill survives a failed auto-connect", async () => {
-    const elements = mockElements();
-    const connect = vi.fn(async () => ({ ok: false as const, message: "Token rejected" }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "bootstrap",
-        getConnection: async () => ({ serverURL: "http://localhost:9", token: "bad" }),
-        connect,
-      },
-      elements,
-    );
-
-    await vi.waitFor(() => expect(connect).toHaveBeenCalled());
-    await vi.advanceTimersByTimeAsync(MIN_CONNECT_MS);
-
-    expect(elements.serverInput.value).toBe("http://localhost:9");
-    expect(elements.tokenInput.value).toBe("bad");
-    expect(elements.errorEl.textContent).toBe("Token rejected");
-    expect(elements.submitButton.disabled).toBe(false);
-  });
-
-  it("form submit sends the entered url and token to connect", async () => {
-    const elements = mockElements();
-    elements.serverInput.value = "  http://localhost:1  ";
-    elements.tokenInput.value = "  secret  ";
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await vi.waitFor(() => expect(connect).not.toHaveBeenCalled());
-
-    elements.form.requestSubmit();
-    await vi.waitFor(() => expect(connect).toHaveBeenCalledWith("http://localhost:1", "  secret  "));
-  });
-
-  it("shows user-facing error after failed submit and keeps field values", async () => {
-    const elements = mockElements();
-    elements.serverInput.value = "http://localhost:1";
-    elements.tokenInput.value = "wrong";
-    const connect = vi.fn(async () => ({
-      ok: false as const,
-      message: "This server requires a token",
-    }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await vi.waitFor(() => expect(connect).not.toHaveBeenCalled());
-
-    elements.form.requestSubmit();
-    await vi.waitFor(() => expect(connect).toHaveBeenCalled());
-    expect(elements.submitButton.dataset.connecting).toBe("true");
-    expect(elements.submitLabel.textContent).toBe("Connecting…");
-
-    await vi.advanceTimersByTimeAsync(MIN_CONNECT_MS);
-
-    expect(elements.errorEl.textContent).toBe("This server requires a token");
-    expect(elements.serverInput.value).toBe("http://localhost:1");
-    expect(elements.tokenInput.value).toBe("wrong");
-    expect(elements.submitButton.disabled).toBe(false);
-    expect(elements.submitButton.dataset.connecting).toBe("false");
-  });
-
-  it("waits at least MIN_CONNECT_MS before showing a failed connect error", async () => {
-    const elements = mockElements();
-    elements.serverInput.value = "http://localhost:1";
-    const connect = vi.fn(async () => ({ ok: false as const, message: "Unreachable" }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await flushMicrotasks();
-
-    elements.form.requestSubmit();
-    await flushMicrotasks();
-    expect(connect).toHaveBeenCalled();
-
-    expect(elements.errorEl.textContent).toBe("");
-    await vi.advanceTimersByTimeAsync(MIN_CONNECT_MS - 1);
-    expect(elements.errorEl.textContent).toBe("");
-    await vi.advanceTimersByTimeAsync(1);
-    expect(elements.errorEl.textContent).toBe("Unreachable");
-  });
-
-  it("stays in connecting state after successful submit until navigation replaces the page", async () => {
-    const elements = mockElements();
-    elements.serverInput.value = "http://localhost:1";
-    elements.tokenInput.value = "good";
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await vi.waitFor(() => expect(connect).not.toHaveBeenCalled());
-
-    elements.form.requestSubmit();
-    await vi.waitFor(() => expect(connect).toHaveBeenCalled());
-
-    expect(elements.errorEl.textContent).toBe("");
-    expect(elements.submitButton.disabled).toBe(true);
-    expect(elements.submitButton.dataset.connecting).toBe("true");
-    expect(elements.submitLabel.textContent).toBe("Connecting…");
-  });
-
-  it("clears prior error when submitting again", async () => {
-    const elements = mockElements();
-    elements.errorEl.textContent = "Old error";
-    elements.serverInput.value = "http://localhost:1";
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await vi.waitFor(() => expect(connect).not.toHaveBeenCalled());
-
-    elements.form.requestSubmit();
-    await vi.waitFor(() => expect(connect).toHaveBeenCalled());
-    expect(elements.errorEl.textContent).toBe("");
-  });
-
-  it("unwraps thrown IPC errors and keeps typed fields sticky", async () => {
-    const elements = mockElements();
-    elements.serverInput.value = "http://localhost:1";
-    elements.tokenInput.value = "wrong";
-    const connect = vi.fn(async () => {
-      throw new Error("Error invoking remote method 'television:connect': Error: Token rejected");
-    });
-    bindConnectPage(
-      {
-        getConnectScreenIntent: async () => "manual",
-        getConnection: async () => null,
-        connect,
-      },
-      elements,
-    );
-    await vi.waitFor(() => expect(connect).not.toHaveBeenCalled());
-
-    elements.form.requestSubmit();
-    await vi.waitFor(() => expect(connect).toHaveBeenCalled());
-    await vi.advanceTimersByTimeAsync(MIN_CONNECT_MS);
-
-    expect(elements.errorEl.textContent).toBe("Token rejected");
-    expect(elements.serverInput.value).toBe("http://localhost:1");
-    expect(elements.tokenInput.value).toBe("wrong");
-  });
+beforeEach(async () => {
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frameCallbacks.push(callback); return frameCallbacks.length; });
+  vi.stubGlobal("matchMedia", () => ({ matches: false, addEventListener() {}, removeEventListener() {} }));
+  vi.stubGlobal("CSSStyleSheet", class { replaceSync() {} });
+  HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  HTMLDialogElement.prototype.close = function () { this.open = false; };
+  Element.prototype.getAnimations = vi.fn(() => []);
+  init = (await import("../src/connect-page.ts")).initConnectPage;
+});
+afterEach(() => {
+  dispose?.();
+  document.body.replaceChildren();
+  frameCallbacks.length = 0;
+  vi.unstubAllGlobals();
 });
 
-describe("initConnectPage with connect.html", () => {
-  afterEach(() => {
-    document.body.innerHTML = "";
-    document.head.innerHTML = "";
+async function mount(state: ConnectScreenState = { kind: "setup" }) {
+  let listener!: (state: ConnectScreenState) => void;
+  const api: ConnectPageAPI = {
+    getState: vi.fn(async () => state),
+    onState: callback => { listener = callback; return () => {}; },
+    connect: vi.fn(), completeConnect: vi.fn(async () => {}), disconnect: vi.fn(async () => {}),
+  };
+  const host = document.createElement("div");
+  document.body.append(host);
+  dispose = init(api, host);
+  await Promise.resolve();
+  return { api, publish: (next: ConnectScreenState) => listener(next) };
+}
+const input = () => document.querySelector<HTMLInputElement>(".setup-link input")!;
+const form = () => document.querySelector<HTMLFormElement>(".setup-link")!;
+const state = () => document.querySelector(".setup-screen")?.getAttribute("data-state");
+const submit = () => form().dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+const flush = async () => { await Promise.resolve(); await Promise.resolve(); };
+
+// proofs/ui/setup/index.md#^setup-t-states
+describe("setup renderer", () => {
+  it("renders ready, connecting, inline error and Connected through a single-link submission", async () => {
+    const { api } = await mount();
+    expect(state()).toBe("ready");
+    expect(input().value).toBe("");
+    expect(input().required).toBe(true);
+    expect(input().getAttribute("aria-label")).toBe("Link from your agent");
+    expect(input().dataset.size).toBe("lg");
+    expect(document.querySelector(".setup-submit")?.getAttribute("size")).toBe("lg");
+    expect(document.querySelector(".copy-button")?.hasAttribute("size")).toBe(false);
+    expect(document.querySelector(".artifact-title")?.textContent).toContain("Connect to Television");
+    expect(document.querySelector("iframe, webview, .artifact-menu-trigger, .artifact-back")).toBeNull();
+    submit();
+    expect(api.connect).not.toHaveBeenCalled();
+    let resolve!: (value: { ok: false; message: string }) => void;
+    vi.mocked(api.connect).mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    const link = "http://example.test/?token=wrong";
+    input().value = link;
+    submit();
+    expect(api.connect).toHaveBeenCalledWith(link);
+    expect(state()).toBe("connecting");
+    expect(input().disabled).toBe(true);
+    expect(document.querySelector<HTMLButtonElement>(".setup-submit")!.disabled).toBe(true);
+    expect(document.querySelector('.setup-submit tv-icon[name="spinner"][spinning]')).not.toBeNull();
+    resolve({ ok: false, message: "Ask your agent for the current link." });
+    await flush();
+    expect(state()).toBe("error");
+    expect(input().value).toBe(link);
+    expect(input().disabled).toBe(false);
+    expect(input().getAttribute("aria-invalid")).toBe("true");
+    expect(input().getAttribute("aria-describedby")).toBe("setup-link-error");
+    expect(document.getElementById("setup-link-error")?.textContent).toContain("current link");
+    expect(document.querySelector(".setup-hint")).toBeNull();
+    vi.mocked(api.connect).mockResolvedValueOnce({ ok: true, attempt: 7 });
+    input().value = "http://example.test/?token=correct";
+    submit();
+    expect(state()).toBe("connecting");
+    expect(input().hasAttribute("aria-invalid")).toBe(false);
+    await flush();
+    expect(state()).toBe("connected");
+    expect(document.querySelector(".setup-document")?.hasAttribute("inert")).toBe(true);
+    expect(document.querySelector(".setup-done")?.hasAttribute("aria-hidden")).toBe(false);
+    expect(api.completeConnect).not.toHaveBeenCalled();
   });
 
-  it("wires the real connect.html form and allows external connect-page script under CSP", async () => {
-    const html = readFileSync(connectHtmlPath, "utf8");
-    expect(html).toContain("script-src 'self' 'unsafe-inline'");
-    expect(html).toContain('src="connect-page.cjs"');
+  // proofs/ui/setup/index.md#^setup-t-copy
+  it("Copy supplies the frame prompt and leaves both steps and the entered link available", async () => {
+    const clipboard = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: clipboard } });
+    const { api } = await mount();
+    input().value = "http://example.test/?token=keep";
+    document.querySelector<HTMLButtonElement>(".copy-button")!.click();
+    expect(clipboard).toHaveBeenCalledWith("Read the Television admin guide at https://television.run/install.md and help me get Television installed. I'm on the desktop app connect screen.");
+    expect(state()).toBe("ready");
+    expect(input().value).toBe("http://example.test/?token=keep");
+    expect(input().disabled).toBe(false);
+    expect(document.querySelectorAll(".setup-step")).toHaveLength(2);
+    expect(document.querySelector(".setup-document")?.hasAttribute("inert")).toBe(false);
+    expect(api.connect).not.toHaveBeenCalled();
+  });
 
-    const parsed = new DOMParser().parseFromString(html, "text/html");
-    document.head.innerHTML = parsed.head.innerHTML;
-    document.body.innerHTML = parsed.body.innerHTML;
+  it("completes the Connected handoff without transition events under reduced motion", async () => {
+    const { api } = await mount();
+    vi.mocked(api.connect).mockResolvedValue({ ok: true, attempt: 9 });
+    input().value = "http://example.test";
+    submit();
+    await flush();
+    frameCallbacks.shift()!(0);
+    await flush();
+    frameCallbacks.shift()!(16);
+    await flush();
+    expect(api.completeConnect).toHaveBeenCalledWith(9);
+  });
 
-    const connect = vi.fn(async () => ({ ok: true as const }));
-    initConnectPage({
-      getConnectScreenIntent: async () => "manual",
-      getConnection: async () => ({ serverURL: "http://localhost:32848", token: "persisted" }),
-      connect,
-    });
-
-    await vi.waitFor(() => {
-      expect((document.getElementById("serverURL") as HTMLInputElement).value).toBe("http://localhost:32848");
-    });
-    expect((document.getElementById("token") as HTMLInputElement).value).toBe("persisted");
-    expect(connect).not.toHaveBeenCalled();
+  it("renders saved states without setup and disconnects through the shared local modal", async () => {
+    const { api, publish } = await mount({ kind: "connecting", serverURL: "http://example.test" });
+    expect(document.querySelector(".setup-screen")).toBeNull();
+    expect(document.body.textContent).toContain("Connecting");
+    publish({ kind: "unauthorized", serverURL: "http://example.test" });
+    await flush();
+    expect(document.body.textContent).toContain("Access token required");
+    document.querySelector<HTMLButtonElement>(".system-modal-disconnect")!.click();
+    expect(api.disconnect).toHaveBeenCalledOnce();
   });
 });

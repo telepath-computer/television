@@ -107,6 +107,33 @@ describe("server telemetry session attachment", () => {
     expect(second?.properties.$session_id).toBe(first?.properties.$session_id);
   });
 
+  // proofs/arch/layout/index.md#^ly-ac-placement-move-same-telemetry
+  it("stamps a same-channel placed move's layout change with the client's session id", async () => {
+    const h = await setup();
+    const channel = h.store.listChannels()[0]!;
+    const ids: string[] = [];
+    for (const name of ["one.md", "two.md"]) {
+      const created = await request(h.server.httpServer)
+        .post("/artifacts")
+        .set(clientMetaHeader())
+        .send({ kind: "path", title: "Private", channelID: channel.id, path: createMarkdownPath(h, name) })
+        .expect(HTTP_CREATED);
+      ids.push(created.body.artifact.id as string);
+    }
+    const sessionID = h.sink.events.find((event) => event.name === "artifact_created")?.properties.$session_id;
+    h.sink.clear();
+
+    await request(h.server.httpServer)
+      .post(`/artifacts/${ids[1]}/move`)
+      .set(clientMetaHeader())
+      .send({ channelID: channel.id, before: ids[0] })
+      .expect(200);
+
+    expect(h.sink.events.map((event) => event.name)).toEqual(["layout_changed"]);
+    expect(h.sink.events[0]?.properties).toMatchObject({ change_type: "tab_reorder", $session_id: sessionID });
+    expect(sessionID).toEqual(expect.any(String));
+  });
+
   it("leaves CLI/session-less HTTP mutation events without $session_id", async () => {
     const h = await setup();
     const channel = h.store.listChannels()[0]!;

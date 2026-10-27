@@ -68,8 +68,12 @@ The panel opens below the trigger, left edges aligned. It keeps `--popover-dista
 
 The open panel renders on the `--layer-panel` layer ([ui/foundation/index.md](../index.md), Layers). The document boundary applies: a panel inside an artifact document stays within that document.
 
+Pointer presses on an open panel go to the panel wherever it is visible, including where it covers part of a window drag region such as the desktop navbar ([top bar](../../app/top-bar/index.md#Window dragging)). ^po-drag-overlap
+
 The panel participates in the document's stacking order, deliberately not the platform popover API, whose open panels render in the top layer where nothing the app or a theme paints can layer with them.
 
 ## Testing
 
 The [companion proof](../../../../proofs/ui/foundation/popover/index.md) describes the production-element browser coverage and its boundaries.
+
+Prove [presses over a drag region](#^po-drag-overlap) in the real Electron app: press panel content where it covers the navbar with native pointer input, and observe the content's action. Playwright's page mouse input does not count. It enters the page directly, past the native handling that gives presses on a drag region to the window, so it succeeds even when real presses fail.

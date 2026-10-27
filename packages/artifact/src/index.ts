@@ -2,6 +2,7 @@ export {
   ArtifactSchema,
   artifactBasename,
   createArtifact,
+  generateArtifactID,
   hasTrailingSeparator,
   isAllowedArtifactFilePath,
   isExternalArtifactURL,
@@ -11,6 +12,7 @@ export {
   stripTrailingSeparators,
   type Artifact,
   type ArtifactKind,
+  type ArtifactShareLink,
   type PathArtifact,
 } from "./model.ts";
 export * from "./missing-artifact-page.ts";

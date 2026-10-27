@@ -1117,8 +1117,8 @@ function activatePendingLink(event: MouseEvent): boolean {
   return true;
 }
 
-const linkActivation = EditorView.domEventHandlers({
-  mousedown(event) {
+export const linkActivationHandlers = {
+  mousedown(event: MouseEvent) {
     const anchor = findAnchor(event.target);
     pendingLinkClick = null;
     if (!anchor) return false;
@@ -1143,15 +1143,17 @@ const linkActivation = EditorView.domEventHandlers({
     event.preventDefault();
     return true;
   },
-  click(event) {
+  click(event: MouseEvent) {
     if (event.button !== 0) return false;
     return activatePendingLink(event);
   },
-  auxclick(event) {
+  auxclick(event: MouseEvent) {
     if (event.button !== 1) return false;
     return activatePendingLink(event);
   },
-});
+};
+
+const linkActivation = EditorView.domEventHandlers(linkActivationHandlers);
 
 // Renumber every contiguous run of ordered-list lines so they count
 // `1, 2, 3, …`. Out-of-sequence numbers appear after the user deletes
@@ -1171,8 +1173,14 @@ const linkActivation = EditorView.domEventHandlers({
 //     and gives the right answer for `1. one\ntwo\n3. three` being
 //     a single 2-item list rather than two 1-item lists).
 const ITEM_STARTER = /^(\d+)([.)])(\s|$)/;
-function computeOrderedListRenumberChanges(state: EditorState): ChangeSpec[] {
+function computeOrderedListRenumberChanges(state: EditorState, touched: Array<{ from: number; to: number }>): ChangeSpec[] {
   const changes: ChangeSpec[] = [];
+  let runChanges: ChangeSpec[] = [];
+  let runFrom = 0;
+  const finishRun = (to: number): void => {
+    if (inRun && touched.some((range) => range.from <= to && range.to >= runFrom)) changes.push(...runChanges);
+    runChanges = [];
+  };
   let inRun = false;
   let expected = 1;
   for (let i = 1; i <= state.doc.lines; i += 1) {
@@ -1182,10 +1190,11 @@ function computeOrderedListRenumberChanges(state: EditorState): ChangeSpec[] {
       if (!inRun) {
         inRun = true;
         expected = 1;
+        runFrom = line.from;
       }
       const current = parseInt(match[1], 10);
       if (current !== expected) {
-        changes.push({
+        runChanges.push({
           from: line.from,
           to: line.from + match[1].length,
           insert: String(expected),
@@ -1193,10 +1202,12 @@ function computeOrderedListRenumberChanges(state: EditorState): ChangeSpec[] {
       }
       expected += 1;
     } else if (line.text === "") {
+      finishRun(line.from - 1);
       inRun = false;
     }
     // Non-blank, non-starter line: continuation, no boundary change.
   }
+  finishRun(state.doc.length);
   return changes;
 }
 
@@ -1213,31 +1224,31 @@ const renumberAnnotation = Annotation.define<boolean>();
 const renumberOrderedLists = EditorState.transactionFilter.of((tr) => {
   if (!tr.docChanged) return tr;
   if (tr.annotation(renumberAnnotation)) return tr;
-  // Skip undo/redo: re-running the renumber on an undo cancels the
-  // user's undo by re-applying our changes.
-  const userEvent = tr.annotation(Transaction.userEvent);
-  if (userEvent === "undo" || userEvent === "redo") return tr;
-
-  const renumberChanges = computeOrderedListRenumberChanges(tr.state);
+  // Only intentional edits to a list may renumber that list. Remote loads,
+  // rollback, table updates, and unrelated document edits preserve source.
+  if (!tr.isUserEvent("input") && !tr.isUserEvent("delete")) return tr;
+  const touched: Array<{ from: number; to: number }> = [];
+  tr.changes.iterChangedRanges((fromA, _toA, fromB, toB) => {
+    const changedLine = tr.state.doc.lineAt(fromB);
+    const removedStarter = ITEM_STARTER.test(tr.startState.doc.lineAt(fromA).text) && !ITEM_STARTER.test(changedLine.text);
+    touched.push({
+      from: changedLine.from,
+      // Removing the first starter leaves the surviving list on the next line.
+      to: removedStarter && changedLine.number < tr.state.doc.lines
+        ? tr.state.doc.line(changedLine.number + 1).to
+        : tr.state.doc.lineAt(Math.max(fromB, toB - 1)).to,
+    });
+  });
+  const renumberChanges = computeOrderedListRenumberChanges(tr.state, touched);
   if (renumberChanges.length === 0) return tr;
 
-  // Bundle the user's changes with the renumber as one atomic
-  // transaction. The renumberChanges positions are in tr.state.doc
-  // (post-tr.changes); compose them onto tr.changes so the resulting
-  // ChangeSet maps oldDoc → renumbered-doc in one step.
-  const renumberSet = ChangeSet.of(renumberChanges, tr.state.doc.length);
-  const composed = tr.changes.compose(renumberSet);
-  return tr.startState.update({
-    changes: composed,
-    selection: tr.selection,
-    scrollIntoView: tr.scrollIntoView,
-    effects: tr.effects,
-    annotations: [
-      renumberAnnotation.of(true),
-      ...(userEvent ? [Transaction.userEvent.of(userEvent)] : []),
-    ],
-    filter: false,
-  });
+  // Combining specs retains every annotation/effect on the original
+  // transaction, including remote and history metadata owned by other plugins.
+  return [tr, {
+    changes: ChangeSet.of(renumberChanges, tr.state.doc.length),
+    annotations: renumberAnnotation.of(true),
+    sequential: true,
+  }];
 });
 
 // Backspace at body-start of any list item deletes just the trailing

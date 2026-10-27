@@ -10,7 +10,10 @@ export interface StableFrontProxy {
 }
 
 /** Keep one kernel-selected browser origin while independently bound backends restart. */
-export async function startStableFrontProxy(initialTargetURL: string): Promise<StableFrontProxy> {
+export async function startStableFrontProxy(
+  initialTargetURL: string,
+  beforeForward?: (request: IncomingMessage) => Promise<void>,
+): Promise<StableFrontProxy> {
   let target = parseTarget(initialTargetURL);
   const sockets = new Set<Socket>();
   const peers = new Map<Duplex, Duplex>();
@@ -34,7 +37,10 @@ export async function startStableFrontProxy(initialTargetURL: string): Promise<S
     peers.set(right, left);
   };
 
-  const server = createServer((req, res) => proxyRequest(req, res, target));
+  const server = createServer((req, res) => {
+    if (beforeForward) void beforeForward(req).then(() => proxyRequest(req, res, target));
+    else proxyRequest(req, res, target);
+  });
   server.on("connection", (socket) => {
     sockets.add(socket);
     socket.on("error", () => closeLinked(socket));

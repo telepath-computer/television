@@ -98,7 +98,14 @@ interface ConnectCheckRequestRecord extends RequestRecord {
 
 interface GateServerObservation {
   readonly connectCheckRequests: ConnectCheckRequestRecord[];
+  /** Functional requests the served renderer issues, which the boot barrier governs. */
   readonly functionalRequests: RequestRecord[];
+  /**
+   * Functional requests from the desktop main process, which the barrier does
+   * not govern: the partition reaper's artifact list
+   * (specs/arch/desktop/artifact-partitions.md#^dp-reaper).
+   */
+  readonly mainProcessRequests: RequestRecord[];
   readonly entranceOrder: Array<"connect-check" | "events">;
   eventConnectionCount(): number;
   waitForEventConnection(targetCount: number): Promise<void>;
@@ -114,6 +121,7 @@ interface ObservedGateServer {
 function observeGateServer(server: Server): GateServerObservation {
   const connectCheckRequests: ConnectCheckRequestRecord[] = [];
   const functionalRequests: RequestRecord[] = [];
+  const mainProcessRequests: RequestRecord[] = [];
   const entranceOrder: Array<"connect-check" | "events"> = [];
   const eventWaiters = new Set<(count: number) => void>();
   let eventConnectionCount = 0;
@@ -138,7 +146,10 @@ function observeGateServer(server: Server): GateServerObservation {
       pathname === "/channels" || pathname.startsWith("/channels/") ||
       pathname === "/artifacts" || pathname.startsWith("/artifacts/")
     ) {
-      functionalRequests.push({ method: request.method ?? "", pathname });
+      // The renderer's requests carry Chromium's user agent; the main
+      // process's come from Node's fetch.
+      const fromRenderer = (request.headers["user-agent"] ?? "").includes("Chrome/");
+      (fromRenderer ? functionalRequests : mainProcessRequests).push({ method: request.method ?? "", pathname });
     }
   });
   server.httpServer.on("upgrade", (request) => {
@@ -152,6 +163,7 @@ function observeGateServer(server: Server): GateServerObservation {
   return {
     connectCheckRequests,
     functionalRequests,
+    mainProcessRequests,
     entranceOrder,
     eventConnectionCount: () => eventConnectionCount,
     waitForEventConnection(targetCount) {
@@ -238,8 +250,8 @@ async function expectExclusiveGate(page: Page): Promise<void> {
   const root = page.locator("#app");
   await expect(root).toHaveAttribute("data-app-state", "needs-upgrade");
   await expect(root.locator(":scope > .app-sidebar, :scope > .app-main")).toHaveCount(0);
-  await expect(root.locator(":scope > .system-modal-host")).toHaveCount(1);
-  await expect(root.locator(":scope > .system-modal-host .desktop-upgrade-gate")).toHaveCount(1);
+  await expect(root.locator(":scope > .system-modal-host")).toHaveCount(0);
+  await expect(root.locator(":scope > .desktop-upgrade-gate")).toHaveCount(1);
   await expect(root.locator(".artifact-view")).toHaveCount(0);
   await settleApplicationPresentation(page);
 }
@@ -252,6 +264,7 @@ function expectOnlyShellConnectCheck(observation: GateServerObservation, desktop
   }]);
   expect(observation.entranceOrder.slice(0, 2)).toEqual(["connect-check", "events"]);
   expect(observation.functionalRequests).toEqual([]);
+  expect(observation.mainProcessRequests.every((request) => request.method === "GET" && request.pathname === "/artifacts")).toBe(true);
 }
 
 const gate = (page: Page) => page.locator(".desktop-upgrade-gate");
@@ -285,7 +298,7 @@ async function expectFallbackInstructions(page: Page): Promise<void> {
 
 test("^ac-themes-desktop-required: the production floor gates an older shell and an unhooked compatible relaunch boots", async () => {
   // No required-version override: this must exercise the production floor.
-  const server = await startGateServer({ serverVersion: "1.3.1" });
+  const server = await startGateServer({ serverVersion: "1.5.0" });
   const outdated = await launchAgainst(server, "0.1.216");
   await server.observation.waitForEventConnection(1);
   await expectExclusiveGate(outdated.page);
@@ -392,7 +405,7 @@ test.describe("desktop upgrade gate", () => {
         sidebarCount: 0,
         mainCount: 0,
         modalHostCount: 1,
-        authFormCount: 0,
+        unauthorizedCount: 0,
         gateCount: 1,
         connectingCount: 0,
         disconnectedCount: 0,

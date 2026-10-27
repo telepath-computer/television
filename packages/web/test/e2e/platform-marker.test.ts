@@ -1,8 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@telepath-computer/television-server";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { configureTestMotion } from "./helpers.ts";
 
@@ -30,6 +31,7 @@ test.describe("application platform marker (^ui-t-platform-marker)", () => {
 
     try {
       await server.start();
+      const appURL = await appURLForServer(server.getBaseURL(), baseURL);
       const rows = [
         { name: "exact Electron mode", mode: "electron", platform: "electron" },
         { name: "absent mode", mode: null, platform: null },
@@ -39,8 +41,7 @@ test.describe("application platform marker (^ui-t-platform-marker)", () => {
       ] as const;
 
       for (const row of rows) {
-        const url = new URL("/packages/web/src/index.html", baseURL);
-        url.searchParams.set("serverURL", server.getBaseURL());
+        const url = new URL("/packages/web/src/index.html", appURL);
         if (row.mode !== null) url.searchParams.set("mode", row.mode);
 
         await page.goto(url.href);

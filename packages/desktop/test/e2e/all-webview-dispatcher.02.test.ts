@@ -23,7 +23,7 @@ async function launchApp(
   // electron-mode page declaring no shell version would — correctly — halt
   // at the upgrade gate instead of booting the artifact UI under test.
   const { app, page } = await launchDesktop({
-    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9&serverURL=${encodeURIComponent(appURL)}`,
+    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9`,
     userDataDir: options.userDataDir,
     env: options.env,
   });

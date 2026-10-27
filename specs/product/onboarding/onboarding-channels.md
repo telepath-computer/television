@@ -1,4 +1,4 @@
-*Onboarding channels: the bundled starter channels every Television installation receives exactly once — what fresh installs and upgrading users see, and the promise that deleted or edited onboarding content is never recreated.*
+*Onboarding channels: the bundled starter channels every Television installation receives exactly once — what fresh installs and upgrading users see, the data their artifacts' stores start with, and the promise that deleted or edited onboarding content is never recreated.*
 
 **Status:** adopted onboarding-channel product authority; built-process and browser acceptance conform.
 
@@ -20,6 +20,14 @@ Onboarding channels are installed into the [Television home](../cli.md#^cli-home
 
 An onboarding artifact may be an HTML document or markdown file. An installed markdown artifact is an ordinary markdown path artifact, presented exactly as any user-created one — markdown presentation and editor internals remain code-authoritative under [the frame-core boundary](../../arch/artifact-frame/index.md#^frame-core-carve-out).
 
+Installed onboarding artifacts get the same generated IDs as every other artifact ([artifacts.md#^af-artifact-id](../artifacts.md#^af-artifact-id)), so a default installation never ships a store reachable through an ID that can be guessed. Onboarding artifacts installed by earlier releases keep the predictable IDs they were installed with, and have no store ([resources.md#^rs-artifact-store](../resources/resources.md#^rs-artifact-store)). ^onboarding-artifact-ids
+
+## Stores
+
+An onboarding artifact has [its own store](../resources/resources.md#^rs-artifact-store) like any other, and can start with data in it. The bundle declares a starting value for the artifact's store, and installing the channel writes it. Dates in a starting value can be relative to the day the channel is installed, so that a starting to-do list falls due around that day. The data is written with the channel, once: after that it belongs to the user like the rest of the channel, and a channel the home has already received gains no data from a later release. ^onboarding-stores
+
+When writing a declared starting value fails, the channel still installs. The artifact's store holds no value, unless the write failed after the starting value was saved, in which case the store takes what was saved, as for any [write whose outcome is unknown](../resources/json-store.md#^js-uncertain-write). ^onboarding-store-failed
+
 ## Fresh install
 
 The first time a server runs against a brand-new home, every onboarding channel in the bundle is created in bundle order with its defined name, artifacts, and tab-page order. A home that holds only its [config file](../cli.md#^cli-config-file) is still brand-new. A fresh installation focuses the bundle's designated channel. ^fresh-install
@@ -38,7 +46,7 @@ The "no content yet" allowance exists because a home can acquire a config file a
 
 Once a home has received an onboarding channel, that channel and its artifacts belong to the user. Television never:
 
-- re-creates an onboarding channel or artifact the user deleted, ^deletion-respected
+- re-creates an onboarding channel or artifact the user deleted, or restores data that the user or an agent changed in an artifact's store, ^deletion-respected
 - overwrites or updates onboarding content the user modified,
 - applies a later release's changes to an onboarding channel the home already received. ^no-content-refresh
 

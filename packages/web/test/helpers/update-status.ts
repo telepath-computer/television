@@ -19,12 +19,6 @@ export class FakeUpdateConnection {
   updateState: UpdateState | null = null;
   signals: RecordedSignal[] = [];
 
-  readonly url: string;
-
-  constructor(url: string = "http://primary.test") {
-    this.url = url;
-  }
-
   sendTelemetrySignal(event: string, properties: Record<string, string>): void {
     this.signals.push({ event, properties });
   }
@@ -40,7 +34,6 @@ export class FakeUpdateConnectionOwner extends EventTarget<ServerStatusEvent | C
 }
 
 interface RetainingConnection {
-  readonly url: string;
   serverVersion: string | null;
   updateState: UpdateState | null;
 }
@@ -54,11 +47,8 @@ interface RetainingConnectionOwner {
 export function dispatchServerStatus(
   owner: RetainingConnectionOwner,
   message: ServerStatusMessage,
-  serverURL: string,
 ): void {
-  if (owner.connection.url === serverURL) {
-    owner.connection.serverVersion = message.version;
-    owner.connection.updateState = message.update ?? null;
-  }
-  owner.dispatchEvent(new ServerStatusEvent("server-status", { serverURL, message }));
+  owner.connection.serverVersion = message.version;
+  owner.connection.updateState = message.update ?? null;
+  owner.dispatchEvent(new ServerStatusEvent("server-status", { message }));
 }

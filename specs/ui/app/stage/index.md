@@ -17,7 +17,7 @@ A **page** is the box one artifact is shown in ([product/tab-pages.md#^tp-one-ar
 - Exactly one page is **selected**, and it rests centred in the stage. Selecting another page slides the filmstrip until that page is centred ([Selection](#selection)).
 - A page carries a width and a height, set by dragging its edges ([Page sizing](#page-sizing)). Its contents set its lower bound — the artifact's minimum width and height ([Bounds](#bounds)) — and full-screen is a mode over the size ([Full-screen](#full-screen)).
 - Every other page is a **background page**, shown receded without artifact shadows (styling in [ui/app/stage/stage.frame](./stage.frame)) and inert: its artifact, and everything on its frame, takes no input. Pressing it selects it, and that is the only interaction a background page takes.
-- The filmstrip moves only when the selection changes. There is no free scrolling: swiping or wheeling across pages does nothing. ^st-selection-only
+- The filmstrip moves only when the selection changes, or when the channel's order changes and the selected page must be centred again ([#^st-remote-reorder](#^st-remote-reorder)). There is no free scrolling: swiping or wheeling across pages does nothing. ^st-selection-only
 - Moving the selection never reloads a page's document ([product/artifacts.md#^af-tab-continuity](../../../product/artifacts.md#^af-tab-continuity)).
 - Changing channels swaps the filmstrip for the new channel's pages at once; no motion plays between channels. Every stateful view in the discarded filmstrip is disconnected before any view in the arriving filmstrip becomes active, so subscriptions, global listeners, and owned resources are released. Lit's `keyed()` directive must not own this replacement boundary: it resets the part's committed value before clearing and causes nested views to miss `disconnected()`, retaining view references and event handlers as a memory leak and allowing discarded views to process later events. A one-item `repeat()` keyed by channel ID provides channel identity through Lit's disconnect-aware child-part removal path. ^st-channel-redraw
 
@@ -38,6 +38,7 @@ The gesture inherits the shell's desktop-pointer input boundary ([ui/app/index.m
 - Dragging a tab to the strip's end scrolls the strip, so a slot out of sight can be reached. Within the edge zone ([drag.yml](../drag.yml)) the strip scrolls, fastest at the very edge and tapering to nothing at the zone's inner edge — the channel sidebar's measures for the same gesture ([ui/app/sidebar/index.md](../sidebar/index.md), Pinning and reordering). A strip with nowhere to scroll does nothing.
 - Releasing drops the tab into the placeholder's slot — the tab is already over it, so nothing slides further.
 - Release commits the placeholder's order exactly once, wherever the pointer sits — leaving the strip does not end the drag. Swaps during the drag are provisional: no order is saved or shared before release. Escape or a cancelled drag abandons it — tabs, pages, and selection return to where they started, and no order is saved. ^st-reorder-commit
+- An order that arrives from elsewhere, such as another client's drag or an agent's change, applies at once, with none of the drag's motion. Selection stays on the same artifact, and its page stays centred. ^st-remote-reorder
 
 ## Full-screen
 

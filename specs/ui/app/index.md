@@ -72,19 +72,21 @@ Collapse and expansion preserve channel selection, tab order, page selection, an
 
 ## Connection states
 
-The shell shows at most one system-modal state at a time, chosen by this order:
+While the server's interface can't use its server, the [system modal](./system-modal/index.md) shows one state at a time, chosen by these rules. The [connection states explainer](../../arch/explainer-connection-states.md) follows these rules alongside the desktop app's own screens. ^ap-connection-states
 
-- **Sign-in outranks everything.** While the server requires a token, the sign-in state is the whole presentation: no interstitial, no gate, no shell.
-- **The gate is never covered.** A client halted at the desktop upgrade gate is not "connecting" — the connection interstitial never stacks over the gate. (What halts a client is [arch/updates/desktop-upgrade-gate.md](../../arch/updates/desktop-upgrade-gate.md)'s.)
-- **A lost session dims; a missing session hides.** After a session has existed, the disconnected state holds the shell — and its live frames — mounted behind the backdrop; before any session, the connecting and error states stand on bare ground with no shell rendered ([ui/app/system-modal/index.md](./system-modal/index.md), Appearance).
-
+- **A definite answer from the server shows its own state at once.** When the server asks for an access token or rejects the one it was given, the state is Access token required. When the desktop app is gated ([arch/updates/desktop-upgrade-gate.md](../../arch/updates/desktop-upgrade-gate.md#^boot-barrier)), the state is the upgrade gate. This holds on the first connection and on every reconnect, including while Disconnected or Can't connect with server is showing; neither of those ever stands in for a definite answer. Once the upgrade gate shows, it stays until the page reloads: nothing replaces or covers it, including a later rejected token ([^gate-screen](../../arch/updates/desktop-upgrade-gate.md#^gate-screen)).
+- **Access token required waits.** A rejected token does not fix itself, so the app makes no further attempts, and a browser forgets the token it had stored. In a browser, the person recovers by opening a current connect link; in the desktop app, by Disconnect from Server.
+- **A first connection that cannot reach the server** shows Can't connect with server. Before that the state is Connecting.
+- **A dropped connection** shows Disconnected. After three reconnect attempts in a row fail to reach the server, it shows Can't connect with server. Only attempts that cannot reach the server count toward the three, and a successful connection starts the count again. ^ap-reconnect-escalation
+- **Disconnected and Can't connect with server keep trying,** and leave by themselves when an attempt succeeds.
+- **What is behind the dialog.** After a session has existed, the shell, with its live artifact frames, stays mounted behind Disconnected and Can't connect with server, and resumes without reloading when the connection returns. Before any session, and for Access token required and the upgrade gate, no shell is rendered; the dialog stands on the app's bare ground.
 ## Testing
 
 Under [What a UI surface's suite is responsible for](../../arch/testing-policy.md#What a UI surface's suite is responsible for), this surface's suite must prove the shell composition for the `connected`, `no-channel`, `empty-channel`, `connecting`, `disconnected`, `unauthorized`, `error`, and `needs-upgrade` application states. The permanent foreground div is sampled in every state in that matrix. When the facts for more than one connection state are true, the suite must prove that the [connection-state rules](#connection-states) select one presentation. It must also prove that two system-modal states never appear together.
 
-Real-browser acceptance of sign-in precedence must use a running server that requires a token. It must cover rejection of a stored token during boot. It must also cover rejection of a stored token after a session has been established. In both cases, the stored token must be cleared. Sign-in must be the only presentation, with no shell or other system-modal state.
+Acceptance of the connection states runs in a real browser against a running server, one that requires a token where a token is involved. A rejected stored token is covered both during boot and after a session has been established.
 
-Disconnection acceptance must run in a real browser against a running server. When an established session drops, the disconnected modal must appear over the mounted shell. No other system-modal state may appear. The shell and its live artifact frames must remain the same nodes, and artifact document state must remain intact. Reconnecting must remove the modal and resume that shell without replacing those nodes.
+Acceptance of a dropped connection holds the shell's identity: the shell and its live artifact frames remain the same nodes, and artifact document state stays intact, through Disconnected, through [the escalation](#^ap-reconnect-escalation) to Can't connect with server, and through reconnecting.
 
 At desktop window widths, real-browser acceptance must show that an overflowing tab strip or stage remains contained inside the shell. The document must have no horizontal scroll range. An attempt to scroll the document horizontally must leave the window's horizontal scroll position unchanged.
 

@@ -6,6 +6,7 @@ export interface CopyButtonTemplateOptions {
   label: string;
   prompt?: string;
   intent?: string;
+  size?: "sm" | "default" | "lg";
   copied?: boolean;
   onActivate?: () => void;
 }
@@ -111,6 +112,7 @@ export function copyButtonTemplate(
     label,
     prompt = "",
     intent,
+    size = "sm",
     copied = false,
     onActivate = () => {},
   }: CopyButtonTemplateOptions,
@@ -119,7 +121,7 @@ export function copyButtonTemplate(
   return html`
     <button
       class="copy-button"
-      size="sm"
+      size=${size === "default" ? nothing : size}
       aria-label=${label}
       intent=${intent ?? nothing}
       ?copied=${copied}

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SET_APPEARANCE_MODE_CHANNEL } from "../src/appearance-mode.ts";
+import { OPEN_APPLICATION_LINK_CHANNEL } from "../src/application-link.ts";
 import {
   DESKTOP_UPDATE_DOWNLOADED_CHANNEL,
   GET_DESKTOP_UPDATE_CHANNEL,
@@ -28,6 +29,7 @@ vi.mock("electron", () => ({
 
 interface NativeBridge {
   setAppearanceMode(mode: unknown): void;
+  openApplicationLink(url: unknown): void;
   onDesktopUpdateDownloaded(callback: (version: string) => void): void;
   restartToInstallUpdate(): void;
 }
@@ -122,5 +124,43 @@ describe("connect preload desktop update operations", () => {
 
     expect(mocks.send).toHaveBeenCalledTimes(1);
     expect(mocks.send.mock.calls[0]).toEqual([RESTART_TO_INSTALL_UPDATE_CHANNEL]);
+  });
+});
+
+// The interface passes an artifact's application link on to the main process,
+// which classifies it (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling).
+describe("connect preload application links", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mocks.exposed.clear();
+    mocks.send.mockClear();
+    await import("../src/connect-preload.ts");
+  });
+
+  it("sends a string to the main process unchanged, and nothing else", () => {
+    const bridge = mocks.exposed.get("__televisionNativeBridge") as NativeBridge;
+
+    for (const value of [undefined, null, 7, {}, ["example-app://open/item"]]) bridge.openApplicationLink(value);
+    expect(mocks.send).not.toHaveBeenCalled();
+
+    bridge.openApplicationLink("example-app://open/item");
+    expect(mocks.send.mock.calls).toEqual([[OPEN_APPLICATION_LINK_CHANNEL, "example-app://open/item"]]);
+  });
+});
+
+// spec: proofs/arch/desktop/artifact-partitions.md#^dp-t-bridge-flag
+describe("connect preload artifact partitions", () => {
+  const environment = globalThis as typeof globalThis & { jsdom: { reconfigure(options: { url: string }): void } };
+
+  it("tells the served interface that artifact webviews go in partitions", async () => {
+    for (const url of ["http://127.0.0.1:4500/?mode=electron", "file:///Applications/Television.app/Contents/Resources/connect.html"]) {
+      environment.jsdom.reconfigure({ url });
+      vi.resetModules();
+      mocks.exposed.clear();
+      await import("../src/connect-preload.ts");
+      const bridge = mocks.exposed.get("__televisionNativeBridge") as { artifactPartitions?: unknown };
+      expect({ url, flag: bridge.artifactPartitions }).toEqual({ url, flag: 1 });
+    }
+    environment.jsdom.reconfigure({ url: "http://localhost:3000/" });
   });
 });

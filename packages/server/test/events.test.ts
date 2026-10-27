@@ -78,13 +78,13 @@ describe("/events websocket stream", () => {
     for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
   });
 
-  async function harness() {
+  async function harness(options: { auth?: boolean } = {}) {
     const storagePath = tempDir();
     dirs.push(storagePath);
     const target = path.join(storagePath, "event.html");
     writeFileSync(target, "<!doctype html>");
     const store = createServingStore(storagePath);
-    const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
+    const server = new Server({ store, host: "127.0.0.1", port: 0, auth: options.auth ?? true });
     servers.push(server);
     await server.start();
     return { storagePath, target, store, server, auth: { Authorization: `Bearer ${store.authToken}` } };
@@ -144,6 +144,18 @@ describe("/events websocket stream", () => {
     expect(events).toEqual([]);
     expect(statusMessages).toHaveLength(1);
     expect(statusMessages[0]).toMatchObject({ type: "server-status" });
+  });
+
+  // spec: proofs/arch/resources/index.md#^rs-arch-t-events-token
+  it("sends server-status first to a client without a token on a tokenless server", async () => {
+    const h = await harness({ auth: false });
+    const ws = new WebSocket(`${h.server.getBaseURL().replace(/^http/, "ws")}/events`);
+    const first = await new Promise<unknown>((resolve, reject) => {
+      ws.once("message", (data) => resolve(JSON.parse(String(data))));
+      ws.once("close", (code) => reject(new Error(`closed with ${code}`)));
+    });
+    ws.close();
+    expect(first).toMatchObject({ type: "server-status" });
   });
 
   it("broadcasts full artifact payloads to multiple clients in create/update/remove order", async () => {

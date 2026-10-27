@@ -64,8 +64,11 @@ tv-select:not([open]) {
   display: none;
 }
 
+/* An open panel takes presses wherever it covers a window drag region, such
+   as the desktop navbar ([[ui/foundation/popover/index.md]], Layer). */
 :where(tv-popover[open], tv-menu[open], tv-select[open]) {
   display: block;
+  -webkit-app-region: no-drag;
 }
 
 /* The expanded trigger's treatment is the button's

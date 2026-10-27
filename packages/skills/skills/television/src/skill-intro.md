@@ -10,6 +10,8 @@ Load this skill when you need to create, update, inspect, focus, delete, or othe
 
 Read the [theming guidance](./theming.md) when creating, revising, or bringing an installed theme up to date.
 
+An artifact can keep data in a *JSON store*, a small database that Television keeps on its server, inspired by Firebase's Realtime Database. It keeps the data durably, shares it live with every client viewing the artifact, and lets you read and write it through the `tv` CLI. `localStorage`, cookies and IndexedDB do not work in artifacts, because artifacts run under the CSP sandbox. Touching them, or `sessionStorage`, throws `SecurityError`, so code that cannot avoid touching them, such as a library, has to catch the exception. Television offers no storage that stays in one browser. A Markdown artifact can also act as shared, synchronized, editable state, but only within Television: through a share link it is read-only, unlike a JSON store, and it lacks the presentational flexibility and interactivity of HTML. An artifact's state can also live in a third-party API or another external service it integrates with. Which fits depends on the artifact's design, its use and the person, so you decide; for a to-do list, the standard choice is a JSON store. Read the [resource guidance](./resources.md) when an artifact needs to keep state, or when the person mentions JSON stores or resources.
+
 Re-read this skill only if it is not already in your context or you know it changed.
 
 ## When to use Television
@@ -41,9 +43,9 @@ When the artifact is the real answer, keep the final reply short. Tell the user 
 That relationship matters:
 
 - creating an artifact places it on a channel immediately
-- reordering an artifact's tab page is a browser UI tab-drag gesture; the CLI does not expose layout mutation today
-- deleting an artifact removes its registry record and its tab page from the channel
-- moving the same underlying path or URL to another channel means deleting the old artifact and creating a new artifact with the same path or URL on the target channel
+- `tv reposition-artifact` changes an artifact's size, full-screen state, and position in its channel's order, and `tv get-channel` shows the current arrangement
+- `tv move-artifact` moves an artifact to another channel, keeping its ID, store, and share link
+- deleting an artifact removes its registry record and removes the artifact from its channel
 
 ### Onboarding channels
 

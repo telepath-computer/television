@@ -94,6 +94,7 @@ export class Stage extends View<[
   #selectedFullScreen: boolean | null | undefined;
   #pageGeometrySignature: string | null | undefined;
   #reorderSignature: string | null | undefined;
+  #pageOrder: string | undefined;
   // Fresh-channel centring is committed to scrollLeft in the scheduled
   // pre-paint frame. It must not persist as an ancestor transform: Electron
   // 35's Chromium 134 resolves native popover anchors against pre-transform
@@ -118,6 +119,7 @@ export class Stage extends View<[
     this.#selectedFullScreen = undefined;
     this.#pageGeometrySignature = undefined;
     this.#reorderSignature = undefined;
+    this.#pageOrder = undefined;
   }
 
   template(
@@ -155,6 +157,10 @@ export class Stage extends View<[
     const selectedModeChanged = selectedFullScreen !== this.#selectedFullScreen;
     const pageGeometryChanged = pageGeometrySignature !== this.#pageGeometrySignature;
     const reorderChanged = reorderSignature !== this.#reorderSignature;
+    // An order that arrives from elsewhere moves pages without a drag
+    // (specs/ui/app/stage/index.md#^st-remote-reorder).
+    const pageOrder = pages.map(({ key }) => key).join("|");
+    const orderChanged = !channelChanged && this.#pageOrder !== undefined && pageOrder !== this.#pageOrder;
     const animateReorder = !this.#motionSuppressed && activeReorder !== null &&
       this.#reorderSignature !== undefined &&
       this.#reorderSignature !== null &&
@@ -174,6 +180,7 @@ export class Stage extends View<[
     this.#selectedFullScreen = selectedFullScreen;
     this.#pageGeometrySignature = pageGeometrySignature;
     this.#reorderSignature = reorderSignature;
+    this.#pageOrder = pageOrder;
     this.#renderedPages = pages;
     if (pageGeometryChanged && hadPageGeometry) {
       this.#clearWindowTracking();
@@ -187,7 +194,7 @@ export class Stage extends View<[
     queueMicrotask(() => this.#applyRenderedSizes());
     if (channelChanged || selectionChanged || pageGeometryChanged || enteredMotionSuppression) {
       queueMicrotask(() => this.#scheduleCentre(selectedKey, animateSelection));
-    } else if (reorderChanged) {
+    } else if (reorderChanged || orderChanged) {
       queueMicrotask(() => {
         const filmstrip = this.#filmstripRef.value;
         if (!filmstrip) return;

@@ -6,7 +6,7 @@ Television's desktop application opens the Television interface in a native wind
 
 ## What this owns
 
-This spec owns the user-visible installation, platform support, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built, signed and hosted, the Electron runtime used for development and tests, and the main-process identity rules are architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
+This spec owns the user-visible installation, platform support, connection to a server, identity and saved data of the desktop application, and the status of the npm package that distributed desktop releases through 1.3.x. How the app is built, signed and hosted, the Electron runtime used for development and tests, and the main-process identity rules are architecture under [arch/desktop/index.md](../arch/desktop/index.md). How users learn about and receive updates, including the screen that can require a newer desktop release, is owned by [update-notifications.md](./update-notifications.md). The [desktop app explainer](../arch/explainer-desktop-app.md) walks through the whole app and links to each owning spec.
 
 The *desktop application* is the Television app that ToDesktop builds and that users install from Television's download link.
 
@@ -19,6 +19,12 @@ The download link stays the same across releases and serves the most recent desk
 The desktop application supports Apple Silicon Macs running macOS 12 or later. On every other computer, including Intel Macs, Linux and Windows, Television is used through the web client in a browser. ^desktop-product-support
 
 The desktop app is a Mac app, so wording about the desktop app or updating it names the Mac where it names a platform. ^desktop-mac-wording
+
+## Connecting to a server
+
+The desktop application connects to one Television server with a [connect link](./cli.md#^cli-connect-link). At first launch, and whenever no connection is saved, it shows the [setup screen](../ui/setup/index.md), which offers a prompt the person gives their agent and a field for the link the agent returns. Once connected, it remembers the connection and reconnects by itself each time it opens.
+
+The Television menu's **Disconnect from Server** forgets the saved connection and returns to the setup screen. It is available whenever a connection is saved, including while the app shows that it must be upgraded, so a person can always leave a server. What the app shows while it cannot use its server is owned by the [app shell's connection states](../ui/app/index.md#^ap-connection-states) and the [desktop connection flow](../arch/desktop/connect-flow.md#^desktop-connect-entry).
 
 ## The npm package
 
@@ -40,7 +46,7 @@ Television has no macOS CI environment, and only ToDesktop's build service signs
 
 Before a change to the desktop app's behavior reaches `main`, the ToDesktop build of that code passes the checks the change needs. Merging an integration branch into `main` needs them; merging into an integration branch or a personal branch does not. The checks run on an unreleased [candidate build](../arch/desktop/distribution.md#^desktop-dist-candidate-builds), or a signed [test build](../arch/desktop/distribution.md#^desktop-dist-test-builds) of the same code. Releasing a build ships it to every installed app ([releases](../arch/desktop/distribution.md#releases)), so testing happens before release and a released build is never what is tested. A check covers the code that was built, not one commit: a later change that leaves the build unchanged, such as moving a document, needs no new run. ^desktop-checks-before-main
 
-The pull request that takes a change to `main` runs the checks its changes need. Each check below lists the changes that need it; the lists guide judgment rather than bound it, and a check whose area a change leaves untouched is not needed. Agents run the checks marked agent-run, and a person on a [supported Mac](#^desktop-product-support) runs the ones marked manual. The pull request records who ran each check, the build and the commit it was built from, and the check's steps and output.
+The pull request that takes a change to `main` runs the checks its changes need. Each check below lists the changes that need it; the lists guide judgment rather than bound it, and a check whose area a change leaves untouched is not needed. Agents run the checks marked agent-run, and a person on a [supported Mac](#^desktop-product-support) runs the ones marked manual.
 
 - **Mac install** (manual). Needed for changes to the ToDesktop configuration or build settings, the build script or upload directory, the Electron or electron-builder version, or the app's name, identity or saved-data location. The build is installed from its DMG on a Mac where an earlier desktop app has saved a connection. Opened from Applications, the app must show that:
   - macOS opens the app without a warning, which shows that it accepts the signature and notarization;

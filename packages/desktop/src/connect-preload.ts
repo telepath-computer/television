@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { ConnectResult } from "./connect-error.ts";
 import {
-  GET_CONNECT_SCREEN_INTENT_CHANNEL,
-  type ConnectScreenIntent,
+  GET_CONNECT_STATE_CHANNEL, CONNECT_STATE_CHANNEL, COMPLETE_CONNECT_CHANNEL, DISCONNECT_CHANNEL,
+  type ConnectScreenState,
 } from "./connect-screen.ts";
 import {
   isNativeNavigationKey,
@@ -12,6 +12,7 @@ import {
   isDesktopAppearanceMode,
   SET_APPEARANCE_MODE_CHANNEL,
 } from "./appearance-mode.ts";
+import { OPEN_APPLICATION_LINK_CHANNEL } from "./application-link.ts";
 import {
   DESKTOP_UPDATE_DOWNLOADED_CHANNEL,
   GET_DESKTOP_UPDATE_CHANNEL,
@@ -20,6 +21,9 @@ import {
 } from "./desktop-update.ts";
 
 contextBridge.exposeInMainWorld("__televisionNativeBridge", {
+  // Artifact webviews go in partitions the main process sets up, so the
+  // served interface names them (specs/arch/desktop/artifact-partitions.md#^dp-bridge-flag).
+  artifactPartitions: 1,
   onNavigationKey(callback: (key: string) => void): void {
     ipcRenderer.on(NATIVE_NAVIGATION_KEY_CHANNEL, (_event, key: unknown) => {
       if (isNativeNavigationKey(key)) callback(key);
@@ -46,15 +50,23 @@ contextBridge.exposeInMainWorld("__televisionNativeBridge", {
   restartToInstallUpdate(): void {
     ipcRenderer.send(RESTART_TO_INSTALL_UPDATE_CHANNEL);
   },
+  // An application link an artifact's preload sent to the interface; the
+  // main process classifies it (specs/arch/artifact-frame/artifact-bridge.md#^ab-link-handling).
+  openApplicationLink(url: unknown): void {
+    if (typeof url === "string") ipcRenderer.send(OPEN_APPLICATION_LINK_CHANNEL, url);
+  },
 });
 
 if (window.location.protocol === "file:") {
   contextBridge.exposeInMainWorld("television", {
-    getConnectScreenIntent: (): Promise<ConnectScreenIntent> =>
-      ipcRenderer.invoke(GET_CONNECT_SCREEN_INTENT_CHANNEL),
-    getConnection: (): Promise<{ serverURL: string; token: string } | null> =>
-      ipcRenderer.invoke("television:get-connection"),
-    connect: (serverURL: string, token: string): Promise<ConnectResult> =>
-      ipcRenderer.invoke("television:connect", { serverURL, token }),
+    getState: (): Promise<ConnectScreenState> => ipcRenderer.invoke(GET_CONNECT_STATE_CHANNEL),
+    onState(callback: (state: ConnectScreenState) => void): () => void {
+      const listener = (_event: Electron.IpcRendererEvent, state: ConnectScreenState) => callback(state);
+      ipcRenderer.on(CONNECT_STATE_CHANNEL, listener);
+      return () => ipcRenderer.removeListener(CONNECT_STATE_CHANNEL, listener);
+    },
+    connect: (link: string): Promise<ConnectResult> => ipcRenderer.invoke("television:connect", link),
+    completeConnect: (attempt: number): Promise<void> => ipcRenderer.invoke(COMPLETE_CONNECT_CHANNEL, attempt),
+    disconnect: (): Promise<void> => ipcRenderer.invoke(DISCONNECT_CHANNEL),
   });
 }

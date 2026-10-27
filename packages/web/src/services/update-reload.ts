@@ -6,11 +6,13 @@ import { createNavigationLatch, type NavigationLatch } from "./navigation-latch.
 
 // The client reload contract
 // (specs/arch/updates/version-advertisement.md ^reload-action,
-// ^reload-loop-guard, ^reload-origin-rule, ^autoreload-telemetry):
+// ^reload-loop-guard, ^autoreload-telemetry):
 // `decideOnServerStatus` is the PURE decision — string-inequality staleness
 // with the 0.0.0 exemption (via the single shared comparison,
-// arch/updates/index.md ^updates-version-comparisons), the sessionStorage
-// loop guard, and primary-origin scoping. All side effects (marker writes,
+// arch/updates/index.md ^updates-version-comparisons) and the sessionStorage
+// loop guard. The client's one connection is to the origin that served its
+// bundle (^reload-origin-rule), so every server-status it receives is
+// compared. All side effects (marker writes,
 // `location.reload()`, the client_autoreloaded signal) live in the one thin
 // agent below — nothing else in the client may call `location.reload()` for
 // version reasons.
@@ -32,18 +34,14 @@ export type ReloadDecision =
 
 /**
  * The reload decision (^t-reload-decision): given the bundle version, the
- * server version from a `server-status` message, whether that message came
- * from the bundle-serving origin's connection, and the current loop-guard
+ * server version from a `server-status` message, and the current loop-guard
  * marker — reload, emit the post-reload telemetry, or do nothing.
  */
 export function decideOnServerStatus(input: {
   bundleVersion: string;
   serverVersion: string;
-  originMatch: boolean;
   marker: ReloadMarker | null;
 }): ReloadDecision {
-  if (!input.originMatch) return { action: "none" };
-
   // Post-reload startup with a satisfied marker: the reload happened and
   // healed the mismatch — signal client_autoreloaded and clear the marker
   // (^autoreload-telemetry). TRUE equality, not exemption-equality.
@@ -88,7 +86,6 @@ export function readReloadMarker(storage: MarkerStorage): ReloadMarker | null {
 }
 
 export interface UpdateReloadConnection {
-  readonly url: string;
   status: string;
   sendTelemetrySignal(event: ClientSignalEventName, properties: Record<string, string>): void;
 }
@@ -106,11 +103,6 @@ export interface UpdateReloadConnectionOwner {
 
 export interface UpdateReloadAgentOptions {
   owner: UpdateReloadConnectionOwner;
-  /**
-   * The owned connection's normalized URL. Reload applies only when that
-   * connection's origin served the bundle (^reload-origin-rule).
-   */
-  primaryServerURL: string;
   bundleVersion?: string;
   /** Defaults to `sessionStorage`; with no storage the agent is inert — no guard means no safe reload. */
   storage?: MarkerStorage | null;
@@ -127,7 +119,7 @@ export interface UpdateReloadAgentOptions {
 
 /**
  * The thin side-effect wrapper around the reload decision: evaluates every
- * `server-status` from the primary connection — which covers both detection
+ * `server-status` from the connection — which covers both detection
  * points, since initial connect and every reconnect each deliver one
  * (^reload-detection) — writes the marker before reloading (^reload-action),
  * and emits `client_autoreloaded` from a satisfied marker once the transport
@@ -153,7 +145,7 @@ export function createUpdateReloadAgent(options: UpdateReloadAgentOptions): { di
   const trySendPendingSignal = (): void => {
     if (pendingSignal === null) return;
     const connection = options.owner.connection;
-    if (connection.url !== options.primaryServerURL || connection.status !== "connected") return;
+    if (connection.status !== "connected") return;
     const signal = pendingSignal;
     pendingSignal = null;
     connection.sendTelemetrySignal("client_autoreloaded", {
@@ -168,7 +160,6 @@ export function createUpdateReloadAgent(options: UpdateReloadAgentOptions): { di
     const decision = decideOnServerStatus({
       bundleVersion,
       serverVersion: event.message.version,
-      originMatch: event.serverURL === options.primaryServerURL,
       marker: readReloadMarker(storage),
     });
     switch (decision.action) {

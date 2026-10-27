@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "version": "1.3.2",
+  "version": "1.5.0",
   "toast": {
-    "markdown": "### A new version of Television (1.3.2) is available.\n\nTV now has themes and dark mode! We’ve included a bunch of beautiful themes out of the box, with more to follow. You can also make your own themes just by asking your agent. Themes can do almost anything: not just colors and fonts but backgrounds, overlays, even animations. Read more in the #announcements channel of our Discord ([join now](https://discord.gg/8MfpZ48jD8) if you haven’t already.)",
+    "markdown": "### A new version of Television (1.5) is available.\n\nTelevision now makes your artifacts more interactive by giving them a real-time live data store, synced everywhere and editable by your agent. Artifacts are also now sandboxed for improved security.",
     "prompt": "Use `curl -fsSL https://television.run/install.md` to fetch the Television admin guide directly without summarization, and then help me upgrade my Television install to the latest version."
   },
   "desktop": {
-    "upgradeMarkdown": "# Desktop app update required\n\nThis version of the Television desktop app does not work with this server and needs to be updated. [Download the latest version for Mac](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64) and install it."
+    "upgradeMarkdown": "# Desktop app update required\n\nThis version of the Television desktop app does not work with this server and needs to be updated to version 1.5.0 or later.\n\nIf you use the downloaded Mac app, it updates itself: leave it open until it offers to restart, or [download the latest version for Mac](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64) and install it.\n\nIf you start the app with `tv-desktop`, it was installed with npm and receives no more updates. To move to the downloaded app on an Apple Silicon Mac:\n\n1. [Download Television for Mac](https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64).\n2. Open the downloaded disk image and drag Television to Applications.\n3. Quit this app, then open Television from Applications. It keeps your saved server connection.\n\nFrom then on, open Television from Applications, not with `tv-desktop`."
   }
 }

@@ -35,8 +35,8 @@ body > .stage {
 
 /* The filmstrip: a programmatically moved viewport around the channel's
    pages. Its inner row provides enough leading and trailing ground for every
-   ordinary or full-screen page to reach the centre. How it moves — and that
-   only selection moves it — is the spec document's
+   ordinary or full-screen page to reach the centre. How it moves — on a selection, or to
+   re-centre after an order change — is the spec document's
    ([[ui/app/stage/index.md#^st-selection-only]]). */
 .filmstrip {
   flex: 1;

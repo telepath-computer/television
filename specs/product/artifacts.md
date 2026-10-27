@@ -1,4 +1,4 @@
-*What the user can do with and rely on from an artifact: its document's independence and interactivity, its name, deleting it, a shared one outliving its producer, and what survives moving around the app.*
+*What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
 
 **Status:** adopted redesign product authority.
 
@@ -6,17 +6,31 @@
 
 An *artifact* is a pointer to content — held externally, or generated on the fly — that Television shows the user. Artifacts are where users interact with information and functionality that is not core to Television itself, to undertake their use cases: a document, a chart, a picture, a page from the web, put there by the user or by an agent working for them. This spec describes what a person can rely on from one: how it behaves, what identifies it, what can be done to it, and when work inside it is preserved or lost.
 
-An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel. ^af-artifact-reference
+An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel, except after a move that did not finish ([#^af-move](#^af-move)). ^af-artifact-reference
 
-The artifact record itself — its fields, the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)).
+The artifact record itself — its fields other than the [ID](#^af-artifact-id), its [store and share link](#^af-store-share), the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)). How a record is [saved](#^af-record-saved) is specified.
 
 ## Name
 
 An artifact's name is its title, which its creator sets as free text. The title is shown verbatim wherever Television displays the artifact. The title has no restrictions on length or characters and is not normalized, including by trimming it. The artifact's visible and accessible names are always the same. ^af-name
 
+## ID
+
+Television generates each artifact's ID when the artifact is created, and the ID never changes; nothing that creates an artifact supplies its ID. Television serves an artifact's content to any browser that asks, at an address containing the ID, `/artifact/<id>/`, without the server's token. Knowing an artifact's ID is therefore what lets a browser load the artifact, and lets its page read and write [the artifact's store](./resources/resources.md#^rs-artifact-store). The IDs Television generates carry 80 random bits from a cryptographic source, which puts them beyond realistic guessing; the practical risk is an ID leaking through a shared link, browser history or a log, which more bits would not reduce ([the access model's limits](./resources/resources.md#^rs-limits)). ^af-artifact-id
+
+## Store and share link
+
+An artifact that this server serves from its own files has its own store, whatever kind of file or folder it is, a JSON store that its pages and agents use for its data ([resources.md#^rs-artifact-store](./resources/resources.md#^rs-artifact-store)). An artifact this server serves from its own files can also have a share link, which reaches it through a share ID at `read` or `read-write`, without revealing its own ID ([resources.md#^rs-share](./resources/resources.md#^rs-share)). The artifact's record holds the pointer to its store and its share link. ^af-store-share
+
+## Saving an artifact
+
+Every change to an artifact's record is saved durably, its creation and its deletion included: the change is complete, and reported, only once it is on disk. A record holds promises to the people who use the artifact's store and to those holding its share link, so a crash must neither lose the pointer to its store nor bring back a deleted artifact's link. When Television cannot confirm that a change reached the disk, the change fails, saying that its outcome is unknown, and Television keeps what the disk holds, which is ordinarily the change, so the person or agent can check and retry. ^af-record-saved
+
 ## The document
 
 An artifact's content is shown as a *document*: a page in its own right, the way a browser shows one, with its own styling, its own scripts, and its own history. Television renders it and does not rewrite it — the app's styling does not cascade in, the document's styling does not cascade out, and what the artifact draws is what its author made. ^af-document
+
+An artifact's code may be hostile whoever wrote it, the person's own agent included, so it never gets the server's token, reaches the app's page or saved data, or reaches the desktop app's native functions. Its scripts reach the artifact's own files and store through the ID in its address, Television's public files, and the app through the cooperation described below. In a browser, a document that a Television server serves from an artifact's files runs in the browser's sandbox for this reason, and cannot keep data in browser storage: touching `localStorage`, `sessionStorage`, cookies or IndexedDB throws an error; an [external page artifact](#external-web-pages-in-a-browser-demo-mode) is kept apart by its own site's origin. The desktop app runs artifacts outside the sandbox and keeps them apart through separate browser storage: an artifact that the connected server serves from its own files has storage of its own, kept apart from the app's and from every other artifact's, and external page artifacts and shared artifacts share one storage area, apart from the app's, that stays the same whichever server the app is connected to, so a website login made in one is there in the others. A Markdown file artifact opens in Television's own markdown editor. The limits each runtime places on what a document can do are [the isolation architecture's known limitations](../arch/artifact-frame/isolation.md#^iso-limitations), and Television's guidance tells agents that artifacts cannot use browser storage in either runtime ([guidance.md#^rg-purpose](../arch/resources/guidance.md#^rg-purpose)). ^af-sandbox
 
 An HTML artifact may record the Television app version it was authored against by linking its canonical stylesheet with `?authoredForAppVersion=<version>`. This is optional, advisory metadata for a future authoring agent. It does not change rendering or compatibility, and a document whose canonical URL omits it remains valid.
 
@@ -26,18 +40,30 @@ Television overrides three things in a document, and nothing else: ^af-native-in
 - **The navigation chord**, so stepping between pages and channels still works while focus is inside a document.
 - **The link and form navigations the app commits itself**, so a move inside an artifact becomes that artifact's own history rather than the browser's. Which moves those are is deliberately unspecified — a named carve-out of the authority boundary, held by the shipping implementation ([the navigation-recording carve-out](../arch/artifact-frame/reload-navigation.md#^nav-recording-carve-out)).
 
-For the two navigation overrides, only the browser's default action is overridden; the events still reach the document's own scripts. A document that cannot run Television's script — such as a raw image, a PDF, or HTML whose Content Security Policy blocks Television's injected script — still renders and accepts its native interactions.
+For the two navigation overrides, only the browser's default action is overridden; the events still reach the document's own scripts. A document that cannot run Television's script — such as a raw image, a PDF, or HTML whose Content Security Policy blocks Television's injected script — still renders and accepts its native interactions, except a PDF in a Chromium-based browser ([isolation's known limitations](../arch/artifact-frame/isolation.md#^iso-limitations)).
 
 Known limit: while a document that cannot run Television's script holds keyboard focus, the app's navigation shortcuts do not respond, because nothing in the document can pass the keystroke to the app. Clicking outside the document, or using the channel sidebar and tab strip, always works. The desktop app does not have this limit. ^af-hotkey-limit
 
 ## Deleting an artifact
 
-Artifacts can be deleted. Deleting removes the artifact from its channel; its tab and frame go with it. The artifact's underlying file on disk is not touched — deletion changes what the channel shows, not what is stored. ^af-delete-semantics
+Artifacts can be deleted. Deleting removes the artifact from its channel; its tab and frame go with it. The artifact's underlying file on disk is not touched — deletion changes what the channel shows, not what is stored. Deletion also removes the artifact's share link and leaves its store, from which an agent can recover its data ([resources.md#^rs-artifact-deleted](./resources/resources.md#^rs-artifact-deleted)). With the bindings flag on, it removes the artifact's bindings and leaves the stores themselves ([resources.md#^rs-lifetime](./resources/resources.md#^rs-lifetime)). For an artifact that the server serves from its own files, the desktop app later deletes the browser storage it kept for that artifact alone, once it sees, while connected to the artifact's server, that the artifact is gone ([desktop artifact partitions](../arch/desktop/artifact-partitions.md#^dp-reaper)); the storage external page artifacts and shared artifacts share stays. ^af-delete-semantics
 
 Deletion asks for confirmation before acting, and names the artifact in the asking, so
 nothing is removed by mistake and nothing is removed until it is confirmed. Declining
 leaves the artifact, its tab, and its page exactly as they were; confirming performs the
 removal above.
+
+## Moving to another channel
+
+An artifact can be moved to another channel, and it stays the same artifact: its ID, its store, and its share link do not change, so its address, its data, and the people holding its link are unaffected. It leaves its page on the old channel; a page left with no artifacts is removed, with its tab. It opens as a new page at the end of the new channel's order, or before or after an artifact the move names ([cli.md#^cli-before-after](./cli.md#^cli-before-after)), at the size and full-screen state of the page it left. Its document loads fresh there, as it does after any channel switch ([#^af-channel-reload](#^af-channel-reload)). Moving an artifact to the channel it is already on changes nothing, unless the move names an artifact to go before or after; then it takes that place in the channel's order. In the unlikely case that the server stops after removing the artifact from the old channel and before adding it to the new one, or cannot save the new channel, the artifact is left on no channel, so the app no longer shows it; its record, store, and share link remain ([arch/layout/index.md#^ly-move](../arch/layout/index.md#^ly-move)). The app has no gesture for moving an artifact; agents move one with the CLI ([cli.md#^cli-move-artifact](./cli.md#^cli-move-artifact)). ^af-move
+
+## Where an artifact's file or folder really is
+
+An artifact that this server serves from its own files is created from a local path. Television serves it only while that path's *real location*, where it is once symbolic links are followed, is itself a file or folder that a path artifact can be created from ([cli.md](./cli.md#Path artifact creation)). Creating an artifact, or changing its path, to a path whose real location is not one is refused. Every request for the artifact's content, through its address or in the Markdown editor, checks the real location again, and a request whose real location fails is answered as one for an artifact whose file or folder is gone. A symbolic link at the path, or at a folder above it, therefore keeps working while it leads to such a file or folder, and a path later replaced by a link to anything else serves nothing. ^af-real-location
+
+## What a folder artifact serves
+
+A folder artifact serves the files inside its folder. It serves no file whose real location, where it is once symbolic links are followed, is outside the folder, or has a part below the folder that starts with a dot, such as `.env` or `.git/config`, and a request for such a file is answered as one for a missing file. The folder itself may be anywhere, including inside a hidden folder such as `~/.config/`, and may be reached through a symbolic link. ^af-folder-files
 
 ## Local source changes
 

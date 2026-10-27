@@ -1,9 +1,11 @@
-import { expect, test, chromium, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
 import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { Server, telemetryVersion, type BuiltTelemetryEvent, type TelemetryCaptureSink, type TelemetryEnv } from "@telepath-computer/television-server";
 import { CLIENT_ID_KEY } from "../../src/services/telemetry-client.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { configureTestMotion, waitForApplicationShell } from "./helpers.ts";
 
@@ -45,8 +47,7 @@ async function startHarness(viteBaseURL: string): Promise<Harness> {
   });
   await server.start();
   sink.clear();
-  const url = new URL("/packages/web/src/index.html", viteBaseURL);
-  url.searchParams.set("serverURL", server.getBaseURL());
+  const url = new URL("/packages/web/src/index.html", await appURLForServer(server.getBaseURL(), viteBaseURL));
   return { storagePath, server, sink, appURL: url.toString() };
 }
 

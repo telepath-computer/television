@@ -21,7 +21,10 @@ else
   VITE_HOST="127.0.0.1"
   SERVER_LISTEN=""
 fi
-URL="http://localhost:${VITE_PORT}/?serverURL=http://localhost:${SERVER_PORT}"
+# The browser loads the app from Vite, which forwards the server's routes to
+# the server, so the app and its server share one origin
+# (packages/web/vite.config.ts).
+URL="http://localhost:${VITE_PORT}/"
 
 # The development server serves its own Television home, inside this
 # checkout by default, so it never uses the developer's default home. It runs
@@ -60,7 +63,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-setsid npx vite --config packages/web/vite.config.ts --host "${VITE_HOST}" --port "${VITE_PORT}" --strictPort &
+TV_DEV_SERVER_URL="http://localhost:${SERVER_PORT}" \
+  setsid npx vite --config packages/web/vite.config.ts --host "${VITE_HOST}" --port "${VITE_PORT}" --strictPort &
 VITE_PID=$!
 setsid "${TV[@]}" serve &
 SERVER_PID=$!
@@ -84,7 +88,7 @@ echo ""
 echo "Browser dev ready:"
 echo "  ${URL}"
 if [ "$TAILSCALE_REMOTE" = "1" ]; then
-  echo "  Remote: http://<tailscale-hostname>:${VITE_PORT}/?serverURL=http://<tailscale-hostname>:${SERVER_PORT}"
+  echo "  Remote: http://<tailscale-hostname>:${VITE_PORT}/"
 fi
 echo "Television home: ${DEV_HOME}"
 echo "  Pass --home ${DEV_HOME} to tv commands that should reach this server."

@@ -78,9 +78,8 @@ async function clientId(page: Page): Promise<string | null> {
 }
 
 async function connectElectron(page: Page, harness: Harness): Promise<void> {
-  await page.locator("#serverURL").fill(harness.serverURL);
-  await page.locator("#token").fill(harness.token);
-  await page.locator("#serverURL").press("Enter");
+  await page.getByRole("textbox", { name: "Link from your agent" }).fill(`${harness.serverURL}/?token=${encodeURIComponent(harness.token)}`);
+  await page.getByRole("textbox", { name: "Link from your agent" }).press("Enter");
   await waitForApp(page);
 }
 

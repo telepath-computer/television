@@ -18,6 +18,11 @@ import {
   validatePageLayout,
   type TabPage,
 } from "@telepath-computer/television-shared";
+import {
+  checkJsonLimits,
+  validateJsonValue,
+  type JSONValue,
+} from "@telepath-computer/television-shared/resources";
 
 export const ONBOARDING_CONFIG_FILENAME = "onboarding-channels.json";
 export const ONBOARDING_CONFIG_VERSION = 3;
@@ -30,6 +35,25 @@ export interface OnboardingArtifactConfig {
   title: string;
   size?: TabPage["size"];
   geometry?: TabPage["geometry"];
+  store?: OnboardingStoreConfig; // the starting value the installer writes to this artifact's store
+}
+
+/** The starting value an artifact declares for its store (specs/arch/onboarding/content.md#^onboarding-store-config). */
+export interface OnboardingStoreConfig {
+  value: JSONValue; // the store's starting value
+  /** A calendar date, YYYY-MM-DD: the installer moves the value's dates from it to the installation day. */
+  shiftDatesFrom?: string;
+}
+
+const STORE_DECLARATION_FIELDS = ["value", "shiftDatesFrom"] as const;
+
+const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Whether `value` is a real calendar date written as YYYY-MM-DD. */
+export function isCalendarDate(value: unknown): value is string {
+  if (typeof value !== "string" || !CALENDAR_DATE.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 export interface OnboardingChannelConfig {
@@ -38,15 +62,16 @@ export interface OnboardingChannelConfig {
   artifacts: OnboardingArtifactConfig[]; // array order = initial tab-page order
 }
 
-const ONBOARDING_ARTIFACT_ID_PREFIX = "television-onboarding";
+const ONBOARDING_COPY_NAME_PREFIX = "television-onboarding";
 
 /**
- * Deterministic installed-artifact ID. The slug rules ban `--` inside slugs,
+ * The deterministic name an installed artifact's copied content takes; the
+ * artifact itself gets a generated ID. The slug rules ban `--` inside slugs,
  * keeping this mapping injective
  * (specs/arch/onboarding/installer.md#^artifact-ids).
  */
-export function onboardingArtifactID(channelSlug: ChannelSlug, artifactSlug: ArtifactSlug): string {
-  return `${ONBOARDING_ARTIFACT_ID_PREFIX}--${channelSlug}--${artifactSlug}`;
+export function onboardingCopyName(channelSlug: ChannelSlug, artifactSlug: ArtifactSlug): string {
+  return `${ONBOARDING_COPY_NAME_PREFIX}--${channelSlug}--${artifactSlug}`;
 }
 
 export interface OnboardingConfig {
@@ -56,7 +81,7 @@ export interface OnboardingConfig {
 }
 
 // Onboarding identifiers use lowercase ASCII letters, digits, and dashes. The
-// additional `--` ban keeps the slug-pair → artifact-ID join injective
+// additional `--` ban keeps the slug-pair → copy-name join injective
 // (specs/arch/onboarding/content.md#^slug-rules).
 export const ONBOARDING_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -221,7 +246,11 @@ function validateConfigSchema(parsed: unknown): string[] {
   return errors;
 }
 
-function validateChannelSchema(rawChannel: unknown, index: number, channelSlugs: Set<string>): string[] {
+function validateChannelSchema(
+  rawChannel: unknown,
+  index: number,
+  channelSlugs: Set<string>,
+): string[] {
   if (typeof rawChannel !== "object" || rawChannel === null) {
     return [`channels[${index}] must be an object`];
   }
@@ -271,7 +300,7 @@ function validateArtifactSchema(
   const label = `artifact ${slugLabel} in channel ${channelLabel}`;
 
   for (const key of Object.keys(artifact)) {
-    if (key !== "slug" && key !== "title" && key !== "geometry" && key !== "size") {
+    if (key !== "slug" && key !== "title" && key !== "geometry" && key !== "size" && key !== "store") {
       errors.push(`${label} has unknown field: ${key}`);
     }
   }
@@ -303,7 +332,52 @@ function validateArtifactSchema(
     );
   }
 
+  if (artifact.store !== undefined) {
+    errors.push(...validateStoreDeclaration(artifact.store, label));
+  }
+
   return errors;
+}
+
+/**
+ * A store declaration: exact keys, a starting value that obeys the JSON
+ * store's value rules and limits, and `shiftDatesFrom` as a calendar date
+ * (specs/arch/onboarding/content.md#^onboarding-store-config).
+ */
+function validateStoreDeclaration(raw: unknown, artifactLabel: string): string[] {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return [`${artifactLabel} store must be an object holding the store's starting value`];
+  }
+  const declaration = raw as Record<string, unknown>;
+  const label = `${artifactLabel} store`;
+  const errors: string[] = [];
+  for (const key of Object.keys(declaration)) {
+    if (!(STORE_DECLARATION_FIELDS as readonly string[]).includes(key)) errors.push(`${label} has unknown field: ${key}`);
+  }
+  if (!("value" in declaration)) {
+    errors.push(`${label} is missing value`);
+  } else {
+    const value: unknown = declaration.value;
+    const valueError = refusal(() => {
+      validateJsonValue(value);
+      checkJsonLimits(value);
+    });
+    if (valueError !== undefined) errors.push(`${label} has a starting value the JSON store refuses: ${valueError}`);
+  }
+  if ("shiftDatesFrom" in declaration && !isCalendarDate(declaration.shiftDatesFrom)) {
+    errors.push(`${label} has shiftDatesFrom ${JSON.stringify(declaration.shiftDatesFrom)}; it must be a calendar date written as YYYY-MM-DD`);
+  }
+  return errors;
+}
+
+/** The message of the error `check` throws, or undefined when it passes. */
+function refusal(check: () => void): string | undefined {
+  try {
+    check();
+    return undefined;
+  } catch (error) {
+    return describeError(error);
+  }
 }
 
 function findUnreferencedRootEntries(contentRoot: string, config: OnboardingConfig): string[] {

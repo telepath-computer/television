@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -137,7 +139,7 @@ test.describe("artifact iframe navigation history", () => {
     token = server.getAuthToken();
 
     await page.goto(
-      `${baseURL ?? ""}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}&token=${token}`,
+      `${await appURLForServer(serverURL, baseURL!)}/packages/web/src/index.html?token=${token}`,
     );
     await retryWhenNavigationInterrupts(page, 15_000, () =>
       page.evaluate(() => localStorage.clear())

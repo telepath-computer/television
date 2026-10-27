@@ -8,6 +8,7 @@ import {
   APPLICATION_SHELL_STATES,
   waitForApplicationRender,
 } from "../../../../test/helpers/application-readiness.ts";
+import { DEFAULT_PAGE_SIZE } from "@telepath-computer/television-shared";
 import { configureTestMotion } from "./helpers.ts";
 
 function html(body: string, head = ""): string {
@@ -41,7 +42,7 @@ async function createPathArtifact(
 async function openApp(page: Page, server: ProductServer, baseURL: string | undefined): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const appBaseURL = await server.appURL(baseURL);
-  await page.goto(`${appBaseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appBaseURL)}`);
+  await page.goto(`${appBaseURL}/packages/web/src/index.html`);
   await expect(page.locator("#app")).toBeVisible({ timeout: 15_000 });
 }
 
@@ -346,12 +347,12 @@ test.describe("path artifact real-stack coverage", () => {
             {
               artifactIds: [fileArtifactID],
               geometry: { kind: "single", full_screen: false },
-              size: { width: 560, height: 740 },
+              size: DEFAULT_PAGE_SIZE,
             },
             {
               artifactIds: [dirArtifactID],
               geometry: { kind: "single", full_screen: false },
-              size: { width: 560, height: 740 },
+              size: DEFAULT_PAGE_SIZE,
             },
           ],
         });

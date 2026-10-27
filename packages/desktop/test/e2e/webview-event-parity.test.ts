@@ -14,7 +14,7 @@ import {
   launchDesktopConnectScreen,
 } from "./helpers.ts";
 import { test, expect } from "../../../../test/helpers/playwright.ts";
-import { launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
+import { appURLForServer, launchProductServer, type ProductServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 
@@ -36,7 +36,7 @@ async function launchApp(
   // electron-mode page declaring no shell version would — correctly — halt
   // at the upgrade gate instead of booting the artifact UI under test.
   const { app, page } = await launchDesktop({
-    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9&serverURL=${encodeURIComponent(appURL)}`,
+    fixture: `${appURL}/packages/web/src/index.html?mode=electron&desktopAppVersion=9.9.9`,
     ...(userDataDir === undefined ? {} : { userDataDir }),
   });
   return { app, page, appURL };
@@ -383,7 +383,7 @@ test.describe("Electron webview parity for server events", () => {
       }, token);
 
       const launched = await launchDesktop({
-        fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(serverURL)}&token=${token}`),
+        fixture: `${await appURLForServer(serverURL, desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${token}`,
       });
       app = launched.app;
       await expect.poll(() => nativeAppearance(launched.app)).toMatchObject({
@@ -879,7 +879,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
       await activateTheme(directServer.getBaseURL(), "theme-a", directServer.getAuthToken());
 
       const launched = await launchDesktop({
-        fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(directServer.getBaseURL())}&token=${directServer.getAuthToken()}`),
+        fixture: `${await appURLForServer(directServer.getBaseURL(), desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${directServer.getAuthToken()}`,
       });
       app = launched.app;
       await fetch(`${directServer.getBaseURL()}/display`, {

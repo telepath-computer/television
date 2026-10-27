@@ -31,6 +31,7 @@ const CANONICAL_V2_SPEC_ROOT = path.join(
 interface CompatibilityFixture {
   resources: Record<string, string[]>;
   tokens: Record<string, string[]>;
+  nativeControls: Record<string, Record<string, Record<string, string[]>>>;
   elements: Record<
     string,
     Record<
@@ -162,6 +163,27 @@ function runBuildExpectFailure(scriptPath: string, cwd: string): string {
 }
 
 describe("skills build", () => {
+  // proofs/arch/cli/index.md#^cli-t-skill-placement-wording
+  it("television skill describes placing artifacts before or after another without saying page", () => {
+    const skillsDistRoot = mkdtempSync(path.join(os.tmpdir(), "tv-skills-dist-"));
+    TEMP_DIRS.push(skillsDistRoot);
+    runBuild(path.join(REPO_ROOT, "packages", "skills", "scripts", "build.mjs"), REPO_ROOT, {
+      TV_SKILLS_DIST_DIR: skillsDistRoot,
+    });
+    const televisionSkill = readDistFile(skillsDistRoot, "television", "SKILL.md");
+    const start = televisionSkill.indexOf("## Channel placement");
+    const end = televisionSkill.indexOf("### Choosing the right channel");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const guidance = televisionSkill.slice(start, end);
+
+    expect(guidance).toContain("A created or moved artifact goes at the end of the channel's order unless you name a neighbour");
+    expect(guidance).toContain("`--before <artifact-id>` puts it immediately to the left of that artifact, and `--after <artifact-id>` immediately to its right");
+    expect(guidance).toContain("Moving an artifact to the channel it is already on changes nothing unless you give `--before` or `--after`; then it moves beside the artifact you name");
+    expect(guidance).toContain("- `--before <artifact-id>` or `--after <artifact-id>` — put the artifact immediately left or right of another artifact on its channel");
+    expect(guidance).not.toMatch(/\bpages?\b/i);
+  });
+
   it("builds the manifest collection with television theming guidance and specialist artifacts", () => {
     const skillsDistRoot = mkdtempSync(path.join(os.tmpdir(), "tv-skills-dist-"));
     TEMP_DIRS.push(skillsDistRoot);
@@ -172,6 +194,7 @@ describe("skills build", () => {
 
     expect(existsSync(path.join(skillsDistRoot, "television", "SKILL.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "theming.md"))).toBe(true);
+    expect(existsSync(path.join(skillsDistRoot, "television", "resources.md"))).toBe(true);
     expect(existsSync(path.join(skillsDistRoot, "television", "house-style.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "cli-capabilities.md"))).toBe(false);
     expect(existsSync(path.join(skillsDistRoot, "television", "artifact-workflow.md"))).toBe(false);
@@ -222,7 +245,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("https://television.run/install.md");
     expect(televisionSkill).toContain("Fetch the full raw content — never a summary.");
     expect(televisionSkill).toContain(
-      "clients select the artifact's tab page, switching channels first when needed",
+      "clients select the artifact, switching channels first when needed",
     );
     expect(televisionSkill).toContain(
       "(`create-channel`, `list-channels`, `get-channel`, `update-channel`, `remove-channel`, `focus-channel`, `focus-status`, `set-theme`)",
@@ -230,7 +253,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain(
       "(`serve`, `status`, `stop`, `config`, `themes-path`, `telemetry`, `skills install`)",
     );
-    expect(televisionSkill).toContain("remove its tab page from the channel");
+    expect(televisionSkill).toContain("remove the artifact from its channel");
     expect(televisionSkill).not.toContain("scroll and highlight the artifact");
     expect(televisionSkill).not.toContain("remove its card from its channel");
     expect(televisionSkill).not.toContain("removes its registry record and its card from the channel");
@@ -247,6 +270,7 @@ describe("skills build", () => {
     expect(televisionSkill).toContain("omit the query parameter");
     expect(televisionSkill).toContain("advisory authoring context");
     expect(televisionSkill).toContain("[theming guidance](./theming.md)");
+    expect(televisionSkill).toContain("[resource guidance](./resources.md)");
 
     const htmlGuidance = readFileSync(
       path.join(
@@ -275,6 +299,15 @@ describe("skills build", () => {
     for (const token of publicTokens) {
       expect(htmlGuidance, token).toContain(`\`${token}\``);
       expect(televisionSkill, token).toContain(`\`${token}\``);
+    }
+    for (const [tag, attributes] of Object.entries(compatibility.nativeControls["canonical-v2"])) {
+      for (const [attribute, values] of Object.entries(attributes)) {
+        for (const value of values) {
+          for (const guidance of [htmlGuidance, televisionSkill]) {
+            expect(guidance).toContain(`<${tag} ${attribute}="${value}"`);
+          }
+        }
+      }
     }
     const retiredTokens = (compatibility.tokens["canonical-v1"] ?? [])
       .filter((token) => !publicTokens.includes(token));

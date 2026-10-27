@@ -237,7 +237,6 @@ interface RecordedSignal {
 }
 
 class FakeConnection {
-  readonly url = PRIMARY;
   status = "disconnected";
   serverVersion: string | null = null;
   updateState: UpdateState | null = null;
@@ -247,7 +246,7 @@ class FakeConnection {
   }
 }
 
-class FakeOwner<T extends { readonly url: string }> extends EventTarget<ServerStatusEvent | ChangeEvent> {
+class FakeOwner<T> extends EventTarget<ServerStatusEvent | ChangeEvent> {
   readonly connection: T;
 
   constructor(connection: T) {
@@ -263,13 +262,11 @@ function controllerHarness(options: { shellVersion?: string | null; electron?: b
   const presentation = new UpdatePresentationState();
   const controller = createDesktopGateController({
     detection: { electron: options.electron ?? true, shellVersion: options.shellVersion === undefined ? "1.0.0" : options.shellVersion },
-    primaryServerURL: PRIMARY,
     reload,
     presentation,
   });
   controller.attach(owner);
-  const send = (message: ServerStatusMessage, serverURL = PRIMARY) =>
-    dispatchServerStatus(owner, message, serverURL);
+  const send = (message: ServerStatusMessage) => dispatchServerStatus(owner, message);
   return { controller, owner, connection, reload, send, presentation };
 }
 
@@ -308,12 +305,6 @@ describe("gate controller: halt and re-evaluation (^boot-barrier, ^gate-reevalua
     expect(document.querySelector(".desktop-upgrade-gate")).toBeNull();
   });
 
-  it("ignores server-status from a non-primary server URL", () => {
-    const { send, controller } = controllerHarness();
-    send(status({ requiredDesktopVersion: "2.0.0" }), "http://other.test");
-    expect(controller.gated).toBe(false);
-  });
-
   it("a later status no longer satisfying the condition reloads into a normal boot instead of un-halting", () => {
     const { send, reload, controller } = controllerHarness();
     send(status({ requiredDesktopVersion: "2.0.0" }));
@@ -345,7 +336,6 @@ describe("gate controller: halt and re-evaluation (^boot-barrier, ^gate-reevalua
     notification = new UpdateNotificationController(draw);
     notification.configure({
       connectionOwner: owner,
-      primaryServerURL: PRIMARY,
       dismissalStorage: null,
       presentation,
     });
@@ -373,7 +363,6 @@ describe("guard exhaustion halts at the gate (^t-gate-guard-exhausted)", () => {
     ]);
     createUpdateReloadAgent({
       owner: harness.owner,
-      primaryServerURL: PRIMARY,
       bundleVersion: "1.0.0",
       storage: {
         getItem: (key) => storage.get(key) ?? null,
@@ -418,7 +407,6 @@ describe("navigation-pending latch: the dying page goes inert (^gate-reevaluatio
     const agentReload = vi.fn();
     const controller = createDesktopGateController({
       detection: { electron: true, shellVersion: "1.0.0" },
-      primaryServerURL: PRIMARY,
       reload: gateReload,
       navigationLatch: latch,
     });
@@ -429,7 +417,7 @@ describe("navigation-pending latch: the dying page goes inert (^gate-reevaluatio
     const owner = new FakeOwner(connection);
     connection.addEventListener("server-status", (event) =>
       owner.dispatchEvent(
-        new ServerStatusEvent("server-status", { serverURL: event.serverURL, message: event.message }),
+        new ServerStatusEvent("server-status", { message: event.message }),
       ),
     );
     const telemetrySignal = vi.spyOn(connection, "sendTelemetrySignal");
@@ -438,7 +426,6 @@ describe("navigation-pending latch: the dying page goes inert (^gate-reevaluatio
     );
     createUpdateReloadAgent({
       owner,
-      primaryServerURL: PRIMARY,
       bundleVersion: "1.0.0",
       storage: {
         getItem: (key) => storage.get(key) ?? null,
@@ -513,7 +500,6 @@ describe("navigation-pending latch: the dying page goes inert (^gate-reevaluatio
     const storage = new Map<string, string>();
     createUpdateReloadAgent({
       owner,
-      primaryServerURL: PRIMARY,
       bundleVersion: "1.0.0",
       storage: {
         getItem: (key) => storage.get(key) ?? null,
@@ -525,10 +511,7 @@ describe("navigation-pending latch: the dying page goes inert (^gate-reevaluatio
     });
     latch.begin(() => {}); // some other site began a navigation (e.g. the gate exit)
     owner.dispatchEvent(
-      new ServerStatusEvent("server-status", {
-        serverURL: PRIMARY,
-        message: status({ version: "9.9.9" }),
-      }),
+      new ServerStatusEvent("server-status", { message: status({ version: "9.9.9" }) }),
     );
     expect(reload).not.toHaveBeenCalled();
     expect(storage.size).toBe(0);

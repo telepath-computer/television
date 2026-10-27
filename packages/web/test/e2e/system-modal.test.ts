@@ -4,7 +4,7 @@ const FIXTURE = "/packages/web/test/e2e/fixtures/system-modal.html";
 
 interface SystemModalFixtureWindow {
   __fixtureReady?: boolean;
-  __authenticationCalls: string[];
+  __disconnectCalls: number;
   __poseSystemModal(state: unknown): Promise<void>;
 }
 
@@ -35,42 +35,23 @@ test.describe("application system modal", () => {
     await setup(page);
   });
 
-  test("presents the production authorization form through a native modal dialog", async ({ page }) => {
-    await expectNativeModal(page);
-    const input = page.getByLabel("Access token");
-    await expect(input).toBeFocused();
-
-    await input.fill("   ");
-    await page.getByRole("button", { name: "Connect" }).click();
-    expect(
-      await page.evaluate(
-        () => (window as unknown as SystemModalFixtureWindow).__authenticationCalls,
-      ),
-    ).toEqual([]);
-
-    await input.fill("  browser-token  ");
-    await page.getByRole("button", { name: "Connect" }).click();
-    expect(
-      await page.evaluate(
-        () => (window as unknown as SystemModalFixtureWindow).__authenticationCalls,
-      ),
-    ).toEqual(["browser-token"]);
+  test("connection dialogs resist Escape and backdrop input until the owner withdraws them (^sm-ac-blocking)", async ({ page }) => {
+    for (const state of [
+      { kind: "connecting" },
+      { kind: "disconnected", nextRetryAt: null },
+      { kind: "unauthorized" },
+      { kind: "error", serverURL: "https://server.example", nextRetryAt: null },
+    ]) {
+      await pose(page, state);
+      await expectNativeModal(page);
+      await page.keyboard.press("Escape");
+      await expectNativeModal(page);
+      await page.mouse.click(5, 5);
+      await expectNativeModal(page);
+      expect(await page.evaluate(() => (window as unknown as SystemModalFixtureWindow).__disconnectCalls)).toBe(0);
+      await pose(page, null);
+      await expect(page.locator("dialog")).toHaveCount(0);
+    }
   });
 
-  test("switches between the routed upgrade gate and the standard dialog without stacking", async ({ page }) => {
-    await pose(page, {
-      kind: "needs-upgrade",
-      instructions: { upgradeMarkdown: "# Upgrade this desktop\n\nUse the channel instructions." },
-    });
-
-    await expect(page.locator(".desktop-upgrade-gate")).toContainText("Upgrade this desktop");
-    await expect(page.locator(".system-modal")).toHaveCount(0);
-    await expectNativeModal(page);
-
-    await pose(page, { kind: "connecting" });
-
-    await expect(page.locator(".desktop-upgrade-gate")).toHaveCount(0);
-    await expect(page.locator(".system-modal h2")).toHaveText("Connecting");
-    await expectNativeModal(page);
-  });
 });

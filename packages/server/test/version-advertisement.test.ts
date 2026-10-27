@@ -126,13 +126,6 @@ describe("X-TV-Version response header (^t-version-header)", () => {
     expect(missing.status).toBe(404);
     expect(missing.headers.get("x-tv-version")).toBe("9.9.9");
   });
-
-  it("is listed in Access-Control-Expose-Headers on the CORS'd API routes", async () => {
-    const h = await harness();
-    const response = await fetch(`${h.baseURL}/channels`, { headers: { authorization: `Bearer ${h.token}` } });
-    const exposed = response.headers.get("access-control-expose-headers") ?? "";
-    expect(exposed.toLowerCase()).toContain("x-tv-version");
-  });
 });
 
 describe("GUI bundle cache headers (^t-cache-headers)", () => {

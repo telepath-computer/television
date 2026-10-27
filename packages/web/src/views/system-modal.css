@@ -20,17 +20,20 @@
   color: var(--color-text-muted);
 }
 
-/* Shared input styling owns the field; this surface stretches it. */
-.auth-form .auth-token {
-  align-self: stretch;
-}
-
-.auth-form .auth-submit {
-  align-self: stretch;
-}
-
 /* The error state's server line: the address as an address. */
 .system-modal .server-url {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
+}
+
+.system-modal .system-modal-disconnect {
+  margin-top: var(--space-8);
+}
+
+/* The desktop window has no title bar: where nothing behind the dialog
+   offers a drag handle, this strip across the top moves the window. */
+.window-drag-strip {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 36px;
 }

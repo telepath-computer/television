@@ -4,6 +4,7 @@ import { withDisposable } from "@telepath-computer/utils/disposable";
 import { TELEMETRY_ACTIVITY_MESSAGE_TYPE } from "@telepath-computer/television-shared";
 import type {
   AppearanceChangedEvent,
+  ResourceEventMessage,
   ArtifactFocusEvent,
   ArtifactContentChangedEvent,
   ArtifactCreatedEvent,
@@ -215,7 +216,14 @@ export class EventStreamServer extends withDisposable(class {}) {
     this.store.addEventListener("appearance-changed", onAppearanceChanged);
     this.store.addEventListener("artifact-focus", onArtifactFocus);
 
+    // Resource events ride the stream outside the ServerEvent union
+    // (specs/arch/resources/index.md#^rs-events-stream).
+    const stopResourceEvents = this.store.resources.onEvent((event) => {
+      this.broadcast({ type: "resource-event", event } satisfies ResourceEventMessage);
+    });
+
     this.unsubscribe.push(
+      stopResourceEvents,
       () => this.store.removeEventListener("artifact-created", onArtifactCreated),
       () => this.store.removeEventListener("artifact-updated", onArtifactUpdated),
       () => this.store.removeEventListener("artifact-removed", onArtifactRemoved),
@@ -231,7 +239,7 @@ export class EventStreamServer extends withDisposable(class {}) {
     );
   }
 
-  private broadcast(event: ServerEvent): void {
+  private broadcast(event: ServerEvent | ResourceEventMessage): void {
     const payload = JSON.stringify(event);
     for (const socket of this.wsServer.clients) {
       if (socket.readyState === WebSocket.OPEN) {

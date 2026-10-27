@@ -7,19 +7,13 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { createServer as createHTTPServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
-import {
-  expect,
-  test,
-  type Browser,
-  type BrowserContext,
-  type Locator,
-  type Page,
-} from "@playwright/test";
+import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 import { Server } from "@telepath-computer/television-server";
 import { APPEARANCE_CACHE_KEY } from "../../src/appearance.ts";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 import { seedThemePackage } from "../../../../test/helpers/theme-package.ts";
 import { waitForApplicationShell } from "./helpers.ts";
@@ -66,23 +60,6 @@ function createCanonicalBaseline(
   mkdirSync(versionDir);
   writeFileSync(path.join(versionDir, "styles.css"), css, "utf8");
   return root;
-}
-
-async function unavailableServerURL(): Promise<string> {
-  const server = createHTTPServer();
-  await new Promise<void>((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", () => resolve());
-  });
-  const address = server.address();
-  if (!address || typeof address === "string") {
-    throw new Error("unavailable-server fixture did not bind a TCP port");
-  }
-  const url = `http://127.0.0.1:${address.port}`;
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve());
-  });
-  return url;
 }
 
 async function installFirstFrameRecorder(
@@ -204,7 +181,6 @@ function assertBuiltHeadOrder(): void {
 async function openBuiltShell(
   browser: Browser,
   shellURL: string,
-  serverURL: string,
   options: {
     colorScheme: "light" | "dark";
     cachedValue: string | null;
@@ -220,9 +196,7 @@ async function openBuiltShell(
     options.storageWriteFailure,
   );
   const page = await context.newPage();
-  const response = await page.goto(
-    `${shellURL}/?serverURL=${encodeURIComponent(serverURL)}`,
-  );
+  const response = await page.goto(shellURL);
   return {
     context,
     page,
@@ -324,18 +298,22 @@ test("built shell resolves cached and fallback first paint before styles, then a
   );
   const store = createServingStore(storagePath);
   store.patchDisplay({ activeThemeName: "fixed-dark", appearanceMode: "light" });
+  // The server requires the token. Opened without it, the shell paints its
+  // first frame and receives no confirmed display state; opened with it as
+  // a launch token, the shell connects and confirms.
   const server = new Server({
     store,
     port: 0,
+    auth: true,
     staticDir: WEB_DIST,
   });
-  const unavailableURL = await unavailableServerURL();
 
   try {
     await server.start();
-    const shellURL = server.getBaseURL();
+    const shellURL = `${server.getBaseURL()}/`;
+    const connectingShellURL = `${shellURL}?token=${encodeURIComponent(server.getAuthToken())}`;
 
-    const cached = await openBuiltShell(browser, shellURL, unavailableURL, {
+    const cached = await openBuiltShell(browser, shellURL, {
       colorScheme: "light",
       cachedValue: "dark",
     });
@@ -350,7 +328,7 @@ test("built shell resolves cached and fallback first paint before styles, then a
     }
 
     for (const cachedValue of [null, "sepia"] as const) {
-      const fallback = await openBuiltShell(browser, shellURL, unavailableURL, {
+      const fallback = await openBuiltShell(browser, shellURL, {
         colorScheme: "dark",
         cachedValue,
       });
@@ -364,7 +342,7 @@ test("built shell resolves cached and fallback first paint before styles, then a
       }
     }
 
-    const failedRead = await openBuiltShell(browser, shellURL, unavailableURL, {
+    const failedRead = await openBuiltShell(browser, shellURL, {
       colorScheme: "dark",
       cachedValue: "light",
       storageReadFailure: true,
@@ -378,7 +356,7 @@ test("built shell resolves cached and fallback first paint before styles, then a
       await failedRead.context.close();
     }
 
-    const confirmed = await openBuiltShell(browser, shellURL, shellURL, {
+    const confirmed = await openBuiltShell(browser, connectingShellURL, {
       colorScheme: "light",
       cachedValue: "light",
     });
@@ -400,7 +378,7 @@ test("built shell resolves cached and fallback first paint before styles, then a
       await confirmed.context.close();
     }
 
-    const failedWrite = await openBuiltShell(browser, shellURL, shellURL, {
+    const failedWrite = await openBuiltShell(browser, connectingShellURL, {
       colorScheme: "light",
       cachedValue: "light",
       storageWriteFailure: true,
@@ -477,7 +455,7 @@ test("manifest color schemes select foundation and theme modes in app and live c
   try {
     await server.start();
     const serverURL = server.getBaseURL();
-    await page.goto(`${serverURL}/?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${serverURL}/`);
     await waitForApplicationShell(page);
     await page.evaluate(() => {
       const probe = document.createElement("div");
@@ -625,7 +603,7 @@ test("canonical HTML and markdown follow appearance live and refresh theme witho
   try {
     await server.start();
     const serverURL = server.getBaseURL();
-    await page.goto(`${serverURL}/?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${serverURL}/`);
     await waitForApplicationShell(page);
     const htmlFrame = artifactCard(page, "Theme HTML").locator("iframe.artifact-content").contentFrame();
     const markdownFrame = artifactCard(page, "Theme Markdown").locator("iframe.artifact-content").contentFrame();
@@ -733,7 +711,7 @@ test("Clouds targets the marked app without painting canonical artifacts", async
   try {
     await server.start();
     const serverURL = server.getBaseURL();
-    await page.goto(`${serverURL}/?serverURL=${encodeURIComponent(serverURL)}`);
+    await page.goto(`${serverURL}/`);
     await waitForApplicationShell(page);
 
     await expect(page.locator("html")).toHaveAttribute("data-television-document", "app");
@@ -775,7 +753,7 @@ test("Clouds targets the marked app without painting canonical artifacts", async
 });
 
 // spec: proofs/arch/themes/delivery.md#^theme-delivery-t-app-link
-test("cross-origin theme link stays final and mode changes reuse its nested resources", async ({
+test("theme link stays final and mode changes reuse its nested resources", async ({
   page,
   baseURL,
 }) => {
@@ -795,11 +773,9 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
 
   try {
     await server.start();
-    const serverURL = server.getBaseURL();
+    const appURL = await appURLForServer(server.getBaseURL(), baseURL);
     await page.emulateMedia({ colorScheme: "light" });
-    await page.goto(
-      `${baseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(serverURL)}`,
-    );
+    await page.goto(`${appURL}/packages/web/src/index.html`);
     await waitForApplicationShell(page);
 
     const themeLink = page.locator(
@@ -808,7 +784,7 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
     const initialThemeHref = await themeLink.getAttribute("href");
     if (!initialThemeHref) throw new Error("Expected the application theme link");
     const initialThemeURL = new URL(initialThemeHref);
-    expect(initialThemeURL.origin).toBe(serverURL);
+    expect(initialThemeURL.origin).toBe(appURL);
     expect(initialThemeURL.pathname).toBe("/theme/theme.css");
     expect(initialThemeURL.searchParams.get("tv-theme")).toBeTruthy();
     await expectFinalThemeLink(page);
@@ -835,7 +811,7 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
     ]));
     const appearanceRequestCount = themeRequests.length;
 
-    await patchDisplay(page, serverURL, { appearanceMode: "light" });
+    await patchDisplay(page, appURL, { appearanceMode: "light" });
     await page.emulateMedia({ colorScheme: "dark" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect.poll(() => probeColor(page)).toBe(THEME_A_LIGHT);
@@ -843,7 +819,7 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
       window.matchMedia("(prefers-color-scheme: dark)").matches
     )).toBe(true);
 
-    await patchDisplay(page, serverURL, { appearanceMode: "dark" });
+    await patchDisplay(page, appURL, { appearanceMode: "dark" });
     await page.emulateMedia({ colorScheme: "light" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect.poll(() => probeColor(page)).toBe(THEME_A_DARK);
@@ -851,7 +827,7 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
       window.matchMedia("(prefers-color-scheme: dark)").matches
     )).toBe(false);
 
-    await patchDisplay(page, serverURL, { appearanceMode: "system" });
+    await patchDisplay(page, appURL, { appearanceMode: "system" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await page.emulateMedia({ colorScheme: "dark" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -864,7 +840,7 @@ test("cross-origin theme link stays final and mode changes reuse its nested reso
       );
     })).toBe(true);
 
-    await patchDisplay(page, serverURL, { activeThemeName: "probe-b" });
+    await patchDisplay(page, appURL, { activeThemeName: "probe-b" });
     await expect.poll(() => probeColor(page)).toBe(THEME_B_LIGHT);
     expect(await page.evaluate(() => {
       const owner = window as ThemeLinkWindow;

@@ -1,0 +1,8 @@
+---
+title: Access token required
+description: "The desktop app's local page when the server rejects the saved connection's token."
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [clouds], default: clouds }
+---
+{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'unauthorized', context: 'local', drag_strip: true %}

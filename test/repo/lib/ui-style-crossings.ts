@@ -59,6 +59,20 @@ export type UIStyleCrossing =
 
 export const UI_STYLE_CROSSINGS: readonly UIStyleCrossing[] = [
   {
+    kind: "sibling",
+    specSources: ["specs/ui/setup/setup.frame"],
+    productionModule: "packages/desktop/src/setup.ts",
+    stylesheet: "packages/desktop/src/setup.css",
+    documentDelivery: true,
+  },
+  { kind: "implementation-owned", productionModule: "packages/desktop/src/connect-page.ts", stylesheet: "packages/web/src/foundation/index.css" },
+  { kind: "implementation-owned", productionModule: "packages/desktop/src/connect-page.ts", stylesheet: "packages/web/src/foundation/app.css" },
+  { kind: "implementation-owned", productionModule: "packages/desktop/src/connect-page.ts", stylesheet: "packages/web/src/global.css" },
+  { kind: "implementation-owned", productionModule: "packages/desktop/src/connect-page.ts", stylesheet: "packages/desktop/src/connect-page.css" },
+  { kind: "implementation-owned", productionModule: "packages/desktop/src/setup.ts", stylesheet: "packages/web/src/views/artifact-view.css" },
+  { kind: "linked-document", document: "packages/desktop/src/connect.html", href: "connect-page.css" },
+  { kind: "linked-document", document: "packages/desktop/src/connect.html", href: "clouds/theme.css" },
+  {
     kind: "aggregate",
     specSource: "specs/ui/foundation/index.css",
     productionModule: "packages/web/src/main.ts",

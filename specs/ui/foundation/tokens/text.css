@@ -16,11 +16,14 @@
   --text-4xl: round(calc(var(--text-base) * 30 / 14), 1px);
 
   /* The control lines: the line-height a control's label uses, and the one
-     input its height derives from — the line, plus the space-2 padding step
+     input its height derives from — the line, plus the size's padding step
      top and bottom, plus a 1px border each side, gives every control the
-     same height: 18 + 4 + 2 = 24px (14 + 4 + 2 = 20px at the small step).
+     same height at each size: 18 + 4 + 2 = 24px at the default size (the
+     space-2 step), 14 + 4 + 2 = 20px at the small step (space-2), and
+     22 + 16 + 2 = 40px at the large step (space-8).
      Stated in pixels, not a ratio: a control's cell is tighter than prose,
      immune to the leading around it, and lands on even pixels in any font. */
   --line-control: 18px;
   --line-control-sm: 14px;
+  --line-control-lg: 22px;
 }

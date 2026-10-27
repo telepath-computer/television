@@ -112,6 +112,7 @@ const cliBuildResult = await build({
     __TV_CANONICAL_DIR__: JSON.stringify("./canonical"),
     __TV_ONBOARDING_CONTENT_DIR__: JSON.stringify("./onboarding"),
     __TV_BUNDLED_THEMES_DIR__: JSON.stringify("./themes"),
+    __TV_SDK_DIR__: JSON.stringify("./sdk"),
     __TV_TELEMETRY_BUILD__: JSON.stringify(process.env.TV_NPM_RELEASE === "1" ? "production" : "development"),
     __TV_VERSION__: JSON.stringify(packageVersion),
     __TV_DEVELOPER_COMMIT__: developerCommitSha === undefined ? "undefined" : JSON.stringify(developerCommitSha),
@@ -171,6 +172,16 @@ if (!outfileOverride) {
   rmSync(canonicalDest, { recursive: true, force: true });
   cpSync(canonicalSrc, canonicalDest, { recursive: true });
 
+  // The resource SDK, built into the server package, served at /sdk/v1/*
+  // from a sibling directory of cli.cjs (specs/arch/resources/sdk.md#^sdk-packaging).
+  const sdkSrc = path.join(repoRoot, "packages/server/dist/sdk");
+  if (!existsSync(path.join(sdkSrc, "v1", "resources.js"))) {
+    throw new Error(`Server build produced no resource SDK at ${sdkSrc}`);
+  }
+  const sdkDest = path.join(distDir, "sdk");
+  rmSync(sdkDest, { recursive: true, force: true });
+  cpSync(sdkSrc, sdkDest, { recursive: true });
+
   // Onboarding content tree, validated and shipped by the server build. A
   // missing config is a packaging regression and must fail the build, not
   // silently produce a CLI that installs nothing.
@@ -218,6 +229,7 @@ if (!outfileOverride) {
   process.stdout.write(`  -> ${path.relative(repoRoot, path.join(distDir, "cli.cjs"))}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, webDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, canonicalDest)}\n`);
+  process.stdout.write(`  -> ${path.relative(repoRoot, sdkDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, onboardingDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, themesDest)}\n`);
   process.stdout.write(`  -> ${path.relative(repoRoot, skillsDest)}\n`);

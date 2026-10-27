@@ -12,6 +12,8 @@ The inventory's active-theme row delegates field and selection semantics to [the
 
 The channel-sidebar width and collapsed state are client-only preferences and order no server-state assertions. Separate contract tests exercise each production preference owner against a recording storage substitute. This mock makes key use, encoding, malformed and absent reads, separation between the two preferences, and failed writes cheap and deterministic, but forfeits the real browser-storage handoff. [Resize acceptance](../../ui/app/index.md#^ap-ac-sidebar-resize) crosses the width handoff with real `localStorage`; [collapse acceptance](../../ui/app/index.md#^ap-ac-sidebar-collapse) crosses the collapsed-state handoff and proves the reload landing and preserved width. The width spec resolves an exact half-pixel tie upward; the storage assertion covers values strictly below and above the tie, and an exact-tie assertion is not ordered under the coverage-returns rule — the rounding path is proven around the tie, and the tie itself is neither plausible nor consequential enough to buy its own permanent test.
 
+The [connection carve-out](../../../specs/arch/channel-state/index.md#^cs-connection-carve-out) leaves socket management and backoff under code authority. The [app proof](../../ui/app/index.md#^ap-ac-retry-count) owns visible retry escalation, auth/gate priority and shell continuity; its real-browser outage walk composes with this proof's reconnect-convergence coverage. Renaming the auth presentation orders no channel-state test.
+
 ## Test hooks
 
 

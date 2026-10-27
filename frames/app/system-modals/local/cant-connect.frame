@@ -1,0 +1,8 @@
+---
+title: Can’t connect with server
+description: "The desktop app's local page when the saved connection's server cannot be reached."
+params:
+  appearance: { enum: [light, dark], default: light }
+  theme: { enum: [clouds], default: clouds }
+---
+{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'error', context: 'local', drag_strip: true, server_url: 'http://100.101.102.103:32848', seconds: 5 %}

@@ -112,7 +112,7 @@ describe("markdown carve-out endpoint", () => {
     }
   });
 
-  it("returns JSON 500s for genuine markdown I/O failures where permissions expose them", async () => {
+  it("answers an unreadable markdown file as missing and a write it cannot make with a JSON 500", async () => {
     if (process.platform === "win32") return;
     if (typeof process.getuid === "function" && process.getuid() === 0) return;
     const h = await setup();
@@ -124,10 +124,12 @@ describe("markdown carve-out endpoint", () => {
     chmodSync(writeTargetPath, 0o400);
 
     try {
+      // A file that cannot be read is not one an artifact can be created
+      // from, so it is missing (specs/product/artifacts.md#^af-real-location).
       await request(h.server.httpServer)
         .get(`/markdown/${encodeURIComponent(readArtifact.id)}`)
         .set(auth(h))
-        .expect(500)
+        .expect(404)
         .expect("Content-Type", /json/)
         .expect(({ body }) => expect(body).toEqual({ message: expect.any(String) }));
 

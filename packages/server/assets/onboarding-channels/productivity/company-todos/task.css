@@ -9,18 +9,11 @@
  */
 
 :root {
-  /* The amber for a task due today. Not a canonical token, so it gets one
-     named source here rather than being sprinkled as a literal. */
-  --task-due-today: #EA880B;
+  /* Task accents follow the active canonical/theme semantic roles. */
+  --task-due-today: var(--color-alert);
   /* Highlight hue — the highlighted row's wash derives from this one knob.
      Set it on any ancestor (or the row itself) to retint. */
   --task-highlight: var(--task-due-today);
-  /* Skill-local muted: a shade darker than the canonical --color-text-muted
-     (neutral-500, L 0.553) so notes hold their own against the darker meta
-     treatment below. Declared at :root, so it recolors ALL muted text on the
-     page (canonical components included) — deliberate for a single-skill
-     artifact; revisit if skills ever share a page. */
-  --color-text-muted: oklch(0.52 0 0);
   /* The meta line recedes a step behind the note: 85% of muted. */
   --task-meta-text: color-mix(in srgb, var(--color-text-muted) 85%, transparent);
 }
@@ -111,31 +104,30 @@ tv-task:has(tv-task-checkbox[disabled]) tv-task-title {
   color: var(--color-text-muted);
 }
 
+/* ---- The page ----
+   One default inset for the whole page, at zero specificity so an
+   artifact's own body rule replaces it. The page header, the list and
+   anything placed between them, such as an add form or a toolbar, share its
+   gutters, and each stands one gap below the one before it; a script or
+   style element is no block, so the first block shown gets no gap above it.
+   The artifact's own heading is the house page-header idiom (header > h1 +
+   p), which house typography styles. Its last line shown has no margin
+   outside a prose region and one no larger than the gap inside one, which
+   collapses into the gap, so the gap below the header is the same whatever
+   it ends with. */
+:where(body) {
+  padding: var(--space-16, 16px);
+}
+:where(body > :not(script, style, template) ~ *) {
+  margin-top: var(--space-12, 12px);
+}
+
 /* ---- List container ----
    No frame of its own: the artifact page is the surface, and Television's
    artifact frame supplies the chrome around the document. */
 
 tv-task-list {
   display: block;
-  padding: 0 var(--space-16, 16px) var(--space-16, 16px);
-}
-/* Nothing above the list (no page heading): give it its own top breathing
-   room. When a header precedes it, the gap is the subtitle's house margin —
-   or the h1 rule below when there is no subtitle. */
-tv-task-list:first-child {
-  padding-top: var(--space-16, 16px);
-}
-
-/* The artifact's own heading lives on the page, above the list, as the house
-   page-header idiom (header > h1 + p) — house typography styles it; the
-   skill only aligns it with the list's interior padding. */
-header:has(+ tv-task-list) {
-  padding: var(--space-16, 16px) var(--space-16, 16px) 0;
-}
-/* A header whose last child is the h1 (no subtitle) has no house margin
-   below it — supply the gap the subtitle's margin would have given. */
-header:has(+ tv-task-list) > h1:last-child {
-  margin-bottom: var(--space-12, 12px);
 }
 
 /* Section headers lay their title out inline. */
@@ -185,19 +177,4 @@ tv-task-placeholder {
    --task-highlight. No edge lines — rows are borderless throughout. */
 tv-task[highlighted] {
   background: color-mix(in srgb, var(--task-highlight) 10%, transparent);
-}
-
-/* ---- Dark mode ----
-   The canonical theme is light-only, so the skill carries its own dark token
-   set, applied when the document has data-theme="dark". */
-[data-theme="dark"] {
-  --color-surface: var(--neutral-800);
-  --color-surface-muted: var(--neutral-900);
-  --color-text: var(--neutral-50);
-  --color-text-muted: var(--neutral-400);
-  /* Re-derive: custom properties resolve where declared, so without this the
-     meta tone would keep the light-mode muted it was mixed from. */
-  --task-meta-text: color-mix(in srgb, var(--color-text-muted) 85%, transparent);
-  --color-border: rgba(255, 255, 255, 0.14);
-  color-scheme: dark;
 }

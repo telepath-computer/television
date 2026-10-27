@@ -35,7 +35,7 @@ runs:
       id: readiness-key
       shell: bash
       env:
-        CACHE_INPUT_HASH: ${{ hashFiles('package-lock.json', 'packages/skills/package.json', 'packages/skillbench/**') }}
+        CACHE_INPUT_HASH: ${{ hashFiles('package-lock.json', 'packages/skills/package.json') }}
         CACHE_KEY_SUFFIX: ${{ inputs.cache-key-suffix }}
       run: |
         set -euo pipefail
@@ -56,6 +56,5 @@ runs:
       with:
         path: |
           node_modules
-          packages/skillbench/dist
           ~/.cache/ms-playwright
         key: ${{ steps.readiness-key.outputs.key }}
