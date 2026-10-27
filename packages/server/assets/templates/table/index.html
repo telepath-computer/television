@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Table</title>
+  <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="/canonical/v2/components.js"></script>
+</head>
+<body>
+  <main class="table-page">
+    <header class="table-bar">
+      <span class="table-count" id="count"></span>
+      <label class="table-search">
+        <tv-icon name="search" size="sm"></tv-icon>
+        <input id="filter" type="search" placeholder="Search" aria-label="Search rows" spellcheck="false">
+      </label>
+    </header>
+    <div class="table-frame" id="frame">
+      <div class="table-scroll" id="scroll" tabindex="0">
+        <table id="table"><thead id="head"></thead><tbody id="body"></tbody></table>
+        <div id="placeholder"></div>
+      </div>
+      <div class="table-edge table-edge-start"></div>
+      <div class="table-edge table-edge-end"></div>
+    </div>
+  </main>
+  <template id="table-unreadable">
+    <section class="table-unreadable" role="alert">
+      <span class="table-unreadable-icon"><tv-icon name="warning" size="xl"></tv-icon></span>
+      <h1 class="table-unreadable-title">This table can't be shown</h1>
+      <p class="table-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </section>
+  </template>
+  <script type="module" src="./page.js"></script>
+</body>
+</html>

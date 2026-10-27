@@ -1,0 +1,333 @@
+/* The Table template page: a compact record browser with sticky headings,
+   local search and sort, and a selected row. Every colour, type and spacing
+   choice comes from the foundation so the page follows theme and appearance. */
+
+* { box-sizing: border-box; }
+
+html,
+body { height: 100%; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+[hidden] { display: none !important; }
+
+.table-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.table-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-16) var(--space-24) var(--space-12);
+}
+
+.table-count {
+  flex: 1;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.table-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 190px;
+  height: 28px;
+  padding: 0 var(--space-8);
+  border-radius: var(--control-radius);
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.table-search:focus-within {
+  outline: var(--outline-focus);
+  outline-offset: 1px;
+}
+
+.table-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: var(--color-text);
+}
+
+.table-search input::placeholder { color: var(--color-text-muted); }
+.table-search input::-webkit-search-cancel-button { display: none; }
+
+/* Short columns fit the view; long text wraps to three lines. The frame
+   scrolls only when the columns cannot fit, with a fade at each live edge. */
+.table-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin: 0 var(--space-12) var(--space-12);
+  border-top: 1px solid var(--color-border);
+}
+
+.table-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  outline: none;
+  scrollbar-color: var(--neutral-alpha-50) transparent;
+}
+
+.table-scroll:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: -2px;
+}
+
+.table-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 2;
+  width: var(--space-32);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.table-edge-start {
+  left: 0;
+  background: linear-gradient(to right, var(--color-surface), transparent);
+}
+
+.table-edge-end {
+  right: 0;
+  background: linear-gradient(to left, var(--color-surface), transparent);
+}
+
+.table-frame[data-more-start] .table-edge-start,
+.table-frame[data-more-end] .table-edge-end { opacity: 1; }
+
+table {
+  min-width: 100%;
+  border-spacing: 0;
+  border-collapse: separate;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  white-space: nowrap;
+}
+
+th + th .table-sort { border-left: 1px solid var(--color-border); }
+
+.table-sort {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-4);
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--space-12);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: inherit;
+  cursor: default;
+}
+
+th.numeric .table-sort { justify-content: flex-end; }
+
+.table-sort:hover,
+.table-sort[data-active] { color: var(--color-text); }
+
+.table-sort tv-icon {
+  opacity: 0;
+  transition: opacity 150ms ease-out, transform 200ms ease-out;
+}
+
+.table-sort[data-active] tv-icon { opacity: 1; }
+.table-sort[data-direction="descending"] tv-icon { transform: rotate(180deg); }
+
+.table-sort:focus-visible {
+  border-radius: var(--control-radius);
+  outline: var(--outline-focus);
+  outline-offset: -2px;
+}
+
+td {
+  padding: 9px var(--space-12);
+  vertical-align: top;
+  line-height: 18px;
+}
+
+td:first-child,
+th:first-child .table-sort { padding-left: var(--space-10); }
+
+tbody tr td:first-child { border-radius: var(--control-radius) 0 0 var(--control-radius); }
+tbody tr td:last-child { border-radius: 0 var(--control-radius) var(--control-radius) 0; }
+tbody tr:nth-child(even) td { background: var(--color-surface-muted); }
+tbody tr:hover td { background: oklch(from var(--color-text) l c h / var(--alpha-5)); }
+tbody tr[aria-selected="true"] td {
+  background: color-mix(in oklab, var(--color-text) 14%, var(--color-surface));
+}
+
+.table-scroll:focus tbody tr[aria-selected="true"] td {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.table-scroll:focus tbody tr[aria-selected="true"] .table-muted,
+.table-scroll:focus tbody tr[aria-selected="true"] .table-code,
+.table-scroll:focus tbody tr[aria-selected="true"] .table-yes {
+  color: var(--color-primary-text);
+  opacity: 0.8;
+}
+
+tbody tr { animation: table-fade 250ms ease-out; }
+
+.table-text {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-text-long {
+  display: -webkit-box;
+  min-width: 160px;
+  max-width: 440px;
+  overflow-wrap: break-word;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+tr[aria-selected="true"] .table-text-long {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+
+td.numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table-muted {
+  color: var(--color-text-muted);
+  opacity: 0.65;
+}
+
+.table-code {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.table-yes { color: var(--color-success); }
+
+.table-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  min-height: 260px;
+  padding: var(--space-32);
+  color: var(--color-text-muted);
+  text-align: center;
+  animation: table-fade 300ms ease-out;
+}
+
+.table-placeholder strong {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.table-placeholder span {
+  max-width: 320px;
+  color: var(--color-text-muted);
+}
+
+.table-placeholder tv-icon { margin-bottom: var(--space-6); }
+
+/* Data the page cannot read replaces the table with the standard alert. */
+.table-unreadable {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-48) var(--space-24);
+  text-align: center;
+}
+
+.table-unreadable-icon {
+  display: grid;
+  place-items: center;
+  width: var(--space-64);
+  height: var(--space-64);
+  margin-bottom: var(--space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.table-unreadable-title {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.table-unreadable-text {
+  max-width: 28em;
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+@keyframes table-fade { from { opacity: 0; } }
+
+@media (width < 520px) {
+  .table-bar { padding: var(--space-16) var(--space-16) var(--space-10); }
+  .table-search { width: 130px; }
+  .table-frame { margin: 0 var(--space-6) var(--space-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "Table",
+  "description": "Browse, search and sort a list of records.",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml"
+    }
+  ],
+  "dataSchema": {
+    "type": "object",
+    "required": [
+      "rows"
+    ],
+    "properties": {
+      "rows": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "order"
+          ],
+          "properties": {
+            "order": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    }
+  }
+}

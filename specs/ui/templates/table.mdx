@@ -1,0 +1,110 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as Stories from "../../../storybook/spec/templates/table/table.stories.ts";
+
+<Meta of={Stories} />
+
+export const Artifact = ({ width = "760px", children }) => <div style={{ width, maxWidth: "100%" }}>{children}</div>;
+
+*UI spec: the bundled Table template page, a compact browser for records that an agent keeps in the artifact store.*
+
+# Table template
+
+The Table template makes an artifact that shows keyed records as rows and their fields as columns. The page lets a person search, sort and select without changing the store. Each story on this page is one state of the page, and the page in the template must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
+
+The [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store) owns the row shape and stored order.
+
+<Artifact><Canvas of={Stories.WithRows} /></Artifact>
+
+## A new table
+
+A new Table has no rows. The toolbar has an empty count and an available search field. Below it, the ruled table frame shows a table icon, “No rows”, and “This table is empty.”
+
+<Artifact><Canvas of={Stories.New} /></Artifact>
+
+## Opening a table
+
+Until store data arrives, the toolbar and frame are in place, the count is empty, and a spinning activity icon is centred in the frame.
+
+<Artifact><Canvas of={Stories.Loading} /></Artifact>
+
+## Rows, columns and cells
+
+The toolbar shows the total stored row count, whether or not search hides some rows. The table fills the width when its columns fit. Column headers stay at the top while rows scroll. Alternate rows use the muted surface, and the row under the pointer uses a quiet hover fill.
+
+Rows follow ascending stored `order`, then key. The page does not show either value. Columns follow the first appearance of their cell names across all stored rows in that base order. Search and page sorting do not change the columns or their order.
+
+A missing, null or empty-string cell shows an em dash. `true` shows a green check announced as “Yes”; `false` shows “No” in muted text. Numbers align right when every non-empty value in that column is numeric. Whole numbers smaller than 10,000 have no thousands separator; other numbers use the browser locale. Objects and lists show as compact JSON in monospace type.
+
+Short text stays on one line and ends in an ellipsis when it is wider than 260 pixels. A column with any string longer than 40 characters wraps text to at most three lines and has a wider limit. Selecting the row shows that long text in full.
+
+This story shows 80 rows and vertical scrolling.
+
+<Artifact><Canvas of={Stories.ManyRows} /></Artifact>
+
+## Search
+
+The search field filters rows as a person types. Matching is case-insensitive, ignores space at the start and end of the query, and looks at stored cell values converted to text, with objects and lists as compact JSON. It does not search row keys or `order`. Escape in the field clears it. Filtering changes only the page.
+
+<Artifact><Canvas of={Stories.Filtered} /></Artifact>
+
+When nothing matches, the table frame shows a search icon, “No results”, and `No rows match “<query>”.` The count remains the total stored row count.
+
+<Artifact><Canvas of={Stories.NoResults} /></Artifact>
+
+## Sort
+
+Each column header is a button. Pressing it first sorts ascending, then descending, then returns to stored order. The active header shows a chevron pointing up for ascending and down for descending, and exposes the same direction through `aria-sort`.
+
+Two numbers compare numerically. Other pairs compare as localized, case-insensitive text with number-like parts in natural order. Missing, null and empty-string cells stay after non-empty cells in both directions. Equal values keep stored order. Sorting changes only the page.
+
+<Artifact><Canvas of={Stories.Sorted} /></Artifact>
+
+## Selection
+
+Pressing a row selects it. A selected row uses a neutral fill while the table does not have focus, and the primary fill with readable reversed text while the scroll region has focus. Selection shows long text in full. While that region itself has focus, Arrow Up and Arrow Down select the preceding or following visible row, and Escape clears selection. A removed row loses selection; a row merely hidden by search keeps it.
+
+<Artifact><Canvas of={Stories.Selected} /></Artifact>
+
+## Scrolling and narrow artifacts
+
+The frame scrolls vertically and horizontally when needed. A soft surface fade appears at each horizontal edge that has more columns beyond it. The sticky headers stay visible. Below 520 pixels, the toolbar insets, search width and frame insets shrink.
+
+This story shows a 400-pixel artifact scrolled sideways.
+
+<Artifact width="400px"><Canvas of={Stories.Narrow} /></Artifact>
+
+## Changes from elsewhere
+
+The page follows the whole store live. Adding, changing or removing rows redraws the rows and keeps the current page search and column sort. Selection stays when its key remains and clears when that key is removed. The page never writes to the store.
+
+## Read-only and access loss
+
+The page never changes the store, so a Table opened through a read-only share looks and behaves like any other. Search, sorting and selection remain available. While the page has no access at all, as after that share link is revoked, it keeps showing the last table it received.
+
+## Disconnection
+
+While the page cannot reach its server, it keeps showing the last table it received, with no message. Once it reconnects, it catches up with changes made in the meantime by itself.
+
+## Data the page cannot read
+
+Agents write Table data by hand, so it can break the [store contract](../../arch/templates/table.md#^bundled-artifact-template-table-store). The page never rewrites data it cannot read.
+
+When the whole value breaks the contract, as when `rows` is not an object, a row has no finite numeric `order`, the store has no value, or the server reports that saved data is unavailable, the page shows an error page instead of the table: centred in the page, a warning icon in a ruled circle, “This table can't be shown”, and below it in muted text, “Its saved data isn't in the form this page reads. Ask your agent to check it.” The error page is an alert, so a person using a screen reader hears it when it replaces the table.
+
+The error page follows data live. Once an agent fixes the data, the table returns with the page search, sort and any still-valid selection retained.
+
+<Artifact><Canvas of={Stories.Unreadable} /></Artifact>
+
+## Icon
+
+In the Toolbox, the template icon is a pale teal table with a solid teal header and a teal grid.
+
+## Appearance
+
+The page uses only foundation tokens, so it follows the active theme and light or dark appearance.
+
+<Artifact><Canvas of={Stories.Dark} /></Artifact>
+
+This story shows the error page in the dark appearance.
+
+<Artifact><Canvas of={Stories.UnreadableDark} /></Artifact>
