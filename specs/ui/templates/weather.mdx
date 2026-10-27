@@ -71,11 +71,15 @@ At least 600 pixels wide and 480 pixels high, the medium layout adds a transluce
 
 At least 760 pixels wide and 740 pixels high, the large layout also places a translucent daily panel after the hourly panel when the [daily display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-daily-window) is not empty. Its presence depends only on the daily window. When the daily window is empty, the card uses the medium composition instead of leaving space for that panel. The heading says “N-day forecast”, where N is the number of displayed rows. Each row has “Today” for the entry whose date is the current date at `timeZone`, or otherwise its weekday, followed by a condition glyph, a low, a shared-scale temperature-range bar, and a high. The bars share the lowest low and highest high in the displayed daily forecast, so their positions can be compared. The window and “Today” label update within one minute after the clock changes which entries or labels should appear.
 
+When no stored hourly entries remain but the daily window is not empty, the large layout leaves out the hourly panel and lets the daily panel use the remaining forecast space.
+
 Generated hour and weekday labels use the `en-US` locale. Each hour label shows the entry instant as a clock time at `timeZone`; it includes minutes when the local time is not on the hour. “Now”, “Today”, the “Updated” forms, headings, and other page copy remain in English.
 
 The hourly strip is named “Hourly forecast; scroll for later hours” and can receive keyboard focus, so left and right arrow keys can reach hours outside the visible area. Each hourly entry exposes its local time, condition name, and temperature to assistive technology. Each daily entry exposes its date label, condition name, low, and high; the range bar adds visual comparison but no separate meaning.
 
 <Artifact width="760px"><Canvas of={Stories.Large} /></Artifact>
+
+<Artifact width="760px"><Canvas of={Stories.LargeNoHourly} /></Artifact>
 
 <Artifact width="900px"><Canvas of={Stories.ShortForecast} /></Artifact>
 
@@ -109,7 +113,7 @@ When an attempt fails and there is no compatible forecast, the loading state bec
 
 When a person or agent changes either coordinate or the units, a forecast for the previous values is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units.
 
-An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection or revocation, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
+An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. If it has no forecast, it shows “Loading weather” rather than promising another attempt. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
 
 ## Data the page cannot read
 

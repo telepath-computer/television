@@ -416,6 +416,7 @@ const deathValley: Forecast = {
 };
 
 const londonShort: Forecast = { ...london, daily: london.daily.slice(0, 4) };
+const londonNoHourly: Forecast = { ...london, hourly: [] };
 const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slice(1) };
 const savedAfterFailure: Forecast = { ...sanFrancisco, updated: "2 hrs ago" };
 /* eslint-enable @typescript-eslint/no-magic-numbers */
@@ -461,6 +462,7 @@ export const WideShort = { name: "Wide and short", ...sized("wideShort"), args: 
 export const NoCurrentDay = { name: "No current daily forecast", args: { forecast: noCurrentDay } };
 export const Medium = { ...sized("medium"), args: { forecast: london } };
 export const Large = { ...sized("largeBoundary"), args: { forecast: london } };
+export const LargeNoHourly = { name: "Large without remaining hours", ...sized("largeBoundary"), args: { forecast: londonNoHourly } };
 export const ShortForecast = { name: "Four-day forecast", ...sized("large"), args: { forecast: londonShort } };
 export const Loading = { args: { state: "loading" } };
 export const Empty = { args: { state: "empty" } };
