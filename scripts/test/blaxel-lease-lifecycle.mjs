@@ -61,4 +61,3 @@ export async function retainAttemptEvidence(lease, directory) {
     fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, raw);
   }
 }
-
