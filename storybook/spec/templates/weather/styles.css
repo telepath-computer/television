@@ -40,7 +40,7 @@ body {
   --header-ink: white;
   --header-muted-ink: white;
   --header-shadow: 0 1px 4px rgb(3 20 38 / 48%);
-  --hero-size: clamp(72px, 35vw, 140px);
+  --hero-size: clamp(72px, min(35vw, 35vh), 140px);
 
   position: relative;
   width: 100%;
@@ -260,7 +260,7 @@ body {
 .weather-temperature {
   align-self: center;
   min-width: 0;
-  font-size: clamp(48px, 21vw, 94px);
+  font-size: clamp(48px, min(21vw, 21vh), 94px);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.07em;
@@ -599,23 +599,23 @@ body {
 }
 
 @media (min-width: 760px) and (min-height: 740px) {
-  .weather-content {
+  .weather-card[data-has-daily="true"] .weather-content {
     gap: var(--space-12);
     padding: var(--space-32) var(--space-32) var(--space-24);
   }
 
-  .weather-header h1 { font-size: var(--text-4xl); }
+  .weather-card[data-has-daily="true"] .weather-header h1 { font-size: var(--text-4xl); }
 
-  .weather-current {
+  .weather-card[data-has-daily="true"] .weather-current {
     --hero-size: 130px;
     flex: 0 0 166px;
     grid-template-columns: minmax(0, 1fr) var(--hero-size);
   }
 
-  .weather-temperature { font-size: 112px; }
-  .weather-current-detail { padding-top: var(--space-4); }
-  .weather-hourly { height: 136px; }
-  .weather-daily { display: flex; }
+  .weather-card[data-has-daily="true"] .weather-temperature { font-size: 112px; }
+  .weather-card[data-has-daily="true"] .weather-current-detail { padding-top: var(--space-4); }
+  .weather-card[data-has-daily="true"] .weather-hourly { height: 136px; }
+  .weather-card[data-has-daily="true"] .weather-daily { display: flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {

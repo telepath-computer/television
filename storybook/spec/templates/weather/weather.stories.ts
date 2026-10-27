@@ -229,7 +229,7 @@ const render = ({ theme, state, forecast }: Args) => {
   const { current } = forecast;
   return html`
   <main class="weather-page">
-    <article class="weather-card" data-condition="${current.condition}" data-day="${String(current.isDay)}">
+    <article class="weather-card" data-condition="${current.condition}" data-day="${String(current.isDay)}" data-has-daily="${String(forecast.daily.length > 0)}">
       ${atmosphere}
       <div class="weather-content">
         <header class="weather-header">
@@ -239,7 +239,7 @@ const render = ({ theme, state, forecast }: Args) => {
           </div>
         </header>
         ${currentWeather(forecast)}
-        ${hourlyForecast(forecast)}
+        ${forecast.hourly.length > 0 ? hourlyForecast(forecast) : html``}
         ${forecast.daily.length > 0 ? dailyForecast(forecast) : html``}
       </div>
     </article>
@@ -406,6 +406,7 @@ const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slic
 
 const viewports = {
   minimum: { name: "Minimum weather", styles: { width: "230px", height: "230px" }, type: "mobile" },
+  wideShort: { name: "Wide short weather", styles: { width: "590px", height: "230px" }, type: "mobile" },
   small: { name: "Small weather", styles: { width: "340px", height: "340px" }, type: "mobile" },
   medium: { name: "Medium weather", styles: { width: "700px", height: "540px" }, type: "desktop" },
   largeBoundary: { name: "Large weather boundary", styles: { width: "760px", height: "740px" }, type: "desktop" },
@@ -440,6 +441,7 @@ export const ThunderstormNightLarge = { name: "Thunderstorm at night, large", ..
 export const Fog = { args: { forecast: foggy } };
 export const ThreeDigitTemperature = { name: "Three-digit temperature", args: { forecast: deathValley } };
 export const MinimumSize = { name: "Minimum size", ...sized("minimum"), args: { forecast: deathValley } };
+export const WideShort = { name: "Wide and short", ...sized("wideShort"), args: { forecast: foggy } };
 export const NoCurrentDay = { name: "No current daily forecast", args: { forecast: noCurrentDay } };
 export const Medium = { ...sized("medium"), args: { forecast: london } };
 export const Large = { ...sized("largeBoundary"), args: { forecast: london } };

@@ -187,7 +187,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `calendar.mdx` (169 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
     - `checklist.mdx` (133 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
     - `sticky-note.mdx` (86 lines) — *UI spec: the bundled Sticky note page, for text that a person and an agent can edit together.*
-    - `weather.mdx` (108 lines) — *UI spec: the bundled Weather template page, a floating sky card for current conditions, an hourly outlook, and a multi-day forecast.*
+    - `weather.mdx` (112 lines) — *UI spec: the bundled Weather template page, a floating sky card for current conditions, an hourly outlook, and a multi-day forecast.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

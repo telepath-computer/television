@@ -88,13 +88,13 @@ The schema checks the forms of dates and times, not that they are valid calendar
 
 The page parses every timestamp as an instant, regardless of its written offset. The current hour at `timeZone` is the local clock-hour interval containing the current instant. The current date at `timeZone` is the local calendar date containing the current instant. These definitions distinguish repeated clock hours during a daylight-saving fallback.
 
-The hourly display window contains `current` followed by at most 23 stored hourly entries. To select those stored entries, the page stably sorts `hourly` by instant, keeps the first entry for each duplicate instant, and retains entries whose instants fall after the current hour. ^bundled-artifact-template-weather-hourly-window
+The hourly display window contains `current` followed by the first 23 stored hourly entries, or every one if fewer remain. To select those stored entries, the page stably sorts `hourly` by instant, keeps the first entry for each duplicate instant, and retains entries whose instants fall after the current hour. ^bundled-artifact-template-weather-hourly-window
 
-To form the daily display window, the page stably sorts `daily` by date, keeps the first entry for each duplicate date, omits entries before the current date, and retains at most seven entries. ^bundled-artifact-template-weather-daily-window
+To form the daily display window, the page stably sorts `daily` by date, keeps the first entry for each duplicate date, omits entries before the current date, and retains the first seven entries, or every one if fewer remain. ^bundled-artifact-template-weather-daily-window
 
 Having more stored entries than either displayed limit does not make an otherwise valid forecast unreadable; every stored entry must still satisfy the schema and the page checks.
 
-The current high and low, when available, come from the retained daily entry whose date is the current date at `timeZone`; the page never substitutes another date. The README tells agents to include the current date in `daily`.
+The current high and low, when available, come from the retained daily entry whose date is the current date at `timeZone`; the page never substitutes another date.
 
 The page subscribes to the whole store through the [resource SDK](../resources/sdk.md) and makes no store writes. Before the subscription returns its first result, the page shows the loading state. Once it returns, no value or the empty object shows the empty forecast state. Any other value must be one complete forecast. The page derives elapsed time from `updatedAt`, when the agent fetched the forecast; it never fetches weather or changes the stored forecast. Changes from an agent appear live.
 
