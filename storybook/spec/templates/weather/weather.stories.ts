@@ -11,15 +11,13 @@ const icon = (params: { name: string; size?: string; spinning?: boolean }): Html
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
 
 type Theme = "light" | "dark";
-type Condition = "clear" | "partly-cloudy" | "rain" | "snow" | "thunderstorm" | "fog";
+type Condition = "clear" | "partly-cloudy" | "cloudy" | "rain" | "snow" | "thunderstorm" | "fog";
 type State = "ready" | "empty" | "loading" | "unreadable";
 
 interface Current {
   temperature: number;
   condition: Condition;
   summary: string;
-  high: number;
-  low: number;
   isDay: boolean;
 }
 
@@ -55,6 +53,7 @@ interface Args {
 const conditionNames: Record<Condition, string> = {
   clear: "Clear",
   "partly-cloudy": "Partly cloudy",
+  cloudy: "Cloudy",
   rain: "Rain",
   snow: "Snow",
   thunderstorm: "Thunderstorm",
@@ -94,6 +93,10 @@ const weatherGlyph = (condition: Condition, isDay: boolean, size: "hero" | "hour
         </g>`;
   } else if (condition === "partly-cloudy") {
     artwork = html`${orb}${cloud}`;
+  } else if (condition === "cloudy") {
+    artwork = html`
+      <g class="weather-cloud-overcast-back" transform="translate(-20 -12) scale(.9)">${cloud}</g>
+      <g class="weather-cloud-overcast-front">${cloud}</g>`;
   } else if (condition === "rain") {
     artwork = html`${cloud}
       <g class="weather-precip weather-rain">
@@ -116,10 +119,11 @@ const weatherGlyph = (condition: Condition, isDay: boolean, size: "hero" | "hour
       </g>`;
   }
 
-  return html`<svg class="weather-glyph weather-glyph-${size}" viewBox="0 0 224 224" aria-hidden="true">${artwork}</svg>`;
+  return html`<svg class="weather-glyph weather-glyph-${size} weather-glyph-${condition}" viewBox="0 0 224 224" aria-hidden="true">${artwork}</svg>`;
 };
 
-const degree = (value: number) => `${Math.round(value)}°`;
+const reading = (value: number) => String(Math.round(value)).replace("-", "−");
+const degree = (value: number) => `${reading(value)}°`;
 
 const atmosphere = html`
   <div class="weather-atmosphere" aria-hidden="true">
@@ -127,17 +131,20 @@ const atmosphere = html`
     <span class="weather-haze weather-haze-two"></span>
   </div>`;
 
-const currentWeather = (forecast: Forecast) => html`
+const currentWeather = (forecast: Forecast) => {
+  const today = forecast.daily.find((day) => day.label === "Today");
+  return html`
   <section class="weather-current" aria-label="Current weather">
     <div class="weather-temperature" aria-label="${Math.round(forecast.current.temperature)} degrees ${forecast.unit === "C" ? "Celsius" : "Fahrenheit"}">
-      ${Math.round(forecast.current.temperature)}<span aria-hidden="true">°</span>
+      ${reading(forecast.current.temperature)}<span aria-hidden="true">°</span>
     </div>
     <div class="weather-current-glyph">${weatherGlyph(forecast.current.condition, forecast.current.isDay)}</div>
     <div class="weather-current-detail">
       <p class="weather-summary">${forecast.current.summary}</p>
-      <p class="weather-high-low"><span>H:${degree(forecast.current.high)}</span><span>L:${degree(forecast.current.low)}</span></p>
+      ${today ? html`<p class="weather-high-low"><span>H:${degree(today.temperatureHigh)}</span><span>L:${degree(today.temperatureLow)}</span></p>` : html``}
     </div>
   </section>`;
+};
 
 const hourlyForecast = (forecast: Forecast) => html`
   <section class="weather-panel weather-hourly" aria-label="Hourly forecast">
@@ -157,7 +164,7 @@ const dailyForecast = (forecast: Forecast) => {
   return html`
   <section class="weather-panel weather-daily" aria-label="${forecast.daily.length}-day forecast">
     <h2>${forecast.daily.length}-day forecast</h2>
-    <div class="weather-days">${forecast.daily.map((day) => {
+    <div class="weather-days" style="--day-count: ${forecast.daily.length};">${forecast.daily.map((day) => {
       const start = ((day.temperatureLow - floor) / span) * 100;
       const end = ((day.temperatureHigh - floor) / span) * 100;
       return html`
@@ -222,8 +229,10 @@ const render = ({ theme, state, forecast }: Args) => {
   </main>`;
 };
 
-const hours = (temperatures: number[], conditions: Condition[], nightFrom = temperatures.length + 1): Hour[] => {
-  const labels = ["Now", "11 AM", "Noon", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM"];
+const daytimeLabels = ["Now", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM", "9 PM"];
+const nightLabels = ["Now", "11 PM", "12 AM", "1 AM", "2 AM", "3 AM", "4 AM", "5 AM", "6 AM", "7 AM", "8 AM", "9 AM"];
+
+const hours = (temperatures: number[], conditions: Condition[], labels = daytimeLabels, nightFrom = temperatures.length + 1): Hour[] => {
   return temperatures.map((temperature, index) => ({
     label: labels[index] ?? `${index + 10}:00`,
     temperature,
@@ -237,8 +246,8 @@ const sanFrancisco: Forecast = {
   place: "San Francisco",
   unit: "F",
   updated: "12 min ago",
-  current: { temperature: 68, condition: "clear", summary: "Clear", high: 72, low: 55, isDay: true },
-  hourly: hours([68, 69, 70, 71, 72, 71, 69, 66, 63, 61, 59, 58], ["clear", "clear", "partly-cloudy"], 8),
+  current: { temperature: 68, condition: "clear", summary: "Clear", isDay: true },
+  hourly: hours([68, 69, 70, 71, 72, 71, 69, 66, 63, 61, 59, 58], ["clear", "clear", "partly-cloudy"], daytimeLabels, 8),
   daily: [
     { label: "Today", temperatureHigh: 72, temperatureLow: 55, condition: "clear" },
     { label: "Wed", temperatureHigh: 69, temperatureLow: 54, condition: "fog" },
@@ -254,67 +263,119 @@ const edinburghNight: Forecast = {
   place: "Edinburgh",
   unit: "C",
   updated: "8 min ago",
-  current: { temperature: 8, condition: "partly-cloudy", summary: "Clouds and moonlight", high: 11, low: 5, isDay: false },
-  hourly: hours([8, 8, 7, 7, 6, 6, 5, 5], ["partly-cloudy", "clear"], 0),
-  daily: sanFrancisco.daily,
+  current: { temperature: 8, condition: "partly-cloudy", summary: "Clouds and moonlight", isDay: false },
+  hourly: hours([8, 8, 7, 7, 6, 6, 5, 5], ["partly-cloudy", "cloudy"], nightLabels, 0),
+  daily: [
+    { label: "Today", temperatureHigh: 11, temperatureLow: 5, condition: "partly-cloudy" },
+    { label: "Wed", temperatureHigh: 10, temperatureLow: 4, condition: "cloudy" },
+    { label: "Thu", temperatureHigh: 9, temperatureLow: 3, condition: "rain" },
+  ],
+};
+
+const seattleCloudy: Forecast = {
+  place: "Seattle",
+  unit: "F",
+  updated: "16 min ago",
+  current: { temperature: 57, condition: "cloudy", summary: "Overcast", isDay: true },
+  hourly: hours([57, 58, 59, 60, 60, 59, 58, 57], ["cloudy", "cloudy", "rain"], daytimeLabels, 7),
+  daily: [
+    { label: "Today", temperatureHigh: 60, temperatureLow: 51, condition: "cloudy" },
+    { label: "Wed", temperatureHigh: 58, temperatureLow: 49, condition: "rain" },
+    { label: "Thu", temperatureHigh: 61, temperatureLow: 50, condition: "partly-cloudy" },
+  ],
 };
 
 const portlandRain: Forecast = {
   place: "Portland",
   unit: "C",
   updated: "18 min ago",
-  current: { temperature: 11, condition: "rain", summary: "Steady rain", high: 13, low: 8, isDay: true },
-  hourly: hours([11, 11, 12, 12, 13, 12, 11, 10, 10, 9], ["rain", "rain", "partly-cloudy"], 8),
-  daily: sanFrancisco.daily,
+  current: { temperature: 11, condition: "rain", summary: "Steady rain", isDay: true },
+  hourly: hours([11, 11, 12, 12, 13, 12, 11, 10, 10, 9], ["rain", "rain", "cloudy"], daytimeLabels, 8),
+  daily: [
+    { label: "Today", temperatureHigh: 13, temperatureLow: 8, condition: "rain" },
+    { label: "Wed", temperatureHigh: 12, temperatureLow: 7, condition: "rain" },
+    { label: "Thu", temperatureHigh: 14, temperatureLow: 8, condition: "cloudy" },
+  ],
 };
 
 const montrealSnow: Forecast = {
   place: "Montréal",
   unit: "C",
   updated: "21 min ago",
-  current: { temperature: -4, condition: "snow", summary: "Light snow", high: -2, low: -9, isDay: true },
-  hourly: hours([-4, -4, -3, -3, -2, -3, -5, -6], ["snow", "snow", "partly-cloudy"], 7),
-  daily: sanFrancisco.daily,
+  current: { temperature: -12, condition: "snow", summary: "Light snow", isDay: true },
+  hourly: hours([-12, -11, -10, -9, -8, -9, -11, -13], ["snow", "snow", "cloudy"], daytimeLabels, 7),
+  daily: [
+    { label: "Today", temperatureHigh: -8, temperatureLow: -15, condition: "snow" },
+    { label: "Wed", temperatureHigh: -10, temperatureLow: -17, condition: "snow" },
+    { label: "Thu", temperatureHigh: -7, temperatureLow: -14, condition: "cloudy" },
+  ],
 };
 
 const newOrleansStorm: Forecast = {
   place: "New Orleans",
   unit: "F",
   updated: "5 min ago",
-  current: { temperature: 76, condition: "thunderstorm", summary: "Thunderstorms", high: 82, low: 70, isDay: false },
-  hourly: hours([76, 75, 74, 73, 73, 72, 72, 71, 71], ["thunderstorm", "rain"], 0),
-  daily: sanFrancisco.daily,
+  current: { temperature: 76, condition: "thunderstorm", summary: "Thunderstorms", isDay: false },
+  hourly: hours([76, 75, 74, 73, 73, 72, 72, 71, 71], ["thunderstorm", "rain"], nightLabels, 0),
+  daily: [
+    { label: "Today", temperatureHigh: 82, temperatureLow: 70, condition: "thunderstorm" },
+    { label: "Wed", temperatureHigh: 80, temperatureLow: 69, condition: "rain" },
+    { label: "Thu", temperatureHigh: 83, temperatureLow: 71, condition: "cloudy" },
+    { label: "Fri", temperatureHigh: 86, temperatureLow: 72, condition: "partly-cloudy" },
+    { label: "Sat", temperatureHigh: 87, temperatureLow: 73, condition: "clear" },
+    { label: "Sun", temperatureHigh: 85, temperatureLow: 72, condition: "rain" },
+    { label: "Mon", temperatureHigh: 84, temperatureLow: 71, condition: "cloudy" },
+  ],
 };
 
 const foggy: Forecast = {
   place: "Point Reyes",
   unit: "F",
   updated: "14 min ago",
-  current: { temperature: 54, condition: "fog", summary: "Dense fog", high: 61, low: 50, isDay: true },
-  hourly: hours([54, 55, 56, 58, 60, 61, 59, 57], ["fog", "fog", "partly-cloudy"], 7),
-  daily: sanFrancisco.daily,
+  current: { temperature: 54, condition: "fog", summary: "Dense fog", isDay: true },
+  hourly: hours([54, 55, 56, 58, 60, 61, 59, 57], ["fog", "fog", "partly-cloudy"], daytimeLabels, 7),
+  daily: [
+    { label: "Today", temperatureHigh: 61, temperatureLow: 50, condition: "fog" },
+    { label: "Wed", temperatureHigh: 63, temperatureLow: 51, condition: "fog" },
+    { label: "Thu", temperatureHigh: 66, temperatureLow: 52, condition: "partly-cloudy" },
+  ],
 };
 
 const london: Forecast = {
   place: "London",
   unit: "C",
   updated: "9 min ago",
-  current: { temperature: 16, condition: "partly-cloudy", summary: "Sun and clouds", high: 18, low: 10, isDay: true },
-  hourly: hours([16, 17, 18, 18, 17, 16, 15, 14, 13, 12, 12, 11], ["partly-cloudy", "clear", "partly-cloudy", "rain"], 8),
+  current: { temperature: 16, condition: "partly-cloudy", summary: "Sun and clouds", isDay: true },
+  hourly: hours([16, 17, 18, 18, 17, 16, 15, 14, 13, 12, 12, 11], ["partly-cloudy", "clear", "cloudy", "rain"], daytimeLabels, 8),
   daily: [
     { label: "Today", temperatureHigh: 18, temperatureLow: 10, condition: "partly-cloudy" },
     { label: "Wed", temperatureHigh: 16, temperatureLow: 9, condition: "rain" },
     { label: "Thu", temperatureHigh: 14, temperatureLow: 7, condition: "rain" },
     { label: "Fri", temperatureHigh: 15, temperatureLow: 6, condition: "fog" },
     { label: "Sat", temperatureHigh: 17, temperatureLow: 8, condition: "clear" },
-    { label: "Sun", temperatureHigh: 13, temperatureLow: 4, condition: "snow" },
+    { label: "Sun", temperatureHigh: 13, temperatureLow: 4, condition: "rain" },
     { label: "Mon", temperatureHigh: 15, temperatureLow: 6, condition: "thunderstorm" },
   ],
 };
+
+const deathValley: Forecast = {
+  place: "Death Valley",
+  unit: "F",
+  updated: "7 min ago",
+  current: { temperature: 104, condition: "clear", summary: "Hot and clear", isDay: true },
+  hourly: hours([104, 106, 108, 107, 105, 101], ["clear"], daytimeLabels, 6),
+  daily: [
+    { label: "Today", temperatureHigh: 108, temperatureLow: 81, condition: "clear" },
+    { label: "Wed", temperatureHigh: 107, temperatureLow: 80, condition: "clear" },
+  ],
+};
+
+const londonShort: Forecast = { ...london, daily: london.daily.slice(0, 4) };
+const noCurrentDay: Forecast = { ...sanFrancisco, daily: sanFrancisco.daily.slice(1) };
 /* eslint-enable @typescript-eslint/no-magic-numbers */
 
 const viewports = {
-  small: { name: "Small weather", styles: { width: "420px", height: "420px" }, type: "mobile" },
+  small: { name: "Small weather", styles: { width: "340px", height: "340px" }, type: "mobile" },
   medium: { name: "Medium weather", styles: { width: "700px", height: "540px" }, type: "desktop" },
   large: { name: "Large weather", styles: { width: "900px", height: "780px" }, type: "desktop" },
 };
@@ -329,7 +390,7 @@ export default {
   parameters: {
     layout: "fullscreen",
     viewport: { options: viewports },
-    docs: { story: { inline: false, height: "420px" } },
+    docs: { story: { inline: false, height: "340px" } },
   },
   globals: { viewport: { value: "small", isRotated: false } },
   render,
@@ -338,12 +399,17 @@ export default {
 
 export const ClearDay = { name: "Clear day" };
 export const PartlyCloudyNight = { name: "Partly cloudy night", args: { forecast: edinburghNight } };
+export const Cloudy = { args: { forecast: seattleCloudy } };
 export const Rain = { ...sized("medium"), args: { forecast: portlandRain } };
 export const Snow = { args: { forecast: montrealSnow } };
 export const ThunderstormNight = { name: "Thunderstorm at night", ...sized("medium"), args: { forecast: newOrleansStorm } };
+export const ThunderstormNightLarge = { name: "Thunderstorm at night, large", ...sized("large"), args: { forecast: newOrleansStorm } };
 export const Fog = { args: { forecast: foggy } };
+export const ThreeDigitTemperature = { name: "Three-digit temperature", args: { forecast: deathValley } };
+export const NoCurrentDay = { name: "No current daily forecast", args: { forecast: noCurrentDay } };
 export const Medium = { ...sized("medium"), args: { forecast: london } };
 export const Large = { ...sized("large"), args: { forecast: london } };
+export const ShortForecast = { name: "Four-day forecast", ...sized("large"), args: { forecast: londonShort } };
 export const Loading = { args: { state: "loading" } };
 export const Empty = { args: { state: "empty" } };
 export const Unreadable = { args: { state: "unreadable" } };
