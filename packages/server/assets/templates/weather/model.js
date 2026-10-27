@@ -122,10 +122,8 @@ function identityOf(value) {
 }
 
 function sameIdentity(left, right) {
-  return left !== null
-    && right !== null
-    && left !== undefined
-    && right !== undefined
+  return left != null
+    && right != null
     && left.latitude === right.latitude
     && left.longitude === right.longitude
     && left.units === right.units;
@@ -258,7 +256,13 @@ export function forecastAge(updatedAt, now) {
 }
 
 function emptyRequestState(identity = null, memoryForecast = null) {
-  return { identity, runningStartedAt: null, failedStartedAt: null, memoryForecast };
+  return {
+    identity,
+    runningAttemptId: null,
+    runningStartedAt: null,
+    failedStartedAt: null,
+    memoryForecast,
+  };
 }
 
 export function reconcileRequestContext(state, configuration) {
@@ -266,7 +270,17 @@ export function reconcileRequestContext(state, configuration) {
   if (sameIdentity(state.identity, identity)) return { state, abortRunning: false };
   return {
     state: emptyRequestState(identity, identity ? state.memoryForecast : null),
-    abortRunning: state.runningStartedAt !== null,
+    abortRunning: state.runningAttemptId !== null,
+  };
+}
+
+export function settleRequestAttempt(state, attemptId, failedStartedAt) {
+  if (state.runningAttemptId !== attemptId) return null;
+  return {
+    ...state,
+    runningAttemptId: null,
+    runningStartedAt: null,
+    failedStartedAt,
   };
 }
 
@@ -293,7 +307,7 @@ export function selectForecast(savedForecast, memoryForecast, now) {
 export function shouldRequestForecast({ configuration, state, savedForecast, now }) {
   if (!configuration || !sameIdentity(state.identity, configuration)) return false;
   const instant = instantOf(now);
-  if (state.runningStartedAt !== null) return false;
+  if (state.runningAttemptId !== null) return false;
   if (state.failedStartedAt !== null) {
     const failureAge = instant - Date.parse(state.failedStartedAt);
     if (failureAge >= 0 && failureAge < FIFTEEN_MINUTES) return false;

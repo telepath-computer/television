@@ -94,7 +94,10 @@ function hourlyEntries(hourly) {
   for (let index = 0; index < time.length; index += 1) {
     const instant = time[index];
     const mapping = mapWeatherCode(code[index]);
-    if (!isFiniteNumber(instant) || !isFiniteNumber(temperature[index]) || !mapping || !isDayFlag(day[index])) continue;
+    if (!isFiniteNumber(instant)
+      || !isFiniteNumber(temperature[index])
+      || !mapping
+      || !isDayFlag(day[index])) continue;
     const date = new Date(instant * 1000);
     if (!Number.isFinite(date.getTime())) continue;
     const entry = {
@@ -118,12 +121,21 @@ function dailyEntries(daily, offsetSeconds) {
   for (let index = 0; index < time.length; index += 1) {
     const instant = time[index];
     const mapping = mapWeatherCode(code[index]);
-    if (!isFiniteNumber(instant) || !isFiniteNumber(high[index]) || !isFiniteNumber(low[index]) || !mapping || high[index] < low[index]) continue;
+    if (!isFiniteNumber(instant)
+      || !isFiniteNumber(high[index])
+      || !isFiniteNumber(low[index])
+      || !mapping
+      || high[index] < low[index]) continue;
     const shifted = new Date((instant + offsetSeconds) * 1000);
     if (!Number.isFinite(shifted.getTime())) continue;
     // Open-Meteo daily UNIX values use one response-wide fixed offset. Shift
     // before taking the date so the cached date matches the provider response.
-    const entry = { date: shifted.toISOString().slice(0, 10), condition: mapping.condition, high: high[index], low: low[index] };
+    const entry = {
+      date: shifted.toISOString().slice(0, 10),
+      condition: mapping.condition,
+      high: high[index],
+      low: low[index],
+    };
     if (isWeatherDay(entry)) entries.push(entry);
   }
   return entries;

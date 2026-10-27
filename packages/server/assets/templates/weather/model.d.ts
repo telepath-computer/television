@@ -53,6 +53,7 @@ export interface WeatherForecast {
 /** Provider-attempt state retained by the Weather page. */
 export interface RequestState {
   identity: Pick<WeatherConfiguration, "latitude" | "longitude" | "units"> | null;
+  runningAttemptId: number | null;
   runningStartedAt: string | null;
   failedStartedAt: string | null;
   memoryForecast: WeatherForecast | null;
@@ -119,6 +120,13 @@ export function reconcileRequestContext(
   state: RequestState,
   configuration: WeatherConfiguration | null,
 ): { state: RequestState; abortRunning: boolean };
+
+/** Settles only the attempt that the page still tracks. */
+export function settleRequestAttempt(
+  state: RequestState,
+  attemptId: number,
+  failedStartedAt: string | null,
+): RequestState | null;
 
 /** Reports whether a response still belongs to the current request values. */
 export function canReplaceMemoryForecast(
