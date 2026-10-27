@@ -7,7 +7,7 @@ import { afterEach, expect, test } from "vitest";
 import { workerLeaseCommand, workerEntryCommand, shardScratchPath } from "../../scripts/test/blaxel-worker-lease.mjs";
 
 // Real generated lock command, Linux flock/procfs and disposable files. The
-// fixture-token filter substitutes only the whole-worker audit's scope.
+// fixture-user/token filter substitutes only the whole-worker audit's scope.
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture(unprivileged = false) {

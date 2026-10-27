@@ -56,6 +56,15 @@ export async function workerLeaseOperation(input, hooks = {}) {
   // or environments enter the evidence. Kernel threads and zombies own no work.
   function readProcess(pid) {
     const base = `/proc/${pid}`;
+    if (input.auditTokens) {
+      // Fixture tokens scope only processes belonging to the fixture user.
+      // Read actual UIDs: nondumpable processes have root-owned procfs files.
+      // Production has no token filter and must audit every user's processes.
+      const status = fs.readFileSync(`${base}/status`, "utf8");
+      const uids = status.match(/^Uid:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)$/m);
+      if (!uids) throw new Error("unreadable process user identity");
+      if (!uids.slice(1).some((uid) => Number(uid) === process.geteuid())) return null;
+    }
     const stat = fs.readFileSync(`${base}/stat`, "utf8");
     const fields = stat.slice(stat.lastIndexOf(")") + 1).trim().split(/\s+/);
     if (fields.length < 20) throw new Error("unreadable process identity");
@@ -75,7 +84,10 @@ export async function workerLeaseOperation(input, hooks = {}) {
     for (const name of fs.readdirSync("/proc")) {
       if (!/^\d+$/.test(name)) continue;
       try { const entry = readProcess(Number(name)); if (entry) owners.push(entry); }
-      catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
+      catch (error) {
+        if (["EACCES", "EPERM"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${name} (${error.code}); worker reuse refused`);
+        if (!["ENOENT", "ESRCH"].includes(error.code)) throw error;
+      }
     }
     return owners;
   }
