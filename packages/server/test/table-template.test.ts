@@ -83,6 +83,7 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/fresh random key[^.]*UUID[^.]*every row and column/i);
     expect(prose).toMatch(/push[^.]*normal way[^.]*one (?:row|column|entry)/i);
     expect(prose).toMatch(/distinct finite[^.]*order/i);
+    expect(prose).toMatch(/adding at the end[^.]*order[^.]*greater than the last displayed entry/i);
     expect(prose).toMatch(/do not repair[^.]*without an order/i);
     expect(prose).toMatch(/number or boolean[\s\S]*writes[^.]*string/i);
     expect(prose).toMatch(/header row[^.]*first displayed row[^.]*ordinary row/i);
@@ -92,19 +93,19 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/person[^.]*editing[^.]*path-level/i);
     for (const command of [
       "export ARTIFACT_ID=<id>",
-      'tv resource json set --artifact "$ARTIFACT_ID" \'{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":38,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}\'',
-      'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":1}\'',
-      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'2\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" \'{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":52,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}\'',
+      'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":2}\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'1.5\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/width" \'200\'',
-      'tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"',
-      'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":1,"cells":{}}\'',
-      'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" \'2\'',
+      'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":3,"cells":{}}\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" \'1.5\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/height" \'52\'',
-      'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"',
       'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY" \'"Yosemite"\'',
       'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY"',
-      'tv resource json set --artifact "$ARTIFACT_ID" headerRow \'true\'',
       'tv resource json set --artifact "$ARTIFACT_ID" headerRow \'false\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" headerRow \'true\'',
+      'tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"',
+      'tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"',
       'tv resource json set --artifact "$ARTIFACT_ID" \'{"columns":{},"rows":{}}\'',
     ]) expect(readme).toContain(command);
     for (const file of ["page.js", "model.js", "selection-model.js", "styles.css"]) expect(readme).toContain(`\`${file}\``);

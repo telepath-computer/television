@@ -11,7 +11,7 @@ This template makes an editable table that a person and an agent can change at t
   "rows": {
     "514c6a2b-1324-4d21-9810-595750df8493": {
       "order": 1,
-      "height": 38,
+      "height": 52,
       "cells": {
         "b57c9dd8-00d4-49c2-a382-e5cd6e45d935": "Park"
       }
@@ -30,7 +30,7 @@ This template makes an editable table that a person and an agent can change at t
 
 Column and row keys are opaque IDs. Never derive a key from a title or cell value, and never reuse a deleted key. `push` is the normal way to add one row or column. When writing a whole table in one `set`, generate a fresh random key, such as a UUID, for every row and column.
 
-The page orders rows and columns by `order`, then by key when orders match. Give every row and column a distinct finite `order`. To insert between two entries, use a value between their orders. The page may renumber one axis when no numeric value fits.
+The page orders rows and columns by `order`, then by key when orders match. Give every row and column a distinct finite `order`. To insert between two entries, use a value between their orders. When adding at the end, use an `order` greater than the last displayed entry's. The page may renumber one axis when no numeric value fits.
 
 The displayed letters and numbers are positions after ignored entries have been left out and the remaining entries have been ordered. Blank positions after stored entries are drawn positions; these drawn positions are not stored. For example, B3 in an empty table means creating columns A and B and rows 1 through 3, each with an `order`.
 
@@ -45,34 +45,39 @@ export ARTIFACT_ID=<id>
 To replace the whole table deliberately, use fresh random keys in one command:
 
 ```sh
-tv resource json set --artifact "$ARTIFACT_ID" '{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":38,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}'
+tv resource json set --artifact "$ARTIFACT_ID" '{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":52,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}'
 ```
 
-For ordinary changes, update only the path you mean to change. Add a column with `push`, keep the returned key as `COLUMN_KEY`, then resize, reorder, or remove it:
+For ordinary changes, update only the path you mean to change. Add a column with `push`, keep the returned key as `COLUMN_KEY`, then resize or reorder it:
 
 ```sh
-tv resource json push --artifact "$ARTIFACT_ID" columns '{"order":1}'
-tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" '2'
+tv resource json push --artifact "$ARTIFACT_ID" columns '{"order":2}'
+tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" '1.5'
 tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/width" '200'
-tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"
 ```
 
-Add a row with `push`, keep its returned key as `ROW_KEY`, then resize, reorder, or remove it:
+Add a row with `push`, keep its returned key as `ROW_KEY`, then resize or reorder it:
 
 ```sh
-tv resource json push --artifact "$ARTIFACT_ID" rows '{"order":1,"cells":{}}'
-tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" '2'
+tv resource json push --artifact "$ARTIFACT_ID" rows '{"order":3,"cells":{}}'
+tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" '1.5'
 tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/height" '52'
-tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"
 ```
 
-Write or clear one cell, and make or remove the header row treatment, with:
+Write or clear one cell, and remove or make the header row treatment, with:
 
 ```sh
 tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY" '"Yosemite"'
 tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY"
-tv resource json set --artifact "$ARTIFACT_ID" headerRow 'true'
 tv resource json set --artifact "$ARTIFACT_ID" headerRow 'false'
+tv resource json set --artifact "$ARTIFACT_ID" headerRow 'true'
+```
+
+Remove the example row and column when they are no longer needed:
+
+```sh
+tv resource json remove --artifact "$ARTIFACT_ID" "rows/$ROW_KEY"
+tv resource json remove --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY"
 ```
 
 Clear the table while keeping its required containers with:

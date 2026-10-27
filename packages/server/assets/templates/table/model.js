@@ -36,9 +36,13 @@ function cellText(value) {
   return null;
 }
 
+function clampSize(value, rules) {
+  return Math.max(rules.minimum, Math.min(value, rules.maximum));
+}
+
 function clampedSize(value, rules) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return rules.defaultValue;
-  return Math.max(rules.minimum, Math.min(value, rules.maximum));
+  return clampSize(value, rules);
 }
 
 /** Reads a store value into the tolerant display model, or returns null when the root is unreadable. */
@@ -258,7 +262,7 @@ export function planSetHeader(headerRow) {
 export function planResize(value, axis, targetIndex, openedSize, committedSize, keys) {
   const rules = AXIS_SIZES[axis];
   if (!Number.isFinite(committedSize)) return noWrite("invalid-size");
-  const size = Math.max(rules.minimum, Math.min(committedSize, rules.maximum));
+  const size = clampSize(committedSize, rules);
   if (size === openedSize) return noWrite("unchanged");
   const state = planningState(value);
   if (state === null) return noWrite("unreadable");

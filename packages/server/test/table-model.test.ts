@@ -410,10 +410,18 @@ describe("Table write planning", () => {
   });
 
   it("carries a drawn size through renumbering and rejects missing resize keys", () => {
-    expect(planResize({ columns: { last: { order: Number.MAX_VALUE } }, rows: {} },
-      "columns", 1, 160, 220, { columns: ["new-column"] })).toEqual(renumber("columns", {
+    const columnPlan = planResize({ columns: { last: { order: Number.MAX_VALUE } }, rows: {} },
+      "columns", 1, 160, 220, { columns: ["new-column"] });
+    expect(columnPlan).toEqual(renumber("columns", {
       mode: "append", entries: [{ key: "new-column", value: { width: 220 } }],
     }));
+    if (columnPlan.kind !== "renumber") throw new Error("expected a renumbering resize");
+    expect(createAxisRenumberUpdate(columnPlan.request)({
+      last: { order: Number.MAX_VALUE, width: 300, extra: true },
+    })).toEqual({
+      last: { order: 0, width: 300, extra: true },
+      "new-column": { order: 1, width: 220 },
+    });
     expect(planResize({ columns: {}, rows: { last: { order: Number.MAX_VALUE, cells: {} } } },
       "rows", 1, 38, 60, { rows: ["new-row"] })).toEqual(renumber("rows", {
       mode: "append", entries: [{ key: "new-row", value: { cells: {}, height: 60 } }],

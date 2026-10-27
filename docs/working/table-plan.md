@@ -27,6 +27,7 @@ The first editable design and implementation passed review. Rupert's hands-on re
 21. **What if an axis changes shape while a renumbering transaction retries?** Every retry treats an absent axis as empty and aborts if a present axis is not a JSON object, whether the action inserts, adds at the end or stores drawn positions. Recommendation: keep one validation rule for every renumbering mode.
 22. **What if a renumbering transaction commits but its required follow-up write does not happen?** The draft now names the cases: the write is refused, or not sent because write access was lost or the data became unreadable. Each shows “Couldn't save that change.” A follow-up held back by disconnection instead shows only “Reconnecting…”. Recommendation: name these causes rather than call the write “lost”, report a connected failure because the requested action is incomplete, and retain the honest uncertainty during disconnection.
 23. **When should the resize keys be announced?** The strip item's accessible description names plus and minus only when resizing is available. Recommendation: keep unavailable actions out of the description.
+24. **Which spec should own save-failure messages?** The UI spec now owns every condition that shows “Couldn't save that change.” or “Reconnecting…”. The architecture spec keeps the model rule that a two-axis renumbering cannot be saved and links to the UI conditions. Recommendation: keep one owner so the message rules cannot drift between the two specs.
 
 ## Earlier open decisions
 
