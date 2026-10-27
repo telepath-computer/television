@@ -136,33 +136,35 @@ test("agent writes update the open editor and local save echoes preserve newer t
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-live-root-fields
 test("an agent write to another field preserves in-progress typing", async ({ page }) => {
+  await page.clock.install();
   const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
   await expect(content(page)).toHaveText(initial.markdown);
-  await content(page).press("ControlOrMeta+End");
-
-  await page.keyboard.insertText(" person keeps typing");
-  expect(writes()).toEqual([]);
   const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
   h.proxy.holdServerMessages(connection, message => (
     message.type === "value" && JSON.stringify(message).includes("Agent title")
   ));
   await h.set(id, "Agent title", "title");
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+
+  await page.clock.pauseAt(Date.now() + 1000);
+  await content(page).press("ControlOrMeta+End");
+  await page.keyboard.insertText(" person keeps typing");
   expect(writes()).toEqual([]);
   h.proxy.releaseServerMessages(connection);
-  await page.waitForTimeout(0);
 
   const expected = "Starting text person keeps typing";
   await expect(content(page)).toHaveText(expected);
   expect(writes()).toEqual([]);
+  await page.clock.runFor(600);
   await expect.poll(() => h.read(id, "markdown")).toBe(expected);
   expect(await h.read(id, "title")).toBe("Agent title");
   expect(await h.read(id, "extra")).toEqual({ preserved: true });
   expect(writes()).toEqual([
     { kind: "set", path: "markdown", value: { value: expected } },
   ]);
+  await page.clock.resume();
 });
 
 test("a pending page write shows its saving status until confirmation", async ({ page }) => {
@@ -220,8 +222,31 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
 
   const checkbox = page.locator(".cm-md-task-checkbox");
   await expect(checkbox).toBeDisabled();
+  await expect(checkbox).not.toBeChecked();
   await expect(cell).toHaveAttribute("contenteditable", "false");
   await checkbox.evaluate((element) => (element as HTMLInputElement).click());
+  await expect(checkbox).not.toBeChecked();
+  await expect(content(page)).toContainText("Keep this open");
+
+  const cellTextBox = await cell.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const box = range.getBoundingClientRect();
+    return { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  await page.mouse.move(cellTextBox.x, cellTextBox.y + cellTextBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    cellTextBox.x + cellTextBox.width,
+    cellTextBox.y + cellTextBox.height / 2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("one");
+  await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+C");
+  expect(await h.readClipboard(page)).toBe("one");
+  await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
 
   await cell.click({ force: true });
   await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
@@ -246,10 +271,12 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   expect(await h.read(id, "markdown")).toBe(stored);
   expect(writes()).toEqual([]);
   await page.clock.resume();
-  await replaceDocument(page, "Editable again");
-  await expect.poll(() => h.read(id, "markdown")).toBe("Editable again");
+  await content(page).press("ControlOrMeta+Home");
+  await page.keyboard.insertText("Editable again\n");
+  const resumed = `Editable again\n${stored}`;
+  await expect.poll(() => h.read(id, "markdown")).toBe(resumed);
   expect(writes()).toEqual([
-    { kind: "set", path: "markdown", value: { value: "Editable again" } },
+    { kind: "set", path: "markdown", value: { value: resumed } },
   ]);
 });
 
@@ -445,13 +472,27 @@ test("closing the page discards typing before its save pause", async ({ page }) 
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-links
 test("relative links resolve from the sandboxed copied page", async ({ page }) => {
-  const id = await h.createStored({ markdown: "[Read me](./README.md)" });
+  const id = await h.createStored({
+    markdown: "| Link |\n| - |\n| [Read me](./README.md) |",
+  });
+  const share = await h.client.resources.share({ artifactID: id, access: "read" });
   await h.openApp(page);
-  const frame = await h.frame(page, id);
-  const link = frame.locator('a.cm-md-link[data-href="./README.md"]');
+  const iframe = page.locator(`.stage .page[data-page-key="${id}"] iframe`);
+  await expect(iframe).toBeVisible();
+  await iframe.evaluate((element, url) => {
+    (element as HTMLIFrameElement).src = url;
+  }, h.url(id, share.shareID));
+  const frame = await (await iframe.elementHandle())?.contentFrame();
+  if (!frame) throw new Error(`Artifact ${id} has no browser frame`);
+  await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
+  await expect(content(frame)).toHaveAttribute("contenteditable", "false");
+  const link = frame.locator('.cm-md-table-link a.cm-md-link[data-href="./README.md"]');
   await expect(link).toHaveText("Read me");
 
+  await link.click({ modifiers: ["Alt"] });
+  await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
+  await expect(link).toBeVisible();
   await link.click();
 
-  await expect.poll(() => frame.url()).toContain(`/artifact/${id}/README.md`);
+  await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/README.md`);
 });

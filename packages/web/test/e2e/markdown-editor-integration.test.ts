@@ -578,6 +578,53 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("a later successful save replaces a document restored after an older refusal", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const firstSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectV1Save = reject;
+      });
+      const secondSave = new Promise<void>((resolve) => {
+        window.__resolveSecondV1Save = resolve;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) await firstSave;
+          if (window.__v1Saves!.length === 2) await secondSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("First refused save");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["First refused save"]);
+
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Second successful save");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "First refused save",
+      "Second successful save",
+    ]);
+
+    await page.evaluate(() => window.__rejectV1Save!(new Error("save refused")));
+    await expect(editor).toHaveText("Stored document");
+    await page.evaluate(() => {
+      window.__v1Handle!.setValue("Second successful save");
+      window.__resolveSecondV1Save!();
+    });
+    await expect(editor).toHaveText("Second successful save");
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
   test("a repeated completed save preserves newer typing and its pending save", async ({ page }) => {
     await page.goto(V1_FIXTURE);
     await page.waitForFunction(() => window.__v1Ready === true);
@@ -879,6 +926,7 @@ declare global {
     __v1Handle?: MarkdownEditorV1Handle;
     __v1Saves?: string[];
     __resolveFirstV1Save?: () => void;
+    __resolveSecondV1Save?: () => void;
     __firstV1SaveFinished?: boolean;
     __rejectV1Save?: (reason?: unknown) => void;
     __v1GlobalsBefore: string[];

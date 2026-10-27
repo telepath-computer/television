@@ -162,9 +162,9 @@ interface InternalOptions extends MarkdownEditorMountOptions {
  *   confirmation updates the stored baseline without replacing a newer local
  *   edit; other values cancel an unsent edit and replace a different document
  *   without creating a save or history entry.
- * - **Error.** A rejected, unconfirmed save rolls the doc back to the latest
- *   authoritative value unless a newer authoritative value arrived while it
- *   was pending.
+ * - **Error.** A rejected save that still awaits confirmation cancels any
+ *   scheduled save and restores the string last recorded as stored, unless a
+ *   newer stored value arrived while the rejected save was pending.
  */
 function createEditor(options: InternalOptions, editabilityCanChange: boolean): InternalEditor {
   const { parent } = options;
@@ -211,6 +211,9 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
     } catch {
       if (incomingRevision === save.revision && save.awaitingEcho) {
         cancelScheduledSave();
+        incomingRevision += 1;
+        lastCompletedSave = null;
+        for (const activeSave of activeSaves) activeSave.awaitingEcho = false;
         replaceDoc(lastKnownGood);
       }
     } finally {
@@ -245,6 +248,29 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
     }),
   });
 
+  let readOnlyTableSelection = false;
+  const resetReadOnlySelection = (): void => {
+    readOnlyTableSelection = false;
+  };
+  const preserveReadOnlySelection = (event: Event): void => {
+    if (isEditable || !readOnlyTableSelection) return;
+    event.stopImmediatePropagation();
+  };
+  const copyReadOnlySelection = (event: ClipboardEvent): void => {
+    if (isEditable || !readOnlyTableSelection || !event.clipboardData) return;
+    const selectedText = parent.ownerDocument.getSelection()?.toString();
+    if (!selectedText) return;
+    event.clipboardData.setData("text/plain", selectedText);
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  };
+  const selectionWindow = parent.ownerDocument.defaultView;
+  if (editabilityCanChange) {
+    selectionWindow?.addEventListener("pointerdown", resetReadOnlySelection, true);
+    selectionWindow?.addEventListener("selectionchange", preserveReadOnlySelection, true);
+    selectionWindow?.addEventListener("copy", copyReadOnlySelection, true);
+  }
+
   const syncEmbeddedControls = (): void => {
     for (const checkbox of parent.querySelectorAll<HTMLInputElement>(".cm-md-task-checkbox")) {
       if (checkbox.disabled !== !isEditable) checkbox.disabled = !isEditable;
@@ -262,6 +288,36 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
     if (isEditable) return;
     const target = event.target;
     if (!(target instanceof Element) || !target.closest(".tbl-table-widget, .tbl-menu")) return;
+    if (event instanceof MouseEvent && target.closest(".cm-md-table-link")) {
+      if (!event.altKey) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (
+      event instanceof KeyboardEvent &&
+      readOnlyTableSelection &&
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "c"
+    ) {
+      event.preventDefault();
+      // Chromium does not issue a copy command for the focused non-editable
+      // cell, so forward the trusted shortcut to the selected DOM range.
+      parent.ownerDocument.execCommand("copy");
+      event.stopImmediatePropagation();
+      return;
+    }
+    if (
+      event instanceof MouseEvent &&
+      (event.type === "pointerdown" || event.type === "mousedown") &&
+      event.button === 0 &&
+      target.closest(".tbl-cell-view")
+    ) {
+      target.closest<HTMLElement>(".tbl-cell-view")?.focus({ preventScroll: true });
+      readOnlyTableSelection = true;
+      event.stopImmediatePropagation();
+      return;
+    }
     event.preventDefault();
     event.stopImmediatePropagation();
   };
@@ -271,7 +327,10 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
   embeddedControls?.observe(parent, { childList: true, subtree: true });
   if (editabilityCanChange) {
     syncEmbeddedControls();
-    parent.addEventListener("pointerdown", guardReadOnlyTable, true);
+    // The table package observes pointerdown on body capture. Stop its editing
+    // path at window capture without cancelling the browser's text selection.
+    selectionWindow?.addEventListener("pointerdown", guardReadOnlyTable, true);
+    selectionWindow?.addEventListener("mousedown", guardReadOnlyTable, true);
     parent.addEventListener("click", guardReadOnlyTable, true);
     parent.addEventListener("beforeinput", guardReadOnlyTable, true);
     parent.addEventListener("keydown", guardReadOnlyTable, true);
@@ -305,6 +364,7 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
       setEditable(next: boolean): void {
         if (next === isEditable) return;
         isEditable = next;
+        readOnlyTableSelection = false;
         if (!isEditable) {
           cancelScheduledSave();
         }
@@ -320,7 +380,11 @@ function createEditor(options: InternalOptions, editabilityCanChange: boolean): 
         cancelScheduledSave();
         embeddedControls?.disconnect();
         if (editabilityCanChange) {
-          parent.removeEventListener("pointerdown", guardReadOnlyTable, true);
+          selectionWindow?.removeEventListener("pointerdown", resetReadOnlySelection, true);
+          selectionWindow?.removeEventListener("selectionchange", preserveReadOnlySelection, true);
+          selectionWindow?.removeEventListener("copy", copyReadOnlySelection, true);
+          selectionWindow?.removeEventListener("pointerdown", guardReadOnlyTable, true);
+          selectionWindow?.removeEventListener("mousedown", guardReadOnlyTable, true);
           parent.removeEventListener("click", guardReadOnlyTable, true);
           parent.removeEventListener("beforeinput", guardReadOnlyTable, true);
           parent.removeEventListener("keydown", guardReadOnlyTable, true);
