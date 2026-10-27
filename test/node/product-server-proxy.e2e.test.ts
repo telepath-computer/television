@@ -17,7 +17,7 @@ describe("product server lifecycle", () => {
   test("disposes a child process while product-server startup is still in flight", async () => {
     const startup = launchProductServer({ env: { VITEST: "" } });
     const rejected = expect(startup).rejects.toThrow("tv serve exited before startup");
-    await expect.poll(() => ownedProcessCount(), { intervals: [1, 5, 10] }).toBe(1);
+    await expect.poll(() => ownedProcessCount(), { interval: 5 }).toBe(1);
 
     await disposeAllProductServers();
 
