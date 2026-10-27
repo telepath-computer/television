@@ -226,3 +226,17 @@ The shared collector retains a baseline before preparation and final observation
 Five collector/interval contracts, two retained-link contracts, four parent cases and the combined-project seam have passed. Complete reporting, provider and shard-worker files passed, followed by focused checks for the kernel-reader corrections. Lint and type checking passed on the private coordinator at the final code checkpoint. Every test used the canonical runner and private pool at a pushed revision; none ran on the shared development host or shared pool. All executed runs reported zero process leaks and infrastructure failures. Temporary diagnostic probes used during kernel-reader debugging are removed.
 
 The reporting proof now cites the implemented bounds, parent and link coverage. Its live download/reuse and recovery-receipt assertion stays pending for slice 3. The current lease/download race, worker recovery, scratch reclamation, persistent-worker retention, full verification and integrated review are still outstanding. The private hosts remain allocated. The supervisor arranges independent review before slice 3 begins. No new durable team decision was made.
+# Slice 2 convergence and slice 3 start
+
+The supervisor relayed PASS at `296391c0`; the complete review is preserved in
+`test-harness-resource-cleanup-slice-2-review-r1.md`. Accept the bounded
+refinements: reuse the timing-provider constant, resolve targeted Vitest configs
+from the declared surface cwd, and reconcile recovery receipts with slice 3's
+actual records. Passing surfaces intentionally retain compact start/end sidecars
+within the existing per-attempt budget; this aids comparisons without a sampler
+or cross-run archive.
+
+Slice 3 starts with real generated lock-command checks on disposable Linux roots.
+The first checkpoint only extracts the existing command without changing its
+timestamp-only behavior; the new assertions require renewable ownership and
+confirmed quiet-orphan recovery. Execution is pending on the private Blaxel pool.
