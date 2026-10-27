@@ -200,13 +200,7 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
   it("sends no CORS header from the health probe, the app's page and bundle, or the other views", async () => {
     const running = await start();
     for (const origin of ORIGINS) {
-      for (const route of [
-        "/health",
-        "/",
-        "/assets/app.js",
-        "/views/url-unsupported/",
-        "/views/markdown/",
-      ]) {
+      for (const route of ["/health", "/", "/assets/app.js", "/views/url-unsupported/", "/views/markdown/"]) {
         const response = await send(running, "GET", route, { Origin: origin });
         expect(response.status, `${route} ${origin}`).toBe(200);
         expect(corsHeaders(response), `${route} ${origin}`).toEqual({});

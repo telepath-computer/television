@@ -23,7 +23,13 @@ const CANONICAL_CONTENT_TYPES: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/** Resolve appearance before the hosted file view's linked styles load. */
+/**
+ * Inline every `<script type="module" src="...">` tag in the entry HTML so
+ * the built view has no external JS/CSS assets. The view bundle is a fixed
+ * Television-shipped static asset under `/views/markdown/` with no auth and
+ * no user-specific content. Inlining keeps that asset self-contained and
+ * avoids extra HTTP fetches from the iframe.
+ */
 function appearanceBootstrap(): Plugin {
   return {
     name: "view-markdown-appearance-bootstrap",
@@ -90,24 +96,29 @@ function sendDevelopmentStyle(
   res.end(body);
 }
 
-/** Inline every entry script so the hosted file view remains self-contained. */
 function inlineScripts(): Plugin {
   return {
     name: "view-markdown-inline-scripts",
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {
-      for (const asset of Object.values(bundle)) {
-        if (asset.type !== "asset" || !asset.fileName.endsWith(".html")) continue;
+      const htmlEntries = Object.entries(bundle).filter(
+        ([, asset]) => asset.type === "asset" && asset.fileName.endsWith(".html"),
+      );
+      for (const [, asset] of htmlEntries) {
+        if (asset.type !== "asset") continue;
         const html = typeof asset.source === "string" ? asset.source : asset.source.toString();
+        let rewritten = html;
         const scriptTag =
           /<script\b([^>]*?)\ssrc="([^"]+)"([^>]*)><\/script>/g;
         const consumedChunks: string[] = [];
-        const rewritten = html.replace(scriptTag, (match, pre: string, src: string, post: string) => {
+        rewritten = rewritten.replace(scriptTag, (match, pre: string, src: string, post: string) => {
           const normalized = src.startsWith("./") ? src.slice(2) : src;
-          const chunk = bundle[normalized];
+          const chunkKey = Object.keys(bundle).find((key) => key === normalized);
+          if (!chunkKey) return match;
+          const chunk = bundle[chunkKey];
           if (!chunk || chunk.type !== "chunk") return match;
-          consumedChunks.push(normalized);
+          consumedChunks.push(chunkKey);
           const attrs = `${pre} ${post}`
             .replace(/\scrossorigin(="[^"]*")?/g, "")
             .replace(/\s+/g, " ")
@@ -129,12 +140,16 @@ function inlineStyles(): Plugin {
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {
-      for (const asset of Object.values(bundle)) {
-        if (asset.type !== "asset" || !asset.fileName.endsWith(".html")) continue;
+      const htmlEntries = Object.entries(bundle).filter(
+        ([, asset]) => asset.type === "asset" && asset.fileName.endsWith(".html"),
+      );
+      for (const [, asset] of htmlEntries) {
+        if (asset.type !== "asset") continue;
         const html = typeof asset.source === "string" ? asset.source : asset.source.toString();
+        let rewritten = html;
         const linkTag = /<link\b[^>]*\srel="stylesheet"[^>]*\shref="([^"]+)"[^>]*>/g;
         const consumed: string[] = [];
-        const rewritten = html.replace(linkTag, (match, href: string) => {
+        rewritten = rewritten.replace(linkTag, (match, href: string) => {
           const normalized = href.startsWith("./") ? href.slice(2) : href;
           const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "asset") return match;

@@ -5115,10 +5115,13 @@ class bi {
   }
   #k;
   get interactive() {
-    return f(this.#k);
+    return this.editable && f(this.#k);
   }
   set interactive(t) {
     y(this.#k, t);
+  }
+  get editable() {
+    return !this.rootEditor.state.readOnly;
   }
   #z;
   get pointerDown() {
@@ -5332,22 +5335,22 @@ function es({
   e.clipboardData?.setData("text/plain", o.text.toString()), n === "cut" && Zl({ tableState: t });
 }
 function wu(e) {
-  e.pointerDown = !0;
+  e.interactive && (e.pointerDown = !0);
 }
 function Cu(e) {
-  e.pointerDown = !1;
+  e.interactive && (e.pointerDown = !1);
 }
 function xu(e) {
-  e.pointerDown = !1;
+  e.interactive && (e.pointerDown = !1);
 }
 function Su(e, t) {
-  t.selection.isCell() || Ql({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
 }
 function _u(e, t) {
-  t.selection.isCell() || ts({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
 }
 function yu(e, t) {
-  t.selection.isCell() || gi({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
 }
 const wi = "CellView";
 function ns(e) {
@@ -5376,7 +5379,7 @@ function hr(e, t) {
   return n ? { anchor: a, head: c } : { head: a, anchor: c };
 }
 function Ru(e) {
-  if (_(e.tableElement) || Gl(e.document)) return;
+  if (!e.interactive || _(e.tableElement) || Gl(e.document)) return;
   const t = vu(e.document);
   if (_(t) || !Il(e.tableElement, t)) return;
   const n = _n(t);
@@ -5811,10 +5814,10 @@ function Wu(e, t) {
   me(t, !0);
   var n = qu(), o = Lt(n);
   Te(o, () => t.children), ut(
-    (i) => {
-      q(n, "data-component", wi), q(n, "data-hidden", i);
+    (i, r) => {
+      q(n, "data-component", wi), q(n, "data-hidden", i), q(n, "contenteditable", r);
     },
-    [() => ye(t.hidden)]
+    [() => ye(t.hidden), () => t.editable ? "" : "false"]
   ), C(e, n), pe();
 }
 const ls = "Handle";
@@ -5985,20 +5988,21 @@ function Cd({ metaKey: e, ctrlKey: t, key: n }) {
   return !t && !e && !wd.has(n) && !gd(n);
 }
 function xd(e, t) {
-  t.selection.isCell() || Ql({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
 }
 function Sd(e, t) {
-  t.selection.isCell() || ts({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
 }
 function _d(e, t) {
-  t.selection.isCell() || gi({ tableState: t, event: e });
+  t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
 }
 function yd(e, t) {
+  if (!t.interactive) return;
   if (b(e.target) && b(ns(e.target))) {
     e.preventDefault();
     return;
   }
-  if (!t.interactive || t.selection.isCell()) return;
+  if (t.selection.isCell()) return;
   const n = rs(e);
   if (b(n)) {
     mo.navigate({
@@ -6941,6 +6945,7 @@ function Md(e, t) {
   }
 }
 function Hd(e, t) {
+  if (!t.interactive) return;
   const n = e.target;
   if (_(n)) return;
   const o = Ci(n);
@@ -6955,8 +6960,8 @@ function Hd(e, t) {
   }
   e.preventDefault();
 }
-function Bd(e) {
-  e.preventDefault();
+function Bd(e, t) {
+  t.interactive && e.preventDefault();
 }
 var Nd = /* @__PURE__ */ O("<!> <!> <!>", 1), Fd = /* @__PURE__ */ O('<tr class="tbl-table-row"></tr>'), $d = /* @__PURE__ */ O('<tbody class="tbl-table-body"></tbody>'), Ud = /* @__PURE__ */ O("<!> <!>", 1), Vd = /* @__PURE__ */ O("<!> <!>", 1), qd = /* @__PURE__ */ O("<!> <!> <!>", 1), Wd = /* @__PURE__ */ O("<!> <!>", 1), jd = /* @__PURE__ */ O("<!> <!>", 1), Kd = /* @__PURE__ */ O("<!> <!>", 1), Yd = /* @__PURE__ */ O("<!> <!>", 1), Xd = /* @__PURE__ */ O("<!> <!> <!> <!> <!>", 1), Gd = /* @__PURE__ */ O("<!> <!>", 1), Jd = /* @__PURE__ */ O("<!> <!>", 1), Zd = /* @__PURE__ */ O("<!> <!> <!>", 1), Qd = /* @__PURE__ */ O("<!> <!>", 1), tf = /* @__PURE__ */ O("<!> <!>", 1), ef = /* @__PURE__ */ O("<!> <!> <!>", 1), nf = /* @__PURE__ */ O("<!> <!>", 1), of = /* @__PURE__ */ O("<!> <!>", 1), rf = /* @__PURE__ */ O("<!> <!>", 1), lf = /* @__PURE__ */ O("<!> <!> <!> <!> <!> <!> <!>", 1), sf = /* @__PURE__ */ O('<div class="tbl-table-wrapper"><table class="tbl-table" role="grid" tabindex="-1"><thead class="tbl-table-head"><!></thead><!></table> <!> <!> <!> <!></div>');
 function af(e, t) {
@@ -7032,7 +7037,10 @@ function af(e, t) {
               var Rn = T(Je, 2);
               Wu(Rn, {
                 get hidden() {
-                  return f(Oe);
+                  return n.editable && f(Oe);
+                },
+                get editable() {
+                  return n.editable;
                 },
                 children: (Rt, ve) => {
                   var ne = ci(), be = G(ne);
@@ -7090,7 +7098,7 @@ function af(e, t) {
                   }
                 };
                 lt(An, (Rt) => {
-                  f(Oe) && Rt(wo);
+                  n.editable && f(Oe) && Rt(wo);
                 });
               }
               C(bo, En);
@@ -7462,7 +7470,7 @@ function af(e, t) {
   {
     var w = (x) => {
       Lu(x);
-    }, p = /* @__PURE__ */ A(() => !n.interactive && _(n.outline));
+    }, p = /* @__PURE__ */ A(() => n.editable && !n.interactive && _(n.outline));
     lt(v, (x) => {
       f(p) && x(w);
     });
@@ -7476,7 +7484,7 @@ function af(e, t) {
       f(E) && x(g);
     });
   }
-  Xn(o, (x) => n.wrapperElement = x, () => n?.wrapperElement), ut((x) => q(o, "data-select-all", x), [() => ye(n.selection.isAll())]), on("mouseover", o, (x) => Pd(x, n)), on("mouseout", o, (x) => Md(x, n)), on("pointerdown", o, (x) => Hd(x, n)), zn("dragover", o, (x) => Bd(x)), on("keydown", i, (x) => yd(x, n)), zn("copy", i, (x) => xd(x, n)), zn("cut", i, (x) => Sd(x, n)), zn("paste", i, (x) => _d(x, n)), C(e, o), pe();
+  Xn(o, (x) => n.wrapperElement = x, () => n?.wrapperElement), ut((x) => q(o, "data-select-all", x), [() => ye(n.selection.isAll())]), on("mouseover", o, (x) => Pd(x, n)), on("mouseout", o, (x) => Md(x, n)), on("pointerdown", o, (x) => Hd(x, n)), zn("dragover", o, (x) => Bd(x, n)), on("keydown", i, (x) => yd(x, n)), zn("copy", i, (x) => xd(x, n)), zn("cut", i, (x) => Sd(x, n)), zn("paste", i, (x) => _d(x, n)), C(e, o), pe();
 }
 Tl(["mouseover", "mouseout", "pointerdown", "keydown"]);
 class Ti extends gs {
@@ -7520,10 +7528,16 @@ class Ti extends gs {
   create(t) {
     const n = un(t.dom).createElement("div");
     n.className = "tbl-table-widget", n.tabIndex = -1, n.addEventListener("pointerdown", (m) => {
-      m?.target === n && m.preventDefault();
+      m?.target === n && !t.state.readOnly && m.preventDefault();
+    }), n.addEventListener("mousedown", (m) => {
+      t.state.readOnly && m.stopPropagation();
     });
     const o = this.tableDescription, i = ih(() => {
       lo(() => {
+        if (t.state.readOnly) {
+          o.markSynchronized();
+          return;
+        }
         const m = !o.table.text.eq(o.editorTableText), v = !ho(o.selection.value, o.editorSelectionValue);
         if (!m && !v) return;
         const replacement = m ? o.source.applyContent(o.table.text, o.editorTableText) : void 0;
@@ -7655,6 +7669,7 @@ const bf = {
   },
   update(e, t) {
     if (Wh(t)) return Mn(t.state);
+    if (t.startState.readOnly !== t.state.readOnly) return Mn(t.state);
     if (!t.docChanged && _(t.selection) && e.complete)
       return e;
     const {
@@ -7982,6 +7997,14 @@ const Bf = {
     // Override CM style which uses !important
     "caret-color": "transparent !important"
     // Override CM style which uses !important
+  },
+  '&.cm-editor:has(> .cm-scroller > .cm-content[contenteditable="false"]) .tbl-cell': {
+    "user-select": "text"
+  },
+  '&.cm-editor:has(> .cm-scroller > .cm-content[contenteditable="false"]) .tbl-table-widget ::selection': {
+    "background-color": "Highlight !important",
+    "color": "HighlightText !important",
+    "caret-color": "initial !important"
   }
 }, Ff = {
   ".cm-tooltip.tbl-menu-tooltip": {

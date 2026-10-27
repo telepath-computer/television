@@ -8,10 +8,6 @@
   font-weight: var(--font-weight-semibold);
 }
 
-#editor .tbl-cell-view[contenteditable="false"] {
-  user-select: text;
-}
-
 /* Preserve the input chrome specific to the editor's task-list widget. */
 #editor input.cm-md-task-checkbox {
   height: 32px;

@@ -17,6 +17,7 @@ The upstream distribution embeds Svelte and Runed implementations. Their exact p
 - Ordinary cell edits replace only changed source spans, preserving other cells, whitespace, overflow cells, and edge `<br>` content. Alignment edits replace the separator; structural operations and full-table paste retain upstream canonical serialization and may normalize or discard that extra content.
 - Cursor positions and undo/redo use original cell spans, including escaped pipes and ragged rows, rather than offsets into a reformatted table.
 - Newly parsed tables render without requiring canonical formatting or a caret move. Incremental parsing can still briefly delay rendering in long documents; nested blockquote/list table support is unchanged.
+- When the root CodeMirror editor is read-only, cells remain browser-selectable but create no cell editor; table pointer, selection, clipboard, menu and editing-key handlers leave selection, copying, focus movement, scrolling and browser shortcuts to the browser.
 
 The display adapter in `../../table-links.ts` renders clickable links while retaining the fork's source DOM and source offsets. The ordered-list transaction filter in `../../markers.ts` preserves remote-update/save-suppression annotations. These integration changes live outside the copied distribution.
 
@@ -35,5 +36,6 @@ The localized changes in `index.js` are:
 - `as` (table discovery): render noncanonical source directly. The automatic `If` formatter and `Pf` boundary-correction filter are no longer installed.
 - `mo` (cell navigation): leave the table at its edges instead of creating rows. Explicit row menus remain available.
 - `Lf`/`Of` (root selection navigation): use raw source cell spans. `Hf` mixed selections clamp to document bounds.
+- `bi`, the table and document event handlers, `af`, and `Ti` (table state, widget and synchronization): derive editability from the root CodeMirror state, rebuild the widget when that state changes, and skip table-owned editing behavior while read-only.
 
 The remaining UI and embedded runtime code is upstream distribution code. Keeping that distribution avoids adding a Svelte build pipeline for this limited correction. To update it, obtain the exact new upstream archive, compare these regions against its implementation, apply only the still-needed changes, and run the source-preservation, table, link, and marker browser suites. Refresh provenance and notices when the upstream payload changes. A broader UI rewrite should use upstream source rather than extending the bundled runtime here.

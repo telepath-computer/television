@@ -244,6 +244,26 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("one");
   await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
+
+  await page.keyboard.press("Tab");
+  expect(await cell.evaluate((element) => !element.closest(".tbl-table-widget")!.contains(document.activeElement))).toBe(true);
+
+  await h.clipboard(page, "clipboard sentinel");
+  await page.mouse.move(cellTextBox.x, cellTextBox.y + cellTextBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    cellTextBox.x + cellTextBox.width,
+    cellTextBox.y + cellTextBox.height / 2,
+    { steps: 5 },
+  );
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("one");
+  const contextMenuWasPrevented = page.evaluate(() => new Promise<boolean>((resolve) => {
+    window.addEventListener("contextmenu", (event) => resolve(event.defaultPrevented), { once: true });
+  }));
+  await cell.click({ button: "right", position: { x: cellTextBox.width / 2, y: cellTextBox.height / 2 } });
+  expect(await contextMenuWasPrevented).toBe(false);
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("one");
   await page.keyboard.press("ControlOrMeta+C");
   expect(await h.readClipboard(page)).toBe("one");
   await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
@@ -485,12 +505,19 @@ test("relative links resolve from the sandboxed copied page", async ({ page }) =
   const frame = await (await iframe.elementHandle())?.contentFrame();
   if (!frame) throw new Error(`Artifact ${id} has no browser frame`);
   await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
+  await expect(iframe).toHaveAttribute(
+    "sandbox",
+    "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads",
+  );
+  expect(await frame.evaluate(() => window.origin)).toBe("null");
+  expect(await frame.evaluate(() => window.isSecureContext)).toBe(false);
   await expect(content(frame)).toHaveAttribute("contenteditable", "false");
   const link = frame.locator('.cm-md-table-link a.cm-md-link[data-href="./README.md"]');
   await expect(link).toHaveText("Read me");
 
   await link.click({ modifiers: ["Alt"] });
-  await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
+  await page.waitForTimeout(1_000);
+  expect(frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
   await expect(link).toBeVisible();
   await link.click();
 
