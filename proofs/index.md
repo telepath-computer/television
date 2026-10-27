@@ -26,7 +26,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **arch/**
   - `canonical.md` (36 lines) — *How the promises in Canonical are proven.*
   - `developer-skills.md` (21 lines) — *Developer skill installation proven through real temporary homes and installer processes.*
-  - `licensing.md` (30 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
+  - `licensing.md` (35 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (24 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
   - `testing-policy.md` (9 lines) — *How the testing policy’s development discipline is checked.*
@@ -34,7 +34,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
     - `index.md` (24 lines) — *How the promises in Artifact frame (architecture) are proven.*
     - `isolation.md` (86 lines) — *How artifact isolation is proven: escalation walks in which hostile artifact code, sandboxed in Chromium and Firefox and unsandboxed in its partition in the real Electron app, fails to obtain the token, act with the app's authority or reach the main process; a desktop walk showing artifacts' storage apart from the window's and from each other's; walks showing artifacts still load what they need; and the header, route, frame-attribute, header-rewriting and permission rules as contracts with real-browser and real-Electron crossings.*
-    - `markdown-tables-buffer.md` (31 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
+    - `markdown-tables-buffer.md` (33 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
     - `reload-navigation.md` (101 lines) — *How the promises in Reload and navigation are proven.*
   - **artifacts/**

@@ -31,6 +31,12 @@ Markdown is being added as a bundled artifact template. Its page is the existing
 - During the code stage, update `packages/view-markdown/src/vendor/markdown-tables/README.md`: its description of a “versioned editor script” no longer matches the self-contained template editor.
 - Clarify the Television resource skill's state-choice paragraph: a Markdown *file* artifact is file-backed and read-only through a share link, while the bundled Markdown template is store-backed and follows its store access. This prevents the new template from making the old generic wording misleading.
 
+## Spec changes for Rupert's review
+
+- Make an absent `view:markdown` inventory a failure of the Markdown template editor check, and make the suite's pre-build refresh that inventory from the current Markdown file view first. This makes “same tree” reproducible instead of leaving it to whoever invokes the check.
+- Restore disposal's meaning at the internal editor boundary: disposal ends callbacks and releases the editor. This was lost when the boundary prose was simplified, but the existing implementation and derived proof still rely on it.
+- Define an invalid Markdown template editor licensing record as the wrong exact shape, unsorted or duplicate package or asset entries, an invalid package record or asset ID, or a named asset that lacks `view:markdown` or `source` coverage. A well-formed ID absent from the asset manifest remains the separate unknown-asset failure. This makes the license gate's rejection deterministic.
+
 ## Visual review for Rupert
 
 - Check read-only table text selection in dark and themed appearances, including the contrast between the system selection colours and the configured table colours.
