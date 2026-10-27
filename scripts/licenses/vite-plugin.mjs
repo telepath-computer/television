@@ -8,6 +8,8 @@ import { inventoryFromModulePaths } from "./lib/notices.mjs";
 import { requireDeclaredLicenseSurface } from "./lib/surfaces.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const packagedEditorRefreshHint =
+  "Run `npm run refresh:packaged-markdown-editor` to rebuild the Markdown file view inventory and packaged Markdown editor.";
 
 /** Build-only Vite plugin that writes or verifies emitted third-party package coverage. */
 export function createTelevisionLicensePlugin({
@@ -17,6 +19,7 @@ export function createTelevisionLicensePlugin({
   inventoryRoot = resolveInventoryRoot({ root }),
   assets,
   recordOutputPath,
+  requiredAssetSurfaces = [],
 } = {}) {
   if (typeof surface !== "string" || surface.length === 0) {
     throw new Error("Vite licensing plugin requires a surface");
@@ -46,13 +49,17 @@ export function createTelevisionLicensePlugin({
         try {
           coveringInventory = readSurfaceInventory(inventoryRoot, surface);
         } catch (error) {
-          throw new Error(`missing ${surface} license inventory: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error(
+            `missing ${surface} license inventory: ${error instanceof Error ? error.message : String(error)}. `
+              + packagedEditorRefreshHint,
+          );
         }
         verifyInventoryCoverage(inventory, coveringInventory);
         if (recordOutputPath !== undefined) {
           const matchedAssets = matchEmittedAssets(modules, {
             root,
             assets: assets ?? loadAssetManifest({ root }),
+            requiredSurfaces: requiredAssetSurfaces,
           });
           fs.mkdirSync(path.dirname(recordOutputPath), { recursive: true });
           fs.writeFileSync(recordOutputPath, `${JSON.stringify({
@@ -76,7 +83,7 @@ export function createTelevisionLicensePlugin({
   };
 }
 
-function matchEmittedAssets(modules, { root, assets }) {
+function matchEmittedAssets(modules, { root, assets, requiredSurfaces }) {
   const emittedPaths = new Set(modules
     .filter((module) => module.renderedLength > 0 && !module.id.startsWith("\0"))
     .map((module) => {
@@ -86,9 +93,9 @@ function matchEmittedAssets(modules, { root, assets }) {
     }));
   const matched = assets.filter((asset) => asset.paths.some((assetPath) => emittedPaths.has(assetPath)));
   for (const asset of matched) {
-    for (const requiredSurface of ["view:markdown", "source"]) {
+    for (const requiredSurface of requiredSurfaces) {
       if (!asset.surfaces.includes(requiredSurface)) {
-        throw new Error(`packaged Markdown editor asset ${asset.id} must cover the ${requiredSurface} surface`);
+        throw new Error(`emitted asset ${asset.id} must cover the ${requiredSurface} surface`);
       }
     }
   }
@@ -103,10 +110,16 @@ function verifyInventoryCoverage(inventory, coveringInventory) {
   for (const record of inventory.packages) {
     const coveringRecord = covered.get(`${record.name}\0${record.version}`);
     if (coveringRecord === undefined) {
-      throw new Error(`${record.name}@${record.version} is not covered by the ${inventory.surface} license inventory`);
+      throw new Error(
+        `${record.name}@${record.version} is not covered by the ${inventory.surface} license inventory. `
+          + packagedEditorRefreshHint,
+      );
     }
     if (coveringRecord.declaredLicense !== record.declaredLicense) {
-      throw new Error(`${record.name}@${record.version} conflicts with the ${inventory.surface} license inventory`);
+      throw new Error(
+        `${record.name}@${record.version} conflicts with the ${inventory.surface} license inventory. `
+          + packagedEditorRefreshHint,
+      );
     }
   }
 }

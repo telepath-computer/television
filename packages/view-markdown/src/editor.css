@@ -9,6 +9,7 @@
 }
 
 /* Preserve the input chrome specific to the editor's task-list widget. */
+/* colors.css follows this sheet at equal specificity and owns the border color. */
 #editor input.cm-md-task-checkbox {
   height: 32px;
   padding: 0 12px;

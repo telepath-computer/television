@@ -1,6 +1,6 @@
 import type { Plugin } from "vite";
 import type { InventorySurface } from "./lib/surfaces.mjs";
-import type { VendoredAsset } from "./lib/config.mjs";
+import type { LicenseSurface, VendoredAsset } from "./lib/config.mjs";
 
 export interface TelevisionLicensePluginOptions {
   surface: InventorySurface;
@@ -9,6 +9,7 @@ export interface TelevisionLicensePluginOptions {
   inventoryRoot?: string;
   assets?: VendoredAsset[];
   recordOutputPath?: string;
+  requiredAssetSurfaces?: LicenseSurface[];
 }
 
 export function createTelevisionLicensePlugin(options: TelevisionLicensePluginOptions): Plugin;

@@ -205,7 +205,7 @@ describe("license gate", () => {
     const firstPackage = writePackage(root, "first-package", "1.0.0", "MIT");
     const secondPackage = writePackage(root, "second-package", "2.0.0", "MIT");
     const templateFolder = path.join(root, "packages/server/assets/templates/document");
-    const recordPath = path.join(root, "packages/view-markdown/template-editor-licenses.json");
+    const recordPath = path.join(root, "packages/view-markdown/packaged-markdown-editor-licenses.json");
     mkdirSync(templateFolder, { recursive: true });
     const coveredAsset: VendoredAsset = {
       id: "covered-asset",
@@ -219,7 +219,7 @@ describe("license gate", () => {
     const writeNotices = () => {
       writeFileSync(
         path.join(root, "THIRD-PARTY-NOTICES.txt"),
-        generateSourceNotices({ root, config, assets, templateEditorRecord: validRecord })!,
+        generateSourceNotices({ root, config, assets, packagedMarkdownEditorRecord: validRecord })!,
       );
       writeFileSync(
         path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
@@ -275,7 +275,9 @@ describe("license gate", () => {
 
     writeRecord(validRecord);
     writeFileSync(path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"), "stale template notice\n");
-    expect(evaluate().errors.join("\n")).toMatch(/templates[\\/]document[\\/]THIRD-PARTY-NOTICES\.txt.*stale/i);
+    expect(evaluate().errors.join("\n")).toMatch(
+      /templates[\\/]document[\\/]THIRD-PARTY-NOTICES\.txt.*stale.*npm run refresh:packaged-markdown-editor/i,
+    );
     writeNotices();
     writeFileSync(path.join(root, "THIRD-PARTY-NOTICES.txt"), "stale root notice\n");
     expect(evaluate().errors.join("\n")).toMatch(/THIRD-PARTY-NOTICES\.txt.*stale/i);

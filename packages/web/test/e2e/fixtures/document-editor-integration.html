@@ -11,27 +11,27 @@
     <div id="outside-editor" class="cm-editor">Outside the editor</div>
     <div id="editor"></div>
     <script>
-      window.__templateTrustedPolicyCreates = [];
+      window.__packagedEditorTrustedPolicyCreates = [];
       if (window.trustedTypes) {
         const createPolicy = window.trustedTypes.createPolicy.bind(window.trustedTypes);
         window.trustedTypes.createPolicy = (...args) => {
-          window.__templateTrustedPolicyCreates.push(args[0]);
+          window.__packagedEditorTrustedPolicyCreates.push(args[0]);
           return createPolicy(...args);
         };
       }
-      window.__templateHeadBefore = document.head.innerHTML;
-      window.__templateGlobalsBefore = Object.getOwnPropertyNames(window);
+      window.__packagedEditorHeadBefore = document.head.innerHTML;
+      window.__packagedEditorGlobalsBefore = Object.getOwnPropertyNames(window);
     </script>
     <script src="/packages/server/assets/templates/document/editor.js"></script>
     <script>
-      window.__templateAddedGlobals = Object.getOwnPropertyNames(window).filter(
-        name => !window.__templateGlobalsBefore.includes(name)
-          && name !== "__templateGlobalsBefore"
-          && name !== "__templateAddedGlobals"
-          && name !== "__templateHeadBefore"
-          && name !== "__templateReady",
+      window.__packagedEditorAddedGlobals = Object.getOwnPropertyNames(window).filter(
+        name => !window.__packagedEditorGlobalsBefore.includes(name)
+          && name !== "__packagedEditorGlobalsBefore"
+          && name !== "__packagedEditorAddedGlobals"
+          && name !== "__packagedEditorHeadBefore"
+          && name !== "__packagedEditorReady",
       );
-      window.__templateReady = true;
+      window.__packagedEditorReady = true;
     </script>
   </body>
 </html>

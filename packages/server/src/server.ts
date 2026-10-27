@@ -326,12 +326,12 @@ export class Server {
     for (const viewID of ["artifact-missing", "markdown"]) {
       const viewPath = this.store.getViewPath(viewID);
       if (viewPath) {
+        // The missing-file page is an artifact document the proxy serves, so
+        // its files allow any origin; the Markdown editor runs on the app's
+        // origin (specs/arch/artifact-frame/isolation.md#^iso-routes).
+        const crossOrigin = viewID === "artifact-missing";
         this.app.use(`/views/${viewID}`, express.static(viewPath, {
-          setHeaders: (res) => {
-            if (viewID === "artifact-missing") {
-              res.setHeader("Access-Control-Allow-Origin", "*");
-            }
-          },
+          setHeaders: crossOrigin ? (res) => res.setHeader("Access-Control-Allow-Origin", "*") : undefined,
         }));
       }
     }

@@ -1,6 +1,6 @@
 import type { LicenseConfig, VendoredAsset } from "./config.mjs";
 import type { InventorySurface, SurfaceInventory } from "./inventory.mjs";
-import type { MarkdownTemplateEditorLicensingRecord } from "./markdown-template-editor.mjs";
+import type { PackagedMarkdownEditorLicensingRecord } from "./packaged-markdown-editor.mjs";
 
 export interface LicenseGateResult {
   ok: boolean;
@@ -17,9 +17,9 @@ export interface EvaluateLicenseGateOptions {
   declaringManifestPaths?: string[];
   sourceNoticePath?: string;
   checkSourceNotice?: boolean;
-  templateEditorRecordPath?: string;
+  packagedMarkdownEditorLicensingRecordPath?: string;
   documentTemplateNoticePath?: string;
-  checkDocumentTemplateEditor?: boolean;
+  checkPackagedMarkdownEditor?: boolean;
 }
 
 export function evaluateLicenseGate(options?: EvaluateLicenseGateOptions): LicenseGateResult;
@@ -29,14 +29,14 @@ export function sourceNoticeError(options?: {
   config?: LicenseConfig;
   assets?: VendoredAsset[];
   sourceNoticePath?: string;
-  templateEditorRecord?: MarkdownTemplateEditorLicensingRecord | null;
+  packagedMarkdownEditorRecord?: PackagedMarkdownEditorLicensingRecord | null;
 }): string | null;
 
 export function documentTemplateNoticeError(options?: {
   root?: string;
   config?: LicenseConfig;
   assets?: VendoredAsset[];
-  record?: MarkdownTemplateEditorLicensingRecord;
+  record?: PackagedMarkdownEditorLicensingRecord;
   noticePath?: string;
 }): string | null;
 

@@ -7,6 +7,7 @@ import { appearanceResolverScriptSource } from "../artifact/src/browser/appearan
 import { canonicalWrapper } from "../server/src/canonical.ts";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
+const inventoryRoot = process.env.TV_LICENSE_INVENTORY_ROOT;
 
 // Inline-asset budget: 64 KiB. Generous enough to absorb the Hind variable
 // font woff2 (~23 KB) sourced from `packages/canonical` plus any future
@@ -201,7 +202,10 @@ export default defineConfig({
   plugins: [
     appearanceBootstrap(),
     developmentStyles(),
-    createTelevisionLicensePlugin({ surface: "view:markdown" }),
+    createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      ...(inventoryRoot ? { inventoryRoot: path.resolve(inventoryRoot) } : {}),
+    }),
     inlineScripts(),
     inlineStyles(),
   ],

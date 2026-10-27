@@ -3,23 +3,18 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  generateDocumentTemplateNotices,
-  generateSourceNotices,
-} from "./licenses/generate-notices.mjs";
-import { loadAssetManifest, loadLicenseConfig } from "./licenses/lib/config.mjs";
 import { resolveInventoryRoot } from "./licenses/lib/inventory.mjs";
 import {
-  documentTemplateEditorFolderPath,
-  markdownTemplateEditorRecordPath,
-} from "./licenses/lib/markdown-template-editor.mjs";
+  packagedMarkdownEditorFolderPath,
+  packagedMarkdownEditorLicensingRecordPath,
+} from "./licenses/lib/packaged-markdown-editor.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(scriptPath), "..");
-const refreshCommand = "npm run refresh:markdown-template-editor";
+const refreshCommand = "npm run refresh:packaged-markdown-editor";
 
-/** Build the packaged editor into caller-owned temporary output. */
-export function buildMarkdownTemplateEditor({
+/** Build the packaged Markdown editor into caller-owned temporary output. */
+export function buildPackagedMarkdownEditor({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
   outputFolder,
@@ -29,7 +24,7 @@ export function buildMarkdownTemplateEditor({
     path.join(root, "node_modules/vite/bin/vite.js"),
     "build",
     "--config",
-    path.join(root, "packages/view-markdown/vite.editor.config.ts"),
+    path.join(root, "packages/view-markdown/vite.packaged-markdown-editor.config.ts"),
   ], {
     cwd: root,
     encoding: "utf8",
@@ -37,9 +32,9 @@ export function buildMarkdownTemplateEditor({
     env: {
       ...process.env,
       NODE_ENV: "production",
-      TV_MARKDOWN_TEMPLATE_EDITOR_OUTPUT_DIR: path.resolve(outputFolder),
-      TV_MARKDOWN_TEMPLATE_EDITOR_RECORD_OUTPUT: path.resolve(recordPath),
-      TV_MARKDOWN_TEMPLATE_EDITOR_INVENTORY_ROOT: path.resolve(inventoryRoot),
+      TV_PACKAGED_MARKDOWN_EDITOR_OUTPUT_DIR: path.resolve(outputFolder),
+      TV_PACKAGED_MARKDOWN_EDITOR_RECORD_OUTPUT: path.resolve(recordPath),
+      TV_PACKAGED_MARKDOWN_EDITOR_INVENTORY_ROOT: path.resolve(inventoryRoot),
     },
   });
   if (build.status !== 0 || build.error !== undefined) {
@@ -51,19 +46,19 @@ export function buildMarkdownTemplateEditor({
   }
 }
 
-/** Build the packaged editor privately and compare every generated result with its committed copy. */
-export async function checkMarkdownTemplateEditor({
+/** Build the packaged Markdown editor privately and compare its checked output with the committed copies. */
+export async function checkPackagedMarkdownEditor({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
-  templateFolder = documentTemplateEditorFolderPath({ root }),
-  recordPath = markdownTemplateEditorRecordPath({ root }),
+  templateFolder = packagedMarkdownEditorFolderPath({ root }),
+  recordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
   observeFreshOutput,
 } = {}) {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "television-markdown-template-editor-"));
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "television-packaged-markdown-editor-"));
   const outputFolder = path.join(temporaryRoot, "editor");
-  const freshRecordPath = path.join(temporaryRoot, "template-editor-licenses.json");
+  const freshRecordPath = path.join(temporaryRoot, "packaged-markdown-editor-licenses.json");
   try {
-    buildMarkdownTemplateEditor({
+    buildPackagedMarkdownEditor({
       root,
       inventoryRoot,
       outputFolder,
@@ -80,26 +75,15 @@ export async function checkMarkdownTemplateEditor({
     compareBytes(editorStylesheet, path.join(templateFolder, "editor.css"), "editor.css", errors);
     compareRecord(record, recordPath, errors);
 
-    const config = loadLicenseConfig({ root });
-    const assets = loadAssetManifest({ root, config });
-    compareText(
-      generateDocumentTemplateNotices({ root, config, assets, record }),
-      path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
-      "Document template THIRD-PARTY-NOTICES.txt",
-      errors,
-    );
-    compareText(
-      generateSourceNotices({ root, config, assets, templateEditorRecord: record }),
-      path.join(root, "THIRD-PARTY-NOTICES.txt"),
-      "repository THIRD-PARTY-NOTICES.txt",
-      errors,
-    );
     if (errors.length > 0) {
       errors.push(`Run \`${refreshCommand}\` to refresh the committed editor, licensing record, and notices.`);
     }
     return { ok: errors.length === 0, errors };
   } catch (error) {
-    return { ok: false, errors: [message(error)] };
+    return {
+      ok: false,
+      errors: [message(error), `Run \`${refreshCommand}\` to rebuild the inventory and refresh the committed files.`],
+    };
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
   }
@@ -114,17 +98,6 @@ function compareBytes(fresh, committedPath, label, errors) {
     return;
   }
   if (!fresh.equals(committed)) errors.push(`${label} differs from the fresh packaged Markdown editor build`);
-}
-
-function compareText(fresh, committedPath, label, errors) {
-  let committed;
-  try {
-    committed = fs.readFileSync(committedPath, "utf8");
-  } catch (error) {
-    errors.push(`${label} differs: ${committedPath} could not be read (${message(error)})`);
-    return;
-  }
-  if (fresh !== committed) errors.push(`${label} differs from the fresh generated notice`);
 }
 
 function compareRecord(fresh, committedPath, errors) {
@@ -167,7 +140,7 @@ function compare(left, right) {
 }
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === scriptPath) {
-  const result = await checkMarkdownTemplateEditor();
+  const result = await checkPackagedMarkdownEditor();
   if (!result.ok) {
     console.error(result.errors.join("\n"));
     process.exitCode = 1;

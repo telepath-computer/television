@@ -6,11 +6,11 @@ import { html } from "../../lib/html.ts";
 import calendarImage from "../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
 import tableImage from "../../../specs/ui/app/skill-selector/thumbnails/table.png";
 import tasksImage from "../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import documentImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import markdownImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
 
 const templates: TemplateRowParams[] = [
   { name: "Calendar", description: "A week calendar for events supplied by an agent.", image: calendarImage },
-  { name: "Document", description: "A document you and an agent write together, in Markdown.", image: documentImage },
+  { name: "Markdown", description: "A document you and an agent can both edit.", image: markdownImage },
   { name: "Table", description: "Records in rows and columns, updated as they change.", image: tableImage },
   { name: "Tasks", description: "A checklist of tasks with due dates and labels.", image: tasksImage },
 ];

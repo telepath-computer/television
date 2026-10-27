@@ -7,18 +7,18 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const recordKeys = ["packages", "assets"];
 const packageKeys = ["name", "version", "declaredLicense", "licenseFilePath"];
 
-export function documentTemplateEditorFolderPath({ root = repositoryRoot } = {}) {
+export function packagedMarkdownEditorFolderPath({ root = repositoryRoot } = {}) {
   return path.join(root, "packages/server/assets/templates/document");
 }
 
-export function markdownTemplateEditorRecordPath({ root = repositoryRoot } = {}) {
-  return path.join(root, "packages/view-markdown/template-editor-licenses.json");
+export function packagedMarkdownEditorLicensingRecordPath({ root = repositoryRoot } = {}) {
+  return path.join(root, "packages/view-markdown/packaged-markdown-editor-licenses.json");
 }
 
 /** Read the committed package-and-asset record used by the packaged Markdown editor. */
-export function readMarkdownTemplateEditorRecord({
+export function readPackagedMarkdownEditorRecord({
   root = repositoryRoot,
-  recordPath = markdownTemplateEditorRecordPath({ root }),
+  recordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
   assets,
 } = {}) {
   let value;

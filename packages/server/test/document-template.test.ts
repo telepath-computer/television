@@ -55,25 +55,46 @@ describe("bundled Document package", () => {
   });
 
   // proofs/arch/templates/document.md#^templates-document-t-build-boundary
-  it("keeps the packaged editor check outside product builds", () => {
+  it("keeps packaged Markdown editor maintenance outside product builds", () => {
     const viewManifest = JSON.parse(readFileSync(
       path.join(repoRoot, "packages/view-markdown/package.json"),
       "utf8",
     )) as { scripts: Record<string, string> };
     expect(viewManifest.scripts.build).toBe("vite build --config vite.config.ts");
 
-    const productBuildSources = [
+    const lifecycleScripts = [
       "package.json",
       "packages/cli/package.json",
       "packages/server/package.json",
-      "packages/server/scripts/build.sh",
-      "packages/cli/build.mjs",
-    ].map(file => readFileSync(path.join(repoRoot, file), "utf8")).join("\n");
-    expect(productBuildSources).not.toContain("vite.editor.config.ts");
-    expect(productBuildSources).not.toContain("check-markdown-template-editor");
+    ].flatMap((file) => {
+      const manifest = JSON.parse(readFileSync(path.join(repoRoot, file), "utf8")) as {
+        scripts?: Record<string, string>;
+      };
+      return ["prebuild", "build", "prepack", "prepare"]
+        .flatMap(name => manifest.scripts?.[name] ?? []);
+    });
+    const productBuildSources = [
+      ...lifecycleScripts,
+      readFileSync(path.join(repoRoot, "packages/server/scripts/build.sh"), "utf8"),
+      readFileSync(path.join(repoRoot, "packages/cli/build.mjs"), "utf8"),
+    ].join("\n");
+    expect(productBuildSources).not.toContain("vite.packaged-markdown-editor.config.ts");
+    expect(productBuildSources).not.toContain("check-packaged-markdown-editor");
+    expect(productBuildSources).not.toContain("refresh:packaged-markdown-editor");
+    expect(productBuildSources).not.toContain("refresh-packaged-markdown-editor");
     expect(productBuildSources).not.toMatch(/(?:write|build).{0,80}assets\/templates\/document/is);
     expect(readFileSync(path.join(repoRoot, "packages/server/scripts/build.sh"), "utf8"))
       .toMatch(/cp -R .*assets\/templates\/\." .*templates_dist/s);
+  });
+
+  it("marks the committed packaged Markdown editor output as generated binary text", () => {
+    const attributes = readFileSync(path.join(repoRoot, ".gitattributes"), "utf8");
+    expect(attributes).toContain(
+      "packages/server/assets/templates/document/editor.js -text linguist-generated",
+    );
+    expect(attributes).toContain(
+      "packages/server/assets/templates/document/editor.css -text linguist-generated",
+    );
   });
 
   // proofs/arch/templates/document.md#^templates-document-t-icon
@@ -95,7 +116,7 @@ describe("bundled Document package", () => {
   });
 
   // proofs/arch/templates/document.md#^templates-document-t-readme
-  it("documents the shared Markdown, replacement rules, errors and packaged editor", () => {
+  it("documents the shared Markdown, replacement rules, errors and packaged Markdown editor", () => {
     const readme = readFileSync(path.join(folder, "README.md"), "utf8");
     const prose = readme.replace(/\s+/g, " ");
     expect(prose).toMatch(/document is Markdown text/i);

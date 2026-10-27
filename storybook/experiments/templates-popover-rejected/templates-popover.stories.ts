@@ -10,7 +10,7 @@ import iconFrame from "../../../specs/ui/foundation/icons/icon.frame";
 import calendarImage from "../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
 import tableImage from "../../../specs/ui/app/skill-selector/thumbnails/table.png";
 import checklistImage from "../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import documentImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import markdownImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
 
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
@@ -107,7 +107,7 @@ const calendar: Template = {
 
 const templates: Template[] = [
   calendar,
-  { name: "Document", description: "A document you and an agent write together, in Markdown.", image: documentImage },
+  { name: "Markdown", description: "A document you and an agent can both edit.", image: markdownImage },
   { name: "Table", description: "Records in rows and columns, updated as they change.", image: tableImage },
   { name: "Checklist", description: "A simple list to add to and check off.", image: checklistImage },
 ];

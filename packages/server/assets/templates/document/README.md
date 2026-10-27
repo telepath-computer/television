@@ -47,7 +47,7 @@ update does not replace them, and a later installed template does not replace
 them. Tables, links, task lists and the editor's other Markdown gestures remain
 available.
 
-`page.js` adapts the packaged editor to the artifact store. `editor.css` owns
+`page.js` adapts the packaged Markdown editor to the artifact store. `editor.css` owns
 the editor treatment, while `styles.css` owns the page layout and the loading,
 status and error shell. For visual adaptations, change `styles.css` unless you
 intend to replace the editor. Keep the `#editor` mount element. Keep `page.js`,

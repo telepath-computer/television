@@ -88,7 +88,7 @@ test("uses one shared editor implementation in both source entries", () => {
 });
 
 // proofs/arch/templates/document.md#^templates-document-t-editor-build
-test("builds a self-contained file view and narrow packaged editor files", () => {
+test("builds a self-contained file view and narrow packaged Markdown editor files", () => {
   const fileView = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
   expect(fileView).not.toMatch(/<script\b[^>]*\bsrc=/i);
   expect(fileView).not.toMatch(/<link\b[^>]*\brel=["']modulepreload["']/i);

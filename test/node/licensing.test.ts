@@ -29,10 +29,10 @@ import {
 import { renderFolderNotices, renderThirdPartyNotices } from "../../scripts/licenses/lib/notices.mjs";
 import { includedLicenseSurfaces, LICENSE_INVENTORY_SURFACES } from "../../scripts/licenses/lib/surfaces.mjs";
 import {
-  checkMarkdownTemplateEditor,
-  type MarkdownTemplateEditorCheckObservation,
-} from "../../scripts/check-markdown-template-editor.mjs";
-import { refreshMarkdownTemplateEditor } from "../../scripts/refresh-markdown-template-editor.mjs";
+  checkPackagedMarkdownEditor,
+  type PackagedMarkdownEditorCheckObservation,
+} from "../../scripts/check-packaged-markdown-editor.mjs";
+import { refreshPackagedMarkdownEditor } from "../../scripts/refresh-packaged-markdown-editor.mjs";
 import {
   generateDocumentTemplateNotices,
   generateSourceNotices,
@@ -47,7 +47,10 @@ const builtCLI = path.join(cliDist, "cli.cjs");
 const inventoryRoot = resolveInventoryRoot({ root: repoRoot });
 const noticeName = "THIRD-PARTY-NOTICES.txt";
 const documentTemplateFolder = path.join(repoRoot, "packages/server/assets/templates/document");
-const templateEditorRecord = path.join(repoRoot, "packages/view-markdown/template-editor-licenses.json");
+const packagedMarkdownEditorRecord = path.join(
+  repoRoot,
+  "packages/view-markdown/packaged-markdown-editor-licenses.json",
+);
 const startTimeoutMs = 30_000;
 
 const sourceNotices = {
@@ -140,18 +143,18 @@ describe("product licensing outputs", () => {
   });
 
   // proofs/arch/licensing.md#^licensing-t-markdown-editor-build
-  test("the packaged Markdown editor check matches fresh output and notices without changing committed files", async () => {
+  test("the packaged Markdown editor check matches fresh output without changing committed files", async () => {
     const observedPaths = [
       path.join(documentTemplateFolder, "editor.js"),
       path.join(documentTemplateFolder, "editor.css"),
-      templateEditorRecord,
+      packagedMarkdownEditorRecord,
       path.join(documentTemplateFolder, noticeName),
       path.join(repoRoot, noticeName),
     ];
     const before = observedPaths.map(fileSnapshot);
-    let observation: MarkdownTemplateEditorCheckObservation | undefined;
+    let observation: PackagedMarkdownEditorCheckObservation | undefined;
 
-    const result = await checkMarkdownTemplateEditor({
+    const result = await checkPackagedMarkdownEditor({
       root: repoRoot,
       inventoryRoot,
       observeFreshOutput(value) { observation = value; },
@@ -162,7 +165,7 @@ describe("product licensing outputs", () => {
     expect(observation).toBeDefined();
     expect(observation!.editorJavaScript).toEqual(readFileSync(path.join(documentTemplateFolder, "editor.js")));
     expect(observation!.editorStylesheet).toEqual(readFileSync(path.join(documentTemplateFolder, "editor.css")));
-    expect(observation!.record).toEqual(JSON.parse(readFileSync(templateEditorRecord, "utf8")));
+    expect(observation!.record).toEqual(JSON.parse(readFileSync(packagedMarkdownEditorRecord, "utf8")));
     expect(observation!.record.packages.length).toBeGreaterThan(0);
     expect(observation!.record.assets).toContain("markdown-table-editor");
     expect(observedPaths.map(fileSnapshot)).toEqual(before);
@@ -172,10 +175,11 @@ describe("product licensing outputs", () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-refresh-"));
     try {
       const substituteTemplate = path.join(root, "document");
-      const substituteRecord = path.join(root, "template-editor-licenses.json");
+      const substituteRecord = path.join(root, "packaged-markdown-editor-licenses.json");
       const substituteSourceNotice = path.join(root, noticeName);
+      const cleanInventoryRoot = path.join(root, "inventories");
       cpSync(documentTemplateFolder, substituteTemplate, { recursive: true });
-      cpSync(templateEditorRecord, substituteRecord);
+      cpSync(packagedMarkdownEditorRecord, substituteRecord);
       writeFileSync(path.join(substituteTemplate, "editor.js"), "stale JavaScript\n");
       writeFileSync(path.join(substituteTemplate, "editor.css"), "stale stylesheet\n");
       writeFileSync(path.join(substituteTemplate, noticeName), "stale template notice\n");
@@ -190,23 +194,24 @@ describe("product licensing outputs", () => {
       const packageManifest = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
         scripts?: Record<string, string>;
       };
-      expect(packageManifest.scripts?.["refresh:markdown-template-editor"])
-        .toBe("node scripts/refresh-markdown-template-editor.mjs");
+      expect(packageManifest.scripts?.["refresh:packaged-markdown-editor"])
+        .toBe("node scripts/refresh-packaged-markdown-editor.mjs");
 
-      await refreshMarkdownTemplateEditor({
+      await refreshPackagedMarkdownEditor({
         root: repoRoot,
-        inventoryRoot,
+        inventoryRoot: cleanInventoryRoot,
         templateFolder: substituteTemplate,
         recordPath: substituteRecord,
         sourceNoticePath: substituteSourceNotice,
       });
 
+      expect(readSurfaceInventory(cleanInventoryRoot, "view:markdown").surface).toBe("view:markdown");
       expect(otherTemplateFiles.map(fileSnapshot)).toEqual(before);
       expect(readFileSync(substituteSourceNotice, "utf8"))
         .toBe(readFileSync(path.join(repoRoot, noticeName), "utf8"));
-      const result = await checkMarkdownTemplateEditor({
+      const result = await checkPackagedMarkdownEditor({
         root: repoRoot,
-        inventoryRoot,
+        inventoryRoot: cleanInventoryRoot,
         templateFolder: substituteTemplate,
         recordPath: substituteRecord,
       });
@@ -222,9 +227,9 @@ describe("product licensing outputs", () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-stale-"));
     try {
       const substituteTemplate = path.join(root, "document");
-      const substituteRecord = path.join(root, "template-editor-licenses.json");
+      const substituteRecord = path.join(root, "packaged-markdown-editor-licenses.json");
       cpSync(documentTemplateFolder, substituteTemplate, { recursive: true });
-      cpSync(templateEditorRecord, substituteRecord);
+      cpSync(packagedMarkdownEditorRecord, substituteRecord);
       const changeByte = (file: string) => {
         const bytes = readFileSync(file);
         bytes[bytes.length - 1] = bytes[bytes.length - 1] === 10 ? 32 : 10;
@@ -243,7 +248,7 @@ describe("product licensing outputs", () => {
       const committedPaths = [
         path.join(documentTemplateFolder, "editor.js"),
         path.join(documentTemplateFolder, "editor.css"),
-        templateEditorRecord,
+        packagedMarkdownEditorRecord,
         path.join(documentTemplateFolder, noticeName),
         path.join(repoRoot, noticeName),
       ];
@@ -255,7 +260,7 @@ describe("product licensing outputs", () => {
       ];
       const before = [...committedPaths, ...substitutePaths].map(fileSnapshot);
 
-      const result = await checkMarkdownTemplateEditor({
+      const result = await checkPackagedMarkdownEditor({
         root: repoRoot,
         inventoryRoot,
         templateFolder: substituteTemplate,
@@ -267,7 +272,7 @@ describe("product licensing outputs", () => {
       expect(result.errors.join("\n")).toMatch(/editor\.css/);
       expect(result.errors.join("\n")).toMatch(/package record/i);
       expect(result.errors.join("\n")).toMatch(/asset ID/i);
-      expect(result.errors.join("\n")).toContain("npm run refresh:markdown-template-editor");
+      expect(result.errors.join("\n")).toContain("npm run refresh:packaged-markdown-editor");
       expect([...committedPaths, ...substitutePaths].map(fileSnapshot)).toEqual(before);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -280,13 +285,13 @@ describe("product licensing outputs", () => {
     const observedPaths = [
       path.join(documentTemplateFolder, "editor.js"),
       path.join(documentTemplateFolder, "editor.css"),
-      templateEditorRecord,
+      packagedMarkdownEditorRecord,
       path.join(documentTemplateFolder, noticeName),
       path.join(repoRoot, noticeName),
     ];
     const before = observedPaths.map(fileSnapshot);
     try {
-      const result = await checkMarkdownTemplateEditor({ root: repoRoot, inventoryRoot: emptyInventoryRoot });
+      const result = await checkPackagedMarkdownEditor({ root: repoRoot, inventoryRoot: emptyInventoryRoot });
       expect(result.ok).toBe(false);
       expect(result.errors.join("\n")).toMatch(/missing.*view:markdown.*inventory/i);
       expect(readdirSync(emptyInventoryRoot)).toEqual([]);
@@ -547,7 +552,7 @@ describe("shipped package licensing", () => {
       if (expected !== null) expect(readFileSync(file, "utf8"), file).toBe(expected);
     }
     const documentNotice = readFileSync(path.join(documentTemplateFolder, noticeName), "utf8");
-    const documentRecord = JSON.parse(readFileSync(templateEditorRecord, "utf8")) as {
+    const documentRecord = JSON.parse(readFileSync(packagedMarkdownEditorRecord, "utf8")) as {
       packages: Array<{ name: string }>;
       assets: string[];
     };

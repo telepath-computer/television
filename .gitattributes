@@ -1,2 +1,4 @@
 # Generated notices preserve upstream legal-text line endings and whitespace verbatim.
 THIRD-PARTY-NOTICES.txt -text whitespace=-trailing-space
+packages/server/assets/templates/document/editor.js -text linguist-generated
+packages/server/assets/templates/document/editor.css -text linguist-generated

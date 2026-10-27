@@ -9,10 +9,10 @@ import {
 import { isIgnoredPackage, loadAssetManifest, loadLicenseConfig } from "./config.mjs";
 import { readSurfaceInventory, resolveInventoryRoot, surfaceInventoryPath } from "./inventory.mjs";
 import {
-  documentTemplateEditorFolderPath,
-  markdownTemplateEditorRecordPath,
-  readMarkdownTemplateEditorRecord,
-} from "./markdown-template-editor.mjs";
+  packagedMarkdownEditorFolderPath,
+  packagedMarkdownEditorLicensingRecordPath,
+  readPackagedMarkdownEditorRecord,
+} from "./packaged-markdown-editor.mjs";
 import { resolvePackageLicense, resolvePackageNotice } from "./notices.mjs";
 import { findInstalledDependency, packageInfoToInventoryRecord } from "./package-license.mjs";
 import { LICENSE_INVENTORY_SURFACES } from "./surfaces.mjs";
@@ -38,17 +38,17 @@ export function evaluateLicenseGate(options = {}) {
   const declaringManifestPaths = options.declaringManifestPaths ?? defaultDeclaringManifestPaths;
   const errors = [];
   const inventories = options.inventories ?? readDeclaredInventories(inventoryRoot, errors);
-  const editorRecordPath = options.templateEditorRecordPath
-    ?? markdownTemplateEditorRecordPath({ root });
+  const editorRecordPath = options.packagedMarkdownEditorLicensingRecordPath
+    ?? packagedMarkdownEditorLicensingRecordPath({ root });
   const documentNoticePath = options.documentTemplateNoticePath
-    ?? path.join(documentTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt");
-  const checkDocumentTemplateEditor = options.checkDocumentTemplateEditor
+    ?? path.join(packagedMarkdownEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt");
+  const checkPackagedMarkdownEditor = options.checkPackagedMarkdownEditor
     ?? (fs.existsSync(path.dirname(documentNoticePath)) || fs.existsSync(editorRecordPath));
-  let templateEditorRecord = null;
+  let packagedMarkdownEditorRecord = null;
 
-  if (checkDocumentTemplateEditor) {
+  if (checkPackagedMarkdownEditor) {
     try {
-      templateEditorRecord = readMarkdownTemplateEditorRecord({
+      packagedMarkdownEditorRecord = readPackagedMarkdownEditorRecord({
         root,
         recordPath: editorRecordPath,
         assets,
@@ -77,8 +77,8 @@ export function evaluateLicenseGate(options = {}) {
       checkPackage(packageRecord, inventory.surface, { root, config, errors, requireNotice: true });
     }
   }
-  if (templateEditorRecord !== null) {
-    for (const packageRecord of templateEditorRecord.packages) {
+  if (packagedMarkdownEditorRecord !== null) {
+    for (const packageRecord of packagedMarkdownEditorRecord.packages) {
       scannedPackageNames.add(packageRecord.name);
       checkPackage(packageRecord, "packaged Markdown editor", {
         root,
@@ -109,18 +109,18 @@ export function evaluateLicenseGate(options = {}) {
       config,
       assets,
       sourceNoticePath: options.sourceNoticePath,
-      templateEditorRecord: checkDocumentTemplateEditor
-        ? (templateEditorRecord ?? { packages: [], assets: [] })
+      packagedMarkdownEditorRecord: checkPackagedMarkdownEditor
+        ? (packagedMarkdownEditorRecord ?? { packages: [], assets: [] })
         : undefined,
     });
     if (sourceError !== null) errors.push(sourceError);
     errors.push(...folderNoticeErrors({ root, config, assets }));
-    if (templateEditorRecord !== null) {
+    if (packagedMarkdownEditorRecord !== null) {
       const documentError = documentTemplateNoticeError({
         root,
         config,
         assets,
-        record: templateEditorRecord,
+        record: packagedMarkdownEditorRecord,
         noticePath: documentNoticePath,
       });
       if (documentError !== null) errors.push(documentError);
@@ -154,11 +154,11 @@ export function sourceNoticeError({
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   sourceNoticePath = path.join(root, "THIRD-PARTY-NOTICES.txt"),
-  templateEditorRecord,
+  packagedMarkdownEditorRecord,
 } = {}) {
   let generated;
   try {
-    generated = generateSourceNotices({ root, config, assets, templateEditorRecord });
+    generated = generateSourceNotices({ root, config, assets, packagedMarkdownEditorRecord });
   } catch (error) {
     return `could not generate source notices for comparison: ${errorMessage(error)}`;
   }
@@ -175,13 +175,13 @@ export function sourceNoticeError({
     : `${sourceNoticePath} is stale; regenerate the source-surface notices`;
 }
 
-/** Compare the Document template notice with the packaged editor record that owns it. */
+/** Compare the Document template notice with the packaged Markdown editor record that owns it. */
 export function documentTemplateNoticeError({
   root = repositoryRoot,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   record,
-  noticePath = path.join(documentTemplateEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt"),
+  noticePath = path.join(packagedMarkdownEditorFolderPath({ root }), "THIRD-PARTY-NOTICES.txt"),
 } = {}) {
   let generated;
   try {
@@ -197,7 +197,7 @@ export function documentTemplateNoticeError({
   }
   return committed === generated
     ? null
-    : `${noticePath} is stale; regenerate the Document template notices`;
+    : `${noticePath} is stale; run npm run refresh:packaged-markdown-editor`;
 }
 
 /** Compare every generated folder notices file with its committed copy, without writing. */

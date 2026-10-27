@@ -13,10 +13,10 @@ import {
   renderThirdPartyNotices,
 } from "./lib/notices.mjs";
 import {
-  documentTemplateEditorFolderPath,
-  markdownTemplateEditorRecordPath,
-  readMarkdownTemplateEditorRecord,
-} from "./lib/markdown-template-editor.mjs";
+  packagedMarkdownEditorFolderPath,
+  packagedMarkdownEditorLicensingRecordPath,
+  readPackagedMarkdownEditorRecord,
+} from "./lib/packaged-markdown-editor.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -26,12 +26,12 @@ export function generateSourceNotices({
   outputPath,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
-  templateEditorRecord,
-  templateEditorRecordPath = markdownTemplateEditorRecordPath({ root }),
+  packagedMarkdownEditorRecord,
+  packagedMarkdownEditorRecordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
 } = {}) {
-  const record = templateEditorRecord ?? (
-    fs.existsSync(templateEditorRecordPath)
-      ? readMarkdownTemplateEditorRecord({ root, recordPath: templateEditorRecordPath, assets })
+  const record = packagedMarkdownEditorRecord ?? (
+    fs.existsSync(packagedMarkdownEditorRecordPath)
+      ? readPackagedMarkdownEditorRecord({ root, recordPath: packagedMarkdownEditorRecordPath, assets })
       : { packages: [], assets: [] }
   );
   const text = renderThirdPartyNotices({
@@ -52,9 +52,9 @@ export function generateDocumentTemplateNotices({
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
   record,
-  recordPath = markdownTemplateEditorRecordPath({ root }),
+  recordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
 } = {}) {
-  const resolvedRecord = record ?? readMarkdownTemplateEditorRecord({ root, recordPath, assets });
+  const resolvedRecord = record ?? readPackagedMarkdownEditorRecord({ root, recordPath, assets });
   const recordedAssets = new Set(resolvedRecord.assets);
   const text = renderThirdPartyNotices({
     surface: "view:markdown",
@@ -187,7 +187,7 @@ function runCLI() {
     }
     generateSourceNotices({ outputPath: options.output });
     generateDocumentTemplateNotices({
-      outputPath: path.join(documentTemplateEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
+      outputPath: path.join(packagedMarkdownEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
     });
     generateFolderNotices({ write: true });
     return;

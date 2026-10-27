@@ -1,7 +1,7 @@
-/** Enforce the complete committed-file boundary of the self-contained template editor. */
-export function createTemplateEditorOutputPlugin() {
+/** Enforce the complete committed-file boundary of the packaged Markdown editor. */
+export function createPackagedMarkdownEditorOutputPlugin() {
   return {
-    name: "view-markdown-template-editor-output",
+    name: "view-markdown-packaged-markdown-editor-output",
     apply: "build",
     enforce: "post",
     generateBundle(_options, bundle) {
