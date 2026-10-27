@@ -1,6 +1,6 @@
 # Leaflet
 
-This folder contains `leaflet.js`, `leaflet.css`, and `LICENSE` from the official [Leaflet 1.9.4 npm package](https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz). The JavaScript and stylesheet come from the package `dist/` folder. These SHA-256 values were computed locally from the files bundled with Map:
+This folder contains `leaflet.js`, `leaflet.css`, and `LICENSE` from the official [Leaflet 1.9.4 npm package](https://registry.npmjs.org/leaflet/-/leaflet-1.9.4.tgz). The JavaScript and stylesheet come from the package `dist/` folder. These SHA-256 values were computed from the files bundled with Map and match the same three files in the published tarball:
 
 | File | SHA-256 |
 | --- | --- |

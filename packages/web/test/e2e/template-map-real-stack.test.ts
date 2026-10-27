@@ -270,12 +270,12 @@ test("read-only access loss and disconnection retain the last map and reconnect 
   const share = await h.client.resources.share({ artifactID: id, access: "read" });
   await h.open(page, id, share.shareID);
   await expect(rows(page)).toHaveCount(3);
-  await page.evaluate(async () => {
-    const sdk = await import("/sdk/v1/resources.js");
+  await page.evaluate(async (sdkPath) => {
+    const sdk = await import(sdkPath);
     Object.assign(window, { mapListenerError: null, mapConnections: [] });
-    sdk.onValue(sdk.ref(sdk.getStore()), () => {}, error => { Object.assign(window, { mapListenerError: error.code }); });
-    sdk.onConnectionStatusChanged(status => (window as unknown as { mapConnections: string[] }).mapConnections.push(status));
-  });
+    sdk.onValue(sdk.ref(sdk.getStore()), () => {}, (error: { code?: string }) => { Object.assign(window, { mapListenerError: error.code }); });
+    sdk.onConnectionStatusChanged((status: string) => (window as unknown as { mapConnections: string[] }).mapConnections.push(status));
+  }, "/sdk/v1/resources.js");
 
   h.proxy.refuse(true);
   h.proxy.sever();
