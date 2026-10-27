@@ -9,7 +9,7 @@
 }
 
 /* Preserve the input chrome specific to the editor's task-list widget. */
-#editor > .cm-editor input.cm-md-task-checkbox {
+#editor input.cm-md-task-checkbox {
   height: 32px;
   padding: 0 12px;
   border: 0.5px solid transparent;

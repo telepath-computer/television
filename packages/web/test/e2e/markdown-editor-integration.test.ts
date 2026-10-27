@@ -37,12 +37,14 @@ test.describe("markdown editor integration", () => {
       "TelevisionMarkdownEditor",
     ]);
     expect(await page.evaluate(() => window.__v1TrustedPolicyCreates)).toEqual([]);
+    expect(await page.evaluate(() => document.head.innerHTML)).toBe(
+      await page.evaluate(() => window.__v1HeadBefore),
+    );
     expect(await page.locator("#editor > .cm-editor")).toHaveCount(0);
     const script = await page.evaluate(async () => (
       await fetch("/packages/view-markdown/dist/v1/editor.js")
     ).text());
     expect(script).not.toContain("modulepreload");
-    expect(script).not.toContain("data-television-markdown-hosted");
     expect(script).not.toContain("The view never transforms the source");
 
     const rules = await page.evaluate(() => {
@@ -389,6 +391,48 @@ test.describe("markdown editor integration", () => {
     await expect(editor).toHaveText("Stored document");
     await page.waitForTimeout(600);
     expect(await page.evaluate(() => window.__v1Saves)).toEqual(["Stored document"]);
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("a temporary disabled interval does not forget a save still in progress", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstV1Save = resolve;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Saved string");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Saved string"]);
+
+    await page.evaluate(() => {
+      window.__v1Handle!.setEditable(false);
+      window.__v1Handle!.setEditable(true);
+    });
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__v1Handle!.setValue("Saved string"));
+    await expect(editor).toHaveText("Saved string with newer typing");
+    await page.evaluate(() => window.__resolveFirstV1Save!());
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "Saved string",
+      "Saved string with newer typing",
+    ]);
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
@@ -764,6 +808,7 @@ declare global {
     __rejectV1Save?: (reason?: unknown) => void;
     __v1GlobalsBefore: string[];
     __v1AddedGlobals: string[];
+    __v1HeadBefore: string;
     __v1TrustedPolicyCreates: string[];
     __v1Ready?: boolean;
   }

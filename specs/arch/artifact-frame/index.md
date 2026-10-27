@@ -48,3 +48,4 @@ The lifecycle rules below are authority; they exist because ordinary DOM moves o
 Tests for these lifecycle rules live with the specs that own the outcomes. [product/artifacts.md](../../product/artifacts.md) covers continuity across tab switches. [reload-navigation.md](./reload-navigation.md) covers tearing down and rebuilding a channel's frames. [artifact-bridge.md](./artifact-bridge.md) covers a reloaded document proving readiness again.
 
 This spec requires no separate tests. The rule that page count has no limit does not require repeating a test with different page counts. Frame recreation is allowed during channel switches and page rearrangement, so continuity is not required in those cases. Tests do not need to prove that recreation occurs. ^frame-testing
+

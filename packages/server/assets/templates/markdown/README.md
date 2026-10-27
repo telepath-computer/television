@@ -10,7 +10,7 @@ immediately before replacing it, even if you read it earlier while preparing
 the change:
 
 ```sh
-tv resource json get --artifact "$ARTIFACT_ID" markdown
+tv resource json get --artifact "$ARTIFACT_ID" markdown | jq -r .value > document.md
 ```
 
 To replace the complete Markdown from a file, JSON-encode it and write it to

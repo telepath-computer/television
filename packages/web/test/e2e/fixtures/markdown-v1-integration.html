@@ -19,6 +19,7 @@
           return createPolicy(...args);
         };
       }
+      window.__v1HeadBefore = document.head.innerHTML;
       window.__v1GlobalsBefore = Object.getOwnPropertyNames(window);
     </script>
     <script src="/packages/view-markdown/dist/v1/editor.js"></script>
@@ -27,6 +28,7 @@
         name => !window.__v1GlobalsBefore.includes(name)
           && name !== "__v1GlobalsBefore"
           && name !== "__v1AddedGlobals"
+          && name !== "__v1HeadBefore"
           && name !== "__v1Ready",
       );
       window.__v1Ready = true;

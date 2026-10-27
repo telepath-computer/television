@@ -128,8 +128,6 @@ export interface EditorHooks {
   parent: HTMLElement;
   ctx: ArtifactContextLike;
   debounceMs?: number;
-  editable?: boolean;
-  onSaveError?: (error: unknown) => void;
 }
 
 export interface MarkdownEditorMountOptions {
@@ -153,7 +151,6 @@ interface InternalEditor {
 
 interface InternalOptions extends MarkdownEditorMountOptions {
   debounceMs?: number;
-  onSaveError?: (error: unknown) => void;
 }
 
 /**
@@ -169,7 +166,7 @@ interface InternalOptions extends MarkdownEditorMountOptions {
  *   authoritative value unless a newer authoritative value arrived while it
  *   was pending.
  */
-function createEditor(options: InternalOptions): InternalEditor {
+function createEditor(options: InternalOptions, editabilityCanChange: boolean): InternalEditor {
   const { parent } = options;
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
 
@@ -211,9 +208,8 @@ function createEditor(options: InternalOptions): InternalEditor {
         lastKnownGood = content;
         lastCompletedSave = { content, revision: incomingRevision };
       }
-    } catch (error) {
+    } catch {
       if (incomingRevision === save.revision && save.awaitingEcho) replaceDoc(lastKnownGood);
-      options.onSaveError?.(error);
     } finally {
       activeSaves.delete(save);
     }
@@ -254,9 +250,11 @@ function createEditor(options: InternalOptions): InternalEditor {
       cell.contentEditable = isEditable ? "true" : "false";
     }
   };
-  const embeddedControls = new MutationObserver(syncEmbeddedControls);
-  embeddedControls.observe(parent, { childList: true, subtree: true });
-  syncEmbeddedControls();
+  const embeddedControls = editabilityCanChange
+    ? new MutationObserver(syncEmbeddedControls)
+    : null;
+  embeddedControls?.observe(parent, { childList: true, subtree: true });
+  if (editabilityCanChange) syncEmbeddedControls();
 
   return {
     view,
@@ -266,7 +264,7 @@ function createEditor(options: InternalOptions): InternalEditor {
           (save) => save.awaitingEcho && save.content === incoming,
         );
         lastKnownGood = incoming;
-        if (confirmedSave) {
+        if (confirmedSave && isEditable) {
           confirmedSave.awaitingEcho = false;
           return;
         }
@@ -288,20 +286,18 @@ function createEditor(options: InternalOptions): InternalEditor {
         isEditable = next;
         if (!isEditable) {
           cancelScheduledSave();
-          activeSaves.clear();
-          lastCompletedSave = null;
         }
         view.dispatch({
           effects: editable.reconfigure(editability(isEditable)),
         });
-        syncEmbeddedControls();
+        if (editabilityCanChange) syncEmbeddedControls();
       },
       focus(): void {
         view.focus();
       },
       dispose(): void {
         cancelScheduledSave();
-        embeddedControls.disconnect();
+        embeddedControls?.disconnect();
         view.destroy();
       },
     },
@@ -310,7 +306,7 @@ function createEditor(options: InternalOptions): InternalEditor {
 
 /** The public v1 editor boundary used by copied Markdown template pages. */
 export function mountMarkdownEditor(options: MarkdownEditorMountOptions): MarkdownEditorHandle {
-  return createEditor(options).handle;
+  return createEditor(options, true).handle;
 }
 
 /** Adapts the file-artifact host protocol to the store-neutral editor. */
@@ -321,11 +317,10 @@ export function installEditor(
   const editor = createEditor({
     parent: hooks.parent,
     value: "",
-    editable: hooks.editable ?? true,
+    editable: true,
     debounceMs: hooks.debounceMs,
     onSave: (content) => hooks.ctx.updateContent(content),
-    onSaveError: hooks.onSaveError,
-  });
+  }, false);
   const handleContentUpdated = (event: { content: string }): void => {
     editor.handle.setValue(event.content);
   };

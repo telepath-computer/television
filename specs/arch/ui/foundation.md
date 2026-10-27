@@ -41,3 +41,4 @@ The foundation delivery also carries the Electron drag-region convention. An ele
 Coverage of foundation distribution must inspect the real repository files. It must also run a fresh production web build from the same repository and inspect the output. Font-preload coverage must compose the source font bytes with outputs from fresh web and canonical builds.
 
 Drag-region coverage must be accompanied by proof that the sidebar titlebar moves the native window in the real Electron app. The channel sidebar spec owns that proof.
+

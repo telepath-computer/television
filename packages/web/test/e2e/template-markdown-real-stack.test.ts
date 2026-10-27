@@ -76,12 +76,13 @@ test("new Markdown from Toolbox starts blank, then saves and clears through the 
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-live
-test("agent writes update the open editor and local save echoes preserve the caret", async ({ page }) => {
+test("agent writes update the open editor and local save echoes preserve newer typing", async ({ page }) => {
   const initial: MarkdownData = { markdown: "Starting text", extra: { preserved: true } };
   const id = await h.createStored(initial);
   await h.open(page, id);
   await expect(content(page)).toContainText(initial.markdown);
   expect(writes()).toEqual([]);
+  const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
 
   const agentText = "# Agent replacement\n\n| A | B |\n| - | - |\n| 1 | 2 |";
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify(agentText)]);
@@ -89,15 +90,19 @@ test("agent writes update the open editor and local save echoes preserve the car
   await expect(page.locator(".tbl-cell-view").filter({ hasText: "1" })).toBeVisible();
   expect(writes()).toEqual([]);
 
+  h.proxy.holdServerMessages(connection, message => (
+    message.type === "value" && JSON.stringify(message).includes("Agent interrupts before debounce")
+  ));
+  await h.set(id, { ...initial, markdown: "Agent interrupts before debounce" });
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
   await replaceDocument(page, "Unsent person draft");
   expect(writes()).toEqual([]);
-  await h.set(id, { ...initial, markdown: "Agent interrupts before debounce" });
+  h.proxy.releaseServerMessages(connection);
   await expect(content(page)).toContainText("Agent interrupts before debounce");
   await page.waitForTimeout(600);
   expect(await h.read(id, "markdown")).toBe("Agent interrupts before debounce");
   expect(writes()).toEqual([]);
 
-  const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
   h.proxy.holdServerMessages(connection, message => message.type === "applied");
   await replaceDocument(page, "Local complete string");
   await expect.poll(() => h.read(id, "markdown")).toBe("Local complete string");
@@ -181,17 +186,34 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   await h.open(page, id, share.shareID);
   await expect(content(page)).toContainText("Keep this open");
 
+  const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
+  h.proxy.holdServerMessages(connection, message => message.type === "access");
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
   await replaceDocument(page, "Unsent access-loss draft");
   expect(writes()).toEqual([]);
-  await h.client.resources.share({ artifactID: id, access: "read" });
+  h.proxy.releaseServerMessages(connection);
   await expect(content(page)).toContainText("Keep this open");
   expect(await h.read(id, "markdown")).toBe(stored);
 
   const checkbox = page.locator(".cm-md-task-checkbox");
-  const cell = page.locator(".tbl-cell-view").first();
+  const cell = page.locator(".tbl-cell", { hasText: "one" }).locator(".tbl-cell-view");
   await expect(checkbox).toBeDisabled();
   await expect(cell).toHaveAttribute("contenteditable", "false");
   await checkbox.evaluate((element) => (element as HTMLInputElement).click());
+
+  await cell.click({ force: true });
+  await page.keyboard.insertText(" changed");
+  await expect(cell).toHaveText("one");
+
+  for (const [location, item] of [["row", "Add row after"], ["col", "Add column after"]] as const) {
+    const handles = page.locator(`.tbl-handle[data-type="header"][data-location="${location}"]`);
+    await (location === "row" ? handles.last() : handles.first()).click({ force: true });
+    const menuItem = page.locator(".tbl-menu-item", { hasText: item });
+    if (await menuItem.isVisible()) await menuItem.click({ force: true });
+  }
+  await expect(page.locator(".tbl-cell")).toHaveCount(2);
+  await expect(cell).toHaveText("one");
   expect(await h.read(id, "markdown")).toBe(stored);
   expect(writes()).toEqual([]);
 
@@ -202,6 +224,19 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   expect(writes()).toEqual([
     { kind: "set", path: "markdown", value: { value: "Editable again" } },
   ]);
+});
+
+test("a missing shared editor script shows the error state", async ({ page }) => {
+  const id = await h.createStored({ markdown: "Stored document" });
+  await page.route("**/views/markdown/v1/editor.js", route => route.abort());
+
+  await h.open(page, id);
+
+  await expect(page.getByRole("alert")).toContainText("The Markdown editor didn't load");
+  await expect(page.locator(".markdown-loading")).toBeHidden();
+  await expect(content(page)).toBeHidden();
+  expect(await h.read(id, "markdown")).toBe("Stored document");
+  expect(writes()).toEqual([]);
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-states

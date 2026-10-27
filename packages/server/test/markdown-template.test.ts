@@ -73,6 +73,7 @@ describe("bundled Markdown package", () => {
     expect(readme).toContain("`markdown`");
     expect(readme).toContain('{"markdown":""}');
     expect(readme).toContain('tv resource json get --artifact "$ARTIFACT_ID" markdown');
+    expect(readme).toContain("jq -r .value > document.md");
     expect(readme).toContain("jq -Rs . document.md");
     expect(readme).toContain("--file -");
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" markdown');

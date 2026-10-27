@@ -19,9 +19,10 @@ const page = document.querySelector(".markdown-page");
 const mount = document.querySelector("#editor");
 const loading = document.querySelector(".markdown-loading");
 const unreadable = document.querySelector(".markdown-unreadable");
+const unreadableDetail = unreadable.querySelector("p");
 const status = document.querySelector(".markdown-status");
 const shared = window.TelevisionMarkdownEditor;
-if (!shared?.mount) throw new Error("The shared Markdown editor did not load");
+const editorLoaded = typeof shared?.mount === "function";
 
 let access = null;
 let connection = getConnectionStatus();
@@ -43,7 +44,7 @@ function isMarkdownData(value) {
 }
 
 function canEdit() {
-  return received && valid && connection === "connected" && access === "read-write";
+  return editorLoaded && received && valid && connection === "connected" && access === "read-write";
 }
 
 async function saveDocument(value) {
@@ -57,7 +58,7 @@ async function saveDocument(value) {
 }
 
 function ensureEditor(value) {
-  if (editor) return false;
+  if (editor || !editorLoaded) return false;
   editor = shared.mount({
     parent: mount,
     value,
@@ -76,11 +77,14 @@ function restoreStored() {
 }
 
 function render() {
-  const mode = !received ? "loading" : valid ? "editor" : "unreadable";
+  const mode = !editorLoaded ? "unreadable" : !received ? "loading" : valid ? "editor" : "unreadable";
   page.dataset.state = mode;
   mount.hidden = mode !== "editor";
   loading.hidden = mode !== "loading";
   unreadable.hidden = mode !== "unreadable";
+  unreadableDetail.textContent = editorLoaded
+    ? "Its saved data isn't in the form this page reads. Ask your agent to check it."
+    : "The Markdown editor didn't load. Reload the page or ask your agent to check it.";
   editor?.setEditable(canEdit());
   status.textContent = connection === "disconnected"
     ? "Reconnecting…"
@@ -110,7 +114,7 @@ function receive(snapshot) {
   if (!hasPendingWrites) {
     latestStored = value.markdown;
     const mounted = ensureEditor(value.markdown);
-    if (!mounted && value.markdown !== lastPassed) {
+    if (!mounted && editor && value.markdown !== lastPassed) {
       editor.setValue(value.markdown);
       lastPassed = value.markdown;
     }
@@ -165,5 +169,3 @@ onConnectionStatusChanged(next => {
 
 subscribe();
 render();
-
-addEventListener("pagehide", () => editor?.dispose(), { once: true });

@@ -32,11 +32,8 @@ function exposeTestEditor(view: EditorView): void {
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
 
-const hosted = document.body.hasAttribute("data-television-markdown-hosted");
-if (hosted) {
-  if (!parent) throw new Error("Editor mount point #editor not found");
-  mountHostedEditor(parent);
-}
+if (!parent) throw new Error("Editor mount point #editor not found");
+mountHostedEditor(parent);
 
 function mountHostedEditor(parent: HTMLElement): void {
   const isWebview = !!(window as Window & { __televisionContentBridge?: unknown }).__televisionContentBridge;
