@@ -40,7 +40,7 @@ test.describe("markdown editor integration", () => {
     expect(await page.evaluate(() => document.head.innerHTML)).toBe(
       await page.evaluate(() => window.__v1HeadBefore),
     );
-    expect(await page.locator("#editor > .cm-editor")).toHaveCount(0);
+    await expect(page.locator("#editor > .cm-editor")).toHaveCount(0);
     const script = await page.evaluate(async () => (
       await fetch("/packages/view-markdown/dist/v1/editor.js")
     ).text());

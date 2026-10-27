@@ -28,6 +28,10 @@ Markdown is being added as a bundled artifact template. Its page is the existing
 - Clarify the Television resource skill's state-choice paragraph: a Markdown *file* artifact is file-backed and read-only through a share link, while the bundled Markdown template is store-backed and follows its store access. This prevents the new template from making the old generic wording misleading.
 - Add the v1 stylesheet delivery and its canonical-v2 dependency to the Markdown editor UI spec. This is a change to Rupert-owned UI-spec prose and needs Rupert's approval in this pull request.
 
+## Visual review for Rupert
+
+- Check read-only table text selection in dark and themed appearances, including the contrast between the system selection colours and the configured table colours.
+
 ## Open questions for Rupert
 
 - Should disconnected editors instead retain offline typing and save it after reconnect, as Sticky note does? I recommend keeping the drafted discard behavior for the first version because it avoids adding Sticky note's draft-retention and reconciliation rules. The page restores the latest confirmed string, so it discards all unsent typing since the person's last pause long enough to start a save — the pause timer restarts on every keystroke — as well as saves sent but not yet acknowledged. A dead connection can take seconds or minutes to be reported; typing during that interval is also discarded when the loss is detected. A save the server applied before the loss reappears after reconnection. The code-authoritative `Saving…` notice is the only warning during an unnoticed outage and could be removed without spec review; if accepting this loss depends on that warning, I recommend promising the status area in a UI spec.

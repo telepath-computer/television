@@ -244,6 +244,7 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => window.getSelection()?.toString())).toBe("one");
   await expect(page.locator(".tbl-cell-editor")).toHaveCount(0);
+  expect(await cell.evaluate((element) => element.closest(".tbl-table-widget")!.contains(document.activeElement))).toBe(true);
 
   await page.keyboard.press("Tab");
   expect(await cell.evaluate((element) => !element.closest(".tbl-table-widget")!.contains(document.activeElement))).toBe(true);

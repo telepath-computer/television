@@ -5115,7 +5115,7 @@ class bi {
   }
   #k;
   get interactive() {
-    return this.editable && f(this.#k);
+    return f(this.#k);
   }
   set interactive(t) {
     y(this.#k, t);
@@ -5335,22 +5335,22 @@ function es({
   e.clipboardData?.setData("text/plain", o.text.toString()), n === "cut" && Zl({ tableState: t });
 }
 function wu(e) {
-  e.interactive && (e.pointerDown = !0);
+  e.pointerDown = !0;
 }
 function Cu(e) {
-  e.interactive && (e.pointerDown = !1);
+  e.pointerDown = !1;
 }
 function xu(e) {
-  e.interactive && (e.pointerDown = !1);
+  e.pointerDown = !1;
 }
 function Su(e, t) {
-  t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
 }
 function _u(e, t) {
-  t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
 }
 function yu(e, t) {
-  t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
 }
 const wi = "CellView";
 function ns(e) {
@@ -5379,7 +5379,7 @@ function hr(e, t) {
   return n ? { anchor: a, head: c } : { head: a, anchor: c };
 }
 function Ru(e) {
-  if (!e.interactive || _(e.tableElement) || Gl(e.document)) return;
+  if (!e.editable || !e.interactive || _(e.tableElement) || Gl(e.document)) return;
   const t = vu(e.document);
   if (_(t) || !Il(e.tableElement, t)) return;
   const n = _n(t);
@@ -5988,21 +5988,21 @@ function Cd({ metaKey: e, ctrlKey: t, key: n }) {
   return !t && !e && !wd.has(n) && !gd(n);
 }
 function xd(e, t) {
-  t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && Ql({ tableState: t, event: e });
 }
 function Sd(e, t) {
-  t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && ts({ tableState: t, event: e });
 }
 function _d(e, t) {
-  t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
+  t.editable && t.interactive && !t.selection.isCell() && gi({ tableState: t, event: e });
 }
 function yd(e, t) {
-  if (!t.interactive) return;
+  if (!t.editable) return;
   if (b(e.target) && b(ns(e.target))) {
     e.preventDefault();
     return;
   }
-  if (t.selection.isCell()) return;
+  if (!t.interactive || t.selection.isCell()) return;
   const n = rs(e);
   if (b(n)) {
     mo.navigate({
@@ -6945,7 +6945,7 @@ function Md(e, t) {
   }
 }
 function Hd(e, t) {
-  if (!t.interactive) return;
+  if (!t.editable || !t.interactive) return;
   const n = e.target;
   if (_(n)) return;
   const o = Ci(n);
@@ -6961,7 +6961,7 @@ function Hd(e, t) {
   e.preventDefault();
 }
 function Bd(e, t) {
-  t.interactive && e.preventDefault();
+  t.editable && t.interactive && e.preventDefault();
 }
 var Nd = /* @__PURE__ */ O("<!> <!> <!>", 1), Fd = /* @__PURE__ */ O('<tr class="tbl-table-row"></tr>'), $d = /* @__PURE__ */ O('<tbody class="tbl-table-body"></tbody>'), Ud = /* @__PURE__ */ O("<!> <!>", 1), Vd = /* @__PURE__ */ O("<!> <!>", 1), qd = /* @__PURE__ */ O("<!> <!> <!>", 1), Wd = /* @__PURE__ */ O("<!> <!>", 1), jd = /* @__PURE__ */ O("<!> <!>", 1), Kd = /* @__PURE__ */ O("<!> <!>", 1), Yd = /* @__PURE__ */ O("<!> <!>", 1), Xd = /* @__PURE__ */ O("<!> <!> <!> <!> <!>", 1), Gd = /* @__PURE__ */ O("<!> <!>", 1), Jd = /* @__PURE__ */ O("<!> <!>", 1), Zd = /* @__PURE__ */ O("<!> <!> <!>", 1), Qd = /* @__PURE__ */ O("<!> <!>", 1), tf = /* @__PURE__ */ O("<!> <!>", 1), ef = /* @__PURE__ */ O("<!> <!> <!>", 1), nf = /* @__PURE__ */ O("<!> <!>", 1), of = /* @__PURE__ */ O("<!> <!>", 1), rf = /* @__PURE__ */ O("<!> <!>", 1), lf = /* @__PURE__ */ O("<!> <!> <!> <!> <!> <!> <!>", 1), sf = /* @__PURE__ */ O('<div class="tbl-table-wrapper"><table class="tbl-table" role="grid" tabindex="-1"><thead class="tbl-table-head"><!></thead><!></table> <!> <!> <!> <!></div>');
 function af(e, t) {
