@@ -307,10 +307,10 @@ test("unreadable roots and terminal errors recover without repair", async ({ pag
   const file = h.contentFile(id);
   const original = readFileSync(file);
   await h.restart(() => writeFileSync(file, "{damaged json"));
-  await expectError(page);
+  await expect(alert(page)).toBeVisible({ timeout: 20_000 });
   expect(readFileSync(file, "utf8")).toBe("{damaged json");
   await h.restart(() => writeFileSync(file, original));
-  await expect(rows(page)).toHaveCount(3, { timeout: 20_000 });
-  await expect(alert(page)).toBeHidden();
+  await expect(alert(page)).toBeHidden({ timeout: 20_000 });
+  await expect(rows(page)).toHaveCount(3);
   expect(writes()).toEqual([]);
 });

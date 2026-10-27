@@ -2,7 +2,7 @@
 // selected key. The list remains mounted while details replace it visually.
 import { getStore, onConnectionStatusChanged, onValue, ref } from '/sdk/v1/resources.js';
 import { icons } from './vendor/lucide/icons.js';
-import { httpsURL, photoURL } from './map-model.js';
+import { categoryColors, httpsURL, photoURL } from './map-model.js';
 
 const L = window.L;
 const byId = (id) => document.getElementById(id);
@@ -10,7 +10,6 @@ const app = document.querySelector('.app');
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const narrow = matchMedia('(max-width: 640px)');
 const svgNamespace = 'http://www.w3.org/2000/svg';
-const categoryColors = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'neutral'];
 const stableKey = /^[A-Za-z][A-Za-z0-9_-]*$/;
 const indexKey = /^(?:0|[1-9][0-9]*)$/;
 const maxMapZoom = 19;

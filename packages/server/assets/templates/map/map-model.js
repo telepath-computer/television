@@ -1,5 +1,7 @@
-// Later writes bypass schema validation. URLs must remain passive image and
-// credit references, and local paths must stay inside the copied artifact.
+// Store-derived constants and media rules that do not depend on the DOM.
+// Later writes bypass schema validation. URLs remain passive image and credit
+// references, and local paths stay inside the copied artifact.
+export const categoryColors = Object.freeze(['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'neutral']);
 const httpsPattern = /^https:\/\/[^\s/?#\u0000-\u001F]+(?:[/?#][^\s\u0000-\u001F]*)?$/;
 
 export function httpsURL(value) {

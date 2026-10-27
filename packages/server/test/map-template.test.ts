@@ -16,7 +16,7 @@ function specifiedSchema(): unknown {
 
 describe("bundled Map package", () => {
   // proofs/arch/templates/map.md#^templates-map-t-package
-  it("ships the exact Map package contract", () => {
+  it("ships the exact Map package contract", async () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest).toMatchObject({
       name: "Map",
@@ -27,6 +27,13 @@ describe("bundled Map package", () => {
     expect(manifest).not.toHaveProperty("display");
     expect(manifest.dataSchema).toEqual(specifiedSchema());
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({});
+
+    const [{ categoryColors }, { icons }] = await Promise.all([
+      import(pathToFileURL(path.join(folder, "map-model.js")).href),
+      import(pathToFileURL(path.join(folder, "vendor/lucide/icons.js")).href),
+    ]);
+    expect(categoryColors).toEqual(manifest.dataSchema.$defs.category.properties.color.enum);
+    expect(Object.keys(icons).sort()).toEqual([...manifest.dataSchema.$defs.icon.enum].sort());
 
     for (const file of [
       "README.md",

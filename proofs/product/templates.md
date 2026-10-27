@@ -16,7 +16,7 @@ Refusal and partial-failure walks prove the principal unsuccessful outcomes at t
 [Reload/navigation](../arch/artifact-frame/reload-navigation.md) carries shared watcher mechanics, and [bundled installation](../arch/templates/bundled-installation.md) carries minimum-version recovery.
 The [Checklist](../ui/templates/checklist.md#^checklist-ui-ac-new) and [Sticky note](../ui/templates/sticky-note.md#^sticky-note-ui-ac-new) creation walks extend the Toolbox journey through their shipped seeds, starting displays, first edits, and saved results. [The Map creation walk](../arch/templates/map.md#^templates-map-ac-create) creates its empty seed from Toolbox and checks the shared display default and independent copied package. These shared walks accept [the bundled-template promise](../../specs/product/templates.md#^artifact-template-bundled) without a second product-level browser suite; Calendar retains its existing architecture acceptance. Map architecture owns what the store means and what the page shows, omits, falls back to, or reports. Map presentation remains code-authoritative.
 
-Map's exceptional local interception of Esri requests forfeits the external service and rendered tile images, as its architecture spec directs. Other mechanisms in these walks are real except the standing CSS-motion override, which forfeits CSS motion only to the owning UI proofs.
+Map's exceptional local interception of Esri requests forfeits the external service and rendered tile images, as its architecture spec directs. Other mechanisms in these walks are real except the standing CSS-motion override, whose forfeited motion is carried by the owning UI proofs where promised. For Map, the forfeited motion is not promised anywhere.
 
 ## Test hooks
 

@@ -107,7 +107,7 @@ The bundled `data.json` must contain `{}`, which becomes the starting value in t
         },
         "photo": {
           "type": "string",
-          "description": "An HTTPS URL without whitespace or control characters, or a path inside the artifact folder. Relative paths may start with ./ and cannot contain edge whitespace, dot segments, percent escapes, query strings, or fragments.",
+          "description": "An HTTPS URL without whitespace or control characters U+0000–U+001F, or a path inside the artifact folder. Relative paths may start with ./ and cannot contain edge whitespace, dot segments, percent escapes, query strings, or fragments.",
           "anyOf": [
             { "pattern": "^https://[^\\s/?#\\u0000-\\u001F]+(?:[/?#][^\\s\\u0000-\\u001F]*)?$" },
             { "pattern": "^(?:\\./)?(?!\\s)(?!.*\\s$)(?!\\.{1,2}(?:/|$))[^/\\\\:%?#\\u0000-\\u001F]+(?:/(?!\\.{1,2}(?:/|$))[^/\\\\:%?#\\u0000-\\u001F]+)*$" }
@@ -122,7 +122,7 @@ The bundled `data.json` must contain `{}`, which becomes the starting value in t
             },
             "url": {
               "type": "string", "pattern": "^https://[^\\s/?#\\u0000-\\u001F]+(?:[/?#][^\\s\\u0000-\\u001F]*)?$",
-              "description": "HTTPS link without whitespace or control characters to the photo source or licence."
+              "description": "HTTPS link without whitespace or control characters U+0000–U+001F to the photo source or licence."
             }
           }
         },
