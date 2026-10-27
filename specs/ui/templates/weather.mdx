@@ -21,7 +21,7 @@ The card names the place. Below it, the “Updated” label says how long ago th
 
 Temperatures are rounded to the nearest whole degree for display, with halves rounded away from zero. A result of zero is shown as `0°`, never `−0°`. The age uses completed elapsed units: less than a minute is “Updated now”; less than an hour is “Updated 1 min ago” or “Updated N min ago”; less than a day is “Updated 1 hr ago” or “Updated N hrs ago”; and older fetches use “Updated 1 day ago” or “Updated N days ago”. A fetch time in the future because of clock skew also says “Updated now”. The age updates within one minute after its displayed value should change while the page is open.
 
-The current condition chooses the sky. `isDay` changes the clear and partly cloudy skies and their sun-or-moon artwork. Clear daylight is saturated blue with a warm sun; clear night is deep indigo with a moon glow. Partial cloud softens either sky. Cloudy, rain, snow, thunderstorm, and fog use the same sky and artwork by day and night: cloudy uses a cooler layered-cloud sky, rain darkens it to blue slate, snow cools it to icy blue-grey, a thunderstorm turns it ink-blue and violet, and fog mutes it to silver-blue. Every sky uses white type with subtle text shadows and a local dark gradient behind the upper-left text. Condition artwork uses the same visual language at every size and stays clear of the summary and high-and-low line.
+The current condition chooses the sky. `isDay` changes the clear and partly cloudy skies and their sun-or-moon artwork. Clear daylight is saturated blue with a warm sun; clear night is deep indigo with a moon glow. Partial cloud softens either sky. Cloudy, rain, snow, thunderstorm, and fog use the same sky and artwork by day and night: cloudy uses a cooler layered-cloud sky, rain darkens it to blue slate, snow cools it to icy blue-grey, a thunderstorm turns it ink-blue and violet, and fog mutes it to silver-blue. Skies are soft gradients only: no sky draws rain, snow or other weather across it, which is left to the condition artwork. Every sky uses white type with subtle text shadows and a local dark gradient behind the upper-left text. Condition artwork uses the same visual language at every size and stays clear of the summary and high-and-low line.
 
 Across this page, the stories show every condition, both designs for clear and partly cloudy, a thunderstorm at night, and both unit systems.
 
@@ -105,7 +105,7 @@ In the Toolbox, the template icon is a rounded blue sky tile with a small gold s
 
 ## Appearance
 
-The sky communicates the weather and time of day, so the active theme and light or dark appearance do not recolour a populated card. Typography and spacing still use the foundation. Empty, loading, and unreadable states use the same fixed sky treatment in either appearance.
+The sky communicates the weather and time of day, so the active theme and light or dark appearance do not recolour a populated card. Typography and spacing still use the foundation. Empty, loading, and unreadable states use the same fixed sky treatment in any theme or appearance.
 
 This dark-appearance story is otherwise the same clear daylight card as the first story.
 

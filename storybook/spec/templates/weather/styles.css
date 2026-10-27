@@ -184,23 +184,6 @@ body {
 .weather-card[data-condition="fog"] .weather-haze-one { top: 22%; left: -12%; }
 .weather-card[data-condition="fog"] .weather-haze-two { right: -10%; bottom: 19%; }
 
-.weather-card[data-condition="rain"] .weather-atmosphere::after {
-  content: "";
-  inset: -20%;
-  background: repeating-linear-gradient(108deg, transparent 0 24px, rgb(230 245 255 / 8%) 25px 27px, transparent 28px 54px);
-  transform: translateX(8%);
-}
-
-.weather-card[data-condition="snow"] .weather-atmosphere::after {
-  content: "";
-  background-image:
-    radial-gradient(circle, rgb(255 255 255 / 42%) 0 2px, transparent 2.5px),
-    radial-gradient(circle, rgb(255 255 255 / 24%) 0 1.5px, transparent 2px);
-  background-position: 12px 18px, 54px 72px;
-  background-size: 74px 84px, 92px 104px;
-  opacity: 0.5;
-}
-
 .weather-card[data-condition="thunderstorm"] .weather-atmosphere::after {
   content: "";
   background: radial-gradient(ellipse at 84% 30%, rgb(178 153 255 / 22%), transparent 30%);
