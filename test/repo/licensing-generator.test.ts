@@ -549,6 +549,7 @@ describe("notice rendering", () => {
       "packages/server/assets/templates/calendar",
       "packages/server/assets/templates/checklist",
       "packages/server/assets/templates/sticky-note",
+      "packages/server/assets/templates/weather",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
       "packages/server/assets/themes/tokyo-night",
@@ -566,7 +567,7 @@ describe("notice rendering", () => {
     const nord = folders.find((entry) => entry.folder.endsWith("/nord"))!.text;
     expect(entryMetadata(nord)).toEqual([["Nord color palette", "Licensed under MIT."]]);
     expect(nord).toContain("Copyright (c) 2016-present Sven Greb");
-    for (const template of ["/calendar", "/checklist"]) {
+    for (const template of ["/calendar", "/checklist", "/weather"]) {
       const notice = folders.find((entry) => entry.folder.endsWith(template))!.text;
       expect(entryMetadata(notice)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
       expect(notice).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));

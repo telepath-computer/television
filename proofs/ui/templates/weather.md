@@ -64,7 +64,7 @@ Unless stated otherwise, each acceptance uses the real browser/server/store boun
 
 ## Review
 
-- Under [Icon](../../../specs/ui/templates/weather.mdx#icon), review checks that the supplied icon is a rounded blue sky tile with a small gold sun emerging from a white cloud, and that it reads at 20 pixels on light and dark backgrounds. [The package proof](../../arch/templates/weather.md#^templates-weather-t-icon) proves that Toolbox receives this file. *(review to be recorded at 20 pixels; no automated test)* ^weather-review-icon
+- Under [Icon](../../../specs/ui/templates/weather.mdx#icon), review checks that the supplied icon is a rounded blue sky tile with a small gold sun emerging from a white cloud, and that it reads at 20 pixels on light and dark backgrounds. [The package proof](../../arch/templates/weather.md#^templates-weather-t-icon) proves that Toolbox receives this file. *(reviewed at 20 pixels on light and dark backgrounds; no automated test)* ^weather-review-icon
 
 ## Conformance
 

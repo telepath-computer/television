@@ -488,6 +488,7 @@ function bundledFolderNotices(): { folder: string; text: string }[] {
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/checklist`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/calendar`);
   expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/sticky-note`);
+  expect(owed.map(({ folder }) => folder)).toContain(`${bundledTemplatesSource}/weather`);
   return owed;
 }
 
