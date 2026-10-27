@@ -1,6 +1,6 @@
 # Editable Table spec plan
 
-The architecture and UI changes in this branch have passed independent spec review. This stage derives their proofs and implementation slices. Tests, packaged assets, and production code wait for proof review.
+The architecture and UI specs and their proofs have passed independent review. This document records the remaining product decisions and the three implementation slices for plan review. Tests, packaged assets, and production code wait for that review.
 
 ## Open decisions for Rupert
 
@@ -46,6 +46,23 @@ The architecture and UI changes in this branch have passed independent spec revi
 
 This is not clearly one slice. The store contract and pure model, the editable browser interaction, and the live multi-writer and failure paths each need focused red/green work and review.
 
-1. **Store model and package.** Write the package, inventory, README and pure model contract tests first, then update the manifest, seed, model, types and README. Validate the package schema, tolerant reader, ordering, drawn-position identity, write planning and renumbering callback with the targeted server tests. The temporary baseline is that the old read-only page and its browser tests do not yet satisfy the new model.
-2. **Editable grid and store writes.** Write the browser tests for creation, display, selection, keyboard access, editing, menus and structure, then replace the page and stylesheet and cross its operations into the real store. Validate the Table package/model suite, the corresponding real-stack cases, and conformance for blank, data, header, selection, focus, editing, menu and dark stories. Live concurrency, access and fault assertions remain pending in the temporary baseline.
-3. **Live state and resilience.** Write and satisfy the agent-concurrency, blank-axis race, transaction retry, access, loading, disconnection, save-failure, unreadable-data and remaining conformance cases. Validate all Table package, model, real-stack and conformance tests plus the bundled inventory, installation and telemetry tests changed by this contribution. The final slice gives every `(test to be written)` assertion an implemented test and leaves no temporary failing baseline; broad verification remains the later pull-request gate under the repository workflow.
+### 1. Store model and package
+
+- **Deliver:** Write the package, inventory, README, table-model and selection-model contracts first. Then update the manifest, seed, README, model exports and types that the page will consume.
+- **Make pass:** `^templates-bundled-t-inventory`, `^templates-table-t-package`, `^templates-table-t-readme`, `^templates-table-t-model`, `^templates-table-t-drawn`, `^templates-table-t-order`, `^templates-table-t-write-plan`, and `^table-t-selection-model`.
+- **Validate:** The targeted `table-template.test.ts`, `table-model.test.ts` and bundled-inventory contract pass. Review confirms the README meanings that content checks cannot prove.
+- **Temporary baseline:** The full Table browser target is red because the read-only page cannot consume the new model. Slice 2 resolves normal interaction; slice 3 resolves live and fault paths.
+
+### 2. Editable grid and ordinary writes
+
+- **Deliver:** Write the normal-state browser tests first, then replace the copied page and stylesheet with the editable grid, selection, editing, menus, accessibility and ordinary scoped store writes.
+- **Make pass:** `^templates-table-t-assets`, `^table-ac-new`, `^table-ac-rows`, `^table-ac-editing`, `^table-ac-selection`, `^table-ac-keyboard`, and `^table-ac-structure`.
+- **Validate:** With `TV_PW_WORKERS=1`, the Table real-stack file passes its normal-state cases and the Blank, data, header, selection, keyboard-focus, editing, menu and Dark story comparisons have no differences. Slice 1's server contracts remain green.
+- **Temporary baseline:** The live-change, access, connection, failure, unreadable-data and full conformance assertions remain red. Slice 3 resolves them.
+
+### 3. Live state and resilience
+
+- **Deliver:** Write the live and fault tests first, then add subscription reconciliation, concurrent-write guards, transaction retry, access changes, reconnect and save-failure handling, and unreadable-data recovery. Complete every story setup without production injection.
+- **Make pass:** `^templates-table-t-write-scope`, `^templates-table-t-transaction`, `^templates-table-t-invalid-guard`, `^table-ac-live`, `^table-ac-access`, `^table-ac-loading`, `^table-ac-disconnection`, `^table-ac-save-failure`, `^table-ac-unreadable`, and `^table-ac-conformance`; reconfirm `^table-review-icon` manually.
+- **Validate:** With `TV_PW_WORKERS=1`, the complete Table real-stack and conformance files pass. The package/model tests and the changed bundled-inventory, installation, product-template and telemetry tests also pass.
+- **Temporary baseline:** None. Every Table proof citation names its implemented evidence and all targeted tests are green; broad verification remains the later pull-request gate.
