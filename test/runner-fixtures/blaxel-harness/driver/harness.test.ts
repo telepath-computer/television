@@ -44,7 +44,14 @@ function run(root: string, name: string, selection: string[], gate?: string) {
   return {...task, directory: async () => until(async () => existsSync(pointer) ? readFileSync(pointer, "utf8").trim() : null)};
 }
 async function poolCommand(root: string, name: string, operation: string) {
-  return command(root, name, ["pool", "blaxel", operation, "--pool", pool, ...(operation === "ensure" ? ["--size", "2"] : [])]).done;
+  const code = await command(root, name, ["pool", "blaxel", operation, "--pool", pool, ...(operation === "ensure" ? ["--size", "2"] : [])]).done;
+  // The API accepts deletion before its listing stops returning the worker.
+  // Observe absence before fresh provisioning or claiming the pool is gone.
+  if (operation === "delete" && code === 0) await until(async () => {
+    if ((await listBlaxelPoolSandboxes({pool, arch: "x64"})).length === 0) return true;
+    await pause(1000); return null;
+  });
+  return code;
 }
 async function gates(gate: string) {
   return until(async () => [1,2].every(index => existsSync(path.join(gate, `shard-${index}.json`))) ? [1,2].map(index => readJson(path.join(gate, `shard-${index}.json`))) : null);
