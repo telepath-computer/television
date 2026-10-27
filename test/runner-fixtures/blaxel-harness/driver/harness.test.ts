@@ -13,7 +13,8 @@ const planned = ["--tag", "blaxel-harness-fixture", "--shards", "2", "--allow-sh
 const targeted = ["--surface", "experiment:blaxel-harness-fixtures"];
 const resultsRoot = "/workspace/television/.testshards/results";
 const modePath = "/tmp/rose-blaxel-harness-mode.json";
-const cli = path.resolve("scripts/test/cli.mjs");
+const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
+const cli = path.join(repositoryRoot, "scripts/test/cli.mjs");
 const children = new Set<ChildProcess>();
 const quote = (value: string) => `'${value.replaceAll("'", `'"'"'`)}'`;
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -27,7 +28,7 @@ async function remoteJson(worker: SandboxInstance, file: string) { try { return 
 
 function command(root: string, name: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   const log = path.join(root, `${name}.log`);
-  const child = spawn(process.execPath, [cli, ...args], { cwd: process.cwd(), detached: true, env: {...process.env, ...env}, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(process.execPath, [cli, ...args], { cwd: repositoryRoot, detached: true, env: {...process.env, ...env}, stdio: ["ignore", "pipe", "pipe"] });
   children.add(child);
   const chunks: Buffer[] = [];
   child.stdout!.on("data", data => chunks.push(data)); child.stderr!.on("data", data => chunks.push(data));
@@ -56,7 +57,7 @@ function retained(runDir: string) {
 }
 function assertDiagnostics(runDir: string, expectedRecovery = false) {
   const {provider, normalized} = retained(runDir);
-  const sidecars = normalized.surfaces.flatMap((surface: any) => surface.resourceDiagnosticsPaths ?? []) as string[];
+  const sidecars = [...new Set<string>(normalized.surfaces.flatMap((surface: any) => surface.resourceDiagnosticsPaths ?? []))];
   expect(sidecars.length).toBeGreaterThan(0);
   const records = sidecars.map(file => readJson(path.resolve(runDir, file)));
   for (const record of records) {
@@ -79,8 +80,8 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
   if (process.env.TV_BLAXEL_HARNESS_COORDINATOR !== coordinatorName || process.env.TV_TEST_SHARD_OWNER) throw Error("Run only on the dedicated Blaxel coordinator, outside every leased worker");
   const coordinator = await SandboxInstance.get(coordinatorName);
   expect(coordinator.metadata.labels?.purpose).not.toBe("testshards");
-  const root = mkdtempSync(path.resolve(".test-runs/blaxel-live-"));
-  writeFileSync(path.join(root, "identity.json"), JSON.stringify({coordinatorName, pool, revision: readFileSync(".git/HEAD", "utf8").trim()}));
+  const root = mkdtempSync(path.join(repositoryRoot, ".test-runs/blaxel-live-"));
+  writeFileSync(path.join(root, "identity.json"), JSON.stringify({coordinatorName, pool, revision: readFileSync(path.join(repositoryRoot, ".git/HEAD"), "utf8").trim()}));
   let workers: SandboxInstance[] = [];
   try {
     // The caller retained earlier development reports before this fresh-pool run.

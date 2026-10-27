@@ -189,7 +189,7 @@ export function writeResourceDiagnostic(root, name, input, { write = atomicWrite
         if (field) record[field] = values.slice(0, count); else if (record.kernel) record.kernel.lines = values.slice(0, count);
         if (Buffer.byteLength(serialize(record)) <= budget) low = count; else high = count - 1;
       }
-      if (field) { record[field] = values.slice(0, low); record.omittedProcesses = values.length - low; }
+      if (field) { record[field] = values.slice(0, low); record.omittedProcesses = (integer(input.omittedProcesses) ?? 0) + values.length - low; }
       else if (record.kernel) record.kernel.lines = values.slice(0, low);
       contents = serialize(record);
       // The omission count itself can add a few bytes at the boundary.
@@ -208,6 +208,7 @@ function cleanRecord(input) {
     ...base,
     previous: select(input.previous, ["runId", "lockId", "worker", "lastRenewal", "recoverAfter"]),
     cleanup: token(input.cleanup), discardedReports: Boolean(input.discardedReports),
+    omittedProcesses: integer(input.omittedProcesses) ?? 0,
     processes: (input.processes ?? []).map((entry) => ({ pid: integer(entry.pid), startTime: token(entry.startTime), command: executable(entry.command), outcome: token(entry.outcome) })),
   };
   return {

@@ -36,7 +36,7 @@ if (command === "ensure" && !/^\d+$/.test(nodeSelector)) fail(".nvmrc must conta
 if (command === "list") {
   const sandboxes = await listPoolSandboxes();
   for (const sandbox of sandboxes) {
-    console.log(`${sandbox.metadata?.name}\t${sandbox.status}\t${sandbox.spec?.runtime?.memory ?? "?"}MB\t${sandbox.spec?.image ?? "?"}`);
+    console.log(`${sandbox.metadata?.name}\t${sandbox.status}\t${sandbox.metadata?.labels?.purpose}\t${sandbox.spec?.runtime?.memory ?? "?"}MB\t${sandbox.spec?.image ?? "?"}`);
   }
   process.exit(0);
 }

@@ -10,7 +10,7 @@ import { blaxelCheckoutScript, blaxelDependencyScript, resolveBlaxelRepositoryUr
 import { transferShardInputs } from "./test/blaxel-shard-dispatch.mjs";
 import { buildLinuxStaleOwnerAuditInvocation, parseLinuxStaleOwnerAuditOutput } from "./test/blaxel-stale-owner-audit.mjs";
 import { normalizeSetupTimingStatus, normalizeTimingPhase } from "./test/phase-metrics.mjs";
-import { RESOURCE_SIDECAR_BYTES, RESOURCE_ATTEMPT_BYTES } from "./test/resource-diagnostics.mjs";
+import { RESOURCE_SIDECAR_BYTES, RESOURCE_ATTEMPT_BYTES, writeResourceDiagnostic } from "./test/resource-diagnostics.mjs";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -346,7 +346,7 @@ function acquireAny(sandboxes, options) {
 
 async function acquireWorker(sandboxes, { shardIndex, slot, requestedWorkers, verifyArchitecture = true, attempt = 1 }) {
   const lockId = `${runId}-s${shardIndex}-a${attempt}-${randomUUID().slice(0, 8)}`;
-  const input = { lockId, runId, shardIndex, attempt, attemptId: lockId, owner: `${os.hostname()}:${process.pid}`, ttlSeconds: timeouts.lockTtlSeconds, audit: auditStaleOwners };
+  const input = { lockId, runId, shardIndex, attempt, attemptId: lockId, owner: `${os.hostname()}:${process.pid}`, ttlSeconds: timeouts.lockTtlSeconds, audit: auditStaleOwners, summaryIdentity: shardSummaryIdentity(shardIndex) };
   input.scratch = shardScratchPath(input);
   for (const sandbox of acquisitionOrder(sandboxes, { slot, requestedWorkers })) {
     if (sandbox.__leased || shuttingDown) continue;
@@ -372,6 +372,17 @@ async function acquireWorker(sandboxes, { shardIndex, slot, requestedWorkers, ve
     return lease;
   }
   return null;
+}
+
+function shardSummaryIdentity(shardIndex) {
+  return {
+    shardIndex, shardTotal,
+    ...(shardPlan ? {
+      planId: shardPlan.planId, timingProvider: shardPlan.timingProvider,
+      testedCommit: shardPlan.testedCommit, testedTree: shardPlan.testedTree,
+      assignedFiles: shardPlan.shards[shardIndex - 1].surfaces.flatMap(surface => surface.files.map(file => file.path)).sort(),
+    } : {}),
+  };
 }
 
 async function verifySandboxArchitecture(sandbox) {
@@ -492,6 +503,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
   async function downloadResult() {
     const reportStarted = Date.now();
     await leaseOperation(lease, "check");
+    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts });
     await retainAttemptEvidence(lease, outputDir);
     const plannedShard = shardPlan?.shards?.[shardIndex - 1];
     let shardSummary = null;
@@ -555,11 +567,12 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       }
     } catch {}
     retainResultProgress();
-    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts });
-    retainResultProgress();
     for (const [taskIndex, task] of (shardSummary?.tasks ?? []).entries()) {
       const copiedTask = { ...tasks[taskIndex] };
-      copiedTask.resourceDiagnosticsPaths = (task.resourceDiagnosticsPaths ?? []).map((remotePath) => copiedArtifacts.get(remotePath)).filter(Boolean);
+      copiedTask.resourceDiagnosticsPaths = [
+        ...(task.resourceDiagnosticsPaths ?? []).map((remotePath) => copiedArtifacts.get(remotePath)).filter(Boolean),
+        ...resourceDiagnosticsPaths.filter((file) => path.basename(file) === "recovery.json"),
+      ];
       for (const field of ["nativeResultPath", "attemptResultPath", "workspaceNativeResultPath", "lifecycleResultPath", "processLeakResultPath"]) {
         if (!task[field]) continue;
         copiedTask[field] = await copyRemoteArtifact(sandbox, task[field], { outputDir, shardIndex, copiedArtifacts });
@@ -670,7 +683,11 @@ async function copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnos
         if (record.schemaVersion !== 1 || record.identity?.runId !== runId || record.identity?.shardIndex !== shardIndex || record.identity?.attemptId !== diagnosticAttemptId) throw new Error("identity");
         const localPath = path.join(outputDir, "artifacts", `shard-${shardIndex}`, "resources", entry.name);
         fs.mkdirSync(path.dirname(localPath), { recursive: true });
-        fs.writeFileSync(localPath, raw);
+        if (record.kind === "recovery") {
+          // The bootstrap receipt must exist before checkout can supply this
+          // shared writer. Retention adopts its whitelist and attempt budget.
+          if (!writeResourceDiagnostic(path.dirname(path.dirname(localPath)), path.basename(entry.name, ".json"), record)) continue;
+        } else fs.writeFileSync(localPath, raw);
         copiedArtifacts.set(remotePath, localPath);
         retained.push(localPath); bytes += size;
       } catch { console.error(`[resource diagnostics] shard ${shardIndex}: sidecar unavailable, invalid or over budget`); }
@@ -876,10 +893,13 @@ if (!fs.existsSync(shardOutput)) {
   const failed = rows.find((row) => row.status && row.status !== 0);
   if (failed) {
     const summary = {
+      ...${JSON.stringify(shardSummaryIdentity(shardIndex))},
       status: 'infra-failed',
-      failureKind: failed.name === 'checkout' ? 'checkout' : 'setup',
+      collectedFiles: [],
+      neverProduced: [failed.name === 'test-run' ? 'final shard summary' : 'test execution'],
+      failureKind: failed.name === 'checkout' ? 'checkout' : failed.name === 'test-run' ? 'worker-execution' : 'setup',
       failureStep: failed.name,
-      failureMessage: failed.name === 'checkout' ? 'Repository checkout failed on the Blaxel worker. Check GitHub token validity and repository access from the sandbox.' : 'Setup step ' + failed.name + ' failed before tests ran.',
+      failureMessage: failed.name === 'checkout' ? 'Repository checkout failed on the Blaxel worker. Check GitHub token validity and repository access from the sandbox.' : failed.name === 'test-run' ? 'Test execution ended without a finalized shard summary.' : 'Setup step ' + failed.name + ' failed before tests ran.',
       suite: ${JSON.stringify(suite)},
       shardIndex: ${shardIndex},
       shardTotal: ${shardTotal},

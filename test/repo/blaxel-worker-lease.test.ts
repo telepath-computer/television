@@ -67,9 +67,10 @@ test.skipIf(process.platform !== "linux")("competing acquisitions serialize, and
   const owner = f.record().lockId;
   rmSync(path.dirname(f.recordPath), { recursive: true });
   const ready = path.join(f.input.tmpRoot, "guard-ready");
-  const child = spawn("flock", ["-o", path.join(f.input.tmpRoot, "tv-testshard.guard"), process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(ready)}, 'ready');setInterval(()=>{},1000)`], { detached: true, stdio: "ignore", env: process.env });
+  const child = spawn("flock", ["-F", path.join(f.input.tmpRoot, "tv-testshard.guard"), process.execPath, "-e", `require('fs').writeFileSync(${JSON.stringify(ready)}, String(process.pid));setInterval(()=>{},1000)`], { detached: true, stdio: "ignore", env: process.env });
   try {
     await until(() => existsSync(ready));
+    expect(Number(readFileSync(ready, "utf8"))).toBe(child.pid);
     child.kill("SIGKILL");
     await command(owner);
     expect(f.record().lockId).toBe(owner);

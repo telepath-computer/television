@@ -1,3 +1,3 @@
 export interface Worker {metadata: {name: string; labels: Record<string,string>}; wait: () => Promise<unknown>}
 export function publishWorker(worker: Worker, operations: {provision: (worker: Worker) => Promise<unknown>; verify: (worker: Worker) => Promise<unknown>; update: (name: string, metadata: {labels: Record<string,string>}) => Promise<unknown>}): Promise<unknown>;
-export function deleteWorker(worker: Worker, operations: {reserve: (worker: Worker) => Promise<unknown>; update: (name: string, metadata: {labels: Record<string,string>}) => Promise<unknown>; remove: (name: string) => Promise<unknown>}): Promise<void>;
+export function deleteWorker(worker: Pick<Worker, "metadata">, operations: {reserve: (worker: Pick<Worker, "metadata">) => Promise<unknown>; update: (name: string, metadata: {labels: Record<string,string>}) => Promise<unknown>; remove: (name: string) => Promise<unknown>}): Promise<void>;

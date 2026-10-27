@@ -347,7 +347,7 @@ describe("provider result normalization", () => {
     expect(source).toContain("await finishLease({");
     expect(source).toContain('teardown: () => confirmTeardown(lease)');
     expect(source).not.toContain("release_lock()");
-    const ownerCleanupSource = source.slice(source.indexOf("async function leaseOperation"), source.indexOf("async function acquireAny"));
+    const ownerCleanupSource = source.slice(source.indexOf("async function leaseOperation"), source.indexOf("function acquireAny"));
     expect(ownerCleanupSource.indexOf('. "$NVM_DIR/nvm.sh"')).toBeLessThan(ownerCleanupSource.indexOf('"set -u"'));
 
     const nvmFixture = mkdtempSync(path.join(os.tmpdir(), "tv-provider-nvm-nounset-"));
@@ -1008,6 +1008,13 @@ describe("provider result normalization", () => {
     };
 
     expect(validateDownloadedShardSummary(summary, plan, 1)).toBeNull();
+    for (const missing of ["test execution", "final shard summary"]) {
+      const incomplete = { ...summary, status: "infra-failed", failureKind: "setup", tasks: [], collectedFiles: [], neverProduced: [missing] };
+      expect(validateDownloadedShardSummary(incomplete, plan, 1)).toBeNull();
+      expect(classifyDownloadedShardStatus({ shardSummary: incomplete, exitCode: 1 })).toBe("infra-failed");
+      expect(validateDownloadedShardSummary({ ...incomplete, planId: "other" }, plan, 1)).toContain("planId mismatch");
+      expect(validateDownloadedShardSummary({ ...incomplete, status: "passed" }, plan, 1)).toContain("task assignments disagree");
+    }
     expect(validateDownloadedShardSummary({ ...summary, status: "passed" }, plan, 1)).toContain("reports passed with a skipped assigned task");
     expect(validateDownloadedShardSummary({
       ...summary,
