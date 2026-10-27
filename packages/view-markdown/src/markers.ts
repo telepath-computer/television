@@ -62,7 +62,12 @@ import {
 const MARK_CLASS = "cm-md-mark";
 const INLINE_CODE_CLASS = "cm-md-inline-code";
 const LIST_ITEM_LINE_CLASS = "cm-md-list-item";
+const LIST_MARKER_LINE_CLASS = "cm-md-list-marker-line";
 const LIST_BULLET_LINE_CLASS = "cm-md-list-bullet";
+const LIST_PREFIX_CLASS = "cm-md-list-prefix";
+const LIST_BULLET_PREFIX_CLASS = "cm-md-list-bullet-prefix";
+const LIST_TASK_PREFIX_CLASS = "cm-md-list-task-prefix";
+const LIST_BODY_CLASS = "cm-md-list-body";
 const BLOCKQUOTE_LINE_CLASS = "cm-md-blockquote-line";
 const FENCED_LINE_CLASS = "cm-md-fenced-line";
 const HR_CLASS = "cm-md-hr";
@@ -81,6 +86,11 @@ const LIST_INDENT_COLUMN_WIDTH = "0.62em";
 const hiddenReplace = Decoration.replace({});
 const markerMark = Decoration.mark({ class: MARK_CLASS });
 const listIndentSourceMark = Decoration.mark({ class: LIST_INDENT_SOURCE_CLASS });
+const listPrefixMark = Decoration.mark({ class: LIST_PREFIX_CLASS });
+const listBulletPrefixMark = Decoration.mark({
+  class: `${LIST_PREFIX_CLASS} ${LIST_BULLET_PREFIX_CLASS}`,
+});
+const listBodyMark = Decoration.mark({ class: LIST_BODY_CLASS });
 const inlineCodeMark = Decoration.mark({ class: INLINE_CODE_CLASS });
 const listBulletLineDeco = Decoration.line({ class: LIST_BULLET_LINE_CLASS });
 const blockquoteLineDeco = Decoration.line({ class: BLOCKQUOTE_LINE_CLASS });
@@ -250,6 +260,7 @@ interface VisibleRange {
 interface ListLineState {
   indentColumns: number;
   prefixRevealed: boolean;
+  markerLine: boolean;
 }
 
 /** Walk the children of a `ListItem` to detect a task-list `TaskMarker`. */
@@ -399,9 +410,20 @@ function indentationColumns(
   return columns;
 }
 
+function listTaskPrefixMark(columns: number): Decoration {
+  return Decoration.mark({
+    attributes: {
+      class: `${LIST_PREFIX_CLASS} ${LIST_TASK_PREFIX_CLASS}`,
+      style: `--cm-md-list-task-prefix-width: ${columns}ch;`,
+    },
+  });
+}
+
 function listItemLineDecoration(state: ListLineState): Decoration {
   return Decoration.line({
-    class: LIST_ITEM_LINE_CLASS,
+    class: state.markerLine
+      ? `${LIST_ITEM_LINE_CLASS} ${LIST_MARKER_LINE_CLASS}`
+      : LIST_ITEM_LINE_CLASS,
     attributes: {
       style: `--cm-md-list-indent: ${state.prefixRevealed ? 0 : state.indentColumns};`,
     },
@@ -467,11 +489,16 @@ function emitListItemLineRanges(
       const nextState = {
         indentColumns: markerIndent,
         prefixRevealed: isMarkerLine && prefixRevealed,
+        markerLine: isMarkerLine,
       };
       if (existing === undefined || markerIndent > existing.indentColumns) {
         lineStates.set(line.from, nextState);
-      } else if (markerIndent === existing.indentColumns && nextState.prefixRevealed) {
-        lineStates.set(line.from, { ...existing, prefixRevealed: true });
+      } else if (markerIndent === existing.indentColumns && nextState.markerLine) {
+        lineStates.set(line.from, {
+          ...existing,
+          prefixRevealed: existing.prefixRevealed || nextState.prefixRevealed,
+          markerLine: true,
+        });
       }
     }
     if (line.to >= item.to) break;
@@ -523,13 +550,19 @@ function emitTagRanges(
   }
 }
 
+interface RenderingDecorations {
+  regular: DecorationSet;
+  outer: DecorationSet;
+}
+
 function computeDecorations(
   state: EditorState,
   _visibleRanges: readonly VisibleRange[],
   tree: Tree,
   focused: boolean,
-): DecorationSet {
+): RenderingDecorations {
   const ranges: Range<Decoration>[] = [];
+  const outerRanges: Range<Decoration>[] = [];
   const listLineStates = new Map<number, ListLineState>();
   const bulletLines = new Set<number>();
   const sel = state.selection.main;
@@ -660,6 +693,29 @@ function computeDecorations(
               ? taskPrefixRange(state, node.node, taskMarker)
               : markerLinePrefixRange(state, listMark);
             prefixRevealed = selectionTouchesRange(selFrom, selTo, range.from, range.to);
+
+            // Keep the physical marker line as a marker prefix beside a body
+            // box. Literal nesting whitespace remains a preceding flex item;
+            // keeping it outside the prefix prevents CodeMirror from splitting
+            // a fixed-width bullet/task prefix around the indent decoration.
+            // The body owns its available width, so browser wrapping happens
+            // inside that box and every continuation starts at the body's
+            // actual left edge. Ordered markers retain their intrinsic width
+            // (`1.` and `10.` reserve different space). This also avoids
+            // negative `text-indent`, which breaks CodeMirror's coordinate-to-
+            // caret mapping on wrapped rows.
+            const prefixMark = taskMarker
+              ? listTaskPrefixMark(
+                indentationColumns(state, listMark.from, range.to),
+              )
+              : isOrdered
+                ? listPrefixMark
+                : listBulletPrefixMark;
+            outerRanges.push(prefixMark.range(listMark.from, range.to));
+            const markerLine = state.doc.lineAt(listMark.from);
+            if (range.to < markerLine.to) {
+              outerRanges.push(listBodyMark.range(range.to, markerLine.to));
+            }
           }
           emitListItemLineRanges(state, node.node, listLineStates, prefixRevealed);
           // Unordered, non-task items get a `•` bullet rendered via
@@ -849,20 +905,26 @@ function computeDecorations(
 
   emitTagRanges(state, tree, ranges);
 
-  return Decoration.set(ranges, true);
+  return {
+    regular: Decoration.set(ranges, true),
+    outer: Decoration.set(outerRanges, true),
+  };
 }
 
 const renderingPlugin = ViewPlugin.fromClass(
   class {
     decorations: DecorationSet;
+    outerDecorations: DecorationSet;
 
     constructor(view: EditorView) {
-      this.decorations = computeDecorations(
+      const decorations = computeDecorations(
         view.state,
         view.visibleRanges,
         syntaxTree(view.state),
         view.hasFocus,
       );
+      this.decorations = decorations.regular;
+      this.outerDecorations = decorations.outer;
     }
 
     update(update: ViewUpdate): void {
@@ -873,17 +935,22 @@ const renderingPlugin = ViewPlugin.fromClass(
         update.focusChanged ||
         syntaxTree(update.state) !== syntaxTree(update.startState)
       ) {
-        this.decorations = computeDecorations(
+        const decorations = computeDecorations(
           update.state,
           update.view.visibleRanges,
           syntaxTree(update.state),
           update.view.hasFocus,
         );
+        this.decorations = decorations.regular;
+        this.outerDecorations = decorations.outer;
       }
     }
   },
   {
     decorations: (plugin) => plugin.decorations,
+    provide: (plugin) => EditorView.outerDecorations.of(
+      (view) => view.plugin(plugin)?.outerDecorations ?? Decoration.none,
+    ),
   },
 );
 
@@ -956,24 +1023,52 @@ const renderingTheme = EditorView.theme({
   // unitless `--cm-md-list-indent` variable. The multiplier approximates
   // one monospace source column, so each two-space nesting level is
   // clearly visible while still landing near the source dash column.
-  // When a line's source
-  // prefix is revealed, the variable is set to 0 and the literal source
-  // whitespace carries the nesting by itself. Rendered unordered bullets
-  // add a transparent border-left to push wrapped rows to the body column;
-  // the bullet itself is pulled back with a negative margin on
-  // `::before`. Do not use negative `text-indent` — it breaks caret
-  // hit-testing in wrapped CodeMirror lines.
+  // When a line's source prefix is revealed, the variable is set to 0
+  // and the literal source whitespace carries the nesting by itself.
   [`.${LIST_ITEM_LINE_CLASS}`]: {
     paddingLeft: `calc(0.5rem + var(--cm-md-list-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH})`,
   },
-  [`.${LIST_ITEM_LINE_CLASS}.${LIST_BULLET_LINE_CLASS}`]: {
-    borderLeft: `${BULLET_HANG_WIDTH} solid transparent`,
+  // A marker line is a prefix beside a body box. The body box performs
+  // its own wrapping, which gives every continuation row a true hanging
+  // indent without changing the line's text indentation. In particular,
+  // do not replace this with negative `text-indent`: CodeMirror maps
+  // pointer coordinates against the browser's text boxes, and a negative
+  // indent makes clicks on wrapped rows land at the wrong document offset.
+  [`.${LIST_MARKER_LINE_CLASS}`]: {
+    display: "flex",
+    alignItems: "baseline",
+  },
+  [`.${LIST_PREFIX_CLASS}`]: {
+    flex: "0 0 auto",
+    whiteSpace: "pre",
+  },
+  [`.${LIST_BODY_CLASS}`]: {
+    flex: "1 1 0",
+    minWidth: "0",
+  },
+  // Rendered and source bullets reserve the same prefix width so the body
+  // does not move when `•` swaps with the editable `- `. Task source is
+  // wider than its checkbox, so both task modes reserve the raw prefix's
+  // width for the same reason.
+  [`.${LIST_BULLET_PREFIX_CLASS}`]: {
+    flexBasis: BULLET_HANG_WIDTH,
+    width: BULLET_HANG_WIDTH,
+  },
+  [`.${LIST_TASK_PREFIX_CLASS}`]: {
+    flexBasis: "var(--cm-md-list-task-prefix-width)",
+    width: "var(--cm-md-list-task-prefix-width)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "0.9em",
+  },
+  [`.${LIST_TASK_PREFIX_CLASS} .${MARK_CLASS}`]: {
+    fontSize: "inherit",
   },
   // Gap between the CSS-rendered bullet and the body text. Visible
   // source markers (`- `, `1.`, `[ ]`) keep their literal source spacing.
   [`.${LIST_BULLET_LINE_CLASS}::before`]: {
     content: "'•'",
-    marginLeft: `calc(-1 * ${BULLET_HANG_WIDTH})`,
+    boxSizing: "border-box",
+    flex: `0 0 ${BULLET_HANG_WIDTH}`,
     fontFamily: "var(--font-mono)",
     fontSize: "0.9em",
     paddingRight: "0.5rem",
