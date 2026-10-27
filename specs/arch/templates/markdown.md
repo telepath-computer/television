@@ -1,4 +1,4 @@
-*The bundled Markdown artifact template: its shared editor, store contract, packaged page, and adapting-agent guidance.*
+*The bundled Markdown artifact template: its packaged editor, store contract, page, and adapting-agent guidance.*
 
 # Markdown artifact template
 
@@ -28,11 +28,11 @@ A missing value, a value that breaks the schema, or saved data reported unavaila
 
 ## Editor binding and saving
 
-The page mounts the same editor implementation and extensions as a Markdown file artifact, including tables, task lists, Markdown gestures, undo history, and Markdown punctuation hidden until the caret reaches it. Link handling follows the [HTML-artifact rules](../artifact-frame/artifact-bridge.md#^ab-link-handling): relative links resolve against the copied template folder and, in Chromium, application links have the sandboxed HTML-artifact limitation described by [artifact isolation](../artifact-frame/isolation.md#^iso-limitations). The editor is delivered as a versioned shared asset below; the template does not carry a second editor implementation. ^bundled-artifact-template-markdown-editor
+The page mounts a packaged build of the same editor implementation and extensions as a Markdown file artifact, including tables, task lists, Markdown gestures, undo history, and Markdown punctuation hidden until the caret reaches it. Link handling follows the [HTML-artifact rules](../artifact-frame/artifact-bridge.md#^ab-link-handling): relative links resolve against the copied template folder and, in Chromium, application links have the sandboxed HTML-artifact limitation described by [artifact isolation](../artifact-frame/isolation.md#^iso-limitations). ^bundled-artifact-template-markdown-editor
 
 While handling a store snapshot, the page passes a value to the editor only when no page write is pending and its `markdown` string differs from the value it last passed; a change elsewhere in the store, or the SDK's optimistic copy of a page write, leaves the editor alone. An empty string is valid. Editing is allowed only while the page is connected, has read-write access, and holds valid data.
 
-The editor sends the complete current string after its ordinary save pause. A local edit is written only while editing is allowed. The page passes stored Markdown strings through `setValue` under the snapshot rule above; the v1 meanings below govern what the editor does with those values and with the `onSave` result. ^bundled-artifact-template-markdown-binding
+The editor sends the complete current string after its ordinary save pause. A local edit is written only while editing is allowed. The page passes stored Markdown strings through `setValue` under the snapshot rule above; the internal mount meanings below govern what the editor does with those values and with the `onSave` result. ^bundled-artifact-template-markdown-binding
 
 A refused store save rejects the editor's `onSave` promise. A write whose outcome became uncertain follows the [store's uncertain-write rule](../../product/resources/json-store.md#^js-uncertain-write). ^bundled-artifact-template-markdown-refused-save
 
@@ -40,27 +40,29 @@ Unsent typing is discarded when the connection drops, when read-write access is 
 
 The page follows [`onAccessChanged`](../resources/sdk.md#^sdk-access). A move from read-write to read stops editing and restores the latest known stored string. Changing the share link the page was opened through to read-write allows editing when the other editing conditions hold. Revocation retains the latest value already delivered but supplies no newer value. No discarded edit is replayed. Concurrent person and agent saves replace the whole string under the [store's last-write-wins rule](../../product/resources/json-store.md#^js-write-order); this version does not merge their text. ^bundled-artifact-template-markdown-access
 
-## Shared editor asset
+## Packaged editor
 
-The Markdown view build emits a classic script and stylesheet at `/views/markdown/v1/editor.js` and `/views/markdown/v1/editor.css` from the same editor source that it inlines into `/views/markdown/index.html` for Markdown file artifacts. The classic script assigns this interface to `window.TelevisionMarkdownEditor`: ^bundled-artifact-template-markdown-shared-asset
+The bundled template folder contains committed `editor.js` and `editor.css` files built from the same editor source as the Markdown file view. `editor.js` is a self-contained classic script for the editor alone: it does not contain the file view's start-up code or module-preload polyfill, and it defines only `window.TelevisionMarkdownEditor`. `editor.css` contains the editor layout and the Markdown editor's colour stylesheet, scopes every rule beneath the page's `#editor` element, and sets no layout or presentation elsewhere on the page. ^bundled-artifact-template-markdown-editor-package
+
+Within the template package, `page.js` uses this interface:
 
 ```ts
-type MarkdownEditorV1MountOptions = {
+type MarkdownTemplateEditorMountOptions = {
   parent: HTMLElement;
   value: string;
   editable: boolean;
   onSave(value: string): Promise<void>;
 };
 
-type MarkdownEditorV1Handle = {
+type MarkdownTemplateEditorHandle = {
   setValue(value: string): void;
   setEditable(editable: boolean): void;
   focus(): void;
   dispose(): void;
 };
 
-type MarkdownEditorV1 = {
-  mount(options: MarkdownEditorV1MountOptions): MarkdownEditorV1Handle;
+type MarkdownTemplateEditor = {
+  mount(options: MarkdownTemplateEditorMountOptions): MarkdownTemplateEditorHandle;
 };
 ```
 
@@ -73,16 +75,16 @@ type MarkdownEditorV1 = {
 - `focus` moves keyboard focus to the editor.
 - `dispose` ends callbacks and releases the editor.
 
-The v1 contract comprises the interface names and meanings, a handle with no editor-library object, a script that does nothing on load except define `window.TelevisionMarkdownEditor`, a stylesheet that styles only the editor inside `parent` while remaining compatible with canonical v2, and an editor that works in the sandboxed artifact page that loads it. Breaking any part of that contract requires a new versioned path. Editor behavior and appearance outside the contract follow the current Television Markdown editor and may change under `v1`.
+The handle exposes no editor-library object. This is an internal boundary between files copied together in one template package, not a route or compatibility promise for another page. A template revision may change both sides together. Editor behaviour and appearance outside these meanings follow the editor source included in that revision.
 
-V1 remains live until Television freezes it. Television keeps the v1 files served after a later version ships, with the later version beside them at its own path, and may freeze v1 at that point to preserve its contract. [Artifact isolation](../artifact-frame/isolation.md#^iso-routes) owns their cross-origin delivery. As the SDK does, both files use the revalidating class of the [canonical cache policy](../canonical.md#^cn-cache-policy).
+The editor build is committed rather than generated only while building the server or CLI. A currentness check rebuilds `editor.js` and `editor.css` from source and compares them byte for byte with the files in the template folder. The check also regenerates the committed `THIRD-PARTY-NOTICES.txt`. A source change cannot pass while the copied editor or its notices are stale. The Markdown file view remains a separate build from the same source; packaging this editor does not change its page, start-up path, or output.
 
-The copied artifact page remains the top-level artifact document. It owns the resource SDK subscription and adapts the store's `markdown` string to the v1 interface. The existing unauthenticated Markdown-view route serves the shared assets, and existing recursive view packaging includes them in the CLI distribution.
+The file-view build remains the one writer of the `view:markdown` [licence inventory](../licensing.md#^licensing-declared-surfaces). The template-editor build uses the existing Vite licence plugin without writing another inventory: it verifies that every package it emits is covered by `view:markdown`, and the generator renders the template's notices from the packages that build actually emitted. [Licensing architecture](../licensing.md#^licensing-vite-plugin) owns the generated notice and source-repository coverage.
 
-The editor and its shared assets remain the existing `view:markdown` [licensing surface](../licensing.md#^licensing-declared-surfaces). The file-view build writes that surface's one licence inventory; the v1 build verifies that every package it emits is covered by that inventory and writes no second inventory or notices file. Referring to the assets from a template does not copy their third-party files into the template or create another licensing surface.
+The copied artifact page remains the top-level sandboxed artifact document. It owns the resource SDK subscription and adapts the store's `markdown` string to the internal editor interface. Its `index.html` loads `editor.js` and `editor.css` from the copied folder. Because artifact creation copies the complete folder, every artifact carries the editor version it was created with. Updating Television or the installed template does not replace those copied editor files; a later template revision affects only later copies. Like other templates, the page still loads Television's versioned canonical resources and resource SDK.
 
 ## Packaged page and guidance
 
-The page loads Television's canonical stylesheet, the versioned shared editor stylesheet and script, and the resource SDK. Its local `styles.css` owns the template page layout and the loading, status, and unreadable-data presentation around the editor. The page adds no editing controls or Markdown treatment of its own. The manifest's `icons` lists one first-party entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-markdown-page
+The page loads Television's canonical stylesheet before its packaged editor stylesheet, loads its own `styles.css` after that, and loads the resource SDK. `styles.css` owns the template page layout and the loading, status, and unreadable-data presentation around the editor. The page adds no editing controls or Markdown treatment of its own. The manifest's `icons` lists one first-party entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-markdown-page
 
-The bundled `README.md` explains the root object and `markdown` string, the exact blank start, preserved whitespace, line breaks and extra root fields, complete-string saves, live page and agent updates, last-write-wins replacement, and the lack of offline merging. It tells an agent that its read and replace commands require `jq`, tells it to read the current string again immediately before replacing it, shows how to read the raw Markdown into a file without adding a line break, and says that an absent field produces `null` instead. It shows how to replace the string from a file and the empty-string form to clear it, and warns that a full-string write replaces anything the person saved since the agent last read as well as typing not yet saved when the write arrives. It warns that invalid or missing data is not repaired. It tells an adapting agent to retain the `#editor` mount element. It explains that copied page files are independent and that each copy loads the compatible v1 editor served by Television, receiving compatible updates while v1 remains live. ^bundled-artifact-template-markdown-readme
+The bundled `README.md` explains the root object and `markdown` string, the exact blank start, preserved whitespace, line breaks and extra root fields, complete-string saves, live page and agent updates, last-write-wins replacement, and the lack of offline merging. It tells an agent that its read and replace commands require `jq`, tells it to read the current string again immediately before replacing it, shows how to read the raw Markdown into a file without adding a line break, and says that an absent field produces `null` instead. It shows how to replace the string from a file and the empty-string form to clear it, and warns that a full-string write replaces anything the person saved since the agent last read as well as typing not yet saved when the write arrives. It warns that invalid or missing data is not repaired. It tells an adapting agent to retain the `#editor` mount element and the packaged editor files unless the agent deliberately replaces the editor. It explains that each copied artifact contains its own editor and notices, and that neither a Television update nor a later installed template replaces those copied editor files. ^bundled-artifact-template-markdown-readme
