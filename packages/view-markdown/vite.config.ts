@@ -23,11 +23,7 @@ const CANONICAL_CONTENT_TYPES: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/**
- * Inline every `<script type="module" src="...">` tag in the entry HTML so
- * the hosted view remains self-contained. The same bundle is also emitted at
- * the versioned path used by Markdown template pages.
- */
+/** Resolve appearance before the hosted file view's linked styles load. */
 function appearanceBootstrap(): Plugin {
   return {
     name: "view-markdown-appearance-bootstrap",
@@ -107,6 +103,7 @@ function sendDevelopmentStyle(
   res.end(body);
 }
 
+/** Inline every entry script so the hosted file view remains self-contained. */
 function inlineScripts(): Plugin {
   return {
     name: "view-markdown-inline-scripts",
@@ -123,12 +120,6 @@ function inlineScripts(): Plugin {
           const normalized = src.startsWith("./") ? src.slice(2) : src;
           const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "chunk") return match;
-          bundle["v1/editor.js"] = {
-            type: "asset",
-            fileName: "v1/editor.js",
-            name: "editor.js",
-            source: chunk.code,
-          };
           consumedChunks.push(normalized);
           const attrs = `${pre} ${post}`
             .replace(/\scrossorigin(="[^"]*")?/g, "")
@@ -161,12 +152,6 @@ function inlineStyles(): Plugin {
           const chunk = bundle[normalized];
           if (!chunk || chunk.type !== "asset") return match;
           const source = typeof chunk.source === "string" ? chunk.source : chunk.source.toString();
-          bundle["v1/editor.css"] = {
-            type: "asset",
-            fileName: "v1/editor.css",
-            name: "editor.css",
-            source,
-          };
           consumed.push(normalized);
           return `<style>${source}</style>`;
         });
@@ -185,9 +170,10 @@ function inlineStyles(): Plugin {
 // so `public/manifest.json` is copied verbatim into `dist/` during build and
 // served at `/manifest.json` during dev.
 //
-// Dev server port is 5182. The bundled view iframe and the reusable v1 editor
-// are served from the fixed unauthenticated `/views/markdown/` route. The
-// hosted `index.html` keeps its own copy of the editor inline.
+// Dev server port is 5182. The bundled file view iframe is served from the
+// fixed unauthenticated `/views/markdown/` route and remains self-contained.
+// `vite.editor.config.ts` builds the reusable v1 editor from its narrower
+// entry point in a second pass.
 export default defineConfig({
   root: path.resolve(packageDir, "src"),
   base: "./",

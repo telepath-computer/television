@@ -33,9 +33,44 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
+  test("the v1 files add only the editor API and editor-scoped styles", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+
+    expect(await page.evaluate(() => window.__v1AddedGlobals)).toEqual([
+      "TelevisionMarkdownEditor",
+    ]);
+    expect(await page.locator("#editor > .cm-editor")).toHaveCount(0);
+    const script = await page.evaluate(async () => (
+      await fetch("/packages/view-markdown/dist/v1/editor.js")
+    ).text());
+    expect(script).not.toContain("modulepreload");
+    expect(script).not.toContain("data-television-markdown-hosted");
+    expect(script).not.toContain("The view never transforms the source");
+
+    const rules = await page.evaluate(() => {
+      const sheet = [...document.styleSheets].find(
+        candidate => candidate.href?.endsWith("/packages/view-markdown/dist/v1/editor.css"),
+      );
+      if (!sheet) throw new Error("missing v1 editor stylesheet");
+      return [...sheet.cssRules].map(rule => ({
+        type: rule.type,
+        selector: rule instanceof CSSStyleRule ? rule.selectorText : null,
+      }));
+    });
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      expect(rule.type).toBe(1);
+      for (const selector of rule.selector!.split(",")) {
+        expect(selector.trim()).toMatch(/^#editor(?:\s|>)/);
+      }
+    }
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
   test("the v1 mount exposes only document controls and no production editor test hook", async ({ page }) => {
     await page.goto(V1_FIXTURE);
-    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.waitForFunction(() => window.__v1Ready === true);
 
     const keys = await page.evaluate(() => {
       const parent = document.querySelector<HTMLElement>("#editor");
@@ -73,14 +108,14 @@ test.describe("markdown editor integration", () => {
     await page.locator(".cm-content").press("ControlOrMeta+End");
     await page.locator(".cm-content").pressSequentially(" pending save");
     await page.evaluate(() => window.__v1Handle!.dispose());
-    await expect(page.locator(".cm-editor")).toHaveCount(0);
+    await expect(page.locator("#editor > .cm-editor")).toHaveCount(0);
     await page.waitForTimeout(600);
     expect(await page.evaluate(() => window.__v1Saves)).toEqual([]);
   });
 
   test("a matching authoritative value remains after its save promise rejects", async ({ page }) => {
     await page.goto(V1_FIXTURE);
-    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.waitForFunction(() => window.__v1Ready === true);
     await page.evaluate(() => {
       const parent = document.querySelector<HTMLElement>("#editor");
       if (!parent) throw new Error("missing editor parent");
@@ -108,7 +143,7 @@ test.describe("markdown editor integration", () => {
 
   test("an older save confirmation preserves a newer local edit", async ({ page }) => {
     await page.goto(V1_FIXTURE);
-    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.waitForFunction(() => window.__v1Ready === true);
     await page.evaluate(() => {
       const parent = document.querySelector<HTMLElement>("#editor");
       if (!parent) throw new Error("missing editor parent");
@@ -145,7 +180,7 @@ test.describe("markdown editor integration", () => {
 
   test("a later authoritative value is not mistaken for an earlier save confirmation", async ({ page }) => {
     await page.goto(V1_FIXTURE);
-    await page.waitForFunction(() => window.TelevisionMarkdownEditor?.mount !== undefined);
+    await page.waitForFunction(() => window.__v1Ready === true);
     await page.evaluate(() => {
       const parent = document.querySelector<HTMLElement>("#editor");
       if (!parent) throw new Error("missing editor parent");
@@ -406,5 +441,8 @@ declare global {
     __v1Handle?: MarkdownEditorV1Handle;
     __v1Saves?: string[];
     __resolveFirstV1Save?: () => void;
+    __v1GlobalsBefore: string[];
+    __v1AddedGlobals: string[];
+    __v1Ready?: boolean;
   }
 }

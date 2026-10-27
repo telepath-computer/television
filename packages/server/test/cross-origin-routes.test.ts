@@ -136,6 +136,8 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
       "/sdk/v1/resources.js",
       "/sdk/v1/THIRD-PARTY-NOTICES.txt",
       "/views/artifact-missing/",
+      "/views/markdown/v1/editor.js",
+      "/views/markdown/v1/editor.css",
     ];
     for (const origin of ORIGINS) {
       const proxied = await send(running, "GET", running.artifactPath, { Origin: origin });
@@ -204,8 +206,6 @@ describe("cross-origin rules by route (^iso-t-routes)", () => {
         "/assets/app.js",
         "/views/url-unsupported/",
         "/views/markdown/",
-        "/views/markdown/v1/editor.js",
-        "/views/markdown/v1/editor.css",
       ]) {
         const response = await send(running, "GET", route, { Origin: origin });
         expect(response.status, `${route} ${origin}`).toBe(200);

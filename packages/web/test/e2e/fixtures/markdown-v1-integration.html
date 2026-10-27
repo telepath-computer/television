@@ -5,9 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Markdown v1 integration fixture</title>
     <link rel="stylesheet" href="/canonical/v2/styles.css" />
+    <link rel="stylesheet" href="/packages/view-markdown/dist/v1/editor.css" />
   </head>
   <body>
+    <div id="outside-editor" class="cm-editor">Outside the editor</div>
     <div id="editor"></div>
-    <script type="module" src="/packages/view-markdown/src/main.ts"></script>
+    <script>
+      window.__v1GlobalsBefore = Object.getOwnPropertyNames(window);
+    </script>
+    <script src="/packages/view-markdown/dist/v1/editor.js"></script>
+    <script>
+      window.__v1AddedGlobals = Object.getOwnPropertyNames(window).filter(
+        name => !window.__v1GlobalsBefore.includes(name)
+          && name !== "__v1GlobalsBefore"
+          && name !== "__v1AddedGlobals"
+          && name !== "__v1Ready",
+      );
+      window.__v1Ready = true;
+    </script>
   </body>
 </html>

@@ -27,7 +27,9 @@ describe("bundled Markdown package", () => {
       .toBeLessThan(page.indexOf("/views/markdown/v1/editor.css"));
     expect(page).toContain('<script src="/views/markdown/v1/editor.js"></script>');
     expect(page).toContain('<script type="module" src="./page.js"></script>');
+    expect(page).toMatch(/<div id="editor"(?:\s|>)/);
     expect(page).not.toMatch(/<iframe\b/i);
+    expect(adapter).toContain("parent: mount");
     expect(adapter).toContain("onSave:");
     expect(adapter).toContain("editor.setValue(");
     expect(adapter).not.toContain("ctx:");

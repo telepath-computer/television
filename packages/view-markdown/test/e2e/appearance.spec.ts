@@ -83,9 +83,11 @@ test("resolves appearance before canonical and view styles", async ({ page, base
 test("ships the authoritative color sheet after the implementation layout sheet", () => {
   const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
   const layoutImportAt = main.indexOf('import "./styles.css";');
+  const editorImportAt = main.indexOf('import "./editor.css";');
   const colorImportAt = main.indexOf('import "./colors.css";');
   expect.soft(layoutImportAt).toBeGreaterThanOrEqual(0);
-  expect.soft(colorImportAt).toBeGreaterThan(layoutImportAt);
+  expect.soft(editorImportAt).toBeGreaterThan(layoutImportAt);
+  expect.soft(colorImportAt).toBeGreaterThan(editorImportAt);
 
   const built = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
   const inlinedStyles = [...built.matchAll(/<style>([\s\S]*?)<\/style>/g)]
@@ -93,9 +95,11 @@ test("ships the authoritative color sheet after the implementation layout sheet"
   expect.soft(inlinedStyles).toHaveLength(1);
   const builtStyle = inlinedStyles.at(-1) ?? "";
   const builtLayoutAt = builtStyle.indexOf("overscroll-behavior-x:contain");
+  const builtEditorAt = builtStyle.indexOf("#editor>.cm-editor{height:100%}");
   const builtColorsAt = builtStyle.indexOf("--tbl-theme-row-background:");
   expect.soft(builtLayoutAt).toBeGreaterThanOrEqual(0);
-  expect.soft(builtColorsAt).toBeGreaterThan(builtLayoutAt);
+  expect.soft(builtEditorAt).toBeGreaterThan(builtLayoutAt);
+  expect.soft(builtColorsAt).toBeGreaterThan(builtEditorAt);
 });
 
 test("uses a custom theme's text color for native and CodeMirror cursors", async ({ page }) => {

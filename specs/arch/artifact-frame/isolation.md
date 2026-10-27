@@ -64,8 +64,7 @@ A sandboxed document's requests to its server are cross-origin, from an opaque o
 | `/canonical/v<n>/…` | none | `Access-Control-Allow-Origin: *` |
 | `/theme/…` | none | `Access-Control-Allow-Origin: *` |
 | `/sdk/v1/…` | none | `Access-Control-Allow-Origin: *` ([sdk.md#^sdk-serving](../resources/sdk.md#^sdk-serving)) |
-| `/views/artifact-missing/…`, the files of the page the proxy serves for a missing file | none | `Access-Control-Allow-Origin: *` |
-| `/views/markdown/v1/editor.js` and `/views/markdown/v1/editor.css` | none | none; v1 is a classic script and a stylesheet, which load without CORS |
+| `/views/artifact-missing/…`, the files of the page the proxy serves for a missing file; `/views/markdown/v1/editor.js` and `/views/markdown/v1/editor.css`, the shared editor files loaded by copied Markdown templates | none | `Access-Control-Allow-Origin: *` |
 | `/artifact-resources/<id>/v1/connection`, a WebSocket | the ID in the path | no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
 | `/api/resources/v1/…` | the token | none, and no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
 | `/channels`, `/artifacts`, `/templates` (including template icons), `/display`, `/themes`, `/markdown`, `/telemetry`, `/demo-mode` and `/desktop/connect-check` | the token | none |

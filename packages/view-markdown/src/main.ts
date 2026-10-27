@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./editor.css";
 import "./colors.css";
 import {
   ArtifactContext,
@@ -7,7 +8,7 @@ import {
 } from "@telepath-computer/television-artifact/browser";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { editorExtensions, installEditor, mountMarkdownEditor } from "./editor.ts";
+import { editorExtensions, installEditor } from "./editor.ts";
 import seed from "../fixtures/seed.md?raw";
 
 // Live-preview markdown view.
@@ -35,10 +36,6 @@ function exposeTestEditor(view: EditorView): void {
   // in `markdownHighlight`), so Playwright's `getByText` can't locate it.
   (window as Window & { __cmView?: EditorView }).__cmView = view;
 }
-
-Object.assign(window, {
-  TelevisionMarkdownEditor: { mount: mountMarkdownEditor },
-});
 
 const hosted = document.body.hasAttribute("data-television-markdown-hosted");
 if (hosted) {

@@ -304,6 +304,11 @@ export const UI_STYLE_CROSSINGS: readonly UIStyleCrossing[] = [
     stylesheet: "packages/view-markdown/src/styles.css",
   },
   {
+    kind: "implementation-owned",
+    productionModule: "packages/view-markdown/src/main.ts",
+    stylesheet: "packages/view-markdown/src/editor.css",
+  },
+  {
     kind: "sibling",
     specSources: ["specs/ui/markdown-editor/styles.css"],
     productionModule: "packages/view-markdown/src/main.ts",

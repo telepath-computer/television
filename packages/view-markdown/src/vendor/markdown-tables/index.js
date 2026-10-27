@@ -4698,7 +4698,6 @@ function uo(e) {
   };
 }
 const nu = "5";
-typeof window < "u" && ((window.__svelte ??= {}).v ??= /* @__PURE__ */ new Set()).add(nu);
 const ou = typeof window < "u" ? window : void 0;
 function iu(e) {
   let t = e.activeElement;
