@@ -267,6 +267,7 @@ async function runAttempt({ attempt, shardIndices, excludedSandboxes = [], outpu
       console.log(`starting: ${formatShardLeases(acquired)}`);
       results = await Promise.all(acquired.map(async (lease) => {
         const result = await runShard(lease, outputDir, {
+          attempt,
           onExecutionRequested: () => attemptState.executionRequested.add(lease.shardIndex),
           onExecutionStarted: () => attemptState.executionStarted.add(lease.shardIndex),
           onResultProgress: (progress) => attemptState.partialResults.set(lease.shardIndex, progress),
@@ -410,8 +411,9 @@ function lockCommand({ lockId, shardIndex, expiresAt }) {
   ].join("; ");
 }
 
-async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onExecutionStarted = () => {}, onResultProgress = () => {} } = {}) {
+async function runShard(lease, outputDir, { attempt, onExecutionRequested = () => {}, onExecutionStarted = () => {}, onResultProgress = () => {} } = {}) {
   const { sandbox, shardIndex, lockId } = lease;
+  const diagnosticAttemptId = `${lockId}-attempt-${attempt + 1}`;
   const startedAt = Date.now();
   if (lease.restorePhase) {
     lease.restorePhase.completedAt = new Date(startedAt).toISOString();
@@ -430,7 +432,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
     planRemotePath,
     planRaw: shardPlanRaw,
     remoteScript,
-    remoteScriptContents: shardScript({ shardIndex, lockId, planRemotePath }),
+    remoteScriptContents: shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId }),
   });
   if (!dispatch.ok) {
     appendLog(logPath, `\n[coordinator] ${dispatch.failureMessage}\n`);
@@ -529,7 +531,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       }
     } catch {}
     retainResultProgress();
-    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts });
+    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts });
     retainResultProgress();
     for (const [taskIndex, task] of (shardSummary?.tasks ?? []).entries()) {
       const copiedTask = { ...tasks[taskIndex] };
@@ -578,7 +580,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
     return { shardIndex, shardTotal, shard: `${shardIndex}/${shardTotal}`, sandbox: sandbox.metadata.name, outputDir, status, exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt, durationMs: Date.now() - overallStarted, summaryPath: fs.existsSync(summaryPath) ? summaryPath : null, summaryError: shardSummaryError, nativeResultPath, resourceDiagnosticsPaths, logPath, setupTimings, planId: shardSummary?.planId ?? shardPlan?.planId, timingProvider: shardSummary?.timingProvider ?? shardPlan?.timingProvider, testedTree: shardSummary?.testedTree ?? shardPlan?.testedTree, testedCommit: shardSummary?.testedCommit ?? shardPlan?.testedCommit, predictedDurationMs: shardSummary?.predictedDurationMs, phases: [...(shardSummary?.phases ?? []), reportPhase], assignedFiles: shardSummary?.assignedFiles ?? [], collectedFiles: shardSummary?.collectedFiles ?? [], failureKind: identityError ? "plan-validation" : resultError ? "result-report" : missingSummaryFailure?.failureKind ?? shardSummary?.failureKind ?? failedInfrastructureTask?.failureKind, failureStep: identityError ? "plan-validation" : resultError ? "summary-validation" : missingSummaryFailure?.failureStep ?? shardSummary?.failureStep ?? failedInfrastructureTask?.failureStep, failureMessage: identityError ?? resultError ?? missingSummaryFailure?.failureMessage ?? shardSummary?.failureMessage ?? failedInfrastructureTask?.failureMessage, processLeaks: shardSummary?.processLeaks ?? [], tasks };
   } catch (error) {
     stream?.close?.();
-    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts });
+    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts });
     appendLog(logPath, `\n[coordinator] ${error.stack || error.message}\n`);
     const completedAt = new Date().toISOString();
     const plannedShard = shardPlan?.shards?.[shardIndex - 1];
@@ -659,7 +661,7 @@ function retainTaskWithoutRemoteArtifacts(task) {
   return retained;
 }
 
-async function copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId, copiedArtifacts }) {
+async function copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts }) {
   const root = "/workspace/television/.testshards/results/resources";
   const retained = [];
   let bytes = 0;
@@ -674,7 +676,7 @@ async function copyResourceDiagnostics(sandbox, { outputDir, shardIndex, lockId,
         const size = Buffer.byteLength(raw);
         if (size > RESOURCE_SIDECAR_BYTES || bytes + size > RESOURCE_ATTEMPT_BYTES) throw new Error("budget");
         const record = JSON.parse(raw);
-        if (record.schemaVersion !== 1 || record.identity?.runId !== runId || record.identity?.shardIndex !== shardIndex || record.identity?.attemptId !== lockId) throw new Error("identity");
+        if (record.schemaVersion !== 1 || record.identity?.runId !== runId || record.identity?.shardIndex !== shardIndex || record.identity?.attemptId !== diagnosticAttemptId) throw new Error("identity");
         const localPath = path.join(outputDir, "artifacts", `shard-${shardIndex}`, "resources", entry.name);
         fs.mkdirSync(path.dirname(localPath), { recursive: true });
         fs.writeFileSync(localPath, raw);
@@ -805,7 +807,7 @@ function systemDependenciesCommand() {
   return 'if ! command -v python3 >/dev/null 2>&1 || ! command -v xauth >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1 || ! ldconfig -p 2>/dev/null | grep -q "libgtk-3.so.0" || ! ldconfig -p 2>/dev/null | grep -q "libXtst.so.6"; then apt-get update && apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2; fi';
 }
 
-function shardScript({ shardIndex, lockId, planRemotePath }) {
+function shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId }) {
   return `#!/usr/bin/env bash
 set -euo pipefail
 lock=/tmp/tv-testshard.lock
@@ -824,7 +826,7 @@ export TEST_RETRIES=${testRetries}
 export TV_TEST_TIMING_PROVIDER=blaxel-playwright-x64-4vcpu
 export TV_TEST_RUN_ID=${shellQuote(runId)}
 export TV_TEST_SHARD_INDEX=${shardIndex}
-export TV_TEST_SHARD_ATTEMPT=${shellQuote(lockId)}
+export TV_TEST_SHARD_ATTEMPT=${shellQuote(diagnosticAttemptId)}
 mkdir -p /workspace /cache/npm
 if [ -z "\${GH_TOKEN:-}" ]; then echo "GH_TOKEN missing" >&2; exit 2; fi
 setup_metrics=/tmp/tv-testshard-setup-${shardIndex}.jsonl
