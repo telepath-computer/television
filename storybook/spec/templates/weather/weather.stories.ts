@@ -320,7 +320,7 @@ const sedonaNight: Forecast = {
 const seattleCloudy: Forecast = {
   place: "Seattle",
   unit: "F",
-  updated: "16 min ago",
+  updated: "8 min ago",
   current: { temperature: 57, condition: "cloudy", summary: "Overcast", isDay: true },
   hourly: hours([57, 58, 59, 60, 60, 59, 58, 57], ["cloudy", "cloudy", "rain"], daytimeLabels, 7),
   daily: [
@@ -333,7 +333,7 @@ const seattleCloudy: Forecast = {
 const portlandRain: Forecast = {
   place: "Portland",
   unit: "C",
-  updated: "18 min ago",
+  updated: "10 min ago",
   current: { temperature: 11, condition: "rain", summary: "Rain", isDay: true },
   hourly: hours([11, 11, 12, 12, 13, 12, 11, 10, 10, 9], ["rain", "rain", "cloudy"], daytimeLabels, 8),
   daily: [
@@ -346,7 +346,7 @@ const portlandRain: Forecast = {
 const montrealSnow: Forecast = {
   place: "Montréal",
   unit: "C",
-  updated: "21 min ago",
+  updated: "12 min ago",
   current: { temperature: -11.5, condition: "snow", summary: "Light snow", isDay: true },
   hourly: hours([-12, -11, -10, -9, -8, -9, -11, -13], ["snow", "snow", "cloudy"], daytimeLabels, 7),
   daily: [

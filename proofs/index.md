@@ -85,7 +85,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
-    - `weather.md` (56 lines) — *Proves the bundled Weather package, its Open-Meteo request and cache contracts, and live delivery through a copied artifact.*
+    - `weather.md` (60 lines) — *Proves the bundled Weather package, its Open-Meteo request and cache contracts, and live delivery through a copied artifact.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (64 lines) — *How the promises in Blaxel Test Shards are proven.*
