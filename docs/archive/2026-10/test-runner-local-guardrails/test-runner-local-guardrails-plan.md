@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch `thopter/test-runner-local-guardrails`.** This plan organized the implementation into file/retry admission, mutex ownership and native-entrypoint guidance, with isolated crash validation and a final full gate. It preserves the complete view of the work’s dependencies, fixture-safety constraints and validation responsibilities across those parts. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Local test-runner guardrails — implementation plan
 
 This plan derives from the converged [proposal](test-runner-local-guardrails-proposal.md), [runner spec](../../specs/arch/test-runner/test-runner.md), [testing policy](../../specs/arch/testing-policy.md), and [runner proof](../../proofs/arch/test-runner/test-runner.md), including the proof review at `3bdfa431`. It groups implementation and validation into three reviewable slices. The supervisor coordinates independent review; Josh reviews the specs on the pull request.

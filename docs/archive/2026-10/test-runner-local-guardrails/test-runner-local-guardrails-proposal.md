@@ -1,3 +1,5 @@
+> **Archived 2026-10 from branch `thopter/test-runner-local-guardrails`.** This proposal set the host-health priority, independent overrides and instruction-layer scope carried into the runner specs and implementation. It preserves the single coherent statement of intent and the rationale for the boundaries between local iteration, remote validation and deliberate departures from guidance. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Local test-runner guardrails
 
 Proposal converged under independent review, with Josh's subsequent decisions on deliberate overrides recorded below. Josh will review the authoritative spec deltas on the pull request. This document records intent; the [runner spec](../../specs/arch/test-runner/test-runner.md) will own the command behavior.

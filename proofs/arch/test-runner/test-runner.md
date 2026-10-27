@@ -113,7 +113,7 @@ These assertions prove [retry policy](../../../specs/arch/test-runner/test-runne
 
 ### Standing local execution evidence
 
-- **Acceptance — native exit propagation.** The spawned canonical local CLI runs a real Vitest fixture to success, then runs its intentional native failure and exits `1` with a failed normalized result. A separate preflight-failure case uses the declared preflight hook and proves only that failure path. Proves [local execution](../../../specs/arch/test-runner/test-runner.md#local-execution) and [exit codes](../../../specs/arch/test-runner/test-runner.md#exit-codes), satisfying the spec's real nonzero-child directive. *(covered by `test/repo/test-runner-reporting.test.ts`, “the real CLI finalizes all top-level files for success, native failure, and preflight failure”; its nested commands use gated private mutex locations)*. ^t-runner-native-exit
+- **Acceptance — native exit propagation.** The spawned canonical local CLI runs a real Vitest fixture to success, then runs its intentional native failure and exits `1` with a failed normalized result. A separate preflight-failure case uses the declared preflight hook and proves only that failure path. Proves [local execution](../../../specs/arch/test-runner/test-runner.md#local-execution) and [exit codes](../../../specs/arch/test-runner/test-runner.md#exit-codes). *(covered by `test/repo/test-runner-reporting.test.ts`, “the real CLI finalizes all top-level files for success, native failure, and preflight failure”; its nested commands use gated private mutex locations)*. ^t-runner-native-exit
 
 ### Standing lifecycle evidence
 
