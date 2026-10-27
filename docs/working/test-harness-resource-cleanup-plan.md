@@ -1,6 +1,6 @@
 # Test-harness resource cleanup: implementation plan
 
-Owner: rose. Branch: `thopter/test-harness-resource-cleanup`. Draft PR #12. Derived from the converged [proposal](test-harness-resource-cleanup-proposal.md), [spec checkpoint](test-harness-resource-cleanup-review-response.md#Spec round 1: convergence and proof derivation), and [proof round 2](test-harness-resource-cleanup-proof-review-r2.md) at `3fa15d47`. Status: [plan round 2](test-harness-resource-cleanup-plan-review-r2.md) passed at `04a6b275`; slice 1 implementation is underway. The supervisor arranges reviews. Josh reviews the spec deltas at PR time.
+Owner: rose. Branch: `thopter/test-harness-resource-cleanup`. Draft PR #12. Derived from the converged [proposal](test-harness-resource-cleanup-proposal.md), [spec checkpoint](test-harness-resource-cleanup-review-response.md#Spec round 1: convergence and proof derivation), and [proof round 2](test-harness-resource-cleanup-proof-review-r2.md) at `3fa15d47`. Status: [plan round 2](test-harness-resource-cleanup-plan-review-r2.md) passed at `04a6b275`; [slice 1 is implemented](test-harness-resource-cleanup-slice-1.md) for independent review. The supervisor arranges reviews. Josh reviews the spec deltas at PR time.
 
 ## Slice judgment
 
@@ -93,4 +93,4 @@ Retrieve all evidence before deleting the dedicated coordinator, and report clea
 
 ## Current limits
 
-No new tests or implementation exist at this checkpoint and no test or worker execution has occurred. The coordinator's local preflight capabilities, credentials and capacity; actual provider behavior during renewal, label changes and interrupted dispatch; browser temporary placement; and the implemented tree's full-gate duration remain unmeasured. The plan carries those checks into the slices that can establish them. Incremental memory savings after the Vite full-response fix remain outside the acceptance claim.
+Slice 1's helper contracts, real framework teardown and five built-application walks have red/green evidence, with affected-file and caller checks recorded in its evidence document. The named private coordinator and two workers exist; credentials, Node and x64/Linux execution are established there. Provider inventory differs from the historical pool count, and account-specific quota and idle-sandbox accounting remain unknown. The coordinator's experiment-driver preflight, renewal/recovery and pool-label behavior, interrupted dispatch, browser temporary placement, diagnostic transport and full-gate duration remain for slices 2 and 3. Incremental memory savings after the Vite full-response fix remain outside the acceptance claim.
