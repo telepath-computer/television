@@ -32,8 +32,21 @@ interface Args {
   unreadable: boolean;
 }
 
-const blankColumns: Column[] = Array.from({ length: 4 }, (_, index) => ({ key: `virtual-column-${index}` }));
-const blankRows: Row[] = Array.from({ length: 4 }, (_, index) => ({ key: `virtual-row-${index}`, cells: {} }));
+const minimumGridSize = 4;
+
+function displayedColumns(columns: Column[]): Column[] {
+  return columns.concat(Array.from(
+    { length: Math.max(0, minimumGridSize - columns.length) },
+    (_, index) => ({ key: `drawn-column-${columns.length + index}` }),
+  ));
+}
+
+function displayedRows(rows: Row[]): Row[] {
+  return rows.concat(Array.from(
+    { length: Math.max(0, minimumGridSize - rows.length) },
+    (_, index) => ({ key: `drawn-row-${rows.length + index}`, cells: {} }),
+  ));
+}
 
 const parkColumns: Column[] = [
   { key: "c1", name: "Park" },
@@ -50,6 +63,9 @@ const parkRows: Row[] = [
   { key: "r5", cells: { c1: "Yosemite", c2: "California", c3: "Yes", c4: "4.9" } },
   { key: "r6", cells: { c1: "Zion", c2: "Utah", c3: "Yes" } },
 ];
+
+const firstColumns: Column[] = [{ key: "c1" }];
+const firstRows: Row[] = [{ key: "r1", cells: { c1: "Yosemite" } }];
 
 const unnamedColumns: Column[] = [
   { key: "c1" },
@@ -106,9 +122,9 @@ function rowMenu(showHeader: boolean, selection: Selection) {
   const count = selection?.kind === "row" ? selection.end - selection.start + 1 : 1;
   return html`
     <tv-menu class="table-context-menu" trigger="table-row-reference-2" aria-label="Row actions">
-      <tv-menu-item><span>Insert row above</span><kbd>⌘⇧=</kbd></tv-menu-item>
+      <tv-menu-item><span>Insert row above</span></tv-menu-item>
       <tv-menu-item><span>Insert row below</span></tv-menu-item>
-      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span><kbd>⌘−</kbd></tv-menu-item>
+      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span></tv-menu-item>
       <hr>
       <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
     </tv-menu>`;
@@ -118,9 +134,9 @@ function columnMenu(showHeader: boolean, selection: Selection) {
   const count = selection?.kind === "column" ? selection.end - selection.start + 1 : 1;
   return html`
     <tv-menu class="table-context-menu" trigger="table-column-reference-3" aria-label="Column actions">
-      <tv-menu-item><span>Insert column left</span><kbd>⌘⇧=</kbd></tv-menu-item>
+      <tv-menu-item><span>Insert column left</span></tv-menu-item>
       <tv-menu-item><span>Insert column right</span></tv-menu-item>
-      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span><kbd>⌘−</kbd></tv-menu-item>
+      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span></tv-menu-item>
       <hr>
       <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
     </tv-menu>`;
@@ -136,6 +152,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
         <h1 class="table-unreadable-title">This table can't be shown</h1>
         <p class="table-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
       </section>
+      <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : ""}</div>
     </main>`;
 
   if (loading) return html`
@@ -143,10 +160,11 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
       <div class="table-loading" role="status" aria-label="Loading table">
         ${icon({ name: "spinner", size: "md", spinning: true })}
       </div>
+      <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : ""}</div>
     </main>`;
 
-  const columns = storedColumns.length === 0 ? blankColumns : storedColumns;
-  const rows = storedRows.length === 0 ? blankRows : storedRows;
+  const columns = displayedColumns(storedColumns);
+  const rows = displayedRows(storedRows);
   const referencesVisible = selection !== null;
 
   return html`
@@ -170,7 +188,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                   >${columnLetter(columnIndex)}</button>
                 </div>`)}
               ${editable ? html`<div class="table-column-add-item">
-                <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end">+</button>
+                <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
             <div class="table-row-strip table-reference-strip${showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references">
@@ -188,7 +206,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                   >${rowIndex + 1}</button>
                 </div>`)}
               ${editable ? html`<div class="table-row-add-item">
-                <button type="button" class="table-reference-item table-add-item" aria-label="Add row at end" title="Add row at end">+</button>
+                <button type="button" class="table-reference-item table-add-item" aria-label="Add row at end" title="Add row at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
             <table class="table-grid" role="grid" aria-label="Table" aria-rowcount="${rows.length + (showHeader ? 1 : 0)}" aria-colcount="${columns.length}" tabindex="${selection === null ? 0 : -1}">
@@ -243,7 +261,7 @@ const beginEditing = ({ canvasElement }: Play) => {
   input.className = "table-input table-cell-input";
   input.rows = 1;
   input.value = text.textContent ?? "";
-  input.setAttribute("aria-label", "Edit row 4, column A");
+  input.setAttribute("aria-label", "Row 4, column A");
   input.spellcheck = false;
   text.replaceWith(input);
   cell.dataset.editing = "true";
@@ -290,6 +308,7 @@ export default {
 };
 
 export const Blank = { args: { columns: [], rows: [], showHeader: false } };
+export const PartiallyFilled = { name: "Partially filled", args: { columns: firstColumns, rows: firstRows, showHeader: false } };
 export const WithData = { name: "With data" };
 export const HeaderOff = { name: "Header off", args: { columns: unnamedColumns, rows: scheduleRows, showHeader: false } };
 export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
@@ -305,5 +324,7 @@ export const ReadOnly = { name: "Read-only", args: { editable: false, selection:
 export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } } };
 export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } } };
 export const Loading = { args: { columns: [], rows: [], loading: true } };
+export const LoadingDisconnected = { name: "Loading while disconnected", args: { columns: [], rows: [], loading: true, status: "reconnecting" } };
 export const Unreadable = { args: { unreadable: true } };
+export const UnreadableDisconnected = { name: "Unreadable while disconnected", args: { unreadable: true, status: "reconnecting" } };
 export const Dark = { args: { theme: "dark", selection: { kind: "cell", row: 3, column: 1 } } };

@@ -337,18 +337,6 @@ textarea {
 
 .table-context-menu { width: 216px; }
 
-.table-context-menu tv-menu-item {
-  justify-content: space-between;
-  gap: var(--space-16);
-}
-
-.table-context-menu kbd {
-  color: var(--color-text-muted);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: var(--font-weight-normal);
-}
-
 .table-status {
   flex: none;
   min-height: 34px;

@@ -53,7 +53,7 @@ A column has a numeric `order` and may have a string `name`. A row has a numeric
 
 The page displays columns and rows by ascending `order`, then by key in the [JSON store key order](../../product/resources/json-store.md#^js-child-events). It normally inserts between two neighbours with an `order` strictly between theirs, or beyond the outer entry. Exact order values are code-governed.
 
-When the page cannot represent an order strictly in the needed position, the page follows the [Checklist fallback](./checklist.md#store): a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns` adds one entry and gives every displayed entry a distinct integer order in the resulting display order. It preserves other fields and ignored entries. If the selected entry has gone, it writes nothing. This fallback is the only human action that may rewrite other entries.
+When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not an object map, if a selected key is gone, or if the selected keys no longer form one contiguous range. For a plus action, it uses the current end of a readable axis. It adds one entry at the resulting position and gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
 
 ### Runtime reading
 
@@ -68,21 +68,25 @@ Within a readable Table, the page:
 - ignores a cell whose key has no displayed column; and
 - shows the header only when `showHeader` is `true`.
 
-Extra fields at the root, in columns, and in rows are ignored. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. An unreadable value is shown as the [Table UI spec](../../ui/templates/table.mdx#data-the-page-cannot-read) describes. ^bundled-artifact-template-table-behaviour
+Extra fields at the root, in columns, and in rows are ignored. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. An unreadable value is shown as the [Table UI spec](../../ui/templates/table.mdx#data-the-page-cannot-read) describes.
+
+Once the page has read an unreadable value, or the server reports the saved value unavailable, it starts no write until it reads a readable value again. An editor closes without writing. A write already sent follows the ordinary store rules. Saved data reported unavailable follows the [resource recovery rules](../resources/index.md#^rs-storage).
 
 ### Drawn rows and columns
 
-Each axis is independent. When no valid columns are stored, the page draws four columns. When no valid rows are stored, it draws four rows. Stored entries on the other axis remain as they are. Drawn entries are not stored until an action needs them.
+Each axis is independent. The page draws stored entries followed by enough blank positions to show at least four columns and four rows. An axis with four or more stored entries has no drawn positions. A drawn position has no store key or order and is not stored until an action needs it.
 
-Committing non-empty text in a drawn body cell stores the drawn columns through that position and the drawn rows through that position, then stores the cell. Naming a drawn header stores the drawn columns through it. A plus control stores all four drawn entries on its axis and adds a fifth. Insert or structural delete first stores all four drawn entries on that axis, then applies the command. Each stored row has an empty `cells` object; each stored entry has a generated key and an order distinct from the other entries materialized by that action.
+Committing non-empty text in a drawn body cell stores the drawn columns and rows through that position. The resulting row entry includes the cell. Naming a drawn header stores the drawn columns through it, with the resulting column entry carrying the name. A plus control stores every drawn position on its axis and adds one entry after them.
 
-Showing or hiding the header does not store drawn columns. Clearing a drawn cell, header, row, or column has nothing to clear and makes no write. Materialization and the action that caused it are one atomic update. Exact order values for materialized entries are code-governed.
+An insert or structural delete applies to the displayed positions, then stores the resulting entries. A drawn position deleted by the same action is not stored. A new row that does not receive the edited cell has an empty `cells` object. Each action in these two paragraphs uses one atomic update whose paths are the resulting row and column entries, so none overlap. Exact order values for these entries are code-governed.
 
-Editing writes only on commit. Escape, unchanged text, and empty text in a drawn cell or header make no write. If two people materialize the same empty axis before either sees the other write, both sets of entries can remain, producing extra blank rows or columns. The data stays valid; preventing that rare race would require replacing the path-level write model.
+Showing or hiding the header does not store drawn columns. Clearing a drawn cell, header, row, or column has nothing to clear and makes no write. Editing writes only on commit. Escape, unchanged text, and empty text in a drawn cell or header make no write.
+
+A drawn position has no stable identity. If an update from another writer changes the stored entries on an axis used by a selected drawn position, the selection clears and an editor on it closes without writing. If two people store positions on the same empty axis before either sees the other write, both sets of entries can remain, producing extra blank rows or columns. These lost edits and extra blanks are accepted rather than adding coordination between writers.
 
 ### Page writes
 
-The page subscribes to the whole store through the [resource SDK](../resources/sdk.md). Except for drawn-entry materialization and the no-gap transaction, a human action writes only the path it changes:
+The page subscribes to the whole store through the [resource SDK](../resources/sdk.md). Except when storing drawn positions and running the renumbering transaction, a human action writes only the path it changes:
 
 - A body edit sets `rows/<row-key>/cells/<column-key>`. Clearing it removes that path.
 - A header edit sets `columns/<column-key>/name`. Clearing it removes that path.
