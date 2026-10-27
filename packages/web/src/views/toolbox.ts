@@ -25,8 +25,6 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   #activate: Activate | undefined;
   #panel: HTMLElement | null = null;
   #observer: MutationObserver | null = null;
-  #footer: HTMLElement | null = null;
-  #footerObserver: ResizeObserver | null = null;
   #open = false;
   readonly #selection = new ToolboxSelection<AppTemplate>();
   #pressed: string | null = null;
@@ -40,9 +38,6 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   disconnected(): void {
     this.#observer?.disconnect();
     this.#observer = null;
-    this.#footerObserver?.disconnect();
-    this.#footerObserver = null;
-    this.#footer = null;
     this.#panel = null;
     this.#source?.removeEventListener("change", this.#cacheChanged);
     this.#source?.setOpen(false);
@@ -68,24 +63,6 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     });
     this.#observer.observe(this.#panel, { attributes: true, attributeFilter: ["open"] });
   };
-
-  readonly #observeFooter = (element: Element | undefined): void => {
-    const footer = element instanceof HTMLElement ? element : null;
-    if (footer === this.#footer) return;
-    this.#footerObserver?.disconnect();
-    this.#footerObserver = null;
-    this.#footer = footer;
-    if (!footer) return;
-    this.#syncFooterHeight();
-    if (typeof ResizeObserver === "undefined") return;
-    this.#footerObserver = new ResizeObserver(() => this.#syncFooterHeight());
-    this.#footerObserver.observe(footer);
-  };
-
-  #syncFooterHeight(): void {
-    if (!this.#panel || !this.#footer) return;
-    this.#panel.style.setProperty("--toolbox-footer-height", `${this.#footer.getBoundingClientRect().height}px`);
-  }
 
   readonly #cacheChanged = (): void => {
     this.render();
@@ -220,38 +197,40 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
             .value=${query} @input=${this.#input} @keydown=${this.#keydown}>
         </label>
         <div class="toolbox-body">
-          ${!scan ? nothing : folderError !== null ? html`
-            <div class="toolbox-folder-error"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>
-          ` : showGrid ? html`
-            <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
-              ${gridRows.map((entries, rowIndex) => html`
-                <div class="toolbox-grid-row" role="row">
-                  ${repeat(entries, entry => entry.id, (entry, columnIndex) => {
-                    const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
-                    return html`
-                      <div role="gridcell" id=${`toolbox-item-${index}`} class="toolbox-tile" data-id=${entry.id}
-                        aria-selected=${index === highlighted ? "true" : "false"}
-                        ?data-highlighted=${index === highlighted} ?data-pressed=${entry.id === this.#pressed}
-                        @pointermove=${this.#pointerMove} @pointerdown=${this.#pointerDown}
-                        @pointerleave=${this.#clearPressed} @click=${this.#click}>
-                        ${this.#icon(entry)}<span class="toolbox-name">${entry.name}</span>
-                      </div>
-                    `;
-                  })}
-                </div>
-              `)}
-            </div>
-          ` : query.trim() ? html`<p class="toolbox-empty">${`Nothing matches “${query}”.`}</p>`
-            : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet.</p>`}
-          ${scan && folderError === null && invalid.length ? html`
-            ${showGrid || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
-            <div class="toolbox-invalid" role="note">
-              <tv-icon name="warning" size="sm"></tv-icon>
-              <span class="toolbox-error-text"><span class="toolbox-error-folder">${invalid.length === 1 ? "1 template had errors" : `${invalid.length} templates had errors`}</span><span>Ask your agent to read the Television skill and fix ${invalid.length === 1 ? "it" : "them"}.</span></span>
-            </div>
-          ` : nothing}
+          <div class="toolbox-scroll-content">
+            ${!scan ? nothing : folderError !== null ? html`
+              <div class="toolbox-folder-error"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>
+            ` : showGrid ? html`
+              <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
+                ${gridRows.map((entries, rowIndex) => html`
+                  <div class="toolbox-grid-row" role="row">
+                    ${repeat(entries, entry => entry.id, (entry, columnIndex) => {
+                      const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
+                      return html`
+                        <div role="gridcell" id=${`toolbox-item-${index}`} class="toolbox-tile" data-id=${entry.id}
+                          aria-selected=${index === highlighted ? "true" : "false"}
+                          ?data-highlighted=${index === highlighted} ?data-pressed=${entry.id === this.#pressed}
+                          @pointermove=${this.#pointerMove} @pointerdown=${this.#pointerDown}
+                          @pointerleave=${this.#clearPressed} @click=${this.#click}>
+                          ${this.#icon(entry)}<span class="toolbox-name">${entry.name}</span>
+                        </div>
+                      `;
+                    })}
+                  </div>
+                `)}
+              </div>
+            ` : query.trim() ? html`<p class="toolbox-empty">${`Nothing matches “${query}”.`}</p>`
+              : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet.</p>`}
+            ${scan && folderError === null && invalid.length ? html`
+              ${showGrid || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
+              <div class="toolbox-invalid" role="note">
+                <tv-icon name="warning" size="sm"></tv-icon>
+                <span class="toolbox-error-text"><span class="toolbox-error-folder">${invalid.length === 1 ? "1 template had errors" : `${invalid.length} templates had errors`}</span><span>Ask your agent to read the Television skill and fix ${invalid.length === 1 ? "it" : "them"}.</span></span>
+              </div>
+            ` : nothing}
+          </div>
+          <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
         </div>
-        <p class="toolbox-footer" ${ref(this.#observeFooter)}>Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
       </tv-popover>
     `;
   }

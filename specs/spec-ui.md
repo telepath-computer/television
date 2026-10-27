@@ -27,7 +27,7 @@ What binds in a story is what it looks like in the state its args, globals, para
 
 ## Experiments
 
-Experiments carry no spec authority; stories a spec needs live in `storybook/spec/`. An active experiment lives at `storybook/experiments/<name>/`; when it finishes, move it under `storybook/experiments/<YYYY-MM>/<name>/` for its finishing month. The Storybook title is a free display name under `Experiments/<Name>` while active and `Experiments/<YYYY-MM>/<Name>` when finished; neither the folder nor title uses an outcome category such as `Rejected`.
+Experiments carry no spec authority; stories a spec needs live in `storybook/spec/`. An active experiment lives at `storybook/experiments/<name>/`; when it finishes, move it under `storybook/experiments/<YYYY-MM>/<name>/` for its finishing month. Its title is `Experiments/<Name>` while active and `Experiments/<YYYY-MM>/<Name>` when finished; `<Name>` is any descriptive name and need not match the folder. Neither the folder nor title uses an outcome category such as `Rejected`.
 
 ## Conformance
 

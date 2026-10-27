@@ -72,27 +72,29 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
         <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off" aria-haspopup="grid" aria-autocomplete="list"${showGrid ? html` aria-expanded="true" aria-controls="toolbox-grid"` : html` aria-expanded="false"`}${showGrid && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
       </label>
       <div class="toolbox-body">
-        ${!hasList
-          ? ""
-          : folderError !== null
-            ? html`<div class="toolbox-folder-error">${icon({ name: "warning", size: "sm" })}<span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>`
-            : items.length > 0
-              ? html`<div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">${gridRows(items).map((itemsInRow, rowIndex) => html`
-                  <div class="toolbox-grid-row" role="row">${itemsInRow.map((item, columnIndex) => {
-                    const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
-                    return tile(item, index, index === highlighted, index === pressed);
-                  })}</div>
-                `)}</div>`
-              : search.trim() !== ""
-                ? html`<p class="toolbox-empty">Nothing matches “${search}”.</p>`
-                : invalid.length > 0
-                  ? ""
-                  : html`<p class="toolbox-empty">Nothing here yet.</p>`}
-        ${hasList && folderError === null && invalid.length > 0
-          ? html`${items.length > 0 || search.trim() !== "" ? html`<hr class="toolbox-divider">` : ""}${invalidSummary(invalid)}`
-          : ""}
+        <div class="toolbox-scroll-content">
+          ${!hasList
+            ? ""
+            : folderError !== null
+              ? html`<div class="toolbox-folder-error">${icon({ name: "warning", size: "sm" })}<span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>`
+              : items.length > 0
+                ? html`<div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">${gridRows(items).map((itemsInRow, rowIndex) => html`
+                    <div class="toolbox-grid-row" role="row">${itemsInRow.map((item, columnIndex) => {
+                      const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
+                      return tile(item, index, index === highlighted, index === pressed);
+                    })}</div>
+                  `)}</div>`
+                : search.trim() !== ""
+                  ? html`<p class="toolbox-empty">Nothing matches “${search}”.</p>`
+                  : invalid.length > 0
+                    ? ""
+                    : html`<p class="toolbox-empty">Nothing here yet.</p>`}
+          ${hasList && folderError === null && invalid.length > 0
+            ? html`${items.length > 0 || search.trim() !== "" ? html`<hr class="toolbox-divider">` : ""}${invalidSummary(invalid)}`
+            : ""}
+        </div>
+        <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
       </div>
-      <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
     </tv-popover>
   </div>`;
 };
@@ -121,13 +123,7 @@ export default {
   title: "Spec/Toolbox",
   render,
   args: { open: true, hasList: true, search: "", items, highlighted: null, pressed: null, invalid: [], folderError: null } satisfies Args,
-  play: async ({ canvasElement, args }: { canvasElement: HTMLElement; args: Args }) => {
-    const panel = canvasElement.querySelector<HTMLElement>(".toolbox-popover");
-    const footer = canvasElement.querySelector<HTMLElement>(".toolbox-footer");
-    if (panel && footer) {
-      await canvasElement.ownerDocument.fonts.ready;
-      panel.style.setProperty("--toolbox-footer-height", `${footer.getBoundingClientRect().height}px`);
-    }
+  play: ({ canvasElement, args }: { canvasElement: HTMLElement; args: Args }) => {
     if (args.open) canvasElement.querySelector<HTMLInputElement>(".toolbox-search input")?.focus();
   },
 };

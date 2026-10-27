@@ -5,7 +5,7 @@
   width: 272px;
   max-width: calc(100vw - 2 * var(--popover-distance));
   max-height: 480px;
-  padding: var(--space-8) var(--space-8) 0;
+  padding: var(--space-8) 0 0;
   overflow: hidden;
 }
 
@@ -13,6 +13,7 @@
   position: relative;
   display: block;
   flex: none;
+  margin: 0 var(--space-8);
   color: var(--color-text-muted);
 }
 
@@ -45,17 +46,16 @@
 .toolbox-body {
   min-height: 0;
   overflow-y: auto;
-  /* The footer floats over the grid, so the trailing space lets the end of
-     the scrolling content move completely clear of it. */
-  padding: var(--space-6) 0 var(--toolbox-footer-height, 64px);
-  scroll-padding-bottom: var(--toolbox-footer-height, 64px);
+  padding-top: var(--space-6);
+}
+
+.toolbox-scroll-content {
+  margin: 0 var(--space-8);
 }
 
 /* A translucent bar floats over the scrolling grid like a macOS window bar. */
 .toolbox-footer {
-  position: absolute;
-  left: 0;
-  right: 0;
+  position: sticky;
   bottom: 0;
   margin: 0;
   padding: var(--space-8) var(--space-16);
@@ -148,7 +148,7 @@
 .toolbox-invalid {
   display: flex;
   align-items: flex-start;
-  /* Keep the warning and explanatory text compact beside one another. */
+  /* The 5px inset aligns the warning column beneath the search icon. */
   gap: var(--space-12);
   padding: var(--space-6) var(--space-8) var(--space-6) 5px;
   font-size: var(--text-md);

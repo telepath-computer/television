@@ -64,7 +64,7 @@ Authenticated `GET /templates/<template-id>/icon` resolves the URL-encoded exact
 
 The [icon-delivery contract](#^artifact-template-icon-route) owns the authenticated template image route. ^artifact-template-thumbnail-route
 
-The app fetches icon bytes through the shared client when `hasIcon` is true, so the request carries the server token. It displays those bytes as an image with the supplied content type, without inserting SVG markup into the application document. The [Toolbox UI spec](../../ui/app/toolbox.mdx#^toolbox-icons) owns the supplied-icon treatment and default letter icon. The [authoring guidance](./authoring.md) teaches agents to save site icons in URL-template folders.
+The app fetches icon bytes through the shared client when `hasIcon` is true, so the request carries the server token. It displays those bytes as an image with the supplied content type, without inserting SVG markup into the application document. The [Toolbox UI spec](../../ui/app/toolbox.mdx#icons) owns the supplied-icon treatment and default letter icon. The [authoring guidance](./authoring.md) teaches agents to save site icons in URL-template folders.
 
 ## Discovery
 

@@ -11,12 +11,12 @@ This document records the decisions and open questions for moving the approved T
 
 ## Decisions completed during derivation
 
-- Follow the roles, states and properties of the WAI-ARIA combobox grid-popup pattern. The input remains the only DOM focus target and carries `role="combobox"`, `aria-haspopup="grid"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`, and `aria-activedescendant` as applicable. The popup is a named `grid`; each visual row is a `row`; each tile is a named, selected or unselected `gridcell`. Toolbox defines its own keyboard behavior.
+- Use a combobox controlling a single-select grid. The input remains the only DOM focus target and carries `role="combobox"`, `aria-haspopup="grid"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`, and `aria-activedescendant` as applicable. The popup is a named `grid`; each visual row is a `row`; each tile is a named, selected or unselected `gridcell`. Toolbox defines its own keyboard behavior.
 - Group cells into semantic rows of three. The final row has one or two cells when the result count is not divisible by three; it has no placeholder cells.
 - Up with no highlight leaves the highlight clear. Only unmodified Up and Down are claimed as grid-navigation keys while the grid is present. Unmodified Left and Right are claimed only after a tile is highlighted; modified arrows, horizontal arrows with no highlight, and every arrow during input-method composition retain normal text-field behavior. An unmodified arrow at a first or last endpoint is still claimed.
 - Calculate keyboard movement over the filtered items in discovery order. Down from a tile with no cell directly below moves to the final filtered tile, including when the highlighted tile is already last.
 - Keep empty and error content in the existing plain text layouts instead of forcing those states into cells. Keep the 16px warning icon centred in its existing 20px slot beside the message.
-- Give the scrolling body trailing space and matching scroll clearance equal to the footer's measured height. This allows all scrolling content and a keyboard-highlighted tile to move fully above the floating footer even when font metrics or themes change its height.
+- Make the footer the sticky last child of the scrolling body. Its place in the scrolling content lets the final row move fully above it without a measured-height variable, scrolling over it scrolls the grid, and it leaves the scroll bar usable while preserving the floating translucent appearance.
 - Use real `row` wrappers, each containing a three-column CSS grid. This avoids relying on `display: contents` for accessibility semantics.
 - Keep the historical Templates popover alternatives under `2026-10/templates-popover-alternatives`; neither its folder nor Storybook title uses an outcome category.
 - Delete the empty Templates popover pilot placeholder because it declares no stories and nothing references it.

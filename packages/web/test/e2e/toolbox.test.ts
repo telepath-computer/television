@@ -25,22 +25,18 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   const rows = grid.getByRole("row");
   const tiles = grid.getByRole("gridcell");
   const body = page.locator(".toolbox-body");
+  const content = page.locator(".toolbox-scroll-content");
   const footer = page.locator(".toolbox-footer");
   const searchBox = (await search.boundingBox())!;
   expect((await body.boundingBox())!.y).toBeCloseTo(searchBox.y + searchBox.height);
   expect((await tiles.first().boundingBox())!.y).toBeGreaterThan(searchBox.y + searchBox.height);
   await expect(footer).toBeVisible();
-  const footerPaddingDifference = async () => {
-    const footerHeight = (await footer.boundingBox())!.height;
-    const padding = await body.evaluate(element => Number.parseFloat(getComputedStyle(element).paddingBottom));
-    return Math.abs(footerHeight - padding);
-  };
-  await expect.poll(footerPaddingDifference).toBeLessThan(1);
-  await footer.evaluate(element => { element.style.fontSize = "24px"; });
-  await expect.poll(footerPaddingDifference).toBeLessThan(1);
-  await footer.evaluate(element => { element.style.removeProperty("font-size"); });
-  await expect.poll(footerPaddingDifference).toBeLessThan(1);
   const footerBox = (await footer.boundingBox())!;
+  const scrollportRight = await body.evaluate(element => {
+    const bounds = element.getBoundingClientRect();
+    return bounds.left + element.clientLeft + element.clientWidth;
+  });
+  expect(footerBox.x + footerBox.width).toBeLessThanOrEqual(scrollportRight + 1);
   await expect(search).toBeFocused();
   await expect(search).toHaveAttribute("aria-haspopup", "grid");
   await expect(search).toHaveAttribute("aria-autocomplete", "list");
@@ -55,6 +51,14 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await expect(tiles).toHaveCount(0);
   await expect(search).toHaveAttribute("aria-expanded", "false");
   await expect(search).not.toHaveAttribute("aria-controls");
+  for (const key of ["ArrowUp", "ArrowDown"]) {
+    const claimed = await search.evaluate((input, verticalKey) => {
+      const event = new KeyboardEvent("keydown", { key: verticalKey, bubbles: true, cancelable: true });
+      input.dispatchEvent(event);
+      return event.defaultPrevented;
+    }, key);
+    expect(claimed).toBe(false);
+  }
   await search.fill("  ITEM 0  ");
   await expect(tiles).toHaveCount(10);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
@@ -123,13 +127,23 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   });
   expect(lastEndpointClaimed).toBe(true);
   await search.fill("");
-  await search.press("ArrowUp");
+  const unhighlightedUpClaimed = await search.evaluate(input => {
+    const event = new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true, cancelable: true });
+    input.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(unhighlightedUpClaimed).toBe(true);
   await expect(search).not.toHaveAttribute("aria-activedescendant");
   await search.press("ArrowDown");
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   await set(page, [items[1]!, items[0]!, ...items.slice(2)]);
   await expect(tiles.first()).toHaveAccessibleName("Item 01");
   await expect(tiles.nth(1)).toHaveAttribute("aria-selected", "true");
+  await set(page, [...items.slice(1), items[0]!]);
+  await expect(tiles.last()).toHaveAccessibleName("Item 00");
+  await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  expect((await tiles.last().boundingBox())!.y + (await tiles.last().boundingBox())!.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
+  expect(await body.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
   await set(page, items.slice(2));
   await expect(search).not.toHaveAttribute("aria-activedescendant");
   await expect(search).toBeFocused();
@@ -149,8 +163,21 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect(await body.evaluate(element => element.scrollTop)).toBe(scrollBeforeHover);
   await page.mouse.click(coveredTileBox.x + coveredTileBox.width / 2, coveredFooterBox.y + 2);
   expect(await actions(page)).toEqual([]);
+  await body.evaluate(element => { element.scrollTop = 0; });
+  const scrollBeforeFooterWheel = await body.evaluate(element => element.scrollTop);
+  const wheelFooterBox = (await footer.boundingBox())!;
+  await page.mouse.move(wheelFooterBox.x + wheelFooterBox.width / 2, wheelFooterBox.y + wheelFooterBox.height / 2);
+  await page.mouse.wheel(0, 160);
+  await expect.poll(() => body.evaluate(element => element.scrollTop)).toBeGreaterThan(scrollBeforeFooterWheel);
+  expect(await footer.boundingBox()).toEqual(footerBox);
   await search.press("ArrowDown");
   await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  const lastVerticalEndpointClaimed = await search.evaluate(input => {
+    const event = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    input.dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  expect(lastVerticalEndpointClaimed).toBe(true);
   await tiles.nth(2).hover();
   await expect(tiles.nth(2)).toHaveAttribute("aria-selected", "true");
   await page.mouse.down();
@@ -167,6 +194,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   expect((await tiles.first().boundingBox())!.y).toBeLessThan(searchBox.y + searchBox.height);
   expect(await search.boundingBox()).toEqual(searchBox);
   expect(await footer.boundingBox()).toEqual(footerBox);
+  expect(await content.evaluate(element => element.nextElementSibling?.classList.contains("toolbox-footer"))).toBe(true);
   for (const target of [tiles.last(), tiles.last().locator(".toolbox-name"), tiles.last().locator(".toolbox-icon")]) {
     await expect(target).toHaveCSS("user-select", "none");
     expect(await target.evaluate(element => (element as HTMLElement).draggable)).toBe(false);
@@ -176,7 +204,10 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
   await expect(search).toHaveValue("");
   await expect(search).not.toHaveAttribute("aria-activedescendant");
+  await body.evaluate(element => { element.scrollTop = 0; });
   await search.fill("Item 23");
+  await expect(tiles.last()).toHaveAttribute("aria-selected", "true");
+  expect((await tiles.last().boundingBox())!.y + (await tiles.last().boundingBox())!.height).toBeLessThanOrEqual((await footer.boundingBox())!.y + 1);
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.holdAction = true; });
   await search.press("Enter");
   await expect.poll(() => actions(page)).toEqual(["id-23"]);
@@ -190,16 +221,17 @@ test("pending, empty, unmatched and error messages stay plain and non-activatabl
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search toolbox" });
   const body = page.locator(".toolbox-body");
+  const content = page.locator(".toolbox-scroll-content");
   const footer = page.locator(".toolbox-footer");
   await expect(search).toBeFocused();
-  await expect(body).toHaveText("");
+  await expect(content).toHaveText("");
   await expect(footer).toBeVisible();
   await expect(search).not.toHaveAttribute("aria-controls");
   await set(page, []);
-  await expect(body).toHaveText("Nothing here yet.");
+  await expect(content).toHaveText("Nothing here yet.");
   await expect(footer).toBeVisible();
   await search.fill('<img src=x>');
-  await expect(body).toHaveText('Nothing matches “<img src=x>”.');
+  await expect(content).toHaveText('Nothing matches “<img src=x>”.');
   await expect(footer).toHaveText("Saved artifacts, ready to reuse anywhere. Ask your agent to add one.");
   await expect(body.locator("img")).toHaveCount(0);
   await set(page, [], [{ folder: "private-folder", error: "Bad" }]);
@@ -222,7 +254,7 @@ test("pending, empty, unmatched and error messages stay plain and non-activatabl
   await page.getByRole("note").click();
   expect(await actions(page)).toEqual([]);
   await set(page, [], [{ folder: null, error: "EACCES: <private-path>" }]);
-  await expect(body).toHaveText("Could not read the templates folder.EACCES: <private-path>");
+  await expect(content).toHaveText("Could not read the templates folder.EACCES: <private-path>");
   await expect(footer).toBeVisible();
   await expect(page.getByRole("note")).toHaveCount(0);
   await expect(search).not.toHaveAttribute("aria-controls");
