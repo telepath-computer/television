@@ -138,3 +138,17 @@ Two test-authoring mistakes were corrected without changing production behavior:
 Scoped ESLint passed for every changed TypeScript file and the new native test. A scoped strict TypeScript check passed for the mutex/native tests and their imported helpers. Spec/proof indexes regenerated without changes; `git diff --check` passed. Broad repository-test and live targeted validation follow the pushed checkpoint. Full Blaxel verify and current-main integration remain the integrated-phase gates; its planned workers will supply the required live guarded-config evidence. No macOS execution or production PR CI is claimed.
 
 Primitive's edit hook warned that decision retrieval was truncated, then named a possible conflict (`dec_d81a353e`) without its contents. The edit proceeded. The prescribed CLI auth command again failed with npm `ETARGET` for `@primitive.ai/prim`, and no `prim` binary was available, so the decision could not be read or reconciled. The graph was treated as unknown, not as approval. The refinements follow the reviewed spec and direct code evidence; no governing decision was deliberately superseded.
+
+### Pushed slice 3 validation at `3ac67c2204dd6a43651541e2dcbd6022ec0c1db4`
+
+All three Blaxel commands passed on the clean, pushed checkpoint with default retry budgets:
+
+| Command (each with `--commit 3ac67c22`) | Retained run | Result |
+| --- | --- | --- |
+| `npm test -- blaxel --surface unit:root` | `2026-10-27T12-49-05-117Z-p1211260-r72fde342cd9c93e7` | 46 files, 518 passing tests, one standing skip; no failures or recovered outer flakes. Completed in 2m 10s on sandbox 99. Includes spec-link checks, developer-skill tests, native entrypoints, mutex/verify tests, and file/retry regressions. The remote 37-config sweep took 30.1 seconds. |
+| `npm test -- blaxel --file test/runner-fixtures/guidance/vitest/one.test.ts --grep 'selected\|sibling'` | `2026-10-27T12-49-05-363Z-p1211274-rb8879291ad1bc7b7` | One file and one passing title; three unselected titles skipped. Adversarial sibling absent, no recovered flakes. Sandbox 14, 27.5 seconds. |
+| `npm test -- blaxel --file test/runner-fixtures/guidance/playwright/one.test.ts --grep 'selected\|sibling'` | `2026-10-27T12-49-05-167Z-p1211262-reeb2c876943010fb` | One file and one passing title; adversarial sibling absent, no recovered flakes. Sandbox 105, 27.2 seconds. |
+
+The `\|` in the Markdown table renders a literal `|`; the shell grep argument was `selected|sibling`. Targeted native reports demonstrate real remote execution through guarded configs without the direct-native override. Their requests retain the default non-unit retry budget of 2 and infrastructure retry budget of 2; the repository unit surface retains its default zero runner-level budget. The dispatch for `unit:root` skipped workers 96–98 because their provisioned nvm entrypoint was missing, then acquired worker 99. No pool mutation or repair was performed.
+
+The handoff commit changes only this validation record. No production/test edits follow the tested checkpoint. The earlier isolated crash run remains slice 2 evidence; it was not rerun for these refinements, and no fault workflow was installed. Planned-worker native execution is covered by the real authored-checkout tests here; deployment through the full planned Blaxel verify remains the integrated-phase live obligation. Main integration, full verification, integrated review, and production PR CI remain outstanding. Copied skill installations have not been updated.
