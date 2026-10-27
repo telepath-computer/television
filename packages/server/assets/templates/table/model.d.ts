@@ -1,22 +1,28 @@
-/** A displayed stored row or column. */
+/** The shared identity and order of a displayed stored row or column. */
 export interface TableAxisEntry {
   key: string;
   order: number;
-  name?: string;
+  width?: number;
+  height?: number;
+  cells?: Record<string, string>;
+}
+
+/** A tolerant, displayed column. */
+export interface TableColumnEntry extends TableAxisEntry {
+  width: number;
 }
 
 /** A tolerant, displayed row. */
-export interface TableRowEntry {
-  key: string;
-  order: number;
+export interface TableRowEntry extends TableAxisEntry {
+  height: number;
   cells: Record<string, string>;
 }
 
 /** The readable portion of a Table store value. */
 export interface TableModel {
-  columns: TableAxisEntry[];
+  columns: TableColumnEntry[];
   rows: TableRowEntry[];
-  showHeader: boolean;
+  headerRow: boolean;
 }
 
 /** A stored position in a displayed axis. */
@@ -50,7 +56,7 @@ export interface TableCommitKeys {
   rows?: string[];
 }
 
-/** A zero-based body-cell position. */
+/** A zero-based cell position. */
 export interface TableCellPosition {
   rowIndex: number;
   columnIndex: number;
@@ -65,7 +71,6 @@ export interface TableAxisRange {
 /** A logical selection accepted by the clear planner. */
 export type TableClearSelection =
   | ({ kind: "cell" } & TableCellPosition)
-  | { kind: "header"; columnIndex: number }
   | ({ kind: "rows" | "columns" } & TableAxisRange);
 
 /** One new entry supplied to a renumbering transaction callback. */
@@ -124,16 +129,16 @@ export function ordersAtEnd(entries: TableAxisEntry[], count: number): number[] 
 export function createAxisRenumberUpdate(request: TableRenumberRequest):
   (current: unknown) => Record<string, unknown> | undefined;
 
-/** Plans a body-cell commit; null text means that editing was cancelled. */
+/** Plans a cell commit; null text means that editing was cancelled. */
 export function planCellCommit(value: unknown, target: TableCellPosition, openedText: string, text: string | null,
   keys: TableCommitKeys): TablePlanResult;
 
-/** Plans a header-name commit; null text means that editing was cancelled. */
-export function planHeaderCommit(value: unknown, columnIndex: number, openedText: string, text: string | null,
-  keys: TableCommitKeys): TablePlanResult;
-
 /** Plans showing or hiding the header row. */
-export function planSetHeader(showHeader: boolean): TablePlanResult;
+export function planSetHeader(headerRow: boolean): TablePlanResult;
+
+/** Plans one stored or drawn row-height or column-width change. */
+export function planResize(value: unknown, axis: "rows" | "columns", targetIndex: number,
+  openedSize: number, committedSize: number, keys: TableCommitKeys): TablePlanResult;
 
 /** Plans adding one row or column after storing every drawn position on that axis. */
 export function planAdd(value: unknown, axis: "rows" | "columns", keys: string[]): TablePlanResult;
@@ -145,5 +150,5 @@ export function planInsert(value: unknown, axis: "rows" | "columns", selection: 
 /** Plans removing the stored entries in a displayed row or column range. */
 export function planDelete(value: unknown, axis: "rows" | "columns", selection: TableAxisRange): TablePlanResult;
 
-/** Plans clearing the selected name or non-empty body cells without removing structure. */
+/** Plans clearing selected non-empty cells without removing structure. */
 export function planClear(value: unknown, selection: TableClearSelection): TablePlanResult;

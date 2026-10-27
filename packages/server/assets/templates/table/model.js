@@ -1,6 +1,10 @@
 /* Pure store, display, ordering and write-planning rules for the Table page. */
 
 const MINIMUM_AXIS_SIZE = 4;
+const AXIS_SIZES = {
+  columns: { field: "width", defaultValue: 160, minimum: 64, maximum: 640 },
+  rows: { field: "height", defaultValue: 38, minimum: 28, maximum: 240 },
+};
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -32,6 +36,11 @@ function cellText(value) {
   return null;
 }
 
+function clampedSize(value, rules) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return rules.defaultValue;
+  return Math.max(rules.minimum, Math.min(value, rules.maximum));
+}
+
 /** Reads a store value into the tolerant display model, or returns null when the root is unreadable. */
 export function readTable(value) {
   const root = value === undefined ? {} : value;
@@ -44,7 +53,7 @@ export function readTable(value) {
   const columns = orderedEntries(columnAxis).map(([key, column]) => ({
     key,
     order: column.order,
-    ...(typeof column.name === "string" ? { name: column.name } : {}),
+    width: clampedSize(column.width, AXIS_SIZES.columns),
   }));
   const displayedColumnKeys = new Set(columns.map(column => column.key));
   const rows = orderedEntries(rowAxis).map(([key, row]) => {
@@ -53,9 +62,9 @@ export function readTable(value) {
       const text = cellText(value);
       return displayedColumnKeys.has(columnKey) && text !== null ? [[columnKey, text]] : [];
     }));
-    return { key, order: row.order, cells };
+    return { key, order: row.order, height: clampedSize(row.height, AXIS_SIZES.rows), cells };
   });
-  return { columns, rows, showHeader: root.showHeader === true };
+  return { columns, rows, headerRow: root.headerRow === true };
 }
 
 /** Adds stable stored identities and enough count-based drawn identities to reach four positions. */
@@ -175,7 +184,9 @@ function renumber(axis, request, extraOperations = []) {
 function newAxisEntries(axis, entries, keys, additions = {}) {
   const values = keys.map(key => ({
     key,
-    value: axis === "rows" ? { cells: {}, ...additions[key] } : { ...additions[key] },
+    value: axis === "rows"
+      ? { cells: {}, ...(Object.hasOwn(additions, key) ? additions[key] : {}) }
+      : { ...(Object.hasOwn(additions, key) ? additions[key] : {}) },
   }));
   const orders = ordersAtEnd(entries, keys.length);
   if (orders === null) return { kind: "renumber", request: { mode: "append", entries: values } };
@@ -193,7 +204,7 @@ function neededKeys(supplied, count) {
   return Array.isArray(supplied) && supplied.length >= count ? supplied.slice(0, count) : null;
 }
 
-/** Plans a body-cell commit; null text means that editing was cancelled. */
+/** Plans a cell commit; null text means that editing was cancelled. */
 export function planCellCommit(value, target, openedText, text, keys) {
   if (text === null) return noWrite("cancelled");
   if (text === openedText) return noWrite("unchanged");
@@ -241,35 +252,31 @@ export function planCellCommit(value, target, openedText, text, keys) {
   return operations(writes);
 }
 
-/** Plans a header-name commit; null text means that editing was cancelled. */
-export function planHeaderCommit(value, columnIndex, openedText, text, keys) {
-  if (text === null) return noWrite("cancelled");
-  if (text === openedText) return noWrite("unchanged");
-  const state = planningState(value);
-  if (state === null) return noWrite("unreadable");
-  const column = displayAxis(state.model.columns)[columnIndex];
-  if (column === undefined) return noWrite("invalid-target");
-  const empty = text.trim() === "";
-  if (empty) {
-    if (column.kind === "drawn") return noWrite("empty-drawn");
-    if (openedText === "") return noWrite("unchanged");
-    return operations([remove(["columns", column.key, "name"])]);
-  }
-
-  if (column.kind === "stored") return operations([set(["columns", column.key, "name"], text)]);
-  const count = columnIndex - state.model.columns.length + 1;
-  const columnKeys = neededKeys(keys.columns, count);
-  if (columnKeys === null) return noWrite("missing-keys");
-  if (new Set(columnKeys).size !== columnKeys.length) return noWrite("invalid-keys");
-  const targetKey = columnKeys.at(-1);
-  const entries = newAxisEntries("columns", state.model.columns, columnKeys, { [targetKey]: { name: text } });
-  if (entries.kind === "renumber") return renumber("columns", entries.request);
-  return operations(entries.entries.map(entry => set(["columns", entry.key], entry.value)));
+/** Plans showing or hiding the header row. */
+export function planSetHeader(headerRow) {
+  return operations([set(["headerRow"], headerRow)]);
 }
 
-/** Plans showing or hiding the header row. */
-export function planSetHeader(showHeader) {
-  return operations([set(["showHeader"], showHeader)]);
+/** Plans one stored or drawn row-height or column-width change. */
+export function planResize(value, axis, targetIndex, openedSize, committedSize, keys) {
+  const rules = AXIS_SIZES[axis];
+  const size = Math.max(rules.minimum, Math.min(committedSize, rules.maximum));
+  if (size === openedSize) return noWrite("unchanged");
+  const state = planningState(value);
+  if (state === null) return noWrite("unreadable");
+  const entries = state.model[axis];
+  const target = displayAxis(entries)[targetIndex];
+  if (target === undefined) return noWrite("invalid-target");
+  if (target.kind === "stored") return operations([set([axis, target.key, rules.field], size)]);
+
+  const count = targetIndex - entries.length + 1;
+  const suppliedKeys = neededKeys(keys[axis], count);
+  if (suppliedKeys === null) return noWrite("missing-keys");
+  if (new Set(suppliedKeys).size !== suppliedKeys.length) return noWrite("invalid-keys");
+  const targetKey = suppliedKeys.at(-1);
+  const added = newAxisEntries(axis, entries, suppliedKeys, { [targetKey]: { [rules.field]: size } });
+  if (added.kind === "renumber") return renumber(axis, added.request);
+  return operations(added.entries.map(entry => set([axis, entry.key], entry.value)));
 }
 
 /** Plans adding one row or column after storing every drawn position on that axis. */
@@ -352,18 +359,12 @@ function nonEmptyCell(state, rowKey, columnKey) {
   return isObject(cells) && Object.hasOwn(cells, columnKey) && cellText(cells[columnKey]) !== null;
 }
 
-/** Plans clearing the selected name or non-empty body cells without removing structure. */
+/** Plans clearing selected non-empty cells without removing structure. */
 export function planClear(value, selection) {
   const state = planningState(value);
   if (state === null) return noWrite("unreadable");
   const rows = displayAxis(state.model.rows);
   const columns = displayAxis(state.model.columns);
-  if (selection.kind === "header") {
-    const column = columns[selection.columnIndex];
-    if (column === undefined) return noWrite("invalid-target");
-    return column.kind === "stored" && typeof state.columns[column.key]?.name === "string"
-      ? operations([remove(["columns", column.key, "name"])]) : noWrite("nothing-to-clear");
-  }
   if (selection.kind === "cell"
     && (rows[selection.rowIndex] === undefined || columns[selection.columnIndex] === undefined)) {
     return noWrite("invalid-target");

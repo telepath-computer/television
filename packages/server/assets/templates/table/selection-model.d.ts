@@ -6,16 +6,10 @@ export interface TableDisplayAxes {
   columns: DisplayAxisItem[];
 }
 
-/** One selected body cell. */
+/** One selected cell. */
 export interface TableCellSelection {
   kind: "cell";
   rowId: string;
-  columnId: string;
-}
-
-/** One selected header cell. */
-export interface TableHeaderSelection {
-  kind: "header";
   columnId: string;
 }
 
@@ -28,7 +22,7 @@ export interface TableAxisSelection {
 }
 
 /** Any current Table selection. */
-export type TableSelection = TableCellSelection | TableHeaderSelection | TableAxisSelection;
+export type TableSelection = TableCellSelection | TableAxisSelection;
 
 /** A keyboard command that can affect selection. */
 export type TableSelectionCommand = "left" | "right" | "up" | "down" | "tab-forward" | "tab-backward"
@@ -40,11 +34,8 @@ export interface TableSelectionMove {
   exit: "before" | "after" | null;
 }
 
-/** Selects one body cell at a displayed position. */
+/** Selects one cell at a displayed position. */
 export function cellSelectionAt(axes: TableDisplayAxes, rowIndex: number, columnIndex: number): TableCellSelection | null;
-
-/** Selects one header cell at a displayed column position. */
-export function headerSelectionAt(axes: TableDisplayAxes, columnIndex: number): TableHeaderSelection | null;
 
 /** Selects one axis item or extends an existing same-axis range from its anchor. */
 export function selectAxis(selection: TableSelection | null, kind: "rows" | "columns", index: number,
@@ -52,19 +43,18 @@ export function selectAxis(selection: TableSelection | null, kind: "rows" | "col
 
 /** Applies one keyboard selection command and reports when Tab should leave the table. */
 export function moveSelection(selection: TableSelection | null, command: TableSelectionCommand, axes: TableDisplayAxes,
-  options: { showHeader: boolean; extend?: boolean }): TableSelectionMove;
+  options?: { extend?: boolean }): TableSelectionMove;
 
-/** Returns the retained selection when entering the table, or selects its first body cell. */
+/** Returns the retained selection when entering the table, or selects its first cell. */
 export function enterTable(selection: TableSelection | null, axes: TableDisplayAxes): TableSelection | null;
 
 /** Resolves the row or column selection whose action menu should open. */
 export function selectionForMenu(selection: TableSelection | null, axes: TableDisplayAxes): TableAxisSelection | null;
 
 /** Follows selected identities through a new display snapshot, clearing any invalid selection. */
-export function reconcileSelection(selection: TableSelection | null, axes: TableDisplayAxes,
-  showHeader: boolean): TableSelection | null;
+export function reconcileSelection(selection: TableSelection | null, axes: TableDisplayAxes): TableSelection | null;
 
-/** Selects the new entry's body cell after an add-at-end action. */
+/** Selects the new entry's cell after an add-at-end action. */
 export function selectionAfterAdd(previous: TableSelection | null, axis: "rows" | "columns", newKey: string,
   axes: TableDisplayAxes): TableCellSelection | null;
 

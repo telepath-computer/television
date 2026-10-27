@@ -12,18 +12,12 @@ function indexOfId(items, id) {
   return items.findIndex(item => item.id === id);
 }
 
-/** Selects one body cell at a displayed position. */
+/** Selects one cell at a displayed position. */
 export function cellSelectionAt(axes, rowIndex, columnIndex) {
   const row = itemAt(axes.rows, rowIndex);
   const column = itemAt(axes.columns, columnIndex);
   if (row === undefined || column === undefined) return null;
   return { kind: "cell", rowId: row.id, columnId: column.id };
-}
-
-/** Selects one header cell at a displayed column position. */
-export function headerSelectionAt(axes, columnIndex) {
-  const column = itemAt(axes.columns, columnIndex);
-  return column === undefined ? null : { kind: "header", columnId: column.id };
 }
 
 function axisItems(axes, kind) {
@@ -69,43 +63,36 @@ function moveAxisSelection(selection, command, axes, extend) {
   return unchanged(selectAxis(extend ? selection : null, selection.kind, targetIndex, extend, axes));
 }
 
-function moveCellSelection(selection, command, axes, showHeader) {
-  const rowIndex = selection.kind === "cell" ? indexOfId(axes.rows, selection.rowId) : -1;
+function moveCellSelection(selection, command, axes) {
+  const rowIndex = indexOfId(axes.rows, selection.rowId);
   const columnIndex = indexOfId(axes.columns, selection.columnId);
-  if (columnIndex < 0 || (selection.kind === "cell" && rowIndex < 0)) return unchanged(selection);
+  if (columnIndex < 0 || rowIndex < 0) return unchanged(selection);
   if (command === "select-column") return unchanged(selectAxis(null, "columns", columnIndex, false, axes));
-  if (command === "select-row") {
-    return selection.kind === "cell" ? unchanged(selectAxis(null, "rows", rowIndex, false, axes)) : unchanged(selection);
-  }
+  if (command === "select-row") return unchanged(selectAxis(null, "rows", rowIndex, false, axes));
 
   if (command === "tab-forward" || command === "tab-backward") {
     const delta = command === "tab-forward" ? 1 : -1;
     const nextColumn = columnIndex + delta;
     if (nextColumn < 0) return unchanged(selection, "before");
     if (nextColumn >= axes.columns.length) return unchanged(selection, "after");
-    return unchanged(selection.kind === "header"
-      ? headerSelectionAt(axes, nextColumn) : cellSelectionAt(axes, rowIndex, nextColumn));
+    return unchanged(cellSelectionAt(axes, rowIndex, nextColumn));
   }
 
   if (command === "left" || command === "right") {
     const nextColumn = clamp(columnIndex + (command === "left" ? -1 : 1), 0, axes.columns.length - 1);
-    return unchanged(selection.kind === "header"
-      ? headerSelectionAt(axes, nextColumn) : cellSelectionAt(axes, rowIndex, nextColumn));
+    return unchanged(cellSelectionAt(axes, rowIndex, nextColumn));
   }
   if (command === "up") {
-    if (selection.kind === "header") return unchanged(selection);
-    if (rowIndex === 0 && showHeader) return unchanged(headerSelectionAt(axes, columnIndex));
     return unchanged(cellSelectionAt(axes, Math.max(0, rowIndex - 1), columnIndex));
   }
   if (command === "down") {
-    if (selection.kind === "header") return unchanged(cellSelectionAt(axes, 0, columnIndex));
     return unchanged(cellSelectionAt(axes, Math.min(axes.rows.length - 1, rowIndex + 1), columnIndex));
   }
   return unchanged(selection);
 }
 
 /** Applies one keyboard selection command and reports when Tab should leave the table. */
-export function moveSelection(selection, command, axes, options) {
+export function moveSelection(selection, command, axes, options = {}) {
   if (selection === null) {
     return ["left", "right", "up", "down"].includes(command)
       ? unchanged(cellSelectionAt(axes, 0, 0)) : unchanged(null);
@@ -113,10 +100,10 @@ export function moveSelection(selection, command, axes, options) {
   if (selection.kind === "rows" || selection.kind === "columns") {
     return moveAxisSelection(selection, command, axes, options.extend === true);
   }
-  return moveCellSelection(selection, command, axes, options.showHeader);
+  return moveCellSelection(selection, command, axes);
 }
 
-/** Returns the retained selection when entering the table, or selects its first body cell. */
+/** Returns the retained selection when entering the table, or selects its first cell. */
 export function enterTable(selection, axes) {
   return selection ?? cellSelectionAt(axes, 0, 0);
 }
@@ -127,10 +114,6 @@ export function selectionForMenu(selection, axes) {
   if (selection?.kind === "cell") {
     const index = indexOfId(axes.rows, selection.rowId);
     return index < 0 ? null : selectAxis(null, "rows", index, false, axes);
-  }
-  if (selection?.kind === "header") {
-    const index = indexOfId(axes.columns, selection.columnId);
-    return index < 0 ? null : selectAxis(null, "columns", index, false, axes);
   }
   return null;
 }
@@ -145,18 +128,15 @@ function reconcileAxisSelection(selection, items) {
 }
 
 /** Follows selected identities through a new display snapshot, clearing any invalid selection. */
-export function reconcileSelection(selection, axes, showHeader) {
+export function reconcileSelection(selection, axes) {
   if (selection === null) return null;
   if (selection.kind === "cell") {
     return indexOfId(axes.rows, selection.rowId) < 0 || indexOfId(axes.columns, selection.columnId) < 0 ? null : selection;
   }
-  if (selection.kind === "header") {
-    return !showHeader || indexOfId(axes.columns, selection.columnId) < 0 ? null : selection;
-  }
   return reconcileAxisSelection(selection, axisItems(axes, selection.kind));
 }
 
-/** Selects the new entry's body cell after an add-at-end action. */
+/** Selects the new entry's cell after an add-at-end action. */
 export function selectionAfterAdd(previous, axis, newKey, axes) {
   const newId = `stored:${newKey}`;
   if (axis === "rows") {

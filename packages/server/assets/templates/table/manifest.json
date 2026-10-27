@@ -15,7 +15,7 @@
       "rows"
     ],
     "properties": {
-      "showHeader": {
+      "headerRow": {
         "type": "boolean"
       },
       "columns": {
@@ -29,8 +29,9 @@
             "order": {
               "type": "number"
             },
-            "name": {
-              "type": "string"
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
             }
           }
         }
@@ -46,6 +47,10 @@
           "properties": {
             "order": {
               "type": "number"
+            },
+            "height": {
+              "type": "number",
+              "exclusiveMinimum": 0
             },
             "cells": {
               "type": "object",
