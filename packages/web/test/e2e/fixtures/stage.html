@@ -320,6 +320,17 @@
           channel = createChannel(revision, selectedArtifactID);
           draw();
         },
+        reorder(order) {
+          // A reorder that arrives as a channel update, not through a drag.
+          pageState = order.map((artifactID) => pageState.find((page) => page.artifactIds[0] === artifactID));
+          revision += 1;
+          const selectedArtifactID = document.querySelector(".page[selected]")?.dataset.pageKey;
+          channel = createChannel(revision, selectedArtifactID);
+          draw();
+        },
+        pageKeys() {
+          return [...document.querySelectorAll(".page")].map((page) => page.dataset.pageKey);
+        },
         async replaceChannel() {
           if (!captured) throw new Error("Capture the initial channel before replacing it");
           const stage = document.querySelector(".stage");

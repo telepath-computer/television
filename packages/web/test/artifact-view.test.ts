@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { html, render } from "lit-html";
 import { view } from "@telepath-computer/utils/lit-view";
 import {
@@ -26,6 +26,7 @@ import {
 import { installNativeDialogMock } from "./helpers/dialog.ts";
 
 const WEBVIEW_BRIDGE_CHANNEL = "television-artifact-bridge";
+const APPLICATION_LINK_HOST_CHANNEL = "television-application-link";
 
 function createApplication(markdown: {
   get(input: { artifactID: string }): Promise<string>;
@@ -216,6 +217,12 @@ function button(el: HTMLElement, label: string): HTMLButtonElement {
   const match = el.querySelector<HTMLButtonElement>(`button[aria-label='${label}']`);
   if (!match) throw new Error(`Expected ${label} button`);
   return match;
+}
+
+function dispatchApplicationLinkRequest(webview: HTMLElement, value: unknown): void {
+  webview.dispatchEvent(new CustomEvent("ipc-message", {
+    detail: { channel: APPLICATION_LINK_HOST_CHANNEL, args: [value] },
+  }));
 }
 
 function dispatchWebviewIpc(webview: HTMLElement, payload: unknown): void {
@@ -628,7 +635,7 @@ describe("artifact-frame view rendering dispatcher", () => {
     expect(el.querySelector(".artifact-title")?.textContent).toBe("Updated title");
   });
 
-  it("renders non-markdown file path artifacts through the encoded proxy URL without sandbox", async () => {
+  it("renders non-markdown file path artifacts through the encoded proxy URL, sandboxed", async () => {
     const el = mount({
       id: "file id",
       kind: "path",
@@ -639,17 +646,17 @@ describe("artifact-frame view rendering dispatcher", () => {
 
     const iframe = frame(el);
     expect(iframe.getAttribute("src")).toBe("/artifact/file%20id/file%20(1)%23%3F.%25.%C3%A9.html");
-    expect(iframe.hasAttribute("sandbox")).toBe(false);
+    expect(iframe.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads");
     expect(el.textContent).not.toContain("arrives in a later slice");
   });
 
-  it("renders directory path artifacts through the proxy directory root without sandbox", async () => {
+  it("renders directory path artifacts through the proxy directory root, sandboxed", async () => {
     const el = mount({ id: "dir", kind: "path", title: "Dir", path: "/tmp/site/" });
     await flush();
 
     const iframe = frame(el);
     expect(iframe.getAttribute("src")).toBe("/artifact/dir/");
-    expect(iframe.hasAttribute("sandbox")).toBe(false);
+    expect(iframe.getAttribute("sandbox")).toBe("allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads");
   });
 
   it("renders markdown path artifacts through the markdown view route with the future content URL", async () => {
@@ -1046,6 +1053,65 @@ describe("artifact-frame view rendering dispatcher", () => {
     expectTrust(el, "current-guid");
   });
 
+  // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-application-link-host
+  it("passes an application link to the native bridge only from the webview it shows, on its own origin", async () => {
+    const openApplicationLink = vi.fn();
+    const native = globalThis as typeof globalThis & { __televisionNativeBridge?: unknown };
+    native.__televisionNativeBridge = { openApplicationLink };
+    try {
+      window.history.replaceState(null, "", "/?mode=electron");
+      const el = mount({ id: "old", kind: "path", title: "Old", path: "/tmp/old.html" }) as unknown as HTMLElement & {
+        artifact: Artifact;
+      };
+      await flush();
+      const oldWebview = el.querySelector("webview.artifact-content") as (HTMLElement & { getURL?: () => string }) | null;
+      if (!oldWebview) throw new Error("Expected webview");
+      const ownPage = new URL("/artifact/old/index.html", window.location.origin).href;
+      oldWebview.getURL = () => ownPage;
+
+      dispatchApplicationLinkRequest(oldWebview, "example-app://open/item");
+      expect(openApplicationLink.mock.calls).toEqual([["example-app://open/item"]]);
+
+      openApplicationLink.mockClear();
+      for (const shown of [
+        "https://third-party.example/page",
+        "https://producer.example/artifact/01J00000000000000000000000/index.html",
+        "chrome-error://chromewebdata/",
+        "about:blank",
+        "data:text/html,<p>page</p>",
+        "file:///tmp/old.html",
+        // A blob URL reports the origin of the page that created it.
+        `blob:${window.location.origin}/7d3b9a52-6c51-4b4e-9d2f-2f8c9a1e0b4d`,
+        "not a url",
+      ]) {
+        oldWebview.getURL = () => shown;
+        dispatchApplicationLinkRequest(oldWebview, "example-app://open/item");
+      }
+      oldWebview.getURL = () => ownPage;
+      dispatchApplicationLinkRequest(oldWebview, 42);
+      dispatchWebviewIpc(oldWebview, "example-app://open/item");
+      dispatchWebviewIpc(oldWebview, { type: "open-application-link", url: "example-app://open/item" });
+      expect(openApplicationLink).not.toHaveBeenCalled();
+
+      window.history.replaceState(null, "", "/");
+      el.artifact = { id: "browser", kind: "path", title: "Browser", path: "/tmp/browser.html" };
+      await flush();
+      window.history.replaceState(null, "", "/?mode=electron");
+      el.artifact = { id: "current", kind: "path", title: "Current", path: "/tmp/current.html" };
+      await flush();
+      const currentWebview = el.querySelector("webview.artifact-content") as (HTMLElement & { getURL?: () => string }) | null;
+      if (!currentWebview || currentWebview === oldWebview) throw new Error("Expected replacement webview");
+      currentWebview.getURL = () => new URL("/artifact/current/index.html", window.location.origin).href;
+
+      dispatchApplicationLinkRequest(oldWebview, "example-app://open/stale");
+      expect(openApplicationLink).not.toHaveBeenCalled();
+      dispatchApplicationLinkRequest(currentWebview, "example-app://open/current");
+      expect(openApplicationLink.mock.calls).toEqual([["example-app://open/current"]]);
+    } finally {
+      delete native.__televisionNativeBridge;
+    }
+  });
+
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-reparent
   it("clears trusted identity when a loaded frame component is reconnected", async () => {
     const url = "https://producer.test/artifact/01J00000000000000000000000/index.html";
@@ -1334,6 +1400,31 @@ describe("artifact-frame view rendering dispatcher", () => {
     expectTrust(el, "guid-b", frame(el).contentWindow);
   });
 
+  // Back and Forward are host-driven: they assign the frame's src
+  // (specs/arch/artifact-frame/reload-navigation.md, "Intersection with
+  // readiness tracking"). A same-origin frame reports the host's own
+  // assignment as a native request that changes no history.
+  it("assigns the frame's src on Forward after a native request that changed no history", async () => {
+    const first = "/artifact/native-back/index.html";
+    const second = "/artifact/native-back/page2.html";
+    const el = mount({ id: "native-back", kind: "path", title: "Native", path: "/tmp/index.html" });
+    await flush();
+    dispatchBridgeReady(el, "guid-a");
+    dispatchNavigation(el, { url: second, native: true });
+    await flush();
+
+    button(el, "Back").click();
+    await flush();
+    expect(frame(el).getAttribute("src")).toBe(first);
+    dispatchNavigation(el, { url: first, native: true });
+    await flush();
+    expect(navigationRecord("native-back")).toMatchObject({ entries: [{ url: second }], cursor: -1 });
+
+    button(el, "Forward").click();
+    await flush();
+    expect(frame(el).getAttribute("src")).toBe(second);
+  });
+
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-stale
   it("ignores stale lifecycle GUIDs and does not adopt from non-ready messages", async () => {
     const url = "https://producer.test/artifact/01J00000000000000000000000/index.html";
@@ -1361,39 +1452,49 @@ describe("artifact-frame view rendering dispatcher", () => {
 
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-stale
   it("accepts iframe leaving from the expected origin only for the current GUID", async () => {
-    const url = "https://producer.test/artifact/01J00000000000000000000000/index.html";
-    const remote = mount({ id: "tv-leaving-origin", kind: "url", title: "Shared", url });
-    await flush();
+    // A frame the host sandboxes, local or shared, sends from the opaque origin "null".
+    for (const artifact of [
+      { id: "tv-leaving-origin", kind: "url", title: "Shared", url: "https://producer.test/artifact/01J00000000000000000000000/index.html" },
+      { id: "local-leaving-origin", kind: "path", title: "Local", path: "/tmp/index.html" },
+    ] satisfies Artifact[]) {
+      const sandboxed = mount(artifact);
+      await flush();
+      dispatchBridgeReady(sandboxed, "guid-a");
+      await flush();
+      expectTrust(sandboxed, "guid-a", frame(sandboxed).contentWindow);
 
-    dispatchBridgeReady(remote, "guid-a");
-    await flush();
-    expectTrust(remote, "guid-a", frame(remote).contentWindow);
+      for (const origin of ["https://attacker.test", "https://producer.test", window.location.origin]) {
+        dispatchFrameMessage(sandboxed, { type: "leaving", guid: "guid-a" }, { source: window, origin });
+        await flush();
+        expectTrust(sandboxed, "guid-a", frame(sandboxed).contentWindow);
+      }
+      dispatchFrameMessage(sandboxed, { type: "leaving", guid: "old-guid" }, { source: window, origin: "null" });
+      await flush();
+      expectTrust(sandboxed, "guid-a", frame(sandboxed).contentWindow);
 
-    dispatchFrameMessage(remote, { type: "leaving", guid: "guid-a" }, { source: window, origin: "https://attacker.test" });
-    await flush();
-    expectTrust(remote, "guid-a", frame(remote).contentWindow);
+      dispatchFrameMessage(sandboxed, { type: "leaving", guid: "guid-a" }, { source: window, origin: "null" });
+      await flush();
+      expectTrust(sandboxed, null);
+    }
 
-    dispatchFrameMessage(remote, { type: "leaving", guid: "old-guid" }, { source: window, origin: "https://producer.test" });
+    // An unsandboxed frame, the Markdown editor, sends from its src's origin.
+    const editor = mount({ id: "md-leaving-origin", kind: "path", title: "Note", path: "/tmp/note.md" });
     await flush();
-    expectTrust(remote, "guid-a", frame(remote).contentWindow);
+    dispatchBridgeReady(editor, "editor-guid");
+    await flush();
+    expectTrust(editor, "editor-guid", frame(editor).contentWindow);
 
-    dispatchFrameMessage(remote, { type: "leaving", guid: "guid-a" }, { source: window, origin: "https://producer.test" });
+    dispatchFrameMessage(editor, { type: "leaving", guid: "editor-guid" }, { source: window, origin: "null" });
     await flush();
-    expectTrust(remote, null);
+    expectTrust(editor, "editor-guid", frame(editor).contentWindow);
 
-    const local = mount({ id: "local-leaving-origin", kind: "path", title: "Local", path: "/tmp/index.html" });
+    dispatchFrameMessage(editor, { type: "leaving", guid: "old-editor-guid" }, { source: window, origin: window.location.origin });
     await flush();
-    dispatchBridgeReady(local, "local-guid");
-    await flush();
-    expectTrust(local, "local-guid", frame(local).contentWindow);
+    expectTrust(editor, "editor-guid", frame(editor).contentWindow);
 
-    dispatchFrameMessage(local, { type: "leaving", guid: "old-local-guid" }, { source: window, origin: window.location.origin });
+    dispatchFrameMessage(editor, { type: "leaving", guid: "editor-guid" }, { source: window, origin: window.location.origin });
     await flush();
-    expectTrust(local, "local-guid", frame(local).contentWindow);
-
-    dispatchFrameMessage(local, { type: "leaving", guid: "local-guid" }, { source: window, origin: window.location.origin });
-    await flush();
-    expectTrust(local, null);
+    expectTrust(editor, null);
   });
 
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-replace-reset
@@ -2423,5 +2524,236 @@ describe("browser demo mode artifact frame", () => {
     expectTrust(el, null);
     expect(frame(el).getAttribute("src")).toBe(src);
     expect(el.querySelector("button[aria-label='Back']")).toBeNull();
+  });
+});
+
+// spec: proofs/arch/artifact-frame/isolation.md#^iso-t-attributes
+describe("artifact frame sandbox and allow attributes (^iso-t-attributes)", () => {
+  const SANDBOX = "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads";
+  const ALLOW = "clipboard-write; fullscreen; autoplay; picture-in-picture; web-share; encrypted-media";
+  const SHARED_URL = "https://producer.test/artifact/01J00000000000000000000000/index.html";
+
+  interface Assignment {
+    frame: Element;
+    src: string;
+    sandbox: string | null;
+    allow: string | null;
+  }
+
+  let assignments: Assignment[] = [];
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+    window.history.replaceState(null, "", "/");
+    assignments = [];
+    // Each frame's attributes at the moment its `src` is assigned.
+    const setAttribute = Element.prototype.setAttribute;
+    vi.spyOn(Element.prototype, "setAttribute").mockImplementation(function (this: Element, name: string, value: string) {
+      if (this.tagName === "IFRAME" && name === "src") {
+        assignments.push({ frame: this, src: value, sandbox: this.getAttribute("sandbox"), allow: this.getAttribute("allow") });
+      }
+      setAttribute.call(this, name, value);
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function recorded(): Array<Omit<Assignment, "frame">> {
+    return assignments.map(({ src, sandbox, allow }) => ({ src, sandbox, allow }));
+  }
+
+  it("sandboxes proxied and shared documents, and nothing else, as one iframe element moves between them", async () => {
+    const application = Object.assign(createApplication(), { browserDemoMode: true });
+    const el = mountFrameContract({ artifact: { id: "page", kind: "path", title: "Page", path: "/tmp/page.html" }, application });
+    await flush();
+    const element = frame(el);
+    for (const artifact of [
+      { id: "notes", kind: "path", title: "Notes", path: "/tmp/notes.md" },
+      { id: "shared", kind: "url", title: "Shared", url: SHARED_URL },
+      { id: "demo", kind: "url", title: "Demo", url: "https://news.example/start" },
+      { id: "site", kind: "path", title: "Site", path: "/tmp/site/" },
+      { id: "demo", kind: "url", title: "Demo", url: "https://news.example/start" },
+      { id: "notes", kind: "path", title: "Notes", path: "/tmp/notes.md" },
+      { id: "page", kind: "path", title: "Page", path: "/tmp/page.html" },
+    ] satisfies Artifact[]) {
+      el.artifact = artifact;
+      await flush();
+      expect(frame(el)).toBe(element);
+    }
+
+    expect(assignments.every((assignment) => assignment.frame === element)).toBe(true);
+    expect(recorded()).toEqual([
+      { src: "/artifact/page/page.html", sandbox: SANDBOX, allow: ALLOW },
+      { src: "/views/markdown/", sandbox: null, allow: ALLOW },
+      { src: SHARED_URL, sandbox: SANDBOX, allow: ALLOW },
+      { src: "https://news.example/start", sandbox: null, allow: ALLOW },
+      { src: "/artifact/site/", sandbox: SANDBOX, allow: ALLOW },
+      { src: "https://news.example/start", sandbox: null, allow: ALLOW },
+      { src: "/views/markdown/", sandbox: null, allow: ALLOW },
+      { src: "/artifact/page/page.html", sandbox: SANDBOX, allow: ALLOW },
+    ]);
+
+    el.artifact = { id: "demo", kind: "url", title: "Demo", url: "https://news.example/start" };
+    await flush();
+    button(el, "Return to the original page").click();
+    expect(recorded().at(-1)).toEqual({ src: "https://news.example/start", sandbox: null, allow: ALLOW });
+  });
+
+  it("sandboxes a proxied Markdown file and not the placeholder for an external page when Back and Forward assign them", async () => {
+    const el = mount({ id: "site", kind: "path", title: "Site", path: "/tmp/site/" });
+    await flush();
+    dispatchBridgeReady(el, "guid-a");
+    dispatchNavigation(el, { url: "/artifact/site/notes.md", native: true });
+    await flush();
+    dispatchNavigation(el, { url: "https://example.com/elsewhere" });
+    await flush();
+    for (const label of ["Back", "Back", "Forward", "Forward"]) {
+      button(el, label).click();
+      await flush();
+    }
+
+    const element = frame(el);
+    expect(assignments.every((assignment) => assignment.frame === element)).toBe(true);
+    expect(recorded()).toEqual([
+      { src: "/artifact/site/", sandbox: SANDBOX, allow: ALLOW },
+      { src: "/views/url-unsupported/", sandbox: null, allow: ALLOW },
+      { src: "/artifact/site/notes.md", sandbox: SANDBOX, allow: ALLOW },
+      { src: "/artifact/site/", sandbox: SANDBOX, allow: ALLOW },
+      { src: "/artifact/site/notes.md", sandbox: SANDBOX, allow: ALLOW },
+      { src: "/views/url-unsupported/", sandbox: null, allow: ALLOW },
+    ]);
+  });
+
+  it("shows the missing-artifact page the app renders in no frame, and frames the recovered editor unsandboxed", async () => {
+    let missing = true;
+    const application = createApplication({
+      get: vi.fn(async () => {
+        if (missing) throw new RequestError("Markdown artifact not found: md", { serverURL: "http://example.test", status: 404 });
+        return "# Restored";
+      }),
+      update: vi.fn(async () => undefined),
+    });
+    const el = mountFrameContract({ artifact: { id: "md", kind: "path", title: "Note", path: "/tmp/note.md" }, application });
+    await vi.waitFor(() => expect(el.querySelector(".artifact-missing")).not.toBeNull());
+    expect(el.querySelector("iframe")).toBeNull();
+
+    missing = false;
+    application.dispatchEvent(new ArtifactContentChangedEvent("artifact-content-changed", { artifactID: "md" }));
+    await vi.waitFor(() => expect(el.querySelector("iframe")).not.toBeNull());
+    expect(recorded().at(-1)).toEqual({ src: "/views/markdown/", sandbox: null, allow: ALLOW });
+  });
+});
+
+describe("artifact webview partitions (^dp-t-interface-names)", () => {
+  type Bridge = { artifactPartitions?: unknown };
+  const environment = globalThis as typeof globalThis & { __televisionNativeBridge?: Bridge };
+
+  interface WebviewAssignment {
+    webview: Element;
+    src: string;
+    partition: string | null;
+  }
+
+  let assignments: WebviewAssignment[] = [];
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    localStorage.clear();
+    window.history.replaceState(null, "", "/?mode=electron");
+    assignments = [];
+    // Each webview's partition at the moment its `src` is assigned.
+    const setAttribute = Element.prototype.setAttribute;
+    vi.spyOn(Element.prototype, "setAttribute").mockImplementation(function (this: Element, name: string, value: string) {
+      if (this.tagName === "WEBVIEW" && name === "src") {
+        assignments.push({ webview: this, src: value, partition: this.getAttribute("partition") });
+      }
+      setAttribute.call(this, name, value);
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    delete environment.__televisionNativeBridge;
+    window.history.replaceState(null, "", "/");
+  });
+
+  function webview(el: HTMLElement): HTMLElement {
+    const element = el.querySelector<HTMLElement>("webview");
+    if (!element) throw new Error("Expected webview");
+    return element;
+  }
+
+  const SHARED_URL = "https://producer.test/artifact/01J00000000000000000000000/index.html";
+  const artifacts: Array<[Artifact, string]> = [
+    [{ id: "page", kind: "path", title: "Page", path: "/tmp/page.html" }, "tv-artifact:page"],
+    [{ id: "site 01/é", kind: "path", title: "Site", path: "/tmp/site/" }, "tv-artifact:site 01/é"],
+    [{ id: "notes", kind: "path", title: "Notes", path: "/tmp/notes.md" }, "tv-artifact:notes"],
+    [{ id: "web", kind: "url", title: "Web", url: "https://news.example/start" }, "tv-url-artifact"],
+    [{ id: "shared", kind: "url", title: "Shared", url: SHARED_URL }, "tv-url-artifact"],
+  ];
+
+  // spec: proofs/arch/desktop/artifact-partitions.md#^dp-t-interface-names
+  it("names each artifact webview's partition before its first navigation, and replaces the webview when its partition changes", async () => {
+    environment.__televisionNativeBridge = { artifactPartitions: 1 };
+    for (const [artifact, partition] of artifacts) {
+      document.body.innerHTML = "";
+      assignments = [];
+      const el = mount(artifact);
+      await flush();
+      expect({ id: artifact.id, first: assignments[0] && { src: assignments[0].src, partition: assignments[0].partition } })
+        .toEqual({ id: artifact.id, first: { src: expect.any(String), partition } });
+      expect(webview(el).getAttribute("partition")).toBe(partition);
+    }
+
+    // One webview keeps its partition as its document moves to another of the
+    // artifact's pages, to an external page and back.
+    document.body.innerHTML = "";
+    const el = mount({ id: "page", kind: "path", title: "Page", path: "/tmp/page.html" });
+    await flush();
+    const element = webview(el);
+    for (const url of ["http://localhost:3000/artifact/page/other.html", "https://news.example/elsewhere", "http://localhost:3000/artifact/page/page.html"]) {
+      element.dispatchEvent(Object.assign(new Event("did-navigate"), { url }));
+      await flush();
+      expect({ url, same: webview(el) === element, partition: webview(el).getAttribute("partition") })
+        .toEqual({ url, same: true, partition: "tv-artifact:page" });
+    }
+
+    // A change of kind, or of artifact, needs another partition and so a new webview.
+    for (const [artifact, partition] of [
+      [{ id: "page", kind: "url", title: "Page", url: "https://news.example/start" }, "tv-url-artifact"],
+      [{ id: "page", kind: "path", title: "Page", path: "/tmp/page.html" }, "tv-artifact:page"],
+      [{ id: "other", kind: "path", title: "Other", path: "/tmp/other.html" }, "tv-artifact:other"],
+    ] satisfies Array<[Artifact, string]>) {
+      const previous = webview(el);
+      assignments = [];
+      (el as unknown as { artifact: Artifact }).artifact = artifact;
+      await flush();
+      expect({ id: artifact.id, kind: artifact.kind, replaced: webview(el) !== previous, attached: previous.isConnected })
+        .toEqual({ id: artifact.id, kind: artifact.kind, replaced: true, attached: false });
+      // The view may assign the new webview more than one address as it
+      // restores the artifact's history; each finds the partition in place.
+      expect(assignments.length).toBeGreaterThan(0);
+      expect(assignments.map(({ webview: assigned, partition: named }) => ({ current: assigned === webview(el), partition: named })))
+        .toEqual(assignments.map(() => ({ current: true, partition })));
+    }
+  });
+
+  // spec: proofs/arch/desktop/artifact-partitions.md#^dp-t-interface-names
+  it("names no partition unless the native bridge carries the flag", async () => {
+    for (const bridge of [undefined, {}, { artifactPartitions: 2 }, { artifactPartitions: true }, { artifactPartitions: "1" }]) {
+      if (bridge === undefined) delete environment.__televisionNativeBridge;
+      else environment.__televisionNativeBridge = bridge;
+      for (const [artifact] of artifacts) {
+        document.body.innerHTML = "";
+        assignments = [];
+        const el = mount(artifact);
+        await flush();
+        expect({ bridge, id: artifact.id, partitions: assignments.map(({ partition }) => partition), attribute: webview(el).hasAttribute("partition") })
+          .toEqual({ bridge, id: artifact.id, partitions: [null], attribute: false });
+      }
+    }
   });
 });

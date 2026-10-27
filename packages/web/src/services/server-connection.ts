@@ -198,11 +198,11 @@ export class ServerConnection extends EventTarget<
    * `status` alone.
    */
   hasEverConnected = false;
+  /** Completed unreachable reconnects since the last successful connection. */
+  failedReconnectAttempts = 0;
   /** Browser demo mode as the server reported it when this page connected. */
   browserDemoMode = false;
   hasAuthRejected = false;
-  /** True when the current auth rejection rejected a non-null token. */
-  hasAuthTokenRejected = false;
   /** Boot-barrier phase of the current attempt; see `BootState`. */
   bootState: BootState = "pending";
   /**
@@ -340,7 +340,6 @@ export class ServerConnection extends EventTarget<
   async connect(token: string | null): Promise<void> {
     this._token = token;
     this.hasAuthRejected = false;
-    this.hasAuthTokenRejected = false;
     this.acpClient.setToken(token);
     this.cancelRetryTimer();
     this.retryDelay = INITIAL_RETRY_DELAY_MS;
@@ -476,12 +475,15 @@ export class ServerConnection extends EventTarget<
 
     return await new Promise<void>((resolve, reject) => {
       let settled = false;
+      let initialized = false;
 
       const finishConnected = () => {
         if (settled || this.connectAttempt !== attempt) return;
         settled = true;
+        initialized = true;
         this.retryDelay = INITIAL_RETRY_DELAY_MS;
         this.hasEverConnected = true;
+        this.failedReconnectAttempts = 0;
         this.setStatus("connected");
         this.telemetryActivityAgent?.start();
         resolve();
@@ -519,13 +521,11 @@ export class ServerConnection extends EventTarget<
           }
           this.dispatchEvent(
             new ServerEventMessageEvent("server-event", {
-              serverURL: this.url,
               event: { type: "channel-changed", channelID: display.focusedChannelId },
             }),
           );
           this.dispatchEvent(
             new ServerEventMessageEvent("server-event", {
-              serverURL: this.url,
               event: {
                 type: "pinned-channels-changed",
                 pinnedChannelIds: [...display.pinnedChannelIds],
@@ -538,7 +538,7 @@ export class ServerConnection extends EventTarget<
             // change has already been applied and the refresh targets the
             // channel the server currently considers focused.
             this.dispatchEvent(
-              new ServerReconnectedEvent("server-reconnected", { serverURL: this.url }),
+              new ServerReconnectedEvent("server-reconnected"),
             );
           }
         } catch (error) {
@@ -596,10 +596,7 @@ export class ServerConnection extends EventTarget<
             }
           }
           this.dispatchEvent(
-            new ServerStatusEvent("server-status", {
-              serverURL: this.url,
-              message: statusMessage,
-            }),
+            new ServerStatusEvent("server-status", { message: statusMessage }),
           );
           if (startBootstrap) {
             // Checked AFTER the dispatch: a listener may have just begun a
@@ -621,7 +618,7 @@ export class ServerConnection extends EventTarget<
         const serverEvent = message as unknown as ServerEvent;
         this.applyServerEvent(serverEvent);
         this.dispatchEvent(
-          new ServerEventMessageEvent("server-event", { serverURL: this.url, event: serverEvent }),
+          new ServerEventMessageEvent("server-event", { event: serverEvent }),
         );
       });
 
@@ -644,6 +641,7 @@ export class ServerConnection extends EventTarget<
 
         // Post-success close. The attempt promise has already resolved, so
         // we can't reject through it — handle the disposition inline.
+        if (!initialized) return;
         if (closeCode === AUTH_FAILED_CLOSE_CODE) {
           this.handleAuthRejected();
           return;
@@ -656,6 +654,7 @@ export class ServerConnection extends EventTarget<
           return;
         }
         if (settled) {
+          if (!initialized) return;
           // Post-success error without a follow-up close — drive the
           // same transport-failure path so we schedule a retry instead
           // of relying on `finishError`, which is a no-op once settled.
@@ -681,7 +680,6 @@ export class ServerConnection extends EventTarget<
 
   private handleAuthRejected(): void {
     this.hasAuthRejected = true;
-    this.hasAuthTokenRejected = this._token !== null;
     this.autoReconnect = false;
     this.cancelRetryTimer();
     this.setStatus("unauthorized");
@@ -702,6 +700,7 @@ export class ServerConnection extends EventTarget<
       // leave status as "disconnected" (the caller will react).
       return;
     }
+    if (this.hasEverConnected) this.failedReconnectAttempts += 1;
     this.scheduleRetry();
   }
 

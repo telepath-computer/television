@@ -19,10 +19,6 @@
     ]
   },
   "include": [
-    ".storybook/**/*.ts",
-    "stories/**/*.ts",
-    "lib/**/*.ts",
-    "types.d.ts",
-    "../packages/web/src/dom-popover-source.d.ts"
+    ".storybook/**/*.ts"
   ]
 }

@@ -9,8 +9,8 @@ Proves [specs/arch/onboarding/index.md](../../../specs/arch/onboarding/index.md)
 
 The product spec owns the runtime spine at built-CLI and real-browser boundaries. Architecture breadth composes across three seams:
 
-- **Validated content into the binary.** [arch/onboarding/content.md](../../../specs/arch/onboarding/content.md) owns source/config validation; [arch/cli/index.md#^t-valid-tree-ships](../cli/index.md#^t-valid-tree-ships) owns byte-identical server and CLI packaging.
-- **Serving CLI into store bootstrap.** [arch/cli/index.md#^t-resolution](../cli/index.md#^t-resolution) crosses the packaged path into a real serving store; [installer.md](../../../specs/arch/onboarding/installer.md) owns store-side migration, install, failure, and bootstrap contracts.
+- **Validated content into the binary.** [arch/onboarding/content.md](../../../specs/arch/onboarding/content.md) owns source/config validation, including declared store data; [arch/cli/index.md#^t-valid-tree-ships](../cli/index.md#^t-valid-tree-ships) owns byte-identical server and CLI packaging.
+- **Serving CLI into store bootstrap.** [arch/cli/index.md#^t-resolution](../cli/index.md#^t-resolution) crosses the packaged path into a real serving store; [installer.md](../../../specs/arch/onboarding/installer.md) owns store-side migration, install, declared-store, failure, and bootstrap contracts.
 - **Installer marker onto server transports.** [installer.md](../../../specs/arch/onboarding/installer.md) owns marker persistence, API read-only behavior, HTTP responses, and websocket events. The marker has no browser consumer because onboarding channels appear in the ordinary unpinned channel list without a promotion pass; it remains install identity and agent-visible metadata.
 
 The bake is authoring tooling outside the runtime path. [arch/onboarding/bake.md](../../../specs/arch/onboarding/bake.md) owns its spawned-process success and failure paths, transformation breadth, and real validator handoff. Runtime delivery does not depend on whether committed content was baked or written by hand.

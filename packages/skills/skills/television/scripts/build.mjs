@@ -83,6 +83,8 @@ export function buildTelevision({
   const artifactWorkflow = readSource(sourceDirectory, "artifact-workflow.md");
   const htmlArtifactStyle = readSource(sourceDirectory, "html-artifact-style.md");
   const theming = readSource(sourceDirectory, "theming.md");
+  // The resource guidance ships as authored (specs/arch/resources/guidance.md#^rg-document).
+  const resources = readFileSync(path.join(sourceDirectory, "resources.md"), "utf8");
   const description = typeof intro.frontmatter.description === "string"
     ? intro.frontmatter.description.trim()
     : "";
@@ -129,6 +131,7 @@ ${htmlArtifactStyle.body.trimEnd()}
   mkdirSync(outputDir, { recursive: true });
   writeFileSync(path.join(outputDir, "SKILL.md"), `${renderedSkill.trimEnd()}\n`);
   writeFileSync(path.join(outputDir, "theming.md"), `${renderedTheming.trimEnd()}\n`);
+  writeFileSync(path.join(outputDir, "resources.md"), resources);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

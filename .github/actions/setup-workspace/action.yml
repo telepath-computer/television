@@ -2,9 +2,9 @@ name: Setup workspace
 description: >-
   Select Node from .nvmrc and install the workspace via the exact-key dependency cache contract
   (specs/arch/test-runner/github-ci.md#dependency-install). Restores
-  node_modules plus the prepare-chain dist outputs under a key covering every
-  input of the cached content; on a hit npm ci is skipped entirely; on a miss
-  npm ci runs and the paths are saved. No restore-keys fallback, ever.
+  node_modules under a key covering the declared inputs; on a hit npm ci is
+  skipped entirely; on a miss npm ci runs and the path is saved. No
+  restore-keys fallback, ever.
   Checkout must have run first.
 
 outputs:
@@ -47,10 +47,8 @@ runs:
       id: workspace-cache
       uses: actions/cache@v4
       with:
-        path: |
-          node_modules
-          packages/skillbench/dist
-        key: ${{ inputs.cache-namespace }}-${{ runner.os }}-${{ runner.arch }}-node${{ steps.node-runtime.outputs.major }}-${{ inputs.image-identity }}-${{ hashFiles('package-lock.json', 'packages/skills/package.json', 'packages/skillbench/**') }}
+        path: node_modules
+        key: ${{ inputs.cache-namespace }}-${{ runner.os }}-${{ runner.arch }}-node${{ steps.node-runtime.outputs.major }}-${{ inputs.image-identity }}-${{ hashFiles('package-lock.json', 'packages/skills/package.json') }}
 
     - name: npm ci (cache miss only)
       if: steps.workspace-cache.outputs.cache-hit != 'true'

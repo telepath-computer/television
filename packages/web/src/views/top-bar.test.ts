@@ -24,7 +24,6 @@ vi.stubGlobal("ResizeObserver", class {
   disconnect(): void {}
 });
 
-const PRIMARY = "http://primary.test";
 const application = {
   snapshot: {
     connection: { status: "connected" },
@@ -82,10 +81,10 @@ function snapshot(
     focusedChannel: channels.find(({ id }) => id === focusedChannelId) ?? null,
     connection: {
       authorizationRequired: false,
-      authorizationRejected: false,
       gateHalted: false,
       status: "connected",
       hasEverConnected: true,
+      failedReconnectAttempts: 0,
       firstConnectError: null,
       nextRetryAt: null,
       upgradeInstructions: null,
@@ -94,7 +93,7 @@ function snapshot(
 }
 
 function ownerWithNotice(notice: boolean): FakeUpdateConnectionOwner {
-  const owner = new FakeUpdateConnectionOwner(new FakeUpdateConnection(PRIMARY));
+  const owner = new FakeUpdateConnectionOwner(new FakeUpdateConnection());
   if (notice) {
     const message: ServerStatusMessage = {
       type: "server-status",
@@ -109,7 +108,7 @@ function ownerWithNotice(notice: boolean): FakeUpdateConnectionOwner {
         desktop: null,
       },
     };
-    dispatchServerStatus(owner, message, PRIMARY);
+    dispatchServerStatus(owner, message);
   }
   return owner;
 }
@@ -148,7 +147,6 @@ describe("top-bar markup (^top-ac-markup-smoke)", () => {
       render(
         html`${TopBarView(application, snapshot([focused]), {
           connectionOwner: ownerWithNotice(row.notice),
-          primaryServerURL: PRIMARY,
         })}`,
         host,
       );

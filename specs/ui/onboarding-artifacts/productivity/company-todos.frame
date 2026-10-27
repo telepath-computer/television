@@ -1,105 +1,13 @@
 ---
 style: |
-
+  header > .tv-error {
+    margin-top: var(--space-8, 8px);
+  }
 ---
 <header>
   <h1>Company To-dos</h1>
   <p>Wednesday, July 8</p>
+  <p class="tv-error" role="status" hidden></p>
 </header>
 
-<tv-task-list>
-
-  <tv-task-section>
-    <header><h2>Overdue</h2></header>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Define pilot success metric for Acme</tv-task-title>
-        <tv-task-note>"Accepted autonomous actions per analyst hour" plus rollback rate.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-04"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Acme Pilot</tv-task-meta-item>
-          <tv-task-meta-tag>urgent</tv-task-meta-tag>
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-  </tv-task-section>
-
-  <tv-task-section>
-    <header><h2>Today</h2></header>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Synthesize NeonBank and Mallory Health calls into a customer story</tv-task-title>
-        <tv-task-note>Painful workflow, before/after demo, measurable outcome — for the seed deck.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-08"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Seed Deck</tv-task-meta-item>
-
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Send rough metrics to Jake for investor update</tv-task-title>
-        <tv-task-note>Pipeline and burn numbers — defer visual polish.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-08"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Investor Update</tv-task-meta-item>
-
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Prep for 1:1 with Priya</tv-task-title>
-        <tv-task-note>Review two solutions for unblocking the dev team.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-08"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Platform Reliability</tv-task-meta-item>
-
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-  </tv-task-section>
-
-  <tv-task-section>
-    <header><h2>Upcoming</h2></header>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Follow up with NeonBank on procurement map</tv-task-title>
-        <tv-task-note>Confirm whether their security team needs the audit trail before next week.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-10"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Acme Pilot</tv-task-meta-item>
-
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-    <tv-task>
-      <tv-task-checkbox></tv-task-checkbox>
-      <tv-task-body>
-        <tv-task-title>Redesign investor deck</tv-task-title>
-        <tv-task-note>Visual polish — wait until the customer story and metrics spine are locked.</tv-task-note>
-        <tv-task-meta>
-          <tv-task-meta-due date="2026-07-14"></tv-task-meta-due>
-          <tv-task-meta-item><tv-icon name="hash"></tv-icon>Seed Deck</tv-task-meta-item>
-
-        </tv-task-meta>
-      </tv-task-body>
-    </tv-task>
-
-  </tv-task-section>
-
-</tv-task-list>
+<tv-task-list></tv-task-list>

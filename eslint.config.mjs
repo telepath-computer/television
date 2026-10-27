@@ -127,17 +127,9 @@ export default tseslint.config(
     },
   },
   {
-    // Storybook staging is display scaffolding — magic numbers are fine.
-    files: ["storybook/**/*.ts"],
-    rules: {
-      "@typescript-eslint/no-magic-numbers": "off",
-    },
-  },
-  {
     files: [
       "test/**/*.ts",
       "packages/*/test/**/*.ts",
-      "packages/skillbench/test/**/*.ts",
     ],
     languageOptions: {
       globals: {

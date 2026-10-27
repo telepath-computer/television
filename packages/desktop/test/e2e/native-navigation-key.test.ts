@@ -1,4 +1,6 @@
-import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHTTPServer, type Server as HTTPServer } from "node:http";
 import os from "node:os";
@@ -127,7 +129,7 @@ async function disposeHarness(harness: NativeKeyHarness): Promise<void> {
 }
 
 async function openDesktop(harness: NativeKeyHarness): Promise<{ app: ElectronApplication; page: Page }> {
-  const fixture = `${VITE_BASE_URL}/packages/web/src/index.html?serverURL=${encodeURIComponent(harness.server.getBaseURL())}&token=${encodeURIComponent(harness.server.getAuthToken())}&mode=electron`;
+  const fixture = `${await appURLForServer(harness.server.getBaseURL(), VITE_BASE_URL)}/packages/web/src/index.html?token=${encodeURIComponent(harness.server.getAuthToken())}&mode=electron`;
   const launched = await launchDesktop({ fixture });
   await expect(launched.page.locator("#app .stage")).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => launched.page.locator(".artifact-view webview.artifact-content").count(), {
@@ -316,7 +318,7 @@ test("continues repeated page traversal across artifact, focused tab, shell back
   let app: ElectronApplication | null = null;
   try {
     await server.start();
-    const fixture = `${VITE_BASE_URL}/packages/web/src/index.html?serverURL=${encodeURIComponent(server.getBaseURL())}&token=${encodeURIComponent(server.getAuthToken())}&mode=electron`;
+    const fixture = `${await appURLForServer(server.getBaseURL(), VITE_BASE_URL)}/packages/web/src/index.html?token=${encodeURIComponent(server.getAuthToken())}&mode=electron`;
     const launched = await launchDesktop({ fixture });
     app = launched.app;
     await expect(launched.page.locator("#app .stage")).toBeVisible({ timeout: 15_000 });

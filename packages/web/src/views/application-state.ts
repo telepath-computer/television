@@ -3,6 +3,8 @@ import type {
 } from "../services/application-service.ts";
 import type { DesktopUpgradeInstructions } from "@telepath-computer/television-shared";
 
+const FAILED_RECONNECT_LIMIT = 3;
+
 export type ConnectedApplicationState =
   | { readonly kind: "connected" }
   | { readonly kind: "no-channel" }
@@ -11,8 +13,8 @@ export type ConnectedApplicationState =
 export type InterruptingApplicationState =
   | { readonly kind: "connecting" }
   | { readonly kind: "disconnected"; readonly nextRetryAt: number | null }
-  | { readonly kind: "unauthorized"; readonly invalid?: boolean }
-  | { readonly kind: "error"; readonly serverURL: string; readonly message: string }
+  | { readonly kind: "unauthorized" }
+  | { readonly kind: "error"; readonly serverURL: string; readonly nextRetryAt: number | null }
   | {
       readonly kind: "needs-upgrade";
       readonly instructions: DesktopUpgradeInstructions | null;
@@ -27,29 +29,24 @@ export function selectApplicationState(
 ): ApplicationState {
   const connection = snapshot.connection;
 
-  if (connection.authorizationRequired) {
-    return connection.authorizationRejected
-      ? { kind: "unauthorized", invalid: true }
-      : { kind: "unauthorized" };
-  }
   if (connection.gateHalted) {
     return {
       kind: "needs-upgrade",
       instructions: connection.upgradeInstructions,
     };
   }
+  if (connection.authorizationRequired) {
+    return { kind: "unauthorized" };
+  }
   if (connection.status !== "connected") {
+    if (connection.failedReconnectAttempts >= FAILED_RECONNECT_LIMIT ||
+        (!connection.hasEverConnected && connection.firstConnectError !== null)) {
+      return { kind: "error", serverURL, nextRetryAt: connection.nextRetryAt };
+    }
     if (connection.hasEverConnected) {
       return {
         kind: "disconnected",
         nextRetryAt: connection.nextRetryAt,
-      };
-    }
-    if (connection.firstConnectError !== null) {
-      return {
-        kind: "error",
-        serverURL,
-        message: connection.firstConnectError,
       };
     }
     return { kind: "connecting" };

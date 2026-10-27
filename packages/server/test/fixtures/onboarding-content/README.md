@@ -9,7 +9,7 @@ production asset tree (`specs/arch/onboarding/content.md#^no-placeholder-content
 
 | Fixture | Defect class |
 |---|---|
-| `valid/` | none — passes schema-only and full build validation; carries several artifacts in pinned order, exercises all three artifact source shapes (directory `first/intro/`, HTML file `second/notes.html`, markdown file `second/readme.md`), and includes the allowed root `README.md` |
+| `valid/` | none — passes schema-only and full build validation; carries several artifacts in pinned order, exercises all three artifact source shapes (directory `first/intro/`, HTML file `second/notes.html`, markdown file `second/readme.md`), includes the allowed root `README.md`, and declares one JSON store on `second/notes` |
 | `unparseable-config/` | `onboarding-channels.json` does not parse as JSON |
 | `schema-bad-version/` | config `version` is earlier than `3` |
 | `schema-empty-channels/` | `channels` is empty |

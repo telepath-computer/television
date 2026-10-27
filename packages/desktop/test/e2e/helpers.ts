@@ -205,32 +205,32 @@ export async function waitForConnectScreen(page: Page): Promise<void> {
   await page.waitForFunction(() => typeof (window as Window & { television?: unknown }).television !== "undefined");
 }
 
-export async function openConnectScreenFromMenu(app: ElectronApplication): Promise<void> {
+export async function disconnectFromServerMenu(app: ElectronApplication): Promise<void> {
   await app.evaluate(({ Menu }) => {
     const menu = Menu.getApplicationMenu();
     if (!menu) throw new Error("application menu missing");
     const stack = [...menu.items];
     while (stack.length > 0) {
       const item = stack.pop()!;
-      if (item.label === "Connect to server…") {
+      if (item.label === "Disconnect from Server") {
         item.click();
         return;
       }
       if (item.submenu) stack.push(...item.submenu.items);
     }
-    throw new Error("Connect to server… menu item missing");
+    throw new Error("Disconnect from Server menu item missing");
   });
 }
 
 export async function expectConnectForm(page: Page): Promise<void> {
-  await page.locator("#connect-form").waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator(".setup-link").waitFor({ state: "visible", timeout: 15_000 });
 }
 
 export async function expectConnectedPage(page: Page): Promise<void> {
   try {
     await expect.poll(() => page.url(), { timeout: 15_000 }).toContain("mode=electron");
   } catch (cause) {
-    const connectError = await page.locator("#error").textContent().catch(() => null);
+    const connectError = await page.locator("#setup-link-error").textContent().catch(() => null);
     throw new Error(`Desktop did not leave the connect screen${connectError ? `: ${connectError}` : ""}`, { cause });
   }
   await waitForApplicationRender(page, APPLICATION_SHELL_STATES, 15_000);
@@ -272,4 +272,16 @@ function requiredDesktopE2EURL(): string {
     throw new Error(`TV_DESKTOP_E2E_URL must be a loopback HTTP URL; received ${JSON.stringify(value)}`);
   }
   return url.origin;
+}
+
+export async function disconnectEnabled(app: ElectronApplication): Promise<boolean> {
+  return app.evaluate(({ Menu }) => {
+    const pending = [...Menu.getApplicationMenu()!.items];
+    while (pending.length) {
+      const item = pending.pop()!;
+      if (item.label === "Disconnect from Server") return item.enabled;
+      if (item.submenu) pending.push(...item.submenu.items);
+    }
+    throw new Error("Disconnect menu missing");
+  });
 }

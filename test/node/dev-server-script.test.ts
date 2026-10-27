@@ -67,7 +67,7 @@ describe("server startup smoke", () => {
     storageDirs.push(storagePath);
 
     writeHomeConfig(storagePath, { port: 0, auth: false });
-    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createChildEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -116,7 +116,7 @@ describe("server startup smoke", () => {
     mkdirSync(emptyBinDir, { recursive: true });
 
     writeHomeConfig(storagePath, { port: 0, auth: false });
-    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createChildEnv({ PATH: emptyBinDir, TELEVISION_ACP_AGENT: "openclaw" }),
       stdio: ["ignore", "pipe", "pipe"],

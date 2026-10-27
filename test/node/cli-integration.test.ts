@@ -470,7 +470,7 @@ describe("CLI node integration artifact workflow", () => {
     const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-cli-node-bind-failure-"));
     dirs.push(storagePath);
     writeHomeConfig(storagePath, { port: 0, auth: false, listen: ["192.0.2.1"] });
-    const owned = spawnOwnedProcess(process.execPath, [BUILT_CLI, "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [BUILT_CLI, "--home", storagePath, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createServeEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -531,7 +531,7 @@ describe("CLI node integration artifact workflow", () => {
     );
     expect(existsSync(configPath)).toBe(true);
 
-    const owned = spawnOwnedProcess(process.execPath, [BUILT_CLI, "--home", home, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [BUILT_CLI, "--home", home, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createServeEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -557,6 +557,7 @@ describe("CLI node integration artifact workflow", () => {
       expect(response.ok).toBe(true);
       expect(await response.json()).toEqual(expect.objectContaining({
         bindAddresses: ["127.0.0.1", nonLoopbackIPv4],
+        origins: startupURLs.map((url) => new URL(url).origin),
         port: Number.parseInt(new URL(startupURL).port, 10),
       }));
     }
@@ -568,7 +569,7 @@ describe("CLI node integration artifact workflow", () => {
     const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-cli-node-storage-"));
     dirs.push(storagePath);
     writeHomeConfig(storagePath, { port: 0, auth: false });
-    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createServeEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -576,7 +577,8 @@ describe("CLI node integration artifact workflow", () => {
     processes.push(owned);
     const child = owned.child as ChildProcessByStdio<null, Readable, Readable>;
     let output = "";
-    child.stdout?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
+    let stdout = "";
+    child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); output += chunk.toString(); });
     child.stderr?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
 
     const serverURL = await Promise.race([
@@ -602,7 +604,8 @@ describe("CLI node integration artifact workflow", () => {
     await waitForOutput(() => output, "Television server running.");
     expect(output).toContain("Television server running.");
     expect(output).toContain(`http://127.0.0.1:${port}`);
-    expect(output).toContain(`\u001B]8;;http://127.0.0.1:${port}\u001B\\`);
+    expect(stdout).toContain(`Open Television:\n  http://127.0.0.1:${port}\n`);
+    expect(stdout).not.toContain("\u001B");
     expect(() => JSON.parse(output)).toThrow();
     expect(output).toContain("WARNING: running without an auth token");
     expect(output).toContain("Tokenless mode is insecure for typical setups");
@@ -633,7 +636,7 @@ describe("CLI node integration artifact workflow", () => {
     const storagePath = mkdtempSync(path.join(os.tmpdir(), "television-cli-node-storage-"));
     dirs.push(storagePath);
     writeHomeConfig(storagePath, { port: 0 });
-    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve"], {
+    const owned = spawnOwnedProcess(process.execPath, [TSX_CLI, "packages/cli/src/index.ts", "--home", storagePath, "serve", "--print-links"], {
       cwd: REPO_ROOT,
       env: createServeEnv(),
       stdio: ["ignore", "pipe", "pipe"],
@@ -641,7 +644,8 @@ describe("CLI node integration artifact workflow", () => {
     processes.push(owned);
     const child = owned.child as ChildProcessByStdio<null, Readable, Readable>;
     let output = "";
-    child.stdout?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
+    let stdout = "";
+    child.stdout?.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); output += chunk.toString(); });
     child.stderr?.on("data", (chunk: Buffer | string) => { output += chunk.toString(); });
 
     const serverURL = await Promise.race([
@@ -667,7 +671,9 @@ describe("CLI node integration artifact workflow", () => {
     await waitForOutput(() => output, "Television server running.");
     expect(output).toContain("Television server running.");
     expect(output).toContain(`http://127.0.0.1:${port}/?token=`);
-    expect(output).toContain(`\u001B]8;;http://127.0.0.1:${port}/?token=`);
+    const token = readFileSync(path.join(storagePath, "state", "token"), "utf8").trim();
+    expect(stdout).toContain(`Open Television:\n  http://127.0.0.1:${port}/?token=${token}\n`);
+    expect(stdout).not.toContain("\u001B");
     expect(() => JSON.parse(output)).toThrow();
     expect(output).not.toContain("WARNING: running without an auth token");
 

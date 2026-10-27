@@ -30,6 +30,7 @@ async function writeSourceFixture(theming: string): Promise<string> {
   await writeFile(path.join(sourceDirectory, "artifact-workflow.md"), "# Workflow fixture\n");
   await writeFile(path.join(sourceDirectory, "html-artifact-style.md"), "# HTML fixture\n");
   await writeFile(path.join(sourceDirectory, "theming.md"), theming);
+  await writeFile(path.join(sourceDirectory, "resources.md"), "# Resources fixture\n\nKept as written: $& {{INJECT_FOUNDATION_VOCABULARY}}\n");
   await writeFile(path.join(sourceDirectory, "app-shell-reference.md"), "Authored fixture reference.\n");
   return sourceDirectory;
 }
@@ -71,6 +72,9 @@ test("inserts generated foundation fixture bytes at the vocabulary marker", asyn
 
   const builtSkill = await readFile(path.join(outputDir, "SKILL.md"), "utf8");
   const builtTheming = await readFile(path.join(outputDir, "theming.md"), "utf8");
+  expect(await readFile(path.join(outputDir, "resources.md"), "utf8")).toBe(
+    "# Resources fixture\n\nKept as written: $& {{INJECT_FOUNDATION_VOCABULARY}}\n",
+  );
   expect(builtSkill).toContain("# Television fixture");
   expect(builtSkill).toContain("# CLI fixture");
   expect(builtSkill).toContain("# Workflow fixture");

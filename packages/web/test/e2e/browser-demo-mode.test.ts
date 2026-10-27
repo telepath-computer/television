@@ -34,7 +34,12 @@ async function startExternalSite(): Promise<{ origin: string; close(): Promise<v
   const { port } = server.address() as AddressInfo;
   return {
     origin: `http://127.0.0.1:${port}`,
-    close: () => new Promise((resolve) => server.close(() => resolve())),
+    // The page is still open when cleanup runs, and the browser may hold a
+    // connection that has not sent a request; close() alone waits for it.
+    close: () => {
+      server.closeAllConnections();
+      return new Promise((resolve) => server.close(() => resolve()));
+    },
   };
 }
 
@@ -70,7 +75,7 @@ async function createURLArtifact(
 async function openApp(page: Page, server: ProductServer, baseURL: string | undefined): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const appBaseURL = await server.appURL(baseURL);
-  await page.goto(`${appBaseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appBaseURL)}`);
+  await page.goto(`${appBaseURL}/packages/web/src/index.html`);
   await waitForApp(page);
 }
 

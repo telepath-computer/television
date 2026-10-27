@@ -79,7 +79,7 @@ documented token with a literal fallback where appropriate.
 
 ### Type
 
-`--control-font-size`, `--text-base`, `--text-sm`, `--text-md`, `--text-lg`, `--text-xl`, `--text-2xl`, `--text-3xl`, `--text-4xl`, `--line-control`, `--line-control-sm`.
+`--control-font-size`, `--text-base`, `--text-sm`, `--text-md`, `--text-lg`, `--text-xl`, `--text-2xl`, `--text-3xl`, `--text-4xl`, `--line-control`, `--line-control-sm`, `--line-control-lg`.
 
 ### Spacing and radii
 
@@ -94,6 +94,13 @@ documented token with a literal fallback where appropriate.
 `--layer-ground`, `--layer-panel`, `--layer-overlay`.
 
 ## Canonical components
+
+### Large controls
+
+Use `<button size="lg">Connect</button>` for a large button and
+`<input data-size="lg" aria-label="Server link">` for a matching text field.
+The same `data-size="lg"` applies to textareas. Their line height comes from
+`--line-control-lg`; an ordinary control omits the size attribute.
 
 ### Native inputs and errors
 

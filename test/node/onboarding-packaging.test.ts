@@ -108,7 +108,7 @@ function serveEnv(): NodeJS.ProcessEnv {
 
 function spawnServe(cliEntry: string, storagePath: string): OwnedProcess {
   writeHomeConfig(storagePath, { port: 0, auth: false });
-  return spawnOwnedProcess(process.execPath, [cliEntry, "--home", storagePath, "serve"], {
+  return spawnOwnedProcess(process.execPath, [cliEntry, "--home", storagePath, "serve", "--print-links"], {
     cwd: path.dirname(cliEntry),
     env: serveEnv(),
     stdio: ["ignore", "pipe", "pipe"],

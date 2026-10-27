@@ -10,6 +10,7 @@ import {
   validatePageLayout,
   type TabPage,
 } from "@telepath-computer/television-shared";
+import { isResourceRefusal } from "@telepath-computer/television-shared/resources";
 import { ServerStore } from "./server-store.ts";
 import { parseClientTelemetryMetaHeader, TELEVISION_CLIENT_META_HEADER, type TelemetryClientContext } from "./telemetry/client-meta.ts";
 import type { TelemetryStatus } from "./telemetry/index.ts";
@@ -60,10 +61,20 @@ const createURLArtifactSchema = z
   })
   .strict();
 
-const createArtifactBodySchema = z.discriminatedUnion("kind", [
-  createPathArtifactSchema.extend({ channelID: z.string() }).strict(),
-  createURLArtifactSchema.extend({ channelID: z.string() }).strict(),
-]);
+// specs/arch/layout/index.md#^ly-placement
+const placementFields = { before: z.string().optional(), after: z.string().optional() };
+const ONE_PLACEMENT_MESSAGE = "Give at most one of before or after";
+
+const createArtifactBodySchema = z
+  .discriminatedUnion("kind", [
+    createPathArtifactSchema.extend({ channelID: z.string(), ...placementFields }).strict(),
+    createURLArtifactSchema.extend({ channelID: z.string(), ...placementFields }).strict(),
+  ])
+  .refine((value) => value.before === undefined || value.after === undefined, { message: ONE_PLACEMENT_MESSAGE });
+
+const moveArtifactBodySchema = z
+  .object({ channelID: z.string({ error: "channelID is required" }).min(1, "channelID is required"), ...placementFields })
+  .refine((value) => value.before === undefined || value.after === undefined, { message: ONE_PLACEMENT_MESSAGE });
 
 const patchArtifactSchema = z
   .object({
@@ -103,26 +114,7 @@ const HTTP_NO_CONTENT = 204;
 const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_CONFLICT = 409;
-
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": `Authorization, Content-Type, ${TELEVISION_CLIENT_META_HEADER}`,
-  // Cross-origin clients can read the version advertisement header
-  // (specs/arch/updates/version-advertisement.md ^version-header).
-  "Access-Control-Expose-Headers": "X-TV-Version",
-};
-
-function applyCorsHeaders(res: Response): void {
-  for (const [name, value] of Object.entries(CORS_HEADERS)) {
-    res.setHeader(name, value);
-  }
-}
-
-const applyCorsMiddleware: RequestHandler = (_req, res, next) => {
-  applyCorsHeaders(res);
-  next();
-};
+const HTTP_SERVICE_UNAVAILABLE = 503;
 
 function sendError(res: Response, status: number, message: string): void {
   res.status(status).json({ error: message });
@@ -144,6 +136,11 @@ function handleStoreError(res: Response, error: unknown, fallback: string): void
   }
   if (error instanceof ConflictError) {
     sendError(res, HTTP_CONFLICT, error.message);
+    return;
+  }
+  if (isResourceRefusal(error) && error.code === "unavailable") {
+    // A record save whose outcome is unknown (specs/product/artifacts.md#^af-record-saved).
+    sendError(res, HTTP_SERVICE_UNAVAILABLE, error.message);
     return;
   }
   throw error instanceof Error ? error : new Error(fallback);
@@ -181,13 +178,11 @@ export function registerRoutes(
     res.status(HTTP_OK).json({ product: "television" });
   });
 
-  app.use("/channels", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/artifacts", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/display", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/themes", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/markdown", applyCorsMiddleware, telemetryMiddleware);
-  app.use("/telemetry", applyCorsMiddleware);
-  app.use("/demo-mode", applyCorsMiddleware);
+  app.use("/channels", telemetryMiddleware);
+  app.use("/artifacts", telemetryMiddleware);
+  app.use("/display", telemetryMiddleware);
+  app.use("/themes", telemetryMiddleware);
+  app.use("/markdown", telemetryMiddleware);
 
   const artifactProxy = serveArtifactProxy(store, { pollCadence: options.testArtifactPollCadence });
   app.all("/artifact/:id", artifactProxy);
@@ -196,20 +191,6 @@ export function registerRoutes(
   const markdownContent = serveMarkdownContent(store);
   app.get("/markdown/:id", ...bearerAuth, markdownContent.get);
   app.put("/markdown/:id", ...bearerAuth, markdownContent.put);
-
-  app.options("/channels", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/channels/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/artifacts", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/artifacts/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/display", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/display/focus", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/themes", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/themes/refresh", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/markdown/:id", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/demo-mode", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry/enable", (_req, res) => res.status(HTTP_NO_CONTENT).end());
-  app.options("/telemetry/disable", (_req, res) => res.status(HTTP_NO_CONTENT).end());
 
   // Browser demo mode (specs/product/artifacts.md#^af-demo-mode) is read per
   // request, so adding or removing the marker needs no server restart.
@@ -361,6 +342,20 @@ export function registerRoutes(
       res.json({ artifact });
     } catch (error) {
       handleStoreError(res, error, "Failed to update artifact");
+    }
+  });
+
+  // specs/arch/layout/index.md#^ly-move
+  app.post("/artifacts/:id/move", ...auth, (req: Request<{ id: string }>, res) => {
+    const parsed = moveArtifactBodySchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      sendError(res, HTTP_BAD_REQUEST, parsed.error.issues[0]?.message ?? "Invalid request body");
+      return;
+    }
+    try {
+      res.json(store.moveArtifact({ artifactID: req.params.id, ...parsed.data }, telemetryContext(req)));
+    } catch (error) {
+      handleStoreError(res, error, "Failed to move artifact");
     }
   });
 

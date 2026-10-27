@@ -18,7 +18,6 @@ The behavior of `Server.start()` when any resolved listener fails to bind; the f
 
 Explicitly out of scope for this spec, tracked elsewhere:
 
-- **Post-install health probe** — verifying at `tv serve --persist` time that the daemon actually came up (Linear **TV-506**).
 - **`tv status` enhancements** — surfacing the fatal record when the server is unreachable.
 - **Semantic tailscale listeners / Tailscale Serve** — interface names, `tailscale ip` evaluation at boot, or delegating the tailnet listener to Tailscale.
 
@@ -74,7 +73,7 @@ The package does not render an explicit systemd start-limit setting. The user-ma
 - `KeepAlive=true` and `RunAtLoad=true`, emitted as plist booleans. launchd throttles a fast-crashing job to one launch per `ThrottleInterval` (default 10 s) and never abandons it; the default cadence is acceptable and no throttle key is required.
 - **No `StandardErrorPath` is required.** The fatal record in tv.log is the sole durable diagnostic authority ([#^log-authority](#^log-authority)); launchd discarding stderr is accepted.
 
-Resulting recovery cadence once a missing address appears: bounded by `RestartSec` (~5–6 s) on Linux and `ThrottleInterval` (~10 s) on macOS.
+Resulting recovery cadence once a missing address appears: bounded by `RestartSec` (~5–6 s) on Linux and `ThrottleInterval` (~10 s) on macOS. The [post-install health check](./index.md#^cli-persist-health-check) waits long enough for one restart at these cadences, so lengthening either requires revisiting its deadline.
 
 ## Foreground semantics
 

@@ -185,7 +185,6 @@ export interface DismissalStorage {
 
 /** The retained update-state slice read from the bundle-serving connection. */
 export interface UpdateNotificationConnection {
-  readonly url: string;
   status: string;
   readonly serverVersion: string | null;
   readonly updateState: UpdateState | null;
@@ -229,7 +228,6 @@ interface PendingSignal {
 
 export interface UpdateNotificationControllerOptions {
   connectionOwner?: UpdateNotificationConnectionOwner | null;
-  primaryServerURL?: string;
   presentation?: UpdatePresentationState | null;
   dismissalStorage?: DismissalStorage | null;
   desktopRecommendation?: DesktopUpgradeRecommendationContext | null;
@@ -252,7 +250,6 @@ export class UpdateNotificationController {
   #presentation: UpdatePresentationState | null = null;
   #desktopRecommendation: DesktopUpgradeRecommendationContext | null = null;
   #desktopUpdate: DesktopUpdateState | null = null;
-  #primaryServerURL = "";
   #dismissalStorage: DismissalStorage | null | undefined;
   #connected = false;
   #subscribed = false;
@@ -277,7 +274,6 @@ export class UpdateNotificationController {
 
   configure({
     connectionOwner = null,
-    primaryServerURL = "",
     presentation = null,
     dismissalStorage,
     desktopRecommendation = null,
@@ -298,7 +294,6 @@ export class UpdateNotificationController {
       this.#desktopUpdate = desktopUpdate;
       this.#subscribeDesktopUpdate();
     }
-    this.#primaryServerURL = primaryServerURL;
     this.#dismissalStorage = dismissalStorage;
     this.#desktopRecommendation = desktopRecommendation;
   }
@@ -425,8 +420,7 @@ export class UpdateNotificationController {
   };
 
   #connection(): UpdateNotificationConnection | null {
-    const connection = this.#connectionOwner?.connection ?? null;
-    return connection?.url === this.#primaryServerURL ? connection : null;
+    return this.#connectionOwner?.connection ?? null;
   }
 
   #activeNotice(suppressed: boolean): ActiveNotice | null {

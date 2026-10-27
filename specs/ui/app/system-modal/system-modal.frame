@@ -8,16 +8,17 @@ params:
   server_url:
     type: string
     description: the server the connect was to, shown while error
-  message:
-    type: string
-    description: "the failure's own message, shown while error"
-  seconds:
-    type: number
-    description: seconds until the next reconnection attempt; absent, an attempt is in flight
-  invalid:
+  context:
+    enum: [browser, desktop, local]
+    default: browser
+    description: "where the dialog shows: the server's interface in a browser; the server's interface in the desktop app; or the desktop app's local page, which alone offers Disconnect from Server as a button"
+  drag_strip:
     type: boolean
     default: false
-    description: the previous token was rejected, shown while unauthorized
+    description: "the desktop window's 36px drag strip across the top; the desktop app shows it where the interface's own drag handle cannot be reached"
+  seconds:
+    type: number
+    description: "seconds until the next reconnection attempt, shown while disconnected or error; absent, an attempt is in flight"
   upgrade_instructions:
     description: the selected upgrade instructions, passed to the gate while needs-upgrade; markdown pipeline output (sanitized), placed verbatim
     default: "<h1>Desktop app update required</h1><p>This version of the Television desktop app does not work with this server and needs to be updated. <a href=\"https://dl.todesktop.com/260923p52umxx/mac/dmg/arm64\" target=\"_blank\" rel=\"noopener noreferrer\">Download the latest version for Mac</a> and install it.</p>"
@@ -50,37 +51,43 @@ style: |
     color: var(--color-text-muted);
   }
 
-  /* Shared input styling owns the field; this surface stretches it. */
-  .auth-form .auth-token {
-    align-self: stretch;
-  }
-
-  .auth-form .auth-submit {
-    align-self: stretch;
-  }
-
   /* The error state's server line: the address as an address. */
   .system-modal .server-url {
     font-family: var(--font-mono);
     font-size: var(--text-sm);
   }
+
+  .system-modal .system-modal-disconnect {
+    margin-top: var(--space-8);
+  }
+
+  /* The desktop window has no title bar: where nothing behind the dialog
+     offers a drag handle, this strip across the top moves the window. */
+  .window-drag-strip {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 36px;
+  }
 ---
+{% capture drag_region %}{% if drag_strip %}<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>{% endif %}{% endcapture %}
+{% capture disconnect_button %}<button intent="danger" class="system-modal-disconnect">{{ content.disconnect }}</button>{% endcapture %}
+{% if seconds %}{% assign seconds_placeholder = "{{ seconds }}" %}{% assign reconnect_line = content.reconnecting | replace: seconds_placeholder, seconds %}{% else %}{% assign reconnect_line = content.reconnecting_now %}{% endif %}
 {% if state == "connecting" %}
 {% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.connecting_title }}</h2></div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "disconnected" %}
-{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.disconnected_title }}</h2><p>{% if seconds %}{{ content.reattempting }}{% else %}{{ content.reattempting_now }}{% endif %}</p></div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'spinner', size: 'xl', spinning: true %}<h2>{{ content.disconnected_title }}</h2><p>{{ reconnect_line }}</p></div>{% endcapture %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "unauthorized" %}
-{% capture body %}<form class="system-modal auth-form">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{{ content.unauthorized_copy }}</p><input class="auth-token"{% if invalid %} aria-invalid="true" aria-describedby="auth-token-error"{% endif %} type="password" name="token" placeholder="{{ content.unauthorized_placeholder }}" aria-label="{{ content.unauthorized_field_label }}" autofocus required>{% if invalid %}<p id="auth-token-error" class="tv-error" role="alert">{{ content.unauthorized_invalid }}</p>{% endif %}<button intent="primary" class="auth-submit">{{ content.unauthorized_submit }}</button></form>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% capture body %}<div class="system-modal">{% render '../../foundation/icons/icon', name: 'locked', size: 'xl' %}<h2>{{ content.unauthorized_title }}</h2><p>{% if context == "local" %}{{ content.unauthorized_copy_local }}{% elsif context == "desktop" %}{{ content.unauthorized_copy_desktop }}{% else %}{{ content.unauthorized_copy_browser }}{% endif %}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "error" %}
-{% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ message }}</p></div>{% endcapture %}
-{% render '../dialog/dialog', content: body %}
+{% capture body %}<div class="system-modal"><h2>{{ content.error_title }}</h2><p class="server-url">{{ server_url }}</p><p>{{ content.error_copy }} {{ reconnect_line }}</p>{% if context == "local" %}{{ disconnect_button }}{% endif %}</div>{% endcapture %}
+{% render '../dialog/dialog', content: body, top_layer_content: drag_region %}
 {% endif %}
 {% if state == "needs-upgrade" %}
-{% render '../desktop-upgrade-gate/desktop-upgrade-gate', body: upgrade_instructions, restart: upgrade_restart %}
+{% render '../desktop-upgrade-gate/desktop-upgrade-gate', body: upgrade_instructions, restart: upgrade_restart, top_layer_content: drag_region %}
 {% endif %}

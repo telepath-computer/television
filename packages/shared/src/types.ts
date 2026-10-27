@@ -1,4 +1,5 @@
 import type { Artifact } from "@telepath-computer/television-artifact";
+import type { ResourceEvent } from "./resources/types.ts";
 
 export const TELEVISION_CLIENT_META_HEADER = "X-Television-Client-Meta";
 export const TELEMETRY_ACTIVITY_MESSAGE_TYPE = "telemetry-activity";
@@ -78,6 +79,14 @@ export type NewArtifact =
     };
 
 export type CreateArtifactResult = { artifact: Artifact; channelID: string };
+/**
+ * Where a created or moved artifact goes in its channel's order: immediately
+ * before or after a named artifact there, or at the end when neither is given
+ * (specs/arch/layout/index.md#^ly-placement). At most one may be given.
+ */
+export type ArtifactPlacement = { before?: string; after?: string };
+/** The outcome of moving an artifact to a channel (specs/arch/layout/index.md#^ly-move). */
+export type MoveArtifactResult = { outcome: "moved" | "repositioned" | "unchanged"; artifactID: string; channelID: string };
 
 /** Response shape for `DELETE /artifacts/:id`. */
 export type DeleteArtifactResult =
@@ -198,10 +207,10 @@ export const DEFAULT_PAGE_GEOMETRY = {
 } as const satisfies SinglePageGeometry;
 
 // Mirrors specs/ui/app/stage/measures.yml page.initial_* in reference pixels;
-// conformance keeps the authored stage values and this shared default equal.
+// test/repo/ui-measure-crossings.test.ts keeps the two equal.
 export const DEFAULT_PAGE_SIZE = {
-  width: 560,
-  height: 740,
+  width: 760,
+  height: 770,
 } as const satisfies PageSize;
 
 // Version-1 layout types survive only as the server migration's input model.
@@ -308,6 +317,17 @@ export type ServerEvent =
       channelID: string;
       artifactID: string;
     };
+
+/**
+ * A resource event on the `/events` stream (specs/arch/resources/index.md
+ * ^rs-events-stream). Deliberately not a member of the ServerEvent union: the
+ * web client has no use for it yet and drops it under the unknown-message
+ * rule (specs/arch/updates/version-advertisement.md ^unknown-messages).
+ */
+export interface ResourceEventMessage {
+  type: "resource-event";
+  event: ResourceEvent;
+}
 
 // --- Update-notifications lockstep contracts -------------------------------
 // Server → client shapes riding the /events websocket alongside the

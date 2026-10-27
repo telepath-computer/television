@@ -30,6 +30,7 @@ import {
 import {
   DEFAULT_PAGE_GEOMETRY,
   DEFAULT_PAGE_SIZE,
+  type Channel,
   type TabPage,
 } from "@telepath-computer/television-shared";
 import type { ServerStoreTelemetryHooks } from "../src/telemetry/emitters.ts";
@@ -44,13 +45,22 @@ function bundle(name: string): string {
   return path.join(here, "fixtures", "onboarding-bundles", name);
 }
 
-const ALPHA_ID = "television-onboarding--first--alpha";
-const BETA_ID = "television-onboarding--second--beta";
-const GUIDE_ID = "television-onboarding--notes--guide";
+// Installed content is named by copy name; installed artifacts get generated
+// IDs (specs/arch/onboarding/installer.md#^artifact-ids).
+const ALPHA_COPY = "television-onboarding--first--alpha";
+const BETA_COPY = "television-onboarding--second--beta";
+const GUIDE_COPY = "television-onboarding--notes--guide";
 const STUDIO_ARTIFACT_SLUGS = ["main", "side", "left", "right"] as const;
-const STUDIO_ARTIFACT_IDS = STUDIO_ARTIFACT_SLUGS.map(
+const STUDIO_TITLES = ["Main", "Side", "Left", "Right"];
+const STUDIO_COPY_NAMES = STUDIO_ARTIFACT_SLUGS.map(
   (slug) => `television-onboarding--studio--${slug}`,
 );
+/** An installation day four calendar days after the `declared-stores` list's shiftDatesFrom, at noon. */
+const INSTALL_DAY = new Date(2026, 6, 12, 12, 0);
+/** The `declared-stores` list's starting value, installed on INSTALL_DAY. */
+const SHIFTED_LIST = { items: { milk: true }, due: "2026-07-12", plan: [{ on: "2026-08-03" }, "2026-08-06", "2026-07-08T10:00:00", "2026-02-30", "due soon", 7, null] };
+/** An artifact ID in the generated form: a ULID, 26 Crockford base-32 characters. */
+const GENERATED_ID = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 function page(
   artifactID: string,
   configured: Partial<Pick<TabPage, "geometry" | "size">> = {},
@@ -62,16 +72,38 @@ function page(
   };
 }
 
-function studioPages(): TabPage[] {
+/** The studio channel's configured pages, over the installed artifacts `ids` in config order. */
+function studioPages(ids: readonly string[]): TabPage[] {
   return [
-    page(STUDIO_ARTIFACT_IDS[0]!, { size: { width: 960.5, height: 640.25 } }),
-    page(STUDIO_ARTIFACT_IDS[1]!, { geometry: { kind: "single", full_screen: true } }),
-    page(STUDIO_ARTIFACT_IDS[2]!, {
+    page(ids[0]!, { size: { width: 960.5, height: 640.25 } }),
+    page(ids[1]!, { geometry: { kind: "single", full_screen: true } }),
+    page(ids[2]!, {
       geometry: { kind: "single", full_screen: true },
       size: { width: 720, height: 480 },
     }),
-    page(STUDIO_ARTIFACT_IDS[3]!),
+    page(ids[3]!),
   ];
+}
+
+function channelBySlug(store: ServerStore, slug: string): Channel {
+  const channel = store.listChannels().find((candidate) => candidate.onboarding?.slug === slug);
+  if (!channel) throw new Error(`no channel carries the onboarding slug ${slug}`);
+  return channel;
+}
+
+/** The artifacts on an installed channel's pages, in page order. */
+function pageArtifactIDs(store: ServerStore, slug: string): string[] {
+  return channelBySlug(store, slug).layout.flatMap((tabPage) => tabPage.artifactIds);
+}
+
+/** The resource ID that an artifact's record points to as its store's. */
+function storePointer(store: ServerStore, artifactID: string): string | undefined {
+  const artifact = store.getArtifact(artifactID);
+  return artifact?.kind === "path" ? artifact.store : undefined;
+}
+
+function copyPath(storagePath: string, name: string): string {
+  return path.join(getAgentArtifactsDir(storagePath), name);
 }
 
 describe("Onboarding installer", () => {
@@ -96,6 +128,22 @@ describe("Onboarding installer", () => {
     });
     stores.push(store);
     return store;
+  }
+
+  /** Boots with the local clock at `now`, so that the installation day is its local day. */
+  function bootOnDay(storagePath: string, bundleName: string, now: Date): ServerStore {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(now);
+    try {
+      return boot(storagePath, bundleName);
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  /** Forgets a store the test disposed itself. */
+  function disposeLater(store: ServerStore): void {
+    stores.splice(stores.indexOf(store), 1);
   }
 
   function readState(storagePath: string): OnboardingStateV3 {
@@ -186,33 +234,39 @@ describe("Onboarding installer", () => {
 
   // proofs/arch/onboarding/installer.md#^t-exactly-once
   describe("Exactly-once per slug", () => {
-    it("installs each configured channel once with deterministic artifacts and markers", () => {
+    it("installs each configured channel once with slug-only markers and its artifacts' content at their copy names", () => {
       const storagePath = storage();
       const store = boot(storagePath, "two-channels");
       const channels = store.listChannels();
       expect(channels).toHaveLength(2);
+      expect(store.listArtifacts()).toHaveLength(2);
 
-      const first = channels.find((channel) => channel.onboarding?.slug === "first")!;
+      const first = channelBySlug(store, "first");
       expect(first.name).toBe("First Screen");
       expect(first.onboarding).toEqual({ slug: "first" });
-      expect(first.layout).toEqual([page(ALPHA_ID)]);
+      const [alphaID] = pageArtifactIDs(store, "first");
+      expect(first.layout).toEqual([page(alphaID!)]);
 
-      const second = channels.find((channel) => channel.onboarding?.slug === "second")!;
+      const second = channelBySlug(store, "second");
       expect(second.name).toBe("Second Screen");
       expect(second.onboarding).toEqual({ slug: "second" });
-      expect(second.layout).toEqual([page(BETA_ID)]);
+      const [betaID] = pageArtifactIDs(store, "second");
+      expect(second.layout).toEqual([page(betaID!)]);
 
-      const alpha = store.getArtifact(ALPHA_ID)!;
-      expect(alpha).toEqual(expect.objectContaining({ kind: "path", title: "Alpha" }));
-      expect(readFileSync(path.join(getAgentArtifactsDir(storagePath), `${ALPHA_ID}.html`), "utf8"))
-        .toContain("alpha content");
+      expect(store.getArtifact(alphaID!)).toEqual(expect.objectContaining({
+        kind: "path",
+        title: "Alpha",
+        path: copyPath(storagePath, `${ALPHA_COPY}.html`),
+      }));
+      expect(readFileSync(copyPath(storagePath, `${ALPHA_COPY}.html`), "utf8")).toContain("alpha content");
 
-      const beta = store.getArtifact(BETA_ID)!;
-      expect(beta).toEqual(expect.objectContaining({ kind: "path", title: "Beta" }));
-      expect(readFileSync(path.join(getAgentArtifactsDir(storagePath), BETA_ID, "index.html"), "utf8"))
-        .toContain("beta content");
-      expect(readFileSync(path.join(getAgentArtifactsDir(storagePath), BETA_ID, "beta.css"), "utf8"))
-        .toContain("teal");
+      expect(store.getArtifact(betaID!)).toEqual(expect.objectContaining({
+        kind: "path",
+        title: "Beta",
+        path: copyPath(storagePath, BETA_COPY) + path.sep,
+      }));
+      expect(readFileSync(path.join(copyPath(storagePath, BETA_COPY), "index.html"), "utf8")).toContain("beta content");
+      expect(readFileSync(path.join(copyPath(storagePath, BETA_COPY), "beta.css"), "utf8")).toContain("teal");
 
       expect(Object.keys(readState(storagePath).channels).sort()).toEqual(["first", "second"]);
     });
@@ -526,7 +580,8 @@ describe("Onboarding installer", () => {
       stores.push(store);
 
       expect(store.listChannels().map((channel) => channel.name).sort()).toEqual(["First Screen", "Second Screen"]);
-      const alpha = store.getArtifact(ALPHA_ID)!;
+      const [alphaID] = pageArtifactIDs(store, "first");
+      const alpha = store.getArtifact(alphaID!)!;
       expect(alpha.kind).toBe("path");
       expect(alpha.kind === "path" && path.isAbsolute(alpha.path)).toBe(true);
       expect(Object.keys(readState(storagePath).channels).sort()).toEqual(["first", "second"]);
@@ -539,8 +594,9 @@ describe("Onboarding installer", () => {
       const storagePath = storage();
       const store = boot(storagePath, "ordered-artifacts");
 
-      const studio = store.listChannels().find((channel) => channel.onboarding?.slug === "studio")!;
-      expect(studio.layout).toEqual(studioPages());
+      const ids = pageArtifactIDs(store, "studio");
+      expect(channelBySlug(store, "studio").layout).toEqual(studioPages(ids));
+      expect(ids.map((id) => store.getArtifact(id)?.title)).toEqual(STUDIO_TITLES);
       expect(readState(storagePath).channels.studio).toBeDefined();
     });
   });
@@ -562,19 +618,44 @@ describe("Onboarding installer", () => {
       );
     }
 
-    function seedStudioArtifact(
-      storagePath: string,
-      slug: typeof STUDIO_ARTIFACT_SLUGS[number],
-    ): void {
-      const id = `television-onboarding--studio--${slug}`;
+    /** An artifact an interrupted attempt created: its own ID, with content at its copy name. */
+    function seedInterruptedArtifact(storagePath: string, id: string, copyName: string, title: string): void {
       mkdirSync(path.join(storagePath, "state", "artifacts"), { recursive: true });
       mkdirSync(getAgentArtifactsDir(storagePath), { recursive: true });
-      const copied = path.join(getAgentArtifactsDir(storagePath), `${id}.html`);
-      writeFileSync(copied, `<!doctype html>partial ${slug}`);
+      const copied = copyPath(storagePath, `${copyName}.html`);
+      writeFileSync(copied, `<!doctype html>partial ${title}`);
       writeFileSync(
         getArtifactLiveMetadataPath(storagePath, id),
-        JSON.stringify({ id, kind: "path", title: `Existing ${slug}`, path: copied }),
+        JSON.stringify({ id, kind: "path", title, path: copied }),
       );
+    }
+
+    function seedInterruptedStudioArtifact(
+      storagePath: string,
+      slug: typeof STUDIO_ARTIFACT_SLUGS[number],
+    ): string {
+      const id = `interrupted-${slug}`;
+      seedInterruptedArtifact(storagePath, id, STUDIO_COPY_NAMES[STUDIO_ARTIFACT_SLUGS.indexOf(slug)]!, `Existing ${slug}`);
+      return id;
+    }
+
+    /**
+     * The retry created every configured artifact again, with generated IDs
+     * none of the `interrupted` ones, configured titles and content at copy
+     * names, and wrote the configured pages over them.
+     */
+    function expectRecreatedStudio(store: ServerStore, storagePath: string, interrupted: string[]): string[] {
+      const ids = pageArtifactIDs(store, "studio");
+      expect(channelBySlug(store, "studio").layout).toEqual(studioPages(ids));
+      for (const [index, id] of ids.entries()) {
+        expect(id).toMatch(GENERATED_ID);
+        expect(interrupted).not.toContain(id);
+        expect(store.getArtifact(id)).toEqual(expect.objectContaining({
+          title: STUDIO_TITLES[index],
+          path: copyPath(storagePath, `${STUDIO_COPY_NAMES[index]!}.html`),
+        }));
+      }
+      return ids;
     }
 
     it("reuses a marker-carrying channel with no artifacts or pages", () => {
@@ -582,61 +663,50 @@ describe("Onboarding installer", () => {
       seedUnmarkedStudio(storagePath);
 
       const store = boot(storagePath, "ordered-artifacts");
-      const studio = store.listChannels().find((channel) => channel.onboarding?.slug === "studio")!;
       expect(store.listChannels()).toHaveLength(1);
-      expect(studio.id).toBe("crashed");
-      expect(studio.layout).toEqual(studioPages());
-      expect(store.listArtifacts().map((artifact) => artifact.id).sort())
-        .toEqual([...STUDIO_ARTIFACT_IDS].sort());
+      expect(channelBySlug(store, "studio").id).toBe("crashed");
+      const ids = expectRecreatedStudio(store, storagePath, []);
+      expect(store.listArtifacts().map((artifact) => artifact.id).sort()).toEqual([...ids].sort());
       expect(readState(storagePath).channels.studio).toBeDefined();
     });
 
-    it("preserves existing metadata, creates missing artifacts, and replaces partial pages whole", () => {
+    it("creates every configured artifact again beside some of an interrupted attempt's, and replaces partial pages whole", () => {
       const storagePath = storage();
-      seedUnmarkedStudio(storagePath, [page(STUDIO_ARTIFACT_IDS[0]!)]);
-      seedStudioArtifact(storagePath, "main");
-      seedStudioArtifact(storagePath, "left");
+      const main = seedInterruptedStudioArtifact(storagePath, "main");
+      const left = seedInterruptedStudioArtifact(storagePath, "left");
+      seedUnmarkedStudio(storagePath, [page(main)]);
 
       const store = boot(storagePath, "ordered-artifacts");
-      const studio = store.listChannels().find((channel) => channel.onboarding?.slug === "studio")!;
-      expect(studio.id).toBe("crashed");
-      expect(studio.layout).toEqual(studioPages());
-      expect(store.listArtifacts().map((artifact) => artifact.id).sort())
-        .toEqual([...STUDIO_ARTIFACT_IDS].sort());
-      expect(store.getArtifact(STUDIO_ARTIFACT_IDS[0]!)!.title).toBe("Existing main");
-      expect(store.getArtifact(STUDIO_ARTIFACT_IDS[2]!)!.title).toBe("Existing left");
-      expect(store.getArtifact(STUDIO_ARTIFACT_IDS[1]!)!.title).toBe("Side");
-      expect(store.getArtifact(STUDIO_ARTIFACT_IDS[3]!)!.title).toBe("Right");
+      expect(store.listChannels()).toHaveLength(1);
+      expect(channelBySlug(store, "studio").id).toBe("crashed");
+      const ids = expectRecreatedStudio(store, storagePath, [main, left]);
+      // The interrupted attempt's artifacts stay, untouched and without pages.
+      expect(store.getArtifact(main)!.title).toBe("Existing main");
+      expect(store.getArtifact(left)!.title).toBe("Existing left");
+      expect(store.listArtifacts().map((artifact) => artifact.id).sort()).toEqual([...ids, main, left].sort());
       expect(readState(storagePath).channels.studio).toBeDefined();
     });
 
-    it("replaces a partial page list when all artifact metadata already exists", () => {
+    it("creates every configured artifact again when all of an interrupted attempt's exist, and replaces a partial page list", () => {
       const storagePath = storage();
-      seedUnmarkedStudio(storagePath, [
-        page(STUDIO_ARTIFACT_IDS[3]!),
-        page(STUDIO_ARTIFACT_IDS[1]!),
-      ]);
-      for (const slug of STUDIO_ARTIFACT_SLUGS) {
-        seedStudioArtifact(storagePath, slug);
-      }
+      const interrupted = STUDIO_ARTIFACT_SLUGS.map((slug) => seedInterruptedStudioArtifact(storagePath, slug));
+      seedUnmarkedStudio(storagePath, [page(interrupted[3]!), page(interrupted[1]!)]);
 
       const store = boot(storagePath, "ordered-artifacts");
-      const studio = store.listChannels().find((channel) => channel.onboarding?.slug === "studio")!;
-      expect(studio.id).toBe("crashed");
-      expect(studio.layout).toEqual(studioPages());
+      expect(channelBySlug(store, "studio").id).toBe("crashed");
+      const ids = expectRecreatedStudio(store, storagePath, interrupted);
       for (const [index, slug] of STUDIO_ARTIFACT_SLUGS.entries()) {
-        expect(store.getArtifact(STUDIO_ARTIFACT_IDS[index]!)!.title).toBe(`Existing ${slug}`);
+        expect(store.getArtifact(interrupted[index]!)!.title).toBe(`Existing ${slug}`);
       }
+      expect(store.listArtifacts()).toHaveLength(ids.length + interrupted.length);
       expect(readState(storagePath).channels.studio).toBeDefined();
     });
 
-    it("marks a complete unmarked slug without duplicating a channel, artifact, or page", () => {
+    it("marks a complete unmarked slug, creating its artifacts again without duplicating its channel or pages", () => {
       const storagePath = storage();
       const complete = boot(storagePath, "ordered-artifacts");
-      const channelBefore = structuredClone(complete.listChannels()[0]!);
-      const artifactsBefore = complete.listArtifacts()
-        .map((artifact) => structuredClone(artifact))
-        .sort((left, right) => left.id.localeCompare(right.id));
+      const channelBefore = structuredClone(channelBySlug(complete, "studio"));
+      const artifactsBefore = complete.listArtifacts().map((artifact) => structuredClone(artifact));
       complete.dispose();
       stores.splice(stores.indexOf(complete), 1);
 
@@ -647,11 +717,36 @@ describe("Onboarding installer", () => {
       writeFileSync(getOnboardingStatePath(storagePath), JSON.stringify(stateWithoutStudio));
 
       const store = boot(storagePath, "ordered-artifacts");
-      expect(store.listChannels()).toEqual([channelBefore]);
-      expect([...store.listArtifacts()].sort((left, right) => left.id.localeCompare(right.id)))
-        .toEqual(artifactsBefore);
-      expect(store.listChannels()[0]!.layout).toEqual(studioPages());
+      expect(store.listChannels()).toHaveLength(1);
+      expect(channelBySlug(store, "studio").id).toBe(channelBefore.id);
+      const ids = expectRecreatedStudio(store, storagePath, artifactsBefore.map((artifact) => artifact.id));
+      // The earlier attempt's artifacts stay as they were, without pages.
+      for (const before of artifactsBefore) expect(store.getArtifact(before.id)).toEqual(before);
+      expect(store.listArtifacts()).toHaveLength(ids.length + artifactsBefore.length);
       expect(readState(storagePath).channels.studio).toBeDefined();
+    });
+
+    it("neither reuses nor writes to the store of an earlier release's predictable-ID artifact for a slug that declares a store", () => {
+      const storagePath = storage();
+      // An earlier release's interrupted install: the marker-carrying channel,
+      // and an artifact whose ID is the predictable form it was given then.
+      const predictable = "television-onboarding--kitchen--list";
+      seedStateDir(storagePath);
+      seedInterruptedArtifact(storagePath, predictable, predictable, "List");
+      mkdirSync(getChannelsDir(storagePath), { recursive: true });
+      writeFileSync(
+        path.join(getChannelsDir(storagePath), "crashed.json"),
+        JSON.stringify({ id: "crashed", name: "Kitchen", layoutVersion: 2, layout: [page(predictable)], onboarding: { slug: "kitchen" } }),
+      );
+
+      const store = bootOnDay(storagePath, "declared-stores", INSTALL_DAY);
+      const [listID, , notesID] = pageArtifactIDs(store, "kitchen");
+      expect(listID).toMatch(GENERATED_ID);
+      expect(store.getArtifact(predictable)).toEqual(expect.objectContaining({ title: "List" }));
+      expect(storePointer(store, predictable)).toBeUndefined();
+      expect(store.resources.list().map((resource) => resource.ownerArtifactID).sort()).toEqual([listID, notesID].sort());
+      expect(store.resources.json.get({ artifactID: listID! }, "")).toEqual({ exists: true, value: SHIFTED_LIST });
+      expect(readState(storagePath).channels.kitchen).toBeDefined();
     });
   });
 
@@ -663,11 +758,12 @@ describe("Onboarding installer", () => {
       const storagePath = storage();
       const store = boot(storagePath, "markdown-channel");
 
-      const destination = path.join(getAgentArtifactsDir(storagePath), `${GUIDE_ID}.md`);
-      expect(store.getArtifact(GUIDE_ID)).toMatchObject({ kind: "path", title: "Guide", path: destination });
+      const destination = copyPath(storagePath, `${GUIDE_COPY}.md`);
+      const [guideID] = pageArtifactIDs(store, "notes");
+      expect(store.getArtifact(guideID!)).toMatchObject({ kind: "path", title: "Guide", path: destination });
       expect(readFileSync(destination, "utf8"))
         .toBe(readFileSync(path.join(bundle("markdown-channel"), "notes", "guide.md"), "utf8"));
-      expect(existsSync(path.join(getAgentArtifactsDir(storagePath), `${GUIDE_ID}.html`))).toBe(false);
+      expect(existsSync(copyPath(storagePath, `${GUIDE_COPY}.html`))).toBe(false);
       expect(readState(storagePath).channels.notes).toBeDefined();
     });
   });
@@ -677,20 +773,20 @@ describe("Onboarding installer", () => {
     it("replaces a truncated destination file under an unmarked slug", () => {
       const storagePath = storage();
       mkdirSync(getAgentArtifactsDir(storagePath), { recursive: true });
-      writeFileSync(path.join(getAgentArtifactsDir(storagePath), `${ALPHA_ID}.html`), "<!doct");
+      writeFileSync(copyPath(storagePath, `${ALPHA_COPY}.html`), "<!doct");
 
       boot(storagePath, "two-channels");
-      expect(readFileSync(path.join(getAgentArtifactsDir(storagePath), `${ALPHA_ID}.html`), "utf8"))
+      expect(readFileSync(copyPath(storagePath, `${ALPHA_COPY}.html`), "utf8"))
         .toContain("alpha content");
     });
 
     it("replaces a truncated .md destination file under an unmarked slug", () => {
       const storagePath = storage();
       mkdirSync(getAgentArtifactsDir(storagePath), { recursive: true });
-      writeFileSync(path.join(getAgentArtifactsDir(storagePath), `${GUIDE_ID}.md`), "# Gu");
+      writeFileSync(copyPath(storagePath, `${GUIDE_COPY}.md`), "# Gu");
 
       boot(storagePath, "markdown-channel");
-      expect(readFileSync(path.join(getAgentArtifactsDir(storagePath), `${GUIDE_ID}.md`), "utf8"))
+      expect(readFileSync(copyPath(storagePath, `${GUIDE_COPY}.md`), "utf8"))
         .toContain("Markdown onboarding fixture content");
     });
 
@@ -700,13 +796,15 @@ describe("Onboarding installer", () => {
       // left at the deterministic directory path is copied fresh too.
       const storagePath = storage();
       mkdirSync(getAgentArtifactsDir(storagePath), { recursive: true });
-      const squattingFile = path.join(getAgentArtifactsDir(storagePath), BETA_ID);
+      const squattingFile = copyPath(storagePath, BETA_COPY);
       writeFileSync(squattingFile, "junk");
 
       const store = boot(storagePath, "two-channels");
       expect(readFileSync(path.join(squattingFile, "index.html"), "utf8")).toContain("beta");
       expect(Object.keys(readState(storagePath).channels).sort()).toEqual(["first", "second"]);
-      expect(store.getArtifact(BETA_ID)).toBeDefined();
+      expect(store.getArtifact(pageArtifactIDs(store, "second")[0]!)).toEqual(
+        expect.objectContaining({ path: squattingFile + path.sep }),
+      );
     });
 
     it("replaces a directory squatting at a file artifact's destination", () => {
@@ -715,14 +813,16 @@ describe("Onboarding installer", () => {
       // or source-shape change) is copied fresh, not stuck retrying
       // (specs/arch/onboarding/installer.md#^copy-overwrite-unmarked).
       const storagePath = storage();
-      const squattingDir = path.join(getAgentArtifactsDir(storagePath), `${ALPHA_ID}.html`);
+      const squattingDir = copyPath(storagePath, `${ALPHA_COPY}.html`);
       mkdirSync(squattingDir, { recursive: true });
       writeFileSync(path.join(squattingDir, "junk.txt"), "leftover");
 
       const store = boot(storagePath, "two-channels");
       expect(readFileSync(squattingDir, "utf8")).toContain("alpha content");
       expect(Object.keys(readState(storagePath).channels).sort()).toEqual(["first", "second"]);
-      expect(store.getArtifact(ALPHA_ID)).toBeDefined();
+      expect(store.getArtifact(pageArtifactIDs(store, "first")[0]!)).toEqual(
+        expect.objectContaining({ path: squattingDir }),
+      );
     });
   });
 
@@ -731,16 +831,17 @@ describe("Onboarding installer", () => {
     it("recreates, repairs, and overwrites nothing for marked slugs", () => {
       const storagePath = storage();
       const installed = boot(storagePath, "ordered-artifacts");
-      const studio = installed.listChannels().find((channel) => channel.onboarding?.slug === "studio")!;
+      const studio = channelBySlug(installed, "studio");
+      const ids = pageArtifactIDs(installed, "studio");
       installed.updateChannel({ channelID: studio.id, fields: { name: "Renamed by user" } });
-      installed.deleteArtifact(STUDIO_ARTIFACT_IDS[2]!);
+      installed.deleteArtifact(ids[2]!);
       const authoredPages = [
-        page(STUDIO_ARTIFACT_IDS[3]!),
-        page(STUDIO_ARTIFACT_IDS[0]!),
-        page(STUDIO_ARTIFACT_IDS[1]!),
+        page(ids[3]!),
+        page(ids[0]!),
+        page(ids[1]!),
       ];
       installed.updateChannel({ channelID: studio.id, fields: { layout: authoredPages } });
-      const mainPath = path.join(getAgentArtifactsDir(storagePath), `${STUDIO_ARTIFACT_IDS[0]!}.html`);
+      const mainPath = copyPath(storagePath, `${STUDIO_COPY_NAMES[0]!}.html`);
       writeFileSync(mainPath, "<!doctype html>user edited");
       installed.dispose();
       stores.splice(stores.indexOf(installed), 1);
@@ -749,7 +850,7 @@ describe("Onboarding installer", () => {
       const unchanged = next.listChannels().find((channel) => channel.id === studio.id)!;
       expect(unchanged.name).toBe("Renamed by user");
       expect(unchanged.layout).toEqual(authoredPages);
-      expect(next.getArtifact(STUDIO_ARTIFACT_IDS[2]!)).toBeUndefined();
+      expect(next.getArtifact(ids[2]!)).toBeUndefined();
       expect(readFileSync(mainPath, "utf8")).toBe("<!doctype html>user edited");
 
       // A later deletion is equally final: the state mark outlives the user
@@ -762,6 +863,131 @@ describe("Onboarding installer", () => {
       expect(afterDeletion.listChannels()[0]!.name).toBe("Default");
       expect(afterDeletion.listChannels()[0]!.onboarding).toBeUndefined();
       expect(afterDeletion.listArtifacts()).toEqual([]);
+    });
+  });
+
+  // proofs/arch/onboarding/installer.md#^t-fire-forget, for declared stores
+  describe("Fire-and-forget for declared stores", () => {
+    it("writes nothing to a marked slug's store that was changed or emptied", () => {
+      const storagePath = storage();
+      const installed = boot(storagePath, "declared-stores");
+      const [listID, , notesID] = pageArtifactIDs(installed, "kitchen");
+      installed.resources.json.write({ artifactID: listID! }, { kind: "set", path: "", value: { mine: true } });
+      installed.resources.json.write({ artifactID: notesID! }, { kind: "remove", path: "" });
+      const storeIDs = installed.resources.list().map((resource) => resource.resourceID).sort();
+      installed.dispose();
+      disposeLater(installed);
+
+      const next = boot(storagePath, "declared-stores");
+      expect(next.resources.json.get({ artifactID: listID! }, "")).toEqual({ exists: true, value: { mine: true } });
+      expect(next.resources.json.get({ artifactID: notesID! }, "")).toEqual({ exists: false });
+      expect(next.resources.list().map((resource) => resource.resourceID).sort()).toEqual(storeIDs);
+      expect(next.listArtifacts()).toHaveLength(3);
+    });
+  });
+
+  // proofs/arch/onboarding/installer.md#^t-generated-ids
+  describe("Generated artifact IDs", () => {
+    it("gives each installed artifact a generated ID, different across installations and from its copy name, with its content at the copy name", () => {
+      const installs = [storage(), storage()].map((storagePath) => {
+        const store = boot(storagePath, "two-channels");
+        const ids = [...pageArtifactIDs(store, "first"), ...pageArtifactIDs(store, "second")];
+        const paths = ids.map((id) => {
+          const artifact = store.getArtifact(id);
+          return artifact?.kind === "path" ? artifact.path : undefined;
+        });
+        return { storagePath, ids, paths };
+      });
+      for (const { storagePath, ids, paths } of installs) {
+        expect(ids).toHaveLength(2);
+        for (const id of ids) {
+          expect(id).toMatch(GENERATED_ID);
+          expect([ALPHA_COPY, BETA_COPY]).not.toContain(id);
+        }
+        expect(paths).toEqual([copyPath(storagePath, `${ALPHA_COPY}.html`), copyPath(storagePath, BETA_COPY) + path.sep]);
+        expect(readFileSync(paths[0]!, "utf8")).toContain("alpha content");
+        expect(readFileSync(path.join(paths[1]!, "index.html"), "utf8")).toContain("beta content");
+      }
+      expect(installs[0]!.ids.filter((id) => installs[1]!.ids.includes(id))).toEqual([]);
+    });
+  });
+
+  // proofs/arch/onboarding/installer.md#^t-onboarding-stores
+  describe("Declared stores", () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    function recordWarnings(): () => string[] {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      return () => warn.mock.calls.map((call) => call.map(String).join(" "));
+    }
+
+    it("writes each declared starting value as its artifact's store's first write, which a restart finds", () => {
+      const warnings = recordWarnings();
+      const storagePath = storage();
+      const store = bootOnDay(storagePath, "declared-stores", INSTALL_DAY);
+      const [listID, boardID, notesID] = pageArtifactIDs(store, "kitchen");
+      expect(store.resources.json.get({ artifactID: listID! }, "")).toEqual({ exists: true, value: SHIFTED_LIST });
+      // Without shiftDatesFrom, a date stays as declared.
+      expect(store.resources.json.get({ artifactID: notesID! }, "")).toEqual({ exists: true, value: [1, "2026-07-08", {}] });
+      // The artifact that declares no store has none written.
+      expect(storePointer(store, boardID!)).toBeUndefined();
+      expect(store.resources.json.get({ artifactID: boardID! }, "")).toEqual({ exists: false });
+      // Each write was its store's first: the record points to the store, whose manifest names the artifact.
+      for (const artifactID of [listID!, notesID!]) {
+        const resourceID = storePointer(store, artifactID)!;
+        const manifest = JSON.parse(readFileSync(path.join(storagePath, "resources", "json", resourceID, "manifest.json"), "utf8")) as { ownerArtifactID?: string };
+        expect(manifest.ownerArtifactID).toBe(artifactID);
+      }
+      expect(store.resources.list().map((resource) => resource.ownerArtifactID).sort()).toEqual([listID, notesID].sort());
+      expect(warnings()).toEqual([]);
+      expect(readState(storagePath).channels.kitchen).toBeDefined();
+
+      // Written durably: a restart, which installs nothing more, finds them.
+      store.dispose();
+      disposeLater(store);
+      const restarted = boot(storagePath, "declared-stores");
+      expect(restarted.resources.json.get({ artifactID: listID! }, "")).toEqual({ exists: true, value: SHIFTED_LIST });
+      expect(restarted.resources.json.get({ artifactID: notesID! }, "")).toEqual({ exists: true, value: [1, "2026-07-08", {}] });
+      expect(restarted.listArtifacts()).toHaveLength(3);
+    });
+
+    it("moves the starting value's calendar dates from shiftDatesFrom to the installation day, at every depth, leaving every other value as declared", () => {
+      const storagePath = storage();
+      const store = bootOnDay(storagePath, "declared-stores", new Date(2026, 6, 12, 23, 30));
+      const [listID] = pageArtifactIDs(store, "kitchen");
+      // Four calendar days, across a month's end; a date with a time, an
+      // impossible date, other strings, a number and null stay as written.
+      expect(store.resources.json.get({ artifactID: listID! }, "")).toEqual({
+        exists: true,
+        value: { items: { milk: true }, due: "2026-07-12", plan: [{ on: "2026-08-03" }, "2026-08-06", "2026-07-08T10:00:00", "2026-02-30", "due soon", 7, null] },
+      });
+      const backwards = bootOnDay(storage(), "declared-stores", new Date(2026, 6, 1, 0, 30));
+      const [earlierID] = pageArtifactIDs(backwards, "kitchen");
+      expect(backwards.resources.json.get({ artifactID: earlierID! }, "")).toEqual({
+        exists: true,
+        value: { items: { milk: true }, due: "2026-07-01", plan: [{ on: "2026-07-23" }, "2026-07-26", "2026-07-08T10:00:00", "2026-02-30", "due soon", 7, null] },
+      });
+    });
+
+    it("installs and marks the channel when a starting value cannot be written, leaving the store with no value, and warns naming the artifact", () => {
+      const storagePath = storage();
+      // A file where the stores' directories must go: a real storage state.
+      mkdirSync(path.join(storagePath, "resources"), { recursive: true });
+      writeFileSync(path.join(storagePath, "resources", "json"), "not a directory");
+
+      const warnings = recordWarnings();
+      const store = boot(storagePath, "declared-stores");
+      const [listID, , notesID] = pageArtifactIDs(store, "kitchen");
+      expect(pageArtifactIDs(store, "kitchen")).toHaveLength(3);
+      expect(readState(storagePath).channels.kitchen).toBeDefined();
+      expect(store.resources.json.get({ artifactID: listID! }, "")).toEqual({ exists: false });
+      expect(store.resources.json.get({ artifactID: notesID! }, "")).toEqual({ exists: false });
+      const warned = warnings();
+      expect(warned).toEqual([expect.stringContaining(listID!), expect.stringContaining(notesID!)]);
+      expect(warned[0]).toContain('"list"');
+      expect(readFileSync(path.join(storagePath, "resources", "json"), "utf8")).toBe("not a directory");
     });
   });
 

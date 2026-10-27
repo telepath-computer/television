@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "focusChannel": "kitchen",
+  "channels": [
+    {
+      "slug": "kitchen",
+      "name": "Kitchen",
+      "artifacts": [
+        {
+          "slug": "list",
+          "title": "List",
+          "store": {
+            "value": {
+              "items": {
+                "milk": true
+              },
+              "due": "2026-07-08",
+              "plan": [
+                {
+                  "on": "2026-07-30"
+                },
+                "2026-08-02",
+                "2026-07-08T10:00:00",
+                "2026-02-30",
+                "due soon",
+                7,
+                null
+              ]
+            },
+            "shiftDatesFrom": "2026-07-08"
+          }
+        },
+        {
+          "slug": "board",
+          "title": "Board"
+        },
+        {
+          "slug": "notes",
+          "title": "Notes",
+          "store": {
+            "value": [
+              1,
+              "2026-07-08",
+              {}
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,10 +1,10 @@
 ---
-description: Artifact work — markdown files, HTML files/directories, URL pointers, create/update/delete flows, browser-only tab-page reordering, and the quality bar.
+description: Artifact work — markdown files, HTML files/directories, URL pointers, create/update/delete flows, arranging and moving artifacts, and the quality bar.
 ---
 
 # Artifact workflow
 
-Read this document for Television artifact work: creating files, registering path or URL artifacts, browser-only tab-page reordering, deleting, and updating titles.
+Read this document for Television artifact work: creating files, registering path or URL artifacts, arranging and moving artifacts, deleting, and updating titles.
 
 If you need bundled Television authoring skills installed first, copy them into the agent harness skills folder with `tv skills install <path>` (for example `~/.openclaw/skills`, `~/.hermes/skills`, or `~/.agents/skills`) or use `tv skills install -i`.
 
@@ -154,6 +154,8 @@ Replace `<version>` with the target Television app version. For a running server
 
 `authoredForAppVersion` is advisory authoring context for a future agent. The server ignores it when serving the stylesheet, so it neither asserts compatibility nor controls whether the artifact loads. Set it when creating an artifact or deliberately re-authoring one against that app surface. Preserve an existing `authoredForAppVersion` value during unrelated maintenance. If you cannot establish the target app version, omit the query parameter; the canonical URL remains valid without it.
 
+Third-party mapping services such as Google Maps and OpenStreetMap may not work correctly in an artifact, because the CSP sandbox the artifact runs under strips the referrer and other information they expect. For a map, use Leaflet with Esri's street or satellite tiles (World Street Map or World Imagery), which work in a sandboxed artifact.
+
 ### Suggested HTML file set
 
 For durable HTML artifacts, write nearby documentation so a future agent can maintain the work:
@@ -197,11 +199,15 @@ tv update-artifact --id "<artifact-id>" --url "https://example.com/next"
 
 The new path follows the same rules as creation (file or indexed directory, trailing separator optional). Rendering follows the new pointer immediately, and for path artifacts the content watcher retargets with it. Prefer repointing over delete-and-recreate when the artifact should keep its identity and channel placement.
 
-Reordering an artifact's tab page on its current channel is a browser UI tab-drag gesture; the CLI does not expose layout mutation today.
+To change an artifact's size, full-screen state, or position in its channel's order, use `tv reposition-artifact`, described under Arranging artifacts above.
 
-To move the same underlying path or URL to another channel, delete the existing artifact and create a new one on the target channel with the same `--path` or `--url`.
+To move an artifact to another channel, keeping its identity, store, and share link:
 
-To delete the registry record and remove its tab page from the channel:
+```bash
+tv move-artifact --id "<artifact-id>" --channel "<target-channel-id>" --no-focus
+```
+
+To delete the registry record and remove the artifact from its channel:
 
 ```bash
 tv delete-artifact --id "<artifact-id>"
@@ -223,28 +229,29 @@ Rules:
 - Browser clients render Television artifact proxy URLs (`http://<host>:<port>/artifact/<id>/...`) inline and live-reload them when the producer's ETag changes.
 - Television does not fetch or watch ordinary remote pages from the consumer server.
 
-### Sharing Television artifacts by URL
+### Sharing Television artifacts
 
-To share a path artifact from one Television server to another, build a producer artifact proxy URL:
+To share a path artifact from one Television server with someone else, create its share link on the producer:
 
-```text
-http://<producer-host>:<port>/artifact/<artifact-id>/<basename>
+```bash
+tv share-artifact --id <artifact-id>
 ```
 
-**CRITICAL — the share URL carries NO token.** Do not append the server's main `tv` bearer token (or any `?token=`/`Authorization` value) to a share URL, and never include it when telling the recipient how to reach the artifact. The `/artifact/<id>/*` proxy is bearerless: the unguessable artifact id in the path *is* the capability. The recipient is authorized by holding the artifact-id URL, not by holding the producer's main token. Leaking the main token would hand over full read/write control of the entire producer server; the artifact id only grants read access to that one artifact's rendered content. A correct share URL is exactly the form above — host, port, `/artifact/<artifact-id>/`, basename — and nothing else.
+It prints the link once for each address the server can be reached at, in the form `http://<host>:<port>/artifact/<share-id>/`. A server listening on every interface (`0.0.0.0`) gives each of the machine's addresses, never `0.0.0.0` itself. Never share the artifact's own address, `/artifact/<artifact-id>/`: anyone who can load it can read and write the artifact's store. The share link reaches the artifact without revealing its ID, at `read` unless you give `--access read-write`. Run the command again with `--access` and the other level to change the link's level, and revoke the link with `tv unshare-artifact --id <artifact-id>`.
 
-First run `tv status` on the producer. Its JSON reports the server `bindAddresses` and `port`. Choose the host that the recipient can actually reach:
+**CRITICAL — the share link carries NO token.** Do not append the server's main `tv` bearer token (or any `?token=`/`Authorization` value) to a share link, and never include it when telling the recipient how to reach the artifact. The `/artifact/<id>/*` proxy is bearerless: the unguessable share ID in the path *is* the capability. Leaking the main token would hand over full read/write control of the entire producer server. A correct share link is exactly the form above and nothing else.
+
+Choose the line whose host the recipient can actually reach:
 
 - Prefer a Tailscale CGNAT address (`100.64.0.0/10`) when one is present.
 - Otherwise use a non-loopback bind address.
 - Never emit a loopback host (`127.0.0.1` or `localhost`) for sharing; that points at the recipient's own machine.
-- If the server is bound to `0.0.0.0`, determine the host's reachable IP by other means, then use that IP with the reported port.
-- If you cannot determine an externally reachable IP, tell the user and explain that the server is only reporting loopback or wildcard bind information instead of inventing a localhost share URL.
+- If no line has a host the recipient can reach, tell the user so instead of inventing a share link.
 
-For directory artifacts, use the directory proxy URL ending in `/artifact/<artifact-id>/`. For file artifacts, include the encoded basename. The recipient adds that URL with `tv create-url-artifact`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
+The recipient adds the link with `tv create-url-artifact`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
 
-Markdown artifacts shared this way render as read-only HTML. Anyone with the artifact proxy URL can read the rendered artifact content, matching the HTML artifact capability model — and that read works with no token at all, because the artifact id alone authorizes the read.
+Markdown artifacts shared this way render as read-only HTML. Anyone with the share link can read the artifact's content with no token at all, because the share ID alone authorizes the read.
 
-There is no separate `share-artifact` command. To "share" a URL artifact, pass along the underlying URL and let the recipient create their own URL artifact.
+A URL artifact has no share link. To "share" one, pass along the underlying URL and let the recipient create their own URL artifact.
 
 If the browser placeholder for an ordinary non-Television URL is not sufficient, create a markdown or HTML path artifact that links to the page and summarizes what the user needs from it.

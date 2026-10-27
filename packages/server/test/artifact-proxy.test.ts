@@ -70,9 +70,8 @@ describe("artifact proxy", () => {
 
   function createStaticRootWithArtifactMissingView(body: string): string {
     const staticRoot = trackedDir("television-static-");
-    mkdirSync(path.join(staticRoot, "assets"), { recursive: true });
-    mkdirSync(path.join(staticRoot, "views", "artifact-missing"), { recursive: true });
-    writeFileSync(path.join(staticRoot, "assets", "artifactMissing.js"), "window.__artifactMissingLoaded = true;\n", "utf8");
+    mkdirSync(path.join(staticRoot, "views", "artifact-missing", "assets"), { recursive: true });
+    writeFileSync(path.join(staticRoot, "views", "artifact-missing", "assets", "artifactMissing.js"), "window.__artifactMissingLoaded = true;\n", "utf8");
     writeFileSync(path.join(staticRoot, "views", "artifact-missing", "index.html"), body, "utf8");
     return staticRoot;
   }
@@ -266,8 +265,8 @@ describe("artifact proxy", () => {
       .expect(({ text }) => expect(text).not.toContain("Artifact file not found"));
   });
 
-  it("serves artifact-missing view asset URLs that resolve from both canonical entry shapes", async () => {
-    const missingViewHTML = "<!doctype html><script type=module src=\"../../assets/artifactMissing.js\"></script>";
+  it("serves the artifact-missing view's script from beside the view, at an address that resolves from both canonical entry shapes and allows any origin", async () => {
+    const missingViewHTML = "<!doctype html><script type=module src=\"../../views/artifact-missing/assets/artifactMissing.js\"></script>";
     const staticRoot = createStaticRootWithArtifactMissingView(missingViewHTML);
     const h = await setup({ staticDir: staticRoot, bundledViewsPath: path.join(staticRoot, "views") });
     const dir = trackedDir("television-proxy-missing-assets-");
@@ -290,12 +289,13 @@ describe("artifact proxy", () => {
         .expect(404)
         .expect(({ text }) => expect(text).toBe(missingViewHTML));
       const scriptPath = /src="([^"]+)"/.exec(response.text)?.[1];
-      expect(scriptPath).toBe("../../assets/artifactMissing.js");
       const resolvedPath = new URL(scriptPath!, `http://television.test${route}`).pathname;
-      expect(resolvedPath).toBe("/assets/artifactMissing.js");
+      expect(resolvedPath).toBe("/views/artifact-missing/assets/artifactMissing.js");
       await request(h.server.httpServer)
         .get(resolvedPath)
+        .set("Origin", "null")
         .expect(200)
+        .expect("Access-Control-Allow-Origin", "*")
         .expect(({ text }) => expect(text).toContain("__artifactMissingLoaded"));
     }
   });

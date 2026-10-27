@@ -1,10 +1,12 @@
-import { expect, test, type ElectronApplication, type Page } from "@playwright/test";
+import type { ElectronApplication, Page } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdtempSync, rmSync } from "node:fs";
 import { createServer as createHTTPServer, type Server as HTTPServer } from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { Server, ServerStore } from "@telepath-computer/television-server";
-import { desktopE2EURL, launchDesktop } from "./helpers.ts";
+import { desktopE2EOrigin, desktopE2EURL, launchDesktop } from "./helpers.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 
 const START_URL = desktopE2EURL("/packages/desktop/test/e2e/fixtures/electron-url-nav-start.html", { hostname: "localhost" });
@@ -38,7 +40,7 @@ async function createURLArtifact(server: Server, store: ServerStore): Promise<st
 
 async function launchNavigationApp(server: Server): Promise<{ app: ElectronApplication; page: Page }> {
   return await launchDesktop({
-    fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(server.getBaseURL())}&token=${server.getAuthToken()}`),
+    fixture: `${await appURLForServer(server.getBaseURL(), desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${server.getAuthToken()}`,
   });
 }
 

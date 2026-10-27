@@ -12,6 +12,10 @@ Use a native input or textarea with an accessible label. Native editing, selecti
 
 Use `disabled` to disable a control and `readonly` to retain selectable, readable contents without editing. Set `aria-invalid="true"` when the application presents a validation error, and associate its error message with `aria-describedby`. Do not mark untouched required fields invalid merely because they are empty.
 
+## Size
+
+A text field takes `data-size="lg"` to match a large button beside it ([ui/foundation/button/index.md](../button/index.md)). The attribute is `data-size` because `size` is already a native input attribute, the field's width in characters.
+
 ## Error messages
 
 Use a native paragraph with `class="tv-error"` for an error message. This class is an explicit exception to attribute-based styling hooks. It is shared message styling and may be used outside inputs; it adds no validation, visibility, focus or announcement behavior.

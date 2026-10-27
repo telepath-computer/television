@@ -62,7 +62,7 @@ style: |
 
   /* The stage's own controls, as opposed to the tabs, which are the channel's:
      the tabs travel on a channel change and the controls stay put. Stage one
-     holds the skill selector and the optional update bell in this row. */
+     holds the skill selector, settings and the optional update bell in this row. */
   .top-bar-controls {
     grid-column: 3;
     justify-self: end;
@@ -70,7 +70,7 @@ style: |
     margin-left: calc(48px - var(--space-8));
     display: flex;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--toolbar-gap);
   }
 
   /* Ordinary controls follow the bar text token; intent controls retain
@@ -133,7 +133,7 @@ style: |
     justify-self: start;
     display: flex;
     align-items: center;
-    gap: var(--space-8);
+    gap: var(--toolbar-gap);
     padding-left: var(--traffic-light-x-reserve);
     min-width: 0;
   }

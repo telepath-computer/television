@@ -1,0 +1,7 @@
+---
+title: Access token required
+description: "The server's interface inside the desktop app, before it has rendered: no address bar and no drag handle of its own."
+params:
+  appearance: { enum: [light, dark], default: light }
+---
+{% render '../../../../specs/ui/app/system-modal/system-modal', state: 'unauthorized', context: 'desktop', drag_strip: true %}

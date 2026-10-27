@@ -13,8 +13,7 @@ import { startStableFrontProxy, type StableFrontProxy } from "../helpers/stable-
 
 // The reload acceptance spine (specs/product/update-notifications.md):
 // one acceptance test per anchored criterion — ^ac-reload-heals,
-// ^ac-reload-fresh, ^ac-reload-guard, ^ac-reload-dev, ^ac-reload-origin-only
-// — on the boundary the criteria declare (^ac-declaration): a really-running
+// ^ac-reload-fresh, ^ac-reload-guard, ^ac-reload-dev — on the boundary the criteria declare (^ac-declaration): a really-running
 // Television server spawned as a separate process, driven by a real Chromium
 // page over real HTTP and websockets; no mocks anywhere on the path. Version
 // staging uses only the sanctioned hooks (specs/arch/updates/index.md

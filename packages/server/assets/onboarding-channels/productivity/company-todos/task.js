@@ -157,7 +157,7 @@ const CHECKBOX_STYLES = `
     content: "";
     width: 4px;
     height: 7px;
-    border: solid white;
+    border: solid var(--color-primary-text);
     border-width: 0 1.5px 1.5px 0;
     opacity: 0;
     transform: translateY(-0.5px) rotate(45deg) scale(0.75);

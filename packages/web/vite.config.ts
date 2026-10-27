@@ -1,5 +1,5 @@
-import { defineConfig } from "vite";
-import { readFileSync } from "node:fs";
+import { defineConfig, type Plugin } from "vite";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createTelevisionLicensePlugin } from "../../scripts/licenses/vite-plugin.mjs";
@@ -11,6 +11,16 @@ import { appearanceBootstrapScriptSource } from "./src/appearance.ts";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
 const tailscaleRemote = process.env.TAILSCALE_REMOTE === "1";
+
+// The Television server scripts/dev-server.sh runs. The app reaches only the
+// origin that served it (specs/arch/updates/version-advertisement.md
+// ^reload-origin-rule), so the dev server forwards the server's routes there,
+// WebSockets included. Routes match whole path segments, which keeps the
+// shell's own modules, such as /theme.ts and /views/television-app.ts, with
+// Vite; under /views only the server's own views are forwarded.
+const devServerURL = process.env.TV_DEV_SERVER_URL;
+const SERVER_ROUTES =
+  "^/(acp|api|artifact|artifact-resources|artifacts|canonical|channels|demo-mode|desktop|display|events|health|markdown|sdk|telemetry|theme|themes|views/artifact-missing|views/markdown)(/|\\?|$)";
 
 // The bundle's version stamp (specs/arch/updates/version-advertisement.md
 // ^web-version-stamp): the workspace package version, or TV_TEST_WEB_VERSION
@@ -63,6 +73,42 @@ function artifactDocumentAppearanceBootstrap() {
   };
 }
 
+// The missing-file page is an artifact document: the proxy serves it at an
+// artifact's address, where the browser sandboxes it, so its module scripts
+// are cross-origin requests. It loads copies of them from beside itself under
+// /views/artifact-missing/, which allows any origin, since the app's bundle
+// allows none (specs/arch/artifact-frame/isolation.md#^iso-routes). Its
+// addresses stay relative to a page two levels deep, which every address it
+// is served at is.
+function artifactMissingOwnScripts(): Plugin {
+  const viewDir = "views/artifact-missing";
+  return {
+    name: "television-artifact-missing-own-scripts",
+    apply: "build",
+    writeBundle(options, bundle) {
+      const outDir = options.dir!;
+      const entry = Object.values(bundle).find((output) => output.type === "chunk" && output.isEntry && output.name === "artifactMissing");
+      if (entry === undefined) throw new Error("The web build produced no artifact-missing script");
+      const files = new Set<string>();
+      const collect = (fileName: string): void => {
+        if (files.has(fileName)) return;
+        files.add(fileName);
+        const output = bundle[fileName];
+        if (output?.type === "chunk") for (const imported of [...output.imports, ...output.dynamicImports]) collect(imported);
+      };
+      collect(entry.fileName);
+      const htmlPath = path.join(outDir, viewDir, "index.html");
+      let html = readFileSync(htmlPath, "utf8");
+      for (const fileName of files) {
+        mkdirSync(path.dirname(path.join(outDir, viewDir, fileName)), { recursive: true });
+        copyFileSync(path.join(outDir, fileName), path.join(outDir, viewDir, fileName));
+        html = html.replaceAll(`"../../${fileName}"`, `"../../${viewDir}/${fileName}"`);
+      }
+      writeFileSync(htmlPath, html);
+    },
+  };
+}
+
 function canonicalFontPreload() {
   const fontPath = path.join(
     packageDir,
@@ -107,6 +153,7 @@ export default defineConfig(({ command }) => ({
     watch: {
       followSymlinks: true,
     },
+    proxy: devServerURL ? { [SERVER_ROUTES]: { target: devServerURL, ws: true } } : undefined,
   },
   resolve: {
     preserveSymlinks: false,
@@ -119,6 +166,7 @@ export default defineConfig(({ command }) => ({
     cssModuleScripts(),
     createTelevisionLicensePlugin({ surface: "web" }),
     canonicalFontPreload(),
+    artifactMissingOwnScripts(),
   ],
   build: {
     outDir: path.resolve(packageDir, "dist"),

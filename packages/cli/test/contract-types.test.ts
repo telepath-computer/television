@@ -28,12 +28,11 @@ import type {
 // literal rather than deriving them from the source types: equality below is
 // intended to fail compilation when either side drifts.
 type SpecWritable = {
+  isTTY?: boolean;
   write(chunk: string | Uint8Array): unknown;
 };
 
-type SpecCLIServer = Pick<Server, "start" | "dispose" | "getBaseURL" | "getAuthToken"> & {
-  getBaseURLs?: () => string[];
-};
+type SpecCLIServer = Pick<Server, "start" | "dispose" | "getAuthToken" | "getOrigins" | "getListeningPort">;
 
 type SpecCLIServerOptions = {
   home: string;
@@ -46,8 +45,10 @@ type SpecCLIServerOptions = {
   bundledViewsPath?: string;
   onboardingContentPath?: string;
   bundledThemesPath?: string;
+  sdkDir?: string;
   acpProfile?: ACPAgentProfile;
   launchMode: LaunchMode;
+  resourceBindings: boolean;
 };
 
 type SpecCLIDaemonOptions = {
@@ -69,6 +70,8 @@ interface SpecCLIEnvironment {
   resolveOnboardingContentPath: () => string | undefined;
   resolveBundledThemesPath: () => string | undefined;
   resolveBundledSkillsRoot: () => string | undefined;
+  resolveSdkDir: () => string | undefined;
+  resourceBindings: boolean;
   resolveHomeDir: () => string;
   runSkillsInstaller: (args: string[]) => Promise<void>;
   emitSkillInstalledTelemetry: (options: SkillInstalledTelemetryOptions) => Promise<void>;

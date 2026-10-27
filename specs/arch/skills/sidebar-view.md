@@ -1,4 +1,4 @@
-*Arch spec: the tv-sidebar-view skill's bundle facts — storage contract, event stance, known gaps against its ui spec, and how each shipped file was derived.*
+*Arch spec: the tv-sidebar-view skill's bundle facts — where it keeps the sidebar width, event stance, known gaps against its ui spec, and how each shipped file was derived.*
 
 # Sidebar-view skill (architecture)
 
@@ -8,7 +8,7 @@ The per-skill record for `tv-sidebar-view` (`packages/skills/skills/tv-sidebar-v
 
 ## Storage
 
-The remembered sidebar width (the ui spec's "remembered per artifact, on the device") is localStorage under the key `tv-sidebar-width:<pathname>`. Pathname-scoped deliberately: Television serves all artifacts from one origin, so unscoped keys would collide across artifacts. Any future persisted state in this or another skill follows the same rule — key prefixed by the skill vocabulary and scoped by `location.pathname`. Storage failures degrade silently to non-persistence.
+The remembered sidebar width (the ui spec's "remembered per artifact and shared by everyone viewing it") is a number of CSS pixels at the path `tv-sidebar-view/width` in the artifact's own [JSON store](../../product/resources/json-store.md), which the carried JS reaches through the resource SDK. The sidebar takes the stored width and follows changes to it, and keeps its default width while the store holds none or cannot be read. A resize writes the width; when the store refuses the write, as it does for a page with `read` access, or the write fails, the new width stays in that page.
 
 ## Events
 

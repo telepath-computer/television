@@ -25,11 +25,10 @@ export default {
       surface("unit:view-markdown", "vitest", "packages/view-markdown/vitest.config.ts", { package: "@telepath-computer/television-view-markdown", kind: "unit", roots: ["packages/view-markdown/test"], excludeRoots: ["packages/view-markdown/test/e2e"] }),
       surface("unit:browser-app", "vitest", "packages/web/vitest.config.ts", { package: "@telepath-computer/television-web", kind: "unit", roots: ["packages/web/test", "packages/web/src"], excludeRoots: ["packages/web/test/e2e"] }),
       surface("unit:skills", "vitest", "packages/skills/vitest.config.ts", { package: "@telepath-computer/television-skills", kind: "unit", roots: ["packages/skills/skills"], excludeRoots: ["packages/skills/skills/tv-calendar/test/e2e", "packages/skills/skills/tv-tasks/test/e2e"] }),
-      surface("unit:skillbench", "vitest", "packages/skillbench/vitest.config.ts", { package: "@telepath-computer/skillbench", kind: "unit", roots: ["packages/skillbench/test"] }),
-      surface("unit:staging", "vitest", "staging/vitest.config.ts", { kind: "unit", roots: ["staging/test"] }),
+      surface("unit:frames", "vitest", "frames/vitest.config.ts", { kind: "unit", roots: ["frames/lib"] }),
     ]),
     executionGroup("e2e:node", "e2e: node", 3, [
-      surface("e2e:node", "vitest", "test/node/vitest.config.ts", { kind: "e2e", roots: ["test/node"], excludeRoots: ["test/node/daemon-acceptance.test.ts"], tags: ["node"], preflight: ["node", "playwright-chromium"], preCommand: ["node", "scripts/licenses/build-suite.mjs"] }),
+      surface("e2e:node", "vitest", "test/node/vitest.config.ts", { kind: "e2e", roots: ["test/node"], excludeRoots: ["test/node/daemon-acceptance.test.ts"], tags: ["node"], preflight: ["node", "playwright-chromium", "playwright-firefox"], preCommand: ["node", "scripts/licenses/build-suite.mjs"] }),
     ]),
     executionGroup("e2e:browser-app", "e2e: web", 5, [
       surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),

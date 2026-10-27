@@ -69,6 +69,36 @@ describe("registry-declared Vite services", () => {
     for (const port of ports) await expectPortCanRebind(Number(port));
   }, 60_000);
 
+  // proofs/arch/test-runner/test-runner.md#^t-service-full-responses
+  test("answers conditional requests in full", async () => {
+    const running = await startSurfaceServices([{
+      id: "conditional",
+      kind: "vite",
+      config: "test/runner-fixtures/dynamic-services/conditional.vite.config.ts",
+      publishUrlEnv: "TV_DYNAMIC_CONDITIONAL_URL",
+    }]);
+    try {
+      const baseURL = running.services[0].url;
+      for (const pathname of ["/", "/@vite/client"]) {
+        const first = await fetch(new URL(pathname, baseURL));
+        const etag = first.headers.get("etag");
+        expect({ pathname, status: first.status, etag: typeof etag }).toEqual({ pathname, status: 200, etag: "string" });
+        const body = await first.text();
+
+        const revalidated = await fetch(new URL(pathname, baseURL), { headers: { "If-None-Match": etag! } });
+        expect({ pathname, status: revalidated.status }).toEqual({ pathname, status: 200 });
+        expect(await revalidated.text()).toBe(body);
+      }
+
+      const report = await fetch(new URL("/__conditional-headers", baseURL), {
+        headers: { "If-None-Match": "W/\"any\"", "If-Modified-Since": new Date().toUTCString() },
+      });
+      expect(await report.json()).toEqual({ ifNoneMatch: null, ifModifiedSince: null });
+    } finally {
+      await running.stop();
+    }
+  }, 30_000);
+
   test("closes earlier services and restores parent values when a later config fails", async () => {
     const reportDir = fs.mkdtempSync(path.join(os.tmpdir(), "tv-dynamic-services-"));
     const reportPath = path.join(reportDir, "first-url.txt");

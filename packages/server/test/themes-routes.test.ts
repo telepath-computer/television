@@ -47,14 +47,14 @@ describe("/themes routes", () => {
     await request(server.httpServer).get("/themes").expect(401);
     await request(server.httpServer).post("/themes/refresh").expect(401);
     for (const route of ["/themes", "/themes/refresh"]) {
-      const options = await request(server.httpServer).options(route).expect(204);
-      expect(options.headers["access-control-allow-origin"]).toBe("*");
-      expect(options.headers["access-control-allow-methods"]).toContain("POST");
-      expect(options.headers["access-control-allow-headers"]).toContain("Authorization");
+      const options = await request(server.httpServer).options(route);
+      expect(options.headers["access-control-allow-origin"]).toBeUndefined();
+      expect(options.headers["access-control-allow-methods"]).toBeUndefined();
+      expect(options.headers["access-control-allow-headers"]).toBeUndefined();
     }
 
     const initial = await request(server.httpServer).get("/themes").set(auth).expect(200);
-    expect(initial.headers["access-control-allow-origin"]).toBe("*");
+    expect(initial.headers["access-control-allow-origin"]).toBeUndefined();
     expect(initial.body).toEqual({
       themes: [{
         id: "Test Theme.v2",
@@ -81,7 +81,7 @@ describe("/themes routes", () => {
     });
 
     const refreshed = await request(server.httpServer).post("/themes/refresh").set(auth).expect(200);
-    expect(refreshed.headers["access-control-allow-origin"]).toBe("*");
+    expect(refreshed.headers["access-control-allow-origin"]).toBeUndefined();
     expect(refreshed.body.themes).toEqual([
       {
         id: "Alpha Theme",

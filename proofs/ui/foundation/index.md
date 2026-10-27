@@ -16,6 +16,8 @@ The manifest-driven root marker and the foundation-owned `color-scheme` are comp
 
 The shared app-bar height and traffic-light reserve are application token styling, so their exact values and computed padding receive no direct foundation assertion. [UI architecture](../../arch/ui/index.md#^ui-t-platform-marker) proves that the application root marks Electron context exactly. [Channel-sidebar titlebar coverage](../app/sidebar/index.md#^sb-ac-titlebar-controls), [navbar lead coverage](../app/top-bar/index.md#^top-ac-lead-markup), and [collapse acceptance](../app/index.md#^ap-ac-sidebar-collapse) prove that the consuming surfaces render and remain usable; conformance and staging retain exact alignment and spacing.
 
+The [text-token material](../../../specs/ui/foundation/tokens/text.css), including `--line-control-lg`, crosses into the web and live canonical builds through [foundation distribution](../../arch/ui/foundation.md#^ui-t-foundation-copy) and [canonical distribution](../../arch/canonical.md#^cn-t-authored-build). The large button/input geometry remains styling authority and adds no token-value test. [Setup](../setup/index.md#^setup-t-states) proves the consumer attributes.
+
 ## Assertions
 
 ### Test assertions

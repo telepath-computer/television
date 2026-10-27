@@ -101,10 +101,10 @@ describe("test runner guardrails", () => {
   test("setup-workspace composite encodes the exact-key cache contract", () => {
     const action = readFileSync(setupWorkspacePath, "utf8");
     expect(action).not.toContain("restore-keys:");
-    for (const input of ["package-lock.json", "packages/skills/package.json", "packages/skillbench/**"]) {
+    for (const input of ["package-lock.json", "packages/skills/package.json"]) {
       expect(action).toContain(input);
     }
-    for (const cached of ["node_modules", "packages/skillbench/dist"]) {
+    for (const cached of ["node_modules"]) {
       expect(action).toContain(cached);
     }
     expect(action).toContain("cache-hit != 'true'");
@@ -134,10 +134,10 @@ describe("test runner guardrails", () => {
     expect(action).toContain("default: shard-readiness-v2");
     expect(action).toContain("cache-key-suffix");
     expect(action).toContain('if [ -n "$CACHE_KEY_SUFFIX" ]');
-    for (const input of ["package-lock.json", "packages/skills/package.json", "packages/skillbench/**"]) {
+    for (const input of ["package-lock.json", "packages/skills/package.json"]) {
       expect(action).toContain(input);
     }
-    for (const cached of ["node_modules", "packages/skillbench/dist", "~/.cache/ms-playwright"]) {
+    for (const cached of ["node_modules", "~/.cache/ms-playwright"]) {
       expect(action).toContain(cached);
     }
   });
@@ -904,7 +904,7 @@ describe("local file and retry admission", () => {
     const result = dry(["local", "--surface", "unit:root", "--file", file, "--grep", "one-file"], true);
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain(`files=${file}`);
-    const conflict = dry(["local", "--surface", "unit:staging", "--file", file], true);
+    const conflict = dry(["local", "--surface", "unit:frames", "--file", file], true);
     expect(conflict.status).toBe(2);
     expect(conflict.stderr).toContain("not part of the selected surfaces");
   });
@@ -1021,7 +1021,7 @@ describe("local file and retry admission", () => {
     const recorded = spawnSync("bash", ["-c", `npm() { printf '%s\\0' "$@"; }; ${command}`], { encoding: "utf8" });
     expect(recorded.status, recorded.stderr).toBe(0);
     expect(recorded.stdout.split("\0").filter(Boolean)).toEqual(["test", "--", "blaxel", "--surface", "unit:root", "--grep", pattern]);
-    const unsupported = dry(["local", "--surface", "unit:root,unit:staging"], true);
+    const unsupported = dry(["local", "--surface", "unit:root,unit:frames"], true);
     expect(unsupported.stderr).toContain("no equivalent supported Blaxel command");
   });
 

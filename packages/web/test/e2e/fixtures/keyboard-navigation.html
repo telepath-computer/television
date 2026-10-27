@@ -138,7 +138,6 @@
       class FixtureOwner extends EventTarget {
         connection = new FixtureConnection();
         connectError = null;
-        authenticate() { return Promise.resolve(); }
 
         connect() {
           this.connection.status = "connected";
@@ -192,9 +191,8 @@
         main.append(field);
       };
       render(TelevisionAppView(application, {
-        runtimeServerURL: location.origin,
+        serverURL: location.origin,
         electronMode: false,
-        primaryServerURL: location.origin,
         sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
         sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
         onRenderComplete() {

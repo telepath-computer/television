@@ -19,6 +19,14 @@ import "./artifact-document-host.css";
 
 const HTTP_NOT_FOUND = 404;
 const URL_UNSUPPORTED_VIEW_URL = "/views/url-unsupported/";
+// The attributes of every artifact iframe
+// (specs/arch/artifact-frame/isolation.md#^iso-iframe-sandbox, ^iso-iframe-allow).
+const FRAME_SANDBOX = "allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads";
+const FRAME_ALLOW = "clipboard-write; fullscreen; autoplay; picture-in-picture; web-share; encrypted-media";
+// The partition names the desktop main process reads from a webview
+// (specs/arch/desktop/artifact-partitions.md#^dp-interface-names).
+const ARTIFACT_PARTITION_PREFIX = "tv-artifact:";
+const URL_ARTIFACT_PARTITION = "tv-url-artifact";
 
 /**
  * The complete input for one logical artifact document. Navigation and reload
@@ -193,6 +201,34 @@ export class ArtifactDocumentHost extends View<[
     this.#syncEmbedLoadState();
   }
 
+  /** Assigns the current frame's document outside a source change, as Back, Forward and a demo page's return do. */
+  assignFrameSrc(src: string): void {
+    if (this.#frame) this.#setFrameSrc(this.#frame, src);
+  }
+
+  /**
+   * Assigns a frame's document. An iframe first gets the `sandbox` attribute
+   * when the document is one the artifact proxy serves, on this server or
+   * another Television host, and loses it otherwise, since the browser fixes
+   * a frame's sandbox when its navigation starts and one element shows many
+   * documents. An external page under browser demo mode is never sandboxed.
+   */
+  #setFrameSrc(frame: HTMLElement, src: string): void {
+    if (frame.tagName.toLowerCase() === "iframe") {
+      if (!this.#showsDemoPage() && isProxiedDocumentURL(src)) frame.setAttribute("sandbox", FRAME_SANDBOX);
+      else frame.removeAttribute("sandbox");
+    }
+    frame.setAttribute("src", src);
+  }
+
+  #showsDemoPage(): boolean {
+    const source = this.#source;
+    return source !== null && artifactRenderRoute(source.artifact, {
+      electron: source.electron,
+      browserDemo: source.browserDemo ?? false,
+    }).renderer === "url-direct";
+  }
+
   #syncOutput(): void {
     const source = this.#source;
     if (!source) return;
@@ -203,23 +239,39 @@ export class ArtifactDocumentHost extends View<[
     }
 
     const route = artifactDocumentRoute(source);
-    const frame = this.#ensureFrame(route.renderer);
+    const frame = this.#ensureFrame(route.renderer, webviewPartition(source));
     this.#assignFrameRoute(frame, route);
     this.#setOutput(frame);
     this.#syncEmbedLoadState();
     this.#syncMarkdownHost();
   }
 
-  #ensureFrame(renderer: ArtifactRenderRoute["renderer"]): HTMLElement {
+  /**
+   * Reuses the current frame while it is the right element. A webview's
+   * partition is fixed at its first navigation, so a webview whose artifact
+   * needs another partition is replaced.
+   */
+  #ensureFrame(renderer: ArtifactRenderRoute["renderer"], partition: string | null): HTMLElement {
     const tagName = renderer === "url-webview" ? "webview" : "iframe";
-    if (this.#frame?.tagName.toLowerCase() === tagName) return this.#frame;
+    const current = this.#frame;
+    if (
+      current?.tagName.toLowerCase() === tagName &&
+      (tagName !== "webview" || current.getAttribute("partition") === partition)
+    ) {
+      return current;
+    }
 
     this.#unsubscribeFromEmbedLoad();
     this.#disposeMarkdownHost();
 
     const frame = document.createElement(tagName);
     frame.className = "artifact-content";
-    if (tagName === "webview") frame.setAttribute("allowpopups", "");
+    if (tagName === "webview") {
+      if (partition !== null) frame.setAttribute("partition", partition);
+      frame.setAttribute("allowpopups", "");
+    } else {
+      frame.setAttribute("allow", FRAME_ALLOW);
+    }
     this.#frame = frame;
     return frame;
   }
@@ -230,7 +282,7 @@ export class ArtifactDocumentHost extends View<[
       // start a document whose ready message may be one-shot.
       this.#onFrameChange(null);
       this.#onFrameChange(frame);
-      frame.setAttribute("src", route.viewURL);
+      this.#setFrameSrc(frame, route.viewURL);
     }
 
     if (route.contentURL === null) {
@@ -419,8 +471,29 @@ export class ArtifactDocumentHost extends View<[
 
 export const ArtifactDocumentHostView = view(ArtifactDocumentHost);
 
+/**
+ * The partition a desktop webview showing this artifact asks for, when the
+ * window's native preload bridge says the main process sets them up.
+ */
+function webviewPartition(source: ArtifactDocumentSource): string | null {
+  const bridge = (globalThis as typeof globalThis & {
+    __televisionNativeBridge?: { artifactPartitions?: unknown };
+  }).__televisionNativeBridge;
+  if (!source.electron || bridge?.artifactPartitions !== 1) return null;
+  return source.artifact.kind === "path" ? `${ARTIFACT_PARTITION_PREFIX}${source.artifact.id}` : URL_ARTIFACT_PARTITION;
+}
+
 function isExternalURL(url: string): boolean {
   return url.startsWith("http://") || url.startsWith("https://");
+}
+
+/** Whether a frame address is the artifact proxy's, under any ID, on any host. */
+function isProxiedDocumentURL(url: string): boolean {
+  try {
+    return /^\/artifact\/[^/]+(\/|$)/.test(new URL(url, window.location.href).pathname);
+  } catch {
+    return false;
+  }
 }
 
 function viewURLForInternalNavigation(url: string, viewURL: string | null): string {

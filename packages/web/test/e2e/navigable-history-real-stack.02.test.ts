@@ -60,7 +60,7 @@ async function createPathArtifact(server: ProductServer, filePath: string, title
 async function openApp(page: Page, server: ProductServer, baseURL: string | undefined): Promise<void> {
   if (!baseURL) throw new Error("Expected Playwright baseURL");
   const appBaseURL = await server.appURL(baseURL);
-  await page.goto(`${appBaseURL}/packages/web/src/index.html?serverURL=${encodeURIComponent(appBaseURL)}`);
+  await page.goto(`${appBaseURL}/packages/web/src/index.html`);
   await waitForApplicationRender(page, APPLICATION_SHELL_STATES, 15_000);
   await configureTestMotion(page);
 }

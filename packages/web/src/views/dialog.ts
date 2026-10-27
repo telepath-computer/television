@@ -12,8 +12,9 @@ export interface DialogPresentation {
 /** Compose caller-authored contents into the shared native dialog markup. */
 export function dialogTemplate(
   content: unknown,
+  topLayerContent: unknown = null,
 ): TemplateResult {
-  return html`<div class="dialog-overlay"><dialog open><div class="dialog-content">${content}</div></dialog></div>`;
+  return html`<div class="dialog-overlay"><dialog open>${topLayerContent}<div class="dialog-content">${content}</div></dialog></div>`;
 }
 
 /**

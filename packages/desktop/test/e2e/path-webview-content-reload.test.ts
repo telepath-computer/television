@@ -1,10 +1,12 @@
-import { expect, test, type ElectronApplication } from "@playwright/test";
+import type { ElectronApplication } from "@playwright/test";
+import { expect, test } from "../../../../test/helpers/playwright.ts";
+import { appURLForServer } from "../../../../test/helpers/product-server.ts";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server, ServerStore } from "@telepath-computer/television-server";
-import { desktopE2EURL, launchDesktop } from "./helpers.ts";
+import { desktopE2EOrigin, desktopE2EURL, launchDesktop } from "./helpers.ts";
 import { createServingStore } from "../../../../test/helpers/serving-store.ts";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
@@ -76,7 +78,7 @@ test.describe("Electron path artifact webview content reload", () => {
     store.createArtifact({ kind: "path", title: "Standalone HTML", path: htmlPath, channelID: channelID });
 
     const { app, page } = await launchDesktop({
-      fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(serverURL)}&token=${token}`),
+      fixture: `${await appURLForServer(serverURL, desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${token}`,
     });
     try {
       await fetch(`${serverURL}/display`, {
@@ -135,7 +137,7 @@ test.describe("Electron path artifact webview content reload", () => {
     expect(createResponse.status).toBe(201);
 
     const { app, page } = await launchDesktop({
-      fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(serverURL)}&token=${token}`),
+      fixture: `${await appURLForServer(serverURL, desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${token}`,
     });
     try {
       await fetch(`${serverURL}/display`, {
@@ -181,7 +183,7 @@ test.describe("Electron path artifact webview content reload", () => {
     });
 
     const { app, page } = await launchDesktop({
-      fixture: desktopE2EURL(`/packages/web/src/index.html?mode=electron&serverURL=${encodeURIComponent(serverURL)}&token=${token}`),
+      fixture: `${await appURLForServer(serverURL, desktopE2EOrigin())}/packages/web/src/index.html?mode=electron&token=${token}`,
     });
     try {
       await fetch(`${serverURL}/display`, {

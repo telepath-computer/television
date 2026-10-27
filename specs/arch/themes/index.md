@@ -134,7 +134,7 @@ POST /themes/refresh
   -> 200 ThemeRegistrySnapshot
 ```
 
-Refresh completes the scan and any active-theme fallback before responding. These control routes use the server's authenticated API CORS policy. Public stylesheet and asset delivery is a separate concern.
+Refresh completes the scan and any active-theme fallback before responding. These control routes send no CORS headers ([isolation.md#^iso-routes](../artifact-frame/isolation.md#^iso-routes)). Public stylesheet and asset delivery is a separate concern.
 
 `TelevisionClient.themes.list()` calls `GET /themes`; `TelevisionClient.themes.refresh()` calls `POST /themes/refresh`. Display reads and patches use the shared fields above. The application service exposes `listThemes()`, `refreshThemes()`, `setActiveTheme()`, `setThemeJavaScriptConsent(themeId, enabled)`, and `setAppearanceMode()` for the settings surface. The consent method adds or removes the exact ID in the current confirmed set and patches the complete result. Registry methods return the completed snapshot without storing it as application state. Preference writes update no local value speculatively. When a failed display write may have reached the server—a statusless transport failure or a server error—the service refetches display state once before reporting the original failure, so its exposed value is the latest confirmed server result.
 

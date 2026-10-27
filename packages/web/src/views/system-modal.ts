@@ -4,10 +4,8 @@ import {
   type DialogPresentation,
 } from "./dialog.ts";
 import { View, view } from "@telepath-computer/utils/lit-view";
-import { html, nothing, render as renderTemplate } from "lit-html";
+import { html, render as renderTemplate } from "lit-html";
 import type { InterruptingApplicationState } from "./application-state.ts";
-import { DesktopUpgradeGateView } from "./desktop-upgrade-gate.ts";
-import type { DesktopUpdateState } from "../services/desktop-update.ts";
 import "../elements/icon.ts";
 import "./system-modal.css";
 import "./system-modal.host.css";
@@ -15,27 +13,20 @@ import "./system-modal.host.css";
 const COUNTDOWN_TICK_MS = 250;
 const ONE_SECOND_MS = 1000;
 
-export type SystemModalState = InterruptingApplicationState;
+export type SystemModalState = Exclude<InterruptingApplicationState, { kind: "needs-upgrade" }>;
 
-export interface SystemModalApplication {
-  authenticate(token: string): Promise<void>;
+export interface SystemModalOptions {
+  context: "browser" | "desktop" | "local";
+  dragStrip?: boolean;
+  onDisconnect?: () => void;
 }
 
-/**
- * The app's one interrupting surface. It owns only view-local form and
- * countdown state; connection and gate state remain application inputs.
- */
-export class SystemModal extends View<[
-  SystemModalState,
-  SystemModalApplication,
-  DesktopUpdateState?,
-]> {
+/** Connection owners supply state; this shared presentation owns its countdown. */
+export class SystemModal extends View<[SystemModalState, SystemModalOptions]> {
   readonly #host = createSystemModalHost();
   #presentation: DialogPresentation | null = null;
   #presentScheduled = false;
   #ticker: ReturnType<typeof setInterval> | null = null;
-  #token = "";
-  #application: SystemModalApplication | null = null;
 
   disconnected(): void {
     this.#stopTicker();
@@ -47,24 +38,12 @@ export class SystemModal extends View<[
 
   template(
     state: SystemModalState,
-    application: SystemModalApplication,
-    desktopUpdate?: DesktopUpdateState,
+    options: SystemModalOptions,
   ): unknown {
-    this.#application = application;
     this.#syncTicker(state);
 
-    if (state.kind === "needs-upgrade") {
-      this.#presentation?.withdraw();
-      this.#presentation = null;
-      renderTemplate(
-        DesktopUpgradeGateView(state.instructions, desktopUpdate),
-        this.#host,
-      );
-      return this.#host;
-    }
-
     renderTemplate(
-      dialogTemplate(this.#standardInterior(state)),
+      dialogTemplate(this.#standardInterior(state, options), windowDragStripTemplate(options.dragStrip)),
       this.#host,
     );
     this.#schedulePresentation();
@@ -72,7 +51,8 @@ export class SystemModal extends View<[
   }
 
   #standardInterior(
-    state: Exclude<SystemModalState, { kind: "needs-upgrade" }>,
+    state: SystemModalState,
+    options: SystemModalOptions,
   ): unknown {
     switch (state.kind) {
       case "connecting":
@@ -87,65 +67,42 @@ export class SystemModal extends View<[
           <div class="system-modal" role="status" aria-live="polite">
             <tv-icon name="spinner" size="xl" spinning></tv-icon>
             <h2>Disconnected</h2>
-            <p>${formatReattempt(state.nextRetryAt)}</p>
+            <p>${formatReconnect(state.nextRetryAt)}</p>
           </div>
         `;
-      case "unauthorized": {
-        const invalid = Boolean(state.invalid);
-        if (invalid) this.#token = "";
+      case "unauthorized":
         return html`
-          <form class="system-modal auth-form" @submit=${this.#handleSubmit}>
+          <div class="system-modal">
             <tv-icon name="locked" size="xl"></tv-icon>
-            <h2>Enter access token</h2>
-            <p>This server requires an access token to connect.</p>
-            <input
-              class="auth-token"
-              type="password"
-              name="token"
-              placeholder="paste token here"
-              aria-label="Access token"
-              aria-invalid=${invalid ? "true" : nothing}
-              aria-describedby=${invalid ? "auth-token-error" : nothing}
-              .value=${this.#token}
-              @input=${this.#handleInput}
-              autofocus
-              required
-            />
-            ${invalid
-              ? html`<p id="auth-token-error" class="tv-error" role="alert">
-                  The previous token was rejected. Try again.
-                </p>`
-              : null}
-            <button type="submit" intent="primary" class="auth-submit">
-              Connect
-            </button>
-          </form>
+            <h2>Access token required</h2>
+            <p>${{
+              browser: "This server requires a valid access token to connect. Ask your agent for the current link, and paste the whole link into the address bar.",
+              desktop: "This server requires a valid access token to connect. Choose Television › Disconnect from Server, then try again.",
+              local: "This server requires a valid access token to connect. Disconnect from Server, then paste the current link from your agent.",
+            }[options.context]}</p>
+            ${this.#disconnectButton(options)}
+          </div>
         `;
-      }
       case "error":
         return html`
           <div class="system-modal">
             <h2>Can’t connect with server</h2>
             <p class="server-url">${state.serverURL}</p>
-            <p>${state.message}</p>
+            <p>Check your internet connection and that the server is running. ${formatReconnect(state.nextRetryAt)}</p>
+            ${this.#disconnectButton(options)}
           </div>
         `;
     }
   }
 
-  readonly #handleInput = (event: Event): void => {
-    this.#token = (event.currentTarget as HTMLInputElement).value;
-  };
-
-  readonly #handleSubmit = (event: Event): void => {
-    event.preventDefault();
-    const token = this.#token.trim();
-    if (token.length === 0 || this.#application === null) return;
-    void this.#application.authenticate(token);
-  };
+  #disconnectButton(options: SystemModalOptions): unknown {
+    return options.context === "local"
+      ? html`<button intent="danger" class="system-modal-disconnect" @click=${options.onDisconnect}>Disconnect from Server</button>`
+      : null;
+  }
 
   #syncTicker(state: SystemModalState): void {
-    const running = state.kind === "disconnected" && state.nextRetryAt !== null;
+    const running = (state.kind === "disconnected" || state.kind === "error") && state.nextRetryAt !== null;
     if (running && this.#ticker === null) {
       this.#ticker = setInterval(() => this.render(), COUNTDOWN_TICK_MS);
     } else if (!running) {
@@ -180,9 +137,14 @@ function createSystemModalHost(): HTMLElement {
   return host;
 }
 
-function formatReattempt(nextRetryAt: number | null): string {
-  if (nextRetryAt === null) return "Reattempting now…";
+function formatReconnect(nextRetryAt: number | null): string {
+  if (nextRetryAt === null) return "Reconnecting now…";
   const remainingMs = nextRetryAt - Date.now();
-  if (remainingMs <= 0) return "Reattempting now…";
-  return `Reattempting in ${Math.ceil(remainingMs / ONE_SECOND_MS)}s…`;
+  if (remainingMs <= 0) return "Reconnecting now…";
+  return `Reconnecting in ${Math.ceil(remainingMs / ONE_SECOND_MS)}s…`;
+}
+
+/** Inside the native dialog so modality leaves the drag region interactive. */
+export function windowDragStripTemplate(enabled = false): unknown {
+  return enabled ? html`<div class="window-drag-strip" electron-draggable aria-hidden="true"></div>` : null;
 }

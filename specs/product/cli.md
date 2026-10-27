@@ -1,4 +1,4 @@
-*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, and output.*
+*The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
 
 # CLI
 
@@ -14,7 +14,7 @@ The `tv` CLI is designed to be invoked on the same host as the Television server
 
 This spec defines the CLI spelling of focus requests; product channels and tab pages own their effects.
 
-A *focus directive* is one of the mutually exclusive flags that tells a creation command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation.
+A *focus directive* is one of the mutually exclusive flags that tells a creation or move command whether the result should be shown immediately: `--focus-channel` / `--no-focus` for `create-channel`, and `--focus-artifact` / `--no-focus` for artifact creation and `move-artifact`.
 
 *Channel focus* is the persisted active channel owned by [channels.md](./channels.md). *Artifact focus* is a transient one-shot signal: clients select the artifact's tab page and switch to its channel when needed, without scrolling-to-card or highlight/glow behavior ([tab-pages.md#^tp-focus-selects](./tab-pages.md#^tp-focus-selects)). It is not persisted.
 
@@ -35,9 +35,13 @@ The visible command surface is:
 | `tv create-path-artifact` | Register an existing local markdown/HTML file or indexed directory on a channel. |
 | `tv create-url-artifact` | Register an `http(s)` URL on a channel. |
 | `tv update-artifact` | Update an artifact title or repoint its path/URL. |
-| `tv delete-artifact` | Delete an artifact registry record and remove its tab page. |
+| `tv delete-artifact` | Delete an artifact registry record and remove the artifact from its channel. |
+| `tv reposition-artifact` | Change an artifact's size, full-screen state, or position in its channel's order. |
+| `tv move-artifact` | Move an artifact to another channel. |
 | `tv get-artifact` | Print one artifact's metadata as JSON. |
 | `tv list-artifacts` | Print artifacts as JSON, optionally filtered by channel. |
+| `tv share-artifact` | Create or change an artifact's share link, and print it. |
+| `tv unshare-artifact` | Revoke an artifact's share link. |
 | `tv create-channel` | Create an empty channel. |
 | `tv update-channel` | Rename a channel. |
 | `tv remove-channel` | Delete a channel and its referenced artifact records. |
@@ -51,7 +55,11 @@ The visible command surface is:
 | `tv skills` | Manage the bundled skill collection. |
 | `tv stop` | Uninstall/stop the persisted Television service. |
 | `tv status` | Print the selected home, server health, version, telemetry state, and service status as JSON. |
+| `tv links` | Print the running server's connect links, one per line. |
 | `tv telemetry` | Enable or disable telemetry for the running server. |
+| `tv resource` | Read, write and watch the data that artifacts and agents share. |
+
+The share commands' and the `tv resource` command family's commands and output are owned by [the resources spec](./resources/resources.md#Commands) and, for `tv resource json`, [the JSON store spec](./resources/json-store.md#^js-cli). While [the bindings flag](./resources/resources.md#^rs-flag) is off, as shipped, `tv resource` offers neither `bind`, `unbind` nor `tv resource json create`. The rest of this spec applies to its commands as to every command.
 
 The canonical help flag is `--help`, with `-h` as its alias. The canonical version flag is `--version`, with `-V` and `-v` as its aliases.
 
@@ -110,9 +118,9 @@ Output formatting is currently inconsistent and depends on the command. Successf
 | `tv telemetry enable` and `tv telemetry disable` | `{ "state": "active" \| "opted-out" \| "suppressed" \| "unavailable", "reason": "do-not-track" \| "ci" \| "development" \| "developer-host" \| null, "guidPresent": boolean, "region": "us" }` |
 | `tv stop` and `tv serve --persist-uninstall` | `{ "status": "stopped" }` |
 
-Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
+Successful commands that change state or run against the server usually print human-readable text. `tv set-theme` reports its successful selection transition as described under [Display focus and themes](#display-focus-and-themes). `tv config set` confirms the file it wrote. `tv serve` and `tv serve --persist` print human-readable startup text, and `tv links` prints one connect link per line. Errors print to stderr and return `1`; there is no separate usage-error exit code in `tv`. The one distinguishable nonzero status is listener-bind failure: `tv serve` exits with status `69` when a required listener cannot bind, as owned by [arch/cli/startup-bind-failure.md](../arch/cli/startup-bind-failure.md).
 
-Startup URLs are printed as terminal hyperlinks using OSC-8 escape sequences, with the visible URL as the link text. A terminal that does not render OSC-8 hyperlinks still shows the URL text. When auth is required, the terminal-hyperlinked URL includes `?token=<token>`.
+When a command's stdout is an interactive terminal, each link it prints is a terminal hyperlink using OSC-8 escape sequences, with the visible URL as the link text; a terminal that does not render OSC-8 hyperlinks still shows the URL text. When stdout is anything else, such as a pipe, a file, or an agent's shell tool, each link is the plain URL with no escape sequences, because some tools that capture output strip escape sequences in a way that removes the URL with them. This applies to `tv links` and to the links `tv serve` and `tv serve --persist` print, which they print only to an interactive terminal ([startup links](#^cli-startup-links)). ^cli-link-output
 
 ## Television home and configuration
 
@@ -243,7 +251,7 @@ Neither command contacts a server.
 
 ### Connecting to the server
 
-Commands that contact a server — the artifact, channel, focus, and theme-selection commands, `tv telemetry enable` and `tv telemetry disable`, and `tv status` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
+Commands that contact a server — the artifact, share, channel, focus, and theme-selection commands, the `tv resource` commands, `tv telemetry enable` and `tv telemetry disable`, `tv status`, and `tv links` — connect only to `http://localhost:<port>`, where `<port>` is the config file's effective `port`. There is no `--server <url>` override. Passing `--server` to a command that contacts the server is an unsupported-option error.
 
 These commands read the bearer token from `<home>/state/token`, trimming surrounding whitespace. A missing or empty token file means the command sends no bearer token. If a token-protected server returns `401`, the CLI prints:
 
@@ -251,14 +259,26 @@ These commands read the bearer token from `<home>/state/token`, trimming surroun
 Television server at http://localhost:<port> rejected the request as unauthorized. Check the token in <home>/state/token.
 ```
 
-A config port of `0` asks the operating system to choose the server's port when the server starts, so the config file cannot tell a command where that server is listening. Port `0` is for foreground and development use, and the repository test runner relies on it to allocate real listeners without fixed ports ([dynamic test ports](../arch/test-runner/test-runner.md#^test-dynamic-ports)). While the effective config port is `0`, each command that contacts the server must pass `--port <number>` with the nonzero port from that server's startup URL; `--port` takes a whole decimal integer from `1` through `65535`. While the config port is nonzero, these commands refuse `--port`, so the config file remains the one source of the port. No environment variable supplies a port, and commands that do not contact a server have no `--port` option. ^cli-client-port
+A config port of `0` asks the operating system to choose the server's port when the server starts, so the config file cannot tell a command where that server is listening. Port `0` is for foreground and development use, and the repository test runner relies on it to allocate real listeners without fixed ports ([dynamic test ports](../arch/test-runner/test-runner.md#^test-dynamic-ports)). While the effective config port is `0`, each command that contacts the server must pass `--port <number>` with the nonzero port from that server's startup output; `--port` takes a whole decimal integer from `1` through `65535`. While the config port is nonzero, these commands refuse `--port`, so the config file remains the one source of the port. No environment variable supplies a port, and commands that do not contact a server have no `--port` option. ^cli-client-port
 
 Both refusals are directive errors. For example:
 
 ```text
-tv list-channels requires --port because <config-path> sets port 0. Pass the port from the Television server's startup URL.
+tv list-channels requires --port because <config-path> sets port 0. Pass the port from the Television server's startup output.
 tv list-channels --port 43123 does not accept --port because <config-path> sets port 32848. Omit --port to use the configured port.
 ```
+
+### Connect links
+
+A *connect link* is the URL a person opens to use Television, in a browser or in the desktop app. The server, not the CLI, decides the addresses: it reports an origin, a scheme, host and port, for each address it listens on, with the port it bound. A listener on `0.0.0.0` is reported as one origin for each IPv4 address of the machine's network interfaces, loopback included, as they are when the server is asked, and never as `0.0.0.0`. No origin is preferred: which one reaches the server depends on where the person is, so the person picks. A connect link is one of those origins followed by `/?token=<token>` when the server requires the bearer token; a tokenless server's connect link is the plain origin. The links that `tv serve` and `tv serve --persist` print to a terminal are connect links. ^cli-connect-link
+
+`tv links` prints the running server's connect links, one per line, with no other output:
+
+```bash
+tv [--home <path>] links [--port <number>]
+```
+
+The links cover every origin the server reports, in the order it reports them. They follow the running server, not the config file, which the server reads only when it starts: when the server requires the bearer token they carry the token from `<home>/state/token`, and when it does not they are plain origins. If the server requires a token and rejects that one, the command prints the unauthorized message under [Connecting to the server](#Connecting to the server) to stderr, prints no links, and exits `1`. When the server cannot be reached, the command prints `Could not reach Television server at http://localhost:<port>: <message>` to stderr, prints no links, and exits `1`. Links follow the [link output rule](#^cli-link-output). ^cli-links
 
 ## Server lifecycle commands
 
@@ -276,6 +296,8 @@ Authentication is on by default. The server runs without bearer-token checks onl
 WARNING: running without an auth token. Tokenless mode is insecure for typical setups — be sure you mean to run without authentication. Run `tv config set auth true` and restart to require the bearer token.
 ```
 
+With [the bindings flag](./resources/resources.md#^rs-flag) on, the warning carries one more sentence, after `be sure you mean to run without authentication.`: `Any client that can reach this server can also change which artifacts may use which resources.` ^cli-tokenless-bindings-sentence
+
 When tokenless mode includes a non-loopback listener, stderr also prints:
 
 ```text
@@ -287,18 +309,27 @@ The config file's `listen` values are IPv4 addresses. The server resolves the bi
 When the effective config port is `0`, foreground `tv serve` prints this warning to stderr before it starts the server:
 
 ```text
-WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port from the startup URL.
+WARNING: config port 0 lets the operating system choose this server's port. Commands that contact this server must pass --port <port>, using the port in the startup output.
 ```
 
-Foreground startup prints:
+When stdout is an interactive terminal, foreground startup prints the server's connect links as `tv links` prints them, one for each origin the server reports, with the port it bound; under config port `0` that is the port the operating system chose:
 
 ```text
 Television server running.
 Open Television:
-  <startup URL>
+  <connect link>
 ```
 
-One startup URL is printed per bound listener, using the port the server actually bound; under config port `0` that is the port the operating system chose. Authenticated startup URLs include `?token=<token>`; tokenless startup URLs are plain origins. The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
+When stdout is anything else, such as a pipe, a file or a service's log, startup prints no link, so that the token never lands in a log. It prints instead:
+
+```text
+Television server running.
+Run `tv links` to print the links that open Television.
+```
+
+The command in that line is one that reaches this server: it carries `--home <home>`, with the home's absolute path, when the invocation gave `--home`, and `--port <port>`, with the port the server bound, when config port is `0`. ^cli-startup-links
+
+The command runs until it receives `SIGINT` or `SIGTERM`, then disposes the server and exits.
 
 `tv serve --persist` installs Television as a user system service instead of running a foreground server:
 
@@ -321,12 +352,29 @@ The persisted environment sets `TELEVISION_DEVELOPER_HOME` to the installing use
 
 If a service already exists, `--persist` uninstalls it and then installs the new definition. That refresh is not atomic: if uninstall succeeds and install fails, the service is left down until `tv serve --persist` succeeds.
 
-Successful persisted install prints one startup URL for each configured bind address after listener resolution, using the config port. `127.0.0.1` appears alongside specific additional listeners, while a `listen` value containing `0.0.0.0` resolves to the all-interfaces URL alone. With authentication on, the URLs include the bearer token; the install creates the home's token first when the home has none yet.
+After installing the service, `tv serve --persist` waits for a server to answer on the configured port. It sends the health request that `tv status` sends to `http://localhost:<port>`, using the config port, and repeats it until a server answers or 15 seconds have passed since installation. The command reports success only after an answer, so a `tv status` run straight afterwards reports `healthy: true` unless the answering server has stopped in the meantime. The answer does not show which server sent it. It normally comes from the service's server, but when another server already answers on that port, such as a foreground `tv serve`, the command succeeds while the service's server cannot bind the port and keeps failing to start. Linear TV-938 tracks this limitation. ^cli-persist-health-wait
+
+Once a server answers, the command prints `Television service installed.` When stdout is an interactive terminal, it then prints the connect links of the server that answered, as `tv links` prints them:
 
 ```text
 Television service installed.
 Open Television:
-  <startup URL for each configured bind address>
+  <connect link>
+```
+
+When stdout is anything else, or the links cannot be read before the 15 seconds have passed, it prints the `tv links` line of [foreground startup](#^cli-startup-links) instead, whose command carries `--home <home>` when the invocation gave `--home`:
+
+```text
+Television service installed.
+Run `tv links` to print the links that open Television.
+```
+
+With authentication on, the install creates the home's token first when the home has none yet, so the service starts with it. ^cli-persist-links
+
+If no server has answered within 15 seconds, the command prints nothing to stdout, writes this error to stderr, and exits `1`. `<home>` is the absolute home. The service stays installed, so a server that starts late still runs without another install. ^cli-persist-health-timeout
+
+```text
+Television service installed, but the server did not respond at http://localhost:<port> within 15 seconds. The service remains installed. See <home>/logs/tv.log for the cause.
 ```
 
 `tv serve --persist-uninstall` and `tv stop` uninstall the persisted service and print:
@@ -349,7 +397,7 @@ The first-initialization notice and its eligibility are owned by [the telemetry 
 
 `tv list-channels` prints `{ "channels": [...] }`.
 
-`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. With no `--channel`, the command auto-selects when exactly one channel exists. With zero or multiple channels and no `--channel`, the command reports the channel-selection problem directly. With multiple channels, the error says that `channelID` is required and lists the available channels by name and ID. With zero channels, the error says that `channelID` is required and that there are no available channels. The error does not say the server could not be reached.
+`tv get-channel [--channel <id>]` prints `{ "channel": ..., "artifacts": [...] }`. The channel's `layout` is its tab pages in order, from left to right: each page with its artifact IDs, its `full_screen` state, and its `size` in reference pixels ([arch/layout/index.md#^ly-model](../arch/layout/index.md#^ly-model)). This is how an agent reads a channel's arrangement. With no `--channel`, the command auto-selects when exactly one channel exists. With zero or multiple channels and no `--channel`, the command reports the channel-selection problem directly. With multiple channels, the error says that `channelID` is required and lists the available channels by name and ID. With zero channels, the error says that `channelID` is required and that there are no available channels. The error does not say the server could not be reached. ^cli-get-channel-layout
 
 `tv create-channel --name <name> (--focus-channel|--no-focus)` creates an empty channel. Exactly one focus directive is required. `--focus-channel` sets persistent channel focus to the new channel; `--no-focus` leaves focus unchanged. Success prints:
 
@@ -400,10 +448,12 @@ Television artifacts are registry records that point at external content. The CL
 `tv create-path-artifact` creates a path artifact on a channel:
 
 ```bash
-tv create-path-artifact --channel <id> --title <title> --path <path> (--focus-artifact|--no-focus)
+tv create-path-artifact --channel <id> --title <title> --path <path> [--before <artifact-id>|--after <artifact-id>] (--focus-artifact|--no-focus)
 ```
 
 The CLI trims surrounding whitespace from `--path` before sending it to the server. The server accepts absolute markdown files ending in `.md` or `.markdown`, absolute HTML files ending in `.htm` or `.html`, and absolute directories with a root `index.html` or `index.htm`. A trailing separator on a directory path is optional. The server validates that the target exists and is readable from the server host. Stored directory paths end with a trailing separator; stored file paths do not.
+
+The new artifact goes at the end of the channel's order, or beside another artifact when `--before` or `--after` names one ([#^cli-before-after](#^cli-before-after)).
 
 Exactly one focus directive is required. `--focus-artifact` creates the artifact and sends a transient artifact-focus nudge for it. `--no-focus` creates the artifact without changing focus. Success prints:
 
@@ -417,10 +467,12 @@ Television registered <trimmed-path>.
 `tv create-url-artifact` creates a URL artifact on a channel:
 
 ```bash
-tv create-url-artifact --channel <id> --title <title> --url <url> (--focus-artifact|--no-focus)
+tv create-url-artifact --channel <id> --title <title> --url <url> [--before <artifact-id>|--after <artifact-id>] (--focus-artifact|--no-focus)
 ```
 
 The CLI trims surrounding whitespace from `--url` before sending it to the server and before printing the confirmation. The URL must be `http://` or `https://` after trimming and server validation.
+
+The new artifact goes at the end of the channel's order, or beside another artifact when `--before` or `--after` names one ([#^cli-before-after](#^cli-before-after)).
 
 Exactly one focus directive is required. `--focus-artifact` creates the artifact and sends a transient artifact-focus nudge for it. `--no-focus` creates the artifact without changing focus. Success prints:
 
@@ -441,8 +493,6 @@ Artifact <artifact-id> updated.
 
 `tv list-artifacts [--channel <id>]` prints `{ "artifacts": [...] }`. With no `--channel`, it lists every artifact. With `--channel`, it filters to artifacts on that channel.
 
-The CLI does not have a command that reorders an artifact's tab page on its current channel. Reordering is a layout change made through the UI or the channel PATCH API. To show the same file, directory, or URL on another channel, create a second artifact on that channel with the same `--path` or `--url`.
-
 `tv delete-artifact --id <id>` deletes an artifact registry record and removes its tab page from its channel. A path artifact deletion prints:
 
 ```text
@@ -458,6 +508,73 @@ url artifact <artifact-id> deleted from the registry.
   url: <url>
   url target was not touched.
 ```
+
+### Arranging and moving artifacts
+
+`tv reposition-artifact --id <id> [--width <px>] [--height <px>] [--full-screen|--no-full-screen] [--position <n>|--before <artifact-id>|--after <artifact-id>]` changes the arrangement of an artifact's tab page ([tab-pages.md](./tab-pages.md)), on whatever channel holds it. The changes it makes are the ones a person makes in the app by resizing, entering or leaving full-screen, and reordering ([ui/app/stage/index.md](../ui/app/stage/index.md)), and connected clients show them the same way. ^cli-reposition-artifact
+
+- `--width` and `--height` set the artifact's size in reference pixels ([arch/layout/index.md#^ly-page-size](../arch/layout/index.md#^ly-page-size)); either may be given alone. Each must be a finite, positive number. As with a dragged size, a size larger than the stage is accepted and limited where the artifact is drawn.
+- `--full-screen` makes the artifact full-screen and `--no-full-screen` takes it out of full-screen. Neither changes the artifact's size, so leaving full-screen returns the artifact to its size ([arch/layout/index.md#^ly-fullscreen-mode](../arch/layout/index.md#^ly-fullscreen-mode)).
+- `--position <n>` moves the artifact to position `n` in the channel's order, counting from `1` at the left; the other artifacts keep their order around it.
+- `--before <artifact-id>` and `--after <artifact-id>` move the artifact beside another artifact on its channel ([#^cli-before-after](#^cli-before-after)). An artifact already in that place stays there, and the command still succeeds.
+- The changes given apply together, or none do.
+- The command requires at least one of these options. Giving none, giving both `--full-screen` and `--no-full-screen`, giving more than one of `--position`, `--before`, and `--after`, naming the artifact itself with `--before` or `--after`, a size that is not a finite positive number, or a position that is not a whole number from `1` to the channel's last position is an error, and nothing changes.
+
+Success prints:
+
+```text
+Artifact <artifact-id> repositioned.
+```
+
+The command reads the channel and then sends its whole new arrangement. If an artifact is added to, removed from, or moved off that channel in between, the server refuses the arrangement and nothing changes. The command then exits `1` and prints this error before the standard bundled-skills recovery pointer:
+
+```text
+Channel <channel-id> changed before artifact <artifact-id> could be repositioned, so nothing changed. Run the command again.
+```
+
+`--before <artifact-id>` places an artifact immediately before the named artifact in the channel's order, which is to its left, and `--after <artifact-id>` places it immediately after, to its right. The other artifacts keep their order. `tv create-path-artifact`, `tv create-url-artifact`, `tv move-artifact`, and `tv reposition-artifact` accept them, and each accepts at most one of the two. The named artifact must be on the channel the artifact is placed on: the `--channel` channel for the creation commands and `tv move-artifact`, and the artifact's own channel for `tv reposition-artifact`. When the named artifact is not on that channel, or no artifact has that ID, the command exits `1`, changes nothing, and prints this error before the standard bundled-skills recovery pointer: ^cli-before-after
+
+```text
+Artifact <named-artifact-id> is not on channel <channel-id>.
+```
+
+`tv move-artifact` and `tv reposition-artifact` also refuse a `--before` or `--after` that names the artifact being placed; the command exits `1` and changes nothing.
+
+The help, output, and errors of `tv reposition-artifact` and `tv move-artifact`, the help and errors of `--before` and `--after` on the creation commands, and the bundled `television` skill's guidance for arranging, placing, and moving artifacts speak of artifacts and their order and size. They do not say "page" or "tab page", which are internal terms. ^cli-arrangement-wording
+
+`tv move-artifact --id <id> --channel <channel-id> [--before <artifact-id>|--after <artifact-id>] (--focus-artifact|--no-focus)` moves an artifact to another channel ([product/artifacts.md#^af-move](./artifacts.md#^af-move)). It goes at the end of that channel's order, or beside another artifact when `--before` or `--after` names one ([#^cli-before-after](#^cli-before-after)). Exactly one focus directive is required. `--focus-artifact` sends a transient artifact-focus nudge for the artifact after the move, which takes clients to its new channel; `--no-focus` leaves focus unchanged. Success prints: ^cli-move-artifact
+
+```text
+Artifact <artifact-id> moved to channel <channel-id>.
+```
+
+When the artifact is already on that channel and `--before` or `--after` is given, the command moves it beside the named artifact in that channel's order, as `tv reposition-artifact` would, keeping its size and full-screen state. Success prints:
+
+```text
+Artifact <artifact-id> repositioned on channel <channel-id>.
+```
+
+When the artifact is already on that channel and neither option is given, or it is already in the named place, nothing changes. The command prints:
+
+```text
+Artifact <artifact-id> is already on channel <channel-id>.
+```
+
+In either case the command still sends the nudge if `--focus-artifact` was given.
+
+When `--channel` does not name a channel, the command exits `1`, changes nothing, and prints this error before the standard bundled-skills recovery pointer:
+
+```text
+Channel not found: <channel-id>
+```
+
+When `--id` does not name an artifact on any channel, `tv reposition-artifact` and `tv move-artifact` exit `1`, change nothing, and print this error before the standard bundled-skills recovery pointer:
+
+```text
+Artifact not found: <artifact-id>
+```
+
+To show the same file, directory, or URL on two channels at once, create a second artifact on the other channel with the same `--path` or `--url`.
 
 ## Display focus and themes
 

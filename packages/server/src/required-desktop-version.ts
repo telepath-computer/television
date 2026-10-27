@@ -12,9 +12,10 @@
  * carrying desktop upgrade instructions follows the publish (^ops-bump).
  * `null` = this server advertises no requirement; no desktop is ever gated.
  *
- * Desktop 1.3.1 supplies native appearance propagation into artifact
- * webviews. Earlier shells can make Clouds content unreadable when the
- * server's selected appearance differs from the device. This floor and the
- * recommendation above it are owned by ^ops-first-gate.
+ * Desktop 1.5.0 completes artifact isolation in the desktop app: it accepts
+ * IPC only from its window and keeps artifact webviews apart from the
+ * window's session. Earlier shells let artifact code reach the desktop app's
+ * native functions. This floor and the recommendation below it are owned by
+ * ^ops-first-gate.
  */
-export const REQUIRED_DESKTOP_VERSION: string | null = "1.3.1";
+export const REQUIRED_DESKTOP_VERSION: string | null = "1.5.0";

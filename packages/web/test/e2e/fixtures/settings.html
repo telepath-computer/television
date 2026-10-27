@@ -26,8 +26,8 @@
       import { SkillSelectorView } from "/packages/web/src/views/skill-selector.ts";
       import { SettingsView } from "/packages/web/src/views/settings.ts";
 
-      const serverURL = new URL(window.location.href).searchParams.get("serverURL");
-      if (!serverURL) throw new Error("serverURL is required");
+      // The app's one server is the origin this page was loaded from.
+      const serverURL = window.location.origin;
 
       const connectionOwner = new ServerConnectionOwner({
         localStore: new LocalStore("settings-component", createDefaultLocalState()),

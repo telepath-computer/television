@@ -12,6 +12,7 @@ import { targetCommand } from "../../scripts/test/target-command.mjs";
 import { normalizeProcessLeak } from "../../scripts/test/timing-events.mjs";
 import { transferShardInputs } from "../../scripts/test/blaxel-shard-dispatch.mjs";
 import { buildInterruptedAttemptReport, finishInterruptedRun } from "../../scripts/test/blaxel-interruption.mjs";
+import { blaxelDependencyScript } from "../../scripts/test/blaxel-repository.mjs";
 
 const config = loadTestConfig();
 const surface = config.surfaces.find((candidate) => candidate.id === "unit:root")!;
@@ -80,8 +81,8 @@ describe("provider result normalization", () => {
       .toBeLessThan(source.indexOf("run_step runtime-versions"));
     expect(source.indexOf("run_step runtime-versions"))
       .toBeLessThan(source.indexOf("run_step deps"));
-    expect(source).toContain("git ls-files '.nvmrc' 'package-lock.json' 'package.json' '*/package.json'");
-    expect(source).toContain("run_step deps bash -c");
+    expect(blaxelDependencyScript()).toContain("git ls-files '.nvmrc' 'package-lock.json' 'package.json' '*/package.json'");
+    expect(source).toContain("run_step deps bash -c ${shellQuote(blaxelDependencyScript())}");
     expect(source).toContain('-- bash -c "$TV_TARGET_COMMAND"');
   });
 

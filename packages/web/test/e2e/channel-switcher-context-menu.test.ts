@@ -10,7 +10,6 @@ async function openApp(page: Page, product: ProductServer, baseURL: string | und
   await page.addInitScript(() => localStorage.setItem("tv-channel-sidebar-collapsed", "true"));
   const appURL = await product.appURL(baseURL);
   const url = new URL("/packages/web/src/index.html", appURL);
-  url.searchParams.set("serverURL", appURL);
   await page.goto(url.toString());
   await waitForApplicationRender(page, APPLICATION_SHELL_STATES, 15_000);
   await expect(page.locator(".channel-switcher")).toBeVisible();

@@ -52,7 +52,6 @@
           },
         };
 
-        authenticate() { return Promise.resolve(); }
         createChannel() { return Promise.reject(new Error("not used")); }
         focusChannel() { return Promise.resolve(); }
         setPinnedChannelIds() { return Promise.resolve(); }
@@ -64,9 +63,8 @@
 
       const app = document.querySelector("#fixture");
       render(TelevisionAppView(application, {
-        runtimeServerURL: location.origin,
+        serverURL: location.origin,
         electronMode: false,
-        primaryServerURL: location.origin,
         sidebarWidthPreference: new ChannelSidebarWidthPreference(localStorage),
         sidebarCollapsedPreference: new ChannelSidebarCollapsedPreference(localStorage),
         onRenderComplete() {
