@@ -14,7 +14,9 @@ import { RESOURCE_SIDECAR_BYTES, RESOURCE_ATTEMPT_BYTES } from "./test/resource-
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
-import { workerLeaseCommand } from "./test/blaxel-worker-lease.mjs";
+import { randomUUID } from "node:crypto";
+import { renewLease, finishLease } from "./test/blaxel-lease-lifecycle.mjs";
+import { workerLeaseCommand, workerEntryCommand, shardScratchPath } from "./test/blaxel-worker-lease.mjs";
 import path from "node:path";
 import process from "node:process";
 
@@ -145,15 +147,17 @@ async function runStaleOwnerAudit() {
   lease.processName = processName;
   try {
     console.log(`acquired stale-owner audit lease: ${lease.sandbox.metadata.name}`);
-    const setup = await runSystemDependencySetup(lease);
-    lease.processName = processName;
-    console.log(`read-only diagnostic command: ${[command, ...args].map(shellQuote).join(" ")}`);
-    const proc = await lease.sandbox.process.exec({
-      name: processName,
-      command: [command, ...args].map(shellQuote).join(" "),
-      waitForCompletion: true,
-      timeout: 30,
-    });
+    const remoteScript = `${lease.input.scratch}/audit.sh`;
+    lease.pendingWrites = lease.sandbox.fs.write(remoteScript, `#!/usr/bin/env bash\nset -e\n${systemDependenciesCommand()}\n${[command, ...args].map(shellQuote).join(" ")}\n`);
+    await lease.pendingWrites;
+    await leaseOperation(lease, "prepare");
+    await leaseOperation(lease, "dispatch", { processName });
+    lease.executionRequested = true;
+    const setup = { name: "system-deps" };
+    const proc = await (lease.dispatchRequest = lease.sandbox.process.exec({
+      name: processName, command: workerEntryCommand({ ...lease.input, processName }, remoteScript),
+      waitForCompletion: true, timeout: timeouts.workerTimeoutSeconds,
+    }));
     const rawLogs = await lease.sandbox.process.logs(processName, "all").catch(() => proc.logs ?? "");
     const logs = chunkToText(rawLogs);
     if (proc.exitCode !== 0) throw new Error(`read-only stale-owner diagnostic exited ${proc.exitCode}: ${logs.trim()}`);
@@ -172,6 +176,7 @@ async function runStaleOwnerAudit() {
       ...audit,
     };
     console.log(`${JSON.stringify(result, null, 2)}`);
+    lease.retrieved = true;
     if (!audit.capabilities.procfs.readable || audit.processScan.status !== "ok") return 2;
     if (!audit.capabilities.ss.available || !audit.capabilities.ss.usable) return 2;
     if (staleOwnerCount > 0) return 3;
@@ -181,24 +186,6 @@ async function runStaleOwnerAudit() {
     await stopAndReleaseLease(lease, { killProcess: false });
     activeLeases.delete(lease.lockId);
   }
-}
-
-async function runSystemDependencySetup(lease) {
-  const args = ["-lc", systemDependenciesCommand()];
-  const processName = `tv-system-deps-${runId}`.replace(/[^a-zA-Z0-9-]/g, "-");
-  lease.processName = processName;
-  console.log(`system dependency setup: ${["bash", ...args].map(shellQuote).join(" ")}`);
-  const proc = await lease.sandbox.process.exec({
-    name: processName,
-    command: ["bash", ...args].map(shellQuote).join(" "),
-    waitForCompletion: true,
-    timeout: timeouts.workerTimeoutSeconds,
-  });
-  const rawLogs = await lease.sandbox.process.logs(processName, "all").catch(() => proc.logs ?? "");
-  const logs = chunkToText(rawLogs);
-  if (logs.trim()) console.log(logs.trimEnd());
-  if (proc.exitCode !== 0) throw new Error(`Blaxel system dependency setup exited ${proc.exitCode}: ${logs.trim()}`);
-  return { name: "system-deps", command: ["bash", ...args], exitCode: proc.exitCode };
 }
 
 function validateStaleOwnerAuditOptions(parsed) {
@@ -240,7 +227,7 @@ async function runAttempt({ attempt, shardIndices, excludedSandboxes = [], outpu
           maxConcurrency: MAX_PARALLEL_LEASE_ACQUISITIONS,
           acquire: async ({ shardIndex, slot }) => {
             attemptState.shardStartedAt.set(shardIndex, Date.now());
-            const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length });
+            const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length, attempt: attempt + 1 });
             if (lease) attemptState.leases.set(shardIndex, lease);
             return lease;
           },
@@ -267,12 +254,12 @@ async function runAttempt({ attempt, shardIndices, excludedSandboxes = [], outpu
       console.log(`acquired: ${formatShardLeases(acquired)}`);
       console.log(`starting: ${formatShardLeases(acquired)}`);
       results = await Promise.all(acquired.map(async (lease) => {
-        const result = await runShard(lease, outputDir, {
+        const result = await (lease.workPromise = runShard(lease, outputDir, {
           attempt,
           onExecutionRequested: () => attemptState.executionRequested.add(lease.shardIndex),
           onExecutionStarted: () => attemptState.executionStarted.add(lease.shardIndex),
           onResultProgress: (progress) => attemptState.partialResults.set(lease.shardIndex, progress),
-        });
+        }));
         attemptState.partialResults.delete(lease.shardIndex);
         attemptState.completedResults.set(lease.shardIndex, result);
         return result;
@@ -299,6 +286,7 @@ async function runAttempt({ attempt, shardIndices, excludedSandboxes = [], outpu
       durationMs: Date.now() - startedAt,
       shards: results.sort((a, b) => a.shardIndex - b.shardIndex),
     };
+    if (shuttingDown) await shutdownPromise;
     writeProviderReports(outputDir, report);
     return report;
   } finally {
@@ -334,29 +322,42 @@ function hashString(value) {
   return hash >>> 0;
 }
 
-async function acquireAny(sandboxes, { shardIndex, slot, requestedWorkers, verifyArchitecture = true }) {
-  const lockId = `${runId}-shard-${shardIndex}`;
-  const expiresAt = Math.floor(Date.now() / 1000) + timeouts.lockTtlSeconds;
+async function leaseOperation(lease, operation, extra = {}) {
+  if (lease.lost) throw lease.lost;
+  const body = ["set -eo pipefail", 'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', '. "$NVM_DIR/nvm.sh"', "nvm use --silent default", "set -u", workerLeaseCommand({ ...lease.input, operation, ...extra })].join("; ");
+  const result = await lease.sandbox.process.exec({ name: `tv-${operation}-${randomUUID()}`, command: `bash -lc ${shellQuote(body)}`, waitForCompletion: true, timeout: 30 });
+  const lines = chunkToText(result.logs ?? "").trim().split("\n");
+  let response;
+  try { response = JSON.parse(lines.at(-1)); } catch { throw new Error(`worker ${operation} returned no ownership evidence (exit ${result.exitCode})`); }
+  if (result.exitCode !== 0 || !response.ok) throw new Error(`worker ${operation}: ${response.reason ?? "failed"}`);
+  return response;
+}
+
+async function acquireAny(sandboxes, { shardIndex, slot, requestedWorkers, verifyArchitecture = true, attempt = 1 }) {
+  const lockId = `${runId}-s${shardIndex}-a${attempt}-${randomUUID().slice(0, 8)}`;
+  const input = { lockId, runId, shardIndex, attempt, attemptId: lockId, owner: `${os.hostname()}:${process.pid}`, ttlSeconds: timeouts.lockTtlSeconds, audit: auditStaleOwners };
+  input.scratch = shardScratchPath(input);
   for (const sandbox of acquisitionOrder(sandboxes, { slot, requestedWorkers })) {
-    if (sandbox.__leased) continue;
-    const command = `bash -lc ${shellQuote(workerLeaseCommand({ lockId, runId, shardIndex, shardTotal, owner: `${os.hostname()}:${process.pid}`, expiresAt }))}`;
-    const proc = await sandbox.process.exec({ name: `tv-lock-${lockId}`, command, waitForCompletion: true, timeout: 30 });
-    if (proc.exitCode === 0) {
-      let retainLock = false;
-      try {
-        if (verifyArchitecture && !(await verifySandboxArchitecture(sandbox))) {
-          sandbox.__leased = true;
-          continue;
-        }
-        sandbox.__leased = true;
-        const lease = { sandbox, lockId, shardIndex, processName: null };
-        activeLeases.set(lockId, lease);
-        retainLock = true;
-        return lease;
-      } finally {
-        if (!retainLock) await releaseLock(sandbox, lockId);
-      }
+    if (sandbox.__leased || shuttingDown) continue;
+    const lease = { sandbox, lockId, shardIndex, input: { ...input, worker: sandbox.metadata.name }, processName: null };
+    try {
+      await leaseOperation(lease, "acquire");
+    } catch (error) {
+      console.error(`Skipping ${sandbox.metadata.name}: ${error.message}`);
+      continue;
     }
+    sandbox.__leased = true;
+    activeLeases.set(lockId, lease);
+    lease.stopRenewal = renewLease({
+      intervalMs: Math.max(250, Math.min(30_000, timeouts.lockTtlSeconds * 1000 / 4)),
+      renew: () => leaseOperation(lease, "renew"),
+      onLost: (error) => { lease.lost = error; console.error(`Lease renewal lost on ${sandbox.metadata.name}: ${error.message}`); },
+    });
+    if (verifyArchitecture && !(await verifySandboxArchitecture(sandbox))) {
+      await stopAndReleaseLease(lease, { killProcess: false });
+      continue;
+    }
+    return lease;
   }
   return null;
 }
@@ -399,7 +400,7 @@ function acquisitionOrder(sandboxes, { slot, requestedWorkers }) {
 
 async function runShard(lease, outputDir, { attempt, onExecutionRequested = () => {}, onExecutionStarted = () => {}, onResultProgress = () => {} } = {}) {
   const { sandbox, shardIndex, lockId } = lease;
-  const diagnosticAttemptId = `${lockId}-attempt-${attempt + 1}`;
+  const diagnosticAttemptId = lease.input.attemptId;
   const startedAt = Date.now();
   if (lease.restorePhase) {
     lease.restorePhase.completedAt = new Date(startedAt).toISOString();
@@ -408,52 +409,74 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
   const overallStarted = lease.restorePhase ? Date.parse(lease.restorePhase.startedAt) : startedAt;
   const processName = `tv-testshard-${runId}-s${shardIndex}`.replace(/[^a-zA-Z0-9-]/g, "-");
   lease.processName = processName;
-  const remoteScript = `/tmp/${processName}.sh`;
+  const remoteScript = `${lease.input.scratch}/worker.sh`;
+  lease.remoteScript = remoteScript;
   const logPath = path.join(outputDir, `shard-${shardIndex}.log`);
   lease.logPath = logPath;
   const summaryPath = path.join(outputDir, `shard-${shardIndex}.json`);
-  const planRemotePath = shardPlanRaw ? `/tmp/${processName}.plan.json` : null;
-  const dispatch = await transferShardInputs({
+  const planRemotePath = shardPlanRaw ? `${lease.input.scratch}/plan.json` : null;
+  const dispatch = await (lease.pendingWrites = transferShardInputs({
     write: (remotePath, contents) => sandbox.fs.write(remotePath, contents),
     planRemotePath,
     planRaw: shardPlanRaw,
     remoteScript,
-    remoteScriptContents: shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId }),
-  });
+    remoteScriptContents: shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId, scratch: lease.input.scratch }),
+  }));
   if (!dispatch.ok) {
     appendLog(logPath, `\n[coordinator] ${dispatch.failureMessage}\n`);
     return dispatchFailureResult({ lease, outputDir, startedAt, logPath, dispatch });
   }
-  const command = `bash ${remoteScript}`;
+  const command = workerEntryCommand({ ...lease.input, processName }, remoteScript);
   let stream;
   let retainedResultProgress = null;
   let resourceDiagnosticsPaths = [];
   const copiedArtifacts = new Map();
   let failureStep = "worker-execution";
+  let exitCode = null;
+  let executionError = null;
   try {
+    await leaseOperation(lease, "prepare");
+    await leaseOperation(lease, "dispatch", { processName });
     lease.executionRequested = true;
     onExecutionRequested();
-    const proc = await sandbox.process.exec({
-      name: processName,
-      command,
-      env: { GH_TOKEN: blaxelGithubToken },
-      timeout: timeouts.workerTimeoutSeconds,
-      keepAlive: true,
-    });
+    const proc = await (lease.dispatchRequest = sandbox.process.exec({ name: processName, command, env: { GH_TOKEN: blaxelGithubToken }, timeout: timeouts.workerTimeoutSeconds, keepAlive: true }));
     onExecutionStarted();
     stream = sandbox.process.streamLogs(processName, {
-      onStdout: (chunk) => appendLog(logPath, chunk),
-      onStderr: (chunk) => appendLog(logPath, chunk),
+      onStdout: (chunk) => appendLog(logPath, chunk), onStderr: (chunk) => appendLog(logPath, chunk),
       onError: (error) => console.error(`Log stream failed for shard ${shardIndex}: ${error.message}`),
     });
     const completed = await sandbox.process.wait(processName, { maxWait: timeouts.workerTimeoutSeconds * 1000, interval: 5000 });
     lease.executionCompletionConfirmed = true;
-    stream?.close?.();
-    const logs = await sandbox.process.logs(processName, "all").catch(() => "");
-    if (logs && !fs.existsSync(logPath)) fs.writeFileSync(logPath, logs);
-    failureStep = "report-download";
+    exitCode = completed.exitCode ?? proc.exitCode ?? null;
+  } catch (error) { executionError = error; }
+  stream?.close?.();
+  let result;
+  try {
+    await finishLease({
+      settleWrites: async () => { await lease.pendingWrites; },
+      assertOwned: () => { if (lease.lost) throw lease.lost; },
+      teardown: () => confirmTeardown(lease),
+      download: async () => {
+        await beforeDownload(lease);
+        const logs = await sandbox.process.logs(processName, "all");
+        appendLog(logPath, `\n[coordinator] final worker log:\n${chunkToText(logs)}`);
+        failureStep = "report-download";
+        result = await downloadResult();
+        lease.retrieved = true;
+      },
+      release: async () => { await leaseOperation(lease, "release", { retrieved: true }); lease.released = true; },
+    });
+    if (executionError) return { ...result, status: "infra-failed", ...classifyBlaxelCoordinatorFailure({ failureStep: "worker-execution", message: executionError.message }), failureMessage: executionError.message };
+    return result;
+  } catch (error) {
+    appendLog(logPath, `\n[coordinator] ${error.stack || error.message}\n`);
+    return { ...retainedResultProgress, shardIndex, shardTotal, sandbox: sandbox.metadata.name, outputDir, status: "infra-failed", exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt: new Date().toISOString(), durationMs: Date.now() - overallStarted, logPath, resourceDiagnosticsPaths, tasks: retainedResultProgress?.tasks ?? [], ...classifyBlaxelCoordinatorFailure({ failureStep, message: error.message }), failureMessage: error.message };
+  } finally { await lease.stopRenewal?.(); }
+
+  async function downloadResult() {
     const reportStarted = Date.now();
-    const exitCode = completed.exitCode ?? proc.exitCode ?? null;
+    await leaseOperation(lease, "check");
+    await retainAttemptEvidence(lease, outputDir);
     const plannedShard = shardPlan?.shards?.[shardIndex - 1];
     let shardSummary = null;
     let shardSummaryError = null;
@@ -502,8 +525,7 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
         appendLog(logPath, `\n[coordinator] ${shardSummaryError}\n`);
       }
     } catch (error) {
-      shardSummaryError = `Failed to read shard summary: ${error.message}`;
-      appendLog(logPath, `\n[coordinator] ${shardSummaryError}\n`);
+      throw new Error(`Failed to read shard summary: ${error.message}`);
     }
     retainResultProgress();
     const remoteShardNativePath = `/workspace/television/.testshards/results/native-shard-${shardIndex}.json`;
@@ -543,9 +565,7 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
       const setupRaw = await sandbox.fs.read(`/workspace/television/.testshards/results/setup-shard-${shardIndex}.json`);
       fs.writeFileSync(path.join(outputDir, `setup-shard-${shardIndex}.json`), setupRaw.endsWith("\n") ? setupRaw : `${setupRaw}\n`);
       setupTimings = [lease.restorePhase, ...JSON.parse(setupRaw)].filter(Boolean);
-    } catch {
-      setupTimings = [lease.restorePhase].filter(Boolean);
-    }
+    } catch (error) { throw new Error(`Failed to retain setup timings: ${error.message}`); }
     retainResultProgress();
     const identityError = shardPlan && shardSummary ? validateDownloadedShardSummary(shardSummary, shardPlan, shardIndex) : null;
     const resultError = downloadedResultError(shardSummary, exitCode, shardIndex);
@@ -553,6 +573,7 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
       shardSummaryError = identityError ?? resultError;
       appendLog(logPath, `\n[coordinator] ${shardSummaryError}\n`);
     }
+    if (!shardSummary || identityError || resultError) throw new Error(shardSummaryError ?? "missing shard summary");
     const hasSummaryFile = fs.existsSync(summaryPath);
     const status = classifyDownloadedShardStatus({ identityError, shardSummary, exitCode, hasSummaryFile, setupTimings });
     const completedAt = new Date().toISOString();
@@ -563,39 +584,7 @@ async function runShard(lease, outputDir, { attempt, onExecutionRequested = () =
       failureStep: hasSummaryFile ? "summary-parse" : "summary-read",
       failureMessage: shardSummaryError ?? `Shard ${shardIndex}/${shardTotal} produced no readable summary.`,
     } : null;
-    return { shardIndex, shardTotal, shard: `${shardIndex}/${shardTotal}`, sandbox: sandbox.metadata.name, outputDir, status, exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt, durationMs: Date.now() - overallStarted, summaryPath: fs.existsSync(summaryPath) ? summaryPath : null, summaryError: shardSummaryError, nativeResultPath, resourceDiagnosticsPaths, logPath, setupTimings, planId: shardSummary?.planId ?? shardPlan?.planId, timingProvider: shardSummary?.timingProvider ?? shardPlan?.timingProvider, testedTree: shardSummary?.testedTree ?? shardPlan?.testedTree, testedCommit: shardSummary?.testedCommit ?? shardPlan?.testedCommit, predictedDurationMs: shardSummary?.predictedDurationMs, phases: [...(shardSummary?.phases ?? []), reportPhase], assignedFiles: shardSummary?.assignedFiles ?? [], collectedFiles: shardSummary?.collectedFiles ?? [], failureKind: identityError ? "plan-validation" : resultError ? "result-report" : missingSummaryFailure?.failureKind ?? shardSummary?.failureKind ?? failedInfrastructureTask?.failureKind, failureStep: identityError ? "plan-validation" : resultError ? "summary-validation" : missingSummaryFailure?.failureStep ?? shardSummary?.failureStep ?? failedInfrastructureTask?.failureStep, failureMessage: identityError ?? resultError ?? missingSummaryFailure?.failureMessage ?? shardSummary?.failureMessage ?? failedInfrastructureTask?.failureMessage, processLeaks: shardSummary?.processLeaks ?? [], tasks };
-  } catch (error) {
-    stream?.close?.();
-    resourceDiagnosticsPaths = await copyResourceDiagnostics(sandbox, { outputDir, shardIndex, diagnosticAttemptId, copiedArtifacts });
-    appendLog(logPath, `\n[coordinator] ${error.stack || error.message}\n`);
-    const completedAt = new Date().toISOString();
-    const plannedShard = shardPlan?.shards?.[shardIndex - 1];
-    const failure = classifyBlaxelCoordinatorFailure({ failureStep, message: error.message });
-    return {
-      ...retainedResultProgress,
-      resourceDiagnosticsPaths,
-      shardIndex,
-      shardTotal,
-      shard: `${shardIndex}/${shardTotal}`,
-      sandbox: sandbox.metadata.name,
-      outputDir,
-      status: "infra-failed",
-      error: error.message,
-      ...failure,
-      failureMessage: error.message,
-      planId: retainedResultProgress?.planId ?? shardPlan?.planId,
-      timingProvider: retainedResultProgress?.timingProvider ?? shardPlan?.timingProvider,
-      testedCommit: retainedResultProgress?.testedCommit ?? shardPlan?.testedCommit,
-      testedTree: retainedResultProgress?.testedTree ?? shardPlan?.testedTree,
-      predictedDurationMs: retainedResultProgress?.predictedDurationMs ?? plannedShard?.predictedDurationMs,
-      startedAt: retainedResultProgress?.startedAt ?? new Date(overallStarted).toISOString(),
-      completedAt,
-      durationMs: Date.now() - overallStarted,
-      logPath,
-      assignedFiles: retainedResultProgress?.assignedFiles ?? plannedShard?.surfaces?.flatMap((surface) => surface.files.map((file) => file.path)).sort() ?? [],
-      collectedFiles: retainedResultProgress?.collectedFiles ?? [],
-      tasks: retainedResultProgress?.tasks ?? [],
-    };
+    return { shardIndex, shardTotal, shard: `${shardIndex}/${shardTotal}`, sandbox: sandbox.metadata.name, outputDir, status, exitCode, startedAt: new Date(overallStarted).toISOString(), completedAt, durationMs: Date.now() - overallStarted, summaryPath: fs.existsSync(summaryPath) ? summaryPath : null, summaryError: shardSummaryError, nativeResultPath, resourceDiagnosticsPaths, remoteScript, scratch: lease.input.scratch, logPath, setupTimings, planId: shardSummary?.planId ?? shardPlan?.planId, timingProvider: shardSummary?.timingProvider ?? shardPlan?.timingProvider, testedTree: shardSummary?.testedTree ?? shardPlan?.testedTree, testedCommit: shardSummary?.testedCommit ?? shardPlan?.testedCommit, predictedDurationMs: shardSummary?.predictedDurationMs, phases: [...(shardSummary?.phases ?? []), reportPhase], assignedFiles: shardSummary?.assignedFiles ?? [], collectedFiles: shardSummary?.collectedFiles ?? [], failureKind: identityError ? "plan-validation" : resultError ? "result-report" : missingSummaryFailure?.failureKind ?? shardSummary?.failureKind ?? failedInfrastructureTask?.failureKind, failureStep: identityError ? "plan-validation" : resultError ? "summary-validation" : missingSummaryFailure?.failureStep ?? shardSummary?.failureStep ?? failedInfrastructureTask?.failureStep, failureMessage: identityError ?? resultError ?? missingSummaryFailure?.failureMessage ?? shardSummary?.failureMessage ?? failedInfrastructureTask?.failureMessage, processLeaks: shardSummary?.processLeaks ?? [], tasks };
   }
 }
 
@@ -793,14 +782,11 @@ function systemDependenciesCommand() {
   return 'if ! command -v python3 >/dev/null 2>&1 || ! command -v xauth >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1 || ! ldconfig -p 2>/dev/null | grep -q "libgtk-3.so.0" || ! ldconfig -p 2>/dev/null | grep -q "libXtst.so.6"; then apt-get update && apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2; fi';
 }
 
-function shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId }) {
+function shardScript({ shardIndex, lockId, planRemotePath, diagnosticAttemptId, scratch }) {
   return `#!/usr/bin/env bash
 set -euo pipefail
-lock=/tmp/tv-testshard.lock
 shard_plan=${shellQuote(planRemotePath ?? "")}
-release_lock() {
-  if [ -f "$lock/owner.json" ] && grep -q '"lockId":"${lockId}"' "$lock/owner.json"; then rm -rf "$lock"; fi
-}
+export TMPDIR=${shellQuote(`${scratch}/tmp`)}
 export CI=1
 export SKIP_ACP_TESTS=1
 export NVM_DIR="\${NVM_DIR:-$HOME/.nvm}"
@@ -815,9 +801,9 @@ export TV_TEST_SHARD_INDEX=${shardIndex}
 export TV_TEST_SHARD_ATTEMPT=${shellQuote(diagnosticAttemptId)}
 mkdir -p /workspace /cache/npm
 if [ -z "\${GH_TOKEN:-}" ]; then echo "GH_TOKEN missing" >&2; exit 2; fi
-setup_metrics=/tmp/tv-testshard-setup-${shardIndex}.jsonl
-deps_cache_status=/tmp/tv-testshard-deps-cache-${shardIndex}.txt
-owner_report=/tmp/tv-stale-owner-${shardIndex}.json
+setup_metrics=${shellQuote(`${scratch}/setup.jsonl`)}
+deps_cache_status=${shellQuote(`${scratch}/deps.txt`)}
+owner_report=${shellQuote(`${scratch}/owners.json`)}
 : > "$setup_metrics"
 : > "$deps_cache_status"
 export TV_TEST_DEPS_CACHE_STATUS_FILE="$deps_cache_status"
@@ -863,6 +849,8 @@ const [input, setupOutput, shardOutput, depsCacheStatusFile] = process.argv.slic
 const depsCacheStatus = fs.existsSync(depsCacheStatusFile) ? fs.readFileSync(depsCacheStatusFile, 'utf8').trim() : '';
 const rows = (fs.existsSync(input) ? fs.readFileSync(input, 'utf8').split(/\\n/).filter(Boolean).map((line) => JSON.parse(line)) : [])
   .map((row) => row.name === 'deps' && ['hit', 'miss'].includes(depsCacheStatus) ? { ...row, cacheStatus: depsCacheStatus } : row);
+const cleanupPath = '/workspace/television/.testshards/results/temporary-cleanup.json';
+if (fs.existsSync(cleanupPath)) rows.unshift({ name: 'temporary-cleanup', status: 0, durationMs: 0, cleanup: JSON.parse(fs.readFileSync(cleanupPath, 'utf8')) });
 fs.writeFileSync(setupOutput, JSON.stringify(rows, null, 2) + "\\n");
 if (!fs.existsSync(shardOutput)) {
   const failed = rows.find((row) => row.status && row.status !== 0);
@@ -887,17 +875,16 @@ if (!fs.existsSync(shardOutput)) {
 }
 METRICS_NODE
 }
-trap 'write_setup_metrics; rm -f "$owner_report" "$deps_cache_status"; if [ -n "$shard_plan" ]; then rm -f "$shard_plan"; fi; release_lock' EXIT
-rm -rf /workspace/television/.testshards 2>/dev/null || true
-cat > /tmp/tv-git-askpass.sh <<'ASKPASS'
+trap 'write_setup_metrics' EXIT
+cat > ${scratch}/git-askpass.sh <<'ASKPASS'
 #!/usr/bin/env bash
 case "$1" in
   *Username*) echo x-access-token ;;
   *) echo "$GH_TOKEN" ;;
 esac
 ASKPASS
-chmod 700 /tmp/tv-git-askpass.sh
-export GIT_ASKPASS=/tmp/tv-git-askpass.sh
+chmod 700 ${scratch}/git-askpass.sh
+export GIT_ASKPASS=${scratch}/git-askpass.sh
 export GIT_TERMINAL_PROMPT=0
 run_step checkout bash -lc ${shellQuote(blaxelCheckoutScript({ repoUrl, commit }))}
 cd /workspace/television
@@ -964,7 +951,7 @@ elif [ ${shellQuote(suite)} = target ]; then
   export TV_TARGET_RUN_ID=${shellQuote(`${runId}:${shardIndex}`)}
   export TV_TARGET_NAME=${shellQuote(`${targetOptions()?.workspace ?? "target"} ${targetOptions()?.file ?? ""} ${targetOptions()?.grep ?? ""}`)}
   export TV_TARGET_RUNNER=${shellQuote(targetOptions()?.runner ?? "target")}
-  export TV_TARGET_CONFIG=${shellQuote(targetOptions()?.config ? path.posix.join("/workspace/television", targetOptions().config) : "")}
+  export TV_TARGET_CONFIG=${shellQuote(targetOptions()?.config ? path.posix.join("/workspace/television", targetOptions().cwd, targetOptions().config) : "")}
   export TV_TARGET_COMMAND=${shellQuote(targetCommand())}
   export TV_TARGET_LIFECYCLE_RESULT="/workspace/television/.testshards/results/target-lifecycle-${shardIndex}.json"
   export TV_TARGET_NATIVE_RESULT="/workspace/television/.testshards/results/native-shard-${shardIndex}.json"
@@ -1030,63 +1017,57 @@ exit "$test_status"
 `;
 }
 
-async function releaseLock(sandbox, lockId) {
-  const command = `bash -lc ${shellQuote(`lock=/tmp/tv-testshard.lock; if [ -f "$lock/owner.json" ] && grep -q '\"lockId\":\"${lockId}\"' "$lock/owner.json"; then rm -rf "$lock"; fi`)}`;
-  await sandbox.process.exec({ name: `tv-release-${lockId}`, command, waitForCompletion: true, timeout: 30 }).catch(() => {});
+async function confirmTeardown(lease) {
+  if (lease.teardownConfirmed) return;
+  const result = await leaseOperation(lease, "teardown");
+  lease.teardownConfirmed = true;
+  if (lease.logPath) appendLog(lease.logPath, `\n[coordinator] owner teardown: ${JSON.stringify(result.record.teardown)}\n`);
+}
+
+async function retainAttemptEvidence(lease, directory) {
+  if (!lease.executionRequested) { lease.retrieved = true; return; }
+  const root = "/workspace/television/.testshards/results";
+  const identity = JSON.parse(await lease.sandbox.fs.read(`${root}/attempt.json`));
+  for (const key of ["lockId", "runId", "shardIndex", "attemptId"]) if (identity[key] !== lease.input[key]) throw new Error(`attempt evidence identity mismatch: ${key}`);
+  const evidence = JSON.parse(await lease.sandbox.fs.read(`${root}/evidence.json`));
+  if (evidence.runId !== lease.input.runId || evidence.attemptId !== lease.input.attemptId || !Array.isArray(evidence.files)) throw new Error("invalid retained-evidence inventory");
+  for (const name of evidence.files) {
+    if (typeof name !== "string" || name.startsWith("/") || name.split("/").includes("..")) throw new Error("invalid evidence path");
+    const raw = await lease.sandbox.fs.read(`${root}/${name}`);
+    if (name.endsWith(".json")) JSON.parse(raw);
+    const target = path.join(directory, "artifacts", `shard-${lease.shardIndex}`, name);
+    fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, raw);
+  }
+}
+
+async function beforeDownload(lease) {
+  if (process.env.TV_TEST_RUNNER_SELFTEST !== "1" || !process.env.TV_BLAXEL_DOWNLOAD_GATE) return;
+  const gate = process.env.TV_BLAXEL_DOWNLOAD_GATE;
+  fs.mkdirSync(gate, { recursive: true });
+  fs.writeFileSync(path.join(gate, `shard-${lease.shardIndex}.json`), JSON.stringify({ pid: process.pid, lockId: lease.lockId, sandbox: lease.sandbox.metadata.name, scratch: lease.input.scratch }));
+  while (!shuttingDown && !fs.existsSync(path.join(gate, "continue"))) {
+    if (lease.lost) throw lease.lost;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 }
 
 async function stopAndReleaseLease(lease, { killProcess }) {
-  if (killProcess && lease.processName) {
-    await lease.sandbox.process.kill(lease.processName).catch(() => {});
+  if (lease.released) return;
+  if (lease.finishing) return lease.finishing;
+  lease.finishing = (async () => {
     try {
-      await reapUnconfirmedShardOwners(lease);
-    } catch (error) {
-      if (lease.logPath) appendLog(lease.logPath, `\n[coordinator] Owner cleanup was not confirmed; retaining lease ${lease.lockId} until TTL: ${error.stack || error.message}\n`);
-      throw error;
-    }
-  }
-  await releaseLock(lease.sandbox, lease.lockId);
-}
-
-async function reapUnconfirmedShardOwners(lease) {
-  const processName = `tv-owner-cleanup-${lease.lockId}`.replace(/[^a-zA-Z0-9-]/g, "-");
-  const reportPath = `/tmp/${processName}.json`;
-  const script = [
-    "set -eo pipefail",
-    'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"',
-    '. "$NVM_DIR/nvm.sh"',
-    "nvm use --silent default",
-    "set -u",
-    "cd /workspace/television",
-    "status=0",
-    `node scripts/test/stale-owner-reaper-cli.mjs --output ${shellQuote(reportPath)} || status=$?`,
-    `cat ${shellQuote(reportPath)}`,
-    'exit "$status"',
-  ].join("; ");
-  const completed = await lease.sandbox.process.exec({
-    name: processName,
-    command: `bash -lc ${shellQuote(script)}`,
-    waitForCompletion: true,
-    timeout: 30,
-  });
-  const raw = await lease.sandbox.fs.read(reportPath);
-  let report;
-  try {
-    report = JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Unconfirmed shard owner cleanup returned invalid JSON: ${error.message}`);
-  }
-  const validExit = completed.exitCode === 0 || completed.exitCode === 1;
-  const consistentExit = completed.exitCode === (report.staleDetected ? 1 : 0);
-  const cleanupConfirmed = report.cleanupConfirmed === true &&
-    Array.isArray(report.liveOwners) && report.liveOwners.length === 0 &&
-    Array.isArray(report.remainingStaleOwners) && report.remainingStaleOwners.length === 0 &&
-    Array.isArray(report.processLeaks);
-  if (!validExit || !consistentExit || !cleanupConfirmed) {
-    throw new Error(`Unconfirmed shard owner cleanup failed closed (exit=${completed.exitCode}, staleDetected=${report.staleDetected}, cleanupConfirmed=${report.cleanupConfirmed}, liveOwners=${report.liveOwners?.length ?? "invalid"}, remainingStaleOwners=${report.remainingStaleOwners?.length ?? "invalid"})`);
-  }
-  if (lease.logPath) appendLog(lease.logPath, `\n[coordinator] unconfirmed execution owner cleanup: ${JSON.stringify(report)}\n`);
-  return report;
+      await lease.pendingWrites;
+      await lease.dispatchRequest?.catch(() => {});
+      // Even a successful named process wait is not a descendant audit.
+      await confirmTeardown(lease);
+      if (killProcess && lease.workPromise) await lease.workPromise;
+      if (!lease.executionRequested) lease.retrieved = true;
+      if (!lease.retrieved) throw new Error("results not fully retained; keeping lease for recovery");
+      await leaseOperation(lease, "release", { retrieved: true });
+      lease.released = true;
+    } finally { await lease.stopRenewal?.(); }
+  })();
+  return lease.finishing;
 }
 
 function buildInterruptedReportSnapshot(signal) {
@@ -1160,7 +1141,7 @@ function installSignalHandlers({ killProcesses }) {
           await Promise.allSettled(leases.map((lease) => stopAndReleaseLease(lease, { killProcess: killProcesses })));
           for (const lease of leases) activeLeases.delete(lease.lockId);
         },
-        finalizeReport: () => writeInterruptedReportSnapshot(interruptedSnapshot),
+        finalizeReport: () => writeInterruptedReportSnapshot(buildInterruptedReportSnapshot(signal) ?? interruptedSnapshot),
       });
       if (reportError) console.error(`Failed to preserve interrupted Blaxel report: ${reportError.stack || reportError.message || reportError}`);
       if (releaseError) console.error(`Blaxel shard cleanup failed: ${releaseError.stack || releaseError.message || releaseError}`);
@@ -1179,13 +1160,14 @@ function listPoolSandboxes() {
 
 function resolveTimeouts(profile, overrides) {
   const profiles = {
-    normal: { workerTimeoutSeconds: 240, lockTtlSeconds: 900 },
+    normal: { workerTimeoutSeconds: 240, lockTtlSeconds: 1200 },
     cold: { workerTimeoutSeconds: 480, lockTtlSeconds: 1200 },
     repair: { workerTimeoutSeconds: 480, lockTtlSeconds: 1200 },
   };
   const selected = { ...profiles[profile] };
   if (overrides["worker-timeout-seconds"]) selected.workerTimeoutSeconds = Number.parseInt(overrides["worker-timeout-seconds"], 10);
   if (overrides["lock-ttl-seconds"]) selected.lockTtlSeconds = Number.parseInt(overrides["lock-ttl-seconds"], 10);
+  if (!Number.isSafeInteger(selected.lockTtlSeconds) || selected.lockTtlSeconds <= 0) fail("--lock-ttl-seconds must be a positive integer");
   return selected;
 }
 

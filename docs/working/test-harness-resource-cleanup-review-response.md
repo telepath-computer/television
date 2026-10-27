@@ -240,3 +240,23 @@ Slice 3 starts with real generated lock-command checks on disposable Linux roots
 The first checkpoint only extracts the existing command without changing its
 timestamp-only behavior; the new assertions require renewable ownership and
 confirmed quiet-orphan recovery. Execution is pending on the private Blaxel pool.
+
+## Slice 3 first red and Primitive observation
+
+At `1320c957`, private canonical run
+`.test-runs/2026-10-27T18-41-03-525Z-p19298-r7dc71e154247c385`
+reached both native lock assertions and failed them with completed infrastructure:
+the timestamp-only record lacks the renewable identity and cannot recover an
+expired renewable lease. Defaults were unchanged: no unit retries, two allowed
+infrastructure retries (none used).
+
+Primitive flagged `dec_d81a353e` during pool-lifecycle edits. The ordinary CLI was
+absent; npm returned ETARGET and its installed launcher failed with a dynamic
+require error. A temporary loader recovered the decision text: it repeats the
+earlier lock directive, including the literal no-expiry language, without the
+later reviewed automatic-recovery clarification. Recorded the check as followed:
+normal runs retain ownership through download; expired renewal authorizes owned
+process cleanup, never reuse beneath live work. The converged specs govern that
+clarification. The supervisor explicitly directed no further Primitive debugging.
+Its partial/truncated decision scan is not a complete authority check. No tests,
+builds or application processes ran on the shared host.

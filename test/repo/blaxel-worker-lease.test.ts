@@ -36,3 +36,17 @@ test.skipIf(process.platform !== "linux")("a quiet expired renewable lease recov
   expect(f.record().lockId).toBe(f.input.lockId);
   expect(f.record().recovery).toMatchObject({ previous: { lockId: "abandoned", runId: "old-run" }, cleanup: "confirmed", discardedReports: true });
 });
+
+test.skipIf(process.platform !== "linux")("renewal and release reject old identities, expiry, and missing retrieval", () => {
+  const f = fixture();
+  expect(f.run({ ttlSeconds: 60 }).status).toBe(0);
+  expect(f.run({ operation: "renew", lockId: "other" }).status).toBe(42);
+  expect(f.run({ operation: "release", retrieved: true }).status).toBe(42);
+  expect(f.run({ operation: "teardown" }).status).toBe(0);
+  expect(f.run({ operation: "release" }).status).toBe(42);
+  expect(f.run({ operation: "renew", ttlSeconds: 90 }).status).toBe(0);
+  expect(f.record().recoverAfter - f.record().lastRenewal).toBe(90_000);
+  writeFileSync(f.recordPath, JSON.stringify({ ...f.record(), recoverAfter: 1 }));
+  expect(f.run({ operation: "renew" }).status).toBe(42);
+  expect(f.run({ operation: "release", retrieved: true }).status).toBe(42);
+});

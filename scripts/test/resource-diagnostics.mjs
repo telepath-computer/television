@@ -1,3 +1,4 @@
+import { BASELINE_TIMING_PROVIDER } from "./timing-baseline.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -19,7 +20,7 @@ const warnDefault = (message) => console.error(`[resource diagnostics] ${message
 
 /** Shared by planned tasks and the targeted surface parent, never the native child. */
 export function surfaceResourceDiagnostics({ resultsDir, surfaceId, env = process.env, runId }) {
-  if (env.TV_TEST_TIMING_PROVIDER !== "blaxel-playwright-x64-4vcpu") return { file: null, finish: () => [] };
+  if (env.TV_TEST_TIMING_PROVIDER !== BASELINE_TIMING_PROVIDER) return { file: null, finish: () => [] };
   return startResourceDiagnostics({ root: resultsDir, identity: {
     runId: env.TV_TEST_RUN_ID ?? runId,
     shardIndex: Number(env.TV_TEST_SHARD_INDEX ?? "1"),

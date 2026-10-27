@@ -480,6 +480,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
   const args = ["scripts/run-blaxel-testshards.mjs", "--pool", selectionOptions.pool ?? "poc", "--commit", selectionOptions.commit ?? "HEAD", "--output-dir", outputDir];
   if (selectionOptions["timeout-profile"]) args.push("--timeout-profile", selectionOptions["timeout-profile"]);
   else args.push("--timeout-profile", "cold");
+  if (selectionOptions["lock-ttl-seconds"] !== undefined) args.push("--lock-ttl-seconds", selectionOptions["lock-ttl-seconds"]);
   if (selectionOptions.shards) args.push("--shards", selectionOptions.shards);
   if (selectionOptions["shard-indices"]) args.push("--shard-indices", selectionOptions["shard-indices"]);
   if (selectionOptions["allow-shard-count-override"]) args.push("--allow-shard-count-override", selectionOptions["allow-shard-count-override"]);
