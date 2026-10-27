@@ -45,6 +45,10 @@ describe("local test mutex", () => {
       expect(result.status, result.stdout + result.stderr).toBe(2);
       for (const text of [String(holder.child.pid), f.root, "cli.mjs", wait, bypass, "OOM", "another agent"]) expect(result.stderr).toContain(text);
       expect(result.stderr).not.toContain("must-not-run");
+      writeFileSync(path.join(f.home, ".tvdev-use-blaxel"), "");
+      const marked = f.run(f.args);
+      expect(marked.status).toBe(2);
+      expect(marked.stderr).toContain("commit and push, then use Blaxel");
       writeFileSync(holder.release, "done");
       expect(await holder.exited, holder.output()).toBe(0);
       expect(f.run(f.args).status).toBe(0);
@@ -90,6 +94,13 @@ describe("local test mutex", () => {
       writeFileSync(path.join(f.home, ".tvdev-use-blaxel"), "");
       expect(f.run(["local", "--surface", f.surface.id, bypass]).stderr).toContain("one test file");
       expect(f.run(["local", "--surface", f.surface.id, broad]).stderr).toContain("mutex");
+      // Independent options: even an intentional full-all shortcut must own
+      // the mutex. The failed-preflight sentinel bounds admitted execution.
+      const all = ["local", "--force", broad];
+      expect(f.run([...all, "--against-test-guidance-turn-flakes-into-failures-on-broad-runs"]).stderr).toContain("Local-test mutex held");
+      const admitted = f.run([...all, bypass], { TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT: "fixture:admitted after all overrides" });
+      expect(admitted.status).toBe(1);
+      expect(admitted.stdout + admitted.stderr).toContain("admitted after all overrides");
       expect(f.run([...f.args, bypass, wait]).status).toBe(2);
     } finally { await f.cleanup(); }
   });

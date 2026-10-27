@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
-import { decodeOwnerToken, processIdentityMatches, readLinuxProcess, readMacOSProcesses, scanLinuxProcesses } from "./process-lifecycle.mjs";
+import { decodeOwnerToken, parseLinuxProcessStat, processIdentityMatches, readMacOSProcesses, scanLinuxProcesses } from "./process-lifecycle.mjs";
 import { reapStaleOwnerProcesses } from "./stale-owner-reaper.mjs";
 
 export const CONTENTION_BYPASS = "against-test-guidance-major-host-contention-and-oom-killed-processes";
@@ -27,7 +27,9 @@ export function validateMutexOptions(options) {
 // SQLite supplies atomic compare-and-swap across processes and releases its
 // brief write locks after crashes. No transaction spans test execution.
 export async function acquireLocalTestMutex({ lockPath, options, role = "run", marked = false }) {
-  const { DatabaseSync } = await import("node:sqlite");
+  const { DatabaseSync } = await import("node:sqlite").catch(error => {
+    throw new Error(`The local-test mutex needs node:sqlite. Select the Node runtime in .nvmrc and run npm run toolchain:check. ${error.message}`, { cause: error });
+  });
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const db = new DatabaseSync(lockPath);
   db.exec("PRAGMA busy_timeout=1000; CREATE TABLE IF NOT EXISTS local_test_mutex (slot INTEGER PRIMARY KEY CHECK(slot=1), record TEXT NOT NULL)");
@@ -79,7 +81,7 @@ export async function acquireLocalTestMutex({ lockPath, options, role = "run", m
         console.error(`Waiting for local-test mutex. ${describe(holder)} Interrupt this wait with Ctrl-C (SIGINT) or SIGTERM; the holder keeps running.`);
         waitingFor = holder.id;
       }
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   } catch (error) { if (db.isOpen) db.close(); throw error; }
   finally { process.off("SIGINT", int); process.off("SIGTERM", term); }
@@ -119,7 +121,9 @@ function parseRecord(text) {
 }
 
 function identity(pid) {
-  const found = process.platform === "linux" ? readLinuxProcess(pid) : readMacOSProcesses().find(p => p.pid === pid);
+  // Liveness needs only PID/start time. Reading environ here would fail if a
+  // dead holder's PID had been reused by a process belonging to another user.
+  const found = process.platform === "linux" ? parseLinuxProcessStat(fs.readFileSync(`/proc/${pid}/stat`, "utf8")) : readMacOSProcesses().find(p => p.pid === pid);
   if (!found || found.state === "Z") throw Object.assign(new Error(`No live process identity for PID ${pid}`), { code: "ESRCH" });
   return { pid: found.pid, startTime: found.startTime };
 }

@@ -866,7 +866,7 @@ function reporterArgs(surface, nativeResultPath) {
 }
 
 function reporterEnv(surface, nativeResultPath, attemptResultPath = null, baseEnv = process.env) {
-  const env = { ...baseEnv, FLAKY_TEST_RETRIES: baseEnv.FLAKY_TEST_RETRIES ?? "5" };
+  const env = { ...baseEnv, TV_TEST_RUNNER_CONTEXT: "1", FLAKY_TEST_RETRIES: baseEnv.FLAKY_TEST_RETRIES ?? "5" };
   if (surface.runner === "vitest" && attemptResultPath) env.TV_VITEST_ATTEMPT_FILE = attemptResultPath;
   delete env.FORCE_COLOR;
   delete env.NO_COLOR;
@@ -1091,6 +1091,11 @@ Guardrails:
   - Provider shortcuts (npm test -- local|blaxel) refuse broad --suite all
     runs. Use 'npm run verify' instead, or pass --force when a raw broad
     provider run is intentional.
+  - Direct native Vitest/Playwright execution is refused by registered configs.
+    For deliberate native watch/debug/editor use, set
+    TV_TEST_AGAINST_TEST_GUIDANCE_DIRECT_NATIVE_RUN=1 (exactly 1).
+    This is the caller's judgment: it skips the canonical mutex and marked-host
+    file limit. Native configuration and required services still apply.
 
 Retries:
   Non-unit Vitest and Playwright surfaces retry twice by default, including
@@ -1109,6 +1114,7 @@ Examples:
   npm run verify -- blaxel
   npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts
   TV_DAEMON_TEST_HOST=1 npm test -- local --file test/node/daemon-acceptance.test.ts
+  npm test -- local --file test/agent/acp-bridge.test.ts  # requires local agent setup
   npm test -- blaxel --suite e2e
   npm test -- blaxel --shard-indices 5 --force
 

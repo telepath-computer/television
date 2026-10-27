@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { exactPlaywrightFiles, writeVitestRunnerConfig } from "./execution-groups.mjs";
+import { runnerEnv } from "./runner-env.mjs";
 
 // Runs inside the targeted worker's existing supervised process/service scope.
 const target = JSON.parse(process.argv[2]);
@@ -9,7 +10,7 @@ if (!["vitest", "playwright"].includes(target.runner)) throw new Error("target r
 if (target.command && target.runner !== "playwright") throw new Error("target commands currently support Playwright surfaces only");
 const native = path.resolve(process.env.TV_TARGET_NATIVE_RESULT);
 const cwd = path.resolve(target.cwd);
-const env = { ...process.env, FLAKY_TEST_RETRIES: process.env.FLAKY_TEST_RETRIES ?? "5" };
+const env = runnerEnv();
 let command;
 if (target.runner === "vitest") {
   const configPath = `${native}.runner.mjs`;

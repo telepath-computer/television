@@ -4,7 +4,7 @@ import path from "node:path";
 import type { TestSurface } from "../../../../scripts/test/config.mjs";
 
 // Authored checkout, real production CLI and native tools. No repository gate
-// runs here. Each scenario owns its files and (once enabled) private mutex.
+// runs here. Each scenario owns its files and private mutex.
 export function guidanceCheckout(runner: "vitest" | "playwright" = "vitest") {
   const parent = path.resolve(".test-runs");
   mkdirSync(parent, { recursive: true });
