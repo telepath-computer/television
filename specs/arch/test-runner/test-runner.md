@@ -219,7 +219,7 @@ A combined Vitest run uses a generated config with one `test.projects` entry per
 
 Persistent workers inspect Television owner tokens before accepting a new scope. A token is stale only when its recorded supervisor PID and process start time no longer identify a live supervisor; a concurrent run with a live supervisor is left untouched. A stale process is captured and reaped, and the worker reports an infrastructure preflight failure naming the token and process; it does not run a new surface in contaminated state. An ephemeral provider still performs the check so its correctness does not depend on host disposal.
 
-Blaxel additionally reserves the whole worker through result retrieval. Its [abandoned-run recovery](./blaxel-testshards.md#Abandoned-run recovery) may stop that abandoned attempt's live supervisors after coordinator renewal expires; it does not weaken the ordinary stale-owner rule for other runs. Surface supervisors and helpers preserve the outer attempt attribution alongside their own surface tokens. [Reporting](./reporting.md#Resource diagnostics) owns the resource evidence captured across Blaxel surface preparation, execution, and teardown.
+Blaxel additionally reserves the whole worker through result retrieval. Its [abandoned-run recovery](./blaxel-testshards.md#Abandoned-run recovery) may stop that abandoned attempt's live supervisors after coordinator renewal expires; it does not weaken the ordinary stale-owner rule for other runs. Surface supervisors and helpers preserve the outer shard attempt attribution alongside their own surface tokens. [Reporting](./reporting.md#Resource diagnostics) owns the resource evidence captured across Blaxel surface preparation, execution, and teardown.
 
 ## End-of-surface leak detection
 

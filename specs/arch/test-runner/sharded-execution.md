@@ -225,7 +225,7 @@ Blaxel workers and regular GitHub CI matrix jobs run `scripts/run-test-shard.mjs
 - `--fail-fast` stops the shard after the first failed group or task. Every later task that had files assigned by the plan remains in the shard summary with `status: "skipped"`, `skipReason: "fail-fast"`, its assigned files, and no collected files or runner artifacts.
 - The worker writes `shard-<index>.json` into its results directory, default `.testshards/results`, and exits non-zero if any task failed or plan validation failed.
 
-On Blaxel, the shared worker preserves the outer attempt's ownership and temporary-directory environment; [the Blaxel lifecycle](./blaxel-testshards.md#Locking) owns these, including teardown and download before release. Resource sidecars travel with the task artifacts under [reporting's resource-diagnostics contract](./reporting.md#Resource diagnostics), including evidence from superseded infrastructure attempts. GitHub workers retain their existing host lifecycle.
+On Blaxel, the shared worker preserves the outer shard attempt's ownership and temporary-directory environment; [the Blaxel lifecycle](./blaxel-testshards.md#Locking) owns these, including teardown and download before release. Resource sidecars travel with the task artifacts under [reporting's resource-diagnostics contract](./reporting.md#Resource diagnostics), including evidence from superseded infrastructure attempts. GitHub workers retain their existing host lifecycle.
 
 ## Blaxel provider report shape
 

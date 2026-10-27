@@ -1,6 +1,6 @@
 # Resource-cleanup proposal: review response
 
-Independent round 3 reviewed `57a701d0`: **PASS**, relayed by the supervisor. The proposal has converged. The round 1 and 2 sections below retain the response history; [round 3](#Round 3: convergence and spec derivation) records the bounded refinements and current spec checkpoint. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+Proposal round 3 at `57a701d0` and spec round 1 at `cd8aa453` both **PASS**, relayed by the supervisor. Proposal and spec deltas have converged; the proof checkpoint below is ready for independent review. The round 1 and 2 sections below retain the response history; [round 3](#Round 3: convergence and spec derivation) records the bounded refinements and current spec checkpoint. Reviewer: Claude Fable (Nina), arranged by the supervisor.
 
 Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
@@ -97,3 +97,36 @@ The rewritten spec policy on main governs this derivation. The proposal retains 
 Validation is read-only source/policy review, exact-copy comparison of the independent review, and Git diff/whitespace inspection. No tests, builds, browser/server launches, remote experiments, or worker operations ran. Live recovery, temporary-file placement and bounded evidence transport remain to be proven on committed/pushed Blaxel revisions. The supervisor arranges independent spec review; Josh accepts the spec changes at PR time.
 
 Primitive surfaced the known recovery decisions and their later correction, alongside unrelated scope matches. Its discovery scan was truncated, so it was not a complete governing-set check. Repository policy and the supervisor's latest instructions governed the assessment; no decision was overridden or reconciled.
+
+## Spec round 1: convergence and proof derivation
+
+The supervisor relayed **PASS** on `cd8aa453`. The [complete spec review](test-harness-resource-cleanup-spec-review-r1.md) is copied verbatim. Apply the nonblocking refinements under the bounded rule; no additional spec-review round is requested by this response.
+
+| Refinement | Assessment and disposition |
+| --- | --- |
+| 1: terminology | Use lease for coordinator ownership and lock for its directory. Say shard attempt for one shard's execution, retaining attempt for the shard-set attempt. Keep the existing block anchor stable. |
+| 2: unreadable records | Use the same clean-audit requirement for acquisition and deletion. Missing ownership evidence authorizes neither signalling by name nor ignoring surviving owners. |
+| 3: command-unavailable deletion | Partly accepted. A fresh worker never published for dispatch can be deleted without a lease. Do not adopt the broader inference that a worker absent from coordinator discovery has no live or valid earlier run: the review supplies no provider guarantee for that implication. A previously eligible worker whose ownership check cannot run remains held/reported for operator repair. This preserves the converged no-live-lease deletion rule; it adds no new recovery service or override. |
+| 4: helper rule | Trim the spec to worker ownership, publication after success, teardown and the Blaxel backstop. The proof derives pending-build/failure cleanup and real Playwright/Vitest crossings from that rule and ordinary cleanup correctness. |
+| 5: operations and output | State idle-pool deletion/refusal consequences, locate resource sidecars and receipts under downloaded artifacts, and name the temporary-cleanup lifecycle step. |
+| 6: transitional text | Label the legacy protocol transitional and remove the two non-requirements. |
+| 7: testing guidance | Keep actual Node and Chromium descriptor observations. Remove the duplicate placement rule and leave browser-version measurement hygiene in the proposal's experiment plan. |
+| 8: sidecar lifetime and wording | Explicitly finalize setup sidecars outside scratch before removal; keep allocation-versus-free-space interpretation in working guidance rather than authority. |
+
+### Proof checkpoint
+
+The mirrored proofs now derive the following coverage, with new obligations explicitly marked **test to be written**:
+
+| Owner | Coverage and cost boundary |
+| --- | --- |
+| `proofs/arch/test-runner/blaxel-testshards.md` | Contract decisions/order; real guard/registration and filesystem seams; canonical live retrieval/refusal, automatic active/quiet recovery, fresh provisioning and pool deletion on dedicated workers. Planned and targeted paths share small fixtures. Node and actual Chromium descriptor paths establish temporary-directory inheritance. No deliberate OOM, disk exhaustion, shared-pool contamination, or matrix of provider failures. |
+| `proofs/arch/test-runner/reporting.md` | Bounded writer and retained-link contracts; real parent/Linux/native-runner capture; downloaded failed and recovered-attempt evidence composed into the same provider runs. Unknown probes, missing observations and lost reports cannot become passing evidence. |
+| `proofs/arch/testing-policy.md` | Worker cache/publication contract, real Playwright and Vitest teardown seams with real source-CLI/web output, and failed-launch copy cleanup. The built-app default is honored by test design, not a policy-compliance source scan. |
+| Shared-execution and runner proofs | Cross-reference the owner-token, temporary-directory, diagnostic-history and real-plan crossings above. Keep ordinary stale-owner protection and isolated-GitHub fixture restrictions. |
+| Theme product/delivery and artifact product proofs | Update the selected five cases' loading boundary and mark adaptation pending. Preserve their user-visible assertions, stable origin/authentication over restart, and the separate Settings development-module walk. PR #9's reset remains unchanged. |
+
+The main risk worth the live cost is reuse before owned processes stop or evidence reaches the caller. Contracts cover failure permutations, but cannot replace real Blaxel metadata updates, dispatch, renewal, cleanup and download. The two private workers and separate Blaxel coordinator in the proposal remain planned resources, not an assertion that they exist or are available. Actual execution will use committed/pushed revisions and the canonical runner; native retries retain the default budget. Only the existing recovery-interval option is shortened deliberately for crash tests.
+
+Validation for this checkpoint is document/source inspection, review-copy comparison, Markdown index regeneration, and Git whitespace/diff inspection. No tests, builds, browser/server launches, provider experiments, or worker operations ran. Test and harness implementation has not begun. Independent proof review is the next gate; Josh's spec review remains at PR time.
+
+Primitive's file check surfaced existing recovery decisions and the correction to the supervisor's illustrative rule, with `truncated: true` from discovery. That was not a complete constraint check; no decision was overridden or reconciled. These proof details derive the existing choices and introduce no new higher-order direction to record.

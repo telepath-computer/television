@@ -14,7 +14,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `licensing.md` (33 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (30 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (89 lines) — *How the promises in Telemetry are proven.*
-  - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
+  - `themes-and-appearance.md` (57 lines) — *How the promises in Themes and appearance are proven.*
   - `update-notifications.md` (88 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
   - `versioning.md` (27 lines) — *How Television's release versions are proven where users receive them: the packed CLI package and the desktop upload directory built from the same commit, the built `tv` process and running server, update details, and the native About panel in the desktop product's Mac install check.*
   - **onboarding/**
@@ -28,7 +28,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `licensing.md` (24 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (18 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
-  - `testing-policy.md` (7 lines) — *How the testing policy’s development discipline is checked.*
+  - `testing-policy.md` (27 lines) — *How worker-owned test builds are proven, and how testing discipline is reviewed.*
   - **artifact-frame/**
     - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
     - `index.md` (24 lines) — *How the promises in Artifact frame (architecture) are proven.*
@@ -78,18 +78,18 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
-    - `blaxel-testshards.md` (60 lines) — *How the promises in Blaxel Test Shards are proven.*
+    - `blaxel-testshards.md` (96 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
     - `preflight.md` (42 lines) — *How the promises in Preflight are proven.*
-    - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
-    - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
+    - `reporting.md` (57 lines) — *How the promises in Reporting are proven.*
+    - `sharded-execution.md` (53 lines) — *How the promises in Sharded Execution are proven.*
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
-    - `test-runner.md` (75 lines) — *How the promises in Test Runner are proven.*
+    - `test-runner.md` (77 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
     - `authoring.md` (35 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*
-    - `delivery.md` (87 lines) — *How the promises in Theme delivery are proven.*
+    - `delivery.md` (89 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
   - **ui/**
     - `conformance.md` (15 lines) — *How production UI conformance is checked while automated markup comparison is scheduled for TV-649.*

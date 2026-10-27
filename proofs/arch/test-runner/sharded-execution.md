@@ -8,6 +8,8 @@ Proves [specs/arch/test-runner/sharded-execution.md](../../../specs/arch/test-ru
 
 Coverage declarations are carried inside the migrated assertion blocks below.
 
+The [Blaxel guard seam](blaxel-testshards.md#^blaxel-t-worker-guard) and [live temporary-directory seam](blaxel-testshards.md#^blaxel-t-tmpdir-live) prove that the outer shard attempt's ownership and `TMPDIR` survive the shared worker and nested surface environments required by [Shared shard worker](../../../specs/arch/test-runner/sharded-execution.md#Shared shard worker). The [planned live acceptance](blaxel-testshards.md#^blaxel-t-retrieval) also supplies real plan transfer. Diagnostic artifact fields and attempt-history retention in [the provider model](../../../specs/arch/test-runner/sharded-execution.md#Blaxel provider report shape) compose with [reporting's link contract](reporting.md#^reporting-t-resource-links) and [live retrieval](reporting.md#^reporting-t-resource-live). Those assertions remain pending; this proof orders no duplicate provider runs.
+
 ## Test hooks
 
 
@@ -49,4 +51,3 @@ Planner and baseline assertions are **contract tests** over temporary registries
 - Shard-count recommendations select the smallest simulated count under 120 seconds, obey the supplied capacity, and flag an atomic file over target. The baseline update reports only the Blaxel recommendation, simulated up to the Blaxel pool size.
 
 **Boundary statement:** real local runner processes prove explicit file selection for Vitest and the default Playwright command, report shape, and join logic. They do not prove that the Electron wrapper consumes a generated Playwright list, that a Blaxel worker accepts the transferred plan, or that independently started GitHub matrix jobs derive the same plan on hosted machines. Live Electron, Blaxel, and GitHub runs must validate those execution boundaries before activation.
-
