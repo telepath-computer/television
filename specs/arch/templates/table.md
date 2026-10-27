@@ -102,7 +102,7 @@ The page subscribes to the whole store through the [resource SDK](../resources/s
 
 An edit writes only when it is committed and differs from the stored text shown when the editor opened. Text containing only whitespace counts as empty. Committing an empty cell removes that path; an empty edit on a drawn position makes no write. Other text is stored as typed, including whitespace and line breaks. Cancelling an edit makes no write.
 
-A resize writes only when the committed size differs from the size shown when resizing began.
+A resize writes only when the committed size differs from the size shown when resizing began. The page clamps its own committed column widths to 64–640 CSS pixels and row heights to 28–240 CSS pixels.
 
 An action that affects several selected entries or cells uses one atomic update of the distinct paths. The page does not otherwise replace `rows`, `columns`, or the store root. Writes to unrelated paths do not replace each other. An ancestor removal or replacement can race with a descendant cell or size write; store ordering then decides the result. A late descendant write can recreate an entry without `order`, which the page ignores, so that edit is lost without making the Table unreadable.
 

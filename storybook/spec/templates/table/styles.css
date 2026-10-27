@@ -99,6 +99,18 @@ textarea {
   pointer-events: none;
 }
 
+.table-reference-corner::before,
+.table-row-strip::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: var(--reference-gap);
+  background: var(--color-surface);
+  content: "";
+  pointer-events: none;
+}
+
 .table-column-strip {
   position: sticky;
   top: 0;

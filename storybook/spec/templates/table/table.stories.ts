@@ -92,7 +92,7 @@ const resizedRows: Row[] = [
 
 const scrolledColumns: Column[] = Array.from({ length: 7 }, (_, index) => ({ key: `c${index + 1}` }));
 const scrolledRows: Row[] = [
-  { key: "r1", cells: { c1: "Park", c2: "State", c3: "Open", c4: "Rating", c5: "Region", c6: "Visits", c7: "Notes" } },
+  { key: "r1", height: 52, cells: { c1: "Park", c2: "State", c3: "Open", c4: "Rating", c5: "Region", c6: "Visits", c7: "Notes" } },
   ...Array.from({ length: 23 }, (_, index) => ({
     key: `r${index + 2}`,
     cells: {
