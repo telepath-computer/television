@@ -1,0 +1,68 @@
+# Test-harness cleanup: slice 2 evidence
+
+Owner: rose. Draft PR #12, branch `thopter/test-harness-resource-cleanup`. Derived from the converged [plan](test-harness-resource-cleanup-plan.md). This slice implements bounded resource observations and their report transport. Worker exclusion through retrieval, abandoned-run recovery, temporary-directory cleanup and the dedicated live acceptance remain assigned to slice 3.
+
+## Changes and review scope
+
+The shared collector runs in the planned task parent and targeted supervisor. It writes a baseline before surface preparation and finalizes after service and owned-process cleanup. Combined Vitest projects receive separate surface records referencing their split native reports and shared attempt recorder. Missing final observations remain explicit after abrupt parent death. Linux probes retain `MemAvailable` and `Shmem` from `/proc/meminfo`, free bytes from `statfs` on the effective temporary directory, and `oom_kill` from `/proc/vmstat`, with units, source and observation time. Missing probes remain unknown; a reset cannot become a negative OOM delta.
+
+The targeted Vitest path now uses the existing generated runner config and attempt recorder. This supplies actual failed-then-passed attempts to both reporting and diagnostic capture; final JSON alone cannot establish a recovered retry. Diagnostic decisions use the existing native normalizer. A failed native attempt, incomplete evidence or a nonzero exit requests bounded kernel evidence for the execution interval. The kernel reader has a two-second timeout and a 128 KiB read cap; it retains only relevant OOM identities and numeric fields, with at most 64 KiB of lines. It does not retain arbitrary kernel messages or arguments.
+
+One writer enforces 128 KiB per sidecar and 8 MiB per shard attempt, including recovery receipts. It reserves compact observations for already-created baselines before excerpts consume the budget. Receipt serialization is available for slice 3; this slice does not produce worker recovery receipts. Truncation, omitted data and unavailable readings are explicit. Probe/write failures warn without replacing the native outcome. Neither sample values nor kernel excerpts enter console summaries or timing events.
+
+The coordinator copies only bounded files matching the current provider run, shard and infrastructure-attempt identity. Diagnostic attempt identity includes the retry number because the current lock ID alone is reused across retries. Provider aggregation retains each attempt's files while using the latest task outcomes; final `resourceDiagnosticsPaths` entries are relative to the canonical run directory and name retained files only. Sidecars keep relative links to their native JSON and attempt NDJSON. Baselines recovered without a task summary remain provider evidence and cannot invent a selected-surface result.
+
+No production application file, dependency, timeout default or retry default changes. Lease/release behavior is not changed here. The present release-before-download race remains until slice 3; this checkpoint is not safe concurrent-worker-reuse qualification.
+
+## Placement, red/green and corrections
+
+All tests used committed, pushed revisions from `/workspace/television` on `tv-cleanup-coordinator-rose`, through the canonical Blaxel runner with private pool `rose-cleanup`. The two execution workers were `tv-testshard-x64-rose-cleanup-01` and `-02`. Nothing was tested, built, linted or type-checked on the shared development host, and no shared worker was touched. All outer selections are `unit:root` with the default zero native retries and two infrastructure retries. The authored nested fixtures deliberately retry to establish actual failed and passed attempt evidence. No isolated-GitHub lifecycle fixture ran.
+
+- `bda9b6cd` contains the three focused files and a minimal writer placeholder so failures reach assertions rather than missing imports. Four collector contracts failed on absent observations/bounds and an unretained link; two link contracts failed on absent path/history propagation; four real parent cases failed on absent baselines. The native fixtures reached their intended pass, early exit or interruption paths. These are red evidence, with no infrastructure failure or leaked process.
+- `e4a094a7` adds diagnostic assertions to the existing real combined-project seam. It failed on missing paths after correctly recording one passing member and one recovered member.
+- `24229bd3` implements the collector and transport. Collector contracts and the combined-project case passed. The link test reached its timing-event assertion and exposed an authored fixture typo (`id` instead of `runId`); the interruption test exposed that SIGTERM legitimately lets the supervisor finish and retain a final sample. These were test defects, not evidence that those production paths should change.
+- `86bdf6da` corrects the timing fixture and makes the tiny preparation fixture SIGKILL its own parent, then exit itself. The parent test waits for that signal and disposes its owned handle. This proves missing final evidence without leaving a descendant. The budget contract also finalizes a second baseline after receipts saturate the attempt budget. All three focused files then passed, followed by complete reporting, provider and shard-worker files. Lint and type checking passed on the coordinator; the log is retained at `.test-runs/slice-2-static/86bdf6da.log`.
+- `83e8c9f1` stops labelling every nonzero kernel-reader exit as a permission error. Permission reasons now require corresponding command evidence; other failures remain unknown. Collector and parent files passed. `f72654e1` distinguishes diagnostic infrastructure attempts and passed the provider file through real download.
+- Final inspection found that accepting any unknown kernel-reader error could conceal a malformed invocation. The [util-linux calendar parser](https://github.com/util-linux/util-linux/blob/v2.39.3/lib/timeutils.c) does not accept the trailing `Z` of JavaScript ISO timestamps. The stricter real-reader assertion at `0db76dd5` failed in both planned and targeted cases with the generic `unavailable` reason. `cf4fb510` tried epoch seconds; the installed worker parser rejected those too. A narrowed diagnostic revision, `734a29ac`, retained `dmesg: invalid time value "@1793124854.151"` in the native assertion. `dcc0847c` tried fractional calendar bounds, which also failed. The narrowed `056f9e21` probe established util-linux 2.38.1 on the worker: whole-second calendar times returned status 0; both fractional calendar and epoch times were rejected. The final reader uses an enclosing whole-second UTC window, then filters the returned ISO timestamps to the exact observation interval. `b9e9cbf8` first adds a red contract for that filtering, including disclosed omission of OOM lines without timestamps. The temporary command probes are removed from the final seam. At `0e82df7f`, all five collector contracts and all four parent cases passed; lint and type checking also passed on the private coordinator. The final static log is retained at `.test-runs/slice-2-static/0e82df7f.log`.
+
+## Canonical run evidence
+
+Each selection below follows `npm test -- blaxel --pool rose-cleanup`. The orchestration-only `--run-dir-output` receipt does not change selection. Run directories exist under `/workspace/television/.test-runs/` on the coordinator and under `.test-runs/` in this worktree. Retained files include canonical summary/results/events, provider request/report/setup/shard/log and native JSON. Downloaded diagnostic files and their referenced native/attempt files are retained locally for the inspected runs. Every listed run has zero process leaks and zero infrastructure failures; outer passing runs have zero recovered retries. Nested retry evidence is checked by the real seams rather than counted as an outer flaky test.
+
+| Commit | Canonical selection | Result | Run-directory name |
+| --- | --- | --- | --- |
+| `bda9b6cd` | `--file test/repo/resource-diagnostics.test.ts` | failed (4 failing cases) | `2026-10-27T17-47-54-943Z-p10651-r3ac5350dc8a133e8` |
+| `bda9b6cd` | `--file test/repo/resource-diagnostics-links.test.ts` | failed (2 failing cases) | `2026-10-27T17-48-04-531Z-p10744-r14c37ae4adc16ed0` |
+| `bda9b6cd` | `--file test/repo/test-runner-resource-parent.test.ts` | failed (4 failing cases) | `2026-10-27T17-48-14-171Z-p10838-r3883e2af32ea2e2a` |
+| `e4a094a7` | `--file test/repo/test-runner-shard-worker.test.ts --grep 'runs exact files from two Vitest projects in one process'` | failed (1 failing case) | `2026-10-27T17-59-15-407Z-p11411-rbae49973b433bf36` |
+| `24229bd3` | `--file test/repo/resource-diagnostics.test.ts` | passed | `2026-10-27T17-59-49-606Z-p11918-r8fc8bc0fe0c4d379` |
+| `24229bd3` | `--file test/repo/resource-diagnostics-links.test.ts` | failed (1 failing case) | `2026-10-27T17-59-57-947Z-p12010-r834336b8375e5b32` |
+| `24229bd3` | `--file test/repo/test-runner-resource-parent.test.ts` | failed (1 failing case) | `2026-10-27T18-00-05-937Z-p12102-r5e012a44da71b58e` |
+| `24229bd3` | `--file test/repo/test-runner-shard-worker.test.ts --grep 'runs exact files from two Vitest projects in one process'` | passed | `2026-10-27T18-00-13-973Z-p12194-r282952d31fc443ed` |
+| `86bdf6da` | `--file test/repo/resource-diagnostics.test.ts` | passed | `2026-10-27T18-02-11-101Z-p12741-r418e495d464a8309` |
+| `86bdf6da` | `--file test/repo/resource-diagnostics-links.test.ts` | passed | `2026-10-27T18-02-19-656Z-p12834-rfdb3a34bd4c461f6` |
+| `86bdf6da` | `--file test/repo/test-runner-resource-parent.test.ts` | passed | `2026-10-27T18-02-28-420Z-p12926-r60d6db28b6e495cf` |
+| `86bdf6da` | `--file test/repo/test-runner-reporting.test.ts` | passed | `2026-10-27T18-03-27-138Z-p13498-r6e3b77fbc4738fcd` |
+| `86bdf6da` | `--file test/repo/test-runner-provider.test.ts` | passed | `2026-10-27T18-03-40-246Z-p13595-r2c5e2ec7f7595f57` |
+| `86bdf6da` | `--file test/repo/test-runner-shard-worker.test.ts` | passed | `2026-10-27T18-03-48-465Z-p13687-r720be13bc8846ae1` |
+| `83e8c9f1` | `--file test/repo/resource-diagnostics.test.ts` | passed | `2026-10-27T18-05-26-980Z-p14233-r1e947b2039364e32` |
+| `83e8c9f1` | `--file test/repo/test-runner-resource-parent.test.ts` | passed | `2026-10-27T18-05-36-797Z-p14326-r2d359f1f9dcc8ed7` |
+| `f72654e1` | `--file test/repo/test-runner-provider.test.ts` | passed | `2026-10-27T18-07-08-959Z-p14854-r758126113ffe4f59` |
+| `0db76dd5` | `--file test/repo/test-runner-resource-parent.test.ts` | failed (2 failing cases) | `2026-10-27T18-10-50-295Z-p15426-reb1cb3404f6eb3af` |
+| `cf4fb510` | `--file test/repo/test-runner-resource-parent.test.ts` | failed (2 failing cases) | `2026-10-27T18-11-37-879Z-p15942-rd69720c74d517af3` |
+| `734a29ac` | `--file test/repo/test-runner-resource-parent.test.ts --grep 'targeted parent retains'` | failed (1 failing case) | `2026-10-27T18-14-10-644Z-p16480-rf4c2e4c1ed35a761` |
+| `dcc0847c` | `--file test/repo/test-runner-resource-parent.test.ts` | failed (2 failing cases) | `2026-10-27T18-15-40-396Z-p17010-r22c8011ef51efab8` |
+| `056f9e21` | `--file test/repo/test-runner-resource-parent.test.ts --grep 'targeted parent retains'` | failed (1 failing case) | `2026-10-27T18-17-26-697Z-p17541-rf5de936fb50934b4` |
+| `b9e9cbf8` | `--file test/repo/resource-diagnostics.test.ts --grep 'restricts a whole-second'` | failed (1 failing case) | `2026-10-27T18-19-53-507Z-p18065-r37c3f452fa9ba8bf` |
+| `0e82df7f` | `--file test/repo/resource-diagnostics.test.ts` | passed | `2026-10-27T18-20-55-154Z-p18587-r0f555091be0582c5` |
+| `0e82df7f` | `--file test/repo/test-runner-resource-parent.test.ts` | passed | `2026-10-27T18-21-03-544Z-p18679-r62fcc5d3e0807a57` |
+
+## Proof coverage and limits
+
+The [reporting proof](../../proofs/arch/test-runner/reporting.md) now cites the five collector/interval contracts, two link/history contracts and four real parent cases, plus the existing combined-project seam. The contracts use exactly the declared probe/clock/write substitutions and recorded native fixture. The parent seams use real Linux probes, preparation, installed Vitest, its attempt recorder and teardown. The abrupt-parent case has no replacement reporter or invented native result. The whole reporting file also exercises the established native-recorder crossing.
+
+An inspected successful coordinator download at `f72654e1` retained a 1,605-byte sidecar with provider run ID, shard 1, infrastructure attempt 1, surface `unit:root`, real start/end values, and resolvable JSON/NDJSON references. The identity maps to `provider/blaxel/request.json`'s run ID; the outer canonical run retains that request. This is useful transport evidence, not the dedicated planned/targeted reuse or recovery acceptance. Start/end values are not peak usage, and unavailable kernel evidence cannot exclude OOM. No OOM or resource exhaustion was induced.
+
+`^reporting-t-resource-live` stays pending. Slice 3 must qualify download under held ownership, subsequent cleanup/reuse, abandoned-run receipts, persistent-worker retention and actual Chromium/Node temporary placement. Full verification, integrated review, human spec acceptance and the shared-pool inventory question also remain outstanding. The private coordinator and both workers remain allocated for the next slice.
+
+Primitive's commit hook surfaced a truncated set of existing decisions; it was not a complete constraint check. No decision was overridden or reconciled. This slice implements the converged direction and establishes no new durable team policy.
