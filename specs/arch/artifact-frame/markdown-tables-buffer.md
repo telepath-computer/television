@@ -6,7 +6,7 @@
 
 ## Authority
 
-This buffer owns only the interactive table contracts below in the bundled Markdown view. The remaining Markdown renderer/editor behavior stays code-authoritative under [the frame-core boundary](index.md#^frame-core-carve-out); editor colors remain owned by [the Markdown UI spec](../../ui/markdown-editor/index.md). Server-rendered read-only Markdown is outside this buffer. A future Markdown-editor spec absorbs these contracts and their proof relationships. ^mt-buffer-boundary
+This buffer owns only the interactive table contracts below in the Markdown file view and the bundled Markdown template editor. The remaining Markdown renderer/editor behavior stays code-authoritative under [the frame-core boundary](index.md#^frame-core-carve-out); editor colors remain owned by [the Markdown UI spec](../../ui/markdown-editor/index.md). Server-rendered read-only Markdown is outside this buffer. A future Markdown-editor spec absorbs these contracts and their proof relationships. ^mt-buffer-boundary
 
 ## Source preservation
 

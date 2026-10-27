@@ -42,44 +42,21 @@ The page follows [`onAccessChanged`](../resources/sdk.md#^sdk-access). A move fr
 
 ## Packaged editor
 
-The bundled template folder contains committed `editor.js` and `editor.css` files built from the same editor source as the Markdown file view. `editor.js` is a self-contained classic script for the editor alone: it does not contain the file view's start-up code or module-preload polyfill, and it defines only `window.TelevisionMarkdownEditor`. `editor.css` contains the editor layout and the Markdown editor's colour stylesheet, scopes every rule beneath the page's `#editor` element, and sets no layout or presentation elsewhere on the page. ^bundled-artifact-template-markdown-editor-package
+The bundled template folder contains committed `editor.js`, `editor.css`, and `THIRD-PARTY-NOTICES.txt` files. The JavaScript and stylesheet are built from the same editor source as the Markdown file view. `editor.js` is a self-contained classic script for the editor alone: it does not contain the Markdown file view start-up code or module-preload polyfill. `editor.css` contains the editor layout and the Markdown editor colour stylesheet, scopes every rule beneath the page element whose ID is `editor`, and sets no layout or presentation elsewhere on the page. ^bundled-artifact-template-markdown-editor-package
 
-Within the template package, `page.js` uses this interface:
+These files are the complete packaged editor delivery boundary. ^bundled-artifact-template-markdown-shared-asset
 
-```ts
-type MarkdownTemplateEditorMountOptions = {
-  parent: HTMLElement;
-  value: string;
-  editable: boolean;
-  onSave(value: string): Promise<void>;
-};
+Within the template package, `page.js` mounts the editor as a direct child of the page element whose ID is `editor`, with an authoritative string, an editing state, and an asynchronous save callback. The returned handle can supply a later authoritative string, change the editing state, move focus to the editor, and dispose of the editor. The operations have these meanings:
 
-type MarkdownTemplateEditorHandle = {
-  setValue(value: string): void;
-  setEditable(editable: boolean): void;
-  focus(): void;
-  dispose(): void;
-};
-
-type MarkdownTemplateEditor = {
-  mount(options: MarkdownTemplateEditorMountOptions): MarkdownTemplateEditorHandle;
-};
-```
-
-`parent` is the page element whose ID is `editor`. The calls have these meanings:
-
-- `mount` creates the editor as a direct child of `parent`, using `value` as the initial authoritative string and `editable` as its initial editing state.
 - `onSave` receives the complete local string after the ordinary save pause. If its promise resolves, the editor retains that string as stored unless a newer stored value arrived while the save was pending, or an earlier save was refused while it was pending. If the promise rejects, the editor restores the string it last recorded as stored—the last value supplied through `value` or `setValue`, or a later save whose promise resolved—unless a newer stored value, including one confirming that save, arrived while it was pending, or an earlier save was refused while it was pending.
 - `setValue` supplies a later authoritative string, cancels any unsent local change, and never calls `onSave`. Supplying a string equal to the editor's current text records it as stored without replacing the editor state. A value that confirms a save still in progress also records that saved string without replacing a newer local edit or cancelling its pending save. A value equal to the most recently completed save, when no newer authoritative value has arrived since that save began, is recorded in the same way.
 - `setEditable` controls whether the editor accepts changes and, when changed to `false`, cancels any local change waiting to be passed to `onSave`. It does not cancel an `onSave` call already in progress. While editing is disabled, `setValue` always replaces the document.
-- `focus` moves keyboard focus to the editor.
-- `dispose` ends callbacks and releases the editor.
 
-The handle exposes no editor-library object. This is an internal boundary between files copied together in one template package, not a route or compatibility promise for another page. A template revision may change both sides together. Editor behaviour and appearance outside these meanings follow the editor source included in that revision.
+This is an internal boundary between files copied together in one template package, not a route or compatibility promise for another page. A template revision may change both sides together. Editor behaviour and appearance outside these meanings follow the editor source included in that revision.
 
-The editor build is committed rather than generated only while building the server or CLI. A currentness check rebuilds `editor.js` and `editor.css` from source and compares them byte for byte with the files in the template folder. The check also regenerates the committed `THIRD-PARTY-NOTICES.txt`. A source change cannot pass while the copied editor or its notices are stale. The Markdown file view remains a separate build from the same source; packaging this editor does not change its page, start-up path, or output.
+The editor build is committed rather than generated while building the server or CLI. The **Markdown template editor check** rebuilds `editor.js`, `editor.css`, and the [editor licensing record](../licensing.md#^licensing-markdown-template-editor-record) into temporary output and compares them with the committed files. JavaScript and stylesheet comparisons are byte for byte. The server and CLI builds copy the committed template folder and do not rebuild it. A source change cannot pass while the copied editor or its licensing record is stale. The Markdown file view remains a separate build from the same source; packaging this editor does not change its page, start-up path, or output.
 
-The file-view build remains the one writer of the `view:markdown` [licence inventory](../licensing.md#^licensing-declared-surfaces). The template-editor build uses the existing Vite licence plugin without writing another inventory: it verifies that every package it emits is covered by `view:markdown`, and the generator renders the template's notices from the packages that build actually emitted. [Licensing architecture](../licensing.md#^licensing-vite-plugin) owns the generated notice and source-repository coverage.
+The Markdown file-view build remains the one writer of the `view:markdown` [licence inventory](../licensing.md#^licensing-declared-surfaces). The template editor build uses the existing Vite licence plugin without writing another surface inventory. It records the packages the build emits and the vendored-asset records whose `paths` match emitted module paths. The notices generator renders the template notice from both sets, and the license gate can reproduce both the template notice and the source-repository notice from the committed licensing record. [Licensing architecture](../licensing.md#^licensing-markdown-template-editor-record) owns these checks and the notice inputs.
 
 The copied artifact page remains the top-level sandboxed artifact document. It owns the resource SDK subscription and adapts the store's `markdown` string to the internal editor interface. Its `index.html` loads `editor.js` and `editor.css` from the copied folder. Because artifact creation copies the complete folder, every artifact carries the editor version it was created with. Updating Television or the installed template does not replace those copied editor files; a later template revision affects only later copies. Like other templates, the page still loads Television's versioned canonical resources and resource SDK.
 
@@ -87,4 +64,4 @@ The copied artifact page remains the top-level sandboxed artifact document. It o
 
 The page loads Television's canonical stylesheet before its packaged editor stylesheet, loads its own `styles.css` after that, and loads the resource SDK. `styles.css` owns the template page layout and the loading, status, and unreadable-data presentation around the editor. The page adds no editing controls or Markdown treatment of its own. The manifest's `icons` lists one first-party entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-markdown-page
 
-The bundled `README.md` explains the root object and `markdown` string, the exact blank start, preserved whitespace, line breaks and extra root fields, complete-string saves, live page and agent updates, last-write-wins replacement, and the lack of offline merging. It tells an agent that its read and replace commands require `jq`, tells it to read the current string again immediately before replacing it, shows how to read the raw Markdown into a file without adding a line break, and says that an absent field produces `null` instead. It shows how to replace the string from a file and the empty-string form to clear it, and warns that a full-string write replaces anything the person saved since the agent last read as well as typing not yet saved when the write arrives. It warns that invalid or missing data is not repaired. It tells an adapting agent to retain the `#editor` mount element and the packaged editor files unless the agent deliberately replaces the editor. It explains that each copied artifact contains its own editor and notices, and that neither a Television update nor a later installed template replaces those copied editor files. ^bundled-artifact-template-markdown-readme
+The bundled `README.md` explains the root object and `markdown` string, the exact blank start, preserved whitespace, line breaks and extra root fields, complete-string saves, live page and agent updates, last-write-wins replacement, and the lack of offline merging. It tells an agent that its read and replace commands require `jq`, tells it to read the current string again immediately before replacing it, shows how to read the raw Markdown into a file without adding a line break, and says that an absent field produces `null` instead. It shows how to replace the string from a file and the empty-string form to clear it, and warns that a full-string write replaces anything the person saved since the agent last read as well as typing not yet saved when the write arrives. It warns that invalid or missing data is not repaired. It tells an adapting agent to retain the `#editor` mount element, `editor.js`, `editor.css`, and `THIRD-PARTY-NOTICES.txt` unless the agent deliberately replaces the editor and its licensing material. It explains that each copied artifact contains its own editor and notices, and that neither a Television update nor a later installed template replaces those copied editor files. ^bundled-artifact-template-markdown-readme
