@@ -1,0 +1,88 @@
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
+import * as Stories from "../../../storybook/spec/templates/weather/weather.stories.ts";
+
+<Meta of={Stories} />
+
+export const Artifact = ({ width = "420px", children }) => <div style={{ width, maxWidth: "100%" }}>{children}</div>;
+
+*UI spec: the bundled Weather template page, a floating sky card for current conditions, an hourly outlook, and a seven-day forecast.*
+
+# Weather template
+
+The Weather template makes an artifact that shows a forecast an agent keeps up to date. The current condition fills a small floating card; more room reveals an hourly strip and then a seven-day forecast. Each story on this page is one state of the page, and the page in the template must pass a [UI conformance](../../spec-ui.md#conformance) check against every one. The prose states the behaviour the stories cannot show.
+
+The [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store) owns the forecast data. The page reads that store and never fetches weather itself.
+
+<Artifact><Canvas of={Stories.ClearDay} /></Artifact>
+
+## Current conditions
+
+The card names the place and says how long ago the conditions were observed. The unit follows the age as `°C` or `°F`. The current temperature is the largest type on the card. Beside it, first-party weather artwork depicts the current condition. The short description and the high and low for the day sit together below.
+
+Temperatures are rounded to the nearest whole degree for display. The age updates while the page is open: less than a minute is “Updated now”, then it uses whole minutes, hours, or days. A future observation caused by clock skew also says “Updated now”.
+
+The current condition and `isDay` choose the sky. Clear daylight is saturated blue with a warm sun; clear night is deep indigo with a moon glow. Clouds soften either sky. Rain darkens it to blue slate, snow cools it to icy blue-grey, a thunderstorm turns it ink-blue and violet, and fog mutes it to silver-blue. Pale sky edges use deep navy type; darker reading areas use high-contrast white. Condition artwork uses the same visual language at every size.
+
+These stories show each sky, both times of day, and both unit systems.
+
+<Artifact><Canvas of={Stories.PartlyCloudyNight} /></Artifact>
+
+<Artifact width="700px"><Canvas of={Stories.Rain} /></Artifact>
+
+<Artifact><Canvas of={Stories.Snow} /></Artifact>
+
+<Artifact width="700px"><Canvas of={Stories.ThunderstormNight} /></Artifact>
+
+<Artifact><Canvas of={Stories.Fog} /></Artifact>
+
+## Size
+
+The artifact document is transparent. The weather card sits inside it with rounded corners, a fine light rim, and a soft shadow, so it reads as one floating object in the transparent artifact frame.
+
+The small layout is used below 600 pixels wide or below 480 pixels high. It shows current conditions only and is the 420-by-420-pixel starting size.
+
+At least 600 pixels wide and 480 pixels high, the medium layout adds a translucent hourly panel. Its entries stay in chronological order in one horizontal strip. An entry in the current hour at the place says “Now”; every other entry shows its local time. The strip scrolls horizontally when all entries do not fit.
+
+<Artifact width="700px"><Canvas of={Stories.Medium} /></Artifact>
+
+At least 760 pixels wide and 740 pixels high, the large layout also adds a translucent daily panel below the hourly strip. Each day has a weekday, condition glyph, low, shared-scale temperature-range bar, and high. The bars share the lowest low and highest high in the daily forecast, so their positions can be compared. A date matching the current date at the place says “Today”; every other date shows its weekday.
+
+The hourly strip can receive keyboard focus, so left and right arrow keys can reach hours outside the visible area. Each hourly entry exposes its local time, condition name, and temperature to assistive technology. Each daily entry exposes its date label, condition name, low, and high; the range bar adds visual comparison but no separate meaning.
+
+<Artifact width="900px"><Canvas of={Stories.Large} /></Artifact>
+
+## Opening and an empty forecast
+
+Before the first store value arrives, the card keeps a quiet blue sky and shows a compact loading state. It is a status region named “Loading weather”.
+
+<Artifact><Canvas of={Stories.Loading} /></Artifact>
+
+A new Weather artifact starts with an empty object. It shows a calm sky, a partly cloudy glyph, “No forecast yet”, and “Ask your agent for the weather here.” The same state appears when the store has no value.
+
+<Artifact><Canvas of={Stories.Empty} /></Artifact>
+
+## Changes, access, and disconnection
+
+When an agent replaces the forecast, the place, sky, current conditions, and visible forecast panels update together. Opening, reading, and displaying weather make no store writes.
+
+A read-only share looks and behaves like any other Weather page. While the page has no access or cannot reach the server, it keeps showing the last forecast without a message. When access or the connection returns, the page catches up by itself. If no value arrived before access or connection was lost, it keeps showing the loading state.
+
+## Data the page cannot read
+
+Agents write forecast data by hand, so it can break the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never rewrites data it cannot read.
+
+Any non-empty value that is partial or breaks the contract replaces the forecast with an alert: a warning icon in a softly ruled circle, “This weather can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” Saved-data unavailability shows the same alert. Once an agent fixes the value, the forecast returns without reopening the page.
+
+<Artifact><Canvas of={Stories.Unreadable} /></Artifact>
+
+## Icon
+
+In the Toolbox, the template icon is a rounded blue sky tile with a small gold sun emerging from a white cloud.
+
+## Appearance
+
+The sky communicates the weather and time of day, so the active theme and light or dark appearance do not recolour a populated card. Typography and spacing still use the foundation. Empty, loading, and unreadable states use the same fixed sky treatment in either appearance.
+
+This dark-appearance story is otherwise the same clear daylight card as the first story.
+
+<Artifact><Canvas of={Stories.DarkAppearance} /></Artifact>
