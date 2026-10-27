@@ -16,6 +16,7 @@ const zero = "--against-test-guidance-turn-flakes-into-failures-on-broad-runs";
 describe("actual file resolution", () => {
   // proofs/arch/test-runner/test-registry.md#^registry-committed-normalization
   test("normalizes committed and local registry surfaces identically", async () => {
+    // Compares this checkout with HEAD: commit registry or package-name edits first.
     const snapshot = await loadRegistrySnapshotAtCommit();
     expect(snapshot.surfaces).toEqual(loadTestConfig().surfaces);
     expect(snapshot.surfaces.find((surface) => surface.id === "e2e:artifact")?.cwd).toBe("packages/artifact");

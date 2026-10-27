@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
-import { loadTestConfig, validateRegistry } from "./config.mjs";
+import { loadTestConfig, selectSurfaces, validateRegistry } from "./config.mjs";
 import { requiredPreflights, runPreflights, runRemotePreflight } from "./preflight.mjs";
 import { normalizeSurfaceResult, safeSurfaceName } from "./reporting.mjs";
 import { atomicWriteFile, createRunContext, finalizeRun, readRunDirectoryIdentity } from "./run-context.mjs";
@@ -24,6 +24,7 @@ import { appendPhaseMetricFile, appendRunSummaryPhase, phaseFromEpoch, recordPha
 import { DEFAULT_BLAXEL_POOL_SIZE, RECOMMENDED_TEST_SHARD_COUNT } from "../testshard-constants.mjs";
 
 import { BROAD_LOCAL, BROAD_ZERO, enforceLocalFileGuidance, resolveFileSelection, resolveRetryPolicy } from "./test-guidance.mjs";
+import { acquireLocalTestMutex, CONTENTION_BYPASS, localTestMutexPath, MUTEX_WAIT, validateMutexOptions } from "./local-test-mutex.mjs";
 
 applyCursorAgentEnvWorkaround(process.env);
 
@@ -33,11 +34,19 @@ const options = command === "pool" ? parseArgs(args.slice(3))
   : command === "testpass" || command === "baseline" ? parseArgs(args.slice(2))
     : parseArgs(args.slice(1), { allowPositionals: command === "verify" });
 const config = command === "testpass" ? null : loadTestConfig();
+let localMutex = null;
+let mutexPath;
+process.on("exit", () => {
+  try { localMutex?.release(); }
+  catch (error) { console.error(`Local-test mutex release failed: ${error.message}`); }
+});
 
 try {
+  mutexPath = localTestMutexPath();
+  validateMutexOptions(options);
   if (options["allow-extreme-inefficiency"]) fail(`--allow-extreme-inefficiency has been renamed to --${BROAD_LOCAL}.`);
   for (const key of Object.keys(options)) {
-    if (key.startsWith("against-test-guidance") && ![BROAD_LOCAL, BROAD_ZERO].includes(key)) fail(`Unknown option --${key}. Run npm test -- help.`);
+    if (key.startsWith("against-test-guidance") && ![BROAD_LOCAL, BROAD_ZERO, CONTENTION_BYPASS].includes(key)) fail(`Unknown option --${key}. Run npm test -- help.`);
   }
   if (Object.prototype.hasOwnProperty.call(options, "publish")) fail("--publish is not a supported option. A qualifying Blaxel verify publishes its attestation automatically; use --no-publish to opt out.");
   if (command === "help" || options.help) help();
@@ -50,7 +59,7 @@ try {
   else if (command === "baseline") await baseline();
   else fail(`Unknown command ${JSON.stringify(command)}. Run npm test -- help.`);
 } catch (error) {
-  fail(error.message || error);
+  fail(error.message || error, error.exitCode ?? 2);
 }
 
 async function list() {
@@ -90,6 +99,11 @@ async function verify() {
     for (const phase of phases) console.log(`[verify:${phase.name}] ${[phase.command, ...phase.args].map(shellDisplay).join(" ")}`);
     return;
   }
+  if (provider === "local") {
+    const { surfaces } = resolveFileSelection({ config, options: hasSelection(options) ? options : { suite: "all" } });
+    enforceExecutionPlacement(provider, surfaces);
+    localMutex = await acquireLocalTestMutex({ lockPath: mutexPath, options, role: "verify", marked: fs.existsSync(path.join(os.homedir(), ".tvdev-use-blaxel")) });
+  }
   try {
     fs.rmSync(runDirOutput, { force: true });
   } catch (error) {
@@ -104,11 +118,13 @@ async function verify() {
   const identity = `${process.pid}-${verifyStarted}`;
   const metricsFile = path.join(metricsDir, `.verify-phases-${identity}.ndjson`);
   let verifiedRunDir = null;
+  const phaseSupervisor = provider === "local" ? createSurfaceSupervisor({ runId: `verify-${identity}`, surfaceIds: ["verify"] }) : null;
   try {
     for (const phase of phases) {
       const phaseStarted = Date.now();
       console.log(`\n[verify:${phase.name}] ${[phase.command, ...phase.args].map(shellDisplay).join(" ")}`);
-      const status = spawnSync(phase.command, phase.args, { cwd: process.cwd(), env: { ...process.env, TV_TEST_PHASE_METRICS_FILE: metricsFile }, stdio: "inherit" }).status ?? 1;
+      const phaseOptions = { cwd: process.cwd(), env: { ...process.env, TV_TEST_PHASE_METRICS_FILE: metricsFile, ...(phase.name === "tests" ? localMutex?.childEnv() : {}) }, stdio: "inherit" };
+      const status = phaseSupervisor ? (await phaseSupervisor.run(phase.command, phase.args, phaseOptions)).exitCode : spawnSync(phase.command, phase.args, phaseOptions).status ?? 1;
       let phaseRunDir = null;
       let identityError = null;
       if (phase.name === "tests" && status === 0) {
@@ -140,11 +156,17 @@ async function verify() {
       return;
     }
     recordPhaseMetricBestEffort("append verify:total run summary", () => appendRunSummaryPhase({ runDir: verifiedRunDir, phase: phaseFromEpoch({ name: "verify:total", category: "verification", startedMs: verifyStarted }) }));
-    console.log(`verify passed (${provider})`);
-    finishVerifyAttestation(attestationStart, verifiedRunDir, provider);
   } finally {
+    try {
+      const leaks = await phaseSupervisor?.finish() ?? [];
+      if (leaks.length) { console.error(`verify cleanup found ${leaks.length} owned process leak(s)`); process.exitCode = 1; }
+    } catch (error) { console.error(`verify cleanup failed: ${error.message}`); process.exitCode = 1; }
     recordPhaseMetricBestEffort("remove verify phase sidecar", () => fs.rmSync(metricsFile, { force: true }));
     recordPhaseMetricBestEffort("remove verify run identity", () => fs.rmSync(runDirOutput, { force: true }));
+  }
+  if (!process.exitCode) {
+    console.log(`verify passed (${provider})`);
+    finishVerifyAttestation(attestationStart, verifiedRunDir, provider);
   }
 }
 
@@ -268,7 +290,7 @@ function verifyPhases(provider, runDirOutput = null) {
       { name: "lint", command: npmCommand(), args: ["run", "--silent", "lint"] },
       { name: "type-check", command: npmCommand(), args: ["run", "--silent", "type-check"] },
       { name: "package-manifests", command: npmCommand(), args: ["run", "--silent", "lint:package-manifests"] },
-      { name: "tests", command: process.execPath, args: ["scripts/test/cli.mjs", "local", "--suite", "all", "--force", ...(options[BROAD_LOCAL] ? [`--${BROAD_LOCAL}`] : []), ...verifyRetryArgs(), ...(runDirOutput ? ["--run-dir-output", runDirOutput] : [])] },
+      { name: "tests", command: process.execPath, args: ["scripts/test/cli.mjs", "local", "--suite", "all", "--force", ...[BROAD_LOCAL, CONTENTION_BYPASS, MUTEX_WAIT].filter(key => options[key]).map(key => `--${key}`), ...verifyRetryArgs(), ...(runDirOutput ? ["--run-dir-output", runDirOutput] : [])] },
       vibeModePhase(),
     ];
   }
@@ -410,15 +432,19 @@ async function runWithSelection(provider, selectionOptions) {
   enforceExecutionPlacement(provider, surfaces);
   if (process.env.TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT) requireSelftestSeam("TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT");
   if (provider === "local") enforceLocalFileGuidance(selectionOptions, resolved);
+  if (provider === "local") for (const surface of surfaces) for (const selector of ["file", "grep"]) {
+    if (selectionOptions[selector] && !surface.supports.includes(selector)) fail(`Surface ${surface.id} does not support --${selector}.`);
+  }
   const testRetries = resolveTestRetries(selectionOptions, surfaces, resolved);
   if (process.env.TV_TEST_RUNNER_DRY_RUN === "1") {
     requireSelftestSeam("TV_TEST_RUNNER_DRY_RUN");
     const selection = selectionSummary(selectionOptions, surfaces);
-    console.log(`[dry-run] provider=${provider} suite=${selection.suite ?? "-"} surfaces=${selection.surfaces.join(",")} files=${selection.files.join(",")}`);
+    console.log(`[dry-run] provider=${provider} suite=${selection.suite ?? "-"} surfaces=${selection.surfaces.join(",")} files=${selection.files.join(",")}${provider === "local" ? ` mutex=${mutexPath}` : ""}`);
     return;
   }
   if (provider === "blaxel") return runBlaxel(selectionOptions, surfaces, testRetries);
   if (provider !== "local") fail(`Provider ${provider} is not implemented in the canonical CLI yet.`);
+  localMutex = await acquireLocalTestMutex({ lockPath: mutexPath, options: selectionOptions, marked: fs.existsSync(path.join(os.homedir(), ".tvdev-use-blaxel")) });
   const runContext = createProviderRunContext(provider);
   writeRunDirOutput(selectionOptions, runContext);
   const startedAt = new Date().toISOString();
@@ -1007,7 +1033,7 @@ function parseArgs(argv, { allowPositionals = false } = {}) {
     const equals = arg.indexOf("=");
     const key = arg.slice(2, equals < 0 ? undefined : equals);
     const next = argv[i + 1];
-    if ([BROAD_LOCAL, BROAD_ZERO].includes(key) && (equals >= 0 || next && !next.startsWith("--"))) fail(`--${key} does not take a value. Pass the flag by itself to deliberately enable it, or omit it.`);
+    if ([BROAD_LOCAL, BROAD_ZERO, CONTENTION_BYPASS, MUTEX_WAIT].includes(key) && (equals >= 0 || next && !next.startsWith("--"))) fail(`--${key} does not take a value. Pass the flag by itself to deliberately enable it, or omit it.`);
     if (equals >= 0) { out[key] = arg.slice(equals + 1); continue; }
     if (next && !next.startsWith("--")) { out[key] = next; i += 1; }
     else out[key] = "1";
@@ -1048,6 +1074,14 @@ Remote options:
   --ignore-uncommitted          Allow remote runs to ignore local uncommitted changes.
 
 Guardrails:
+  - Every local run and local verify holds one mutex across checkouts for the
+    same operating-system user until test processes and cleanup finish.
+    Contention refuses immediately by default. --${MUTEX_WAIT}
+    waits without a time limit; SIGINT or SIGTERM cancels only the waiter.
+    --${CONTENTION_BYPASS}
+    deliberately permits concurrent local runs: major host contention and
+    OOM-killed processes are possible. Its use is the caller's judgment.
+    It does not lift the marked-host file limit and cannot be combined with wait.
   - Without ~/.tvdev-use-blaxel, verify defaults to local without contacting Blaxel.
     With the marker, verify defaults to Blaxel and refuses automatic local fallback.
     Local runs select one --file, optionally with --grep; broader work goes to Blaxel
@@ -1093,4 +1127,4 @@ function relative(file) { return path.relative(process.cwd(), file); }
 function shellDisplay(value) { return /\s/.test(String(value)) ? JSON.stringify(String(value)) : String(value); }
 function formatDuration(ms) { return !Number.isFinite(ms) ? "unknown" : ms < 1000 ? `${ms}ms` : ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m ${Math.round((ms % 60000) / 1000)}s`; }
 function formatPhase(phase) { return `${phase.category}/${phase.name}=${formatDuration(phase.durationMs)} status=${phase.status}${phase.cacheStatus ? ` cache=${phase.cacheStatus}` : ""}`; }
-function fail(message) { console.error(message); process.exit(2); }
+function fail(message, status = 2) { console.error(message); process.exit(status); }

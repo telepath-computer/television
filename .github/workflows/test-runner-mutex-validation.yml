@@ -1,0 +1,54 @@
+# Temporary branch-only validation authorized by Josh; remove before handoff.
+name: Process Lifecycle Fault Injection
+on:
+  push:
+    branches: [thopter/test-runner-local-guardrails]
+    paths:
+      - .github/workflows/test-runner-mutex-validation.yml
+      - scripts/test/**
+      - test/repo/test-runner-*mutex.test.ts
+      - test/repo/fixtures/test-runner/**
+      - test/runner-fixtures/process-lifecycle/**
+permissions:
+  contents: read
+jobs:
+  mutex:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      TV_TEST_ISOLATED_GITHUB: '1'
+      TV_TEST_TIMING_PROVIDER: github-ubuntu-24.04-x64-2vcpu-vm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - run: npm ci
+        timeout-minutes: 8
+      - name: Ensure process inspection tools
+        run: command -v ss || (sudo apt-get update && sudo apt-get install -y iproute2)
+      - name: Ordinary direct mutex checks
+        timeout-minutes: 4
+        run: npm test -- local --file test/repo/test-runner-mutex.test.ts
+      - name: Ordinary verify mutex checks
+        timeout-minutes: 4
+        run: npm test -- local --file test/repo/test-runner-verify-mutex.test.ts
+      - name: Mutex interruption and recovery
+        timeout-minutes: 4
+        run: npm test -- local --file test/runner-fixtures/process-lifecycle/orchestrator/mutex.test.ts
+      - name: Existing lifecycle integration
+        timeout-minutes: 4
+        run: npm test -- local --file test/runner-fixtures/process-lifecycle/orchestrator/orchestrator.test.ts
+      - name: Independent owner cleanup
+        if: always()
+        timeout-minutes: 1
+        run: node scripts/test/isolated-github-lifecycle-cleanup.mjs
+      - name: Retain complete run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutex-lifecycle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .test-runs/
+          include-hidden-files: true

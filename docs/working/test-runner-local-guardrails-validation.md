@@ -78,3 +78,19 @@ Both remote checks passed on pushed revision `57dc3213fe64ee98a7df652860e90e0957
 | `npm test -- blaxel --surface unit:root` | `2026-10-01T23-52-02-305Z-p2942439-rcffb77259ea10c1d` | 43 files, 484 passing cases, one standing skip, no failures or recovered outer flakes. |
 
 The artifact dispatch skipped sandbox 137 because its provisioned nvm entrypoint was absent, then completed on sandbox 138; the repository tests completed on sandbox 139. No pool repair was performed. These checks retain their native reports and worker logs under the run directories above. The subsequent handoff commit changes only this validation record.
+
+
+## Slice 2 — mutex ownership and recovery
+
+The implementation uses Node's built-in SQLite for a single versioned ownership record and atomic compare-and-swap. This avoids a stale-file unlink race without adding a dependency, daemon, expiry or waiter queue. The production path is the operating-system account home plus `.cache/television/local-test-mutex.sqlite3`, independent of HOME and TMP overrides. Verify and its direct test child register separate process identities in that record.
+
+The private-path hook changes location only. Ordinary fixtures coordinate small native programs by readiness and release files; crash, orphan and forced-death cases remain on the isolated lifecycle surface. The experimental surfaces and their placement rule are retained. The uncommitted ordinary-crash proposal and selective-reaper changes were withdrawn when Josh restored the original plan on October 27. Josh authorized the temporary branch-only `Process Lifecycle Fault Injection` workflow for this validation; it must be removed before handoff.
+
+| Focused check | Red | Green |
+| --- | --- | --- |
+| Production location and refusal before preflight | `2026-10-02T00-08-03-035Z-p2950199-r7aa8fde9e046a0ff`: missing mutex path and contender reached preflight | `2026-10-02T00-10-49-418Z-p2951826-r919dc4e8a58ed567` |
+| Direct mutex file | Above admission failures | `2026-10-02T00-11-21-422Z-p2952216-rc780dccae940430a`; expanded informational/private-location cases passed in `2026-10-02T00-15-20-935Z-p2955465-r7e17f3d001f2ba2b` |
+| Real verify ownership and direct-child handoff | Derived from the same missing-ownership baseline | Complete file passed in `2026-10-02T00-18-15-222Z-p2956893-r3ce38ddb855b2a07` (19.3 seconds) |
+| Mutex help and wait/placement assertions after resuming | `2026-10-27T12-11-33-272Z-p1164852-r7103cf0e9980d1e5`: help lacked the wait option | Complete direct-mutex file passed in `2026-10-27T12-12-22-355Z-p1165339-rd76f87ddad57fb0c` (28.6 seconds) |
+
+An expanded October 2 test initially expected a remote failed-preflight hook to exit 1; the existing command correctly exits 2. The assertion was corrected without changing production behavior. Scoped TypeScript and ESLint checks pass for the new mutex fixtures/tests. Broader repository validation and isolated crash evidence follow the pushed implementation checkpoint. Linux evidence does not establish the macOS process backend; no macOS execution is claimed.
