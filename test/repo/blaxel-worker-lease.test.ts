@@ -1,5 +1,5 @@
 import { spawn, spawnSync, execFile } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { chownSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -10,11 +10,15 @@ import { workerLeaseCommand, workerEntryCommand, shardScratchPath } from "../../
 // fixture-token filter substitutes only the whole-worker audit's scope.
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
-function fixture() {
-  const tmpRoot = mkdtempSync(path.join(os.tmpdir(), "lease-seam-")); roots.push(tmpRoot);
+function fixture(unprivileged = false) {
+  // A root Blaxel worker must reproduce the unprivileged CI runner too. Use
+  // /tmp directly because the outer shard's private TMPDIR is not traversable.
+  const credentials = unprivileged && process.getuid?.() === 0 ? { uid: 65534, gid: 65534 } : {};
+  const tmpRoot = mkdtempSync(path.join(unprivileged ? "/tmp" : os.tmpdir(), "lease-seam-")); roots.push(tmpRoot);
+  if (credentials.uid !== undefined) chownSync(tmpRoot, credentials.uid, credentials.gid!);
   const input = { lockId: "fixture-lock", runId: "fixture-run", shardIndex: 1, shardTotal: 1, attemptId: "fixture-attempt", owner: "fixture", expiresAt: Math.floor(Date.now() / 1000) + 1200, tmpRoot, resultsRoot: path.join(tmpRoot, "results"), auditTokens: ["fixture-lock", "unrelated-lock", "new-lock"] };
   const recordPath = path.join(tmpRoot, "tv-testshard.lock", "owner.json");
-  const run = (extra = {}) => spawnSync("bash", ["-c", workerLeaseCommand({ ...input, ...extra })], { encoding: "utf8", env: process.env, timeout: 15_000 });
+  const run = (extra = {}) => spawnSync("bash", ["-c", workerLeaseCommand({ ...input, ...extra })], { encoding: "utf8", env: process.env, timeout: 15_000, ...credentials });
   return { input, recordPath, run, record: () => JSON.parse(readFileSync(recordPath, "utf8")) };
 }
 
@@ -26,6 +30,43 @@ test.skipIf(process.platform !== "linux")("acquisition writes a renewable deadli
   expect(f.record()).toMatchObject({ lockId: f.input.lockId, expiresAt: 0, attemptId: f.input.attemptId });
   expect(f.record().lastRenewal).toBeGreaterThanOrEqual(before);
   expect(f.record().recoverAfter - f.record().lastRenewal).toBe(1_200_000);
+});
+
+test.skipIf(process.platform !== "linux")("fixture audit runs without root access to other users' environments", () => {
+  const f = fixture(true);
+  const acquired = f.run();
+  expect(acquired.status, acquired.stderr).toBe(0);
+  expect(f.record().lockId).toBe(f.input.lockId);
+});
+
+test.skipIf(process.platform !== "linux")("an unreadable whole-worker audit preserves the lease and its evidence", () => {
+  const f = fixture(true);
+  expect(f.run().status).toBe(0);
+  const before = readFileSync(f.recordPath, "utf8");
+  const sentinel = path.join(f.input.tmpRoot, "television-web-bundle-preserve");
+  mkdirSync(sentinel);
+  // No fixture scope: production must refuse reuse when ownership is unknown.
+  const prepared = f.run({ operation: "prepare", auditTokens: undefined });
+  expect(prepared.status).toBe(2);
+  expect(prepared.stderr).toMatch(/worker owner audit unreadable at PID \d+ \(EACCES\); worker reuse refused/);
+  expect(readFileSync(f.recordPath, "utf8")).toBe(before);
+  expect(existsSync(sentinel)).toBe(true);
+});
+
+test.skipIf(process.platform !== "linux" || process.getuid?.() !== 0)("fixture scope still refuses an unreadable process with its own user ID", async () => {
+  const f = fixture(true);
+  const ready = path.join(f.input.tmpRoot, "unreadable-ready");
+  // Changing credentials after exec disables dumpability. procfs files become
+  // root-owned even though /proc/PID/status still identifies UID 65534.
+  const source = `process.setgid(65534);process.setuid(65534);require('fs').writeFileSync(${JSON.stringify(ready)},'ready');setInterval(()=>{},1000)`;
+  const child = spawn(process.execPath, ["-e", source], { stdio: "ignore", env: { ...process.env, TV_TEST_SHARD_OWNER: "fixture-lock" } });
+  try {
+    await until(() => existsSync(ready));
+    const acquired = f.run();
+    expect(acquired.status).toBe(2);
+    expect(acquired.stderr).toContain(`worker owner audit unreadable at PID ${child.pid} (EACCES); worker reuse refused`);
+    expect(existsSync(f.recordPath)).toBe(false);
+  } finally { child.kill("SIGKILL"); await until(() => child.signalCode !== null); }
 });
 
 test.skipIf(process.platform !== "linux")("a quiet expired renewable lease recovers through cleanup before replacement", () => {
