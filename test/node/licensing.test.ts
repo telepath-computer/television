@@ -174,6 +174,9 @@ describe("product licensing outputs", () => {
   test("the packaged Markdown editor refresh replaces only generated files and satisfies the check", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), "television-markdown-editor-refresh-"));
     try {
+      const sharedFileViewFolder = path.join(repoRoot, "packages/view-markdown/dist");
+      const sharedFileViewFiles = listFiles(sharedFileViewFolder);
+      const sharedFileViewBefore = sharedFileViewFiles.map(fileSnapshot);
       const substituteTemplate = path.join(root, "document");
       const substituteRecord = path.join(root, "packaged-markdown-editor-licenses.json");
       const substituteSourceNotice = path.join(root, noticeName);
@@ -206,7 +209,11 @@ describe("product licensing outputs", () => {
       });
 
       expect(readSurfaceInventory(cleanInventoryRoot, "view:markdown").surface).toBe("view:markdown");
+      expect(listFiles(sharedFileViewFolder)).toEqual(sharedFileViewFiles);
+      expect(sharedFileViewFiles.map(fileSnapshot)).toEqual(sharedFileViewBefore);
       expect(otherTemplateFiles.map(fileSnapshot)).toEqual(before);
+      expect(readFileSync(path.join(substituteTemplate, noticeName), "utf8"))
+        .toBe(readFileSync(path.join(documentTemplateFolder, noticeName), "utf8"));
       expect(readFileSync(substituteSourceNotice, "utf8"))
         .toBe(readFileSync(path.join(repoRoot, noticeName), "utf8"));
       const result = await checkPackagedMarkdownEditor({

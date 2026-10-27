@@ -1,6 +1,7 @@
-export function buildMarkdownFileView(options?: {
+export function buildMarkdownFileView(options: {
   root?: string;
   inventoryRoot?: string;
+  outputFolder: string;
 }): void;
 
 export function refreshPackagedMarkdownEditor(options?: {

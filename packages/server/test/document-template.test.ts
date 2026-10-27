@@ -87,7 +87,7 @@ describe("bundled Document package", () => {
       .toMatch(/cp -R .*assets\/templates\/\." .*templates_dist/s);
   });
 
-  it("marks the committed packaged Markdown editor output as generated binary text", () => {
+  it("marks the committed packaged Markdown editor output as generated, with no line-ending conversion", () => {
     const attributes = readFileSync(path.join(repoRoot, ".gitattributes"), "utf8");
     expect(attributes).toContain(
       "packages/server/assets/templates/document/editor.js -text linguist-generated",

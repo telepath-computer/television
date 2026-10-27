@@ -7,6 +7,8 @@ import { appearanceResolverScriptSource } from "../artifact/src/browser/appearan
 import { canonicalWrapper } from "../server/src/canonical.ts";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
+// Maintenance commands may redirect the inventory so a private rebuild cannot
+// disturb the shared suite inventory while checking generated editor files.
 const inventoryRoot = process.env.TV_LICENSE_INVENTORY_ROOT;
 
 // Inline-asset budget: 64 KiB. Generous enough to absorb the Hind variable

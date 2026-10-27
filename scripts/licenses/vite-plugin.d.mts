@@ -10,6 +10,7 @@ export interface TelevisionLicensePluginOptions {
   assets?: VendoredAsset[];
   recordOutputPath?: string;
   requiredAssetSurfaces?: LicenseSurface[];
+  verificationFailureHint?: string;
 }
 
 export function createTelevisionLicensePlugin(options: TelevisionLicensePluginOptions): Plugin;

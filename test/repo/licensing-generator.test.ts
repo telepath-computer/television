@@ -47,6 +47,7 @@ import { createPackagedMarkdownEditorOutputPlugin } from "../../packages/view-ma
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const fixtureRoot = path.join(repoRoot, "test/fixtures/licensing");
+const fixtureVerificationFailureHint = "Run the fixture packaged-editor refresh.";
 const tempRoots: string[] = [];
 
 function makeTempRoot(prefix = "tv-license-generator-"): string {
@@ -90,6 +91,7 @@ describe("licensing inventory conversion", () => {
     expect(packagedEditorConfig).toContain('surface: "view:markdown"');
     expect(packagedEditorConfig).toContain('mode: "verify"');
     expect(packagedEditorConfig).toContain('requiredAssetSurfaces: ["view:markdown", "source"]');
+    expect(packagedEditorConfig).toContain("verificationFailureHint");
 
     const temporaryRoot = makeTempRoot();
     const inventoryRoot = path.join(temporaryRoot, "inventories");
@@ -107,13 +109,13 @@ describe("licensing inventory conversion", () => {
     const noticesPath = path.join(outputDir, "THIRD-PARTY-NOTICES.txt");
     writeFileSync(noticesPath, "primary build notices\n");
     const inventoryBytes = readFileSync(inventoryPath, "utf8");
-
     const plugin = createTelevisionLicensePlugin({
       surface: "view:markdown",
       mode: "verify",
       root: repoRoot,
       inventoryRoot,
       recordOutputPath,
+      verificationFailureHint: fixtureVerificationFailureHint,
     });
     await runViteGenerateBundle(plugin, outputDir, coveredModule);
     expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
@@ -133,7 +135,7 @@ describe("licensing inventory conversion", () => {
     writeSurfaceInventory(inventoryRoot, inventory);
 
     await expect(runViteGenerateBundle(plugin, outputDir, uncoveredModule)).rejects.toThrow(
-      /marked@.*not covered.*view:markdown.*refresh:packaged-markdown-editor/i,
+      /marked@.*not covered.*view:markdown.*fixture packaged-editor refresh/i,
     );
     expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
     expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
@@ -234,8 +236,9 @@ describe("licensing inventory conversion", () => {
       assets: [asset],
       recordOutputPath,
       requiredAssetSurfaces: ["view:markdown", "source"],
+      verificationFailureHint: fixtureVerificationFailureHint,
     }), temporaryRoot, [packageModule, localModule])).rejects.toThrow(
-      /missing.*view:markdown.*inventory.*refresh:packaged-markdown-editor/i,
+      /missing.*view:markdown.*inventory.*fixture packaged-editor refresh/i,
     );
 
     const outputPlugin = createPackagedMarkdownEditorOutputPlugin();

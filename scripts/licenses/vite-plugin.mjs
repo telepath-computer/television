@@ -8,8 +8,6 @@ import { inventoryFromModulePaths } from "./lib/notices.mjs";
 import { requireDeclaredLicenseSurface } from "./lib/surfaces.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const packagedEditorRefreshHint =
-  "Run `npm run refresh:packaged-markdown-editor` to rebuild the Markdown file view inventory and packaged Markdown editor.";
 
 /** Build-only Vite plugin that writes or verifies emitted third-party package coverage. */
 export function createTelevisionLicensePlugin({
@@ -20,6 +18,7 @@ export function createTelevisionLicensePlugin({
   assets,
   recordOutputPath,
   requiredAssetSurfaces = [],
+  verificationFailureHint,
 } = {}) {
   if (typeof surface !== "string" || surface.length === 0) {
     throw new Error("Vite licensing plugin requires a surface");
@@ -28,6 +27,9 @@ export function createTelevisionLicensePlugin({
     throw new Error(`Vite licensing plugin mode must be "write" or "verify"; received ${JSON.stringify(mode)}`);
   }
   requireDeclaredLicenseSurface(surface, { inventory: true });
+  const verificationFailureSuffix = verificationFailureHint === undefined
+    ? ""
+    : ` ${verificationFailureHint}`;
   return {
     name: `television-license-inventory:${surface}`,
     apply: "build",
@@ -50,11 +52,11 @@ export function createTelevisionLicensePlugin({
           coveringInventory = readSurfaceInventory(inventoryRoot, surface);
         } catch (error) {
           throw new Error(
-            `missing ${surface} license inventory: ${error instanceof Error ? error.message : String(error)}. `
-              + packagedEditorRefreshHint,
+            `missing ${surface} license inventory: ${error instanceof Error ? error.message : String(error)}.`
+              + verificationFailureSuffix,
           );
         }
-        verifyInventoryCoverage(inventory, coveringInventory);
+        verifyInventoryCoverage(inventory, coveringInventory, verificationFailureSuffix);
         if (recordOutputPath !== undefined) {
           const matchedAssets = matchEmittedAssets(modules, {
             root,
@@ -102,7 +104,7 @@ function matchEmittedAssets(modules, { root, assets, requiredSurfaces }) {
   return matched.map((asset) => asset.id).sort(compare);
 }
 
-function verifyInventoryCoverage(inventory, coveringInventory) {
+function verifyInventoryCoverage(inventory, coveringInventory, verificationFailureSuffix) {
   const covered = new Map(coveringInventory.packages.map((record) => [
     `${record.name}\0${record.version}`,
     record,
@@ -111,14 +113,14 @@ function verifyInventoryCoverage(inventory, coveringInventory) {
     const coveringRecord = covered.get(`${record.name}\0${record.version}`);
     if (coveringRecord === undefined) {
       throw new Error(
-        `${record.name}@${record.version} is not covered by the ${inventory.surface} license inventory. `
-          + packagedEditorRefreshHint,
+        `${record.name}@${record.version} is not covered by the ${inventory.surface} license inventory.`
+          + verificationFailureSuffix,
       );
     }
     if (coveringRecord.declaredLicense !== record.declaredLicense) {
       throw new Error(
-        `${record.name}@${record.version} conflicts with the ${inventory.surface} license inventory. `
-          + packagedEditorRefreshHint,
+        `${record.name}@${record.version} conflicts with the ${inventory.surface} license inventory.`
+          + verificationFailureSuffix,
       );
     }
   }

@@ -23,12 +23,16 @@ const repositoryRoot = path.resolve(path.dirname(scriptPath), "..");
 export function buildMarkdownFileView({
   root = repositoryRoot,
   inventoryRoot = resolveInventoryRoot({ root }),
-} = {}) {
+  outputFolder,
+}) {
   const build = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", [
     "--workspace",
     "@telepath-computer/television-view-markdown",
     "run",
     "build",
+    "--",
+    "--outDir",
+    path.resolve(outputFolder),
   ], {
     cwd: root,
     encoding: "utf8",
@@ -60,10 +64,11 @@ export function refreshPackagedMarkdownEditor({
   sourceNoticePath = path.join(root, "THIRD-PARTY-NOTICES.txt"),
 } = {}) {
   const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "television-packaged-markdown-editor-refresh-"));
+  const fileViewOutputFolder = path.join(temporaryRoot, "file-view");
   const outputFolder = path.join(temporaryRoot, "editor");
   const freshRecordPath = path.join(temporaryRoot, "packaged-markdown-editor-licenses.json");
   try {
-    buildMarkdownFileView({ root, inventoryRoot });
+    buildMarkdownFileView({ root, inventoryRoot, outputFolder: fileViewOutputFolder });
     buildPackagedMarkdownEditor({
       root,
       inventoryRoot,

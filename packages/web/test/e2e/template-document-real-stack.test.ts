@@ -36,7 +36,7 @@ function writes(): Record<string, unknown>[] {
 }
 
 // proofs/arch/templates/document.md#^templates-document-t-blank-save
-test("new Document from Toolbox starts blank, then saves and clears through its packaged editor", async ({ page }) => {
+test("new Document from Toolbox starts blank, then saves and clears through its packaged Markdown editor", async ({ page }) => {
   const artifactFrameRequests: string[] = [];
   page.on("request", request => {
     if (request.frame().parentFrame() === page.mainFrame()) {

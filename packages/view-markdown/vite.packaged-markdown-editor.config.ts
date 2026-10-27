@@ -43,6 +43,8 @@ export default defineConfig({
       inventoryRoot,
       recordOutputPath,
       requiredAssetSurfaces: ["view:markdown", "source"],
+      verificationFailureHint:
+        "Run `npm run refresh:packaged-markdown-editor` to rebuild the Markdown file view inventory and packaged Markdown editor.",
     }),
     isolateEditorScript(),
     createPackagedMarkdownEditorOutputPlugin(),
