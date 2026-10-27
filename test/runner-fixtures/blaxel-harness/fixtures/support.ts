@@ -4,7 +4,7 @@ import { spawnOwnedProcess } from "../../../helpers/owned-process.ts";
 
 export const results = "/workspace/television/.testshards/results";
 export function mode() {
-  const file = "/tmp/rose-blaxel-harness-mode.json";
+  const file = "/tmp/tv-blaxel-harness-mode.json";
   return existsSync(file) ? JSON.parse(readFileSync(file, "utf8")).mode : "normal";
 }
 export function evidence(name: string, value: unknown) {

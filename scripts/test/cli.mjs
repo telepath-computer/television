@@ -869,7 +869,9 @@ function assertRegistryValid() {
 
 function enforceExecutionPlacement(provider, surfaces) {
   if (surfaces.some((surface) => surface.id === "experiment:blaxel-harness")) {
-    if (provider !== "local" || process.env.TV_TEST_SHARD_OWNER || process.env.TV_BLAXEL_HARNESS_COORDINATOR !== "tv-cleanup-coordinator-rose") fail("The Blaxel harness driver requires its dedicated coordinator outside the worker pool.");
+    if (provider !== "local" || process.env.TV_TEST_SHARD_OWNER || !process.env.TV_BLAXEL_HARNESS_COORDINATOR?.trim() || !process.env.TV_BLAXEL_HARNESS_POOL?.trim()) {
+      fail("The Blaxel harness driver requires its dedicated coordinator outside the worker pool. Set TV_BLAXEL_HARNESS_COORDINATOR and TV_BLAXEL_HARNESS_POOL explicitly.");
+    }
   }
   const isolated = surfaces.filter((surface) => surface.tags.includes("isolated-github-only"));
   if (isolated.length === 0) return;

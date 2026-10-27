@@ -7,12 +7,20 @@ import { listBlaxelPoolSandboxes } from "../../../../scripts/test/blaxel-pool.mj
 
 // Acceptance: real canonical subprocesses, SDK, fresh private workers and native
 // fixtures. The sole scheduling hook pauses immediately before report download.
-const pool = "rose-cleanup";
-const coordinatorName = "tv-cleanup-coordinator-rose";
+const pool = process.env.TV_BLAXEL_HARNESS_POOL?.trim() ?? "";
+const coordinatorName = process.env.TV_BLAXEL_HARNESS_COORDINATOR?.trim() ?? "";
 const planned = ["--tag", "blaxel-harness-fixture", "--shards", "2", "--allow-shard-count-override", "1"];
 const targeted = ["--surface", "experiment:blaxel-harness-fixtures"];
 const resultsRoot = "/workspace/television/.testshards/results";
-const modePath = "/tmp/rose-blaxel-harness-mode.json";
+// Each fresh worker belongs to one private pool. This fixed fixture input needs
+// no additional environment forwarding through the production coordinator.
+const modePath = "/tmp/tv-blaxel-harness-mode.json";
+const fixtureSuffix = `harness-${encodeURIComponent(pool)}`;
+const sourceResidue = `/tmp/television-source-cli-e2e-${fixtureSuffix}`;
+const webResidue = `/tmp/television-web-bundle-${fixtureSuffix}`;
+const staleScratch = `/tmp/tv-testshards/${fixtureSuffix}`;
+const unrelatedSentinel = `/tmp/tv-${fixtureSuffix}-unrelated/keep`;
+const cacheSentinel = `/cache/tv-${fixtureSuffix}/keep`;
 const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
 const cli = path.join(repositoryRoot, "scripts/test/cli.mjs");
 const children = new Set<ChildProcess>();
@@ -93,7 +101,7 @@ function assertDiagnostics(runDir: string, expectedRecovery = false) {
 }
 
 test("qualifies exclusive retrieval, active and quiet recovery, temporary placement, and pool lifecycle", async () => {
-  if (process.env.TV_BLAXEL_HARNESS_COORDINATOR !== coordinatorName || process.env.TV_TEST_SHARD_OWNER) throw Error("Run only on the dedicated Blaxel coordinator, outside every leased worker");
+  if (!coordinatorName || !pool || process.env.TV_TEST_SHARD_OWNER) throw Error("Set TV_BLAXEL_HARNESS_COORDINATOR and TV_BLAXEL_HARNESS_POOL on the dedicated Blaxel coordinator, outside every leased worker");
   const coordinator = await SandboxInstance.get(coordinatorName);
   expect(coordinator.metadata.labels?.purpose).not.toBe("testshards");
   const root = mkdtempSync(path.join(repositoryRoot, ".test-runs/blaxel-live-"));
@@ -106,8 +114,11 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     workers = await listBlaxelPoolSandboxes({pool, arch: "x64", deployedOnly: true});
     expect(workers).toHaveLength(2);
     for (const worker of workers) {
-      const setup = "mkdir -p /tmp/television-source-cli-e2e-harness /tmp/television-web-bundle-harness /tmp/tv-testshards/stale-harness /tmp/rose-harness-unrelated /cache/rose-harness; printf fixture > /tmp/television-source-cli-e2e-harness/data; printf fixture > /tmp/television-web-bundle-harness/data; printf keep > /tmp/rose-harness-unrelated/keep; printf keep > /cache/rose-harness/keep";
-      const seeded = await worker.process.exec({name: "rose-seed-owned-fixtures", command: `bash -c ${quote(setup)}`, waitForCompletion: true, timeout: 10});
+      const directories = [sourceResidue, webResidue, staleScratch, path.dirname(unrelatedSentinel), path.dirname(cacheSentinel)];
+      const setup = [`mkdir -p ${directories.map(quote).join(" ")}`,
+        ...[sourceResidue, webResidue].map(directory => `printf fixture > ${quote(`${directory}/data`)}`),
+        ...[unrelatedSentinel, cacheSentinel].map(file => `printf keep > ${quote(file)}`)].join("; ");
+      const seeded = await worker.process.exec({name: "tv-harness-seed-fixtures", command: `bash -c ${quote(setup)}`, waitForCompletion: true, timeout: 10});
       expect(seeded.exitCode).toBe(0);
       await worker.fs.write(modePath, JSON.stringify({mode: "normal"}));
     }
@@ -154,8 +165,8 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       const ownGate = waiting.find(entry => entry.sandbox === worker.metadata.name)!;
       expect(await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).toBeNull();
       await expect(worker.fs.ls(ownGate.scratch)).rejects.toMatchObject({status: 404});
-      expect(await worker.fs.read("/tmp/rose-harness-unrelated/keep")).toBe("keep");
-      expect(await worker.fs.read("/cache/rose-harness/keep")).toBe("keep");
+      expect(await worker.fs.read(unrelatedSentinel)).toBe("keep");
+      expect(await worker.fs.read(cacheSentinel)).toBe("keep");
     }
     const target = run(root, "targeted", targeted);
     expect(await target.done).toBe(1);
