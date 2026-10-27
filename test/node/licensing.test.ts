@@ -330,6 +330,8 @@ describe("shipped package licensing", () => {
     const assets = loadAssetManifest({ root: repoRoot });
     const components = ["map-leaflet", "map-lucide-icons"]
       .flatMap((id) => assets.find((asset) => asset.id === id)!.components);
+    expect(readFileSync(path.join(packedCLI, "dist/templates/map/vendor/leaflet.js")))
+      .toEqual(readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/vendor/leaflet.js")));
     const notices = [
       path.join(repoRoot, noticeName),
       path.join(repoRoot, "packages/server/assets/templates/map", noticeName),

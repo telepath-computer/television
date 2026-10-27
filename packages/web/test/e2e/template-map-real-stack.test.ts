@@ -30,7 +30,7 @@ const places = (): MapData => ({
     museum: {
       title: "City Museum", lat: 38.627, lng: -90.201, order: 2, category: "culture", icon: "landmark", description: "History and art",
       photo: "icon.svg", credit: { text: "Bundled map icon", url: "https://example.com/icon-source" },
-      fields: { Admission: "$12", Hours: { Monday: "9–5" }, Notes: null },
+      fields: { Admission: "$12", Hours: { Monday: "9–5" }, Stops: ["North", "South"], Notes: null },
     },
     garden: { title: "Botanical Garden", lat: 38.615, lng: -90.258, order: 1, category: "parks", description: "Glasshouses and gardens" },
     arch: { title: "Gateway Arch", lat: 38.625, lng: -90.185, order: 3, category: "missing", icon: "heart", description: "Riverfront monument" },
@@ -113,6 +113,7 @@ test("live store values and tolerant later reads stay read-only", async ({ page 
   const data = places();
   const id = await open(page, data);
   await expect(page.locator("#title")).toHaveText("City places");
+  await expect(page).toHaveTitle("City places");
   await expect(page.locator("#subtitle")).toHaveText("Three stops");
   await expect(rows(page)).toHaveText(["Botanical GardenParksGlasshouses and gardens", "City MuseumCultureHistory and art", "Gateway ArchRiverfront monument"]);
   await expect(page.locator('.map-pin[data-key="garden"] [data-icon="park"]')).toHaveCount(1);
@@ -131,6 +132,7 @@ test("live store values and tolerant later reads stay read-only", async ({ page 
   await expect(page.locator("#detail-title")).toHaveText("City Museum");
   await expect(page.locator("#detail-fields")).toContainText("Admission$12");
   await expect(page.locator("#detail-fields")).toContainText('{"Monday":"9–5"}');
+  await expect(page.locator("#detail-fields")).toContainText('["North","South"]');
   await expect(page.locator("#detail-fields")).toContainText("Notes—");
   await expect(page.locator("#detail-photo img")).toHaveAttribute("src", "icon.svg");
   await expect(page.locator("#detail-credit a")).toHaveText("Photo: Bundled map icon");
@@ -173,6 +175,11 @@ test("live store values and tolerant later reads stay read-only", async ({ page 
     },
   });
 
+  await h.set(id, "satellite", "basemap");
+  await expect(page.locator("#layer-label")).toHaveText("Satellite");
+  await h.set(id, "closed", "sidebar");
+  await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "false");
+
   await h.set(id, {
     title: 42,
     subtitle: {},
@@ -180,18 +187,22 @@ test("live store values and tolerant later reads stay read-only", async ({ page 
     basemap: "terrain",
     sidebar: true,
     categories: {
-      Zoo: { name: "Upper" },
       apple: { name: "Lower" },
-      fallback: { name: "Fallback", icon: "unknown", color: "unknown" },
+      ab: { name: "Explicit", icon: "star", color: "blue" },
+      Zoo: { name: "Upper" },
+      fallback: { name: "Fallback", icon: "park", color: "unknown" },
+      neutral: { name: "Neutral", color: "neutral" },
       nameless: { icon: "heart", color: "pink" },
       "-bad": { name: "Ignored", icon: "heart", color: "red" },
     },
     places: {
-      "10": { title: "Ten", lat: 38.61, lng: -90.21, order: 0, category: "apple" },
-      "2": { title: "Two", lat: 38.62, lng: -90.22, order: 0, category: "Zoo" },
-      Zoo: { title: "Uppercase", lat: 38.63, lng: -90.23, order: 0, category: "fallback", icon: "unknown" },
+      neutralPlace: { title: "Neutral place", lat: 38.655, lng: -90.255, order: 0, category: "neutral" },
       apple: { title: "Lowercase", lat: 38.64, lng: -90.24, order: 0 },
+      Zoo: { title: "Uppercase", lat: 38.63, lng: -90.23, order: 0, category: "fallback", icon: "unknown" },
+      "10": { title: "Ten", lat: 38.61, lng: -90.21, order: 0, category: "apple" },
+      abPlace: { title: "Explicit blue", lat: 38.635, lng: -90.235, order: 0, category: "ab" },
       namelessPlace: { title: "Nameless category", lat: 38.645, lng: -90.245, order: 0, category: "nameless" },
+      "2": { title: "Two", lat: 38.62, lng: -90.22, order: 0, category: "Zoo" },
       "-push": {
         title: "", lat: 38.65, lng: -90.25, order: "last", category: "-bad", description: 3,
         photo: "http://example.com/photo.jpg", credit: { text: "Unsafe credit", url: "http://example.com" }, fields: [], extra: "ignored",
@@ -200,23 +211,31 @@ test("live store values and tolerant later reads stay read-only", async ({ page 
     },
     extra: "ignored",
   } as unknown as JSONValue);
-  await expect(rows(page)).toHaveText(["TwoUpper", "TenLower", "UppercaseFallback", "Lowercase", "Nameless category", "Untitled place"]);
+  await expect(rows(page)).toHaveText([
+    "TwoUpper", "TenLower", "UppercaseFallback", "Explicit blueExplicit", "Lowercase", "Nameless category", "Neutral placeNeutral", "Untitled place",
+  ]);
   await expect(page.locator('.map-pin[data-key="2"]')).toHaveAttribute("data-color", "red");
   await expect(page.locator('.map-pin[data-key="10"]')).toHaveAttribute("data-color", "orange");
   await expect(page.locator('.map-pin[data-key="Zoo"]')).toHaveAttribute("data-color", "yellow");
-  await expect(page.locator('.map-pin[data-key="Zoo"] [data-icon="pin"]')).toHaveCount(1);
+  await expect(page.locator('.map-pin[data-key="Zoo"] [data-icon="park"]')).toHaveCount(1);
+  await expect(page.locator('.map-pin[data-key="abPlace"]')).toHaveAttribute("data-color", "blue");
+  await expect(page.locator('.map-pin[data-key="abPlace"] [data-icon="star"]')).toHaveCount(1);
+  await expect(page.locator('.map-pin[data-key="neutralPlace"]')).toHaveAttribute("data-color", "neutral");
+  await expect(page.locator('.map-pin[data-key="apple"]')).toHaveAttribute("data-color", "default");
+  await expect(page.locator('.map-pin[data-key="apple"] [data-icon="pin"]')).toHaveCount(1);
   await expect(page.locator('.map-pin[data-key="namelessPlace"]')).toHaveAttribute("data-color", "default");
   await expect(page.locator('.map-pin[data-key="-push"]')).toHaveAttribute("data-color", "default");
   await expect(page.locator('.map-pin[data-key="-push"] [data-icon="pin"]')).toHaveCount(1);
   await expect(page.locator('.place-button[data-key="badCoordinates"]')).toHaveCount(0);
   await expect(page.locator("#title")).toHaveText("Places");
+  await expect(page).toHaveTitle("Map");
   await expect(page.locator("#subtitle")).toBeHidden();
   await expect(page.locator(".pin-number, .list-badge")).toHaveCount(0);
   await expect(page.locator("#layer-label")).toHaveText("Standard");
   await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "true");
   await h.set(id, true, "numbered");
-  await expect(page.locator(".list-badge")).toHaveText(["1.", "2.", "3.", "4.", "5.", "6."]);
-  await expect(page.locator(".pin-number")).toHaveText(["1", "2", "3", "4", "5", "6"]);
+  await expect(page.locator(".list-badge")).toHaveText(["1.", "2.", "3.", "4.", "5.", "6.", "7.", "8."]);
+  await expect(page.locator(".pin-number")).toHaveText(["1", "2", "3", "4", "5", "6", "7", "8"]);
   await h.set(id, "yes", "numbered");
   await expect(page.locator(".pin-number, .list-badge")).toHaveCount(0);
   await page.locator('.place-button[data-key="-push"]').click();

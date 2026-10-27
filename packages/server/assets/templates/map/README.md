@@ -26,11 +26,11 @@ Whenever keys determine order, Map uses the JSON store's key order: whole-number
 
 The schema requires category and place keys to start with a letter and contain only letters, digits, `_`, and `-`. Choose keys explicitly with `set`; JSON-store push IDs start with `-` and do not fit this schema.
 
-All visible values render as plain text. Relative photo paths can begin with `./` and can contain spaces inside filenames. They cannot use absolute paths, edge whitespace, empty path segments, `.` or `..` segments, backslashes, colons, percent escapes, query strings, fragments, or control characters. Remote photos and credit links must use HTTPS. Include the creator and licence in `credit.text` when a photo requires attribution.
+All visible values render as plain text. Relative photo paths can begin with `./` and can contain spaces inside filenames. They cannot use absolute paths, edge whitespace, empty path segments, `.` or `..` segments, backslashes, colons, percent escapes, query strings, fragments, or control characters. Remote photos and credit links must use HTTPS and cannot contain whitespace or control characters. Include the creator and licence in `credit.text` when a photo requires attribution.
 
 Writes after creation are not schema-validated. When the page reads a later value, a named value that does not fit the schema is treated as absent, and properties the schema does not name are ignored. A `categories` or `places` value that is not an object is absent. Places are the key exception: a usable place under any store key appears on the map, including one under a push ID. Badly keyed categories and categories without a usable `name` are ignored. A place without usable `lat` and `lng` coordinates is omitted.
 
-An empty or unusable place title displays as Untitled place. Unknown categories are uncategorised. An unknown place icon inherits a valid category icon; an unknown category icon becomes `pin`. Unusable optional text, media, credit, or fields are omitted. The page never repairs the store.
+An empty or unusable place title displays as Untitled place. Unknown categories are uncategorised. An uncategorised place uses the theme accent colour and pin glyph, even if its own `icon` names another glyph. An unknown place icon inherits a valid category icon; an unknown category icon becomes `pin`. Unusable optional text, media, credit, or fields are omitted. The page never repairs the store.
 
 ## Example and commands
 

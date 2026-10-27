@@ -85,6 +85,8 @@ describe("bundled Map package", () => {
     expect(readme).toMatch(/Supported icons/);
     expect(readme).toMatch(/red.*orange.*yellow.*green.*cyan.*blue.*purple.*pink.*neutral/i);
     expect(readme).toMatch(/explicitly coloured categories do not consume an automatic slot/i);
+    expect(readme).toMatch(/## Example and commands[\s\S]*?"golden-gate"/);
+    expect(readme).toMatch(/uncategorised.*accent colour and pin glyph.*own `icon`/i);
     expect(readme).toMatch(/photo.*HTTPS/i);
     expect(readme).toMatch(/credit.*HTTPS/i);
     expect(readme).toMatch(/viewer-local/i);
@@ -126,15 +128,22 @@ describe("bundled Map package", () => {
       "http://example.com/source",
       "https://example.com/source credit",
       "https://example.com/source\u0000",
+      "https://example.com/source\u001f",
       "https://",
       null,
     ]) expect(model.httpsURL(value), String(value)).toBeNull();
   });
 
   // proofs/arch/templates/map.md#^templates-map-t-icon
-  it("supplies its SVG icon to the Toolbox", () => {
+  it("supplies its square SVG icon to the Toolbox", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
     expect(manifest.icons).toEqual([{ src: "icon.svg", type: "image/svg+xml" }]);
+    const icon = readFileSync(path.join(folder, "icon.svg"), "utf8");
+    const viewBox = icon.match(/\bviewBox="([^"]+)"/);
+    expect(viewBox).not.toBeNull();
+    const [, , width, height] = viewBox![1].trim().split(/\s+/).map(Number);
+    expect(width).toBeGreaterThan(0);
+    expect(width).toBe(height);
     const { template } = validateTemplatePackage(folder, "map");
     expect(selectTemplateIcon(template!)).toEqual({
       path: realpathSync(path.join(folder, "icon.svg")),

@@ -1,7 +1,9 @@
 // Later writes bypass schema validation. URLs must remain passive image and
 // credit references, and local paths must stay inside the copied artifact.
+const httpsPattern = /^https:\/\/[^\s/?#\u0000-\u001F]+(?:[/?#][^\s\u0000-\u001F]*)?$/;
+
 export function httpsURL(value) {
-  if (typeof value !== 'string' || !value.startsWith('https://') || /[\s\u0000-\u001f]/.test(value)) return null;
+  if (typeof value !== 'string' || !httpsPattern.test(value)) return null;
   try { return new URL(value).protocol === 'https:' ? value : null; } catch { return null; }
 }
 
