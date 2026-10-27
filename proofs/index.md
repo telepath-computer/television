@@ -85,7 +85,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
-    - `table.md` (15 lines) — *Proves the bundled Table package, store contract, page dependencies, icon and agent guidance.*
+    - `table.md` (43 lines) — *Proves the bundled Table package, store contract, page dependencies, icon and agent guidance.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (64 lines) — *How the promises in Blaxel Test Shards are proven.*
@@ -173,7 +173,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
     - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
     - `sticky-note.md` (73 lines) — *Proves Sticky note editing, live changes, offline drafts, access and failure states in a real browser, and rendered conformance to every spec story.*
-    - `table.md` (52 lines) — *Proves the Table page behaviour and rendered conformance to every UI-spec story in a real browser against a running server.*
+    - `table.md` (89 lines) — *Proves the Table page behaviour and rendered conformance to every UI-spec story in a real browser against a running server.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

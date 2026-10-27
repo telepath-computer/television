@@ -37,7 +37,7 @@ If the page disconnects while waiting, the loading state stays in place and the 
 
 ## Rows, columns and cells
 
-Rows and columns follow their stored order. Strings and numbers appear as text, and booleans appear as `true` and `false`; an empty cell is blank. Text stays on one line and ends in an ellipsis when it is wider than its cell. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact; the header stays with the visible grid while it scrolls.
+Rows and columns follow their stored order. Cell text stays on one line and ends in an ellipsis when it is wider than its cell; an empty cell is blank. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact; the header stays with the visible grid while it scrolls.
 
 There is no search or sorting. Stored entries always appear in stored order.
 
@@ -67,7 +67,7 @@ These stories show pointer selection at rest, without the keyboard-focus treatme
 
 <Artifact><Canvas of={Stories.SelectedColumn} /></Artifact>
 
-Escape clears the selection, hides the strips, and moves focus to the grid; an arrow key then selects the first body cell, as Tab into the table control does. A click outside the table control also clears the selection and hides the strips. Moving focus out of the table control does not clear the selection.
+Escape clears the selection, hides the strips, and moves focus to the grid; an arrow key then selects the first body cell, as Tab into the table control does. A click outside the table control and its open menu also clears the selection and hides the strips. Moving focus out of the table control does not clear the selection.
 
 ## Keyboard and assistive technology
 
@@ -89,7 +89,7 @@ Typing a character while a cell is selected replaces its contents with that char
 
 Return commits and selects the cell below. From a header it selects the first body cell; at the last body row it stays at the last row and does not add one. Shift-Return moves in the opposite direction, including from the first body row to the header when it is shown. Tab commits and selects the cell to the right; Shift-Tab moves left. At the last displayed column, Tab commits and leaves the table; at the first, Shift-Tab does the same. Neither key adds an entry merely by reaching an edge.
 
-Clicking another cell, a header, a strip item, or an add control commits before acting on that target. Clicking outside the table control commits and clears the selection. Focus leaving the editor any other way commits and keeps the selection. Escape cancels the edit, restores the stored text, and returns focus to the selected cell. A second Escape clears the selection. The sections below state the cases where an editor instead closes without writing.
+Clicking another cell, a header, a strip item, or an add control commits before acting on that target. Clicking outside the table control and its open menu commits and clears the selection. Focus leaving the editor any other way commits and keeps the selection. Escape cancels the edit, restores the stored text, and returns focus to the selected cell. A second Escape clears the selection. The sections below state the cases where an editor instead closes without writing.
 
 <Artifact><Canvas of={Stories.EditingCell} /></Artifact>
 
@@ -121,9 +121,9 @@ Insert adds one row above or below the selected row range, or one column to the 
 
 The page follows the whole store live. Changes outside the field currently being edited appear at once. A selected stored cell, header, row, column, or range follows the keys it selected when entries move. A range remains selected only while those keys occupy one contiguous range; otherwise the selection clears. If any selected stored entry is removed or no longer displayed, the selection clears and an editor on it closes without writing.
 
-An open menu closes when its selection clears.
+Escape closes an open Table menu and keeps the selection. A Table menu also closes when its selection clears.
 
-A selected drawn position follows the architecture [identity rule](../../arch/templates/table.md#^bundled-artifact-template-table-drawn-identity). When it changes identity under that rule, the selection clears and an editor on it closes.
+A selected drawn position follows the architecture [identity rule](../../arch/templates/table.md#^bundled-artifact-template-table-drawn-identity). When it changes identity under that rule, the selection clears and an editor on it closes, discarding the text being typed.
 
 If another writer hides the header row while a header cell is selected, the selection clears. A header editor closes without writing.
 
@@ -143,7 +143,7 @@ Each changed edit saves when committed. Normal saving shows no message. While th
 
 Any commit gesture has no effect while disconnected: it does not write, close the editor, move or clear the selection, or act on the click target. Once the connection returns, commit gestures work normally.
 
-A write sent before the connection drops is not turned back into a draft when the SDK rolls it back. That edit can be lost, although the server can still apply a write whose outcome is [uncertain after disconnection](../../product/resources/json-store.md#^js-disconnect). This is an accepted limitation.
+If the SDK rolls back a write sent before the connection drops, the page does not reopen the editor with that text. The edit can be lost, although the server can still apply a write whose outcome is [uncertain after disconnection](../../product/resources/json-store.md#^js-disconnect). This is an accepted limitation.
 
 If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. An insertion whose renumbering transaction does not complete shows the same message. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
 

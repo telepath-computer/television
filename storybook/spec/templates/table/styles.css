@@ -335,7 +335,19 @@ textarea {
   white-space: pre;
 }
 
-.table-context-menu { width: 216px; }
+.table-page:has(.table-row-context-menu) #table-row-reference-2,
+.table-page:has(.table-column-context-menu) #table-column-reference-3 {
+  anchor-name: --table-context-trigger;
+}
+
+.table-context-menu {
+  position: fixed;
+  position-anchor: --table-context-trigger;
+  top: calc(anchor(bottom) + var(--popover-distance));
+  left: anchor(left);
+  z-index: var(--layer-panel);
+  width: 216px;
+}
 
 .table-status {
   flex: none;

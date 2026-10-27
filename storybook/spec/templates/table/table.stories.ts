@@ -2,7 +2,6 @@
 // in specs/ui/templates/table.mdx; this file owns independent story markup.
 
 import "../../../../specs/ui/foundation/index.css";
-import "../../../../packages/web/src/elements/menu.ts";
 import "./styles.css";
 import { html, Html } from "../../../lib/html.ts";
 import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
@@ -121,24 +120,24 @@ function cellSelection(selection: Selection, row: number, column: number): "none
 function rowMenu(showHeader: boolean, selection: Selection) {
   const count = selection?.kind === "row" ? selection.end - selection.start + 1 : 1;
   return html`
-    <tv-menu class="table-context-menu" trigger="table-row-reference-2" aria-label="Row actions">
-      <tv-menu-item><span>Insert row above</span></tv-menu-item>
-      <tv-menu-item><span>Insert row below</span></tv-menu-item>
-      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span></tv-menu-item>
+    <tv-menu class="table-context-menu table-row-context-menu" trigger="table-row-reference-2" role="menu" aria-label="Row actions" open>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>Insert row above</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>Insert row below</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span></tv-menu-item>
       <hr>
-      <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
     </tv-menu>`;
 }
 
 function columnMenu(showHeader: boolean, selection: Selection) {
   const count = selection?.kind === "column" ? selection.end - selection.start + 1 : 1;
   return html`
-    <tv-menu class="table-context-menu" trigger="table-column-reference-3" aria-label="Column actions">
-      <tv-menu-item><span>Insert column left</span></tv-menu-item>
-      <tv-menu-item><span>Insert column right</span></tv-menu-item>
-      <tv-menu-item intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span></tv-menu-item>
+    <tv-menu class="table-context-menu table-column-context-menu" trigger="table-column-reference-3" role="menu" aria-label="Column actions" open>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>Insert column left</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>Insert column right</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span></tv-menu-item>
       <hr>
-      <tv-menu-item><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
     </tv-menu>`;
 }
 
@@ -183,6 +182,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
                     aria-label="Select column ${columnLetter(columnIndex)}"
                     aria-haspopup="${editable ? "menu" : "false"}"
+                    ${menu === "column" && columnIndex === 2 ? html`aria-expanded="true"` : ""}
                     aria-pressed="${columnSelected(selection, columnIndex)}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
                   >${columnLetter(columnIndex)}</button>
@@ -201,6 +201,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
                     aria-label="Select row ${rowIndex + 1}"
                     aria-haspopup="${editable ? "menu" : "false"}"
+                    ${menu === "row" && rowIndex === 1 ? html`aria-expanded="true"` : ""}
                     aria-pressed="${rowSelected(selection, rowIndex)}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
                   >${rowIndex + 1}</button>
@@ -268,17 +269,6 @@ const beginEditing = ({ canvasElement }: Play) => {
   input.setSelectionRange(input.value.length, input.value.length);
 };
 
-const openMenu = async ({ canvasElement }: Play) => {
-  const menu = canvasElement.querySelector<HTMLElement>("tv-menu");
-  if (!menu) throw new Error("Menu story has no menu");
-  const triggerId = menu.getAttribute("trigger");
-  const trigger = triggerId === null ? null : canvasElement.querySelector<HTMLButtonElement>(`#${triggerId}`);
-  if (!trigger) throw new Error("Menu story has no trigger");
-  await customElements.whenDefined("tv-menu");
-  menu.setAttribute("open", "");
-  await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-};
-
 const viewports = {
   artifact: { name: "Artifact, shared starting size", styles: { width: "760px", height: "770px" }, type: "desktop" },
 };
@@ -316,9 +306,9 @@ export const SelectedRow = { name: "Selected row", args: { selection: { kind: "r
 export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
 export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
 export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
-export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: openMenu };
-export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" }, play: openMenu };
-export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" }, play: openMenu };
+export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" } };
+export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" } };
+export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" } };
 export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } } };
 export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } } };
 export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } } };
