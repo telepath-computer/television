@@ -282,6 +282,52 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
+  test("a completed save does not replace a newer authoritative rollback baseline", async ({ page }) => {
+    await page.goto(V1_FIXTURE);
+    await page.waitForFunction(() => window.__v1Ready === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__v1Saves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstV1Save = resolve;
+      });
+      window.__v1Handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initially stored",
+        editable: true,
+        async onSave(value) {
+          window.__v1Saves!.push(value);
+          if (window.__v1Saves!.length === 1) {
+            await firstSave;
+            window.__firstV1SaveFinished = true;
+            return;
+          }
+          throw new Error("later save refused");
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Saved A");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual(["Saved A"]);
+
+    await page.evaluate(() => window.__v1Handle!.setValue("Authoritative B"));
+    await expect(editor).toHaveText("Authoritative B");
+    await page.evaluate(() => window.__resolveFirstV1Save!());
+    await page.waitForFunction(() => window.__firstV1SaveFinished === true);
+
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Refused C");
+    await expect.poll(() => page.evaluate(() => window.__v1Saves)).toEqual([
+      "Saved A",
+      "Refused C",
+    ]);
+    await expect(editor).toHaveText("Authoritative B");
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-v1-interface
   test("disabling editing cancels a local change waiting for its save pause", async ({ page }) => {
     await page.goto(V1_FIXTURE);
     await page.waitForFunction(() => window.__v1Ready === true);
@@ -714,6 +760,7 @@ declare global {
     __v1Handle?: MarkdownEditorV1Handle;
     __v1Saves?: string[];
     __resolveFirstV1Save?: () => void;
+    __firstV1SaveFinished?: boolean;
     __rejectV1Save?: (reason?: unknown) => void;
     __v1GlobalsBefore: string[];
     __v1AddedGlobals: string[];

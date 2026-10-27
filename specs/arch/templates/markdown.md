@@ -67,7 +67,7 @@ type MarkdownEditorV1 = {
 `parent` is the page element whose ID is `editor`. The calls have these meanings:
 
 - `mount` creates the editor as a direct child of `parent`, using `value` as the initial authoritative string and `editable` as its initial editing state.
-- `onSave` receives the complete local string after the ordinary save pause. Its promise tells the editor whether to retain that string as stored or, unless a newer stored value arrived while the save was pending, restore the last value supplied through `value` or `setValue`.
+- `onSave` receives the complete local string after the ordinary save pause. If its promise resolves, the editor retains that string as stored unless a newer stored value arrived while the save was pending. If the promise rejects, with the same exception, the editor restores the last value supplied through `value` or `setValue`.
 - `setValue` supplies a later authoritative string, cancels any unsent local change, and never calls `onSave`. Supplying a string equal to the editor's current text records it as stored without replacing the editor state. A value that confirms a save still in progress also records that saved string without replacing a newer local edit or cancelling its pending save. A value equal to the most recently completed save, when no newer authoritative value has arrived since that save began, is recorded in the same way.
 - `setEditable` controls whether the editor accepts changes and, when changed to `false`, cancels any local change waiting to be passed to `onSave`. It does not cancel an `onSave` call already in progress. After `setEditable(false)`, `setValue` always replaces the document.
 - `focus` moves keyboard focus to the editor.
