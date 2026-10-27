@@ -17,6 +17,8 @@ const ARROW_DIRECTIONS: Partial<Record<string, ToolboxDirection>> = {
   ArrowLeft: "left",
   ArrowRight: "right",
 };
+// WebKit reports the key that ends input-method composition with this code after `isComposing` is already false.
+const COMPOSITION_KEY_CODE = 229;
 
 /** The navbar's searchable items; the caller supplies discovery and activation. */
 export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
@@ -96,7 +98,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   };
 
   readonly #keydown = (event: KeyboardEvent): void => {
-    const composing = event.isComposing || event.keyCode === 229;
+    const composing = event.isComposing || event.keyCode === COMPOSITION_KEY_CODE;
     if (event.key === "Enter") {
       if (composing) return;
       const entry = this.#selection.matches.find(item => item.id === this.#selection.highlighted);
