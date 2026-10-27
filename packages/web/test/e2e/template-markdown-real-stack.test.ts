@@ -33,7 +33,7 @@ function writes(): Record<string, unknown>[] {
 }
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-blank-save
-test("new Markdown from Toolbox starts blank, then saves through the shared editor", async ({ page }) => {
+test("new Markdown from Toolbox starts blank, then saves and clears through the shared editor", async ({ page }) => {
   const responses: string[] = [];
   page.on("response", response => {
     if (/canonical\/v2\/styles\.css|sdk\/v1\/resources\.js|views\/markdown\/v1\/editor\.(?:js|css)|\/styles\.css$/.test(response.url()) && response.ok()) {
@@ -65,6 +65,10 @@ test("new Markdown from Toolbox starts blank, then saves through the shared edit
   await page.reload();
   const independent = await h.frame(page, id);
   await expect(content(independent)).toContainText("Project notes");
+
+  await content(independent).press("ControlOrMeta+A");
+  await content(independent).press("Backspace");
+  await expect.poll(() => h.read(id)).toEqual({ markdown: "" });
 });
 
 // proofs/arch/templates/markdown.md#^templates-markdown-t-live
@@ -137,7 +141,6 @@ test("an agent write to another field preserves in-progress typing", async ({ pa
   ]);
 });
 
-// proofs/arch/templates/markdown.md#^templates-markdown-t-states
 test("a pending page write shows its saving status until confirmation", async ({ page }) => {
   const id = await h.createStored({ markdown: "Stored document" });
   await h.open(page, id);
@@ -224,20 +227,25 @@ test("access, connection and unreadable data keep the editor from writing and re
   await expect(content(page)).toContainText("Changed while disconnected");
   await expect(content(page)).toHaveAttribute("contenteditable", "true");
 
+  const writesBeforeUnreadable = writes().length;
+  await replaceDocument(page, "Unsent unreadable draft");
   await h.set(id, { markdown: 7 } as unknown as JSONValue);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
   await expect(content(page)).toBeHidden();
-  const count = writes().length;
   await page.keyboard.type("ignored");
   await page.waitForTimeout(600);
-  expect(writes()).toHaveLength(count);
+  expect(writes()).toHaveLength(writesBeforeUnreadable);
   await h.set(id, { markdown: "Repaired" });
   await expect(content(page)).toContainText("Repaired");
   await expect(page.getByRole("alert")).toHaveCount(0);
 
+  const writesBeforeMissing = writes().length;
+  await replaceDocument(page, "Unsent missing-data draft");
   await h.remove(id);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
   await expect(content(page)).toBeHidden();
+  await page.waitForTimeout(600);
+  expect(writes()).toHaveLength(writesBeforeMissing);
   expect(await h.read(id)).toBeUndefined();
   await h.set(id, { markdown: "Restored after missing data" });
   await expect(content(page)).toContainText("Restored after missing data");
@@ -330,4 +338,31 @@ test("a refused save restores the stored document and reports the failure", asyn
   h.proxy.releaseServerMessages(connection);
   await expect(content(page)).toHaveAttribute("contenteditable", "false");
   await expect(status(page)).toHaveText("", { timeout: 5_000 });
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-states
+test("closing the page discards typing before its save pause", async ({ page }) => {
+  const id = await h.createStored({ markdown: "Stored document" });
+  await h.open(page, id);
+  await expect(content(page)).toHaveText("Stored document");
+
+  await replaceDocument(page, "Unsent closing draft");
+  await page.close();
+  await new Promise((resolve) => setTimeout(resolve, 600));
+
+  expect(await h.read(id, "markdown")).toBe("Stored document");
+  expect(writes()).toEqual([]);
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-links
+test("relative links resolve from the sandboxed copied page", async ({ page }) => {
+  const id = await h.createStored({ markdown: "[Read me](./README.md)" });
+  await h.openApp(page);
+  const frame = await h.frame(page, id);
+  const link = frame.locator('a.cm-md-link[data-href="./README.md"]');
+  await expect(link).toHaveText("Read me");
+
+  await link.click();
+
+  await expect.poll(() => frame.url()).toContain(`/artifact/${id}/README.md`);
 });

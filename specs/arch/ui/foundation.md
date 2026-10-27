@@ -24,7 +24,7 @@ Every implemented non-ambient stylesheet stated by the UI spec tree crosses as a
 
 Implementation-owned host scaffolding and styling under a named code-governed carve-out may accompany that copy in additional sibling sheets; those companions are delivery routes, not spec crossings.
 
-The markdown editor, artifact-missing document, and url-unsupported document link `/canonical/v2/styles.css` after a blocking fixed-`system` appearance resolver. The two error documents then carry one byte-identical embedded copy of their shared view-specific error-page sheet. Their embedded sheet contains no duplicate foundation declarations.
+The Markdown file view, artifact-missing document, and url-unsupported document link `/canonical/v2/styles.css` after a blocking fixed-`system` appearance resolver. The two error documents then carry one byte-identical embedded copy of their shared view-specific error-page sheet. Their embedded sheet contains no duplicate foundation declarations.
 
 The web build derives the canonical Hind filename from the byte-identical `packages/web/src/foundation/fonts/Hind-Variable.woff2` copy using canonical's digest rule ([canonical.md#^cn-cache-policy](../canonical.md#^cn-cache-policy)). The source entry document carries no digest or canonical font URL; the build step inserts exactly one `<link rel="preload" as="font" crossorigin>` with the derived `/canonical/v2/fonts/Hind-Variable.<digest>.woff2` URL into the built shell entry document. The preload is unconditional. When a server has no production canonical mount or serves only unbuilt canonical sources, the missing content-addressed URL returns `404`; that failed optional hint is inert, and the shell and its artifact frames continue loading normally.
 
@@ -41,4 +41,3 @@ The foundation delivery also carries the Electron drag-region convention. An ele
 Coverage of foundation distribution must inspect the real repository files. It must also run a fresh production web build from the same repository and inspect the output. Font-preload coverage must compose the source font bytes with outputs from fresh web and canonical builds.
 
 Drag-region coverage must be accompanied by proof that the sidebar titlebar moves the native window in the real Electron app. The channel sidebar spec owns that proof.
-

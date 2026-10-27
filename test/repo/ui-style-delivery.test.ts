@@ -9,6 +9,7 @@ const WEB_VITE_CONFIG = path.join(REPO_ROOT, "packages/web/vite.config.ts");
 const DESKTOP_ENTRY = path.join(REPO_ROOT, "packages/desktop/src/connect-page.ts");
 const DESKTOP_DOCUMENT = path.join(REPO_ROOT, "packages/desktop/src/connect.html");
 const MARKDOWN_ENTRY = path.join(REPO_ROOT, "packages/view-markdown/src/main.ts");
+const MARKDOWN_EDITOR_ENTRY = path.join(REPO_ROOT, "packages/view-markdown/src/editor-entry.ts");
 const MARKDOWN_DOCUMENT = path.join(REPO_ROOT, "packages/view-markdown/src/index.html");
 
 interface PackageManifest {
@@ -410,11 +411,12 @@ describe("production document style delivery (^ui-t-style-delivery)", () => {
     `)).toEqual(["./mixed.ts", "./side-effect.ts"]);
   });
 
+  // proofs/ui/markdown-editor/index.md#^md-editor-t-entry-delivery
   test("reachable stylesheet and style-adoption routes match the explicit expected routes", () => {
     const appEntry = readFileSync(path.join(REPO_ROOT, "packages/web/src/index.html"), "utf8");
     expect(appEntry).toContain('<html lang="en" data-television-document="app">');
 
-    const graph = importGraph([WEB_ENTRY, MARKDOWN_ENTRY, DESKTOP_ENTRY]);
+    const graph = importGraph([WEB_ENTRY, MARKDOWN_ENTRY, MARKDOWN_EDITOR_ENTRY, DESKTOP_ENTRY]);
     expect.soft(
       graph.missingEntries,
       `missing production style-delivery graph entries:\n${graph.missingEntries.map((entry) => `- ${entry}`).join("\n")}`,
@@ -499,6 +501,7 @@ describe("production document style delivery (^ui-t-style-delivery)", () => {
     const standaloneModuleEntries = [
       ...builtInErrorEntries.map((entry) => path.join(path.dirname(entry), "main.ts")),
       path.join(REPO_ROOT, "packages/view-markdown/src/main.ts"),
+      path.join(REPO_ROOT, "packages/view-markdown/src/editor-entry.ts"),
     ];
     const standaloneGraph = importGraph(standaloneModuleEntries);
     expect(standaloneGraph.missingEntries).toEqual([]);

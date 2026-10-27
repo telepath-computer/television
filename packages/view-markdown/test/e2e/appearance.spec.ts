@@ -79,7 +79,32 @@ test("resolves appearance before canonical and view styles", async ({ page, base
   ]));
 });
 
-// proofs/ui/markdown-editor/index.md#^md-editor-t-stylesheet-crossing
+// proofs/arch/templates/markdown.md#^templates-markdown-t-shared-source
+test("uses one shared editor implementation in both source entries", () => {
+  const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
+  const editorEntry = readFileSync(new URL("../../src/editor-entry.ts", import.meta.url), "utf8");
+  expect(main).toMatch(/from ["']\.\/editor\.ts["']/);
+  expect(editorEntry).toMatch(/from ["']\.\/editor\.ts["']/);
+});
+
+// proofs/arch/templates/markdown.md#^templates-markdown-t-shared-build
+test("builds a self-contained file view and narrow v1 files", () => {
+  const fileView = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
+  expect(fileView).not.toMatch(/<script\b[^>]*\bsrc=/i);
+  expect(fileView).not.toMatch(/<link\b[^>]*\brel=["']modulepreload["']/i);
+  expect(fileView).toContain("The view never transforms the source");
+
+  const v1Script = readFileSync(new URL("../../dist/v1/editor.js", import.meta.url), "utf8");
+  const v1Style = readFileSync(new URL("../../dist/v1/editor.css", import.meta.url), "utf8");
+  expect(v1Script).toMatch(/^\(\(\) => \{/);
+  expect(v1Script).not.toMatch(/^\s*(?:import|export)\b/m);
+  expect(v1Script).toContain("TelevisionMarkdownEditor");
+  expect(v1Script).not.toContain("The view never transforms the source");
+  expect(v1Script).not.toContain("modulepreload");
+  expect(v1Style.length).toBeGreaterThan(0);
+});
+
+// proofs/ui/markdown-editor/index.md#^md-editor-t-build-order
 test("ships the authoritative colour sheet after each implementation layout", () => {
   const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
   const layoutImportAt = main.indexOf('import "./styles.css";');

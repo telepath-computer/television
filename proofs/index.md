@@ -84,7 +84,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
-    - `markdown.md` (28 lines) — *Proves the bundled Markdown package, shared editor delivery, blank start, scoped saves, and live store binding.*
+    - `markdown.md` (40 lines) — *Proves the bundled Markdown package, versioned shared editor, blank start, scoped saves, live store binding, and sandboxed link route.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
@@ -164,7 +164,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **select/**
       - `index.md` (24 lines) — *How the production select's value, semantics, interaction, and placement are proven in Chromium.*
   - **markdown-editor/**
-    - `index.md` (29 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
+    - `index.md` (35 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
   - **onboarding-artifacts/**
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**

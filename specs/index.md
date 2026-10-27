@@ -116,7 +116,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **ui/**
     - `conformance.md` (17 lines) — *Conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
     - `elements.md` (83 lines) — *Arch spec: the elements Television defines — each one's name and public API.*
-    - `foundation.md` (44 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
+    - `foundation.md` (43 lines) — *The UI foundation architecture: how the stylesheets the UI specs compose for each document cross into production.*
     - `index.md` (78 lines) — *Arch spec: how the UI is implemented.*
     - `keyboard-navigation.md` (43 lines) — *The keyboard-navigation architecture: the shell's single navigation handler, the three paths that deliver the chord into it, and the delegation map across the specs that own each piece.*
     - `lit-view.md` (50 lines) — *Arch spec: the lit-view module — stateful views for lit-html; what each member does with lit's directive machinery.*

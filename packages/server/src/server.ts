@@ -337,8 +337,14 @@ export class Server {
           : null;
         this.app.use(`/views/${viewID}`, express.static(viewPath, {
           setHeaders: (res, filePath) => {
-            if (viewID === "artifact-missing" || markdownCrossOriginFiles?.has(path.resolve(filePath))) {
+            const isMarkdownSharedAsset = markdownCrossOriginFiles?.has(
+              path.resolve(filePath),
+            ) === true;
+            if (viewID === "artifact-missing" || isMarkdownSharedAsset) {
               res.setHeader("Access-Control-Allow-Origin", "*");
+            }
+            if (isMarkdownSharedAsset) {
+              res.setHeader("Cache-Control", "no-cache");
             }
           },
         }));

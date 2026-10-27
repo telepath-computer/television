@@ -30,6 +30,9 @@ describe("fixed markdown view routes", () => {
     writeFileSync(path.join(markdownDir, "manifest.json"), JSON.stringify({ name: "Markdown", description: "Edits markdown." }));
     writeFileSync(path.join(markdownDir, "editor.js"), "export {};\n");
     writeFileSync(path.join(markdownDir, "style.css"), "body { color: red; }\n");
+    mkdirSync(path.join(markdownDir, "v1"), { recursive: true });
+    writeFileSync(path.join(markdownDir, "v1", "editor.js"), "window.TelevisionMarkdownEditor = {};\n");
+    writeFileSync(path.join(markdownDir, "v1", "editor.css"), "#editor { display: block; }\n");
     const store = createServingStore(storagePath, { bundledViewsPath: viewsRoot });
     const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
     servers.push(server);
@@ -54,6 +57,43 @@ describe("fixed markdown view routes", () => {
     await request(server.httpServer).get("/views/unknown").expect(404);
     await request(server.httpServer).get("/views/unknown/").expect(404);
     await request(server.httpServer).get("/views/unknown/anything.js").expect(404);
+  });
+
+  // proofs/arch/templates/markdown.md#^templates-markdown-t-cache
+  it("serves the v1 editor files with revalidation", async () => {
+    const storagePath = tempDir("television-view-storage-");
+    const viewsRoot = tempDir("television-view-dist-");
+    dirs.push(storagePath, viewsRoot);
+    const v1Dir = path.join(viewsRoot, "markdown", "v1");
+    mkdirSync(v1Dir, { recursive: true });
+    writeFileSync(path.join(viewsRoot, "markdown", "index.html"), "<!doctype html><title>Markdown</title>");
+    writeFileSync(path.join(v1Dir, "editor.js"), "window.TelevisionMarkdownEditor = {};\n");
+    writeFileSync(path.join(v1Dir, "editor.css"), "#editor { display: block; }\n");
+    const store = createServingStore(storagePath, { bundledViewsPath: viewsRoot });
+    const server = new Server({ store, host: "127.0.0.1", port: 0, auth: true });
+    servers.push(server);
+    await server.start();
+
+    for (const route of [
+      "/views/markdown/v1/editor.js",
+      "/views/markdown/v1/editor.css",
+    ]) {
+      const get = await request(server.httpServer)
+        .get(route)
+        .expect(200)
+        .expect("Cache-Control", "no-cache");
+      expect(get.headers.etag).toBeTruthy();
+      await request(server.httpServer)
+        .head(route)
+        .expect(200)
+        .expect("Cache-Control", "no-cache")
+        .expect("ETag", get.headers.etag);
+      await request(server.httpServer)
+        .get(route)
+        .set("If-None-Match", get.headers.etag)
+        .expect(304)
+        .expect("Cache-Control", "no-cache");
+    }
   });
 
   it("returns 404 when the markdown view index.html is missing", async () => {

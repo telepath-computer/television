@@ -20,13 +20,19 @@ describe("bundled Markdown package", () => {
   });
 
   // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
+  // proofs/ui/markdown-editor/index.md#^md-editor-t-template-order
   it("loads canonical and one versioned shared Markdown editor", () => {
     const page = readFileSync(path.join(folder, "index.html"), "utf8");
     const adapter = readFileSync(path.join(folder, "page.js"), "utf8");
-    expect(page.indexOf('/canonical/v2/styles.css?authoredForAppVersion=1.5.4'))
-      .toBeLessThan(page.indexOf("/views/markdown/v1/editor.css"));
-    expect(page.indexOf("/views/markdown/v1/editor.css"))
-      .toBeLessThan(page.indexOf('href="./styles.css"'));
+    const deliveryOrder = [
+      '/canonical/v2/styles.css?authoredForAppVersion=1.5.4',
+      "/views/markdown/v1/editor.css",
+      'href="./styles.css"',
+      '<script src="/views/markdown/v1/editor.js"></script>',
+      '<script type="module" src="./page.js"></script>',
+    ].map(part => page.indexOf(part));
+    expect(deliveryOrder.every(index => index >= 0)).toBe(true);
+    expect(deliveryOrder).toEqual([...deliveryOrder].sort((left, right) => left - right));
     expect(page).toContain('<script src="/views/markdown/v1/editor.js"></script>');
     expect(page).toContain('<script type="module" src="./page.js"></script>');
     expect(page).toMatch(/<div id="editor"(?:\s|>)/);
@@ -42,7 +48,14 @@ describe("bundled Markdown package", () => {
   // proofs/arch/templates/markdown.md#^templates-markdown-t-icon
   it("supplies its SVG icon to the Toolbox", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    const icon = readFileSync(path.join(folder, "icon.svg"), "utf8");
+    const viewBox = icon.match(/\bviewBox="([^"]+)"/)?.[1]?.split(/\s+/).map(Number);
     expect(manifest.icons).toEqual([{ src: "icon.svg", type: "image/svg+xml" }]);
+    expect(viewBox).toHaveLength(4);
+    expect(viewBox?.every(Number.isFinite)).toBe(true);
+    expect(viewBox?.[2]).toBeGreaterThan(0);
+    expect(viewBox?.[3]).toBeGreaterThan(0);
+    expect(viewBox?.[2]).toBe(viewBox?.[3]);
     const { template } = validateTemplatePackage(folder, "markdown");
     expect(selectTemplateIcon(template!)).toEqual({
       path: realpathSync(path.join(folder, "icon.svg")),
@@ -63,7 +76,10 @@ describe("bundled Markdown package", () => {
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" markdown \'""\'');
     expect(prose).toMatch(/spaces and line breaks[\s\S]*kept/i);
     expect(prose).toMatch(/other root fields[\s\S]*preserved/i);
+    expect(prose).toMatch(/saves the complete document/i);
+    expect(prose).toMatch(/changes appear live/i);
     expect(prose).toMatch(/last[- ]write[- ]wins/i);
+    expect(prose).toMatch(/no offline queue[\s\S]*read-only/i);
     expect(prose).toMatch(/invalid or missing data[\s\S]*not repair/i);
     expect(prose).toMatch(/read[\s\S]*again[\s\S]*immediately before[\s\S]*(?:replacing|writing)/i);
     expect(prose).toMatch(/saved[\s\S]*since[\s\S]*(?:last )?read/i);

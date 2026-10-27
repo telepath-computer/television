@@ -71,8 +71,24 @@ describe("licensing inventory conversion", () => {
   });
 
   // proofs/arch/licensing.md#^licensing-t-vite-seam
-  // proofs/arch/templates/markdown.md#^templates-markdown-t-shared-assets
   test("verifies a secondary Vite build without writing over its surface inventory", async () => {
+    const fileViewConfig = readFileSync(
+      path.join(repoRoot, "packages/view-markdown/vite.config.ts"),
+      "utf8",
+    );
+    const v1Config = readFileSync(
+      path.join(repoRoot, "packages/view-markdown/vite.editor.config.ts"),
+      "utf8",
+    );
+    expect(fileViewConfig.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
+    expect(fileViewConfig).toContain(
+      'createTelevisionLicensePlugin({ surface: "view:markdown" })',
+    );
+    expect(v1Config.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
+    expect(v1Config).toContain(
+      'createTelevisionLicensePlugin({ surface: "view:markdown", mode: "verify" })',
+    );
+
     const temporaryRoot = makeTempRoot();
     const inventoryRoot = path.join(temporaryRoot, "inventories");
     const outputDir = path.join(temporaryRoot, "dist");
