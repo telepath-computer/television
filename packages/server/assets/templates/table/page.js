@@ -31,12 +31,19 @@ let menu = null;
 let failure = false;
 let failureTimer;
 let suppressGridEntry = false;
+// A pointer press outside the editor lets the click handler choose what follows
+// the commit instead of the editor focusout handler choosing first.
 let pointerMovedFocus = false;
 let rendering = false;
 let interactionVersion = 0;
 let menuObserver = null;
 let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
 let pageActionSelection = null;
+
+const rejectedNoWriteReasons = new Set([
+  "unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys",
+  "multiple-renumbering-required",
+]);
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -123,7 +130,7 @@ function referenceEmphasis(axis, index) {
 }
 
 function menuTrigger(kind, index) {
-  return menu?.kind === kind && menu.index === index;
+  return menu?.kind === kind && menu.triggerId === axes()[kind][index]?.id;
 }
 
 function referenceButton(kind, index) {
@@ -242,6 +249,8 @@ function replaceContents(markup) {
   menuObserver.observe(menuElement, { attributes: true, attributeFilter: ["open"] });
 }
 
+// "none" preserves existing focus, "leave" preserves none, and the other
+// modes focus the named control after render replaces the page contents.
 function render(focus = "none", nextAxes = buildAxes()) {
   const previousSelectionTarget = selectionTarget();
   const selectionFocused = previousSelectionTarget !== null && document.activeElement === previousSelectionTarget;
@@ -284,11 +293,11 @@ function render(focus = "none", nextAxes = buildAxes()) {
   replaceContents(`<div class="table-frame" data-reference-visible="${selection ? "shown" : "hidden"}">
     <div class="table-scroll"><div class="table-sheet" style="--table-column-count: ${displayed.columns.length}">
       <div class="table-reference-corner" aria-hidden="true"></div>
-      <div class="table-column-strip table-reference-strip" aria-label="Column references">
+      <div class="table-column-strip table-reference-strip" aria-label="Column references" ${selection ? "" : 'aria-hidden="true" inert'}>
         ${displayed.columns.map((_, index) => referenceButton("columns", index)).join("")}
         ${editable ? `<div class="table-column-add-item"><button type="button" class="table-reference-item table-add-item" data-action="add-column" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button></div>` : ""}
       </div>
-      <div class="table-row-strip table-reference-strip${model.showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references">
+      <div class="table-row-strip table-reference-strip${model.showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references" ${selection ? "" : 'aria-hidden="true" inert'}>
         ${displayed.rows.map((_, index) => referenceButton("rows", index)).join("")}
         ${editable ? `<div class="table-row-add-item"><button type="button" class="table-reference-item table-add-item" data-action="add-row" aria-label="Add row at end" title="Add row at end" tabindex="-1">+</button></div>` : ""}
       </div>
@@ -309,13 +318,14 @@ function render(focus = "none", nextAxes = buildAxes()) {
     const preservingEditor = focus === "none" && editorState?.focused;
     const preservingSelection = focus === "none" && selectionFocused;
     const preservingMenu = focus === "none" && focusedMenuIndex >= 0;
+    const preservingGrid = focus === "none" && gridFocused;
     const target = preservingEditor || focus === "editor" ? main.querySelector(".table-input")
       : focus === "grid" ? main.querySelector(".table-grid")
         : focus === "menu" ? main.querySelector("tv-menu-item")
           : preservingMenu ? main.querySelectorAll("tv-menu-item")[focusedMenuIndex]
-            : focus === "none" && gridFocused ? main.querySelector(".table-grid")
+            : preservingGrid ? main.querySelector(".table-grid")
           : preservingSelection || focus === "selection" ? selectionTarget() : null;
-    suppressGridEntry = focus === "grid";
+    suppressGridEntry = focus === "grid" || preservingGrid;
     target?.focus({ preventScroll: true });
     suppressGridEntry = false;
     if (target instanceof HTMLTextAreaElement) {
@@ -331,7 +341,7 @@ function render(focus = "none", nextAxes = buildAxes()) {
   });
 }
 
-function reserveKeys(axis, count = 8) {
+function reserveKeys(axis, count = 5) {
   const parent = ref(store, axis);
   return Array.from({ length: count }, () => push(parent).key);
 }
@@ -352,7 +362,7 @@ function applyOperations(operations) {
 function showFailure() {
   failure = true;
   clearTimeout(failureTimer);
-  failureTimer = setTimeout(() => { failure = false; renderStatus(); }, 4000);
+  failureTimer = setTimeout(() => { failure = false; renderStatus(); }, 6000);
   renderStatus();
 }
 
@@ -381,7 +391,7 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
     : null;
   if (plan.kind === "no-write") {
     if (plan.reason === "multiple-renumbering-required") showFailure();
-    const accepted = !["unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys", "multiple-renumbering-required"].includes(plan.reason);
+    const accepted = !rejectedNoWriteReasons.has(plan.reason);
     if (accepted) onLocalApply?.();
     return accepted;
   }
@@ -393,13 +403,14 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
         () => runTransaction(ref(store, plan.axis), createAxisRenumberUpdate(plan.request)),
         currentPageActionSelection,
       );
-      if (plan.operations.length === 0) onLocalApply?.();
+      onLocalApply?.();
       const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
+      if (!canWrite()) return false;
     }
     if (plan.operations.length > 0) {
       const pending = startWithActionEcho(() => applyOperations(plan.operations), currentPageActionSelection);
-      onLocalApply?.();
+      if (plan.kind !== "renumber") onLocalApply?.();
       await pending;
     }
     return true;
@@ -530,7 +541,7 @@ function openMenu(kind, index, extend = false) {
   if (!(selection?.kind === kind && selection.ids.includes(displayed[kind][index]?.id))) {
     selection = selectAxis(selection, kind, index, extend, displayed);
   }
-  menu = { kind, index };
+  menu = { kind, index, triggerId: displayed[kind][index].id };
   render("selection");
 }
 
@@ -539,7 +550,7 @@ function openSelectionMenu() {
   selection = selectionForMenu(selection, axes());
   if (selection?.kind !== "rows" && selection?.kind !== "columns") return;
   const index = indexOf(axes()[selection.kind], selection.anchorId);
-  menu = { kind: selection.kind, index };
+  menu = { kind: selection.kind, index, triggerId: axes()[selection.kind][index].id };
   render("menu");
 }
 
@@ -634,6 +645,7 @@ main.addEventListener("focusout", event => {
 main.addEventListener("keydown", event => {
   interactionVersion += 1;
   if (event.target instanceof HTMLTextAreaElement) {
+    if (event.isComposing) return;
     if (event.key === "Escape") {
       event.preventDefault();
       editing = null;
@@ -646,14 +658,13 @@ main.addEventListener("keydown", event => {
       const command = event.key === "Tab" ? event.shiftKey ? "tab-backward" : "tab-forward"
         : event.shiftKey ? "up" : "down";
       const exits = event.key === "Tab" && moveSelection(selection, command, axes(), { showHeader: model.showHeader }).exit;
-      if (!exits) event.preventDefault();
-      void commitEditing(command);
       if (exits) {
-        const exitVersion = interactionVersion;
-        setTimeout(() => {
-          if (interactionVersion === exitVersion && !editing) render("leave");
-        });
+        // Native Tab moves beyond the artifact; the resulting focusout commits
+        // without replacing the editor before the browser chooses its target.
+        return;
       }
+      event.preventDefault();
+      void commitEditing(command);
     }
     return;
   }
@@ -699,12 +710,19 @@ main.addEventListener("keydown", event => {
   }
   if (selection.kind === "rows" || selection.kind === "columns") {
     if (["Enter", "F2", " "].includes(event.key) || event.key.length === 1) event.preventDefault();
+  } else if (event.key === "Process" || event.isComposing) {
+    const position = selection.kind === "cell" ? selectedCellPosition() : selectedHeaderPosition();
+    beginEditing(selection.kind, position.rowIndex, position.columnIndex, "");
+    // Give the browser's still-pending composition a text input target.
+    main.querySelector(".table-input")?.focus();
+    return;
   } else if (event.key === "Enter" || event.key === "F2") {
     event.preventDefault();
     const position = selection.kind === "cell" ? selectedCellPosition() : selectedHeaderPosition();
     beginEditing(selection.kind, position.rowIndex, position.columnIndex);
     return;
-  } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+  } else if (event.key.length === 1 && !event.metaKey
+      && (!event.ctrlKey && !event.altKey || event.ctrlKey && event.altKey)) {
     event.preventDefault();
     const position = selection.kind === "cell" ? selectedCellPosition() : selectedHeaderPosition();
     beginEditing(selection.kind, position.rowIndex, position.columnIndex, event.key);
@@ -759,7 +777,7 @@ document.addEventListener("click", event => {
 });
 
 function commitWhenDocumentLosesFocus() {
-  if (editing) void commitEditing(null, false);
+  if (editing && canWrite()) void commitEditing(null, false);
 }
 
 window.addEventListener("blur", commitWhenDocumentLosesFocus);
@@ -786,7 +804,7 @@ function acceptValue(next) {
       else {
         selection = reconciled;
         if (menu && selection?.kind === menu.kind) {
-          const index = indexOf(nextAxes[menu.kind], selection.anchorId);
+          const index = indexOf(nextAxes[menu.kind], menu.triggerId);
           if (index < 0) menu = null;
           else menu = { ...menu, index };
         }

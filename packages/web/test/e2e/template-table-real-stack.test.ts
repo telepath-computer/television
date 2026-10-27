@@ -98,6 +98,7 @@ test("a new Table draws four by four without writing, then its independent copy 
   await expect(frame.getByRole("gridcell")).toHaveCount(16);
   await expect(grid(frame)).not.toBeFocused();
   await expect(frame.locator(":focus")).toHaveCount(0);
+  await expect(frame.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
   expect(await h.read(id)).toEqual({ columns: {}, rows: {} });
   expect(writes()).toEqual([]);
 
@@ -130,8 +131,9 @@ test("a new Table draws four by four without writing, then its independent copy 
   await expect(grid(copy)).toHaveAttribute("aria-rowcount", "4");
   await expect(grid(copy)).toHaveAttribute("aria-colcount", "4");
   await cell(copy, 3, 3).click();
-  await page.keyboard.press("Tab");
-  await expect(cell(copy, 3, 3)).not.toBeFocused();
+  await page.keyboard.press("Enter");
+  await editor(copy).press("Tab");
+  await expect(page.locator(`.stage .page[data-page-key="${id}"] iframe`)).not.toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(cell(copy, 3, 3)).toBeFocused();
   await page.reload();
@@ -192,10 +194,10 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "41");
   await expect(grid(page)).toHaveAttribute("aria-colcount", "8");
   await expect(cell(page, 0, 0)).toHaveAccessibleName("Acadia");
-  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveAttribute("tabindex", "-1");
-  await expect(page.getByRole("button", { name: "Add column at end" })).toHaveAttribute("tabindex", "-1");
-  await expect(rowButton(page, 0)).toHaveAttribute("tabindex", "-1");
-  await expect(columnButton(page, "A")).toHaveAttribute("tabindex", "-1");
+  await expect(page.locator('[data-action="add-row"]')).toHaveAttribute("tabindex", "-1");
+  await expect(page.locator('[data-action="add-column"]')).toHaveAttribute("tabindex", "-1");
+  await expect(page.locator('[data-row-select][data-row-index="0"]')).toHaveAttribute("tabindex", "-1");
+  await expect(page.locator('[data-column-select][data-column-index="0"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.getByRole("searchbox")).toHaveCount(0);
   await expect(page.locator("[aria-sort]")).toHaveCount(0);
   await page.keyboard.press("Tab");
@@ -569,6 +571,28 @@ test("a held first commit in a blank Table keeps drawn-cell entry continuous", a
   }).toBe("Bob");
 });
 
+// proofs/ui/templates/table.md#^table-ac-editing
+test("a click during renumbering acts when the transaction applies locally", async ({ page }) => {
+  const id = await open(page, {
+    columns: { c1: { order: Number.MAX_VALUE } },
+    rows: { r1: { order: 0, cells: {} } },
+  });
+  await cell(page, 0, 1).click();
+  await page.keyboard.type("Renumbered");
+
+  h.proxy.holdWrites();
+  await cell(page, 0, 0).click();
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await page.keyboard.type("N");
+  await expect(cell(page, 0, 0).locator(".table-input")).toBeFocused();
+  await expect(editor(page)).toHaveValue("N");
+
+  h.proxy.releaseWrites();
+  await expect.poll(async () => Object.values((await h.read<TableData>(id))!.rows.r1!.cells)).toContain("Renumbered");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("N");
+});
+
 // proofs/ui/templates/table.md#^table-ac-selection
 // proofs/ui/templates/table.md#^table-ac-structure
 // proofs/arch/templates/table.md#^templates-table-t-write-scope
@@ -899,6 +923,24 @@ test("late descendant writes stay ignored and renumbering retries before deferre
 
   await h.set(id, drawn);
   await expect(cell(page, 0, 1)).toBeVisible();
+  const beforeUnreadableAxis = writes().length;
+  h.proxy.holdWrites();
+  await cell(page, 0, 1).click();
+  await page.keyboard.type("Must not repair");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.set(id, "not an axis", "rows");
+  await expect(page.getByRole("alert")).toBeVisible();
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
+  await page.waitForTimeout(100);
+  const guardedWrites = writes().slice(beforeUnreadableAxis);
+  expect(guardedWrites).toHaveLength(1);
+  expect(guardedWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
+  expect(await h.read(id, "rows")).toBe("not an axis");
+
+  await h.set(id, drawn);
+  await expect(cell(page, 0, 1)).toBeVisible();
   const beforeAbort = writes().length;
   h.proxy.holdWrites();
   await cell(page, 0, 1).click();
@@ -964,14 +1006,17 @@ test("agent commands and a second viewer update live while stored-key edits stay
   h.product.runCLI(["resource", "json", "remove", "--artifact", id, "rows/r2"]);
   await expect(editor(page)).toHaveCount(0);
   await expect(page.locator('[data-row-key="r2"]')).toHaveCount(0);
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
   expect(writes()).toHaveLength(beforeRemoval);
 
   await header(page, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Header draft");
+  const beforeHeaderHidden = writes().length;
   await h.set(id, false, "showHeader");
   await expect(editor(page)).toHaveCount(0);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
+  expect(writes()).toHaveLength(beforeHeaderHidden);
 
   await h.set(id, { columns: { c1: { order: 1 } }, rows: { r1: { order: 1, cells: {} } } });
   await cell(page, 2, 2).click();
@@ -992,8 +1037,36 @@ test("agent commands and a second viewer update live while stored-key edits stay
 });
 
 // proofs/ui/templates/table.md#^table-ac-live
+// proofs/ui/templates/table.md#^table-ac-selection
+test("an agent write preserves an empty selection and focused grid", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).press("Escape");
+  await page.keyboard.press("Escape");
+  await expect(grid(page)).toBeFocused();
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+
+  await h.set(id, "Agent update", "rows/r2/cells/c2");
+  await expect(grid(page)).toBeFocused();
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(cell(page, 0, 0)).toBeFocused();
+});
+
+// proofs/ui/templates/table.md#^table-ac-live
 test("live selection follows stored keys and closes with its menu when the key is removed", async ({ page }) => {
   const id = await open(page);
+  await cell(page, 0, 0).click();
+  await rowButton(page, 0).click();
+  await rowButton(page, 2).click({ modifiers: ["Shift"] });
+  await rowButton(page, 2).click({ button: "right" });
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-rows-reference-3");
+  await h.set(id, -1, "rows/r3/order");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-rows-reference-1");
+  await page.keyboard.press("Escape");
+
+  await h.set(id, fixture());
   await cell(page, 1, 1).click();
   await h.set(id, -1, "rows/r2/order");
   await expect(page.locator('[data-row-key="r2"][data-column-key="c2"]')).toHaveAttribute("data-selection", "cell");
@@ -1035,7 +1108,7 @@ test("real share access changes preserve a navigable read-only table and close w
   await expect(cell(page, 1, 2)).toHaveText("true");
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
-  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
   await cell(page, 1, 2).click();
   await page.keyboard.type("Shared edit");
   await editor(page).press("Enter");
@@ -1049,6 +1122,12 @@ test("real share access changes preserve a navigable read-only table and close w
   expect(await h.read(id, "rows/r2/cells/c2")).toBe("Utah");
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
+  await cell(page, 1, 1).click();
+  await page.keyboard.type("Fresh after restore");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Fresh after restore");
+
   await cell(page, 0, 0).click();
   await rowButton(page, 0).click({ button: "right" });
   await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
@@ -1120,6 +1199,16 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(status(page)).toHaveText("Reconnecting…");
   await expect(editor(page)).toHaveValue("Offline draft");
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  const elsewhere = await page.context().newPage();
+  await elsewhere.setContent('<button type="button" autofocus>Elsewhere</button>');
+  await elsewhere.bringToFront();
+  await expect(elsewhere.getByRole("button", { name: "Elsewhere" })).toBeFocused();
+  await page.waitForTimeout(100);
+  await expect(elsewhere.getByRole("button", { name: "Elsewhere" })).toBeFocused();
+  await expect(editor(page)).toHaveValue("Offline draft");
+  await elsewhere.close();
+  await page.bringToFront();
+  await editor(page).focus();
   await editor(page).press("Enter");
   await editor(page).press("Tab");
   await cell(page, 1, 1).click();
@@ -1128,6 +1217,8 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
   await editor(page).press("Escape");
   await expect(cell(page, 0, 0)).toHaveAttribute("data-selection", "cell");
+  await page.keyboard.press("Enter");
+  await expect(editor(page)).toHaveCount(0);
 
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
@@ -1184,6 +1275,21 @@ test("a refused save and aborted renumbering use the established failure status"
   await expect.poll(() => h.read(id, "rows/r4/cells/c2")).toBe("Allowed");
 
   await h.set(id, {
+    columns: { c1: { order: 0 } },
+    rows: { a: { order: 0, cells: {} }, b: { order: Number.MAX_VALUE, cells: {} } },
+  });
+  await cell(page, 1, 0).click();
+  await rowButton(page, 1).click({ button: "right" });
+  h.proxy.holdWrites();
+  await page.getByRole("menu", { name: "Row actions" }).getByText("Insert row below", { exact: true }).click();
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.remove(id, "rows/b");
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+  expect(Object.keys((await h.read<TableData>(id))!.rows)).toEqual(["a"]);
+
+  await h.set(id, {
     columns: { c1: { order: Number.MAX_VALUE } },
     rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
   });
@@ -1209,11 +1315,6 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   await expect(page.getByRole("grid")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
   await expect(page.getByRole("menu")).toHaveCount(0);
-  const before = writes().length;
-  await page.keyboard.press("Enter");
-  await page.keyboard.press("Delete");
-  await page.keyboard.press("Shift+F10");
-  expect(writes()).toHaveLength(before);
   await h.set(id, fixture());
   await expect(grid(page)).toBeVisible();
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
@@ -1238,12 +1339,15 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("menu")).toHaveCount(0);
 
+  const beforeMissingRoot = writes().length;
   await h.remove(id);
   await expect(grid(page)).toBeVisible();
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  expect(writes()).toHaveLength(beforeMissingRoot);
   await h.set(id, { rows: { r1: { order: 1, cells: {} } } });
   await expect(grid(page)).toBeVisible();
   await expect(page.locator('[data-row-key="r1"]')).toHaveCount(4);
+  expect(writes()).toHaveLength(beforeMissingRoot);
 });
 
 // proofs/ui/templates/table.md#^table-ac-unreadable

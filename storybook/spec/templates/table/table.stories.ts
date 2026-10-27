@@ -173,7 +173,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
         <div class="table-scroll">
           <div class="table-sheet" style="--table-column-count: ${columns.length}">
             <div class="table-reference-corner" aria-hidden="true"></div>
-            <div class="table-column-strip table-reference-strip" aria-label="Column references">
+            <div class="table-column-strip table-reference-strip" aria-label="Column references" ${selection === null ? html`aria-hidden="true" inert` : ""}>
               ${columns.map((_, columnIndex) => html`
                 <div class="table-column-reference-item">
                   <button
@@ -184,7 +184,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     aria-label="Select column ${columnLetter(columnIndex)}"
                     aria-haspopup="${editable ? "menu" : "false"}"
                     ${menu === "column" && columnIndex === 2 ? html`aria-expanded="true"` : ""}
-                    aria-pressed="${columnSelected(selection, columnIndex)}"
+                    aria-pressed="${String(columnSelected(selection, columnIndex))}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
                   >${columnLetter(columnIndex)}</button>
                 </div>`)}
@@ -192,7 +192,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                 <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
-            <div class="table-row-strip table-reference-strip${showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references">
+            <div class="table-row-strip table-reference-strip${showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references" ${selection === null ? html`aria-hidden="true" inert` : ""}>
               ${rows.map((_, rowIndex) => html`
                 <div class="table-row-reference-item">
                   <button
@@ -203,7 +203,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     aria-label="Select row ${rowIndex + 1}"
                     aria-haspopup="${editable ? "menu" : "false"}"
                     ${menu === "row" && rowIndex === 1 ? html`aria-expanded="true"` : ""}
-                    aria-pressed="${rowSelected(selection, rowIndex)}"
+                    aria-pressed="${String(rowSelected(selection, rowIndex))}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
                   >${rowIndex + 1}</button>
                 </div>`)}
@@ -218,7 +218,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                   <tr aria-rowindex="1">${columns.map((column, columnIndex) => {
                     const selected = headerSelected(selection, columnIndex);
                     return html`
-                      <th class="table-header" scope="col" data-axis-selected="${columnSelected(selection, columnIndex)}" aria-selected="${columnSelected(selection, columnIndex) || selected}" aria-colindex="${columnIndex + 1}">
+                      <th class="table-header" scope="col" data-axis-selected="${String(columnSelected(selection, columnIndex))}" aria-selected="${String(columnSelected(selection, columnIndex) || selected)}" aria-colindex="${columnIndex + 1}">
                         <div class="table-header-content">
                           <button type="button" class="table-header-button" data-selection="${selected ? "header" : "none"}" aria-label="${column.name ?? `Column ${columnLetter(columnIndex)}`}" tabindex="${selected ? 0 : -1}"><span>${column.name ?? ""}</span></button>
                         </div>
@@ -233,7 +233,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                       class="table-cell"
                       role="gridcell"
                       data-selection="${state}"
-                      aria-selected="${state !== "none"}"
+                      aria-selected="${String(state !== "none")}"
                       aria-colindex="${columnIndex + 1}"
                       tabindex="${state === "cell" ? 0 : -1}"
                     ><span>${row.cells[column.key] ?? ""}</span></td>`;
