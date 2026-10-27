@@ -8,7 +8,7 @@ The bundled manifest declares no `display`, so the shared defaults apply.
 
 ## Store
 
-The template `data.json` seeds the artifact [own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"columns":{},"rows":{}}`. This explicit empty value gives agents the two containers they need to fill, satisfies the schema that requires both containers, and leaves `headerRow` absent so a new Table does not treat its first row as a header. Drawing the empty grid makes no store write.
+The template `data.json` seeds the artifact [own JSON store](../../product/resources/resources.md#^rs-own-store) with `{"columns":{},"rows":{}}`. This explicit empty value gives agents the two containers they need to fill, satisfies the schema that requires both containers, and leaves `headerRow` absent so a new Table has no header row. Drawing the empty grid makes no store write.
 
 Agents and the page write the value, so it has a contract: the manifest `dataSchema`, which is this schema. ^bundled-artifact-template-table-store
 
@@ -48,15 +48,15 @@ Agents and the page write the value, so it has a contract: the manifest `dataSch
 }
 ```
 
-Keys below `columns` and `rows` are opaque [JSON store keys](../resources/json-store.md#^js-arch-paths). Never derive a key from a name or reuse a deleted key. `push` is the normal way to add one row or column. An agent writing a whole table in one `set` instead generates a fresh random key, such as a UUID, for every row and column. The page can call `push` without a value to generate a key without making a write.
+Keys below `columns` and `rows` are opaque [JSON store keys](../resources/json-store.md#^js-arch-paths). Never derive a key from a title or cell value, or reuse a deleted key. `push` is the normal way to add one row or column. An agent writing a whole table in one `set` instead generates a fresh random key, such as a UUID, for every row and column. The page can call `push` without a value to generate a key without making a write.
 
-A column has a numeric `order` and may have a positive numeric `width` in CSS pixels. A row has a numeric `order`, a `cells` object, and may have a positive numeric `height` in CSS pixels. A cell key is a column key; its value may be a string, number, or boolean. The page writes edited cell values as strings. `headerRow: true` presents the first displayed row as a header; that row remains an ordinary row, numbered 1, and its titles are ordinary cell values. The treatment follows whichever row is first after rows move or are removed. `false` or an absent `headerRow` presents every row as data.
+A column has a numeric `order` and may have a positive numeric `width` in CSS pixels. A row has a numeric `order`, a `cells` object, and may have a positive numeric `height` in CSS pixels. A cell key is a column key; its value may be a string, number, or boolean. The page writes edited cell values as strings. `headerRow: true` makes the first displayed row the header row; it remains an ordinary row, numbered 1, and its titles are ordinary cell values. The header row follows whichever row is first after rows move or are removed. `false` or an absent `headerRow` presents every row as data.
 
 The page displays columns and rows by ascending `order`, then by key in the [JSON store key order](../../product/resources/json-store.md#^js-child-events). It normally inserts between two neighbours with an `order` strictly between theirs, or beyond the outer entry. Exact order values are code-governed.
 
 When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not a JSON object, if a selected key is gone, or if the selected keys no longer form one contiguous range. For adding at the end or storing drawn positions, the transaction adds the needed entries after the current displayed entries. It gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
 
-If an edit in drawn positions would require transactions on both axes, or if its one-axis renumbering transaction aborts or fails while connected, the save fails and the page shows [“Couldn't save that change.”](../../ui/templates/table.mdx#saving-and-disconnection); when one axis renumbers, the page applies any remaining path updates only after that transaction commits.
+If an edit in drawn positions would require transactions on both axes, the save fails and the page shows [“Couldn't save that change.”](../../ui/templates/table.mdx#saving-and-disconnection). Any action whose renumbering transaction aborts or fails while connected shows the same failure. When one axis renumbers, the page applies any remaining path updates only after that transaction commits.
 
 ### Runtime reading
 
@@ -69,7 +69,7 @@ Within a readable Table, the page:
 - treats a missing `cells` value, or one that is not a JSON object, as an empty row;
 - treats strings as their own cell text, numbers and booleans as their JSON text, and `""` and other cell values as empty;
 - ignores a cell whose key has no displayed column; and
-- treats the first displayed row as a header only when `headerRow` is `true`.
+- makes the first displayed row the header row only when `headerRow` is `true`.
 
 Extra fields at the root, in columns, and in rows are ignored. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. An unreadable value is shown as the [Table UI spec](../../ui/templates/table.mdx#data-the-page-cannot-read) describes.
 
@@ -83,7 +83,7 @@ Committing non-empty text in a cell in a drawn row or column stores the drawn co
 
 Inserting a row or column stores the drawn positions before the new entry on that axis, followed by the new entry. It does not store drawn positions after the new entry. Deleting rows or columns removes the selected stored entries; selected drawn positions need no write. A new row that does not receive an edited cell has an empty `cells` object. Each action in these two paragraphs that does not need renumbering uses one atomic update of distinct entry and cell paths. Exact order values for these entries are code-governed.
 
-Turning the header-row treatment on or off does not store a drawn row. Clearing a drawn cell, row, or column has nothing to clear and makes no write.
+Turning the header row on or off does not store a drawn row. Clearing a drawn cell, row, or column has nothing to clear and makes no write.
 
 Drawn positions on an axis keep their identity across another writer's changes while the number of displayed stored entries on that axis stays the same. If another writer's change alters that number, those drawn positions change identity, and the page makes no write for an action aimed at a drawn position from before that change. Another writer changing a cell, width, height, or one finite `order` to another leaves drawn positions as they are. ^bundled-artifact-template-table-drawn-identity
 
@@ -94,7 +94,7 @@ Another writer can store the same drawn positions before either update is observ
 The page subscribes to the whole store through the [resource SDK](../resources/sdk.md). Except when storing drawn positions and running the renumbering transaction, a human action writes only the path it changes:
 
 - A cell edit sets `rows/<row-key>/cells/<column-key>`. Clearing it removes that path.
-- Turning the header-row treatment on or off sets `headerRow` to `true` or `false`.
+- Turning the header row on or off sets `headerRow` to `true` or `false`.
 - Resizing a stored column sets `columns/<column-key>/width`. Resizing a stored row sets `rows/<row-key>/height`.
 - Adding or inserting a row sets `rows/<new-row-key>` to `{ "order": <number>, "cells": {} }`. Adding or inserting a column sets `columns/<new-column-key>` to `{ "order": <number> }`.
 - Deleting a row removes `rows/<row-key>`. Deleting a column removes `columns/<column-key>` and does not visit any row.
@@ -110,8 +110,8 @@ An action that affects several selected entries or cells uses one atomic update 
 
 The page loads Television's canonical stylesheet, components and resource SDK, and includes its other page dependencies inside the template folder so copied artifacts work independently. Its stylesheet is `styles.css` in the template folder; [conformance](../../spec-ui.md#conformance) holds the page to the UI spec stories. The manifest `icons` lists one entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-table-page
 
-The bundled `README.md` explains `headerRow`, `columns`, `rows`, opaque keys, ordering, widths, heights, cells, and the tolerant reading rules. It says that `headerRow` marks the first displayed row as a header without creating a separate row, and agents put titles in that row's cells. It gives the 160-pixel default and 64–640-pixel range for column widths, and the 38-pixel default and 28–240-pixel range for row heights. It says that `cells` is an object keyed by column key, never an array, and empty cells are left out. It says that display letters and numbers are positions after ignored entries have been dropped and the remaining entries ordered. It explains that drawn positions have no stored entry: writing B3 in an empty Table requires new entries for columns A and B and rows 1 through 3, each with an `order`. It says that a cell written as a number or boolean is written back as a string if a person edits it.
+The bundled `README.md` explains `headerRow`, `columns`, `rows`, opaque keys, ordering, widths, heights, cells, and the tolerant reading rules. It says that `headerRow` makes the first displayed row the header row without creating a separate row, agents put titles in that row's cells, and agents keep that title row first when sorting, reordering, or inserting rows. It gives the 160-pixel default and 64–640-pixel range for column widths, and the 38-pixel default and 28–240-pixel range for row heights. It says that `cells` is an object keyed by column key, never an array, and empty cells are left out. It says that display letters and numbers are positions after ignored entries have been dropped and the remaining entries ordered. It explains that drawn positions have no stored entry: writing B3 in an empty Table requires new entries for columns A and B and rows 1 through 3, each with an `order`. It says that a cell written as a number or boolean is written back as a string if a person edits it.
 
 The README tells agents to give every row and column a distinct finite `order`, while warning that the page may renumber an axis when insertion has no numeric gap. It repeats the key guidance above and says never to write a cell below a row that does not exist. It warns agents not to repair an entry without an `order`, because it can be a late write below a deleted entry. It explains that deleting a column need not clean up rows because those values are ignored.
 
-The README gives `tv resource json` commands to write a whole table; add, resize, reorder, and remove a column; add, resize, reorder, and remove a row; change and clear one cell; turn the first-row header treatment on and off; and clear the table. It says that people may be editing the same table through the page and recommends path-level updates unless the agent intends to replace the whole table. It says that unreadable data is not repaired and that copied artifacts are independent. It points an adapting agent to the local modules and foundation-token stylesheet. ^bundled-artifact-template-table-readme
+The README gives `tv resource json` commands to write a whole table; add, resize, reorder, and remove a column; add, resize, reorder, and remove a row; change and clear one cell; turn the header row on and off; and clear the table. It says that people may be editing the same table through the page and recommends path-level updates unless the agent intends to replace the whole table. It says that unreadable data is not repaired and that copied artifacts are independent. It points an adapting agent to the local modules and foundation-token stylesheet. ^bundled-artifact-template-table-readme

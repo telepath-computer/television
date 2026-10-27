@@ -87,6 +87,18 @@ textarea {
   background: var(--color-surface);
 }
 
+.table-reference-corner::after,
+.table-column-strip::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--reference-gap);
+  background: var(--color-surface);
+  content: "";
+  pointer-events: none;
+}
+
 .table-column-strip {
   position: sticky;
   top: 0;
@@ -141,7 +153,7 @@ textarea {
   justify-content: center;
 }
 
-.table-row-reference-item:first-child {
+.table-page[data-header-row="true"] .table-row-reference-item:first-child {
   position: sticky;
   top: calc(var(--reference-size) + var(--reference-gap));
   z-index: 3;
@@ -244,14 +256,17 @@ textarea {
 .table-grid tbody td + td { border-left: 1px solid var(--color-border); }
 
 .table-cell {
+  --table-cell-start-padding: min(9px, max(0px, calc(var(--table-current-row-height, var(--table-row-height)) - 19px)));
+
   position: relative;
   height: var(--table-current-row-height, var(--table-row-height));
-  padding: 9px var(--space-12) !important;
+  padding: var(--table-cell-start-padding) var(--space-12) 0 !important;
   overflow: hidden;
   border-bottom: 1px solid var(--color-border);
   line-height: 18px;
   text-align: left;
   text-overflow: ellipsis;
+  vertical-align: top;
   white-space: nowrap;
   cursor: cell;
 }
@@ -303,8 +318,8 @@ textarea {
 .table-cell-input {
   width: calc(100% + 2 * var(--space-12));
   height: var(--table-current-row-height, var(--table-row-height));
-  margin: -9px calc(-1 * var(--space-12));
-  padding: 9px var(--space-12);
+  margin: calc(-1 * var(--table-cell-start-padding)) calc(-1 * var(--space-12)) 0;
+  padding: var(--table-cell-start-padding) var(--space-12) 0;
   line-height: 18px;
   white-space: pre;
 }

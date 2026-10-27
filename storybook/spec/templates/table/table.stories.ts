@@ -87,7 +87,7 @@ const resizedRows: Row[] = [
   ...parkRows.map((row, index) => index === 0 ? { ...row, height: 52 } : row),
   { key: "r8", cells: { c1: "Grand Canyon", c2: "Arizona", c3: "Yes", c4: "4.9" } },
   { key: "r9", cells: { c1: "Joshua Tree", c2: "California", c3: "Yes", c4: "4.7" } },
-  { key: "r10", cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },
+  { key: "r10", height: 28, cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },
 ];
 
 const scrolledColumns: Column[] = Array.from({ length: 7 }, (_, index) => ({ key: `c${index + 1}` }));
@@ -181,7 +181,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
     </main>`;
 
   if (loading) return html`
-    <main class="table-page" data-editable="${String(editable)}">
+    <main class="table-page" data-editable="${String(editable)}" data-header-row="${String(headerRow)}">
       <div class="table-loading" role="status" aria-label="Loading table">
         ${icon({ name: "spinner", size: "md", spinning: true })}
       </div>
@@ -199,7 +199,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
     : selection?.kind === "column" ? selection.start : 0;
 
   return html`
-    <main class="table-page" data-editable="${String(editable)}">
+    <main class="table-page" data-editable="${String(editable)}" data-header-row="${String(headerRow)}">
       <div class="table-frame">
         <div class="table-scroll">
           <div
@@ -344,17 +344,17 @@ export default {
 export const Blank = { args: { columns: [], rows: [], headerRow: false } };
 export const PartiallyFilled = { name: "Partially filled", args: { columns: firstColumns, rows: firstRows, headerRow: false } };
 export const WithData = { name: "With data" };
-export const HeaderOff = { name: "First row as data", args: { columns: parkColumns.slice(0, 3), rows: scheduleRows, headerRow: false } };
+export const HeaderOff = { name: "Header row off", args: { columns: parkColumns.slice(0, 3), rows: scheduleRows, headerRow: false } };
 export const Resized = { name: "Saved sizes", args: { columns: resizedColumns, rows: resizedRows } };
 export const Scrolled = { args: { columns: scrolledColumns, rows: scrolledRows }, play: poseScrolled };
 export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
-export const SelectedHeader = { name: "Selected header-row cell", args: { selection: { kind: "cell", row: 0, column: 1 } } };
+export const SelectedHeader = { name: "Selected header row cell", args: { selection: { kind: "cell", row: 0, column: 1 } } };
 export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } } };
 export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
 export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
 export const KeyboardFocusRow = { name: "Keyboard focus on a row", args: { selection: { kind: "row", start: 1, end: 1 } }, play: focusSelection };
 export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
-export const EditingHeaderCell = { name: "Editing a header-row cell", args: { selection: { kind: "cell", row: 0, column: 1 } }, play: beginEditing };
+export const EditingHeaderCell = { name: "Editing a header row cell", args: { selection: { kind: "cell", row: 0, column: 1 } }, play: beginEditing };
 export const OpenMenu = { name: "Open row 1 menu", args: { selection: { kind: "row", start: 0, end: 0 }, menu: "row" }, play: poseOpenMenu };
 export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" }, play: poseOpenMenu };
 export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" }, play: poseOpenMenu };

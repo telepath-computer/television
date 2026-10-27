@@ -37,27 +37,27 @@ If the page disconnects while waiting, the loading state stays in place and the 
 
 ## Rows, columns and cells
 
-Rows and columns follow their stored order. Cell text stays on one line and ends in an ellipsis when it is wider than its cell; an empty cell is blank. Stored line breaks appear as spaces in the grid. The grid scrolls in either direction when it is larger than the artifact. The column strip, row strip, and a marked first row stay with the visible grid while it scrolls. The marked first row's number stays beside that row.
+Rows and columns follow their stored order. Cell text is top-aligned, stays on one line, and ends in an ellipsis when it is wider than its cell; an empty cell is blank. Stored line breaks appear as spaces in the grid. Extra row height falls below the text; shrinking a row trims its padding before clipping the text at the bottom edge, and the 28-pixel minimum still applies. The grid scrolls in either direction when it is larger than the artifact. When the header row is on, it and row number 1 stay with the visible grid while the table scrolls.
 
 There is no search or sorting. Stored entries always appear in stored order.
 
-When the first-row header treatment is on, the first displayed row is still row 1 and is edited like every other row. Its cells use the canonical muted surface, and their values serve as column titles. When it is off, the same row appears as data. Every other row uses the canonical page surface.
+When the header row is on, the first displayed row is still row 1 and is edited like every other row. Its cells use the canonical muted surface, and their values serve as column titles. When it is off, the same row appears as data. Every other row uses the canonical page surface.
 
-This story shows data with the first row used as a header.
+This story shows a header row.
 
 <Artifact><Canvas of={Stories.WithData} /></Artifact>
 
-This story shows the same kind of first row presented as data.
+This story shows a title-like row with the header row off.
 
 <Artifact><Canvas of={Stories.HeaderOff} /></Artifact>
 
-This story shows a larger table after it has been scrolled in both directions. The scrollport reaches the artifact edges; the spacing around the table is part of the scrolled content.
+This story shows a larger table after it has been scrolled in both directions.
 
 <Artifact><Canvas of={Stories.Scrolled} /></Artifact>
 
 ## Selecting cells, rows and columns
 
-Clicking a cell selects it. The selected cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. These are the *column strip* and *row strip*. They use the page surface, a muted border, and dividers between items, stay visible whether or not anything is selected, and stay with the visible grid while it scrolls. Each “+” at the end of a strip is an *add control*. The grid, strips and add controls together are the *table control*.
+Clicking a cell selects it. The selected cell gets a quiet accent outline and fill. Column letters and row numbers appear by position in two continuous, rounded strips outside the table. These are the *column strip* and *row strip*. They use the page surface, a muted border, and dividers between items, and stay visible whether or not anything is selected. Each “+” at the end of a strip is an *add control*. The grid, strips and add controls together are the *table control*.
 
 The top strip is as tall as the side strip is wide for single-digit row numbers. The side strip grows only enough to fit additional digits with thin inline padding. Strip items contain only their letters or numbers, and there is a small gap between each strip and the table.
 
@@ -85,19 +85,19 @@ This story shows keyboard focus on a selected row strip item.
 
 <Artifact><Canvas of={Stories.KeyboardFocusRow} /></Artifact>
 
-When a cell is selected and not being edited, Left and Right move between columns and Up and Down move between rows. Tab moves right and Shift-Tab moves left. Tab at the last displayed column and Shift-Tab at the first leave the table.
+When a cell is selected and not being edited, Left and Right move between columns and Up and Down move between rows. Tab moves right and Shift-Tab moves left. Tab at the last displayed column and Shift-Tab at the first leave the table. Moving the selection scrolls the selected cell or strip item fully into view, clear of the strips and the header row.
 
 Shift-Space selects the current row. Ctrl-Shift-Space selects the current column; it avoids the macOS Ctrl-Space input-source shortcut. In an open editor, Shift-Space and Ctrl-Shift-Space type normally. Up and Down move a whole-row selection, while Left and Right do nothing. Left and Right move a whole-column selection, while Up and Down do nothing. On a range, Up or Down for rows and Left or Right for columns first collapses the range to its anchor, then moves that single-row or single-column selection. Holding Shift instead moves the active end, extending or shrinking one contiguous range. Tab or Shift-Tab leaves the table from a whole-row or whole-column selection.
 
 Only the strip item at the anchor of a whole-row or whole-column selection can receive focus. Return, F2, or typing other than the resizing keys while a whole row or column is selected does nothing. Space keeps the selection and does not open its menu. The add controls are not focusable.
 
-The table is a grid named “Table”. Cells take their names from their displayed contents, while the grid's row and column positions convey position. When the first-row treatment is on, its cells are column headers in the accessibility tree; they keep the same editing and position names as other cells. An editor is named by position, such as “Row 4, column B”. Strip buttons are named “Select row” followed by the number and “Select column” followed by the letter. The add controls are named “Add row at end” and “Add column at end”. Selection state is exposed through the grid and strip controls.
+The table is a grid named “Table”. Cells take their names from their displayed contents, while the grid's row and column positions convey position. When the header row is on, its cells are column headers in the accessibility tree; they keep the same editing and position names as other cells. An editor is named by position, such as “Row 4, column B”. Strip buttons are named “Select row” followed by the number and “Select column” followed by the letter. The add controls are named “Add row at end” and “Add column at end”. Selection state is exposed through the grid and strip controls.
 
 ## Resizing rows and columns
 
-Dragging the divider after any column letter, including the last, previews a new width for that column. Dragging the divider below any row number, including the last, does the same for that row. Pressing a divider commits an open cell editor before resizing begins and leaves the selection unchanged. Releasing the pointer commits the size. A resize ends without writing if its target disappears, a drawn target changes identity, or the page becomes unable to write before release. The architecture spec owns the [stored size and drawn-position writes](../../arch/templates/table.md#page-writes). A table wider or taller than the artifact scrolls rather than shrinking its saved sizes.
+Dragging the divider after any column letter, including the last, resizes that column live. Dragging the divider below any row number, including the last, does the same for that row. Pressing a divider commits an open cell editor before resizing begins and leaves the selection unchanged. Releasing the pointer commits the size. A resize ends without writing if its target disappears, a drawn target changes identity, or the page becomes unable to write before release. The architecture spec owns the [stored size and drawn-position writes](../../arch/templates/table.md#page-writes). A table wider or taller than the artifact scrolls rather than shrinking its saved sizes.
 
-For keyboard and assistive-technology access, a person selects exactly one whole row or column, then presses plus to grow it or minus to shrink it. Each press commits one resize and announces the new size. Plus and minus do nothing for a selection of several rows or columns. The focused strip button's accessible description gives its current size and these keys. The visible drag dividers are pointer targets, not additional Tab stops. The default sizes are the 160-pixel columns and 38-pixel rows shown in the stories; column sizes stay within 64–640 pixels and row sizes within 28–240 pixels. Exact resize steps are code-governed.
+For keyboard and assistive-technology access, a person selects exactly one whole row or column, then presses plus to grow it or minus to shrink it. Each press commits one resize and announces the new size without adding a visible message. Plus and minus do nothing for a selection of several rows or columns. The focused strip button's accessible description gives its current size and these keys. The visible drag dividers are pointer targets, not additional Tab stops. The default sizes are the 160-pixel columns and 38-pixel rows shown in the stories; stored size limits follow the architecture [runtime reading rules](../../arch/templates/table.md#runtime-reading). Exact resize steps are code-governed.
 
 This story shows saved column widths and row heights.
 
@@ -113,7 +113,7 @@ Clicking another cell, a strip item, or an add control commits before acting on 
 
 <Artifact><Canvas of={Stories.EditingCell} /></Artifact>
 
-The same editor and keys apply in a marked first row.
+The same editor and keys apply in the header row.
 
 <Artifact><Canvas of={Stories.EditingHeaderCell} /></Artifact>
 
@@ -131,7 +131,7 @@ The add control at the end of a row or column strip adds a row or column at the 
 
 When no editor is open, the context-menu key or Shift-F10 opens the menu from the keyboard. For a whole-row or whole-column selection, it opens the corresponding menu below the range anchor. For a cell, it selects the row containing that cell and opens the row menu below that strip item. While an editor is open, right-clicking inside it, the context-menu key and Shift-F10 open no Table menu and do not commit. Opening a Table menu commits an active edit first. A normal press on a strip item selects the row or column without opening a menu.
 
-The row menu contains “Insert row above” and “Insert row below”, followed by “Delete row” or “Delete rows” when the selection contains a stored row. A row menu opened from row 1 then contains “Make header row” when the treatment is off, or “Remove header row” when it is on. No other row menu and no column menu contains that action. The column menu contains “Insert column left”, “Insert column right”, and “Delete column” or “Delete columns”. The Delete label is singular or plural according to the number of stored entries the action will delete, not the number of drawn positions in the selection. A selection made entirely of drawn positions has no Delete item. Destructive actions use the canonical danger treatment.
+The row menu contains “Insert row above” and “Insert row below”, followed by “Delete row” or “Delete rows” when the selection contains a stored row. A row menu opened from row 1 then contains “Make header row” when the header row is off, or “Remove header row” when it is on. No other row menu and no column menu contains that action. The column menu contains “Insert column left”, “Insert column right”, and “Delete column” or “Delete columns”. The Delete label is singular or plural according to the number of stored entries the action will delete, not the number of drawn positions in the selection. A selection made entirely of drawn positions has no Delete item. Destructive actions use the canonical danger treatment.
 
 <Artifact><Canvas of={Stories.OpenMenu} /></Artifact>
 
@@ -139,9 +139,9 @@ The row menu contains “Insert row above” and “Insert row below”, followe
 
 <Artifact><Canvas of={Stories.OpenMultiRowMenu} /></Artifact>
 
-Insert adds one row above or below the selected row range, or one column to the left or right of the selected column range, and selects that whole new row or column. The row add control selects and focuses a cell in the new row at the previously selected cell's column, or in the first column when no cell was selected. The column add control does the same at the previously selected cell's row, or in the first row. After deleting selected rows or columns, one whole row or column stays selected at the first displayed position formerly occupied by the selection, or at the last position when the old position no longer exists. Clearing contents leaves the selection unchanged. The [store contract](../../arch/templates/table.md#page-writes) owns ordering, deletion, sizing, and first-row treatment writes.
+Insert adds one row above or below the selected row range, or one column to the left or right of the selected column range, and selects that whole new row or column. The row add control selects and focuses a cell in the new row at the previously selected cell's column, or in the first column when no cell was selected. The column add control does the same at the previously selected cell's row, or in the first row. After deleting selected rows or columns, one whole row or column stays selected at the first displayed position formerly occupied by the selection, or at the last position when the old position no longer exists. Clearing contents leaves the selection unchanged. The [store contract](../../arch/templates/table.md#page-writes) owns ordering, deletion, sizing, and header row writes.
 
-When the first row is marked as a header, inserting a row above it makes the inserted row the header and turns the previous titles into data. Deleting that first row makes the next row the header. Clearing a selected column also clears its cell in the header row.
+When the header row is on, inserting a row above row 1 makes the inserted row the header row and turns the previous titles into data. Deleting row 1 makes the next row the header row. Clearing a selected column also clears its cell in the header row.
 
 ## Changes from elsewhere
 
@@ -169,7 +169,7 @@ Any commit gesture has no effect while disconnected: it does not write, close th
 
 If the SDK rolls back a write sent before the connection drops, the page does not reopen the editor with that text. The edit can be lost, although the server can still apply a write whose outcome is [uncertain after disconnection](../../product/resources/json-store.md#^js-disconnect). This is an accepted limitation.
 
-If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. An insertion whose renumbering transaction aborts or fails while connected shows the same message. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
+If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. Any action whose renumbering transaction aborts or fails while connected shows the same message. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
 
 <Artifact><Canvas of={Stories.Disconnected} /></Artifact>
 
