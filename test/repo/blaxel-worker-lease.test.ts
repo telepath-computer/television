@@ -32,11 +32,18 @@ test.skipIf(process.platform !== "linux")("acquisition writes a renewable deadli
   expect(f.record().recoverAfter - f.record().lastRenewal).toBe(1_200_000);
 });
 
-test.skipIf(process.platform !== "linux")("fixture audit runs without root access to other users' environments", () => {
+test.skipIf(process.platform !== "linux")("fixture audit runs without root access to unrelated process environments", async () => {
   const f = fixture(true);
-  const acquired = f.run();
-  expect(acquired.status, acquired.stderr).toBe(0);
-  expect(f.record().lockId).toBe(f.input.lockId);
+  const ready = path.join(f.input.tmpRoot, "unrelated-ready");
+  // A same-user service can be nondumpable too. It belongs outside this
+  // fixture's process set even though a user filter would include it.
+  const child = process.getuid?.() === 0 ? spawn(process.execPath, ["-e", `process.setgid(65534);process.setuid(65534);require('fs').writeFileSync(${JSON.stringify(ready)},'ready');setInterval(()=>{},1000)`], { stdio: "ignore", env: process.env }) : null;
+  try {
+    if (child) await until(() => existsSync(ready));
+    const acquired = f.run();
+    expect(acquired.status, acquired.stderr).toBe(0);
+    expect(f.record().lockId).toBe(f.input.lockId);
+  } finally { if (child) { child.kill("SIGKILL"); await until(() => child.signalCode !== null); } }
 });
 
 test.skipIf(process.platform !== "linux")("an unreadable whole-worker audit preserves the lease and its evidence", () => {
