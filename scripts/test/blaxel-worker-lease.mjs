@@ -224,7 +224,7 @@ export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", curren
   for (const root of [tmpRoot, scratchRoot]) {
     if (!fs.existsSync(root)) continue;
     if (lstat(root).isSymbolicLink() || !lstat(root).isDirectory()) throw new Error(`unsafe cleanup root ${root}`);
-    if (root !== tmpRoot && lstat(root).dev !== lstat(tmpRoot).dev) throw new Error("scratch root crosses a mount boundary");
+    if (root !== tmpRoot && (mountPoints.has(root) || lstat(root).dev !== lstat(tmpRoot).dev)) throw new Error("scratch root crosses a mount boundary");
   }
   function allocated(file, device) {
     const stat = lstat(file);

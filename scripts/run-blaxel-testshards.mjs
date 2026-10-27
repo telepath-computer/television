@@ -1063,6 +1063,9 @@ async function retainAttemptEvidence(lease, directory) {
   }
   if (evidence.runId !== lease.input.runId || evidence.attemptId !== lease.input.attemptId || !Array.isArray(evidence.files)) throw new Error("invalid retained-evidence inventory");
   for (const name of evidence.files) {
+    // Optional diagnostic reads use their bounded, warning-only transport below.
+    // They must not make a native result fail or bypass its retention budget.
+    if (typeof name === "string" && name.startsWith("resources/")) continue;
     if (typeof name !== "string" || name.startsWith("/") || name.split("/").includes("..")) throw new Error("invalid evidence path");
     const raw = await lease.sandbox.fs.read(`${root}/${name}`);
     const target = path.join(directory, "artifacts", `shard-${lease.shardIndex}`, name);
