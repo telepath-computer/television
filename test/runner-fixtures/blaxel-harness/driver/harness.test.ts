@@ -38,9 +38,9 @@ function command(root: string, name: string, args: string[], env: NodeJS.Process
   });
   return {child, done, log};
 }
-function run(root: string, name: string, selection: string[], gate?: string) {
+function run(root: string, name: string, selection: string[], gate?: string, recoverySeconds?: number) {
   const pointer = path.join(root, `${name}.run`);
-  const task = command(root, name, ["blaxel", "--pool", pool, ...selection, "--lock-ttl-seconds", "60", "--run-dir-output", pointer], gate ? {TV_TEST_RUNNER_SELFTEST: "1", TV_BLAXEL_DOWNLOAD_GATE: gate} : {});
+  const task = command(root, name, ["blaxel", "--pool", pool, ...selection, ...(recoverySeconds ? ["--lock-ttl-seconds", String(recoverySeconds)] : []), "--run-dir-output", pointer], gate ? {TV_TEST_RUNNER_SELFTEST: "1", TV_BLAXEL_DOWNLOAD_GATE: gate} : {});
   return {...task, directory: async () => until(async () => existsSync(pointer) ? readFileSync(pointer, "utf8").trim() : null)};
 }
 async function poolCommand(root: string, name: string, operation: string) {
@@ -136,7 +136,7 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     for (const shard of firstResult.provider.shards) {
       expect(shard.remoteScript).toBe(`${shard.scratch}/worker.sh`);
       expect(shard.setupTimings.some((phase: any) => phase.name === "temporary-cleanup")).toBe(true);
-      const artifact = path.join(firstDir, "provider/blaxel/artifacts", `shard-${shard.shardIndex}`);
+      const artifact = path.join(shard.outputDir, "artifacts", `shard-${shard.shardIndex}`);
       const cleanup = readJson(path.join(artifact, "temporary-cleanup.json"));
       expect(cleanup.removed["television-source-cli-e2e-"].directories).toBe(1);
       expect(cleanup.removed["television-web-bundle-"].directories).toBe(1);
@@ -160,12 +160,13 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     expect(await target.done).toBe(1);
     expect(retained(await target.directory()).summary.run.infraStatus).toBe("completed");
     assertDiagnostics(await target.directory());
-    expect(existsSync(path.join(await target.directory(), "provider/blaxel/artifacts/shard-1/temporary-placement.json"))).toBe(true);
+    const targetShard = retained(await target.directory()).provider.shards[0];
+    expect(existsSync(path.join(targetShard.outputDir, "artifacts/shard-1/temporary-placement.json"))).toBe(true);
 
     for (const scenario of ["active", "quiet"]) {
       for (const worker of workers) await worker.fs.write(modePath, JSON.stringify({mode: scenario === "active" ? "active" : "normal"}));
       const crashGate = path.join(root, `${scenario}-download`); mkdirSync(crashGate);
-      const abandoned = run(root, `${scenario}-abandoned`, planned, crashGate);
+      const abandoned = run(root, `${scenario}-abandoned`, planned, crashGate, 60);
       let owners: any[];
       if (scenario === "quiet") { await gates(crashGate); owners = await Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"))); }
       else owners = await until(async () => {
