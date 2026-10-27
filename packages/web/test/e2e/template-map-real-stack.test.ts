@@ -27,9 +27,13 @@ const places = (): MapData => ({
     parks: { name: "Parks", icon: "park", color: "green" },
   },
   places: {
-    museum: { title: "City Museum", lat: 38.627, lng: -90.201, order: 2, category: "culture", description: "History and art", fields: { Admission: "$12" } },
+    museum: {
+      title: "City Museum", lat: 38.627, lng: -90.201, order: 2, category: "culture", icon: "landmark", description: "History and art",
+      photo: "icon.svg", credit: { text: "Bundled map icon", url: "https://example.com/icon-source" },
+      fields: { Admission: "$12", Hours: { Monday: "9–5" }, Notes: null },
+    },
     garden: { title: "Botanical Garden", lat: 38.615, lng: -90.258, order: 1, category: "parks", description: "Glasshouses and gardens" },
-    arch: { title: "Gateway Arch", lat: 38.625, lng: -90.185, order: 3, category: "missing", description: "Riverfront monument" },
+    arch: { title: "Gateway Arch", lat: 38.625, lng: -90.185, order: 3, category: "missing", icon: "heart", description: "Riverfront monument" },
   },
 });
 
@@ -65,12 +69,12 @@ async function expectError(page: Page): Promise<void> {
   await expect(alert(page)).toBeVisible();
 }
 
-// proofs/arch/templates/map.md#^templates-map-ac-live
+// proofs/arch/templates/map.md#^templates-map-ac-create
 // proofs/product/templates.md delegates the bundled creation journey to this acceptance.
 test("new Map from Toolbox has the empty seed, shared display and independent packaged assets", async ({ page }) => {
   const responses: { url: string; ok: boolean }[] = [];
   page.on("response", response => {
-    if (/canonical\/v2\/(styles\.css|components\.js)|sdk\/v1\/resources\.js|\/(map\.css|map\.js|leaflet\.css|leaflet\.js)$/.test(response.url())) {
+    if (/canonical\/v2\/(styles\.css|components\.js)|sdk\/v1\/resources\.js|\/(map\.css|map\.js|map-model\.js|leaflet\.css|leaflet\.js)$/.test(response.url())) {
       responses.push({ url: response.url(), ok: response.ok() });
     }
   });
@@ -93,6 +97,7 @@ test("new Map from Toolbox has the empty seed, shared display and independent pa
   expect(responses.every(response => response.ok)).toBe(true);
   expect(responses.some(response => response.url.endsWith(`/artifact/${id}/map.css`))).toBe(true);
   expect(responses.some(response => response.url.endsWith(`/artifact/${id}/map.js`))).toBe(true);
+  expect(responses.some(response => response.url.endsWith(`/artifact/${id}/map-model.js`))).toBe(true);
   expect(responses.some(response => response.url.includes("/canonical/v2/components.js"))).toBe(true);
   expect(responses.some(response => response.url.includes("/sdk/v1/resources.js"))).toBe(true);
   expect(tileRequests.length).toBeGreaterThan(0);
@@ -104,11 +109,14 @@ test("new Map from Toolbox has the empty seed, shared display and independent pa
 });
 
 // proofs/arch/templates/map.md#^templates-map-ac-live
-test("live places, filtering, details and local controls never write to the store", async ({ page }) => {
+test("live store values and tolerant later reads stay read-only", async ({ page }) => {
   const data = places();
   const id = await open(page, data);
+  await expect(page.locator("#title")).toHaveText("City places");
+  await expect(page.locator("#subtitle")).toHaveText("Three stops");
   await expect(rows(page)).toHaveText(["Botanical GardenParksGlasshouses and gardens", "City MuseumCultureHistory and art", "Gateway ArchRiverfront monument"]);
   await expect(page.locator('.map-pin[data-key="garden"] [data-icon="park"]')).toHaveCount(1);
+  await expect(page.locator('.map-pin[data-key="museum"] [data-icon="landmark"]')).toHaveCount(1);
   await expect(page.locator('.map-pin[data-key="arch"] [data-icon="pin"]')).toHaveCount(1);
 
   await filter(page).fill("culture");
@@ -122,30 +130,121 @@ test("live places, filtering, details and local controls never write to the stor
   await page.locator('.place-button[data-key="museum"]').click();
   await expect(page.locator("#detail-title")).toHaveText("City Museum");
   await expect(page.locator("#detail-fields")).toContainText("Admission$12");
+  await expect(page.locator("#detail-fields")).toContainText('{"Monday":"9–5"}');
+  await expect(page.locator("#detail-fields")).toContainText("Notes—");
+  await expect(page.locator("#detail-photo img")).toHaveAttribute("src", "icon.svg");
+  await expect(page.locator("#detail-credit a")).toHaveText("Photo: Bundled map icon");
+  await expect(page.locator("#detail-credit a")).toHaveAttribute("href", "https://example.com/icon-source");
   await page.getByRole("button", { name: "Back to places" }).click();
   await page.getByRole("button", { name: "Map layers" }).click();
   await page.getByRole("button", { name: /Satellite/ }).click();
   await expect(page.locator("#layer-label")).toHaveText("Satellite");
+  await expect.poll(() => tileRequests.some(url => url.includes("World_Imagery/MapServer"))).toBe(true);
+  await page.getByRole("button", { name: "Map layers" }).click();
+  await page.getByRole("button", { name: /Hybrid/ }).click();
+  await expect(page.locator("#layer-label")).toHaveText("Hybrid");
+  await expect.poll(() => tileRequests.some(url => url.includes("Reference/World_Boundaries_and_Places/MapServer"))).toBe(true);
   await page.getByRole("button", { name: "Hide sidebar" }).click();
   await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "false");
 
   await h.set(id, { title: "Added live", lat: 38.64, lng: -90.24, order: 4, category: "parks" }, "places/live");
   await expect(page.locator('.place-button[data-key="live"]')).toContainText("Added live");
-  expect(h.product.runCLI(["resource", "json", "set", "--artifact", id, "places/agent", JSON.stringify({ title: "Agent place", lat: 38.65, lng: -90.25, order: 5 })]))
-    .toContain(`JSON store of artifact ${id} updated.`);
-  await expect(page.locator('.place-button[data-key="agent"]')).toContainText("Agent place");
-  await expect(page.locator("#layer-label")).toHaveText("Satellite");
+  const pushed = JSON.parse(h.product.runCLI([
+    "resource", "json", "push", "--artifact", id, "places",
+    JSON.stringify({ title: "Agent place", lat: 38.65, lng: -90.25, order: 5 }),
+  ])) as { key: string };
+  expect(pushed.key).toMatch(/^-/);
+  await expect(page.locator(`.place-button[data-key="${pushed.key}"]`)).toContainText("Agent place");
+  await expect(page.locator("#layer-label")).toHaveText("Hybrid");
   await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "false");
 
   await h.set(id, "standard", "basemap");
   await expect(page.locator("#layer-label")).toHaveText("Standard");
   await h.set(id, "open", "sidebar");
   await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "true");
-  expect(await h.read(id)).toEqual({ ...data, basemap: "standard", sidebar: "open", places: { ...data.places, live: { title: "Added live", lat: 38.64, lng: -90.24, order: 4, category: "parks" }, agent: { title: "Agent place", lat: 38.65, lng: -90.25, order: 5 } } });
+  expect(await h.read(id)).toEqual({
+    ...data,
+    basemap: "standard",
+    sidebar: "open",
+    places: {
+      ...data.places,
+      live: { title: "Added live", lat: 38.64, lng: -90.24, order: 4, category: "parks" },
+      [pushed.key]: { title: "Agent place", lat: 38.65, lng: -90.25, order: 5 },
+    },
+  });
+
+  await h.set(id, {
+    title: 42,
+    subtitle: {},
+    numbered: "yes",
+    basemap: "terrain",
+    sidebar: true,
+    categories: {
+      Zoo: { name: "Upper" },
+      apple: { name: "Lower" },
+      fallback: { name: "Fallback", icon: "unknown", color: "unknown" },
+      nameless: { icon: "heart", color: "pink" },
+      "-bad": { name: "Ignored", icon: "heart", color: "red" },
+    },
+    places: {
+      "10": { title: "Ten", lat: 38.61, lng: -90.21, order: 0, category: "apple" },
+      "2": { title: "Two", lat: 38.62, lng: -90.22, order: 0, category: "Zoo" },
+      Zoo: { title: "Uppercase", lat: 38.63, lng: -90.23, order: 0, category: "fallback", icon: "unknown" },
+      apple: { title: "Lowercase", lat: 38.64, lng: -90.24, order: 0 },
+      namelessPlace: { title: "Nameless category", lat: 38.645, lng: -90.245, order: 0, category: "nameless" },
+      "-push": {
+        title: "", lat: 38.65, lng: -90.25, order: "last", category: "-bad", description: 3,
+        photo: "http://example.com/photo.jpg", credit: { text: "Unsafe credit", url: "http://example.com" }, fields: [], extra: "ignored",
+      },
+      badCoordinates: { title: "Off map", lat: 120, lng: -90 },
+    },
+    extra: "ignored",
+  } as unknown as JSONValue);
+  await expect(rows(page)).toHaveText(["TwoUpper", "TenLower", "UppercaseFallback", "Lowercase", "Nameless category", "Untitled place"]);
+  await expect(page.locator('.map-pin[data-key="2"]')).toHaveAttribute("data-color", "red");
+  await expect(page.locator('.map-pin[data-key="10"]')).toHaveAttribute("data-color", "orange");
+  await expect(page.locator('.map-pin[data-key="Zoo"]')).toHaveAttribute("data-color", "yellow");
+  await expect(page.locator('.map-pin[data-key="Zoo"] [data-icon="pin"]')).toHaveCount(1);
+  await expect(page.locator('.map-pin[data-key="namelessPlace"]')).toHaveAttribute("data-color", "default");
+  await expect(page.locator('.map-pin[data-key="-push"]')).toHaveAttribute("data-color", "default");
+  await expect(page.locator('.map-pin[data-key="-push"] [data-icon="pin"]')).toHaveCount(1);
+  await expect(page.locator('.place-button[data-key="badCoordinates"]')).toHaveCount(0);
+  await expect(page.locator("#title")).toHaveText("Places");
+  await expect(page.locator("#subtitle")).toBeHidden();
+  await expect(page.locator(".pin-number, .list-badge")).toHaveCount(0);
+  await expect(page.locator("#layer-label")).toHaveText("Standard");
+  await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "true");
+  await h.set(id, true, "numbered");
+  await expect(page.locator(".list-badge")).toHaveText(["1.", "2.", "3.", "4.", "5.", "6."]);
+  await expect(page.locator(".pin-number")).toHaveText(["1", "2", "3", "4", "5", "6"]);
+  await h.set(id, "yes", "numbered");
+  await expect(page.locator(".pin-number, .list-badge")).toHaveCount(0);
+  await page.locator('.place-button[data-key="-push"]').click();
+  await expect(page.locator("#detail-title")).toHaveText("Untitled place");
+  await expect(page.locator("#detail-description")).toBeHidden();
+  await expect(page.locator("#detail-photo")).toBeHidden();
+  await expect(page.locator("#detail-credit")).toHaveText("Photo: Unsafe credit");
+  await expect(page.locator("#detail-credit a")).toHaveCount(0);
+  await expect(page.locator("#detail-fields")).toBeHidden();
+
+  await h.set(id, {
+    categories: [],
+    places: { solo: { title: "No category map", lat: 38.66, lng: -90.26, category: "Zoo" } },
+  } as unknown as JSONValue);
+  await expect(rows(page)).toHaveText(["No category map"]);
+  await expect(page.locator('.map-pin[data-key="solo"]')).toHaveAttribute("data-color", "default");
+  await h.set(id, { categories: {}, places: [] } as unknown as JSONValue);
+  await expect(page.getByText("No places yet", { exact: true })).toBeVisible();
+  await expect(alert(page)).toBeHidden();
+  await h.set(id, null);
+  await expect(page.getByText("No places yet", { exact: true })).toBeVisible();
+  await h.remove(id);
+  await expect(page.getByText("No places yet", { exact: true })).toBeVisible();
+  await expect(alert(page)).toBeHidden();
   expect(writes()).toEqual([]);
 });
 
-// proofs/arch/templates/map.md#^templates-map-ac-live
+// proofs/arch/templates/map.md#^templates-map-ac-connection
 test("read-only access loss and disconnection retain the last map and reconnect live", async ({ page }) => {
   const data = places();
   const id = await h.createStored(data as unknown as JSONValue);
@@ -176,24 +275,9 @@ test("read-only access loss and disconnection retain the last map and reconnect 
   expect(writes()).toEqual([]);
 });
 
-// proofs/arch/templates/map.md#^templates-map-ac-live
-test("unreadable and damaged data recover without repair while invalid coordinates are omitted", async ({ page }) => {
+// proofs/arch/templates/map.md#^templates-map-ac-recovery
+test("unreadable roots and terminal errors recover without repair", async ({ page }) => {
   const id = await open(page);
-  await h.set(id, { title: "Off map", lat: 120, lng: -90 }, "places/bad");
-  await expect(page.locator('.place-button[data-key="bad"]')).toHaveCount(0);
-  await h.set(id, { title: "Untitled fallback", lat: 38.7, lng: -90.3, category: "parks", icon: "unknown" }, "places/fallback");
-  await expect(page.locator('.map-pin[data-key="fallback"] [data-icon="park"]')).toHaveCount(1);
-
-  const later = places();
-  later.categories!["-ignored"] = { name: "Ignored", icon: "heart", color: "red" };
-  later.places!["-ignored"] = { title: "Ignored place", lat: 38.8, lng: -90.4 };
-  later.places!.uncategorised = { title: "Uncategorised", lat: 38.72, lng: -90.32, category: "-ignored", icon: "heart", extra: "ignored" };
-  await h.set(id, { ...later, extra: "ignored" } as unknown as JSONValue);
-  await expect(rows(page)).toHaveCount(4);
-  await expect(page.locator('.place-button[data-key="-ignored"]')).toHaveCount(0);
-  await expect(page.locator('.map-pin[data-key="uncategorised"] [data-icon="pin"]')).toHaveCount(1);
-  await expect(alert(page)).toBeHidden();
-
   await h.set(id, [] as unknown as JSONValue);
   await expectError(page);
   expect(writes()).toEqual([]);

@@ -153,7 +153,7 @@
           "title": {
             "type": "string",
             "minLength": 1,
-            "description": "Place name in the list, pin label, and details."
+            "description": "Place name in the list, pin label, and details. An absent later value uses the untitled-place fallback defined by the page."
           },
           "lat": {
             "type": "number",

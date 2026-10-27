@@ -2,6 +2,7 @@
 // selected key. The list remains mounted while details replace it visually.
 import { getStore, onConnectionStatusChanged, onValue, ref } from '/sdk/v1/resources.js';
 import { icons } from './vendor/lucide/icons.js';
+import { httpsURL, photoURL } from './map-model.js';
 
 const L = window.L;
 const byId = (id) => document.getElementById(id);
@@ -11,6 +12,7 @@ const narrow = matchMedia('(max-width: 640px)');
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const categoryColors = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'neutral'];
 const stableKey = /^[A-Za-z][A-Za-z0-9_-]*$/;
+const indexKey = /^(?:0|[1-9][0-9]*)$/;
 const maxMapZoom = 19;
 const pinSize = L.point(38, 48);
 const pinAnchor = L.point(19, 46);
@@ -28,6 +30,15 @@ let selectionOrigin = 'list', selectionOriginKey = null, listScrollTop = 0, side
 let locationSignature = '', storedBasemap, storedSidebar, basemap = 'standard', mapTitle = '';
 let sheetState = 'half', sheetHeight = 0, sheetPointer = null, sheetWheel = null;
 let sheetWheelTimer, suppressSheetClickUntil = 0;
+
+// Match the JSON store: numeric index keys first, then other keys by UTF-16.
+function compareStoreKeys(left, right) {
+  const leftIndex = indexKey.test(left);
+  const rightIndex = indexKey.test(right);
+  if (leftIndex !== rightIndex) return leftIndex ? -1 : 1;
+  if (leftIndex && left.length !== right.length) return left.length - right.length;
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 
 function element(tag, className, text) {
   const node = document.createElement(tag);
@@ -61,7 +72,7 @@ function readCategories(value) {
   const categories = new Map();
   if (!value || typeof value !== 'object' || Array.isArray(value)) return categories;
   let automaticColor = 0;
-  for (const key of Object.keys(value).sort()) {
+  for (const key of Object.keys(value).sort(compareStoreKeys)) {
     const category = value[key];
     if (!stableKey.test(key) || !category || typeof category.name !== 'string' || !category.name) continue;
     categories.set(key, {
@@ -71,21 +82,6 @@ function readCategories(value) {
     });
   }
   return categories;
-}
-
-// Later writes bypass schema validation. URLs must remain passive image/credit
-// references, and local paths must stay inside the copied artifact folder.
-function httpsURL(value) {
-  if (typeof value !== 'string' || !value.startsWith('https://') || /[\s\u0000-\u001f]/.test(value)) return null;
-  try { return new URL(value).protocol === 'https:' ? value : null; } catch { return null; }
-}
-
-function photoURL(value) {
-  if (typeof value !== 'string' || !value) return null;
-  if (value.startsWith('https://')) return httpsURL(value);
-  const path = value.startsWith('./') ? value.slice(2) : value;
-  if (path !== path.trim() || /[\\:%?#\u0000-\u001f]/.test(path) || path.split('/').some((part) => !part || part === '.' || part === '..')) return null;
-  return path;
 }
 
 function thumbnail(place) {
@@ -474,13 +470,13 @@ function render(value) {
   byId('subtitle').hidden = !byId('subtitle').textContent;
   const categories = readCategories(data.categories);
   places = Object.entries(data.places && typeof data.places === 'object' && !Array.isArray(data.places) ? data.places : {})
-    .filter(([key, place]) => stableKey.test(key) && place && Number.isFinite(place.lat) && Number.isFinite(place.lng) && Math.abs(place.lat) <= 90 && Math.abs(place.lng) <= 180)
+    .filter(([, place]) => place && Number.isFinite(place.lat) && Number.isFinite(place.lng) && Math.abs(place.lat) <= 90 && Math.abs(place.lng) <= 180)
     .map(([key, place]) => {
       const category = categories.get(place.category);
       const icon = category && typeof place.icon === 'string' && Object.hasOwn(icons, place.icon) ? place.icon : category?.icon || 'pin';
       return { ...place, key, title: typeof place.title === 'string' && place.title ? place.title : 'Untitled place', categoryName: category?.name || '', icon, color: category?.color || 'default' };
     })
-    .sort((a, b) => (Number.isFinite(a.order) ? a.order : Infinity) - (Number.isFinite(b.order) ? b.order : Infinity) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    .sort((a, b) => (Number.isFinite(a.order) ? a.order : Infinity) - (Number.isFinite(b.order) ? b.order : Infinity) || compareStoreKeys(a.key, b.key));
   markers.forEach((marker) => marker.remove());
   markers = [];
   rows = [];
@@ -564,7 +560,7 @@ function render(value) {
   const desiredBasemap = ['standard', 'satellite', 'hybrid'].includes(data.basemap) ? data.basemap : undefined;
   if (desiredBasemap !== storedBasemap) { storedBasemap = desiredBasemap; basemap = desiredBasemap || 'standard'; }
   setBasemap(basemap);
-  const signature = JSON.stringify(places.map((place) => [place.key, place.lat, place.lng]).sort((a, b) => a[0] < b[0] ? -1 : 1));
+  const signature = JSON.stringify(places.map((place) => [place.key, place.lat, place.lng]).sort((a, b) => compareStoreKeys(a[0], b[0])));
   if (signature !== locationSignature) { locationSignature = signature; fit(false); }
   else if (!wasSidebarOpen && sidebarOpen && selectedKey === null) fit();
   else reframe(previousOffset);

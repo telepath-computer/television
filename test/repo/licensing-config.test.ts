@@ -207,9 +207,11 @@ describe("licensing configuration", () => {
     expect(lucide.noticesFolder).toBe("packages/server/assets/templates/map");
     expect(lucide.components).toHaveLength(2);
     expect(lucide.components[0]).toMatchObject({ package: "lucide-static", version: "1.61.0", license: "ISC" });
-    expect(lucide.components[0].noticeText).toContain("Copyright (c) 2026 Lucide Icons and Contributors");
     expect(lucide.components[1]).toMatchObject({ name: "Feather icon material", license: "MIT" });
-    expect(lucide.components[1].noticeText).toContain("Copyright (c) 2013-present Cole Bemis");
+    const [lucideTerms, featherTerms] = readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/vendor/lucide/LICENSE"), "utf8")
+      .split("\n\n---\n\n");
+    expect(lucide.components[0].noticeText.trimEnd()).toBe(lucideTerms!.trimEnd());
+    expect(lucide.components[1].noticeText.trimEnd()).toBe(featherTerms!.trimEnd());
     expect(readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/index.html"), "utf8"))
       .toContain("Lucide and Feather icons. See THIRD-PARTY-NOTICES.txt");
 

@@ -14,7 +14,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `licensing.md` (41 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (32 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (93 lines) — *How the promises in Telemetry are proven.*
-  - `templates.md` (45 lines) — *Proves copied and URL template use through built CLI commands and the real app, including data isolation and principal failures.*
+  - `templates.md` (46 lines) — *Proves copied and URL template use through built CLI commands and the real app, including data isolation and principal failures.*
   - `themes-and-appearance.md` (55 lines) — *How the promises in Themes and appearance are proven.*
   - `update-notifications.md` (88 lines) — *How Television's update promises are proven: real browser and Electron journeys for the server-update notice, auto-reload, the desktop self-update notice, the desktop recommendation and the gate, and the desktop product's update check on a candidate build for the desktop app's own updates.*
   - `versioning.md` (27 lines) — *How Television's release versions are proven where users receive them: the packed CLI package and the desktop upload directory built from the same commit, the built `tv` process and running server, update details, and the native About panel in the desktop product's Mac install check.*
@@ -84,7 +84,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
-    - `map.md` (19 lines) — *Proves the bundled Map package and its live page delivery.*
+    - `map.md` (28 lines) — *Proves the bundled Map package and its live page delivery.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
