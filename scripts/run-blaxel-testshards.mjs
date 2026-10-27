@@ -15,7 +15,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import { randomUUID } from "node:crypto";
-import { renewLease, finishLease } from "./test/blaxel-lease-lifecycle.mjs";
+import { renewLease, finishLease, retainAttemptEvidence } from "./test/blaxel-lease-lifecycle.mjs";
 import { workerLeaseCommand, workerEntryCommand, shardScratchPath } from "./test/blaxel-worker-lease.mjs";
 import path from "node:path";
 import process from "node:process";
@@ -1069,36 +1069,6 @@ function confirmTeardown(lease) {
   return lease.teardownPromise;
 }
 
-async function retainAttemptEvidence(lease, directory) {
-  if (!lease.executionRequested) { lease.retrieved = true; return; }
-  const root = "/workspace/television/.testshards/results";
-  const identity = JSON.parse(await lease.sandbox.fs.read(`${root}/attempt.json`));
-  for (const key of ["lockId", "runId", "shardIndex", "attemptId"]) if (identity[key] !== lease.input[key]) throw new Error(`attempt evidence identity mismatch: ${key}`);
-  let evidence;
-  try { evidence = JSON.parse(await lease.sandbox.fs.read(`${root}/evidence.json`)); }
-  catch (error) {
-    if (lease.teardownConfirmed || error?.status !== 404) throw error;
-    // Teardown uncertainty must not prevent retaining already-produced evidence.
-    const files = [];
-    const collect = async (directory) => {
-      const listing = await lease.sandbox.fs.ls(directory);
-      for (const file of listing.files ?? []) files.push(path.posix.relative(root, `${directory}/${file.name}`));
-      for (const child of listing.subdirectories ?? []) await collect(`${directory}/${child.name}`);
-    };
-    await collect(root);
-    evidence = { runId: lease.input.runId, attemptId: lease.input.attemptId, files };
-  }
-  if (evidence.runId !== lease.input.runId || evidence.attemptId !== lease.input.attemptId || !Array.isArray(evidence.files)) throw new Error("invalid retained-evidence inventory");
-  for (const name of evidence.files) {
-    // Optional diagnostic reads use their bounded, warning-only transport below.
-    // They must not make a native result fail or bypass its retention budget.
-    if (typeof name === "string" && name.startsWith("resources/")) continue;
-    if (typeof name !== "string" || name.startsWith("/") || name.split("/").includes("..")) throw new Error("invalid evidence path");
-    const raw = await lease.sandbox.fs.read(`${root}/${name}`);
-    const target = path.join(directory, "artifacts", `shard-${lease.shardIndex}`, name);
-    fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, raw);
-  }
-}
 
 async function beforeDownload(lease) {
   if (process.env.TV_TEST_RUNNER_SELFTEST !== "1" || !process.env.TV_BLAXEL_DOWNLOAD_GATE) return;

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test as platformTest, vi } from "vitest";
 import { workerLeaseOperation, cleanWorkerTemporaryDirectories } from "../../scripts/test/blaxel-worker-lease.mjs";
-import { finishLease, renewLease } from "../../scripts/test/blaxel-lease-lifecycle.mjs";
+import { finishLease, renewLease, retainAttemptEvidence } from "../../scripts/test/blaxel-lease-lifecycle.mjs";
 import { publishWorker, deleteWorker } from "../../scripts/test/blaxel-pool-lifecycle.mjs";
 
 // Contract clocks, owner audits/signals and SDK operations are substitutions.
@@ -164,4 +164,29 @@ test("failed deletion of never-published workers remains retryable without their
   await expect(deleteWorker(sandbox, ops)).rejects.toThrow("provider unavailable");
   await deleteWorker(sandbox, ops);
   expect(ops.reserve).not.toHaveBeenCalled(); expect(ops.update).not.toHaveBeenCalled(); expect(ops.remove).toHaveBeenCalledTimes(2);
+});
+
+test("preparation evidence is downloaded before an undispatched attempt releases", async () => {
+  const f = fixture();
+  const hooks = { scanOwners: async () => [], stopOwners: async () => [] };
+  await workerLeaseOperation(f.input, hooks);
+  await workerLeaseOperation({ ...f.input, operation: "prepare" }, hooks);
+  writeFileSync(path.join(f.input.resultsRoot, "preparation.txt"), "produced before dispatch");
+  const directory = path.join(f.tmpRoot, "download");
+  const lease = { preparationRequested: true, executionRequested: false, teardownConfirmed: true,
+    shardIndex: 1, input: f.input, sandbox: { fs: {
+      read: async (file: string) => readFileSync(file.replace("/workspace/television/.testshards/results", f.input.resultsRoot), "utf8"),
+      ls: async () => { throw Error("confirmed teardown must supply its inventory"); },
+    } },
+  };
+  await finishLease({
+    settleWrites: async () => {}, assertOwned: () => {},
+    teardown: async () => { expect((await workerLeaseOperation({ ...f.input, operation: "teardown" }, hooks)).ok).toBe(true); },
+    download: () => retainAttemptEvidence(lease, directory),
+    release: async () => {
+      expect(existsSync(path.join(directory, "artifacts/shard-1/preparation.txt"))).toBe(true);
+      expect(readFileSync(path.join(directory, "artifacts/shard-1/preparation.txt"), "utf8")).toBe("produced before dispatch");
+      expect((await workerLeaseOperation({ ...f.input, operation: "release", retrieved: true }, hooks)).ok).toBe(true);
+    },
+  });
 });
