@@ -2,7 +2,7 @@
 
 # Markdown tables — buffer
 
-**Plain English:** viewing or navigating a table must not rewrite the Markdown file. Editing a cell keeps untouched content and formatting; explicit changes to the table structure can still reformat the table. Links work like other Markdown links, and rendering does not depend on first changing the source.
+**Plain English:** viewing or navigating a table must not rewrite the Markdown document. Editing a cell keeps untouched content and formatting; explicit changes to the table structure can still reformat the table. Links work like other Markdown links, and rendering does not depend on first changing the source.
 
 ## Authority
 

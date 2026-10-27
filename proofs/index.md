@@ -26,7 +26,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **arch/**
   - `canonical.md` (36 lines) — *How the promises in Canonical are proven.*
   - `developer-skills.md` (21 lines) — *Developer skill installation proven through real temporary homes and installer processes.*
-  - `licensing.md` (29 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
+  - `licensing.md` (30 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (24 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
   - `testing-policy.md` (9 lines) — *How the testing policy’s development discipline is checked.*
@@ -84,7 +84,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
-    - `markdown.md` (49 lines) — *Proves the bundled Markdown package, versioned shared editor, blank start, scoped saves, live store binding, and sandboxed link route.*
+    - `markdown.md` (47 lines) — *Proves the bundled Markdown package, self-contained editor, blank start, scoped saves, live store binding, and sandboxed link route.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
