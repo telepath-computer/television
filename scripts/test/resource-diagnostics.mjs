@@ -83,16 +83,16 @@ export function readLinuxResourceProbe(name, options = {}) {
     return stats.bavail * stats.bsize;
   }
   if (name === "kernelOOM") {
-    // Calendar bounds work with the worker's util-linux/libc time parser;
-    // explicit UTC prevents local-time interpretation of our ISO observations.
-    const calendar = (value) => new Date(value).toISOString().slice(0, -1).replace("T", " ");
-    const result = spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", calendar(options.since), "--until", calendar(options.until)], { encoding: "utf8", env: { ...process.env, TZ: "UTC", LC_ALL: "C" }, timeout: 2000, maxBuffer: 128 * 1024 });
+    // The worker's util-linux 2.38 accepts whole-second calendar bounds. Read
+    // an enclosing UTC window, then filter its output to our exact interval.
+    const calendar = (value) => new Date(value).toISOString().slice(0, 19).replace("T", " ");
+    const result = spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", calendar(Date.parse(options.since) - 1), "--until", calendar(Date.parse(options.until) + 1000)], { encoding: "utf8", env: { ...process.env, TZ: "UTC", LC_ALL: "C" }, timeout: 2000, maxBuffer: 128 * 1024 });
     const truncated = result.error?.code === "ENOBUFS";
     if (!truncated && (result.error || result.status !== 0)) {
       const permissionCode = /operation not permitted/i.test(result.stderr ?? "") ? "EPERM" : /permission denied/i.test(result.stderr ?? "") ? "EACCES" : "unavailable";
       throw Object.assign(new Error("Kernel log unavailable"), { code: result.error?.code ?? permissionCode });
     }
-    return { lines: (result.stdout ?? "").split("\n"), truncated };
+    return { ...kernelLinesInInterval((result.stdout ?? "").split("\n"), options), truncated };
   }
   const file = name === "oomKills" ? "/proc/vmstat" : "/proc/meminfo";
   const key = name === "oomKills" ? "oom_kill" : name === "memoryAvailable" ? "MemAvailable:" : "Shmem:";
@@ -108,7 +108,17 @@ function counterDelta(start, end) {
 }
 
 export function kernelLinesInInterval(lines, interval) {
-  return { lines, omittedUnrecognizedLines: 0 };
+  const since = Date.parse(interval.since);
+  const until = Date.parse(interval.until);
+  let omittedUnrecognizedLines = 0;
+  const retained = lines.filter((line) => {
+    if (!/out of memory|oom[-_ ]kill|killed process/i.test(line)) return false;
+    const timestamp = line.split(/\s/, 1)[0].replace(",", ".").replace(/\.(\d{3})\d+/, ".$1");
+    const time = Date.parse(timestamp);
+    if (!Number.isFinite(time)) { omittedUnrecognizedLines++; return false; }
+    return time >= since && time <= until;
+  });
+  return { lines: retained, omittedUnrecognizedLines };
 }
 
 function nativeEvidence(outcome, diagnosticDir, warn) {
