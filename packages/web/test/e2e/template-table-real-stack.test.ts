@@ -1,5 +1,5 @@
 /** Real browser acceptance for the copied editable Table and its JSON store. */
-import { readFileSync, renameSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Frame, Locator, Page } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
@@ -49,6 +49,7 @@ const header = (page: Page | Frame, column: number): Locator =>
 const rowButton = (page: Page | Frame, row: number): Locator => page.getByRole("button", { name: `Select row ${row + 1}`, exact: true });
 const columnButton = (page: Page | Frame, column: string): Locator => page.getByRole("button", { name: `Select column ${column}`, exact: true });
 const editor = (page: Page | Frame): Locator => page.locator(".table-input");
+const status = (page: Page | Frame): Locator => page.locator(".table-status");
 
 async function open(page: Page, value: TableData = fixture()): Promise<string> {
   const id = await h.createStored(value);
@@ -76,6 +77,8 @@ async function blankAreaBelowGrid(page: Page): Promise<{ x: number; y: number }>
 }
 
 // proofs/ui/templates/table.md#^table-ac-new
+// proofs/ui/templates/table.md#^table-ac-selection
+// proofs/ui/templates/table.md#^table-ac-keyboard
 // proofs/arch/templates/table.md#^templates-table-t-assets
 // proofs/product/templates.md delegates the bundled creation journey to table-ac-new.
 test("a new Table draws four by four without writing, then its independent copy edits", async ({ page }) => {
@@ -107,6 +110,7 @@ test("a new Table draws four by four without writing, then its independent copy 
       .toEqual(readFileSync(path.resolve(import.meta.dirname, `../../../server/assets/templates/table/${name}`)));
   }
   expect(responses.some(response => response.url.includes("/canonical/v2/components.js"))).toBe(true);
+  expect(responses.some(response => response.url.includes("/canonical/v2/styles.css"))).toBe(true);
   expect(responses.some(response => response.url.includes("/sdk/v1/resources.js"))).toBe(true);
   expect(requests.some(url => /storybook|\/specs\//.test(url))).toBe(false);
 
@@ -158,6 +162,7 @@ test("object-property column keys render as ordinary columns", async ({ page }) 
 
 // proofs/ui/templates/table.md#^table-ac-rows
 // proofs/ui/templates/table.md#^table-ac-editing
+// proofs/ui/templates/table.md#^table-ac-selection
 // proofs/ui/templates/table.md#^table-ac-keyboard
 test("stored values render in order and spreadsheet editing follows pointer and keyboard", async ({ page }) => {
   const value = fixture();
@@ -213,6 +218,8 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await scroll.evaluate(element => element.scrollTo(0, 0));
 
   await cell(page, 0, 0).click();
+  await expect(rowButton(page, 0)).toHaveAttribute("data-emphasis", "related");
+  await expect(columnButton(page, "A")).toHaveAttribute("data-emphasis", "related");
   for (let index = 0; index < 25; index += 1) await page.keyboard.press("ArrowDown");
   await expect.poll(() => scroll.evaluate(element => element.scrollTop > 0)).toBe(true);
   const focusedCellBox = await page.locator('[data-cell][data-selection="cell"]').boundingBox();
@@ -384,6 +391,13 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
   await expect.poll(() => h.read(id, "columns/c2/name")).toBe("Region");
   await expect(cell(page, 0, 1)).toBeFocused();
 
+  await header(page, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Park name");
+  await editor(page).press("Shift+Enter");
+  await expect.poll(() => h.read(id, "columns/c1/name")).toBe("Park name");
+  await expect(header(page, 0)).toBeFocused();
+
   const rowCount = Object.keys((await h.read<TableData>(id))!.rows).length;
   await cell(page, 5, 1).click();
   await page.keyboard.press("Enter");
@@ -506,6 +520,25 @@ test("an editor survives redraw and a pending Return accepts the next edit", asy
   await expect(editor(page)).toHaveValue("N");
 });
 
+// proofs/ui/templates/table.md#^table-ac-editing
+test("a click acts on its target after the previous edit applies locally", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("First save");
+
+  h.proxy.holdWrites();
+  await cell(page, 1, 1).click();
+  await page.keyboard.type("N");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("N");
+
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("First save");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("N");
+});
+
 // proofs/ui/templates/table.md#^table-ac-new
 // proofs/ui/templates/table.md#^table-ac-editing
 test("a held first commit in a blank Table keeps drawn-cell entry continuous", async ({ page }) => {
@@ -555,6 +588,8 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await rowButton(page, 3).click({ modifiers: ["Shift"] });
   await expect(rowButton(page, 1)).toHaveAttribute("aria-pressed", "true");
   await expect(rowButton(page, 3)).toHaveAttribute("aria-pressed", "true");
+  await expect(rowButton(page, 2)).toHaveAttribute("data-emphasis", "selected");
+  await expect(cell(page, 2, 0)).toHaveAttribute("data-selection", "range");
   await expect(rowButton(page, 1)).toHaveAttribute("tabindex", "0");
   await expect(rowButton(page, 2)).toHaveAttribute("tabindex", "-1");
   await expect(rowButton(page, 3)).toHaveAttribute("tabindex", "-1");
@@ -580,7 +615,7 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const insertedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeInsert.includes(key));
   expect(insertedRowKey).toBeDefined();
   expect(writes().slice(beforeRowInsert)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${insertedRowKey}` }));
-  await expect(page.locator('.table-reference-item[aria-pressed="true"]')).toHaveText(/\d/);
+  await expect(rowButton(page, 4)).toHaveAttribute("aria-pressed", "true");
 
   const rowsBeforeAdd = Object.keys((await h.read<TableData>(id))!.rows);
   const beforeRowAdd = writes().length;
@@ -589,7 +624,7 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const addedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeAdd.includes(key));
   expect(addedRowKey).toBeDefined();
   expect(writes().slice(beforeRowAdd)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${addedRowKey}` }));
-  await expect(page.locator('[data-cell][data-selection="cell"]')).toBeFocused();
+  await expect(cell(page, 7, 0)).toBeFocused();
 
   await columnButton(page, "A").click();
   const beforeColumnClear = writes().length;
@@ -622,7 +657,7 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const addedColumnKey = Object.keys((await h.read<TableData>(id))!.columns).find(key => !columnsBeforeAdd.includes(key));
   expect(addedColumnKey).toBeDefined();
   expect(writes().slice(beforeColumnAdd)).toContainEqual(expect.objectContaining({ kind: "set", path: `columns/${addedColumnKey}` }));
-  await expect(page.locator('[data-cell][data-selection="cell"]')).toBeFocused();
+  await expect(cell(page, 0, 5)).toBeFocused();
 
   await columnButton(page, "A").click({ button: "right" });
   const columnMenu = page.getByRole("menu", { name: "Column actions" });
@@ -834,7 +869,7 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await cell(page, 0, 0).click();
   await page.getByRole("button", { name: "Add row at end" }).click();
   await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(5);
-  await expect(page.locator('[data-cell][data-selection="cell"]')).toBeFocused();
+  await expect(cell(page, 4, 0)).toBeFocused();
   expect(writes().filter(write => write.kind === "compare-and-set" && write.path === "rows").length)
     .toBeGreaterThan(transactionsBeforeAppend);
 
@@ -878,4 +913,365 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   expect(abortedWrites).toHaveLength(1);
   expect(abortedWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
   expect(await h.read(id, "rows/r1/cells")).toEqual({});
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+});
+
+// proofs/ui/templates/table.md#^table-ac-live
+test("agent commands and a second viewer update live while stored-key edits stay attached", async ({ page, context }) => {
+  const id = await open(page);
+  const other = await context.newPage();
+  await h.open(other, id);
+
+  await cell(page, 1, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Local draft");
+  await editor(page).evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(5, 5));
+  h.product.runCLI(["resource", "json", "set", "--artifact", id, "columns/c1/name", '"Place"']);
+  await expect(header(page, 0)).toHaveText("Place");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Local draft");
+
+  await h.set(id, -1, "rows/r2/order");
+  await expect(page.locator('[data-row-key="r2"][data-column-key="c2"] .table-input')).toBeFocused();
+  await expect(editor(page)).toHaveValue("Local draft");
+  expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe(5);
+
+  await h.set(id, "Agent same field", "rows/r2/cells/c2");
+  await expect(editor(page)).toHaveValue("Local draft");
+  expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe(5);
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Local draft");
+
+  await page.locator('[data-row-key="r2"][data-column-key="c2"]').click();
+  await page.keyboard.press("Enter");
+  const beforeUnchangedCommit = writes().length;
+  await h.set(id, "Latest agent value", "rows/r2/cells/c2");
+  await expect(editor(page)).toHaveValue("Local draft");
+  await editor(page).press("Enter");
+  await expect(page.locator('[data-row-key="r2"][data-column-key="c2"]')).toHaveText("Latest agent value");
+  expect(writes()).toHaveLength(beforeUnchangedCommit);
+
+  await cell(other, 1, 0).click();
+  await other.keyboard.type("Other viewer");
+  await editor(other).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Other viewer");
+  await expect(cell(page, 1, 0)).toHaveText("Other viewer");
+
+  await page.locator('[data-row-key="r2"][data-column-key="c2"]').click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Removed draft");
+  const beforeRemoval = writes().length;
+  h.product.runCLI(["resource", "json", "remove", "--artifact", id, "rows/r2"]);
+  await expect(editor(page)).toHaveCount(0);
+  await expect(page.locator('[data-row-key="r2"]')).toHaveCount(0);
+  expect(writes()).toHaveLength(beforeRemoval);
+
+  await header(page, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Header draft");
+  await h.set(id, false, "showHeader");
+  await expect(editor(page)).toHaveCount(0);
+  await expect(page.getByRole("columnheader")).toHaveCount(0);
+
+  await h.set(id, { columns: { c1: { order: 1 } }, rows: { r1: { order: 1, cells: {} } } });
+  await cell(page, 2, 2).click();
+  await page.keyboard.type("Drawn draft");
+  const beforeIdentityChange = writes().length;
+  await h.set(id, { order: 2, cells: {} }, "rows/agent-row");
+  await expect(editor(page)).toHaveCount(0);
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  expect(writes()).toHaveLength(beforeIdentityChange);
+
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("Person");
+  await h.set(id, "Agent", "rows/agent-row/cells/c1");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Person");
+  expect(await h.read(id, "rows/agent-row/cells/c1")).toBe("Agent");
+  await other.close();
+});
+
+// proofs/ui/templates/table.md#^table-ac-live
+test("live selection follows stored keys and closes with its menu when the key is removed", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 1, 1).click();
+  await h.set(id, -1, "rows/r2/order");
+  await expect(page.locator('[data-row-key="r2"][data-column-key="c2"]')).toHaveAttribute("data-selection", "cell");
+
+  await page.keyboard.press("Shift+F10");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Insert row above" })).toBeFocused();
+  await h.set(id, "Destination", "columns/c1/name");
+  await expect(page.getByRole("menuitem", { name: "Insert row above" })).toBeFocused();
+  await h.remove(id, "rows/r2");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+});
+
+// proofs/ui/templates/table.md#^table-ac-access
+test("real share access changes preserve a navigable read-only table and close write UI", async ({ page }) => {
+  const id = await h.createStored(fixture());
+  const share = await h.client.resources.share({ artifactID: id, access: "read" });
+  await h.open(page, id, share.shareID);
+  await expect(grid(page)).toBeVisible();
+  await cell(page, 1, 1).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(cell(page, 1, 2)).toBeFocused();
+  await page.keyboard.type("Ignored");
+  await page.keyboard.press("Delete");
+  await rowButton(page, 1).click({ button: "right" });
+  await expect(editor(page)).toHaveCount(0);
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  expect(await h.read(id, "rows/r2/cells/c3")).toBe(true);
+  await h.set(id, "Agent update", "rows/r2/cells/c3");
+  await expect(cell(page, 1, 2)).toHaveText("Agent update");
+
+  await h.set(id, { columns: {}, rows: {} });
+  await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  await expect(grid(page)).toHaveAttribute("aria-colcount", "4");
+  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await h.set(id, fixture());
+  await expect(cell(page, 1, 2)).toHaveText("true");
+
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await cell(page, 1, 2).click();
+  await page.keyboard.type("Shared edit");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r2/cells/c3")).toBe("Shared edit");
+
+  await cell(page, 1, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Discarded draft");
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await expect(editor(page)).toHaveCount(0);
+  expect(await h.read(id, "rows/r2/cells/c2")).toBe("Utah");
+
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await cell(page, 0, 0).click();
+  await rowButton(page, 0).click({ button: "right" });
+  await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await expect(page.getByRole("menu")).toHaveCount(0);
+
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Revoked draft");
+  await h.client.resources.unshare({ artifactID: id });
+  await expect(editor(page)).toHaveCount(0);
+  await expect(grid(page)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+
+  const unreadID = await h.createStored(fixture());
+  const unreadShare = await h.client.resources.share({ artifactID: unreadID, access: "read" });
+  h.proxy.hold("to-browser");
+  await h.open(page, unreadID, unreadShare.shareID);
+  await expect(page.locator(".table-loading")).toBeVisible();
+  await h.proxy.waitFor(() => h.proxy.openWebSockets > 0);
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await h.client.resources.unshare({ artifactID: unreadID });
+  h.proxy.release("to-browser");
+  h.proxy.refuse(false);
+  await expect(page.getByRole("alert")).toContainText("This table can't be shown");
+});
+
+// proofs/ui/templates/table.md#^table-ac-loading
+test("first load keeps one status region through disconnection and recovery", async ({ page }) => {
+  const id = await h.createStored(fixture());
+  h.proxy.hold("to-browser");
+  await h.open(page, id);
+  await expect(page.locator(".table-loading")).toBeVisible();
+  await page.evaluate(() => Object.assign(window, { tableStatusRegion: document.querySelector(".table-status") }));
+  await h.proxy.waitFor(() => h.proxy.openWebSockets > 0);
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(page.locator(".table-loading")).toBeVisible();
+  expect(await page.evaluate(() => document.querySelector(".table-status") === (window as unknown as { tableStatusRegion: Element }).tableStatusRegion)).toBe(true);
+  h.proxy.release("to-browser");
+  h.proxy.refuse(false);
+  await expect(grid(page)).toBeVisible();
+  await expect(status(page)).toHaveText("");
+});
+
+// proofs/ui/templates/table.md#^table-ac-disconnection
+test("disconnection keeps an open editor, blocks commits and rolls back an unacknowledged save", async ({ page }) => {
+  const id = await open(page);
+  await page.evaluate(() => Object.assign(window, { tableStatusRegion: document.querySelector(".table-status") }));
+
+  await cell(page, 0, 0).click();
+  await rowButton(page, 0).click({ button: "right" });
+  await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(status(page)).toHaveText("Reconnecting…");
+  h.proxy.refuse(false);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Offline draft");
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(editor(page)).toHaveValue("Offline draft");
+  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await editor(page).press("Enter");
+  await editor(page).press("Tab");
+  await cell(page, 1, 1).click();
+  await expect(editor(page)).toHaveValue("Offline draft");
+  await expect(editor(page)).toBeFocused();
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+  await editor(page).press("Escape");
+  await expect(cell(page, 0, 0)).toHaveAttribute("data-selection", "cell");
+
+  h.proxy.refuse(false);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  expect(await page.evaluate(() => document.querySelector(".table-status") === (window as unknown as { tableStatusRegion: Element }).tableStatusRegion)).toBe(true);
+
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("Confirmed online");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Confirmed online");
+
+  h.proxy.holdWrites();
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("Unconfirmed");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await expect(cell(page, 0, 0)).toHaveText("Unconfirmed");
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(cell(page, 0, 0)).toHaveText("Confirmed online");
+  await expect(editor(page)).toHaveCount(0);
+  h.proxy.refuse(false);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Confirmed online");
+});
+
+// proofs/ui/templates/table.md#^table-ac-save-failure
+test("a refused save and aborted renumbering use the established failure status", async ({ page }) => {
+  const id = await h.createStored(fixture());
+  const share = await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await h.open(page, id, share.shareID);
+  await expect(grid(page)).toBeVisible();
+  await page.evaluate(() => Object.assign(window, { tableStatusRegion: document.querySelector(".table-status") }));
+  const connection = h.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
+  h.proxy.holdWrites();
+  h.proxy.holdServerMessages(connection, message => message.type === "access");
+  await cell(page, 3, 1).click();
+  await page.keyboard.type("Refused");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
+  h.proxy.releaseWrites();
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+  await expect(cell(page, 3, 1)).toHaveText("Washington");
+  expect(await page.evaluate(() => document.querySelector(".table-status") === (window as unknown as { tableStatusRegion: Element }).tableStatusRegion)).toBe(true);
+  h.proxy.releaseServerMessages(connection);
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
+  await cell(page, 3, 1).click();
+  await page.keyboard.type("Allowed");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r4/cells/c2")).toBe("Allowed");
+
+  await h.set(id, {
+    columns: { c1: { order: Number.MAX_VALUE } },
+    rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
+  });
+  await cell(page, 1, 1).click();
+  await page.keyboard.type("Two axes");
+  await editor(page).press("Enter");
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+});
+
+// proofs/arch/templates/table.md#^templates-table-t-invalid-guard
+// proofs/ui/templates/table.md#^table-ac-unreadable
+test("unreadable data closes active UI, guards actions and recovers without replay", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Unsent draft");
+  await h.set(id, "not rows", "rows");
+  await expect(page.getByRole("alert")).toContainText("This table can't be shown");
+  await expect(editor(page)).toHaveCount(0);
+  await expect(page.getByRole("grid")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  const before = writes().length;
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Shift+F10");
+  expect(writes()).toHaveLength(before);
+  await h.set(id, fixture());
+  await expect(grid(page)).toBeVisible();
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+
+  h.proxy.holdWrites();
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("Already sent");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.set(id, [], "columns");
+  await expect(page.getByRole("alert")).toBeVisible();
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Already sent");
+  await h.set(id, fixture().columns, "columns");
+  await expect(grid(page)).toBeVisible();
+  await expect(cell(page, 0, 0)).toHaveText("Already sent");
+
+  await cell(page, 0, 0).click();
+  await rowButton(page, 0).click({ button: "right" });
+  await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
+  await h.set(id, [], "columns");
+  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.getByRole("menu")).toHaveCount(0);
+
+  await h.remove(id);
+  await expect(grid(page)).toBeVisible();
+  await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  await h.set(id, { rows: { r1: { order: 1, cells: {} } } });
+  await expect(grid(page)).toBeVisible();
+  await expect(page.locator('[data-row-key="r1"]')).toHaveCount(4);
+});
+
+// proofs/ui/templates/table.md#^table-ac-unreadable
+test("unreadable and unavailable states survive disconnection and recover", async ({ page }) => {
+  const id = await open(page);
+  await h.set(id, { columns: { broken: { name: "Ignored" } }, rows: { r1: { order: 1, cells: { missing: "Ignored" } } } });
+  await expect(grid(page)).toBeVisible();
+  await expect(page.locator('[data-row-key="r1"]')).toHaveCount(4);
+
+  await h.set(id, null);
+  await expect(page.getByRole("alert")).toContainText("Television can't read the saved table data");
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(page.getByRole("alert")).toBeVisible();
+  h.proxy.refuse(false);
+  await h.set(id, fixture());
+  await expect(grid(page)).toBeVisible();
+
+  const file = h.contentFile(id);
+  const original = readFileSync(file);
+  await h.restart(() => writeFileSync(file, "{not json"));
+  await expect(page.getByRole("alert")).toContainText("This table can't be shown", { timeout: 20_000 });
+  expect(readFileSync(file, "utf8")).toBe("{not json");
+  await h.restart(() => writeFileSync(file, original));
+  await expect(grid(page)).toBeVisible({ timeout: 20_000 });
+  await cell(page, 0, 0).click();
+  await page.keyboard.type("Recovered");
+  await editor(page).press("Enter");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Recovered");
 });

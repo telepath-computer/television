@@ -1,3 +1,4 @@
+/** Editable Table page: renders tolerant store state and scopes interactive writes. */
 import {
   deleteValue, getAccess, getConnectionStatus, getStore, onAccessChanged,
   onConnectionStatusChanged, onValue, push, ref, remove, runTransaction, set, update,
@@ -12,6 +13,7 @@ import {
 } from "./selection-model.js";
 
 const main = document.querySelector(".table-page");
+const statusRegion = main.querySelector(".table-status");
 const store = getStore();
 const root = ref(store);
 
@@ -20,7 +22,9 @@ let model;
 let received = false;
 let unavailable = false;
 let access = null;
+let accessKnown = false;
 let connection = getConnectionStatus();
+let unsubscribe = null;
 let selection = null;
 let editing = null;
 let menu = null;
@@ -222,7 +226,8 @@ function replaceContents(markup) {
   menuObserver?.disconnect();
   menuObserver = null;
   rendering = true;
-  main.innerHTML = markup;
+  for (const child of [...main.children]) if (child !== statusRegion) child.remove();
+  statusRegion.insertAdjacentHTML("beforebegin", markup);
   rendering = false;
   const menuElement = main.querySelector("tv-menu");
   if (!menuElement) return;
@@ -240,6 +245,9 @@ function replaceContents(markup) {
 function render(focus = "none", nextAxes = buildAxes()) {
   const previousSelectionTarget = selectionTarget();
   const selectionFocused = previousSelectionTarget !== null && document.activeElement === previousSelectionTarget;
+  const gridFocused = document.activeElement === main.querySelector(".table-grid");
+  const focusedMenuItem = document.activeElement?.closest?.("tv-menu-item");
+  const focusedMenuIndex = focusedMenuItem ? [...main.querySelectorAll("tv-menu-item")].indexOf(focusedMenuItem) : -1;
   renderedAxes = nextAxes;
   const scroll = main.querySelector(".table-scroll");
   const scrollPosition = scroll ? { left: scroll.scrollLeft, top: scroll.scrollTop } : null;
@@ -250,19 +258,20 @@ function render(focus = "none", nextAxes = buildAxes()) {
     end: previousEditor.selectionEnd,
     direction: previousEditor.selectionDirection,
   } : null;
-  if (!received) {
-    main.dataset.editable = "false";
-    replaceContents(`<div class="table-loading" role="status" aria-label="Loading table"><tv-icon name="spinner" size="md" spinning></tv-icon></div>
-      <div class="table-status" role="status"></div>`);
-    return;
-  }
-  if (unavailable || model === null) {
+  if (unavailable || received && model === null) {
     main.dataset.editable = "false";
     replaceContents(`<section class="table-unreadable" role="alert">
       <span class="table-unreadable-icon"><tv-icon name="warning" size="xl"></tv-icon></span>
       <h1 class="table-unreadable-title">This table can't be shown</h1>
       <p class="table-unreadable-text">Television can't read the saved table data. Ask your agent to check the data and access.</p>
-    </section><div class="table-status" role="status"></div>`);
+    </section>`);
+    renderStatus();
+    return;
+  }
+  if (!received) {
+    main.dataset.editable = "false";
+    replaceContents(`<div class="table-loading" role="status" aria-label="Loading table"><tv-icon name="spinner" size="md" spinning></tv-icon></div>`);
+    renderStatus();
     return;
   }
 
@@ -288,19 +297,23 @@ function render(focus = "none", nextAxes = buildAxes()) {
         <colgroup>${displayed.columns.map(() => '<col class="table-data-column">').join("")}</colgroup>${header}<tbody>${body}</tbody>
       </table>
     </div></div>
-  </div>${contextMenu()}<div class="table-status" role="status">${failure ? "Couldn't save that change." : ""}</div>`);
+  </div>${contextMenu()}`);
+  renderStatus();
 
   const nextScroll = main.querySelector(".table-scroll");
   if (nextScroll && scrollPosition) nextScroll.scrollTo(scrollPosition.left, scrollPosition.top);
   const nextEditor = main.querySelector(".table-input");
   if (nextEditor instanceof HTMLTextAreaElement && editing) nextEditor.value = editing.text;
-  if (focus === "none" && !editorState?.focused && !selectionFocused) return;
+  if (focus === "none" && !editorState?.focused && !selectionFocused && !gridFocused && focusedMenuIndex < 0) return;
   queueMicrotask(() => {
     const preservingEditor = focus === "none" && editorState?.focused;
     const preservingSelection = focus === "none" && selectionFocused;
+    const preservingMenu = focus === "none" && focusedMenuIndex >= 0;
     const target = preservingEditor || focus === "editor" ? main.querySelector(".table-input")
       : focus === "grid" ? main.querySelector(".table-grid")
         : focus === "menu" ? main.querySelector("tv-menu-item")
+          : preservingMenu ? main.querySelectorAll("tv-menu-item")[focusedMenuIndex]
+            : focus === "none" && gridFocused ? main.querySelector(".table-grid")
           : preservingSelection || focus === "selection" ? selectionTarget() : null;
     suppressGridEntry = focus === "grid";
     target?.focus({ preventScroll: true });
@@ -323,30 +336,42 @@ function reserveKeys(axis, count = 8) {
   return Array.from({ length: count }, () => push(parent).key);
 }
 
-async function applyOperations(operations) {
+function applyOperations(operations) {
   if (operations.length === 0) return;
   if (operations.length === 1) {
     const operation = operations[0];
     const target = ref(store, operation.path.join("/"));
-    await (operation.kind === "set" ? set(target, operation.value) : remove(target));
-    return;
+    return operation.kind === "set" ? set(target, operation.value) : remove(target);
   }
   const entries = Object.fromEntries(operations.map(operation => [
     operation.path.join("/"), operation.kind === "set" ? operation.value : deleteValue(),
   ]));
-  await update(root, entries);
+  return update(root, entries);
 }
 
 function showFailure() {
   failure = true;
   clearTimeout(failureTimer);
-  failureTimer = setTimeout(() => { failure = false; render(); }, 4000);
-  render();
+  failureTimer = setTimeout(() => { failure = false; renderStatus(); }, 4000);
+  renderStatus();
 }
 
-async function applyPlan(plan, echoSelection = null, focusEcho = true) {
+function renderStatus() {
+  const message = connection === "disconnected" ? "Reconnecting…" : failure ? "Couldn't save that change." : "";
+  if (statusRegion.textContent !== message) statusRegion.textContent = message;
+}
+
+function startWithActionEcho(start, actionEcho) {
+  pageActionSelection = actionEcho;
+  try {
+    return start();
+  } finally {
+    pageActionSelection = null;
+  }
+}
+
+async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalApply = null) {
   if (!canWrite()) return false;
-  const previousPageActionSelection = pageActionSelection;
   const actionVersion = interactionVersion;
   const currentPageActionSelection = echoSelection
     ? nextAxes => {
@@ -354,24 +379,33 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true) {
       return selected ? { selection: selected, focus: focusEcho } : null;
     }
     : null;
-  pageActionSelection = currentPageActionSelection;
   if (plan.kind === "no-write") {
     if (plan.reason === "multiple-renumbering-required") showFailure();
-    if (pageActionSelection === currentPageActionSelection) pageActionSelection = previousPageActionSelection;
-    return !["unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys", "multiple-renumbering-required"].includes(plan.reason);
+    const accepted = !["unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys", "multiple-renumbering-required"].includes(plan.reason);
+    if (accepted) onLocalApply?.();
+    return accepted;
   }
   try {
     if (plan.kind === "renumber") {
-      const outcome = await runTransaction(ref(store, plan.axis), createAxisRenumberUpdate(plan.request));
+      // A whole-store subscription gives runTransaction a held view, so its
+      // first optimistic value is delivered synchronously inside this call.
+      const pending = startWithActionEcho(
+        () => runTransaction(ref(store, plan.axis), createAxisRenumberUpdate(plan.request)),
+        currentPageActionSelection,
+      );
+      if (plan.operations.length === 0) onLocalApply?.();
+      const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
     }
-    await applyOperations(plan.operations);
+    if (plan.operations.length > 0) {
+      const pending = startWithActionEcho(() => applyOperations(plan.operations), currentPageActionSelection);
+      onLocalApply?.();
+      await pending;
+    }
     return true;
   } catch {
     showFailure();
     return false;
-  } finally {
-    if (pageActionSelection === currentPageActionSelection) pageActionSelection = previousPageActionSelection;
   }
 }
 
@@ -400,8 +434,21 @@ function beginEditing(kind, rowIndex, columnIndex, replacement) {
   render("editor");
 }
 
-async function commitEditing(command = null, restoreFocus = true) {
-  if (!editing || !canWrite()) return false;
+function reconcileEditing(active, displayed, showHeader) {
+  if (!active) return null;
+  const columnIndex = indexOf(displayed.columns, active.columnId);
+  if (columnIndex < 0) return null;
+  if (active.kind === "header") return showHeader ? { ...active, columnIndex } : null;
+  const rowIndex = indexOf(displayed.rows, active.rowId);
+  return rowIndex < 0 ? null : { ...active, rowIndex, columnIndex };
+}
+
+async function commitEditing(command = null, restoreFocus = true, onLocalApply = null) {
+  if (!editing) return false;
+  if (!canWrite()) {
+    render("editor");
+    return false;
+  }
   const active = editing;
   const completionVersion = interactionVersion;
   const plan = active.kind === "cell"
@@ -421,22 +468,11 @@ async function commitEditing(command = null, restoreFocus = true) {
   const echoSelection = nextAxes => selectionAtSamePosition(targetSelection, beforeSave, nextAxes);
   const focusTarget = !provisionalMove?.exit && restoreFocus;
   render(focusTarget ? "selection" : "leave");
-  const saved = await applyPlan(plan, echoSelection, focusTarget);
+  const saved = await applyPlan(plan, echoSelection, focusTarget, onLocalApply);
   if (!saved) {
     if (interactionVersion === completionVersion) render(focusTarget ? "selection" : "leave");
     return false;
   }
-  if (interactionVersion !== completionVersion) return true;
-
-  const displayed = axes();
-  selection = active.kind === "cell"
-    ? cellSelectionAt(displayed, Math.min(active.rowIndex, displayed.rows.length - 1), Math.min(active.columnIndex, displayed.columns.length - 1))
-    : headerSelectionAt(displayed, Math.min(active.columnIndex, displayed.columns.length - 1));
-  if (command) {
-    const moved = moveSelection(selection, command, displayed, { showHeader: model.showHeader });
-    selection = moved.selection;
-    render(moved.exit || !restoreFocus ? "leave" : "selection");
-  } else render(restoreFocus ? "selection" : "leave");
   return true;
 }
 
@@ -453,9 +489,7 @@ async function clearContents() {
   if (selection.kind === "cell") logical = { kind: "cell", ...selectedCellPosition() };
   else if (selection.kind === "header") logical = { kind: "header", ...selectedHeaderPosition() };
   else logical = { kind: selection.kind, ...axisRange(selection.kind) };
-  if (await applyPlan(planClear(value, logical), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader))) {
-    render("selection");
-  }
+  await applyPlan(planClear(value, logical), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader));
 }
 
 async function addAtEnd(axis) {
@@ -464,10 +498,7 @@ async function addAtEnd(axis) {
   const count = Math.max(0, 4 - model[axis].length) + 1;
   const keys = reserveKeys(axis);
   const newKey = keys[count - 1];
-  if (!await applyPlan(planAdd(value, axis, keys), nextAxes => selectionAfterAdd(previous, axis, newKey, nextAxes))) return;
-  selection = selectionAfterAdd(previous, axis, newKey, axes());
-  menu = null;
-  render("selection");
+  await applyPlan(planAdd(value, axis, keys), nextAxes => selectionAfterAdd(previous, axis, newKey, nextAxes));
 }
 
 async function performMenuAction(action) {
@@ -477,17 +508,12 @@ async function performMenuAction(action) {
   if (!range) return;
   menu = null;
   if (action === "toggle-header") {
-    if (await applyPlan(planSetHeader(!model.showHeader), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader))) {
-      render("selection");
-    }
+    await applyPlan(planSetHeader(!model.showHeader), nextAxes => reconcileSelection(selection, nextAxes, model.showHeader));
     return;
   }
   if (action === "delete") {
     const formerIndex = range.start;
-    if (await applyPlan(planDelete(value, axis, range), nextAxes => selectionAfterDelete(axis, formerIndex, nextAxes))) {
-      selection = selectionAfterDelete(axis, formerIndex, axes());
-      render("selection");
-    }
+    await applyPlan(planDelete(value, axis, range), nextAxes => selectionAfterDelete(axis, formerIndex, nextAxes));
     return;
   }
   const side = action === "insert-before" ? "before" : "after";
@@ -495,10 +521,7 @@ async function performMenuAction(action) {
   const drawnBefore = Math.max(0, insertionIndex - model[axis].length);
   const keys = reserveKeys(axis);
   const newKey = keys[drawnBefore];
-  if (await applyPlan(planInsert(value, axis, range, side, keys), nextAxes => selectionAfterInsert(axis, newKey, nextAxes))) {
-    selection = selectionAfterInsert(axis, newKey, axes());
-    render("selection");
-  }
+  await applyPlan(planInsert(value, axis, range, side, keys), nextAxes => selectionAfterInsert(axis, newKey, nextAxes));
 }
 
 function openMenu(kind, index, extend = false) {
@@ -530,38 +553,50 @@ main.addEventListener("click", event => { void handleClick(event); });
 async function handleClick(event) {
   if (!(event.target instanceof Element) || event.target instanceof HTMLTextAreaElement) return;
   interactionVersion += 1;
-  if (editing && !await commitEditing(null, false)) return;
-  const menuAction = event.target.closest("[data-menu-action]");
+  let actionApplied = false;
+  const applyClick = () => {
+    if (actionApplied) return;
+    actionApplied = true;
+    applyClickTarget(event.target, event.detail, event.shiftKey);
+  };
+  if (editing) {
+    if (!await commitEditing(null, false, applyClick) || actionApplied) return;
+  }
+  applyClick();
+}
+
+function applyClickTarget(target, detail, extend) {
+  const menuAction = target.closest("[data-menu-action]");
   if (menuAction) { void performMenuAction(menuAction.dataset.menuAction); return; }
-  const action = event.target.closest("[data-action]");
+  const action = target.closest("[data-action]");
   if (action) { void addAtEnd(action.dataset.action === "add-row" ? "rows" : "columns"); return; }
 
-  const rowButton = event.target.closest("[data-row-select]");
+  const rowButton = target.closest("[data-row-select]");
   if (rowButton) {
     menu = null;
-    selection = selectAxis(selection, "rows", Number(rowButton.dataset.rowIndex), event.shiftKey, axes());
+    selection = selectAxis(selection, "rows", Number(rowButton.dataset.rowIndex), extend, axes());
     render("selection");
     return;
   }
-  const columnButton = event.target.closest("[data-column-select]");
+  const columnButton = target.closest("[data-column-select]");
   if (columnButton) {
     menu = null;
-    selection = selectAxis(selection, "columns", Number(columnButton.dataset.columnIndex), event.shiftKey, axes());
+    selection = selectAxis(selection, "columns", Number(columnButton.dataset.columnIndex), extend, axes());
     render("selection");
     return;
   }
-  const header = event.target.closest("[data-header-text]");
+  const header = target.closest("[data-header-text]");
   if (header) {
     const columnIndex = Number(header.dataset.columnIndex);
-    if (event.detail > 1) beginEditing("header", null, columnIndex);
+    if (detail > 1) beginEditing("header", null, columnIndex);
     else { selection = headerSelectionAt(axes(), columnIndex); menu = null; render("selection"); }
     return;
   }
-  const cell = event.target.closest("[data-cell]");
+  const cell = target.closest("[data-cell]");
   if (cell) {
     const rowIndex = Number(cell.dataset.rowIndex);
     const columnIndex = Number(cell.dataset.columnIndex);
-    if (event.detail > 1) beginEditing("cell", rowIndex, columnIndex);
+    if (detail > 1) beginEditing("cell", rowIndex, columnIndex);
     else { selection = cellSelectionAt(axes(), rowIndex, columnIndex); menu = null; render("selection"); }
   }
 }
@@ -574,8 +609,8 @@ main.addEventListener("contextmenu", event => {
   if (!rowButton && !columnButton) return;
   event.preventDefault();
   if (editing) {
-    void commitEditing(null, false).then(saved => {
-      if (saved) openMenu(rowButton ? "rows" : "columns", Number((rowButton ?? columnButton).dataset[rowButton ? "rowIndex" : "columnIndex"]));
+    void commitEditing(null, false, () => {
+      openMenu(rowButton ? "rows" : "columns", Number((rowButton ?? columnButton).dataset[rowButton ? "rowIndex" : "columnIndex"]));
     });
     return;
   }
@@ -604,11 +639,21 @@ main.addEventListener("keydown", event => {
       editing = null;
       render("selection");
     } else if (event.key === "Enter" || event.key === "Tab") {
+      if (!canWrite()) {
+        event.preventDefault();
+        return;
+      }
       const command = event.key === "Tab" ? event.shiftKey ? "tab-backward" : "tab-forward"
         : event.shiftKey ? "up" : "down";
       const exits = event.key === "Tab" && moveSelection(selection, command, axes(), { showHeader: model.showHeader }).exit;
       if (!exits) event.preventDefault();
       void commitEditing(command);
+      if (exits) {
+        const exitVersion = interactionVersion;
+        setTimeout(() => {
+          if (interactionVersion === exitVersion && !editing) render("leave");
+        });
+      }
     }
     return;
   }
@@ -709,7 +754,7 @@ document.addEventListener("pointercancel", () => { pointerMovedFocus = false; },
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)
       || event.target.closest(".table-grid, .table-reference-strip, .table-reference-corner, tv-menu")) return;
-  if (editing) void commitEditing(null, false).then(saved => { if (saved) clearSelection("none"); });
+  if (editing) void commitEditing(null, false, () => clearSelection("none"));
   else if (selection) clearSelection("none");
 });
 
@@ -730,6 +775,7 @@ function acceptValue(next) {
   const nextAxes = buildAxes();
   let focus = "none";
   if (model !== null) {
+    editing = reconcileEditing(editing, nextAxes, model.showHeader);
     const actionEcho = pageActionSelection?.(nextAxes);
     if (actionEcho) {
       selection = actionEcho.selection;
@@ -737,7 +783,14 @@ function acceptValue(next) {
     } else {
       const reconciled = reconcileSelection(selection, nextAxes, model.showHeader);
       if (selection && !reconciled) { selection = null; editing = null; menu = null; }
-      else selection = reconciled;
+      else {
+        selection = reconciled;
+        if (menu && selection?.kind === menu.kind) {
+          const index = indexOf(nextAxes[menu.kind], selection.anchorId);
+          if (index < 0) menu = null;
+          else menu = { ...menu, index };
+        }
+      }
     }
   } else {
     selection = null;
@@ -747,13 +800,26 @@ function acceptValue(next) {
   render(focus, nextAxes);
 }
 
-onValue(root, snapshot => acceptValue(snapshot.val()), error => {
-  if (error.code === "unavailable") unavailable = true;
-  render();
-});
+function subscribe() {
+  if (unsubscribe) return;
+  unsubscribe = onValue(root, snapshot => acceptValue(snapshot.val()), error => {
+    unsubscribe = null;
+    if (error.code === "unavailable") unavailable = true;
+    editing = null;
+    menu = null;
+    render();
+  });
+}
 
 function updateAccess(level) {
+  accessKnown = true;
   access = level;
+  if (level === null && !received) unavailable = true;
+  if (level !== "read-write") {
+    editing = null;
+    menu = null;
+  }
+  if (level !== null && connection === "connected") subscribe();
   render();
 }
 
@@ -761,7 +827,15 @@ onAccessChanged(updateAccess);
 getAccess().then(updateAccess, () => {});
 onConnectionStatusChanged(status => {
   connection = status;
+  if (status !== "connected") {
+    access = null;
+    menu = null;
+  } else {
+    if (accessKnown) getAccess().then(updateAccess, () => {});
+    subscribe();
+  }
   render();
 });
 
+subscribe();
 render();

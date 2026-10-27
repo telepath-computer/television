@@ -156,7 +156,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
     </main>`;
 
   if (loading) return html`
-    <main class="table-page" data-editable="${editable}">
+    <main class="table-page" data-editable="${String(editable)}">
       <div class="table-loading" role="status" aria-label="Loading table">
         ${icon({ name: "spinner", size: "md", spinning: true })}
       </div>
@@ -168,7 +168,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
   const referencesVisible = selection !== null;
 
   return html`
-    <main class="table-page" data-editable="${editable}">
+    <main class="table-page" data-editable="${String(editable)}">
       <div class="table-frame" data-reference-visible="${referencesVisible ? "shown" : "hidden"}">
         <div class="table-scroll">
           <div class="table-sheet" style="--table-column-count: ${columns.length}">

@@ -4,7 +4,7 @@ import type { Page } from "playwright";
 import { conform } from "@telepath-computer/conform";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import { expect, test } from "@playwright/test";
-import { artifactURL, createArtifact, specStories, storybook, useConformance } from "./conformance-harness.ts";
+import { artifactURL, client, createArtifact, specStories, storybook, useConformance } from "./conformance-harness.ts";
 
 const run = useConformance();
 
@@ -34,9 +34,10 @@ const schedule = {
 
 interface State {
   data?: JSONValue;
+  share?: "read" | "read-write";
   dark?: boolean;
   loading?: boolean;
-  ready?: (page: Page) => Promise<void>;
+  ready?: (page: Page, id: string) => Promise<void>;
 }
 
 const cell = (page: Page, row: number, column: number) =>
@@ -45,9 +46,13 @@ const row = (page: Page, index: number) => page.getByRole("button", { name: `Sel
 const column = (page: Page, letter: string) => page.getByRole("button", { name: `Select column ${letter}`, exact: true });
 const shown = async (page: Page) => {
   await page.locator(".table-grid, .table-loading, .table-unreadable").first().waitFor();
-  await page.locator('.table-page[data-editable="true"]').waitFor();
 };
 const offTable = (page: Page) => page.mouse.move(758, 768);
+const disconnect = async (page: Page) => {
+  run.proxy.refuse(true);
+  run.proxy.sever();
+  await page.locator(".table-status").filter({ hasText: "Reconnecting…" }).waitFor();
+};
 
 const states: Record<string, State> = {
   blank: {},
@@ -68,6 +73,30 @@ const states: Record<string, State> = {
     await row(page, 3).click({ modifiers: ["Shift"] });
     await row(page, 1).click({ button: "right" });
   } },
+  "read-only": { data: parks as unknown as JSONValue, share: "read", ready: async page => { await cell(page, 3, 1).click(); } },
+  disconnected: { data: parks as unknown as JSONValue, ready: async page => { await cell(page, 3, 1).click(); await disconnect(page); } },
+  "save-failed": {
+    data: parks as unknown as JSONValue,
+    share: "read-write",
+    ready: async (page, id) => {
+      const connection = run.proxy.messages.find(({ message }) => message.type === "subscribe")!.connection;
+      run.proxy.holdWrites();
+      run.proxy.holdServerMessages(connection, message => message.type === "access");
+      await cell(page, 3, 1).click();
+      await page.keyboard.type("Refused");
+      await page.locator(".table-input").press("Enter");
+      await run.proxy.waitFor(() => run.proxy.heldWriteCount === 1);
+      await client.resources.share({ artifactID: id, access: "read" });
+      await run.proxy.waitFor(() => run.proxy.heldServerMessageCount(connection) > 0);
+      run.proxy.releaseWrites();
+      await page.locator(".table-status").filter({ hasText: "Couldn't save that change." }).waitFor();
+      await cell(page, 3, 1).click();
+    },
+  },
+  loading: { loading: true },
+  "loading-disconnected": { loading: true, ready: disconnect },
+  unreadable: { data: { columns: {}, rows: null } },
+  "unreadable-disconnected": { data: { columns: {}, rows: null }, ready: disconnect },
   dark: { data: parks as unknown as JSONValue, dark: true, ready: async page => { await cell(page, 3, 1).click(); } },
 };
 
@@ -77,10 +106,12 @@ if (stories.length === 0) throw new Error("The worktree Storybook build contains
 // proofs/ui/templates/table.md#^table-ac-conformance
 for (const storyID of stories) {
   test(`Table conforms: ${storyID}`, async () => {
-    const state = states[storyID.replace("spec-templates-table--", "")];
+    const storyName = storyID.replace("spec-templates-table--", "");
+    const state = states[storyName];
     expect(state, `No production state for the Table story ${storyID}`).toBeDefined();
-    const { data, dark, loading, ready } = state!;
+    const { data, share, dark, loading, ready } = state!;
     const artifactID = await createArtifact("table", data);
+    const shareID = share && (await client.resources.share({ artifactID: artifactID, access: share })).shareID;
     if (loading) run.proxy.hold("to-browser");
 
     const reference = storybook.page(storyID);
@@ -94,13 +125,18 @@ for (const storyID of stories) {
         await offTable(page);
       },
     }, {
-      url: artifactURL(run.proxy, artifactID),
+      url: artifactURL(run.proxy, shareID ?? artifactID),
       setup: page => page.emulateMedia({ colorScheme: dark ? "dark" : "light" }),
       ready: async page => {
         if (loading) await run.proxy.waitFor(() => run.proxy.openWebSockets > 0);
-        else await shown(page);
+        else {
+          await shown(page);
+          if (!storyName.startsWith("unreadable")) {
+            await page.locator(`.table-page[data-editable="${share === "read" ? "false" : "true"}"]`).waitFor();
+          }
+        }
         await page.evaluate(() => document.fonts.ready);
-        await ready?.(page);
+        await ready?.(page, artifactID);
         await offTable(page);
       },
     }, { browser: run.browser, root: ".table-page", width: 760, height: 770 });
