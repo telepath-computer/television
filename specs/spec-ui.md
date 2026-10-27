@@ -23,6 +23,8 @@ Comments in story modules, stylesheets and motion functions are descriptive cont
 
 A UI spec is an MDX file under `specs/ui/`, one per surface. It is written like any other spec, and its prose binds like any other spec's. It points to Storybook stories, which live in the Storybook package. Each story in a module the spec imports is one state of the surface, whether or not the spec embeds it. ^ui-spec-stories
 
+An active experiment lives at `storybook/experiments/<name>/` with the title `Experiments/<Name>`; when it finishes, move it under `storybook/experiments/<YYYY-MM>/<name>/` for its finishing month and title it `Experiments/<YYYY-MM>/<Name>`, without an outcome category such as `Rejected`.
+
 What binds in a story is what it looks like in the state its args, globals, parameters and `play` function set up, including the state of its controls, such as a ticked box or the text in a field. Its markup does not bind: production can use different elements and attributes as long as it looks the same. Where something that does not show matters, such as a role or an accessible name, the prose names it. A spec story's `play` function sets up its state deterministically, so the story always ends in the same state. Anything else about a surface binds only where the prose says so. ^ui-story-output
 
 ## Conformance

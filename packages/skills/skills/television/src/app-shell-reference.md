@@ -187,13 +187,15 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
 ```html
 <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">…</button>
 <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox">
-  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search toolbox" placeholder="Search toolbox…" aria-controls="toolbox-list" aria-activedescendant="…"></label>
+  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search toolbox" placeholder="Search toolbox…" aria-haspopup="grid" aria-autocomplete="list" aria-expanded="true" aria-controls="toolbox-grid" aria-activedescendant="…"></label>
   <div class="toolbox-body">
-    <ul class="toolbox-list" id="toolbox-list" role="listbox" aria-label="Toolbox">
-      <li class="toolbox-row" role="option" aria-selected="true" data-highlighted>
-        <img class="toolbox-icon" alt="" draggable="false"><span class="toolbox-name">…</span>
-      </li>
-    </ul>
+    <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
+      <div class="toolbox-grid-row" role="row">
+        <div class="toolbox-tile" role="gridcell" aria-selected="true" data-highlighted>
+          <img class="toolbox-icon" alt="" draggable="false"><span class="toolbox-name">…</span>
+        </div>
+      </div>
+    </div>
     <hr class="toolbox-divider">
     <div class="toolbox-invalid" role="note"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">…</span><span>…</span></span></div>
   </div>
@@ -201,7 +203,7 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
 </tv-popover>
 ```
 
-`.toolbox-popover` holds search above the scrolling `.toolbox-body`, which is blank before the first template list arrives. Later updates retain the prior list until it is replaced. `.toolbox-footer` stays below the scrolling area in every state, with a muted top rule. `.toolbox-list` is a single column of icon-and-name rows. `.toolbox-row[data-highlighted]` and `.toolbox-row[data-pressed]` use the shared option tints; `.toolbox-icon` fits a supplied image without cropping or an added background. When no icon is available, `span.toolbox-icon.toolbox-letter` holds the white initial in a filled circle. `.toolbox-name` uses the standard body size and medium weight and truncates a long name. `.toolbox-empty` replaces the list when nothing is available or matches, and `.toolbox-folder-error` replaces it when the directory cannot be read. `.toolbox-invalid` shows one error count and repair instruction, without folder names. `.toolbox-divider` separates that summary from any rows or message above it. The summary and `.toolbox-folder-error` have no box or background; their 16px warning icon is centred in the same 20px column as row icons. The search field has a muted background, no border, and no focus ring; there is no heading or introduction.
+`.toolbox-popover` is 272px wide and at most 480px high. It holds search above the scrolling `.toolbox-body`, which is blank before the first template list arrives. Later updates retain the prior list until it is replaced. `.toolbox-grid-row` lays `.toolbox-tile` elements out in three equal columns. Each tile stacks a 28px icon over a centred, medium-weight name at `--text-sm`; the name may occupy two lines. `.toolbox-tile[data-highlighted]` and `.toolbox-tile[data-pressed]` use the shared option tints. `.toolbox-icon` fits a supplied image without cropping or an added background. When no icon is available, `span.toolbox-icon.toolbox-letter` holds a 13px white initial in a filled circle. The translucent, blurred `.toolbox-footer` floats over the bottom of `.toolbox-body`; the body reserves enough trailing space for the final grid row to scroll above it. `.toolbox-empty` replaces the grid when nothing is available or matches, and `.toolbox-folder-error` replaces it when the directory cannot be read. `.toolbox-invalid` shows one error count and repair instruction, without folder names. `.toolbox-divider` separates that summary from any grid or message above it. The summary and `.toolbox-folder-error` have no box or background. The search field has a muted background, no border, and no focus ring; there is no heading or introduction.
 
 The update control is `button.update-bell#update-bell[icon][intent="alert"]` paired with `tv-popover.update-popover[manual][trigger="update-bell"][role="status"]`. `.update-popover` contains readable notice text and `.update-actions` with `button.update-later` and an optional primary copy action. The desktop self-update notice has `button.update-restart[size="sm"][intent="primary"]` in place of the copy action; it carries `[disabled]` while the app restarts. The manual panel stays open until the composing surface closes it.
 
@@ -278,9 +280,9 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 6e1070593b273bb9b692420a30c8164e8c4a346fe043dcc1a9feef1fdeed3ee4 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 4181001af0760ec1c2d175e1cc2ff096e5391d046154760fb59291f3131b17d8 -->
-<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: a6a01b4299896d0611f08accb6935d2ad0c6c19ed0dc015fb5272a24c7e3ba04 -->
-<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 60d8a97aca279c98b46231846d3e1065c96c3dc5ea3e090b1f1f3b2b2c7428f7 -->
-<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: 79539a41e7fbba011cc44eb5f3d009f6e9abb0af645ddf9401290529dc97d789 -->
+<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 34243c425a5bb7f94dd614e30c3661c52277300f05bf0dc99ccedf81e41267c2 -->
+<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 73766cb3536089986391f61319a552f71a0fdd765bfa97877efaa4509e85a1bd -->
+<!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: f3760daf34535b7437d45b3edd4f9225033c102940a0b6bb4372928c7ea8d4ab -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: f47185669d83657172fe57d896c56b30d6ae6f55157f68fb97d0e27894713716 -->
 <!-- app-reference-source: storybook/spec/artifact-frame/styles.css sha256: 7fbb3adcfc70ec9ab9e232b09707a5f276f74de56cee0346d9dc3daeb771a230 -->

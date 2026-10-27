@@ -4,13 +4,20 @@ import { ref } from "lit-html/directives/ref.js";
 import { repeat } from "lit-html/directives/repeat.js";
 import type { AppTemplate } from "@telepath-computer/television-shared";
 import type { TemplateCache } from "../services/template-cache.ts";
-import { defaultToolboxIcon, ToolboxSelection } from "./toolbox-state.ts";
+import { defaultToolboxIcon, ToolboxSelection, type ToolboxDirection } from "./toolbox-state.ts";
 import "../elements/icon.ts";
 import "../elements/popover.ts";
 import "./toolbox.css";
 
 type ToolboxSource = Pick<TemplateCache, "scan" | "icons" | "setOpen" | "addEventListener" | "removeEventListener">;
 type Activate = (item: AppTemplate) => Promise<void>;
+const TOOLBOX_COLUMNS = 3;
+const ARROW_DIRECTIONS: Partial<Record<string, ToolboxDirection>> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+};
 
 /** The navbar's searchable items; the caller supplies discovery and activation. */
 export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
@@ -63,7 +70,16 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
   };
 
   #revealHighlight(): void {
-    if (this.#open) this.#panel?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" });
+    if (!this.#open) return;
+    const body = this.#panel?.querySelector<HTMLElement>(".toolbox-body");
+    const tile = body?.querySelector<HTMLElement>('[aria-selected="true"]');
+    const footer = this.#panel?.querySelector<HTMLElement>(".toolbox-footer");
+    if (!body || !tile || !footer) return;
+    const bodyBounds = body.getBoundingClientRect();
+    const tileBounds = tile.getBoundingClientRect();
+    const visibleBottom = Math.min(bodyBounds.bottom, footer.getBoundingClientRect().top);
+    if (tileBounds.top < bodyBounds.top) body.scrollTop -= bodyBounds.top - tileBounds.top;
+    else if (tileBounds.bottom > visibleBottom) body.scrollTop += tileBounds.bottom - visibleBottom;
   }
 
   readonly #input = (event: Event): void => {
@@ -78,10 +94,12 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
       if (entry) { event.preventDefault(); void this.#run(entry); }
       return;
     }
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+    const direction = ARROW_DIRECTIONS[event.key];
+    if (!direction || this.#selection.matches.length === 0) return;
+    if ((direction === "left" || direction === "right") && this.#selection.highlighted === null) return;
     event.preventDefault();
     event.stopPropagation();
-    this.#selection.move(event.key === "ArrowUp" ? -1 : 1);
+    this.#selection.move(direction);
     this.render();
     this.#revealHighlight();
   };
@@ -155,9 +173,13 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     const folderError = scan?.errors.find(({ folder }) => folder === null)?.error ?? null;
     const invalid = scan?.errors.filter(({ folder }) => folder !== null) ?? [];
     const matches = this.#selection.matches;
-    const showList = folderError === null && matches.length > 0;
+    const showGrid = folderError === null && matches.length > 0;
     const highlighted = matches.findIndex(item => item.id === this.#selection.highlighted);
     const query = this.#selection.query;
+    const gridRows = Array.from(
+      { length: Math.ceil(matches.length / TOOLBOX_COLUMNS) },
+      (_, rowIndex) => matches.slice(rowIndex * TOOLBOX_COLUMNS, rowIndex * TOOLBOX_COLUMNS + TOOLBOX_COLUMNS),
+    );
     return html`
       <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">
         <tv-icon name="skills" size="sm"></tv-icon>
@@ -167,37 +189,45 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
         <label class="toolbox-search">
           <tv-icon name="search"></tv-icon>
           <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off"
-            aria-expanded=${showList ? "true" : "false"}
-            aria-controls=${showList ? "toolbox-list" : nothing}
-            aria-activedescendant=${showList && highlighted >= 0 ? `toolbox-item-${highlighted}` : nothing}
+            aria-haspopup="grid" aria-autocomplete="list"
+            aria-expanded=${showGrid ? "true" : "false"}
+            aria-controls=${showGrid ? "toolbox-grid" : nothing}
+            aria-activedescendant=${showGrid && highlighted >= 0 ? `toolbox-item-${highlighted}` : nothing}
             .value=${query} @input=${this.#input} @keydown=${this.#keydown}>
         </label>
         <div class="toolbox-body">
           ${!scan ? nothing : folderError !== null ? html`
             <div class="toolbox-folder-error"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>
-          ` : showList ? html`
-            <ul class="toolbox-list" id="toolbox-list" role="listbox" aria-label="Toolbox">
-              ${repeat(matches, entry => entry.id, (entry, index) => html`
-                <li role="option" id=${`toolbox-item-${index}`} class="toolbox-row" data-id=${entry.id}
-                  aria-selected=${index === highlighted ? "true" : "false"}
-                  ?data-highlighted=${index === highlighted} ?data-pressed=${entry.id === this.#pressed}
-                  @pointermove=${this.#pointerMove} @pointerdown=${this.#pointerDown}
-                  @pointerleave=${this.#clearPressed} @click=${this.#click}>
-                  ${this.#icon(entry)}<span class="toolbox-name">${entry.name}</span>
-                </li>
+          ` : showGrid ? html`
+            <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
+              ${gridRows.map((entries, rowIndex) => html`
+                <div class="toolbox-grid-row" role="row">
+                  ${repeat(entries, entry => entry.id, (entry, columnIndex) => {
+                    const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
+                    return html`
+                      <div role="gridcell" id=${`toolbox-item-${index}`} class="toolbox-tile" data-id=${entry.id}
+                        aria-selected=${index === highlighted ? "true" : "false"}
+                        ?data-highlighted=${index === highlighted} ?data-pressed=${entry.id === this.#pressed}
+                        @pointermove=${this.#pointerMove} @pointerdown=${this.#pointerDown}
+                        @pointerleave=${this.#clearPressed} @click=${this.#click}>
+                        ${this.#icon(entry)}<span class="toolbox-name">${entry.name}</span>
+                      </div>
+                    `;
+                  })}
+                </div>
               `)}
-            </ul>
+            </div>
           ` : query.trim() ? html`<p class="toolbox-empty">${`Nothing matches “${query}”.`}</p>`
             : invalid.length ? nothing : html`<p class="toolbox-empty">Nothing here yet.</p>`}
           ${scan && folderError === null && invalid.length ? html`
-            ${showList || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
+            ${showGrid || query.trim() ? html`<hr class="toolbox-divider">` : nothing}
             <div class="toolbox-invalid" role="note">
               <tv-icon name="warning" size="sm"></tv-icon>
               <span class="toolbox-error-text"><span class="toolbox-error-folder">${invalid.length === 1 ? "1 template had errors" : `${invalid.length} templates had errors`}</span><span>Ask your agent to read the Television skill and fix ${invalid.length === 1 ? "it" : "them"}.</span></span>
             </div>
           ` : nothing}
         </div>
-        <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
+        <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
       </tv-popover>
     `;
   }

@@ -3,7 +3,7 @@ import { ToolboxSelection, defaultToolboxIcon, isToolboxShortcut } from "../src/
 
 describe("Toolbox consumer contracts", () => {
   // proofs/ui/app/toolbox.md#^toolbox-t-search-state
-  test("matches trimmed names in discovery order and retains highlight by ID on updates", () => {
+  test("matches trimmed names in discovery order and navigates the three-column grid", () => {
     const selection = new ToolboxSelection();
     const items = [
       { id: "b", name: "Beta", description: "Alpha" },
@@ -16,28 +16,64 @@ describe("Toolbox consumer contracts", () => {
     selection.search("  ALP  ");
     expect(selection.matches.map(item => item.id)).toEqual(["a", "c"]);
     expect(selection.highlighted).toBe("a");
-    selection.move(1);
+    selection.move("right");
     selection.update([items[2]!, items[0]!, items[1]!]);
     expect(selection.query).toBe("  ALP  ");
     expect(selection.highlighted).toBe("c");
     selection.update([items[1]!]);
     expect(selection.highlighted).toBeNull();
-    selection.update(items);
+    const grid = Array.from({ length: 8 }, (_, index) => ({
+      id: `item-${index}`,
+      name: `Item ${index}`,
+      description: "Other",
+    }));
+    selection.update(grid);
     expect(selection.highlighted).toBeNull();
     selection.search("   ");
-    expect(selection.matches).toEqual(items);
+    expect(selection.matches).toEqual(grid);
     expect(selection.highlighted).toBeNull();
-    selection.move(-1);
-    expect(selection.highlighted).toBe("b");
-    selection.move(-1);
-    expect(selection.highlighted).toBe("b");
-    selection.move(1);
-    expect(selection.highlighted).toBe("a");
-    selection.move(1);
-    selection.move(1);
-    expect(selection.highlighted).toBe("c");
+    selection.move("left");
+    expect(selection.highlighted).toBeNull();
+    selection.move("right");
+    expect(selection.highlighted).toBeNull();
+    selection.move("up");
+    expect(selection.highlighted).toBeNull();
+    selection.move("down");
+    expect(selection.highlighted).toBe("item-0");
+    selection.move("left");
+    expect(selection.highlighted).toBe("item-0");
+    selection.move("right");
+    selection.move("right");
+    expect(selection.highlighted).toBe("item-2");
+    selection.move("right");
+    expect(selection.highlighted).toBe("item-3");
+    selection.move("left");
+    expect(selection.highlighted).toBe("item-2");
+    selection.move("up");
+    expect(selection.highlighted).toBeNull();
+    selection.move("down");
+    selection.move("down");
+    expect(selection.highlighted).toBe("item-3");
+    selection.move("right");
+    expect(selection.highlighted).toBe("item-4");
+    selection.move("left");
+    expect(selection.highlighted).toBe("item-3");
+    selection.move("up");
+    expect(selection.highlighted).toBe("item-0");
+    selection.move("up");
+    expect(selection.highlighted).toBeNull();
+    selection.move("down");
+    selection.move("down");
+    selection.move("down");
+    expect(selection.highlighted).toBe("item-6");
+    selection.move("down");
+    expect(selection.highlighted).toBe("item-7");
+    selection.move("right");
+    expect(selection.highlighted).toBe("item-7");
+    selection.move("up");
+    expect(selection.highlighted).toBe("item-4");
     selection.search("missing");
-    selection.move(1);
+    selection.move("down");
     expect(selection.highlighted).toBeNull();
   });
 

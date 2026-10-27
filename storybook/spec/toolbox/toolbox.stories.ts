@@ -32,17 +32,23 @@ interface Args {
 const palette = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink", "neutral"];
 const HASH_START = 7;
 const HASH_MULTIPLIER = 31;
+const TOOLBOX_COLUMNS = 3;
 const letterIcon = ({ id, name }: Item) => {
   const hash = [...id].reduce((value, character) => (value * HASH_MULTIPLIER + character.codePointAt(0)!) >>> 0, HASH_START);
   const color = `var(--${palette[hash % palette.length]}-600)`;
   return html`<span class="toolbox-icon toolbox-letter" aria-hidden="true" style="background: ${color}">${[...name][0].toUpperCase()}</span>`;
 };
 
-const row = (item: Item, index: number, highlighted: boolean, pressed: boolean) => html`
-  <li role="option" id="toolbox-item-${index}" class="toolbox-row" aria-selected="${highlighted ? "true" : "false"}"${highlighted ? html` data-highlighted` : ""}${pressed ? html` data-pressed` : ""}>
+const tile = (item: Item, index: number, highlighted: boolean, pressed: boolean) => html`
+  <div role="gridcell" id="toolbox-item-${index}" class="toolbox-tile" aria-selected="${highlighted ? "true" : "false"}"${highlighted ? html` data-highlighted` : ""}${pressed ? html` data-pressed` : ""}>
     ${item.icon ? html`<img class="toolbox-icon" src="${item.icon}" alt="" draggable="false">` : letterIcon(item)}
     <span class="toolbox-name">${item.name}</span>
-  </li>`;
+  </div>`;
+
+const gridRows = (items: Item[]) => Array.from(
+  { length: Math.ceil(items.length / TOOLBOX_COLUMNS) },
+  (_, rowIndex) => items.slice(rowIndex * TOOLBOX_COLUMNS, rowIndex * TOOLBOX_COLUMNS + TOOLBOX_COLUMNS),
+);
 
 // Invalid folders are summarized as a count; the agent reads each folder and
 // its errors from `tv templates list`.
@@ -56,14 +62,14 @@ const invalidSummary = (invalid: FolderError[]) => html`
   </div>`;
 
 const render = ({ open, hasList, search, items, highlighted, pressed, invalid, folderError }: Args) => {
-  const showList = hasList && folderError === null && items.length > 0;
+  const showGrid = hasList && folderError === null && items.length > 0;
   return html`
   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--popover-distance)">
     <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox" aria-expanded="${open ? "true" : "false"}">${icon({ name: "skills", size: "sm" })}</button>
     <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox"${open ? html` open` : ""}>
       <label class="toolbox-search">
         ${icon({ name: "search" })}
-        <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off"${showList ? html` aria-expanded="true" aria-controls="toolbox-list"` : html` aria-expanded="false"`}${showList && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
+        <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off" aria-haspopup="grid" aria-autocomplete="list"${showGrid ? html` aria-expanded="true" aria-controls="toolbox-grid"` : html` aria-expanded="false"`}${showGrid && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
       </label>
       <div class="toolbox-body">
         ${!hasList
@@ -71,7 +77,12 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
           : folderError !== null
             ? html`<div class="toolbox-folder-error">${icon({ name: "warning", size: "sm" })}<span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>`
             : items.length > 0
-              ? html`<ul class="toolbox-list" id="toolbox-list" role="listbox" aria-label="Toolbox">${items.map((item, i) => row(item, i, i === highlighted, i === pressed))}</ul>`
+              ? html`<div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">${gridRows(items).map((itemsInRow, rowIndex) => html`
+                  <div class="toolbox-grid-row" role="row">${itemsInRow.map((item, columnIndex) => {
+                    const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
+                    return tile(item, index, index === highlighted, index === pressed);
+                  })}</div>
+                `)}</div>`
               : search.trim() !== ""
                 ? html`<p class="toolbox-empty">Nothing matches “${search}”.</p>`
                 : invalid.length > 0
@@ -81,7 +92,7 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
           ? html`${items.length > 0 || search.trim() !== "" ? html`<hr class="toolbox-divider">` : ""}${invalidSummary(invalid)}`
           : ""}
       </div>
-      <p class="toolbox-footer">Ask your agent to add artifacts to your toolbox, then reuse them anywhere.</p>
+      <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
     </tv-popover>
   </div>`;
 };
@@ -127,7 +138,7 @@ export const OnlyErrors = { args: { items: [], invalid } };
 export const FolderUnreadable = { args: { items: [], folderError: "EACCES: permission denied, scandir '/home/me/.television/templates'" } };
 export const SuppliedIcons = { args: { items: [calendar, mailCompose].sort(byDiscoveryOrder) } };
 export const DefaultIcons = { args: { items: items.filter(item => !item.icon) } };
-// The failed request has settled; the row now displays its default icon.
+// The failed request has settled; the tile now displays its default icon.
 export const FailedIcon = { args: { items: [{ id: calendar.id, name: calendar.name }] } };
 export const LongName = { args: { items: [calendar, { id: "long-name", name: "An item with a much longer name than usual" }].sort(byDiscoveryOrder) } };
 export const WithErrors = { args: { invalid } };

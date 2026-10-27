@@ -1,18 +1,21 @@
-*UI spec: Toolbox, the navbar popover for finding and activating an item by name.*
-
+import { Meta, Canvas } from "@storybook/addon-docs/blocks";
 import * as Stories from "../../../storybook/spec/toolbox/toolbox.stories.ts";
+
+<Meta of={Stories} />
+
+*UI spec: Toolbox, the navbar popover for finding and activating an item by name.*
 
 # Toolbox
 
-The *Toolbox* is the place in the app that lists [artifact templates](../../product/templates.md). An item source supplies each row with an icon, name and activation action; artifact templates are the only source today. The [product spec](../../product/templates.md#^artifact-template-popover) owns template creation and placement, and [template architecture](../../arch/templates/index.md#^artifact-template-scan) owns discovery.
+The *Toolbox* is the place in the app that lists [artifact templates](../../product/templates.md). An item source supplies each tile with an icon, name and activation action; artifact templates are the only source today. The [product spec](../../product/templates.md#^artifact-template-popover) owns template creation and placement, and [template architecture](../../arch/templates/index.md#^artifact-template-scan) owns discovery.
 
-The prose here and the appearance of every story in the imported module are the authority for this redesigned surface, under the [UI spec policy](../../spec-ui.md). The stories and stylesheet live in `storybook/spec/toolbox/`; their markup does not bind production. Accessible behavior is stated in the prose below. Production must pass the [conformance check for each story](../../spec-ui.md#^ui-conformance-test). This draft does not claim that production conforms.
+The prose here and the appearance of every story in the imported module are the authority for this redesigned surface, under the [UI spec policy](../../spec-ui.md). The stories and stylesheet live in `storybook/spec/toolbox/`; their markup does not bind production. Accessible behavior is stated in the prose below. Production must pass the [conformance check for each story](../../spec-ui.md#^ui-conformance-test).
 
 ## Opening
 
-The trigger is the existing ghost icon button with the `skills` icon, before Settings in the [navbar](./top-bar/index.md). Its tooltip and accessible name, and the accessible names of the popover and listbox, are all “Toolbox”. The panel has no heading or introductory text. Placement, trigger toggling, dismissal and focus restoration follow the shared [popover rules](../foundation/popover/index.md). Near the trailing edge of the navbar, the panel aligns its right edge with the trigger when left alignment does not fit. ^toolbox-opening
+The trigger is the existing ghost icon button with the `skills` icon, before Settings in the [navbar](./top-bar/index.md). Its tooltip and accessible name, and the accessible names of the popover and grid, are all “Toolbox”. The panel has no heading or introductory text. Placement, trigger toggling, dismissal and focus restoration follow the shared [popover rules](../foundation/popover/index.md). Near the trailing edge of the navbar, the panel aligns its right edge with the trigger when left alignment does not fit. ^toolbox-opening
 
-Opening clears and focuses the search field, starts with no highlighted row, and immediately shows the cached list. The app loads the list and icons at startup and replaces them as updates arrive, under the [template cache contract](../../arch/templates/index.md#^artifact-template-cache). After a successful list load, opening makes no request while the watcher is working. A failed startup or reconnect list load is retried on the next opening, using the cached server route. Only before the first list has arrived is the panel body blank, with no loading text; the search field remains visible and focused above it. Later refreshes keep the last list visible. If the watcher fails, opening requests a fresh scan under the [fallback contract](../../arch/templates/index.md#^artifact-template-watch-fallback).
+Opening clears and focuses the search field, starts with no highlighted tile, and immediately shows the cached list. The app loads the list and icons at startup and replaces them as updates arrive, under the [template cache contract](../../arch/templates/index.md#^artifact-template-cache). After a successful list load, opening makes no request while the watcher is working. A failed startup or reconnect list load is retried on the next opening, using the cached server route. Only before the first list has arrived is the panel body blank, with no loading text; the search field remains visible and focused above it. Later refreshes keep the last list visible. If the watcher fails, opening requests a fresh scan under the [fallback contract](../../arch/templates/index.md#^artifact-template-watch-fallback).
 
 ⌘K on macOS, or Ctrl+K elsewhere, opens Toolbox with its search field focused, as if the trigger were pressed, and closes it when already open. It works whenever the Television app page holds keyboard focus, in both the desktop app and the browser. The shortcut is not yet promised inside a focused artifact document. ^toolbox-shortcut
 
@@ -20,44 +23,50 @@ Opening clears and focuses the search field, starts with no highlighted row, and
 <Canvas of={Stories.BeforeFirstList} />
 <Canvas of={Stories.Open} />
 
-The panel is 300px wide and at most 480px high, reduced as needed to fit the window. A footer below the scrolling area says what the Toolbox is for and how to add to it: “Ask your agent to add artifacts to your toolbox, then reuse them anywhere.” in muted text, separated from the area above by a muted rule across the full panel width. It is shown in every state and does not scroll. Adding from the app itself is a later change. The search field has the label “Search toolbox” and placeholder “Search toolbox…”, a muted background, no border or focus ring, 5px vertical padding and standard horizontal control padding, with space for the search icon. Each row has a 20px icon, a 12px gap and the name only, at `--text-base` with medium weight and 7px vertical padding. Row icons, and the warning icon in the error summary and folder error, share one 20px column centred under the search icon (the warning icon is 16px, centred in that column), so their text lines up with the item names. The entire row activates the item; a long name truncates visually and remains complete in its accessible name. The gap between the search field and the first row belongs to the scrolling area, so when the list scrolls, rows pass directly under the field; at the top of the list the gap is kept. ^toolbox-layout
+The panel is 272px wide and at most 480px high, reduced as needed to fit the window. The search field has the label “Search toolbox” and placeholder “Search toolbox…”, a muted background, no border or focus ring, 5px vertical padding and standard horizontal control padding, with space for the search icon.
+
+Items form three equal columns. Each tile places a 28px icon above the name, with a 6px gap. The name is centred, uses `--text-sm` at medium weight, and shows at most two lines; its complete text remains the accessible name. The entire tile activates the item. Each tile has 9px top and bottom padding and 2px side padding, with 6px between tiles, so the highlight and press tint stops short of neighbouring tiles. The tile radius is `--control-radius`, and the tints are the shared option tints. The gap between the search field and the first row belongs to the scrolling area, so when the grid scrolls, tiles pass directly under the field; at the top of the grid the gap is kept. The warning icon in the error summary and folder error remains 16px, centred in a 20px slot beside the text.
+
+The footer says “Saved artifacts, ready to reuse anywhere. Ask your agent to add one.” in muted text. It floats over the bottom of the scrolling area, with a muted top rule across the full panel width, a background of `color-mix(in srgb, var(--panel-background) 72%, transparent)`, and `backdrop-filter: blur(14px) saturate(1.6)`. Tiles scroll under it and show through it. The scrolling area has enough space at the end for the last row to scroll fully above the footer. The footer is shown in every state. Adding from the app itself is a later change. ^toolbox-layout
 
 <Canvas of={Stories.LongName} />
 <Canvas of={Stories.ManyItems} />
 
 ## Searching
 
-Search trims the query and matches names by case-insensitive substring, retaining discovery order. A non-empty query highlights the first match; clearing it shows every item again without a highlight. Descriptions remain available to agents through the template record and are absent from rows and their accessible descriptions. ^toolbox-search
+Search trims the query and matches names by case-insensitive substring, retaining discovery order. A non-empty query highlights the first match; clearing it shows every item again without a highlight. Descriptions remain available to agents through the template record and are absent from tiles and their accessible descriptions. ^toolbox-search
 
 When a list update arrives while Toolbox is open, keep the search text and input focus and apply the current query to the new list. Retain the highlighted item by ID if it still matches; otherwise clear the highlight. An update does not activate an item.
 
-The search field is a combobox controlling a single-select listbox. Each row is an option named only by the item name. Keyboard focus remains in the input; `aria-activedescendant` identifies the highlighted option. Without visible rows, the field controls no listbox and announces no active option.
+The search field has `role="combobox"` and `aria-label="Search toolbox"`, and controls a single-select grid. It has `aria-haspopup="grid"` and `aria-autocomplete="list"`. While tiles are visible, `aria-expanded` is true, `aria-controls` names the element with `role="grid"`, and `aria-activedescendant` names the highlighted cell when there is one. The grid has `aria-label="Toolbox"`; every three tiles are grouped in an element with `role="row"`, and an incomplete last row contains only its remaining tiles. Each tile has `role="gridcell"`, is named only by the item name, and has `aria-selected` true exactly while highlighted. Keyboard focus remains in the input. Without visible tiles, there is no grid, `aria-expanded` is false, and the field controls and announces no active cell. This follows the WAI-ARIA combobox pattern for a grid popup.
 
 <Canvas of={Stories.Searching} />
 <Canvas of={Stories.NoMatches} />
 
 ## The highlight
 
-Up and Down move the highlight one row at a time and stop at the ends. Either key highlights the first row when none is highlighted. Left and Right retain normal text-cursor behavior. Pointer movement over a row moves the highlight to it. The highlighted row remains visible in the scrolling list. The highlight identifies the next action and does not persist as a choice. Rows, icons and names cannot be dragged or selected as text. Highlight and press use the shared option tints. ^toolbox-highlight
+Up and Down move the highlight one row while keeping the same column. Down with no highlight selects the first tile. Up with no highlight leaves it clear. Up from any tile in the first row clears the highlight. When there is no tile directly below the highlighted tile, Down moves to the last tile.
+
+Left and Right move one tile in reading order, carry across rows, and stop at the first and last tiles. They do this only while a tile is highlighted; with no highlight they retain normal text-cursor behavior. Pointer movement over a tile moves the highlight to it. The highlighted tile remains fully visible in the scrolling area, including above the floating footer. The highlight identifies the next action and does not persist as a choice. Tiles, icons and names cannot be dragged or selected as text. ^toolbox-highlight
 
 <Canvas of={Stories.Highlighted} />
 <Canvas of={Stories.Pressed} />
 
 ## Creating an artifact
 
-Clicking a row or pressing Return on the highlighted row activates the supplied action. For an artifact template, the app uses the [server creation route](../../arch/templates/index.md#creating-an-artifact) to create a copied folder artifact or a URL artifact. Creation follows the [placement and focus rule](../../product/templates.md#^artifact-template-popover) and [display-option precedence](../../product/templates.md#^artifact-template-display-options). It uses the starting data from the template, or leaves the store unwritten when there is no `data.json`; a URL artifact has no store. The [existing UI telemetry source](../../product/telemetry.md#^artifact-template-telemetry) is unchanged. ^toolbox-activation
+Clicking a tile or pressing Return on the highlighted tile activates the supplied action. For an artifact template, the app uses the [server creation route](../../arch/templates/index.md#creating-an-artifact) to create a copied folder artifact or a URL artifact. Creation follows the [placement and focus rule](../../product/templates.md#^artifact-template-popover) and [display-option precedence](../../product/templates.md#^artifact-template-display-options). It uses the starting data from the template, or leaves the store unwritten when there is no `data.json`; a URL artifact has no store. The [existing UI telemetry source](../../product/telemetry.md#^artifact-template-telemetry) is unchanged. ^toolbox-activation
 
 The popover closes after activation completes or fails. If creation fails, it closes without displaying an error and leaves artifact focus and the selected tab unchanged, including when creation left a partial artifact. If creation succeeds but focusing fails, the new artifact remains while focus and selection stay unchanged. Return without a highlight does nothing. Escape dismisses without creating anything.
 
 ## Icons
 
-A supplied icon fits within the 20px square without cropping and is drawn as-is, with no circle or background. Icons are decorative and have no accessible name. [Icon delivery](../../arch/templates/index.md#^artifact-template-icon-route) owns selection and the authenticated route. The app preloads the selected local file when `hasIcon` is true and refreshes it when its template is invalidated. Toolbox uses the cached bytes; while bytes are unavailable, or if the request or image decoding fails, it uses the default icon. The app and server never fetch site favicons. ^toolbox-icons
+A supplied icon fits within the 28px square without cropping and is drawn as-is, with no circle or background. Icons are decorative and have no accessible name. [Icon delivery](../../arch/templates/index.md#^artifact-template-icon-route) owns selection and the authenticated route. The app preloads the selected local file when `hasIcon` is true and refreshes it when its template is invalidated. Toolbox uses the cached bytes; while bytes are unavailable, or if the request or image decoding fails, it uses the default icon. The app and server never fetch site favicons. ^toolbox-icons
 
 <Canvas of={Stories.SuppliedIcons} />
 <Canvas of={Stories.DefaultIcons} />
 <Canvas of={Stories.FailedIcon} />
 
-The default icon is the first Unicode code point of the name, uppercased without a locale override, centered in a filled circle. The letter is white, at 11.5px and semibold. Its background uses this ordered palette of [public color tokens](../foundation/tokens/colors.css): `--red-600`, `--orange-600`, `--yellow-600`, `--green-600`, `--cyan-600`, `--blue-600`, `--purple-600`, `--pink-600`, `--neutral-600`. Starting at 7, process each Unicode code point of the exact template ID as `(hash * 31 + codePoint) modulo 2^32`; `hash modulo 9` is the zero-based palette index. The same ID always selects the same token; themes may change its color. The letter is rendered as text. ^artifact-template-default-icon
+The default icon is the first Unicode code point of the name, uppercased without a locale override, centered in a 28px filled circle. The letter is white, at 13px and semibold. Its background uses this ordered palette of [public color tokens](../foundation/tokens/colors.css): `--red-600`, `--orange-600`, `--yellow-600`, `--green-600`, `--cyan-600`, `--blue-600`, `--purple-600`, `--pink-600`, `--neutral-600`. Starting at 7, process each Unicode code point of the exact template ID as `(hash * 31 + codePoint) modulo 2^32`; `hash modulo 9` is the zero-based palette index. The same ID always selects the same token; themes may change its color. The letter is rendered as text. ^artifact-template-default-icon
 
 ## Empty and error states
 
@@ -66,7 +75,7 @@ An empty directory shows “Nothing here yet.” If folders exist but none are v
 <Canvas of={Stories.NoTemplates} />
 <Canvas of={Stories.OnlyErrors} />
 
-Invalid folders are not listed one by one. A single summary sits at the bottom of the panel: a warning icon, “\{n\} templates had errors” (“1 template had errors” for one) in medium weight, and “Ask your agent to read the Television skill and fix them.” (“it” for one) in muted text. Folder names are not shown; they are agent-facing, and the person’s next step is the same either way, with no box or background. The agent finds each folder and its error with `tv templates list`. When rows or a message sit above the summary, a muted horizontal rule separates them. The summary cannot be activated and remains visible during search. If the directory itself cannot be read, the same plain layout replaces the list with “Could not read the templates folder.” and the system error. ^toolbox-errors
+Invalid folders are not listed one by one. A single summary follows the other scrolling content: a warning icon, “\{n\} templates had errors” (“1 template had errors” for one) in medium weight, and “Ask your agent to read the Television skill and fix them.” (“it” for one) in muted text. Folder names are not shown; they are agent-facing, and the person’s next step is the same either way, with no box or background. The agent finds each folder and its error with `tv templates list`. When tiles or a message sit above the summary, a muted horizontal rule separates them. The summary cannot be activated and remains visible during search. If the directory itself cannot be read, the same plain layout replaces the grid with “Could not read the templates folder.” and the system error. ^toolbox-errors
 
 <Canvas of={Stories.WithErrors} />
 <Canvas of={Stories.SearchWithErrors} />

@@ -3,7 +3,11 @@ interface ToolboxItem {
   name: string;
 }
 
-/** Search and highlight survive list replacements independently of row positions. */
+export type ToolboxDirection = "up" | "down" | "left" | "right";
+
+const TOOLBOX_COLUMNS = 3;
+
+/** Search and highlight survive grid replacements independently of tile positions. */
 export class ToolboxSelection<T extends ToolboxItem = ToolboxItem> {
   query = "";
   highlighted: string | null = null;
@@ -24,10 +28,19 @@ export class ToolboxSelection<T extends ToolboxItem = ToolboxItem> {
     this.highlighted = query.trim() ? this.matches[0]?.id ?? null : null;
   }
 
-  move(direction: -1 | 1): void {
+  move(direction: ToolboxDirection): void {
     const matches = this.matches;
     const index = matches.findIndex(item => item.id === this.highlighted);
-    const next = index < 0 ? 0 : Math.max(0, Math.min(matches.length - 1, index + direction));
+    if (matches.length === 0) return;
+    if (index < 0) {
+      if (direction === "down") this.highlighted = matches[0]!.id;
+      return;
+    }
+    let next = index;
+    if (direction === "up") next = index < TOOLBOX_COLUMNS ? -1 : index - TOOLBOX_COLUMNS;
+    if (direction === "down") next = index + TOOLBOX_COLUMNS < matches.length ? index + TOOLBOX_COLUMNS : matches.length - 1;
+    if (direction === "left") next = Math.max(0, index - 1);
+    if (direction === "right") next = Math.min(matches.length - 1, index + 1);
     this.highlighted = matches[next]?.id ?? null;
   }
 }

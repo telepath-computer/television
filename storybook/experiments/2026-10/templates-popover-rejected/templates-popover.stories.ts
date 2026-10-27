@@ -1,16 +1,15 @@
-// The Templates popover's spec: each story is one state, with its markup
-// written here. The prose is rejected-templates-popover.mdx and the styles are
-// styles.css, both beside this file.
+// Historical Templates popover alternatives. This dated experiment has no
+// current UI authority; its styles remain beside this file.
 
-import "../../../specs/ui/foundation/index.css";
-import "../../../specs/ui/foundation/tokens/app.css";
+import "../../../../specs/ui/foundation/index.css";
+import "../../../../specs/ui/foundation/tokens/app.css";
 import "./styles.css";
-import { html, Html } from "../../lib/html.ts";
-import iconFrame from "../../../specs/ui/foundation/icons/icon.frame";
-import calendarImage from "../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
-import tableImage from "../../../specs/ui/app/skill-selector/thumbnails/table.png";
-import checklistImage from "../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import markdownImage from "../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import { html, Html } from "../../../lib/html.ts";
+import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
+import calendarImage from "../../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
+import tableImage from "../../../../specs/ui/app/skill-selector/thumbnails/table.png";
+import checklistImage from "../../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
+import markdownImage from "../../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
 
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
@@ -113,7 +112,7 @@ const templates: Template[] = [
 ];
 
 export default {
-  title: "Experiments/Rejected/Templates popover",
+  title: "Experiments/2026-10/Templates popover",
   render,
   args: { open: true, search: "", templates, highlighted: null, invalid: [] } satisfies Args,
 };

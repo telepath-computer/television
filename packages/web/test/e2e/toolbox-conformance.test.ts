@@ -81,7 +81,7 @@ async function prepare(page: Page, state: State): Promise<void> {
   const search = page.getByRole("combobox", { name: "Search toolbox" });
   await page.locator(".toolbox-search input:focus").waitFor();
   if (state.query) await search.pressSequentially(state.query);
-  if (state.highlight) await page.getByRole("option").nth(1).hover();
+  if (state.highlight) await page.getByRole("gridcell").nth(1).hover();
   else await page.mouse.move(0, 0);
   if (state.pressed) await page.mouse.down();
   if (state.failedIcon) await page.locator(".toolbox-letter").filter({ hasText: "C" }).waitFor();
