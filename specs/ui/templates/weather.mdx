@@ -43,7 +43,7 @@ Across this page, the stories show every condition, both designs for clear and p
 
 ## Attribution
 
-At the bottom trailing edge of every card, including placeholders, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every sky without competing with the weather, remains clear of the card content at every size down to 230×230 pixels, and has a visible keyboard-focus treatment. The empty, unavailable, and unreadable content also fits clear of the credit at that minimum size. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
+At the bottom trailing edge of a card showing Open-Meteo forecast data, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every forecast sky without competing with the weather, remains clear of the weather content at every size down to 230×230 pixels, and has a visible keyboard-focus treatment. Empty, loading, unavailable, and unreadable cards do not show the credit because they do not show provider data. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
 
 ## Size
 
@@ -93,7 +93,7 @@ A new Weather artifact starts with an empty object. It shows a calm sky, a partl
 
 <Artifact><Canvas of={Stories.Empty} /></Artifact>
 
-This story places the empty message and credit at the minimum artifact size.
+This story places the empty message at the minimum artifact size.
 
 <Artifact width="230px"><Canvas of={Stories.MinimumEmpty} /></Artifact>
 
@@ -113,7 +113,7 @@ When an attempt fails and there is no compatible forecast, the loading state bec
 
 When a person or agent changes either coordinate or the units, a forecast for the previous values is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units.
 
-An ordinary Television disconnection keeps the weather already on the card. A revoked share keeps the forecast it is showing but stops updating. If it has a configured location but no forecast, it shows “Loading weather” rather than promising another attempt. A “No location yet” card and an unreadable card do not change. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
+An ordinary Television disconnection keeps the last readable location and weather, and weather updates continue in memory. A revoked share also keeps refreshing the last readable configured location; revocation prevents later store data from reaching the page, not provider requests. A response already on its way can appear when its coordinates and units still match that retained location. A configured revoked card without weather can therefore leave loading or unavailable when a later attempt succeeds, but it cannot save. A “No location yet” card and an unreadable card do not change. When the connection returns after an ordinary disconnection, the card catches up with stored changes. If no store value arrived before the disconnection or revocation, the card keeps showing loading. The architecture spec owns the [provider-request rules](../../arch/templates/weather.md#^bundled-artifact-template-weather-request-check) and [saving and access behavior](../../arch/templates/weather.md#saving-failure-and-access).
 
 ## Data the page cannot read
 
@@ -123,7 +123,7 @@ Any value other than the empty object or one configured location replaces the fo
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
 
-This story places the longer unreadable copy and the credit at the minimum artifact size.
+This story places the longer unreadable copy at the minimum artifact size.
 
 <Artifact width="230px"><Canvas of={Stories.MinimumUnreadable} /></Artifact>
 

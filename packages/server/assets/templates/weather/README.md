@@ -39,8 +39,8 @@ Clear the card by replacing its root with `{}`, not `null`:
 tv resource json set --artifact "$ARTIFACT_ID" '{}'
 ```
 
-The page fetches forecasts from Open-Meteo and caches its last successful result in `forecast`. Do not write or edit `forecast`; the page owns it. Offline, the saved forecast remains visible with its honest age. A read-only page fetches weather for itself but does not save it.
+The page fetches forecasts from Open-Meteo and caches its last successful result in `forecast`. Do not write or edit `forecast`; the page owns it. Offline, the saved forecast remains visible and shows how long ago it was fetched. A read-only page fetches weather for itself but does not save it.
 
-An external network request to Open-Meteo is required for each fresh forecast. The card visibly credits Open-Meteo and the CC BY 4.0 source data.
+An external network request to Open-Meteo is required for each fresh forecast. Whenever the card shows forecast data, it visibly credits Open-Meteo and the CC BY 4.0 source data.
 
 To adapt the design, edit `styles.css` and the first-party drawings in `artwork.svg` and `icon.svg`. The document background is transparent so the rounded card floats in the artifact frame when the manifest display setting is applied at creation.

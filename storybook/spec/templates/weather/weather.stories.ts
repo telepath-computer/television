@@ -236,7 +236,6 @@ const render = ({ theme, state, forecast }: Args) => {
     <article class="weather-card weather-card-${state}" data-condition="clear" data-day="true">
       ${atmosphere}
       ${placeholder(state)}
-      ${credit}
     </article>
   </main>`;
 

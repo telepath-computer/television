@@ -1,3 +1,6 @@
+// Pure validation, display-window, and request-state rules shared by the
+// copied Weather page and its provider response normalizer.
+
 const CONDITIONS = new Set([
   "clear",
   "partly-cloudy",
@@ -11,12 +14,13 @@ const CONDITIONS = new Set([
 const DATE_TIME = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):[0-5]\d(:[0-5]\d(\.\d+)?)?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/;
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
+const formattersByTimeZone = new Map();
 
-function isRecord(value) {
+export function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function isFiniteNumber(value) {
+export function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
@@ -32,7 +36,7 @@ function isDate(value) {
   const day = Number(match[3]);
   const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
   const daysInMonth = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1];
-  return day <= daysInMonth;
+  return day >= 1 && day <= daysInMonth;
 }
 
 function isDateTime(value) {
@@ -41,7 +45,7 @@ function isDateTime(value) {
   return Number.isFinite(Date.parse(value));
 }
 
-function isTimeZone(value) {
+export function isTimeZone(value) {
   if (typeof value !== "string" || value.length === 0) return false;
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: value }).format(0);
@@ -73,7 +77,7 @@ function isCurrent(value) {
     && typeof value.isDay === "boolean";
 }
 
-function isHour(value) {
+export function isWeatherHour(value) {
   return isRecord(value)
     && isDateTime(value.time)
     && isFiniteNumber(value.temperature)
@@ -81,7 +85,7 @@ function isHour(value) {
     && typeof value.isDay === "boolean";
 }
 
-function isDay(value) {
+export function isWeatherDay(value) {
   return isRecord(value)
     && isDate(value.date)
     && CONDITIONS.has(value.condition)
@@ -104,9 +108,9 @@ export function isWeatherForecast(value) {
     && isCurrent(value.current)
     && Array.isArray(value.hourly)
     && value.hourly.length <= 24
-    && value.hourly.every(isHour)
+    && value.hourly.every(isWeatherHour)
     && Array.isArray(value.daily)
-    && value.daily.every(isDay);
+    && value.daily.every(isWeatherDay);
 }
 
 function identityOf(value) {
@@ -143,17 +147,26 @@ export function readWeatherValue(value) {
   };
 }
 
+function formatterForTimeZone(timeZone) {
+  let formatter = formattersByTimeZone.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    formattersByTimeZone.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 function partsAt(value, timeZone) {
-  const parts = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(value));
+  const parts = formatterForTimeZone(timeZone).formatToParts(new Date(value));
   return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
 }
 
@@ -177,6 +190,8 @@ function localHourIdentity(value, timeZone) {
     Number(parts.minute),
     Number(parts.second),
   );
+  // The UTC offset is part of the identity so the repeated local hour during a
+  // daylight-saving fallback remains two distinct forecast hours.
   const offset = representedAsUtc - Math.floor(instant / 1000) * 1000;
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${offset}`;
 }
@@ -194,6 +209,12 @@ function stableUnique(entries, key) {
     .map(({ entry }) => entry);
 }
 
+function compareDates(left, right) {
+  if (left.date < right.date) return -1;
+  if (left.date > right.date) return 1;
+  return 0;
+}
+
 export function getHourlyWindow(forecast, now, limit = 23) {
   const nowInstant = instantOf(now);
   const currentHour = localHourIdentity(nowInstant, forecast.timeZone);
@@ -206,7 +227,7 @@ export function getDailyWindow(forecast, now) {
   const currentDate = localDate(now, forecast.timeZone);
   const seen = new Set();
   return [...forecast.daily]
-    .sort((left, right) => left.date.localeCompare(right.date))
+    .sort(compareDates)
     .filter((entry) => {
       if (entry.date < currentDate || seen.has(entry.date)) return false;
       seen.add(entry.date);
@@ -236,17 +257,21 @@ export function forecastAge(updatedAt, now) {
   return { unit: "day", value: Math.floor(hours / 24) };
 }
 
-function emptyRequestState(identity = null) {
-  return { identity, runningStartedAt: null, failedStartedAt: null, memoryForecast: null };
+function emptyRequestState(identity = null, memoryForecast = null) {
+  return { identity, runningStartedAt: null, failedStartedAt: null, memoryForecast };
 }
 
 export function reconcileRequestContext(state, configuration) {
   const identity = configuration ? identityOf(configuration) : null;
   if (sameIdentity(state.identity, identity)) return { state, abortRunning: false };
   return {
-    state: emptyRequestState(identity),
+    state: emptyRequestState(identity, identity ? state.memoryForecast : null),
     abortRunning: state.runningStartedAt !== null,
   };
+}
+
+export function canReplaceMemoryForecast(configuration, requestIdentity) {
+  return isConfiguration(configuration) && sameIdentity(configuration, requestIdentity);
 }
 
 export function selectForecast(savedForecast, memoryForecast, now) {

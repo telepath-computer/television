@@ -135,7 +135,7 @@ describe("bundled Weather package", () => {
     expect(prose).toMatch(/Open-Meteo[\s\S]*fetch[\s\S]*cache/i);
     expect(prose).toMatch(/offline[\s\S]*saved forecast/i);
     expect(prose).toMatch(/read-only[\s\S]*does not save/i);
-    expect(prose).toMatch(/visible[\s\S]*credit/i);
+    expect(prose).toMatch(/shows forecast data[\s\S]*credits/i);
     expect(prose).toMatch(/external[ -]network[\s\S]*fresh forecast/i);
     expect(readme).toContain("`styles.css`");
     expect(readme).toContain("`artwork.svg`");

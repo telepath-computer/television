@@ -1,4 +1,15 @@
-import { getHourlyWindow, isWeatherForecast } from "./model.js";
+// Open-Meteo request construction and normalization into the Weather cache.
+// Network and store effects remain in the copied page.
+
+import {
+  getHourlyWindow,
+  isFiniteNumber,
+  isRecord,
+  isTimeZone,
+  isWeatherDay,
+  isWeatherForecast,
+  isWeatherHour,
+} from "./model.js";
 
 const MAPPING = new Map([
   [0, ["clear", "Clear"]],
@@ -32,26 +43,8 @@ const MAPPING = new Map([
   [99, ["thunderstorm", "Thunderstorm with heavy hail"]],
 ]);
 
-function isRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function finite(value) {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
 function array(value) {
   return Array.isArray(value) ? value : null;
-}
-
-function validTimeZone(value) {
-  if (typeof value !== "string" || value.length === 0) return false;
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(0);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function unitSymbol(units) {
@@ -101,15 +94,16 @@ function hourlyEntries(hourly) {
   for (let index = 0; index < time.length; index += 1) {
     const instant = time[index];
     const mapping = mapWeatherCode(code[index]);
-    if (!finite(instant) || !finite(temperature[index]) || !mapping || !isDayFlag(day[index])) continue;
+    if (!isFiniteNumber(instant) || !isFiniteNumber(temperature[index]) || !mapping || !isDayFlag(day[index])) continue;
     const date = new Date(instant * 1000);
     if (!Number.isFinite(date.getTime())) continue;
-    entries.push({
+    const entry = {
       time: date.toISOString(),
       temperature: temperature[index],
       condition: mapping.condition,
       isDay: day[index] === 1,
-    });
+    };
+    if (isWeatherHour(entry)) entries.push(entry);
   }
   return entries;
 }
@@ -124,10 +118,13 @@ function dailyEntries(daily, offsetSeconds) {
   for (let index = 0; index < time.length; index += 1) {
     const instant = time[index];
     const mapping = mapWeatherCode(code[index]);
-    if (!finite(instant) || !finite(high[index]) || !finite(low[index]) || !mapping || high[index] < low[index]) continue;
+    if (!isFiniteNumber(instant) || !isFiniteNumber(high[index]) || !isFiniteNumber(low[index]) || !mapping || high[index] < low[index]) continue;
     const shifted = new Date((instant + offsetSeconds) * 1000);
     if (!Number.isFinite(shifted.getTime())) continue;
-    entries.push({ date: shifted.toISOString().slice(0, 10), condition: mapping.condition, high: high[index], low: low[index] });
+    // Open-Meteo daily UNIX values use one response-wide fixed offset. Shift
+    // before taking the date so the cached date matches the provider response.
+    const entry = { date: shifted.toISOString().slice(0, 10), condition: mapping.condition, high: high[index], low: low[index] };
+    if (isWeatherDay(entry)) entries.push(entry);
   }
   return entries;
 }
@@ -135,14 +132,14 @@ function dailyEntries(daily, offsetSeconds) {
 export function normalizeOpenMeteoResponse(body, requestIdentity, receivedAt) {
   if (!isRecord(body)
     || !Number.isInteger(body.utc_offset_seconds)
-    || !validTimeZone(body.timezone)
+    || !isTimeZone(body.timezone)
     || !isRecord(body.current)
     || !isRecord(body.hourly)
     || !isRecord(body.daily)
     || !unitsMatch(body, requestIdentity.units)) return null;
 
   const currentMapping = mapWeatherCode(body.current.weather_code);
-  if (!finite(body.current.temperature_2m) || !currentMapping || !isDayFlag(body.current.is_day)) return null;
+  if (!isFiniteNumber(body.current.temperature_2m) || !currentMapping || !isDayFlag(body.current.is_day)) return null;
   const hourly = hourlyEntries(body.hourly);
   const daily = dailyEntries(body.daily, body.utc_offset_seconds);
   if (!hourly || !daily) return null;

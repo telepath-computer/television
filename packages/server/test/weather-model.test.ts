@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  canReplaceMemoryForecast,
   forecastAge,
   getCurrentHighLow,
   getDailyWindow,
@@ -15,6 +16,7 @@ import {
   updateForecastRoot,
 } from "../assets/templates/weather/model.js";
 import type { WeatherForecast } from "../assets/templates/weather/model.js";
+import { validateTemplateData } from "../src/template-schema.ts";
 import {
   buildOpenMeteoRequest,
   mapWeatherCode,
@@ -22,10 +24,20 @@ import {
 } from "../assets/templates/weather/provider.js";
 
 const fixtureRoot = path.resolve(import.meta.dirname, "../../../test/fixtures/weather/open-meteo");
+const weatherFolder = path.resolve(import.meta.dirname, "../assets/templates/weather");
+const weatherSchema = JSON.parse(readFileSync(path.join(weatherFolder, "manifest.json"), "utf8")).dataSchema;
+const forecastSchema = {
+  "$schema": weatherSchema.$schema,
+  "$ref": "#/$defs/forecast",
+  "$defs": weatherSchema.$defs,
+};
 const originalTimeZone = process.env.TZ;
 
 beforeAll(() => { process.env.TZ = "UTC"; });
-afterAll(() => { process.env.TZ = originalTimeZone; });
+afterAll(() => {
+  if (originalTimeZone === undefined) delete process.env.TZ;
+  else process.env.TZ = originalTimeZone;
+});
 
 interface ProviderFixture {
   request: { url: string };
@@ -70,11 +82,14 @@ function forecast(overrides: Record<string, unknown> = {}): WeatherForecast {
 describe("Weather store validity", () => {
   // proofs/arch/templates/weather.md#^templates-weather-t-validity
   it("classifies empty, configured and unreadable roots without changing them", () => {
-    for (const value of [undefined, {}]) expect(readWeatherValue(value)).toEqual({ kind: "empty" });
+    expect(readWeatherValue(undefined)).toEqual({ kind: "empty" });
+    expect(validateTemplateData(weatherSchema, {}, "weather")).toBeUndefined();
+    expect(readWeatherValue({})).toEqual({ kind: "empty" });
 
     for (const units of ["celsius", "fahrenheit"] as const) {
       const value = { ...configuration, units, extra: { retained: true } };
       const original = clone(value);
+      expect(validateTemplateData(weatherSchema, value, "weather")).toBeUndefined();
       expect(readWeatherValue(value)).toMatchObject({ kind: "configured", configuration: value, forecast: null });
       expect(value).toEqual(original);
     }
@@ -82,32 +97,44 @@ describe("Weather store validity", () => {
     for (const value of [
       null, [], "weather", 7, false,
       { place: "", latitude: 1, longitude: 1, units: "celsius" },
+      { place: "Here", latitude: "37", longitude: 1, units: "celsius" },
       { place: "Here", latitude: 91, longitude: 1, units: "celsius" },
       { place: "Here", latitude: 1, longitude: -181, units: "celsius" },
       { place: "Here", latitude: 1, longitude: 1, units: "kelvin" },
       { place: "Here", latitude: 1, longitude: 1 },
-    ]) expect(readWeatherValue(value)).toEqual({ kind: "unreadable" });
+    ]) {
+      expect(() => validateTemplateData(weatherSchema, value, "weather")).toThrow();
+      expect(readWeatherValue(value)).toEqual({ kind: "unreadable" });
+    }
   });
 
   it("accepts only display-safe forecasts and ignores a bad or incompatible cache", () => {
     const valid = forecast();
+    expect(validateTemplateData(forecastSchema, valid, "weather forecast")).toBeUndefined();
     expect(isWeatherForecast(valid)).toBe(true);
     expect(isWeatherForecast(forecast({ hourly: [], daily: [] }))).toBe(true);
     expect(readWeatherValue({ ...configuration, forecast: valid })).toMatchObject({ kind: "configured", forecast: valid });
     expect(readWeatherValue({ ...configuration, place: "Bay Area", forecast: valid })).toMatchObject({ kind: "configured", forecast: valid });
 
     const invalid = [
+      null,
+      "forecast",
       { ...valid, timeZone: "Not/A_Zone" },
       { ...valid, updatedAt: "2026-10-27T17:00:00" },
+      { ...valid, daily: [{ date: "2026-10-00", condition: "clear", high: 4, low: 2 }] },
       { ...valid, updatedAt: "2026-10-27T17:00:00.123Z", daily: [{ date: "2026-02-30", condition: "clear", high: 4, low: 2 }] },
       { ...valid, current: { ...valid.current, condition: "wind" } },
+      { ...valid, current: { temperature: 18.5, condition: "clear", isDay: true } },
       { ...valid, hourly: [...valid.hourly, ...Array.from({ length: 23 }, (_, index) => ({ ...valid.hourly[0], time: `2026-10-28T${String(index).padStart(2, "0")}:00:00Z` }))] },
       { ...valid, daily: [{ date: "2026-10-27", condition: "clear", high: 2, low: 4 }] },
     ];
     for (const candidate of invalid) {
+      expect(validateTemplateData(weatherSchema, { ...configuration, forecast: candidate }, "weather")).toBeUndefined();
       expect(isWeatherForecast(candidate)).toBe(false);
       expect(readWeatherValue({ ...configuration, forecast: candidate })).toMatchObject({ kind: "configured", forecast: null });
     }
+    expect(() => validateTemplateData(forecastSchema, invalid[4], "weather forecast")).toThrow();
+    expect(validateTemplateData(forecastSchema, invalid[5], "weather forecast")).toBeUndefined();
     expect(readWeatherValue({ ...configuration, forecast: { ...valid, units: "fahrenheit" } })).toMatchObject({ kind: "configured", forecast: null });
     expect(readWeatherValue({ ...configuration, forecast: { ...valid, latitude: 38 } })).toMatchObject({ kind: "configured", forecast: null });
   });
@@ -119,16 +146,16 @@ describe("Weather display derivation", () => {
     const kolkata = forecast({
       timeZone: "Asia/Kolkata",
       hourly: [
-        { time: "2026-10-27T21:00:00+00:00", temperature: 5, condition: "clear", isDay: false },
+        { time: "2026-10-28T02:30:00.500+05:30", temperature: 5, condition: "clear", isDay: false },
         { time: "2026-10-28T02:00:00+05:30", temperature: 4, condition: "clear", isDay: false },
         { time: "2026-10-27T20:15:00Z", temperature: 3, condition: "clear", isDay: false },
         { time: "2026-10-28T01:00:00.500+05:30", temperature: 2, condition: "clear", isDay: false },
-        { time: "2026-10-27T21:00:00Z", temperature: 99, condition: "snow", isDay: false },
+        { time: "2026-10-28T03:00:00.500+06:00", temperature: 99, condition: "snow", isDay: false },
       ],
     });
     expect(getHourlyWindow(kolkata, "2026-10-27T20:00:00Z").map((entry: { time: string }) => entry.time)).toEqual([
       "2026-10-28T02:00:00+05:30",
-      "2026-10-27T21:00:00+00:00",
+      "2026-10-28T02:30:00.500+05:30",
     ]);
 
     const fallback = forecast({
@@ -160,8 +187,10 @@ describe("Weather display derivation", () => {
           .map((date) => ({ date, condition: "clear", high: 4, low: 1 })),
       ],
     });
-    const dates = getDailyWindow(value, "2026-10-27T12:30:00Z").map((entry: { date: string }) => entry.date);
+    const window = getDailyWindow(value, "2026-10-27T12:30:00Z");
+    const dates = window.map((entry: { date: string }) => entry.date);
     expect(dates.slice(0, 3)).toEqual(["2026-10-28", "2026-10-29", "2026-10-30"]);
+    expect(window[0]).toMatchObject({ condition: "snow", high: 2, low: -1 });
     expect(dates).toHaveLength(7);
 
     const west = forecast({ timeZone: "America/Adak", daily: [
@@ -213,7 +242,8 @@ describe("Open-Meteo contract", () => {
         timezone: "auto",
         forecast_days: "7",
       });
-      expect(url.href).not.toContain(encodeURIComponent(input.place));
+      for (const key of url.searchParams.keys()) expect(url.searchParams.getAll(key)).toHaveLength(1);
+      expect(url.searchParams.has("place")).toBe(false);
     }
   });
 
@@ -309,10 +339,13 @@ describe("Open-Meteo contract", () => {
     emptyLists.daily.temperature_2m_max.fill(null);
     expect(normalizeOpenMeteoResponse(emptyLists, identity, receivedAt)).toMatchObject({ hourly: [], daily: [] });
 
+    const baseline = normalizeOpenMeteoResponse(body, identity, receivedAt)!;
+    const damagedTimes = baseline.hourly.slice(0, 3).map((entry) => Date.parse(entry.time) / 1000);
+    const damagedIndices = damagedTimes.map((time) => body.hourly.time.indexOf(time));
     const edited = clone(body);
-    edited.hourly.temperature_2m[20] = null;
-    edited.hourly.weather_code[21] = 4;
-    edited.hourly.is_day[22] = Number.NaN;
+    edited.hourly.temperature_2m[damagedIndices[0]] = null;
+    edited.hourly.weather_code[damagedIndices[1]] = 4;
+    edited.hourly.is_day[damagedIndices[2]] = Number.NaN;
     edited.hourly.temperature_2m.pop();
     edited.hourly.temperature_2m.push(...[99, 100]);
     edited.daily.temperature_2m_max[1] = null;
@@ -324,11 +357,21 @@ describe("Open-Meteo contract", () => {
     const normalized = normalizeOpenMeteoResponse(edited, identity, receivedAt);
     expect(normalized).not.toBeNull();
     expect(normalized!.hourly).toHaveLength(24);
-    for (const index of [20, 21, 22]) {
-      expect(normalized!.hourly.map(({ time }) => time)).not.toContain(new Date(body.hourly.time[index] * 1000).toISOString());
-    }
-    expect(normalized!.daily).toHaveLength(body.daily.time.length - 3);
+    for (const time of damagedTimes) expect(normalized!.hourly.map(({ time: value }) => Date.parse(value) / 1000)).not.toContain(time);
+    expect(normalized!.daily).toHaveLength(baseline.daily.length - 3);
     expect(isWeatherForecast(normalized)).toBe(true);
+
+    const missingValue = clone(body);
+    missingValue.hourly.temperature_2m.length = damagedIndices[0];
+    expect(normalizeOpenMeteoResponse(missingValue, identity, receivedAt)).toMatchObject({ hourly: [] });
+
+    const extendedYears = clone(body);
+    extendedYears.hourly.time[damagedIndices[0]] = 253402387200;
+    extendedYears.daily.time[0] = 253402387200;
+    const withoutExtendedYears = normalizeOpenMeteoResponse(extendedYears, identity, receivedAt);
+    expect(withoutExtendedYears).not.toBeNull();
+    expect(withoutExtendedYears!.hourly.some(({ time }) => time.startsWith("+"))).toBe(false);
+    expect(withoutExtendedYears!.daily).toHaveLength(baseline.daily.length - 1);
   });
 
   // proofs/arch/templates/weather.md#^templates-weather-t-provider-time-zones
@@ -367,7 +410,7 @@ describe("Weather request state and saving", () => {
     expect(shouldRequestForecast({ configuration, state: context.state, savedForecast: forecast({ updatedAt: "2026-10-27T18:00:00Z" }), now })).toBe(true);
   });
 
-  it("clears attempts and memory whenever coordinates, units or readable configuration disappear", () => {
+  it("clears attempts on identity changes but keeps memory until readable configuration disappears", () => {
     const state = {
       identity: { latitude: configuration.latitude, longitude: configuration.longitude, units: "celsius" as const },
       runningStartedAt: "2026-10-27T17:00:00Z",
@@ -379,15 +422,46 @@ describe("Weather request state and saving", () => {
     expect(fahrenheit.abortRunning).toBe(true);
     expect(fahrenheit.state).toEqual({
       identity: { latitude: configuration.latitude, longitude: configuration.longitude, units: "fahrenheit" },
-      runningStartedAt: null, failedStartedAt: null, memoryForecast: null,
+      runningStartedAt: null, failedStartedAt: null, memoryForecast: state.memoryForecast,
     });
     const back = reconcileRequestContext(fahrenheit.state, configuration);
-    expect(shouldRequestForecast({ configuration, state: back.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(true);
+    expect(back.state.memoryForecast).toBe(state.memoryForecast);
+    expect(shouldRequestForecast({ configuration, state: back.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(false);
+
+    const fahrenheitSuccess = {
+      ...fahrenheit.state,
+      memoryForecast: forecast({ units: "fahrenheit" }),
+    };
+    const backAfterSuccess = reconcileRequestContext(fahrenheitSuccess, configuration);
+    expect(shouldRequestForecast({ configuration, state: backAfterSuccess.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(true);
+
+    const failedCelsius = {
+      ...state,
+      runningStartedAt: null,
+      failedStartedAt: "2026-10-27T17:00:30Z",
+      memoryForecast: null,
+    };
+    const afterFailureSwitch = reconcileRequestContext(failedCelsius, { ...configuration, units: "fahrenheit" });
+    const backAfterFailure = reconcileRequestContext(afterFailureSwitch.state, configuration);
+    expect(shouldRequestForecast({ configuration, state: backAfterFailure.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(true);
     const cleared = reconcileRequestContext(state, null);
     expect(cleared).toEqual({ state: { identity: null, runningStartedAt: null, failedStartedAt: null, memoryForecast: null }, abortRunning: true });
     expect(shouldRequestForecast({ configuration: null, state: cleared.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(false);
     const restored = reconcileRequestContext(cleared.state, configuration);
     expect(shouldRequestForecast({ configuration, state: restored.state, savedForecast: null, now: "2026-10-27T17:01:00Z" })).toBe(true);
+  });
+
+  it("accepts a response only while its coordinates and units are current", () => {
+    const requestIdentity = { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units };
+    expect(canReplaceMemoryForecast(configuration, requestIdentity)).toBe(true);
+    expect(canReplaceMemoryForecast({ ...configuration, place: "Newest place" }, requestIdentity)).toBe(true);
+    expect(canReplaceMemoryForecast({ ...configuration, longitude: -73.9857 }, requestIdentity)).toBe(false);
+    expect(canReplaceMemoryForecast({ ...configuration, units: "fahrenheit" }, requestIdentity)).toBe(false);
+    expect(canReplaceMemoryForecast(null, requestIdentity)).toBe(false);
+
+    const lateRequest = { latitude: 40.7128, longitude: -74.006, units: "celsius" as const };
+    const currentConfiguration = { ...configuration, latitude: 34.0522, longitude: -118.2437 };
+    expect(canReplaceMemoryForecast(currentConfiguration, lateRequest)).toBe(false);
   });
 
   // proofs/arch/templates/weather.md#^templates-weather-t-selection
@@ -399,10 +473,14 @@ describe("Weather request state and saving", () => {
     expect(selectForecast(older, newer, now)).toBe(newer);
     expect(selectForecast(newer, older, now)).toBe(newer);
     expect(selectForecast(newer, future, now)).toBe(newer);
+    expect(selectForecast(future, newer, now)).toBe(newer);
     expect(selectForecast(null, newer, now)).toBe(newer);
     expect(selectForecast(newer, null, now)).toBe(newer);
     const equal = clone(newer);
     expect([newer, equal]).toContain(selectForecast(newer, equal, now));
+    expect(older).toEqual(forecast({ updatedAt: "2026-10-27T16:00:00Z", current: { temperature: 1, condition: "clear", summary: "Clear", isDay: true } }));
+    expect(newer).toEqual(forecast({ updatedAt: "2026-10-27T17:00:00Z", current: { temperature: 2, condition: "clear", summary: "Clear", isDay: true } }));
+    expect(future).toEqual(forecast({ updatedAt: "2026-10-27T19:00:00Z", current: { temperature: 3, condition: "clear", summary: "Clear", isDay: true } }));
   });
 
   // proofs/arch/templates/weather.md#^templates-weather-t-transaction
