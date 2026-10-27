@@ -306,26 +306,201 @@ test.describe("wrapped list indentation", () => {
     }
   });
 
-  test("keeps a revealed quote and list marker separate with aligned wraps", async ({ page }) => {
-    await setDocument(page, [quotedBullet.sourceLine, "", OUTSIDE_LINE].join("\n"));
-    await placeCaretInLine(page, quotedBullet.sourceLine, quotedBullet.prefixColumn - 1);
+  test("keeps tab-indented source inside the reserved list prefix", async ({ page }) => {
+    const tabbedItems = [
+      listCase("tab-indented bullet", "\t- ", "Tabbed nested item"),
+      listCase("space-and-tab-indented bullet", " \t- ", "Mixed tab nested item"),
+    ];
+
+    for (const item of tabbedItems) {
+      await setDocument(
+        page,
+        ["- Parent item", item.sourceLine, "", OUTSIDE_LINE].join("\n"),
+      );
+
+      await placeCaretAfter(page, OUTSIDE_LINE);
+      const rendered = await listLayout(page, item);
+      assertWrappedRows(item, "rendered", rendered);
+
+      await placeCaretInLine(page, item.sourceLine, item.sourceLine.indexOf("-"));
+      const source = await listLayout(page, item);
+      assertWrappedRows(item, "source", source);
+      const sourcePrefixEdge = await sourcePrefixRight(page, item);
+
+      expect(
+        Math.abs(rendered.markerLeft - source.markerLeft),
+        `${item.name}: marker must stay put when its source is revealed`,
+      ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
+      expect(
+        sourcePrefixEdge - source.bodyLeft,
+        `${item.name}: drawn indentation and marker must fit inside their reserved columns`,
+      ).toBeLessThanOrEqual(0.5);
+    }
+  });
+
+  test("keeps quoted list source inside the quote with stable rendered geometry", async ({ page }) => {
+    const plainQuoteLine = "> Plain quote reference";
+    await setDocument(
+      page,
+      [quotedBullet.sourceLine, "", plainQuoteLine, "", OUTSIDE_LINE].join("\n"),
+    );
+
+    await placeCaretAfter(page, OUTSIDE_LINE);
+    const rendered = await listLayout(page, quotedBullet);
+    assertWrappedRows(quotedBullet, "rendered", rendered);
+    await expect(lineWithText(page, quotedBullet.bodyText)).toHaveClass(/cm-md-list-bullet/);
+
+    await placeSelectionFromListPrefixToLineStart(
+      page,
+      quotedBullet.sourceLine,
+      plainQuoteLine,
+    );
 
     const line = lineWithText(page, quotedBullet.bodyText);
     await expect(line.locator(".cm-md-mark").filter({ hasText: ">" })).toHaveCount(1);
     await expect(line.locator(".cm-md-list-prefix")).toContainText("-");
+    await expect(lineWithText(page, "Plain quote reference").locator(".cm-md-mark"))
+      .toContainText(">");
 
-    const quote = await textRect(page, quotedBullet.bodyText, ">");
+    const listQuote = await textRect(page, quotedBullet.bodyText, ">");
+    const plainQuote = await textRect(page, "Plain quote reference", ">");
     const marker = await textRect(page, quotedBullet.bodyText, "-");
+    const quoteBarRight = await line.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return rect.left + Number.parseFloat(getComputedStyle(element).borderLeftWidth);
+    });
+    expect(
+      listQuote.left,
+      "a quoted list's revealed `>` must stay inside the quote bar",
+    ).toBeGreaterThanOrEqual(quoteBarRight);
     expect(
       marker.left,
-      `quoted source: marker at ${marker.left}px must not overlap quote ending at ${quote.right}px`,
-    ).toBeGreaterThanOrEqual(quote.right);
+      `quoted source: marker at ${marker.left}px must not overlap quote ending at ${listQuote.right}px`,
+    ).toBeGreaterThanOrEqual(listQuote.right);
+    expect(
+      Math.abs(listQuote.left - plainQuote.left),
+      "a quoted list's revealed `>` must align with the `>` on a plain quoted line",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
 
-    const layout = await listLayout(page, quotedBullet);
-    assertWrappedRows(quotedBullet, "source", layout);
+    const source = await listLayout(page, quotedBullet);
+    assertWrappedRows(quotedBullet, "source", source);
+    expect(
+      Math.abs(rendered.markerLeft - source.markerLeft),
+      "a quoted list marker must not move when its source is revealed",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
+    expect(
+      Math.abs(rendered.bodyLeft - source.bodyLeft),
+      "quoted list text must not move when its source is revealed",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
   });
 
-  test("keeps a rendered task at its main and source task row heights", async ({ page }) => {
+  test("keeps list markers inside fenced-code line backgrounds", async ({ page }) => {
+    const fencedCases: readonly ListCase[] = [
+      {
+        name: "bullet fenced code",
+        sourceLine: "- ```js",
+        bodyText: "```js",
+        prefixColumn: 2,
+        marker: "bullet",
+        markerText: "-",
+      },
+      {
+        name: "numbered fenced code",
+        sourceLine: "1. ```bash",
+        bodyText: "```bash",
+        prefixColumn: 3,
+        marker: "number",
+        markerText: "1.",
+      },
+    ];
+
+    for (const item of fencedCases) {
+      await setDocument(page, [item.sourceLine, OUTSIDE_LINE].join("\n"));
+      await placeCaretAfter(page, OUTSIDE_LINE);
+
+      const line = lineWithText(page, item.bodyText);
+      await expect(line).toHaveClass(/cm-md-fenced-line/);
+      await expect(line).toHaveClass(/cm-md-list-marker-line/);
+      expect(
+        await line.evaluate((element) => getComputedStyle(element).backgroundColor),
+        `${item.name}: fixture must expose the fenced-code background`,
+      ).not.toBe("rgba(0, 0, 0, 0)");
+      const markerLeft = await markerLeftInLine(line, item);
+      const lineLeft = await line.evaluate((element) => element.getBoundingClientRect().left);
+      expect(
+        markerLeft,
+        `${item.name}: marker must stay inside the line's code background`,
+      ).toBeGreaterThanOrEqual(lineLeft);
+    }
+  });
+
+  test("composes quoted list and fenced-code insets", async ({ page }) => {
+    const item: ListCase = {
+      name: "quoted fenced-code bullet",
+      sourceLine: "> - ```js",
+      bodyText: "```js",
+      prefixColumn: 4,
+      marker: "bullet",
+      markerText: "-",
+    };
+    const plainQuoteLine = "> Plain quote reference";
+    await setDocument(
+      page,
+      [item.sourceLine, "", plainQuoteLine, "", OUTSIDE_LINE].join("\n"),
+    );
+
+    await placeCaretAfter(page, OUTSIDE_LINE);
+    const line = lineWithText(page, item.bodyText);
+    await expect(line).toHaveClass(/cm-md-blockquote-line/);
+    await expect(line).toHaveClass(/cm-md-fenced-line/);
+    expect(
+      await markerLeftInLine(line, item),
+      "a rendered quoted-list marker must stay inside its fenced-code background",
+    ).toBeGreaterThanOrEqual(await line.evaluate((element) => element.getBoundingClientRect().left));
+
+    await placeSelectionFromListPrefixToLineStart(page, item.sourceLine, plainQuoteLine);
+    const listQuote = await textRect(page, item.bodyText, ">");
+    const plainQuote = await textRect(page, "Plain quote reference", ">");
+    expect(
+      Math.abs(listQuote.left - plainQuote.left),
+      "a quoted fenced-list source marker must retain the ordinary quote inset",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
+    expect(
+      await markerLeftInLine(line, item),
+      "a revealed quoted-list marker must stay inside its fenced-code background",
+    ).toBeGreaterThanOrEqual(await line.evaluate((element) => element.getBoundingClientRect().left));
+  });
+
+  test("keeps a nested numbered task marker fixed throughout its source prefix", async ({ page }) => {
+    const nestedTask = listCase(
+      "nested numbered task",
+      "  1. [ ] ",
+      "Nested numbered task item",
+      "task",
+      "1.",
+    );
+    await setDocument(
+      page,
+      ["1. Parent item", nestedTask.sourceLine, "", OUTSIDE_LINE].join("\n"),
+    );
+
+    await placeCaretInLine(page, nestedTask.sourceLine, 3);
+    const onNumber = await listLayout(page, nestedTask);
+
+    await placeCaretInLine(page, nestedTask.sourceLine, 7);
+    const insideTaskMarker = await listLayout(page, nestedTask);
+
+    expect(
+      Math.abs(onNumber.markerLeft - insideTaskMarker.markerLeft),
+      "a nested ordered marker must not move when the caret enters its task brackets",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
+    expect(
+      Math.abs(onNumber.bodyLeft - insideTaskMarker.bodyLeft),
+      "nested numbered task text must stay fixed throughout the source prefix",
+    ).toBeLessThanOrEqual(MAX_POSITION_DELTA_PX);
+  });
+
+  test("keeps rendered and source tasks at their natural row heights", async ({ page }) => {
     const referenceLine = "Reference text row";
     const taskLine = "- [ ] Height comparison task";
     await setDocument(page, [referenceLine, taskLine, OUTSIDE_LINE].join("\n"));
@@ -333,7 +508,11 @@ test.describe("wrapped list indentation", () => {
 
     const referenceHeight = await lineHeight(page, referenceLine);
     const renderedHeight = await lineHeight(page, "Height comparison task");
-    const mainHeight = await mainTaskLineHeight(page, referenceLine, "Height comparison task");
+    const directCheckboxHeight = await directCheckboxLineHeight(
+      page,
+      referenceLine,
+      "Height comparison task",
+    );
 
     await placeCaretInLine(page, taskLine, 3);
     await expect(lineWithText(page, "Height comparison task").locator(".cm-md-list-prefix"))
@@ -342,13 +521,13 @@ test.describe("wrapped list indentation", () => {
 
     if (SCREENSHOT_LABEL) {
       console.log(
-        `[task-row-height:${SCREENSHOT_LABEL}] main=${mainHeight.toFixed(2)}px rendered=${renderedHeight.toFixed(2)}px source=${sourceHeight.toFixed(2)}px`,
+        `[task-row-height:${SCREENSHOT_LABEL}] direct-checkbox=${directCheckboxHeight.toFixed(2)}px rendered=${renderedHeight.toFixed(2)}px source=${sourceHeight.toFixed(2)}px`,
       );
     }
 
     expect(
-      Math.abs(renderedHeight - mainHeight),
-      `rendered task row ${renderedHeight}px must match main's direct-checkbox row ${mainHeight}px`,
+      Math.abs(renderedHeight - directCheckboxHeight),
+      `rendered task row ${renderedHeight}px must be as tall as a line containing only its checkbox and text (${directCheckboxHeight}px)`,
     ).toBeLessThanOrEqual(MAX_ROW_HEIGHT_DELTA_PX);
     expect(
       Math.abs(sourceHeight - referenceHeight),
@@ -524,6 +703,32 @@ async function listLayout(page: Page, item: ListCase): Promise<ListLayout> {
   }, { bodyNeedle: item.bodyText, marker: item.marker, markerNeedle: item.markerText });
 }
 
+async function markerLeftInLine(line: Locator, item: ListCase): Promise<number> {
+  return line.evaluate((element, { marker, markerNeedle }) => {
+    if (marker === "bullet" && element.classList.contains("cm-md-list-bullet")) {
+      const lineRect = element.getBoundingClientRect();
+      const lineStyle = getComputedStyle(element);
+      const bulletStyle = getComputedStyle(element, "::before");
+      return lineRect.left +
+        Number.parseFloat(lineStyle.borderLeftWidth) +
+        Number.parseFloat(lineStyle.paddingLeft) +
+        Number.parseFloat(bulletStyle.marginLeft);
+    }
+
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const offset = (node as Text).data.indexOf(markerNeedle);
+      if (offset < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + markerNeedle.length);
+      return range.getBoundingClientRect().left;
+    }
+    throw new Error(`Marker text not found: ${markerNeedle}`);
+  }, { marker: item.marker, markerNeedle: item.markerText });
+}
+
 async function loadNavigationFixture(
   page: Page,
   navigationCase: NavigationCase,
@@ -673,7 +878,7 @@ async function lineHeight(page: Page, lineNeedle: string): Promise<number> {
   return lineWithText(page, lineNeedle).evaluate((line) => line.getBoundingClientRect().height);
 }
 
-async function mainTaskLineHeight(
+async function directCheckboxLineHeight(
   page: Page,
   referenceNeedle: string,
   taskNeedle: string,
@@ -685,9 +890,9 @@ async function mainTaskLineHeight(
     const checkbox = task?.querySelector<HTMLInputElement>("input.cm-md-task-checkbox");
     if (!reference || !checkbox) throw new Error("Task height fixture not found");
 
-    // Main placed the widget directly in the line. A detached clone in the
-    // reference line reproduces that inline formatting without changing the
-    // editor document or relying on a platform-specific pixel constant.
+    // A detached clone in the reference line reproduces the checkbox's direct
+    // inline formatting without changing the editor document or relying on a
+    // platform-specific pixel constant.
     const clone = checkbox.cloneNode() as HTMLInputElement;
     clone.style.margin = "0 0.4em 0 0";
     clone.style.width = "auto";

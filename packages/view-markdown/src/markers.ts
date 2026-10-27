@@ -264,21 +264,21 @@ interface ListLineState {
   markerLine: boolean;
 }
 
-/** Walk the children of a `ListItem` to detect a task-list `TaskMarker`. */
-function itemIsTask(item: SyntaxNode): boolean {
+/** Find a task marker whether the grammar emits it directly or inside `Task`. */
+function findTaskMarker(item: SyntaxNode): SyntaxNode | null {
   let cur = item.firstChild;
   while (cur) {
-    if (cur.name === "TaskMarker") return true;
+    if (cur.name === "TaskMarker") return cur;
     if (cur.name === "Task") {
       let inner = cur.firstChild;
       while (inner) {
-        if (inner.name === "TaskMarker") return true;
+        if (inner.name === "TaskMarker") return inner;
         inner = inner.nextSibling;
       }
     }
     cur = cur.nextSibling;
   }
-  return false;
+  return null;
 }
 
 /** Find the enclosing `ListItem` ancestor of an arbitrary node. */
@@ -399,7 +399,7 @@ function pushRevealedIndentRange(
   }
 }
 
-function indentationColumns(
+function sourceRangeColumns(
   state: EditorState,
   from: number,
   to: number,
@@ -410,7 +410,10 @@ function indentationColumns(
 function sourceColumns(source: string): number {
   let columns = 0;
   for (const character of source) {
-    columns += character === "\t" ? 2 : 1;
+    // The prefix box draws tabs on two-column stops. Count the advance to the
+    // next stop rather than a fixed width so mixed spaces and tabs agree with
+    // the browser's `tab-size: 2` layout.
+    columns += character === "\t" ? 2 - (columns % 2) : 1;
   }
   return columns;
 }
@@ -437,8 +440,10 @@ function listItemLineDecoration(state: ListLineState): Decoration {
       style: [
         `--cm-md-list-indent: ${state.indentColumns}`,
         `--cm-md-list-prefix-columns: ${state.prefixColumns}`,
+        `--cm-md-list-quote-columns: ${state.quoteColumns}`,
         `--cm-md-list-source-indent: ${state.prefixRevealed ? state.indentColumns : 0}`,
         `--cm-md-list-source-quote: ${state.prefixRevealed ? state.quoteColumns : 0}`,
+        `--cm-md-list-prefix-pull: calc((var(--cm-md-list-prefix-columns, 0) + var(--cm-md-list-source-quote, 0)) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-source-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH})`,
       ].join("; ") + ";",
     },
   });
@@ -649,9 +654,9 @@ function computeDecorations(
         if (node.name === "ListMark") {
           const item = node.node.parent;
           if (item && item.name === "ListItem") {
-            const isTask = itemIsTask(item);
+            const taskMarker = findTaskMarker(item);
             const isOrdered = item.parent?.name === "OrderedList";
-            if (!isTask && !isOrdered) {
+            if (!taskMarker && !isOrdered) {
               const prefixRange = markerLinePrefixRange(state, node.node);
               const sourceRange = markerSourceRange(state, node.node);
               if (selectionTouchesRange(selFrom, selTo, prefixRange.from, prefixRange.to)) {
@@ -662,9 +667,17 @@ function computeDecorations(
               }
             } else if (isOrdered) {
               const line = state.doc.lineAt(node.node.from);
-              const range = markerLinePrefixRange(state, node.node);
+              const sourceRange = markerLinePrefixRange(state, node.node);
+              const revealRange = taskMarker
+                ? taskPrefixRange(state, item, taskMarker)
+                : sourceRange;
               if (line.from < node.node.from) {
-                if (selectionTouchesRange(selFrom, selTo, range.from, range.to)) {
+                if (selectionTouchesRange(
+                  selFrom,
+                  selTo,
+                  revealRange.from,
+                  revealRange.to,
+                )) {
                   pushRevealedIndentRange(state, node.node, ranges);
                 } else {
                   ranges.push(hiddenReplace.range(line.from, node.node.from));
@@ -675,8 +688,8 @@ function computeDecorations(
               // dot read as markup ink. Its trailing whitespace gets the
               // same font metric without becoming part of the marker span.
               ranges.push(markerMark.range(node.node.from, node.node.to));
-              if (node.node.to < range.to) {
-                ranges.push(listPrefixSpaceMark.range(node.node.to, range.to));
+              if (node.node.to < sourceRange.to) {
+                ranges.push(listPrefixSpaceMark.range(node.node.to, sourceRange.to));
               }
             }
           }
@@ -705,10 +718,7 @@ function computeDecorations(
         // 3. Block-level line decorations.
         if (node.name === "ListItem") {
           const listMark = findChild(node.node, "ListMark");
-          const task = findChild(node.node, "Task");
-          const taskMarker = findChild(node.node, "TaskMarker") ??
-            (task ? findChild(task, "TaskMarker") : null);
-          const isTask = taskMarker !== null;
+          const taskMarker = findTaskMarker(node.node);
           const isOrdered = node.node.parent?.name === "OrderedList";
           let prefixRevealed = false;
           let prefixColumns = 0;
@@ -718,10 +728,10 @@ function computeDecorations(
               ? taskPrefixRange(state, node.node, taskMarker)
               : markerLinePrefixRange(state, listMark);
             prefixRevealed = selectionTouchesRange(selFrom, selTo, range.from, range.to);
-            prefixColumns = indentationColumns(state, listMark.from, range.to);
+            prefixColumns = sourceRangeColumns(state, listMark.from, range.to);
             quoteColumns = Math.max(
               0,
-              indentationColumns(state, range.from, listMark.from) -
+              sourceRangeColumns(state, range.from, listMark.from) -
                 listIndentationColumns(state, listMark),
             );
 
@@ -749,7 +759,7 @@ function computeDecorations(
           // visual `•` never overlap. The line padding always reserves the
           // nesting and marker widths; a revealed prefix is pulled back over
           // that same space so neither the marker nor the body jumps.
-          if (!isTask && !isOrdered && listMark && !prefixRevealed) {
+          if (!taskMarker && !isOrdered && listMark && !prefixRevealed) {
             const firstLine = state.doc.lineAt(node.from);
             bulletLines.add(firstLine.from);
           }
@@ -1070,22 +1080,23 @@ const renderingTheme = EditorView.theme({
   // not be used here.
   [`.${LIST_PREFIX_CLASS}`]: {
     display: "inline-block",
-    width: `calc((var(--cm-md-list-prefix-columns, 0) + var(--cm-md-list-source-quote, 0)) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-source-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH})`,
-    marginLeft: `calc(-1 * ((var(--cm-md-list-prefix-columns, 0) + var(--cm-md-list-source-quote, 0)) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-source-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH}))`,
+    width: "var(--cm-md-list-prefix-pull)",
+    marginLeft: "calc(-1 * var(--cm-md-list-prefix-pull))",
     whiteSpace: "pre",
     fontFamily: "var(--font-mono)",
+    tabSize: "2",
   },
   // In checkbox mode the wrapper only supplies horizontal geometry. Removing
-  // its box leaves the 32px checkbox in the same inline formatting context it
-  // had before prefix wrappers were introduced, preserving the old row height.
+  // its box makes the row as tall as a line with the checkbox placed directly
+  // in it, without letting the prefix wrapper add another line-height box.
   [`.${LIST_PREFIX_CLASS}:has(.${TASK_CHECKBOX_CLASS})`]: {
     display: "contents",
   },
   [`.${LIST_PREFIX_CLASS} .${TASK_CHECKBOX_CLASS}`]: {
     boxSizing: "border-box",
     width: "13px",
-    marginLeft: `calc(-1 * var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
-    marginRight: `calc(var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH} - 13px)`,
+    marginLeft: "calc(-1 * var(--cm-md-list-prefix-pull))",
+    marginRight: "calc(var(--cm-md-list-prefix-pull) - 13px)",
   },
   // A rendered bullet has no source content, so CodeMirror omits its empty
   // outer prefix span. Put the glyph in an inline box whose width and pull use
@@ -1093,27 +1104,29 @@ const renderingTheme = EditorView.theme({
   [`.${LIST_BULLET_LINE_CLASS}::before`]: {
     content: "'•'",
     display: "inline-block",
-    width: `calc(var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
-    marginLeft: `calc(-1 * var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
+    width: "var(--cm-md-list-prefix-pull)",
+    marginLeft: "calc(-1 * var(--cm-md-list-prefix-pull))",
     fontFamily: "var(--font-mono)",
     transform: "scale(0.9)",
     transformOrigin: "left center",
   },
   [`.${BLOCKQUOTE_LINE_CLASS}`]: {
+    "--cm-md-blockquote-inset": "1rem",
     borderLeft: "3px solid transparent",
-    paddingLeft: "1rem",
+    paddingLeft: "var(--cm-md-blockquote-inset)",
     marginLeft: "0.25rem",
   },
-  // Blockquote padding otherwise wins over the list rule above. Add only the
-  // list nesting and marker reservation here. A revealed `> ` joins the pulled
-  // source-prefix box instead of moving the marker or the wrapped body.
-  [`.${BLOCKQUOTE_LINE_CLASS}.${LIST_MARKER_LINE_CLASS}`]: {
-    paddingLeft: `calc(1rem + var(--cm-md-list-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH} + var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
-  },
   [`.${FENCED_LINE_CLASS}`]: {
+    "--cm-md-fenced-inset": "0.75em",
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
     fontSize: "0.92em",
-    paddingLeft: "0.75em",
+    paddingLeft: "max(var(--cm-md-blockquote-inset, 0px), var(--cm-md-fenced-inset))",
+  },
+  // A marker line may also be a quote, fenced code, or both. Those contexts
+  // publish their preferred inset above; one final formula takes the widest
+  // inset and adds quote source, nesting, and marker reservations exactly once.
+  [`.${LIST_MARKER_LINE_CLASS}`]: {
+    paddingLeft: `calc(max(0.5rem, var(--cm-md-blockquote-inset, 0px), var(--cm-md-fenced-inset, 0px)) + var(--cm-md-list-quote-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH} + var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
   },
   [`.${HR_CLASS}`]: {
     // No margin — the .cm-line wrapping the widget has its own
