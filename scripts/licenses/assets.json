@@ -273,6 +273,7 @@
     "id": "map-leaflet",
     "paths": [
       "packages/server/assets/templates/map/vendor/LICENSE",
+      "packages/server/assets/templates/map/vendor/README.md",
       "packages/server/assets/templates/map/vendor/leaflet.css",
       "packages/server/assets/templates/map/vendor/leaflet.js"
     ],

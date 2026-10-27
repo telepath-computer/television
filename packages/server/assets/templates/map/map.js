@@ -15,7 +15,7 @@ const indexKey = /^(?:0|[1-9][0-9]*)$/;
 const maxMapZoom = 19;
 const pinSize = L.point(38, 48);
 const pinAnchor = L.point(19, 46);
-export const map = L.map('map', {
+const map = L.map('map', {
   zoomControl: false, worldCopyJump: true, inertia: !reducedMotion.matches,
   zoomAnimation: !reducedMotion.matches, fadeAnimation: !reducedMotion.matches,
 }).setView([20, 0], 2);

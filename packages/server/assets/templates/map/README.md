@@ -68,7 +68,7 @@ tv resource json set --artifact "$ARTIFACT_ID" places/place-01/title '"Golden Ga
 tv resource json remove --artifact "$ARTIFACT_ID" places/place-01
 ```
 
-To replace the complete value, use `tv resource json set --artifact "$ARTIFACT_ID" --file places.json`. Store a local photo in the copied artifact folder before referring to it by relative path.
+To replace the complete value, use `tv resource json set --artifact "$ARTIFACT_ID" --file map.json`. Store a local photo in the copied artifact folder before referring to it by relative path.
 
 ## Categories, icons, and interaction
 

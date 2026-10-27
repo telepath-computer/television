@@ -47,6 +47,7 @@ describe("bundled Map package", () => {
       "map.js",
       "map-model.js",
       "vendor/LICENSE",
+      "vendor/README.md",
       "vendor/leaflet.css",
       "vendor/leaflet.js",
       "vendor/lucide/LICENSE",
@@ -90,6 +91,8 @@ describe("bundled Map package", () => {
     expect(readme).toMatch(/`order` sorts ascending.*omitted values last.*keys breaking ties/i);
     expect(readme).toMatch(/Untitled place/);
     expect(readme).toMatch(/Supported icons/);
+    const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
+    for (const icon of manifest.dataSchema.$defs.icon.enum) expect(readme).toContain(`\`${icon}\``);
     expect(readme).toMatch(/red.*orange.*yellow.*green.*cyan.*blue.*purple.*pink.*neutral/i);
     expect(readme).toMatch(/explicitly coloured categories do not consume an automatic slot/i);
     expect(readme).toMatch(/## Example and commands[\s\S]*?"golden-gate"/);

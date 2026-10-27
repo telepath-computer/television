@@ -58,6 +58,14 @@ function snapshotRegularFiles(root: string): Record<string, Buffer> {
     .map((relative) => [relative, readFileSync(path.join(root, relative))]));
 }
 
+function versionBelow(minimumVersion: string): string {
+  const [major, minor, patch] = minimumVersion.split(".").map(Number);
+  if (patch > 0) return `${major}.${minor}.${patch - 1}`;
+  if (minor > 0) return `${major}.${minor - 1}.0`;
+  if (major > 0) return `${major - 1}.0.0`;
+  throw new Error(`No stable Semantic Version precedes ${minimumVersion}`);
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   for (const store of stores.splice(0)) store.dispose();
@@ -79,7 +87,7 @@ describe("bundled artifact template package", () => {
     const extraFile = sourceCopy();
     writeFileSync(path.join(extraFile, "stray.txt"), "stray\n");
     expectRefused(extraFile, /unexpected.*stray\.txt/i);
-    for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
+    for (const { id, minimumVersion } of BUNDLED_ARTIFACT_TEMPLATES) {
       const missing = sourceCopy();
       rmSync(path.join(missing, id), { recursive: true });
       expectRefused(missing, new RegExp(`missing.*${id}`, "i"));
@@ -89,7 +97,7 @@ describe("bundled artifact template package", () => {
       const old = sourceCopy();
       const manifestPath = path.join(old, id, "manifest.json");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: id === "map" ? "2.0.0" : "0.9.9" }));
+      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: versionBelow(minimumVersion) }));
       expectRefused(old, new RegExp(`${id}.*below minimum`, "i"));
     }
   }, 90_000);
@@ -534,7 +542,7 @@ describe("bundled artifact template serving installation", () => {
     writeState(handledHome, ["checklist"]);
     servingBoot(handledHome);
     expect(existsSync(path.join(handledHome, "templates/checklist"))).toBe(false);
-    for (const id of ["calendar", "sticky-note", "map"]) {
+    for (const { id } of BUNDLED_ARTIFACT_TEMPLATES.filter(({ id }) => id !== "checklist")) {
       expect(snapshotRegularFiles(path.join(handledHome, "templates", id)))
         .toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));
     }
@@ -545,7 +553,7 @@ describe("bundled artifact template serving installation", () => {
     for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
       expect(snapshotRegularFiles(path.join(home, "templates", id))).toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));
     }
-    for (const id of ["calendar", "sticky-note", "map"]) {
+    for (const { id, minimumVersion } of BUNDLED_ARTIFACT_TEMPLATES.filter(({ id }) => id !== "checklist")) {
       const installed = path.join(home, "templates", id);
       writeFileSync(path.join(installed, "index.html"), `edited ${id} page`);
       const edited = snapshotRegularFiles(installed);
@@ -553,7 +561,7 @@ describe("bundled artifact template serving installation", () => {
       expect(snapshotRegularFiles(installed)).toEqual(edited);
       const manifestPath = path.join(installed, "manifest.json");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: id === "map" ? "2.0.0" : "0.9.9" }));
+      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: versionBelow(minimumVersion) }));
       const old = snapshotRegularFiles(installed);
       servingBoot(home);
       expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));

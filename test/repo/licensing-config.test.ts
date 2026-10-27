@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
@@ -183,6 +184,7 @@ describe("licensing configuration", () => {
     const leaflet = assets.find((asset) => asset.id === "map-leaflet")!;
     expect(leaflet.paths).toEqual([
       "packages/server/assets/templates/map/vendor/LICENSE",
+      "packages/server/assets/templates/map/vendor/README.md",
       "packages/server/assets/templates/map/vendor/leaflet.css",
       "packages/server/assets/templates/map/vendor/leaflet.js",
     ]);
@@ -191,6 +193,13 @@ describe("licensing configuration", () => {
     expect(leaflet.components).toHaveLength(1);
     expect(leaflet.components[0]).toMatchObject({ package: "leaflet", version: "1.9.4", license: "BSD-2-Clause" });
     expect(leaflet.components[0].noticeText).toBe(readFileSync(path.join(repoRoot, leaflet.paths[0]), "utf8"));
+    const leafletSource = readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/vendor/README.md"), "utf8");
+    expect(leafletSource).toContain("leaflet-1.9.4.tgz");
+    for (const file of ["LICENSE", "leaflet.css", "leaflet.js"]) {
+      const contents = readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/vendor", file));
+      const digest = createHash("sha256").update(contents).digest("hex");
+      expect(leafletSource).toContain(`\`${file}\` | \`${digest}\``);
+    }
 
     const lucide = assets.find((asset) => asset.id === "map-lucide-icons")!;
     expect(lucide.paths).toEqual([
