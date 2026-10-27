@@ -94,3 +94,25 @@ The private-path hook changes location only. Ordinary fixtures coordinate small 
 | Mutex help and wait/placement assertions after resuming | `2026-10-27T12-11-33-272Z-p1164852-r7103cf0e9980d1e5`: help lacked the wait option | Complete direct-mutex file passed in `2026-10-27T12-12-22-355Z-p1165339-rd76f87ddad57fb0c` (28.6 seconds) |
 
 An expanded October 2 test initially expected a remote failed-preflight hook to exit 1; the existing command correctly exits 2. The assertion was corrected without changing production behavior. Scoped TypeScript and ESLint checks pass for the new mutex fixtures/tests. Broader repository validation and isolated crash evidence follow the pushed implementation checkpoint. Linux evidence does not establish the macOS process backend; no macOS execution is claimed.
+
+
+### Pushed slice 2 validation at `eeef2dabc9e6b6fba814de52a8f1cfd383535441`
+
+`npm test -- blaxel --surface unit:root --commit eeef2dab` passed with the default unit retry budget in run `2026-10-27T12-17-17-461Z-p1170866-rffc428075da4fa49`: 503 passing cases, one standing skip, no failures, recovered outer flakes, process leaks or infrastructure failures. The run completed on sandbox `tv-testshard-x64-poc-100` in 1m 58s. This includes reporting/toolchain nested CLI isolation and slice 1 regression coverage. The existing `blaxelShardRecommendation` caller's missing `selectSurfaces` import was also restored while integrating the mutex.
+
+The authorized branch-only [GitHub run 40502488567](https://github.com/telepath-computer/television/actions/runs/40502488567) passed on an ephemeral Ubuntu 24.04 runner:
+
+| Canonical one-file command | Retained GitHub run directory | Outcome |
+| --- | --- | --- |
+| `npm test -- local --file test/repo/test-runner-mutex.test.ts` | `2026-10-27T12-17-23-970Z-p2337-r71e664686148eeb0` | Passed, 24.8 seconds |
+| `npm test -- local --file test/repo/test-runner-verify-mutex.test.ts` | `2026-10-27T12-17-49-107Z-p4417-r999d2789740770b6` | Passed, 16.3 seconds |
+| `npm test -- local --file test/runner-fixtures/process-lifecycle/orchestrator/mutex.test.ts` | `2026-10-27T12-18-05-690Z-p5918-raf44ea9fed03c0c4` | Four cases passed, 13.8 seconds |
+| `npm test -- local --file test/runner-fixtures/process-lifecycle/orchestrator/orchestrator.test.ts` | `2026-10-27T12-18-19-771Z-p6791-r48239cc113ced9f4` | Thirteen cases passed, 20.3 seconds |
+
+The new crash cases passed on their first isolated execution; they are additional coverage, not a separately observed red implementation cycle. They exercised real owner tokens, process groups, listeners, SIGTERM, SIGKILL, a surviving verify test child, old record timestamps, ordinary stale recovery and a waiter recovering after owner death. The last two deliberately find abandoned processes and expect exit 1 before new native work; a later invocation reaches its declared preflight sentinel. Normal native execution after clean abandoned-record recovery is covered by the ordinary mutex file. The existing lifecycle suite deliberately creates leaks and one recovered native flake; these are asserted inner-fixture outcomes, not outer-suite failures or recovered outer flakes.
+
+The independent cleanup step reported `found=0; remaining=0`. Every outer command used its default retry policy and reported no recovered flakes. Complete hidden artifacts were uploaded as `mutex-lifecycle-40502488567-1`, downloaded under `.test-runs/github-mutex-40502488567/`; the full job log is `.test-runs/github-mutex-40502488567.log`. The workflow was removed after this successful run, as authorized. No experimental surface, placement rule or existing lifecycle proof claim was removed.
+
+Scoped ESLint and TypeScript checks passed for all changed TypeScript files, including the isolated test file and its dependencies. The final slice 2 handoff changes only proof/validation text and removes the temporary workflow; production and test code remain the tree exercised above. Whole-repository lint, type-check, full verify, main integration, macOS execution and production PR CI have not been performed in slice 2. Native-entrypoint and final instruction-layer work remains assigned to slice 3.
+
+Primitive's explicit npm CLI auth invocation failed with `ETARGET` for `@primitive.ai/prim`; the commit hook nevertheless surfaced the current isolated-crash placement decision and an unrelated service-seam decision, with a truncation warning. The matching placement decision agreed with Josh's instruction; the graph was not treated as complete or authoritative.
