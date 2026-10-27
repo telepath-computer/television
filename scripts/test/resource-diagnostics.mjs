@@ -85,7 +85,10 @@ export function readLinuxResourceProbe(name, options = {}) {
   if (name === "kernelOOM") {
     const result = spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", options.since, "--until", options.until], { encoding: "utf8", timeout: 2000, maxBuffer: 128 * 1024 });
     const truncated = result.error?.code === "ENOBUFS";
-    if (!truncated && (result.error || result.status !== 0)) throw Object.assign(new Error("Kernel log unavailable"), { code: result.error?.code ?? "EPERM" });
+    if (!truncated && (result.error || result.status !== 0)) {
+      const permissionCode = /operation not permitted/i.test(result.stderr ?? "") ? "EPERM" : /permission denied/i.test(result.stderr ?? "") ? "EACCES" : "unavailable";
+      throw Object.assign(new Error("Kernel log unavailable"), { code: result.error?.code ?? permissionCode });
+    }
     return { lines: (result.stdout ?? "").split("\n"), truncated };
   }
   const file = name === "oomKills" ? "/proc/vmstat" : "/proc/meminfo";
