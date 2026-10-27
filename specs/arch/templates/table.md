@@ -56,7 +56,7 @@ The page displays columns and rows by ascending `order`, then by key in the [JSO
 
 When the page cannot represent an order strictly in the needed position, it runs a [transaction](../../product/resources/json-store.md#^js-transactions) on `rows` or `columns`. Each attempt reads the current axis. For an insert beside a selection, it aborts without writing if that value is not a JSON object, if a selected key is gone, or if the selected keys no longer form one contiguous range. For adding at the end or storing drawn positions, the transaction adds the needed entries after the current displayed entries. It gives the displayed stored entries consecutive integer orders from 0. It preserves every other field and every ignored entry. This transaction is the only human action that may rewrite other entries.
 
-If an edit in drawn positions would require transactions on both axes, or if its one-axis renumbering transaction aborts, the save fails and the page shows [“Couldn't save that change.”](../../ui/templates/table.mdx#saving-and-disconnection); when one axis renumbers, the page applies any remaining path updates only after that transaction commits.
+If an edit in drawn positions would require transactions on both axes, or if its one-axis renumbering transaction aborts or fails while connected, the save fails and the page shows [“Couldn't save that change.”](../../ui/templates/table.mdx#saving-and-disconnection); when one axis renumbers, the page applies any remaining path updates only after that transaction commits.
 
 ### Runtime reading
 
@@ -65,13 +65,13 @@ The page reads later writes tolerantly because the manifest schema does not vali
 Within a readable Table, the page:
 
 - ignores a column or row entry that is not a JSON object or has no finite numeric `order`;
-- uses a positive finite numeric column `width` or row `height`, and otherwise uses the default size;
+- clamps a positive finite numeric column `width` to 64–640 CSS pixels and row `height` to 28–240 CSS pixels, and otherwise uses the default 160-pixel width or 38-pixel height;
 - treats a missing `cells` value, or one that is not a JSON object, as an empty row;
 - treats strings as their own cell text, numbers and booleans as their JSON text, and `""` and other cell values as empty;
 - ignores a cell whose key has no displayed column; and
 - treats the first displayed row as a header only when `headerRow` is `true`.
 
-Extra fields at the root, in columns, and in rows are ignored. In particular, `showHeader` and a column's `name` from the earlier, unreleased draft are ignored; the page does not migrate them. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. An unreadable value is shown as the [Table UI spec](../../ui/templates/table.mdx#data-the-page-cannot-read) describes.
+Extra fields at the root, in columns, and in rows are ignored. [Creating an artifact](./index.md#^artifact-template-schema) from the template rejects starting data that breaks the schema; writes after creation are not checked against it. An unreadable value is shown as the [Table UI spec](../../ui/templates/table.mdx#data-the-page-cannot-read) describes.
 
 Once the page has read an unreadable value, or the server reports the saved value unavailable, it starts no write until it reads a readable value again. A write already sent follows the ordinary store rules. Saved data reported unavailable follows the [resource recovery rules](../resources/index.md#^rs-storage).
 
@@ -110,7 +110,7 @@ An action that affects several selected entries or cells uses one atomic update 
 
 The page loads Television's canonical stylesheet, components and resource SDK, and includes its other page dependencies inside the template folder so copied artifacts work independently. Its stylesheet is `styles.css` in the template folder; [conformance](../../spec-ui.md#conformance) holds the page to the UI spec stories. The manifest `icons` lists one entry, `icon.svg`, which is a square SVG. [Icon delivery](./index.md#icon-delivery) selects it, and [Toolbox](../../ui/app/toolbox.mdx#icons) draws it as supplied. ^bundled-artifact-template-table-page
 
-The bundled `README.md` explains `headerRow`, `columns`, `rows`, opaque keys, ordering, widths, heights, cells, and the tolerant reading rules. It says that `headerRow` marks the first displayed row as a header without creating a separate row, and agents put titles in that row's cells. It says that `cells` is an object keyed by column key, never an array, and empty cells are left out. It says that display letters and numbers are positions after ignored entries have been dropped and the remaining entries ordered. It explains that drawn positions have no stored entry: writing B3 in an empty Table requires new entries for columns A and B and rows 1 through 3, each with an `order`. It says that a cell written as a number or boolean is written back as a string if a person edits it. It says that the earlier draft's `showHeader` and column `name` fields are ignored rather than migrated.
+The bundled `README.md` explains `headerRow`, `columns`, `rows`, opaque keys, ordering, widths, heights, cells, and the tolerant reading rules. It says that `headerRow` marks the first displayed row as a header without creating a separate row, and agents put titles in that row's cells. It gives the 160-pixel default and 64–640-pixel range for column widths, and the 38-pixel default and 28–240-pixel range for row heights. It says that `cells` is an object keyed by column key, never an array, and empty cells are left out. It says that display letters and numbers are positions after ignored entries have been dropped and the remaining entries ordered. It explains that drawn positions have no stored entry: writing B3 in an empty Table requires new entries for columns A and B and rows 1 through 3, each with an `order`. It says that a cell written as a number or boolean is written back as a string if a person edits it.
 
 The README tells agents to give every row and column a distinct finite `order`, while warning that the page may renumber an axis when insertion has no numeric gap. It repeats the key guidance above and says never to write a cell below a row that does not exist. It warns agents not to repair an entry without an `order`, because it can be a late write below a deleted entry. It explains that deleting a column need not clean up rows because those values are ignored.
 

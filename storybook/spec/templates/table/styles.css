@@ -26,6 +26,12 @@ textarea {
 }
 
 .table-page {
+  --table-row-height: 38px;
+  --reference-size: 26px;
+  --reference-add-size: 26px;
+  --reference-gap: 8px;
+  --table-content-padding: var(--space-16);
+
   display: flex;
   height: 100vh;
   min-width: 0;
@@ -50,11 +56,6 @@ textarea {
 }
 
 .table-sheet {
-  --table-row-height: 38px;
-  --reference-size: 26px;
-  --reference-add-size: 26px;
-  --reference-gap: 8px;
-
   display: grid;
   width: max-content;
   min-height: 100%;
@@ -63,7 +64,10 @@ textarea {
     + var(--table-row-reference-width)
     + var(--reference-gap)
     + var(--reference-add-size)
+    + var(--table-content-padding)
+    + var(--table-content-padding)
   );
+  padding: var(--table-content-padding);
   grid-template-columns: var(--table-row-reference-width) var(--table-grid-width);
   grid-template-rows: var(--reference-size) max-content;
   gap: var(--reference-gap);
@@ -74,16 +78,23 @@ textarea {
 .table-page[data-editable="false"] .table-sheet { --reference-add-size: 0px; }
 
 .table-reference-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 6;
   grid-column: 1;
   grid-row: 1;
   background: var(--color-surface);
 }
 
 .table-column-strip {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   width: calc(var(--table-grid-width) + var(--reference-add-size));
   height: var(--reference-size);
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--color-border);
   border-radius: var(--control-radius);
   background: var(--color-surface);
@@ -106,9 +117,12 @@ textarea {
 .table-column-strip > * + * { border-left: 1px solid var(--color-border); }
 
 .table-row-strip {
+  position: sticky;
+  left: 0;
+  z-index: 4;
   display: flex;
   width: var(--table-row-reference-width);
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--color-border);
   border-radius: var(--control-radius);
   background: var(--color-surface);
@@ -125,6 +139,13 @@ textarea {
   flex: none;
   align-items: center;
   justify-content: center;
+}
+
+.table-row-reference-item:first-child {
+  position: sticky;
+  top: calc(var(--reference-size) + var(--reference-gap));
+  z-index: 3;
+  background: var(--color-surface);
 }
 
 .table-row-add-item {
@@ -181,7 +202,7 @@ textarea {
 
 .table-reference-item:focus-visible {
   outline: var(--outline-focus);
-  outline-offset: 1px;
+  outline-offset: -3px;
 }
 
 .table-reference-item[data-emphasis="related"] {
@@ -238,6 +259,9 @@ textarea {
 .table-grid tbody tr:hover .table-cell:not([data-header="true"]) { background: oklch(from var(--color-text) l c h / var(--alpha-5)); }
 
 .table-cell[data-header="true"] {
+  position: sticky;
+  top: calc(var(--reference-size) + var(--reference-gap));
+  z-index: 2;
   background: var(--color-surface-muted);
   font-weight: var(--font-weight-medium);
 }
@@ -250,6 +274,8 @@ textarea {
   box-shadow: inset 0 0 0 2px var(--color-primary);
   outline: none;
 }
+
+.table-cell[data-header="true"][data-selection="cell"] { z-index: 3; }
 
 .table-cell[data-selection="cell"]:focus-visible {
   box-shadow: inset 0 0 0 2px var(--color-primary), inset 0 0 0 4px var(--color-surface);
@@ -285,8 +311,8 @@ textarea {
 
 .table-cell[data-header="true"] .table-input { background: var(--color-surface-muted); }
 
-.table-page:has(.table-row-context-menu) #table-row-reference-2,
-.table-page:has(.table-column-context-menu) #table-column-reference-3 {
+.table-page:has(.table-row-context-menu) .table-row-strip .table-reference-item[aria-expanded="true"],
+.table-page:has(.table-column-context-menu) .table-column-strip .table-reference-item[aria-expanded="true"] {
   anchor-name: --table-context-trigger;
 }
 
@@ -318,7 +344,11 @@ textarea {
 .table-loading {
   display: grid;
   flex: 1;
-  margin: var(--space-16) var(--space-12);
+  margin:
+    calc(var(--table-content-padding) + var(--reference-size) + var(--reference-gap))
+    var(--table-content-padding)
+    var(--table-content-padding)
+    calc(var(--table-content-padding) + var(--reference-size) + var(--reference-gap));
   border-top: 1px solid var(--color-border);
   color: var(--color-text-muted);
   place-items: center;

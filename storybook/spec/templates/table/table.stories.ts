@@ -90,6 +90,23 @@ const resizedRows: Row[] = [
   { key: "r10", cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },
 ];
 
+const scrolledColumns: Column[] = Array.from({ length: 7 }, (_, index) => ({ key: `c${index + 1}` }));
+const scrolledRows: Row[] = [
+  { key: "r1", cells: { c1: "Park", c2: "State", c3: "Open", c4: "Rating", c5: "Region", c6: "Visits", c7: "Notes" } },
+  ...Array.from({ length: 23 }, (_, index) => ({
+    key: `r${index + 2}`,
+    cells: {
+      c1: `Park ${index + 1}`,
+      c2: index % 2 === 0 ? "California" : "Utah",
+      c3: index % 4 === 0 ? "No" : "Yes",
+      c4: (4.2 + (index % 8) / 10).toFixed(1),
+      c5: index % 2 === 0 ? "West" : "Mountain",
+      c6: `${index + 2}.${index % 10}m`,
+      c7: index % 3 === 0 ? "Seasonal access" : "",
+    },
+  })),
+];
+
 function columnLetter(index: number): string {
   let label = "";
   let value = index + 1;
@@ -122,27 +139,27 @@ function cellSelection(selection: Selection, row: number, column: number): "none
   return "none";
 }
 
-function rowMenu(headerRow: boolean, selection: Selection) {
+function rowMenu(headerRow: boolean, selection: Selection, triggerRow: number) {
   const count = selection?.kind === "row" ? selection.end - selection.start + 1 : 1;
   return html`
-    <tv-menu class="table-context-menu table-row-context-menu" trigger="table-row-reference-2" role="menu" aria-label="Row actions" open>
+    <tv-menu class="table-context-menu table-row-context-menu" trigger="table-row-reference-${triggerRow + 1}" role="menu" aria-label="Row actions" open>
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert row above</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert row below</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span></tv-menu-item>
-      <hr>
-      <tv-menu-item role="menuitem" tabindex="-1"><span>${headerRow ? "Use first row as data" : "Use first row as header"}</span></tv-menu-item>
+      ${triggerRow === 0 ? html`
+        <hr>
+        <tv-menu-item role="menuitem" tabindex="-1"><span>${headerRow ? "Remove header row" : "Make header row"}</span></tv-menu-item>
+      ` : ""}
     </tv-menu>`;
 }
 
-function columnMenu(headerRow: boolean, selection: Selection) {
+function columnMenu(selection: Selection, triggerColumn: number) {
   const count = selection?.kind === "column" ? selection.end - selection.start + 1 : 1;
   return html`
-    <tv-menu class="table-context-menu table-column-context-menu" trigger="table-column-reference-3" role="menu" aria-label="Column actions" open>
+    <tv-menu class="table-context-menu table-column-context-menu" trigger="table-column-reference-${triggerColumn + 1}" role="menu" aria-label="Column actions" open>
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert column left</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert column right</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span></tv-menu-item>
-      <hr>
-      <tv-menu-item role="menuitem" tabindex="-1"><span>${headerRow ? "Use first row as data" : "Use first row as header"}</span></tv-menu-item>
     </tv-menu>`;
 }
 
@@ -177,6 +194,9 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(rows.length).length;
   const rowReferenceWidth = referenceSize + Math.max(0, rowNumberDigits - 1) * 7;
+  const menuTrigger = menu === "row"
+    ? selection?.kind === "row" ? selection.start : 0
+    : selection?.kind === "column" ? selection.start : 0;
 
   return html`
     <main class="table-page" data-editable="${String(editable)}">
@@ -197,7 +217,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
                     aria-label="Select column ${columnLetter(columnIndex)}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    ${menu === "column" && columnIndex === 2 ? html`aria-expanded="true"` : ""}
+                    ${menu === "column" && columnIndex === menuTrigger ? html`aria-expanded="true"` : ""}
                     aria-pressed="${String(columnSelected(selection, columnIndex))}"
                     aria-description="${columnWidths[columnIndex]} pixels wide.${editable ? " Select this column, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
@@ -218,7 +238,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
                     aria-label="Select row ${rowIndex + 1}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    ${menu === "row" && rowIndex === 1 ? html`aria-expanded="true"` : ""}
+                    ${menu === "row" && rowIndex === menuTrigger ? html`aria-expanded="true"` : ""}
                     aria-pressed="${String(rowSelected(selection, rowIndex))}"
                     aria-description="${row.height ?? defaultRowHeight} pixels tall.${editable ? " Select this row, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
@@ -249,8 +269,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
           </div>
         </div>
       </div>
-      ${menu === "row" && editable ? rowMenu(headerRow, selection) : ""}
-      ${menu === "column" && editable ? columnMenu(headerRow, selection) : ""}
+      ${menu === "row" && editable ? rowMenu(headerRow, selection, menuTrigger) : ""}
+      ${menu === "column" && editable ? columnMenu(selection, menuTrigger) : ""}
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : status === "save-failed" ? "Couldn't save that change." : ""}</div>
     </main>`;
 };
@@ -271,17 +291,27 @@ const beginEditing = ({ canvasElement }: Play) => {
   const cell = canvasElement.querySelector<HTMLElement>('[data-selection="cell"]');
   const text = cell?.querySelector("span");
   if (!cell || !text) throw new Error("Editing story has no selected cell");
+  const row = Number(cell.closest("tr")?.getAttribute("aria-rowindex"));
+  const column = Number(cell.getAttribute("aria-colindex"));
   const input = cell.ownerDocument.createElement("textarea");
   input.className = "table-input table-cell-input";
   input.rows = 1;
   input.value = text.textContent ?? "";
-  input.setAttribute("aria-label", "Row 4, column A");
+  input.setAttribute("aria-label", `Row ${row}, column ${columnLetter(column - 1)}`);
   input.spellcheck = false;
   text.replaceWith(input);
   cell.tabIndex = -1;
   cell.dataset.editing = "true";
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
+};
+
+const poseScrolled = async ({ canvasElement }: Play) => {
+  const scrollport = canvasElement.querySelector<HTMLElement>(".table-scroll");
+  if (!scrollport) throw new Error("Scrolled story has no scrollport");
+  scrollport.scrollLeft = 360;
+  scrollport.scrollTop = 180;
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 };
 
 const viewports = {
@@ -316,13 +346,16 @@ export const PartiallyFilled = { name: "Partially filled", args: { columns: firs
 export const WithData = { name: "With data" };
 export const HeaderOff = { name: "First row as data", args: { columns: parkColumns.slice(0, 3), rows: scheduleRows, headerRow: false } };
 export const Resized = { name: "Saved sizes", args: { columns: resizedColumns, rows: resizedRows } };
+export const Scrolled = { args: { columns: scrolledColumns, rows: scrolledRows }, play: poseScrolled };
 export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
 export const SelectedHeader = { name: "Selected header-row cell", args: { selection: { kind: "cell", row: 0, column: 1 } } };
 export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } } };
 export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
 export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
+export const KeyboardFocusRow = { name: "Keyboard focus on a row", args: { selection: { kind: "row", start: 1, end: 1 } }, play: focusSelection };
 export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
-export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: poseOpenMenu };
+export const EditingHeaderCell = { name: "Editing a header-row cell", args: { selection: { kind: "cell", row: 0, column: 1 } }, play: beginEditing };
+export const OpenMenu = { name: "Open row 1 menu", args: { selection: { kind: "row", start: 0, end: 0 }, menu: "row" }, play: poseOpenMenu };
 export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" }, play: poseOpenMenu };
 export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" }, play: poseOpenMenu };
 export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } } };
