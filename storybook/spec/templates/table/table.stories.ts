@@ -253,6 +253,16 @@ const focusSelection = ({ canvasElement }: Play) => {
   canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-header-button[data-selection="header"], .table-reference-item[aria-pressed="true"]')?.focus();
 };
 
+const poseOpenMenu = ({ canvasElement }: Play) => {
+  const menu = canvasElement.querySelector<HTMLElement>(".table-context-menu");
+  if (!menu) throw new Error("Open-menu story has no menu");
+  const box = menu.getBoundingClientRect();
+  menu.style.setProperty("--_panel-edge-position", "fixed");
+  menu.style.setProperty("--_panel-edge-inset", `${box.top}px auto auto ${box.left}px`);
+  menu.style.setProperty("--_panel-edge-width", `${box.width}px`);
+  menu.style.setProperty("--_panel-edge-height", `${box.height}px`);
+};
+
 const beginEditing = ({ canvasElement }: Play) => {
   const cell = canvasElement.querySelector<HTMLElement>('[data-selection="cell"]');
   const text = cell?.querySelector("span");
@@ -306,9 +316,9 @@ export const SelectedRow = { name: "Selected row", args: { selection: { kind: "r
 export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
 export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
 export const EditingCell = { name: "Editing a cell", args: { selection: { kind: "cell", row: 3, column: 0 } }, play: beginEditing };
-export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" } };
-export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" } };
-export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" } };
+export const OpenMenu = { name: "Open row menu", args: { selection: { kind: "row", start: 1, end: 1 }, menu: "row" }, play: poseOpenMenu };
+export const OpenColumnMenu = { name: "Open column menu", args: { selection: { kind: "column", start: 2, end: 2 }, menu: "column" }, play: poseOpenMenu };
+export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection: { kind: "row", start: 1, end: 3 }, menu: "row" }, play: poseOpenMenu };
 export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } } };
 export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } } };
 export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } } };

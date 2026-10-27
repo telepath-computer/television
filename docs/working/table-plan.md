@@ -16,6 +16,7 @@ Plan revision after review: slice 2 now owns the renumbering transaction proof a
 8. **Should a read-only Table retain selection and keyboard navigation?** The draft does, while removing write affordances. Recommendation: keep selection so access changes do not also remove the reading and navigation model.
 9. **Should typing in a drawn position be discarded when another writer changes the number of stored entries on that axis?** The draft clears the selection and closes the editor, discarding the text being typed. Recommendation: keep this predictable loss rather than risk writing the text into the other writer's new row or column.
 10. **Should the experiment's insert and delete shortcuts remain?** The draft drops Cmd/Ctrl-Shift-= and Cmd/Ctrl-minus because they conflict with browser zoom. Recommendation: leave them out; the context-menu key and Shift-F10 provide keyboard access to the same commands.
+11. **Should open-menu stories model the canonical panel clip and exterior rim?** The draft gives the menu native content scrolling while keeping the edge rim outside that clip, matching the canonical element. Recommendation: keep this correction so the reference stories show the complete foundation panel treatment.
 
 ## Draft decisions
 

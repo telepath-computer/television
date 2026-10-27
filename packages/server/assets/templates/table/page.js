@@ -28,7 +28,10 @@ let failure = false;
 let failureTimer;
 let suppressGridEntry = false;
 let pointerMovedFocus = false;
-let discardCommitSelection = false;
+let rendering = false;
+let interactionVersion = 0;
+let menuObserver = null;
+let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -55,11 +58,15 @@ function canWrite() {
   return received && !unavailable && model !== null && access === "read-write" && connection === "connected";
 }
 
-function axes() {
+function buildAxes() {
   return {
     columns: displayAxis(model?.columns ?? []),
     rows: displayAxis(model?.rows ?? []),
   };
+}
+
+function axes() {
+  return renderedAxes;
 }
 
 function indexOf(items, id) {
@@ -144,10 +151,15 @@ function headerCell(column, columnIndex) {
     aria-colindex="${columnIndex + 1}"><div class="table-header-content">${content}</div></th>`;
 }
 
+function bodyCellText(rowIndex, columnKey) {
+  const cells = model.rows[rowIndex]?.cells;
+  return cells && Object.hasOwn(cells, columnKey) ? cells[columnKey] : "";
+}
+
 function bodyCell(row, column, rowIndex, columnIndex) {
   const selected = cellSelectionKind(rowIndex, columnIndex);
   const text = row.kind === "stored" && column.kind === "stored"
-    ? model.rows[rowIndex]?.cells[column.key] ?? "" : "";
+    ? bodyCellText(rowIndex, column.key) : "";
   const isEditing = editing?.kind === "cell" && editing.rowIndex === rowIndex && editing.columnIndex === columnIndex
     && editing.rowId === row.id && editing.columnId === column.id;
   const content = isEditing
@@ -195,32 +207,59 @@ function selectionTarget() {
   return null;
 }
 
-function render(focus = "none") {
+function replaceContents(markup) {
+  menuObserver?.disconnect();
+  menuObserver = null;
+  rendering = true;
+  main.innerHTML = markup;
+  rendering = false;
+  const menuElement = main.querySelector("tv-menu");
+  if (!menuElement) return;
+  menuObserver = new MutationObserver(() => {
+    if (!menuElement.isConnected || menuElement.hasAttribute("open")) return;
+    menuObserver?.disconnect();
+    menuObserver = null;
+    if (menu === null) return;
+    menu = null;
+    render("selection");
+  });
+  menuObserver.observe(menuElement, { attributes: true, attributeFilter: ["open"] });
+}
+
+function render(focus = "none", nextAxes = buildAxes()) {
+  renderedAxes = nextAxes;
   const scroll = main.querySelector(".table-scroll");
   const scrollPosition = scroll ? { left: scroll.scrollLeft, top: scroll.scrollTop } : null;
+  const previousEditor = main.querySelector(".table-input");
+  const editorState = previousEditor instanceof HTMLTextAreaElement && editing ? {
+    focused: document.activeElement === previousEditor,
+    start: previousEditor.selectionStart,
+    end: previousEditor.selectionEnd,
+    direction: previousEditor.selectionDirection,
+  } : null;
   if (!received) {
     main.dataset.editable = "false";
-    main.innerHTML = `<div class="table-loading" role="status" aria-label="Loading table"><tv-icon name="spinner" size="md" spinning></tv-icon></div>
-      <div class="table-status" role="status"></div>`;
+    replaceContents(`<div class="table-loading" role="status" aria-label="Loading table"><tv-icon name="spinner" size="md" spinning></tv-icon></div>
+      <div class="table-status" role="status"></div>`);
     return;
   }
   if (unavailable || model === null) {
     main.dataset.editable = "false";
-    main.innerHTML = `<section class="table-unreadable" role="alert">
+    replaceContents(`<section class="table-unreadable" role="alert">
       <span class="table-unreadable-icon"><tv-icon name="warning" size="xl"></tv-icon></span>
       <h1 class="table-unreadable-title">This table can't be shown</h1>
       <p class="table-unreadable-text">Television can't read the saved table data. Ask your agent to check the data and access.</p>
-    </section><div class="table-status" role="status"></div>`;
+    </section><div class="table-status" role="status"></div>`);
     return;
   }
 
-  const displayed = axes();
+  const displayed = nextAxes;
   const editable = canWrite();
   main.dataset.editable = String(editable);
   const header = model.showHeader ? `<thead><tr aria-rowindex="1">${displayed.columns.map(headerCell).join("")}</tr></thead>` : "";
   const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + (model.showHeader ? 2 : 1)}">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
-  main.innerHTML = `<div class="table-frame" data-reference-visible="${selection ? "shown" : "hidden"}">
+  replaceContents(`<div class="table-frame" data-reference-visible="${selection ? "shown" : "hidden"}">
     <div class="table-scroll"><div class="table-sheet" style="--table-column-count: ${displayed.columns.length}">
       <div class="table-reference-corner" aria-hidden="true"></div>
       <div class="table-column-strip table-reference-strip" aria-label="Column references">
@@ -236,19 +275,30 @@ function render(focus = "none") {
         <colgroup>${displayed.columns.map(() => '<col class="table-data-column">').join("")}</colgroup>${header}<tbody>${body}</tbody>
       </table>
     </div></div>
-  </div>${contextMenu()}<div class="table-status" role="status">${failure ? "Couldn't save that change." : ""}</div>`;
+  </div>${contextMenu()}<div class="table-status" role="status">${failure ? "Couldn't save that change." : ""}</div>`);
 
   const nextScroll = main.querySelector(".table-scroll");
   if (nextScroll && scrollPosition) nextScroll.scrollTo(scrollPosition.left, scrollPosition.top);
-  if (focus === "none") return;
+  const nextEditor = main.querySelector(".table-input");
+  if (nextEditor instanceof HTMLTextAreaElement && editing) nextEditor.value = editing.text;
+  if (focus === "none" && !editorState?.focused) return;
   queueMicrotask(() => {
-    const target = focus === "editor" ? main.querySelector(".table-input")
-      : focus === "grid" ? main.querySelector(".table-grid") : selectionTarget();
+    const preservingEditor = focus === "none" && editorState?.focused;
+    const target = preservingEditor || focus === "editor" ? main.querySelector(".table-input")
+      : focus === "grid" ? main.querySelector(".table-grid")
+        : focus === "menu" ? main.querySelector("tv-menu-item") : selectionTarget();
     suppressGridEntry = focus === "grid";
     target?.focus({ preventScroll: true });
     suppressGridEntry = false;
-    if (focus === "editor" && target instanceof HTMLTextAreaElement) {
-      target.setSelectionRange(target.value.length, target.value.length);
+    if (target instanceof HTMLTextAreaElement) {
+      if (preservingEditor && editorState) {
+        target.setSelectionRange(editorState.start, editorState.end, editorState.direction);
+      } else {
+        target.setSelectionRange(target.value.length, target.value.length);
+      }
+    }
+    if ((preservingEditor || focus === "editor" || focus === "selection") && target) {
+      target.scrollIntoView({ block: "nearest", inline: "nearest" });
     }
   });
 }
@@ -300,7 +350,7 @@ async function applyPlan(plan) {
 
 function beginEditing(kind, rowIndex, columnIndex, replacement) {
   if (!canWrite()) return;
-  discardCommitSelection = false;
+  interactionVersion += 1;
   const displayed = axes();
   if (kind === "cell") {
     const selected = cellSelectionAt(displayed, rowIndex, columnIndex);
@@ -309,7 +359,7 @@ function beginEditing(kind, rowIndex, columnIndex, replacement) {
     const row = displayed.rows[rowIndex];
     const column = displayed.columns[columnIndex];
     const openedText = row.kind === "stored" && column.kind === "stored"
-      ? model.rows[rowIndex]?.cells[column.key] ?? "" : "";
+      ? bodyCellText(rowIndex, column.key) : "";
     editing = { kind, rowId: row.id, columnId: column.id, rowIndex, columnIndex, openedText, text: replacement ?? openedText };
   } else {
     const selected = headerSelectionAt(displayed, columnIndex);
@@ -326,19 +376,27 @@ function beginEditing(kind, rowIndex, columnIndex, replacement) {
 async function commitEditing(command = null, restoreFocus = true) {
   if (!editing || !canWrite()) return false;
   const active = editing;
+  const completionVersion = interactionVersion;
   const plan = active.kind === "cell"
     ? planCellCommit(value, { rowIndex: active.rowIndex, columnIndex: active.columnIndex }, active.openedText, active.text, {
       columns: reserveKeys("columns"), rows: reserveKeys("rows"),
     })
     : planHeaderCommit(value, active.columnIndex, active.openedText, active.text, { columns: reserveKeys("columns") });
   editing = null;
+  const beforeSave = axes();
+  selection = active.kind === "cell"
+    ? cellSelectionAt(beforeSave, Math.min(active.rowIndex, beforeSave.rows.length - 1), Math.min(active.columnIndex, beforeSave.columns.length - 1))
+    : headerSelectionAt(beforeSave, Math.min(active.columnIndex, beforeSave.columns.length - 1));
+  const provisionalMove = command
+    ? moveSelection(selection, command, beforeSave, { showHeader: model.showHeader }) : null;
+  if (provisionalMove) selection = provisionalMove.selection;
+  render(provisionalMove?.exit || !restoreFocus ? "none" : "selection");
   const saved = await applyPlan(plan);
-  if (!saved) { render(restoreFocus ? "selection" : "none"); return false; }
-  if (discardCommitSelection) {
-    discardCommitSelection = false;
-    render("none");
-    return true;
+  if (!saved) {
+    if (interactionVersion === completionVersion) render(restoreFocus ? "selection" : "none");
+    return false;
   }
+  if (interactionVersion !== completionVersion) return true;
 
   const displayed = axes();
   selection = active.kind === "cell"
@@ -352,11 +410,11 @@ async function commitEditing(command = null, restoreFocus = true) {
   return true;
 }
 
-function clearSelection() {
-  discardCommitSelection = true;
+function clearSelection(focus = "grid") {
+  interactionVersion += 1;
   selection = null;
   menu = null;
-  render("grid");
+  render(focus);
 }
 
 async function clearContents() {
@@ -425,7 +483,7 @@ function openSelectionMenu() {
   if (selection?.kind !== "rows" && selection?.kind !== "columns") return;
   const index = indexOf(axes()[selection.kind], selection.anchorId);
   menu = { kind: selection.kind, index };
-  render("selection");
+  render("menu");
 }
 
 main.addEventListener("input", event => {
@@ -437,6 +495,7 @@ main.addEventListener("click", event => { void handleClick(event); });
 
 async function handleClick(event) {
   if (!(event.target instanceof Element) || event.target instanceof HTMLTextAreaElement) return;
+  interactionVersion += 1;
   if (editing && !await commitEditing(null, false)) return;
   const menuAction = event.target.closest("[data-menu-action]");
   if (menuAction) { void performMenuAction(menuAction.dataset.menuAction); return; }
@@ -475,6 +534,7 @@ async function handleClick(event) {
 
 main.addEventListener("contextmenu", event => {
   if (!(event.target instanceof Element) || event.target.closest(".table-input")) return;
+  interactionVersion += 1;
   const rowButton = event.target.closest("[data-row-select]");
   const columnButton = event.target.closest("[data-column-select]");
   if (!rowButton && !columnButton) return;
@@ -496,13 +556,14 @@ main.addEventListener("focusin", event => {
 });
 
 main.addEventListener("focusout", event => {
-  if (!(event.target instanceof HTMLTextAreaElement) || !editing) return;
+  if (rendering || !(event.target instanceof HTMLTextAreaElement) || !editing) return;
   queueMicrotask(() => {
-    if (!pointerMovedFocus && editing && document.activeElement !== event.target) void commitEditing(null, false);
+    if (!rendering && !pointerMovedFocus && editing && document.activeElement !== event.target) void commitEditing(null, false);
   });
 });
 
 main.addEventListener("keydown", event => {
+  interactionVersion += 1;
   if (event.target instanceof HTMLTextAreaElement) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -591,17 +652,33 @@ document.addEventListener("keydown", event => {
 }, { capture: true });
 
 document.addEventListener("pointerdown", event => {
-  pointerMovedFocus = editing !== null && event.target instanceof Element
-    && event.target.closest(".table-input") === null;
+  if (editing && event.button === 2 && event.target instanceof Element
+      && event.target.closest("[data-cell], [data-header-text]")
+      && !event.target.closest(".table-input")) {
+    event.preventDefault();
+    pointerMovedFocus = false;
+    return;
+  }
+  pointerMovedFocus = editing !== null && event.target instanceof Element && !event.target.closest(".table-input");
 }, { capture: true });
 
 document.addEventListener("pointerup", () => { pointerMovedFocus = false; }, { capture: true });
 document.addEventListener("pointercancel", () => { pointerMovedFocus = false; }, { capture: true });
 
 document.addEventListener("click", event => {
-  if (!(event.target instanceof Element) || event.target.closest(".table-frame, tv-menu")) return;
-  if (editing) void commitEditing(null, false).then(saved => { if (saved) clearSelection(); });
-  else if (selection) clearSelection();
+  if (!(event.target instanceof Element)
+      || event.target.closest(".table-grid, .table-reference-strip, .table-reference-corner, tv-menu")) return;
+  if (editing) void commitEditing(null, false).then(saved => { if (saved) clearSelection("none"); });
+  else if (selection) clearSelection("none");
+});
+
+function commitWhenDocumentLosesFocus() {
+  if (editing) void commitEditing(null, false);
+}
+
+window.addEventListener("blur", commitWhenDocumentLosesFocus);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") commitWhenDocumentLosesFocus();
 });
 
 function acceptValue(next) {
@@ -609,8 +686,9 @@ function acceptValue(next) {
   received = true;
   unavailable = false;
   model = readTable(value);
+  const nextAxes = buildAxes();
   if (model !== null) {
-    const reconciled = reconcileSelection(selection, axes(), model.showHeader);
+    const reconciled = reconcileSelection(selection, nextAxes, model.showHeader);
     if (selection && !reconciled) { selection = null; editing = null; menu = null; }
     else selection = reconciled;
   } else {
@@ -618,7 +696,7 @@ function acceptValue(next) {
     editing = null;
     menu = null;
   }
-  render();
+  render("none", nextAxes);
 }
 
 onValue(root, snapshot => acceptValue(snapshot.val()), error => {
