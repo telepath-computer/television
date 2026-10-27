@@ -31,6 +31,10 @@ describe("provider result normalization", () => {
     expect(leaseRecoveryArgs({})).toEqual([]);
     expect(leaseRecoveryArgs({ "lock-ttl-seconds": "60" })).toEqual(["--lock-ttl-seconds", "60"]);
     expect(readFileSync("scripts/test/cli.mjs", "utf8")).toContain("args.push(...leaseRecoveryArgs(selectionOptions))");
+    const coordinator = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
+    for (const profile of ["normal", "cold", "repair"]) {
+      expect(coordinator).toMatch(new RegExp(`${profile}: \\{ workerTimeoutSeconds: \\d+, lockTtlSeconds: 1200 \\}`));
+    }
   });
 
   test("constructs Blaxel restore/wake timing with a typed passed status", () => {
