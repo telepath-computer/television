@@ -5,6 +5,11 @@ import { afterEach, expect, test } from "vitest";
 import { WorkerBuilds } from "../helpers/worker-builds.ts";
 
 const roots: string[] = [];
+function rendezvous<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => { resolve = done; });
+  return { promise, resolve };
+}
 function fixture(): { root: string; builds: WorkerBuilds } {
   const root = mkdtempSync(path.join(os.tmpdir(), "worker-build-contract-"));
   roots.push(root);
@@ -15,7 +20,7 @@ afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: 
 // proofs/arch/testing-policy.md#^testing-t-build-lifetime
 test("concurrent and completed requests reuse a build while version keys remain distinct", async () => {
   const { root, builds } = fixture();
-  const ready = Promise.withResolvers<void>();
+  const ready = rendezvous<void>();
   let calls = 0;
   const first = builds.get("v1", async (directory) => {
     calls += 1;
@@ -52,8 +57,8 @@ test("failed preparation removes partial output and permits a fresh build", asyn
 
 test.each([false, true])("teardown waits for pending preparation, including rejection (%s)", async (reject) => {
   const { root, builds } = fixture();
-  const started = Promise.withResolvers<string>();
-  const ready = Promise.withResolvers<void>();
+  const started = rendezvous<string>();
+  const ready = rendezvous<void>();
   const build = builds.get("pending", async (directory) => {
     writeFileSync(path.join(directory, "partial.js"), "pending");
     started.resolve(directory);

@@ -7,8 +7,13 @@ export class WorkerBuilds {
   private readonly builds = new Map<string, Promise<string>>();
   private readonly directories = new Set<string>();
   private disposal: Promise<void> | undefined;
+  private readonly prefix: string;
+  private readonly parent: string;
 
-  constructor(private readonly prefix: string, private readonly parent = os.tmpdir()) {}
+  constructor(prefix: string, parent = os.tmpdir()) {
+    this.prefix = prefix;
+    this.parent = parent;
+  }
 
   get(key: string, prepare: (directory: string) => void | Promise<void>): Promise<string> {
     if (this.disposal) return Promise.reject(new Error("Worker build lifetime has ended"));
