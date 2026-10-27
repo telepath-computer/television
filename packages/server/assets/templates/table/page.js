@@ -414,7 +414,7 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
       onLocalApply?.();
       const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
-      if (received && (unavailable || model === null)) return false;
+      if (unavailable || model === null) return false;
     }
     if (plan.operations.length > 0) {
       const pending = startWithActionEcho(() => applyOperations(plan.operations), currentPageActionSelection);
@@ -462,10 +462,10 @@ function reconcileEditing(active, displayed, showHeader) {
   return rowIndex < 0 ? null : { ...active, rowIndex, columnIndex };
 }
 
-async function commitEditing(command = null, restoreFocus = true, onLocalApply = null, refocusWhenDisconnected = true) {
+async function commitEditing(command = null, restoreFocus = true, onLocalApply = null, options = {}) {
   if (!editing) return false;
   if (!canWrite()) {
-    render(refocusWhenDisconnected ? "editor" : "leave");
+    render(options.refocusWhenDisconnected === false ? "leave" : "editor");
     return false;
   }
   const active = editing;
@@ -647,12 +647,13 @@ main.addEventListener("focusout", event => {
   if (rendering || !(event.target instanceof HTMLTextAreaElement) || !editing) return;
   queueMicrotask(() => {
     if (!rendering && !pointerMovedFocus && editing && document.activeElement !== event.target) {
-      void commitEditing(null, false, null, false);
+      void commitEditing(null, false, null, { refocusWhenDisconnected: false });
     }
   });
 });
 
 main.addEventListener("keydown", event => {
+  if (event.defaultPrevented) return;
   interactionVersion += 1;
   if (event.target instanceof HTMLTextAreaElement) {
     if (event.isComposing) return;
@@ -832,6 +833,7 @@ function subscribe() {
   unsubscribe = onValue(root, snapshot => acceptValue(snapshot.val()), error => {
     unsubscribe = null;
     if (error.code === "unavailable") unavailable = true;
+    selection = null;
     editing = null;
     menu = null;
     render();

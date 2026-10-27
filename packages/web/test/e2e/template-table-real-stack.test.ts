@@ -51,6 +51,12 @@ const columnButton = (page: Page | Frame, column: string): Locator => page.getBy
 const editor = (page: Page | Frame): Locator => page.locator(".table-input");
 const status = (page: Page | Frame): Locator => page.locator(".table-status");
 
+async function navigationChord(page: Page, arrow: "ArrowLeft" | "ArrowRight"): Promise<void> {
+  const platform = await page.evaluate(() => navigator.platform);
+  if (platform.length === 0) throw new Error("Browser exposed no platform identity");
+  await page.keyboard.press(`${/^(Mac|iPhone|iPad|iPod)/i.test(platform) ? "Alt" : "Control"}+${arrow}`);
+}
+
 async function open(page: Page, value: TableData = fixture()): Promise<string> {
   const id = await h.createStored(value);
   await h.open(page, id);
@@ -502,7 +508,6 @@ test("moving focus to another artifact frame commits and keeps selection", async
   await firstTab.click();
   await expect(page.locator(`.stage .page[data-page-key="${id}"]`)).toHaveAttribute("selected", "");
   const firstFrame = await h.frame(page, id);
-  const otherFrame = await h.frame(page, otherID);
   await cell(firstFrame, 1, 0).click();
   await page.keyboard.press("Enter");
   await editor(firstFrame).fill("Committed on frame leave");
@@ -520,11 +525,11 @@ test("moving focus to another artifact frame commits and keeps selection", async
   h.proxy.refuse(true);
   h.proxy.severConnection(firstConnection);
   await expect(status(firstFrame)).toHaveText("Reconnecting…");
-  await otherTab.click();
-  await cell(otherFrame, 0, 0).click();
+  await expect(page.locator(`.stage .page[data-page-key="${id}"]`)).toHaveAttribute("selected", "");
+  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
+  await toolbox.focus();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
-  const otherArtifactKeptFocusWhileDisconnected = await cell(otherFrame, 0, 0)
-    .evaluate(element => element === element.ownerDocument.activeElement);
+  const televisionShellKeptFocusWhileDisconnected = await toolbox.evaluate(element => element === document.activeElement);
   await expect(editor(firstFrame)).toHaveValue("Offline draft");
   const disconnectedTableEditorTookFocus = await editor(firstFrame)
     .evaluate(element => element === element.ownerDocument.activeElement);
@@ -534,7 +539,6 @@ test("moving focus to another artifact frame commits and keeps selection", async
   await firstTab.click();
   await cell(firstFrame, 1, 1).click();
   await expect(cell(firstFrame, 1, 1)).toBeFocused();
-  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
   await toolbox.focus();
   await expect(toolbox).toBeFocused();
   await h.set(id, "Agent update after frame leave", "rows/r3/cells/c3");
@@ -544,16 +548,32 @@ test("moving focus to another artifact frame commits and keeps selection", async
     .evaluate(element => element === element.ownerDocument.activeElement);
 
   expect({
-    otherArtifactKeptFocusWhileDisconnected,
+    televisionShellKeptFocusWhileDisconnected,
     disconnectedTableEditorTookFocus,
     televisionShellKeptFocusAfterAgentWrite,
     tableSelectionTookFocusAfterAgentWrite,
   }).toEqual({
-    otherArtifactKeptFocusWhileDisconnected: true,
+    televisionShellKeptFocusWhileDisconnected: true,
     disconnectedTableEditorTookFocus: false,
     televisionShellKeptFocusAfterAgentWrite: true,
     tableSelectionTookFocusAfterAgentWrite: false,
   });
+});
+
+// proofs/ui/templates/table.md#^table-ac-keyboard
+test("the application navigation chord does not also move the Table selection", async ({ page }) => {
+  const id = await h.createStored(fixture());
+  const otherID = await h.createStored(fixture());
+  await h.openApp(page);
+  await page.locator(`.tab-strip > .tab[data-artifact-id="${id}"]`).click();
+  const table = await h.frame(page, id);
+  await cell(table, 0, 0).click();
+
+  await navigationChord(page, "ArrowRight");
+
+  await expect(page.locator(`.stage .page[data-page-key="${otherID}"]`)).toHaveAttribute("selected", "");
+  await expect(cell(table, 0, 0)).toHaveAttribute("data-selection", "cell");
+  await expect(cell(table, 0, 1)).not.toHaveAttribute("data-selection", "cell");
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -1329,7 +1349,7 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(editor(page)).toHaveCount(0);
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
-  await expect(status(page)).toHaveText("");
+  expect(await status(page).textContent()).toBe("");
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Confirmed online");
 });
 
