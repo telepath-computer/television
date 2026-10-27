@@ -2,9 +2,6 @@
 export interface TableAxisEntry {
   key: string;
   order: number;
-  width?: number;
-  height?: number;
-  cells?: Record<string, string>;
 }
 
 /** A tolerant, displayed column. */
@@ -26,10 +23,10 @@ export interface TableModel {
 }
 
 /** A stored position in a displayed axis. */
-export interface StoredAxisItem extends TableAxisEntry {
+export type StoredAxisItem<Entry extends TableAxisEntry = TableAxisEntry> = Entry & {
   kind: "stored";
   id: string;
-}
+};
 
 /** An unstored position appended to a displayed axis. */
 export interface DrawnAxisItem {
@@ -39,7 +36,7 @@ export interface DrawnAxisItem {
 }
 
 /** Any displayed row or column position. */
-export type DisplayAxisItem = StoredAxisItem | DrawnAxisItem;
+export type DisplayAxisItem<Entry extends TableAxisEntry = TableAxisEntry> = StoredAxisItem<Entry> | DrawnAxisItem;
 
 /** One path-level store update. */
 export type TableWriteOperation =
@@ -117,7 +114,7 @@ export function compareStoreKeys(left: string, right: string): number;
 export function readTable(value: unknown): TableModel | null;
 
 /** Adds stable stored identities and enough count-based drawn identities to reach four positions. */
-export function displayAxis(entries: TableAxisEntry[]): DisplayAxisItem[];
+export function displayAxis<Entry extends TableAxisEntry>(entries: Entry[]): DisplayAxisItem<Entry>[];
 
 /** Chooses a strict order, null when the axis needs renumbering, or undefined for an invalid selection. */
 export function insertionOrder(entries: TableAxisEntry[], selectedKeys: string[], side: "before" | "after"): number | null | undefined;

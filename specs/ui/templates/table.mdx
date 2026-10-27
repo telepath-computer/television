@@ -169,7 +169,7 @@ Any commit gesture has no effect while disconnected: it does not write, close th
 
 If the SDK rolls back a write sent before the connection drops, the page does not reopen the editor with that text. The edit can be lost, although the server can still apply a write whose outcome is [uncertain after disconnection](../../product/resources/json-store.md#^js-disconnect). This is an accepted limitation.
 
-If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. Any action whose renumbering transaction aborts or fails while connected shows the same message, as does a required follow-up write lost after the transaction commits. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
+If a save is refused, the affected path returns to its stored value and “Couldn't save that change.” appears in the same strip for a few seconds. Any action whose renumbering transaction aborts or fails while connected shows the same message. If that transaction commits but a required follow-up write is refused, or not sent because the page can no longer write or the data became unreadable, the page also shows the message. “Reconnecting…” takes precedence. The strip is a status region, so a screen reader hears each message.
 
 <Artifact><Canvas of={Stories.Disconnected} /></Artifact>
 

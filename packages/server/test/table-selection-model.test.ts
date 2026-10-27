@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { displayAxis } from "../assets/templates/table/model.js";
+import { displayAxis, readTable } from "../assets/templates/table/model.js";
 import {
   cellSelectionAt,
   enterTable,
@@ -130,11 +130,18 @@ describe("Table selection model", () => {
   });
 
   it("keeps an ordinary first-row selection when the header treatment toggles", () => {
-    const grid = axes();
-    const first = cellSelectionAt(grid, 0, 1);
-    expect(reconcileSelection(first, grid)).toEqual(first);
-    expect(reconcileSelection(first, grid)).toEqual(first);
-    expect(moveSelection(first, "up", grid, { showHeader: true } as never).selection).toEqual(first);
+    const value = {
+      columns: { c1: { order: 0 }, c2: { order: 1 } },
+      rows: { r1: { order: 0, cells: {} }, r2: { order: 1, cells: {} } },
+    };
+    const withoutHeader = readTable(value)!;
+    const withHeader = readTable({ ...value, headerRow: true })!;
+    const before = { rows: displayAxis(withoutHeader.rows), columns: displayAxis(withoutHeader.columns) };
+    const after = { rows: displayAxis(withHeader.rows), columns: displayAxis(withHeader.columns) };
+    const first = cellSelectionAt(before, 0, 1);
+    expect(after).toEqual(before);
+    expect(reconcileSelection(first, after)).toEqual(first);
+    expect(moveSelection(first, "up", after, {}).selection).toEqual(first);
   });
 
   it("selects the specified cell after add, the new whole axis after insert, and the former position after delete", () => {

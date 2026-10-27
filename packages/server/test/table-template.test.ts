@@ -79,7 +79,7 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/cell values[^.]*strings[^.]*numbers[^.]*booleans[^.]*other values[^.]*blank/i);
     expect(prose).toMatch(/drawn positions[^.]*not stored/i);
     expect(prose).toMatch(/B3[^.]*columns A and B[^.]*rows 1 through 3/i);
-    expect(prose).toMatch(/never derive[^.]*name[^.]*never reuse/i);
+    expect(prose).toMatch(/never derive[^.]*title[^.]*never reuse/i);
     expect(prose).toMatch(/fresh random key[^.]*UUID[^.]*every row and column/i);
     expect(prose).toMatch(/push[^.]*normal way[^.]*one (?:row|column|entry)/i);
     expect(prose).toMatch(/distinct finite[^.]*order/i);

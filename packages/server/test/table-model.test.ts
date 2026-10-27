@@ -90,7 +90,7 @@ describe("Table tolerant reading, stored sizes and order", () => {
   });
 
   it("defaults and clamps positive finite stored widths and heights", () => {
-    const result = readTable({
+    const value = {
       columns: Object.fromEntries([
         ["low", { order: 0, width: 63 }], ["minimum", { order: 1, width: 64 }],
         ["missing", { order: 2 }], ["wrong", { order: 3, width: "200" }],
@@ -103,9 +103,12 @@ describe("Table tolerant reading, stored sizes and order", () => {
         ["maximum", { order: 4, height: 240, cells: {} }], ["high", { order: 5, height: 241, cells: {} }],
         ["nan", { order: 6, height: Number.NaN, cells: {} }], ["infinite", { order: 7, height: Infinity, cells: {} }],
       ]),
-    })!;
+    };
+    const former = structuredClone(value);
+    const result = readTable(value)!;
     expect(result.columns.map(column => column.width)).toEqual([64, 64, 160, 160, 640, 640, 160, 160]);
     expect(result.rows.map(row => row.height)).toEqual([28, 28, 38, 38, 240, 240, 38, 38]);
+    expect(value).toEqual(former);
   });
 
   it("marks the first displayed row as the header, including when the first position is drawn", () => {
@@ -140,19 +143,6 @@ describe("Table tolerant reading, stored sizes and order", () => {
     expect(result.rows[0].cells).toEqual(Object.fromEntries([["__proto__", "kept"]]));
   });
 
-  it("keeps both writers' valid key sets after a blank-axis race", () => {
-    const result = readTable({
-      columns: { firstA: { order: 0 }, firstB: { order: 1 }, secondA: { order: 0 }, secondB: { order: 1 } },
-      rows: {
-        first: { order: 0, cells: { firstB: "first" } },
-        second: { order: 0, cells: { secondB: "second" } },
-      },
-    })!;
-    expect(result.columns.map(column => column.key)).toEqual(["firstA", "secondA", "firstB", "secondB"]);
-    expect(result.rows.map(row => row.key)).toEqual(["first", "second"]);
-    expect(result.rows.map(row => row.cells)).toEqual([{ firstB: "first" }, { secondB: "second" }]);
-  });
-
   it("implements numeric-index then UTF-16 key order", () => {
     const keys = ["b", "10", "a", "2", "0", "B", "01", "_", "12345678901234567890", "9", "！", "😀"];
     expect([...keys].sort(compareStoreKeys)).toEqual(["0", "2", "9", "10", "12345678901234567890", "01", "B", "_", "a", "b", "😀", "！"]);
@@ -176,6 +166,19 @@ describe("Table drawn axes", () => {
     expect(displayAxis([{ key: "c1", order: 9, width: 220 }])[2]!.id).toBe(before.id);
     expect(displayAxis([{ key: "c2", order: 1, height: 80, cells: { c1: "changed" } }])[2]!.id).toBe(before.id);
     expect(displayAxis([{ key: "c1", order: 1 }, { key: "c2", order: 2 }])[2]!.id).not.toBe(before.id);
+  });
+
+  it("keeps both writers' valid key sets after a blank-axis race", () => {
+    const result = readTable({
+      columns: { firstA: { order: 0 }, firstB: { order: 1 }, secondA: { order: 0 }, secondB: { order: 1 } },
+      rows: {
+        first: { order: 0, cells: { firstB: "first" } },
+        second: { order: 0, cells: { secondB: "second" } },
+      },
+    })!;
+    expect(result.columns.map(column => column.key)).toEqual(["firstA", "secondA", "firstB", "secondB"]);
+    expect(result.rows.map(row => row.key)).toEqual(["first", "second"]);
+    expect(result.rows.map(row => row.cells)).toEqual([{ firstB: "first" }, { secondB: "second" }]);
   });
 });
 
@@ -266,6 +269,18 @@ describe("Table ordering and renumbering", () => {
       mode: "insert", selectedKeys: ["a"], side: "after", entries: [{ key: "new", value: { cells: {} } }],
     }));
   });
+
+  it("keeps an end insertion tied to its selected stored key when renumbering", () => {
+    expect(planInsert({
+      columns: {},
+      rows: { a: { order: 0, cells: {} }, b: { order: Number.MAX_VALUE, cells: {} } },
+    }, "rows", { start: 1, end: 1 }, "after", ["new"])).toEqual(renumber("rows", {
+      mode: "insert",
+      selectedKeys: ["b"],
+      side: "after",
+      entries: [{ key: "new", value: { cells: {} } }],
+    }));
+  });
 });
 
 // Contract: proofs/arch/templates/table.md#^templates-table-t-write-plan.
@@ -299,6 +314,7 @@ describe("Table write planning", () => {
     expect(planCellCommit(table, { rowIndex: 0, columnIndex: 0 }, "Park", "National park", {})).toEqual(operations(
       set(["rows", "r1", "cells", "c1"], "National park"),
     ));
+    // The toggle takes no table value, so it cannot store a drawn first row.
     expect(planSetHeader(true)).toEqual(operations(set(["headerRow"], true)));
     expect(planSetHeader(false)).toEqual(operations(set(["headerRow"], false)));
     expect(planCellCommit({ columns: { c1: { order: 0 } }, rows: { r1: { order: 0, cells: { c1: 12 } } } },
@@ -359,6 +375,8 @@ describe("Table write planning", () => {
       .toEqual(noWrite("unchanged"));
     expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 200, {}))
       .toEqual(operations(set(["columns", "c1", "width"], 200)));
+    expect(planResize({ columns: { c1: { order: 0, width: 160 } }, rows: {} }, "columns", 0, 160, Number.NaN, {}))
+      .toEqual(noWrite("unchanged"));
 
     expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 210, { columns: ["c1", "c2"] })).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1, width: 210 }),
@@ -407,6 +425,12 @@ describe("Table write planning", () => {
     expect(planCellCommit({
       columns: { c1: { order: 0 } }, rows: { last: { order: Number.MAX_VALUE, cells: {} } },
     }, { rowIndex: 1, columnIndex: 0 }, "", "Yosemite", { rows: ["new-row"] })).toEqual(renumber("rows", rowRequest));
+    expect(createAxisRenumberUpdate(rowRequest)({
+      last: { order: Number.MAX_VALUE, height: 52, cells: {}, extra: true },
+    })).toEqual({
+      last: { order: 0, height: 52, cells: {}, extra: true },
+      "new-row": { order: 1, cells: { c1: "Yosemite" } },
+    });
 
     expect(planCellCommit({
       columns: { c1: { order: 0 } }, rows: { r1: { order: Number.MAX_VALUE, cells: {} } },

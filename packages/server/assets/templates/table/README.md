@@ -28,7 +28,7 @@ This template makes an editable table that a person and an agent can change at t
 
 `headerRow` is optional. Only `true` shows a header row; the header row is the first displayed row and remains an ordinary row, numbered 1. Agents put column titles in its `cells`. When the header row is on, keep that title row first when sorting, reordering, or inserting rows. Each entry in `columns` has a finite numeric `order` and may have a positive numeric `width`. `width` defaults to 160 pixels and is clamped to 64–640 pixels for each column. Each entry in `rows` has its own finite numeric `order`, a `cells` object, and may have a positive numeric `height`. `height` defaults to 38 pixels and is clamped to 28–240 pixels for each row. `cells` is an object keyed by column key, never an array. Empty cells are left out. Cell values may be strings, finite numbers, or booleans; other values appear blank.
 
-Column and row keys are opaque IDs. Never derive a key from a column name, title or cell value, and never reuse a deleted key. `push` is the normal way to add one row or column. When writing a whole table in one `set`, generate a fresh random key, such as a UUID, for every row and column.
+Column and row keys are opaque IDs. Never derive a key from a title or cell value, and never reuse a deleted key. `push` is the normal way to add one row or column. When writing a whole table in one `set`, generate a fresh random key, such as a UUID, for every row and column.
 
 The page orders rows and columns by `order`, then by key when orders match. Give every row and column a distinct finite `order`. To insert between two entries, use a value between their orders. The page may renumber one axis when no numeric value fits.
 
