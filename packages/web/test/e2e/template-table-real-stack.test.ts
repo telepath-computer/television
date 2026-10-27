@@ -219,29 +219,36 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /52 pixels tall/);
   await expect(page.locator(".table-column-resize-handle")).toHaveCount(8);
   await expect(page.locator(".table-row-resize-handle")).toHaveCount(41);
+  expect(await page.locator(".table-column-resize-handle, .table-row-resize-handle")
+    .evaluateAll(elements => elements.every(element => (element as HTMLElement).tabIndex === -1))).toBe(true);
   await expect(page.locator('[data-action="add-row"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.locator('[data-action="add-column"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.locator('[data-row-select][data-row-index="0"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.locator('[data-column-select][data-column-index="0"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.getByRole("searchbox")).toHaveCount(0);
   await expect(page.locator("[aria-sort]")).toHaveCount(0);
+  const scroll = page.locator(".table-scroll");
+  await scroll.evaluate(element => element.scrollTo(0, 0));
+  const beforeTabEntry = await scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop }));
   await page.keyboard.press("Tab");
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+  expect(await scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop }))).toEqual(beforeTabEntry);
   await expect(cell(page, 0, 0)).toBeFocused();
   await expect(cell(page, 0, 0)).toHaveAttribute("aria-selected", "true");
   await expect(cell(page, 0, 0).locator("xpath=..")).toHaveAttribute("aria-rowindex", "1");
   await expect(cell(page, 0, 0)).toHaveAttribute("aria-colindex", "1");
-  const scroll = page.locator(".table-scroll");
   await expect.poll(() => scroll.evaluate(element => element.scrollWidth > element.clientWidth && element.scrollHeight > element.clientHeight)).toBe(true);
+  await scroll.evaluate(element => element.scrollTo(0, 0));
   const headerBefore = await page.getByRole("columnheader").first().boundingBox();
-  await cell(page, 0, 0).click();
-  const stripBefore = await columnButton(page, "A").boundingBox();
-  await scroll.hover();
-  await page.mouse.wheel(200, 300);
-  await expect.poll(() => scroll.evaluate(element => element.scrollLeft > 0 && element.scrollTop > 0)).toBe(true);
+  const gridBefore = await grid(page).boundingBox();
+  await scroll.evaluate(element => element.scrollTo(200, 300));
+  await expect.poll(() => scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
+    .toEqual({ left: 200, top: 300 });
   const headerAfter = await page.getByRole("columnheader").first().boundingBox();
-  const stripAfter = await columnButton(page, "A").boundingBox();
-  expect(Math.abs((headerAfter?.y ?? 0) - (headerBefore?.y ?? 0))).toBeLessThanOrEqual(1);
-  expect(Math.abs((stripAfter?.y ?? 0) - (stripBefore?.y ?? 0))).toBeLessThanOrEqual(1);
+  const stripAfter = await page.locator(".table-column-strip").boundingBox();
+  expect(headerBefore!.y).toBeCloseTo(gridBefore!.y + 1, 0);
+  expect(stripAfter!.y).toBeCloseTo((await scroll.boundingBox())!.y, 0);
+  expect(headerAfter!.y).toBeCloseTo(stripAfter!.y + stripAfter!.height + 8, 0);
   await scroll.evaluate(element => element.scrollTo(0, 0));
 
   await cell(page, 0, 0).click();
@@ -389,10 +396,14 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   }]));
   const id = await open(page, { headerRow: true, columns, rows });
   const frame = page.locator(".table-frame");
+  const tablePage = page.locator(".table-page");
   const scroll = page.locator(".table-scroll");
   const sheet = page.locator(".table-sheet");
-  const [frameBox, scrollBox, sheetBox] = await Promise.all([frame.boundingBox(), scroll.boundingBox(), sheet.boundingBox()]);
+  const [pageBox, frameBox, scrollBox, sheetBox] = await Promise.all([
+    tablePage.boundingBox(), frame.boundingBox(), scroll.boundingBox(), sheet.boundingBox(),
+  ]);
   expect(scrollBox).toEqual(frameBox);
+  expect(scrollBox).toEqual(pageBox);
   expect(sheetBox!.x - scrollBox!.x).toBe(0);
   expect(sheetBox!.y - scrollBox!.y).toBe(0);
   await expect(scroll).toHaveCSS("overflow-x", "auto");
@@ -402,7 +413,6 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
     vertical: element.scrollHeight > element.clientHeight,
   }))).toEqual({ horizontal: true, vertical: true });
   await expect(sheet).toHaveCSS("padding-left", "16px");
-  await expect(sheet).toHaveCSS("padding-right", "16px");
 
   const topStrip = page.locator(".table-column-strip");
   const sideStrip = page.locator(".table-row-strip");
@@ -435,44 +445,77 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(after.side!.x).toBeCloseTo(scrollBox!.x, 0);
   expect(after.header!.y).toBeCloseTo(after.top!.y + after.top!.height + 8, 0);
   expect(after.rowOne!.y).toBeCloseTo(after.header!.y, 0);
-  const gapColors = await page.locator(".table-reference-corner").evaluate(element => ({
-    below: getComputedStyle(element, "::after").backgroundColor,
-    right: getComputedStyle(element, "::before").backgroundColor,
-    surface: getComputedStyle(element).backgroundColor,
-  }));
-  expect(gapColors.below).toBe(gapColors.surface);
-  expect(gapColors.right).toBe(gapColors.surface);
+  const coveringBands = await page.evaluate(() => {
+    const band = (selector: string, pseudo: "::before" | "::after", axis: "x" | "y") => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element) throw new Error(`Missing ${selector}`);
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element, pseudo);
+      const origin = axis === "x" ? box.left + element.clientLeft : box.top + element.clientTop;
+      const offset = Number.parseFloat(axis === "x" ? style.left : style.top);
+      const thickness = Number.parseFloat(axis === "x" ? style.width : style.height);
+      return {
+        start: origin + offset,
+        thickness,
+        background: style.backgroundColor,
+        surface: getComputedStyle(element).backgroundColor,
+      };
+    };
+    return {
+      cornerBelow: band(".table-reference-corner", "::after", "y"),
+      cornerRight: band(".table-reference-corner", "::before", "x"),
+      stripBelow: band(".table-column-strip", "::after", "y"),
+      stripRight: band(".table-row-strip", "::before", "x"),
+    };
+  });
+  for (const band of Object.values(coveringBands)) {
+    expect(band.thickness).toBe(8);
+    expect(band.background).toBe(band.surface);
+  }
+  expect(coveringBands.cornerBelow.start).toBeCloseTo(after.top!.y + after.top!.height, 0);
+  expect(coveringBands.stripBelow.start).toBeCloseTo(after.top!.y + after.top!.height, 0);
+  expect(coveringBands.cornerRight.start).toBeCloseTo(after.side!.x + after.side!.width, 0);
+  expect(coveringBands.stripRight.start).toBeCloseTo(after.side!.x + after.side!.width, 0);
 
-  await scroll.evaluate(element => element.scrollTo(0, 0));
-  await cell(page, 0, 0).click();
-  for (let index = 0; index < 10; index += 1) await page.keyboard.press("ArrowDown");
-  for (let index = 0; index < 5; index += 1) await page.keyboard.press("ArrowRight");
+  await scroll.evaluate(element => element.scrollTo(360, 180));
+  await cell(page, 5, 2).click();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowLeft");
   const selectedBox = await page.locator('[data-selection="cell"]').boundingBox();
   const topBox = await topStrip.boundingBox();
   const sideBox = await sideStrip.boundingBox();
-  expect(selectedBox!.y).toBeGreaterThanOrEqual(topBox!.y + topBox!.height + 8);
+  const headerBox = await cell(page, 0, 0).boundingBox();
+  expect(selectedBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height);
   expect(selectedBox!.x).toBeGreaterThanOrEqual(sideBox!.x + sideBox!.width + 8);
 
-  await rowButton(page, 0).click();
-  for (let index = 0; index < 10; index += 1) await page.keyboard.press("ArrowDown");
-  const selectedRowBox = await rowButton(page, 10).boundingBox();
-  expect(selectedRowBox!.y).toBeGreaterThanOrEqual(topBox!.y + topBox!.height + 8);
+  await scroll.evaluate(element => element.scrollTo(0, 180));
+  await rowButton(page, 5).click();
+  await page.keyboard.press("ArrowUp");
+  const selectedRowBox = await rowButton(page, 4).boundingBox();
+  expect(selectedRowBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height);
   expect(selectedRowBox!.y + selectedRowBox!.height).toBeLessThanOrEqual(scrollBox!.y + scrollBox!.height);
 
-  await columnButton(page, "A").click();
-  for (let index = 0; index < 5; index += 1) await page.keyboard.press("ArrowRight");
-  const selectedColumnBox = await columnButton(page, "F").boundingBox();
+  await scroll.evaluate(element => element.scrollTo(360, 0));
+  await columnButton(page, "C").click();
+  await page.keyboard.press("ArrowLeft");
+  const selectedColumnBox = await columnButton(page, "B").boundingBox();
   expect(selectedColumnBox!.x).toBeGreaterThanOrEqual(sideBox!.x + sideBox!.width + 8);
   expect(selectedColumnBox!.x + selectedColumnBox!.width).toBeLessThanOrEqual(scrollBox!.x + scrollBox!.width);
 
   await scroll.evaluate(element => element.scrollTo(element.scrollWidth, element.scrollHeight));
-  const lastCellBox = await cell(page, 23, 6).boundingBox();
-  expect(scrollBox!.x + scrollBox!.width - (lastCellBox!.x + lastCellBox!.width)).toBeGreaterThanOrEqual(16);
-  expect(scrollBox!.y + scrollBox!.height - (lastCellBox!.y + lastCellBox!.height)).toBeGreaterThanOrEqual(16);
+  const [sheetEndBox, topStripEndBox, sideStripEndBox] = await Promise.all([
+    sheet.boundingBox(), topStrip.boundingBox(), sideStrip.boundingBox(),
+  ]);
+  expect(sheetEndBox!.x + sheetEndBox!.width - (topStripEndBox!.x + topStripEndBox!.width)).toBeCloseTo(16, 0);
+  expect(sheetEndBox!.y + sheetEndBox!.height - (sideStripEndBox!.y + sideStripEndBox!.height)).toBeCloseTo(16, 0);
 
   await h.set(id, false, "headerRow");
+  await scroll.evaluate(element => element.scrollTo(0, 0));
+  const rowOneAtOrigin = await cell(page, 0, 0).boundingBox();
   await scroll.evaluate(element => element.scrollTo(0, 180));
-  await expect.poll(async () => (await cell(page, 0, 0).boundingBox())!.y).toBeLessThan(before.header!.y);
+  const headerOffScrollTop = await scroll.evaluate(element => element.scrollTop);
+  await expect.poll(async () => (await cell(page, 0, 0).boundingBox())!.y)
+    .toBeCloseTo(rowOneAtOrigin!.y - headerOffScrollTop, 0);
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -899,10 +942,14 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await page.getByRole("menu", { name: "Row actions" }).getByText("Remove header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(false);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
+  await expect(rowButton(page, 0)).toHaveText("1");
+  const firstRowCells = await h.read(id, "rows/r1/cells");
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Make header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(true);
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
+  await expect(rowButton(page, 0)).toHaveText("1");
+  expect(await h.read(id, "rows/r1/cells")).toEqual(firstRowCells);
 
   await columnButton(page, "B").click({ button: "right" });
   await page.getByRole("menu", { name: "Column actions" }).getByText("Delete column", { exact: true }).click();
@@ -923,6 +970,9 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   expect(insertedFirstRow).toBeDefined();
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
   await expect(cell(page, 0, 0)).toHaveText("");
+  await expect(rowButton(page, 1)).toHaveText("2");
+  await expect(page.locator('[data-row-key="r1"][data-column-key="c3"]')).toHaveAttribute("role", "gridcell");
+  await expect(page.locator('[data-row-key="r1"][data-column-key="c3"]')).toHaveText("Open");
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Delete row", { exact: true }).click();
   await expect.poll(() => h.read(id, `rows/${insertedFirstRow}`)).toBeUndefined();
@@ -1199,7 +1249,7 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await page.keyboard.press("Enter");
   await editor(page).fill("Local draft");
   await editor(page).evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(5, 5));
-  h.product.runCLI(["resource", "json", "set", "--artifact", id, "columns/c1/name", '"Place"']);
+  h.product.runCLI(["resource", "json", "set", "--artifact", id, "rows/r1/cells/c1", '"Place"']);
   await expect(cell(page, 0, 0)).toHaveText("Place");
   await expect(editor(page)).toBeFocused();
   await expect(editor(page)).toHaveValue("Local draft");

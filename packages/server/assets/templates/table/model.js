@@ -1,7 +1,7 @@
 /* Pure store, display, ordering and write-planning rules for the Table page. */
 
-const MINIMUM_AXIS_SIZE = 4;
-const AXIS_SIZES = {
+export const MINIMUM_AXIS_SIZE = 4;
+export const AXIS_SIZES = {
   columns: { field: "width", defaultValue: 160, minimum: 64, maximum: 640 },
   rows: { field: "height", defaultValue: 38, minimum: 28, maximum: 240 },
 };

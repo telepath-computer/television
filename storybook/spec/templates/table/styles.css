@@ -87,9 +87,19 @@ textarea {
   background: var(--color-surface);
 }
 
-/* The covering bands start outside each strip's border, so the border stays
-   visible: an absolute child's 100% is the inner edge of that border. */
-.table-reference-corner::after,
+/* The corner has no border, so its bands begin at 100%. Each strip's bands
+   begin one pixel later, outside that strip's border. */
+.table-reference-corner::after {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--reference-gap);
+  background: var(--color-surface);
+  content: "";
+  pointer-events: none;
+}
+
 .table-column-strip::after {
   position: absolute;
   top: calc(100% + 1px);
@@ -101,7 +111,17 @@ textarea {
   pointer-events: none;
 }
 
-.table-reference-corner::before,
+.table-reference-corner::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: var(--reference-gap);
+  background: var(--color-surface);
+  content: "";
+  pointer-events: none;
+}
+
 .table-row-strip::before {
   position: absolute;
   top: 0;

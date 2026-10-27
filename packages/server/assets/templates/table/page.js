@@ -4,8 +4,8 @@ import {
   onConnectionStatusChanged, onValue, push, ref, remove, runTransaction, set, update,
 } from "/sdk/v1/resources.js";
 import {
-  createAxisRenumberUpdate, displayAxis, planAdd, planCellCommit, planClear,
-  planDelete, planInsert, planSetHeader, readTable,
+  AXIS_SIZES, MINIMUM_AXIS_SIZE, createAxisRenumberUpdate, displayAxis, planAdd,
+  planCellCommit, planClear, planDelete, planInsert, planSetHeader, readTable,
 } from "./model.js";
 import {
   cellSelectionAt, enterTable, moveSelection, reconcileSelection,
@@ -39,10 +39,10 @@ let interactionVersion = 0;
 let menuObserver = null;
 let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
 let pageActionSelection = null;
+let gridEntryScrollPosition = null;
 
-const DEFAULT_COLUMN_WIDTH = 160;
-const DEFAULT_ROW_HEIGHT = 38;
 const REFERENCE_SIZE = 26;
+const REFERENCE_GAP = 8;
 const EXTRA_ROW_NUMBER_WIDTH = 7;
 
 const rejectedNoWriteReasons = new Set([
@@ -137,7 +137,7 @@ function referenceButton(kind, index) {
   const label = isRows ? `Select row ${index + 1}` : `Select column ${columnLetter(index)}`;
   const anchorId = selection?.kind === kind ? selection.anchorId : null;
   const item = axes()[kind][index];
-  const size = isRows ? item.height ?? DEFAULT_ROW_HEIGHT : item.width ?? DEFAULT_COLUMN_WIDTH;
+  const size = isRows ? item.height ?? AXIS_SIZES.rows.defaultValue : item.width ?? AXIS_SIZES.columns.defaultValue;
   const axisName = isRows ? "row" : "column";
   const dimension = isRows ? "tall" : "wide";
   const description = `${size} pixels ${dimension}.${canWrite() ? " Select this " + axisName + ", then use plus or minus to resize." : ""}`;
@@ -243,8 +243,11 @@ function keepClearOfFrozenAreas(target) {
   const rowStripBox = main.querySelector(".table-row-strip")?.getBoundingClientRect();
   const headerBox = model?.headerRow && !target.closest('[data-row-index="0"]')
     ? main.querySelector('[data-cell][data-row-index="0"]')?.getBoundingClientRect() : null;
-  const minimumX = (rowStripBox?.right ?? scrollBox.left) + 8;
-  const minimumY = Math.max(columnStripBox?.bottom ?? scrollBox.top, headerBox?.bottom ?? scrollBox.top) + 8;
+  const minimumX = (rowStripBox?.right ?? scrollBox.left) + REFERENCE_GAP;
+  const minimumY = Math.max(
+    (columnStripBox?.bottom ?? scrollBox.top) + REFERENCE_GAP,
+    headerBox?.bottom ?? scrollBox.top,
+  );
   let left = 0;
   let top = 0;
   if (!target.closest(".table-row-strip") && targetBox.left < minimumX) left = targetBox.left - minimumX;
@@ -295,11 +298,11 @@ function render(focus = "none", nextAxes = buildAxes()) {
   const editable = canWrite();
   main.dataset.editable = String(editable);
   main.dataset.headerRow = String(model.headerRow);
-  const columnWidths = displayed.columns.map(column => column.width ?? DEFAULT_COLUMN_WIDTH);
+  const columnWidths = displayed.columns.map(column => column.width ?? AXIS_SIZES.columns.defaultValue);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(displayed.rows.length).length;
   const rowReferenceWidth = REFERENCE_SIZE + Math.max(0, rowNumberDigits - 1) * EXTRA_ROW_NUMBER_WIDTH;
-  const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? DEFAULT_ROW_HEIGHT}px">
+  const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? AXIS_SIZES.rows.defaultValue}px">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
   replaceContents(`<div class="table-frame">
     <div class="table-scroll"><div class="table-sheet" style="--table-grid-width: ${gridWidth}px; --table-row-reference-width: ${rowReferenceWidth}px">
@@ -509,7 +512,7 @@ async function clearContents() {
 async function addAtEnd(axis) {
   if (!canWrite()) return;
   const previous = selection;
-  const count = Math.max(0, 4 - model[axis].length) + 1;
+  const count = Math.max(0, MINIMUM_AXIS_SIZE - model[axis].length) + 1;
   const keys = reserveKeys(axis);
   const newKey = keys[count - 1];
   await applyPlan(planAdd(value, axis, keys), nextAxes => selectionAfterAdd(previous, axis, newKey, nextAxes));
@@ -624,10 +627,24 @@ main.addEventListener("contextmenu", event => {
   openMenu(rowButton ? "rows" : "columns", Number((rowButton ?? columnButton).dataset[rowButton ? "rowIndex" : "columnIndex"]));
 });
 
+document.addEventListener("keydown", event => {
+  const grid = main.querySelector(".table-grid");
+  if (event.defaultPrevented || event.key !== "Tab" || selection !== null || document.activeElement === grid) return;
+  const scroll = main.querySelector(".table-scroll");
+  if (scroll instanceof HTMLElement) {
+    gridEntryScrollPosition = { left: scroll.scrollLeft, top: scroll.scrollTop };
+  }
+}, { capture: true });
+
 main.addEventListener("focusin", event => {
   if (!suppressGridEntry && event.target === main.querySelector(".table-grid") && selection === null) {
+    const entryScrollPosition = gridEntryScrollPosition;
+    gridEntryScrollPosition = null;
     selection = enterTable(selection, axes());
     render("selection");
+    if (entryScrollPosition) {
+      queueMicrotask(() => main.querySelector(".table-scroll")?.scrollTo(entryScrollPosition.left, entryScrollPosition.top));
+    }
   }
 });
 

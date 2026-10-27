@@ -1,3 +1,12 @@
+/** The minimum number of displayed positions on either axis. */
+export const MINIMUM_AXIS_SIZE: number;
+
+/** Display defaults and saved-size limits for both axes. */
+export const AXIS_SIZES: {
+  columns: { field: "width"; defaultValue: number; minimum: number; maximum: number };
+  rows: { field: "height"; defaultValue: number; minimum: number; maximum: number };
+};
+
 /** The shared identity and order of a displayed stored row or column. */
 export interface TableAxisEntry {
   key: string;

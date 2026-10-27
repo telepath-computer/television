@@ -80,7 +80,9 @@ const column = (page: Page, letter: string) => page.getByRole("button", { name: 
 const shown = async (page: Page) => {
   await page.locator(".table-grid, .table-loading, .table-unreadable").first().waitFor();
 };
-const offTable = (page: Page) => page.mouse.move(758, 768);
+const offTable = (page: Page, storyName: string) => storyName === "scrolled"
+  ? page.mouse.move(1, 1)
+  : page.mouse.move(758, 768);
 const disconnect = async (page: Page) => {
   run.proxy.refuse(true);
   run.proxy.sever();
@@ -106,8 +108,8 @@ const states: Record<string, State> = {
   "selected-column": { data: parks as unknown as JSONValue, ready: async page => { await cell(page, 0, 0).click(); await column(page, "C").click(); } },
   "keyboard-focus": { data: parks as unknown as JSONValue, ready: async page => { await cell(page, 3, 0).click(); await page.keyboard.press("ArrowRight"); } },
   "keyboard-focus-row": { data: parks as unknown as JSONValue, ready: async page => {
-    await cell(page, 1, 0).click();
-    await page.keyboard.press("Shift+Space");
+    await row(page, 1).click();
+    await page.keyboard.press("ArrowRight");
   } },
   "editing-cell": { data: parks as unknown as JSONValue, ready: async page => { await cell(page, 3, 0).click(); await page.keyboard.press("Enter"); } },
   "editing-header-cell": { data: parks as unknown as JSONValue, ready: async page => { await cell(page, 0, 1).click(); await page.keyboard.press("Enter"); } },
@@ -168,7 +170,7 @@ for (const storyID of stories) {
       ready: async page => {
         await reference.ready?.(page);
         await page.evaluate(() => document.fonts.ready);
-        await offTable(page);
+        await offTable(page, storyName);
       },
     }, {
       url: artifactURL(run.proxy, shareID ?? artifactID),
@@ -183,7 +185,7 @@ for (const storyID of stories) {
         }
         await page.evaluate(() => document.fonts.ready);
         await ready?.(page, artifactID);
-        await offTable(page);
+        await offTable(page, storyName);
       },
     }, { browser: run.browser, root: ".table-page", width: 760, height: 770 });
   });
