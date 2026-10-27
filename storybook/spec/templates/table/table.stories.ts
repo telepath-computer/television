@@ -10,12 +10,11 @@ import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
 const icon = (params: { name: string; size?: string; spinning?: boolean }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));
 
-interface Column { key: string; name?: string }
+interface Column { key: string; width?: number }
 type CellValue = string | number | boolean;
-interface Row { key: string; cells: Record<string, CellValue> }
+interface Row { key: string; height?: number; cells: Record<string, CellValue> }
 type Selection =
   | { kind: "cell"; row: number; column: number }
-  | { kind: "header"; column: number }
   | { kind: "row"; start: number; end: number }
   | { kind: "column"; start: number; end: number }
   | null;
@@ -23,7 +22,7 @@ interface Args {
   theme: "light" | "dark";
   columns: Column[];
   rows: Row[];
-  showHeader: boolean;
+  headerRow: boolean;
   selection: Selection;
   menu: "row" | "column" | null;
   editable: boolean;
@@ -49,36 +48,46 @@ function displayedRows(rows: Row[]): Row[] {
 }
 
 const parkColumns: Column[] = [
-  { key: "c1", name: "Park" },
-  { key: "c2", name: "State" },
-  { key: "c3", name: "Open" },
-  { key: "c4", name: "Rating" },
+  { key: "c1" },
+  { key: "c2" },
+  { key: "c3" },
+  { key: "c4" },
 ];
 
 const parkRows: Row[] = [
-  { key: "r1", cells: { c1: "Acadia", c2: "Maine", c3: "Yes", c4: "4.9" } },
-  { key: "r2", cells: { c1: "Arches", c2: "Utah", c3: "Yes", c4: "4.8" } },
-  { key: "r3", cells: { c1: "Everglades", c2: "Florida", c3: "No", c4: "4.6" } },
-  { key: "r4", cells: { c1: "Olympic", c2: "Washington", c3: "Yes", c4: "4.8" } },
-  { key: "r5", cells: { c1: "Yosemite", c2: "California", c3: "Yes", c4: "4.9" } },
-  { key: "r6", cells: { c1: "Zion", c2: "Utah", c3: "Yes" } },
+  { key: "r1", cells: { c1: "Park", c2: "State", c3: "Open", c4: "Rating" } },
+  { key: "r2", cells: { c1: "Acadia", c2: "Maine", c3: "Yes", c4: "4.9" } },
+  { key: "r3", cells: { c1: "Arches", c2: "Utah", c3: "Yes", c4: "4.8" } },
+  { key: "r4", cells: { c1: "Everglades", c2: "Florida", c3: "No", c4: "4.6" } },
+  { key: "r5", cells: { c1: "Olympic", c2: "Washington", c3: "Yes", c4: "4.8" } },
+  { key: "r6", cells: { c1: "Yosemite", c2: "California", c3: "Yes", c4: "4.9" } },
+  { key: "r7", cells: { c1: "Zion", c2: "Utah", c3: "Yes" } },
 ];
 
 const firstColumns: Column[] = [{ key: "c1" }];
 const firstRows: Row[] = [{ key: "r1", cells: { c1: "Yosemite" } }];
 
-const unnamedColumns: Column[] = [
-  { key: "c1" },
-  { key: "c2" },
-  { key: "c3" },
-];
-
 const columnAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const scheduleRows: Row[] = [
-  { key: "r1", cells: { c1: "Morning", c2: "Train", c3: "08:40" } },
-  { key: "r2", cells: { c1: "Afternoon", c2: "Walk" } },
-  { key: "r3", cells: { c1: "Evening", c3: "Dinner" } },
+  { key: "r1", cells: { c1: "Time", c2: "Plan", c3: "Starts" } },
+  { key: "r2", cells: { c1: "Morning", c2: "Train", c3: "08:40" } },
+  { key: "r3", cells: { c1: "Afternoon", c2: "Walk" } },
+  { key: "r4", cells: { c1: "Evening", c3: "Dinner" } },
+];
+
+const resizedColumns: Column[] = [
+  { key: "c1", width: 230 },
+  { key: "c2", width: 130 },
+  { key: "c3", width: 96 },
+  { key: "c4", width: 112 },
+];
+
+const resizedRows: Row[] = [
+  ...parkRows.map((row, index) => index === 0 ? { ...row, height: 52 } : row),
+  { key: "r8", cells: { c1: "Grand Canyon", c2: "Arizona", c3: "Yes", c4: "4.9" } },
+  { key: "r9", cells: { c1: "Joshua Tree", c2: "California", c3: "Yes", c4: "4.7" } },
+  { key: "r10", cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },
 ];
 
 function columnLetter(index: number): string {
@@ -104,12 +113,7 @@ function referenceEmphasis(selection: Selection, axis: "row" | "column", index: 
   if (axis === "row" && rowSelected(selection, index)) return "selected";
   if (axis === "column" && columnSelected(selection, index)) return "selected";
   if (selection?.kind === "cell" && selection[axis] === index) return "related";
-  if (axis === "column" && selection?.kind === "header" && selection.column === index) return "related";
   return "none";
-}
-
-function headerSelected(selection: Selection, column: number): boolean {
-  return selection?.kind === "header" && selection.column === column;
 }
 
 function cellSelection(selection: Selection, row: number, column: number): "none" | "cell" | "range" {
@@ -118,7 +122,7 @@ function cellSelection(selection: Selection, row: number, column: number): "none
   return "none";
 }
 
-function rowMenu(showHeader: boolean, selection: Selection) {
+function rowMenu(headerRow: boolean, selection: Selection) {
   const count = selection?.kind === "row" ? selection.end - selection.start + 1 : 1;
   return html`
     <tv-menu class="table-context-menu table-row-context-menu" trigger="table-row-reference-2" role="menu" aria-label="Row actions" open>
@@ -126,11 +130,11 @@ function rowMenu(showHeader: boolean, selection: Selection) {
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert row below</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "row" : "rows"}</span></tv-menu-item>
       <hr>
-      <tv-menu-item role="menuitem" tabindex="-1"><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>${headerRow ? "Use first row as data" : "Use first row as header"}</span></tv-menu-item>
     </tv-menu>`;
 }
 
-function columnMenu(showHeader: boolean, selection: Selection) {
+function columnMenu(headerRow: boolean, selection: Selection) {
   const count = selection?.kind === "column" ? selection.end - selection.start + 1 : 1;
   return html`
     <tv-menu class="table-context-menu table-column-context-menu" trigger="table-column-reference-3" role="menu" aria-label="Column actions" open>
@@ -138,11 +142,15 @@ function columnMenu(showHeader: boolean, selection: Selection) {
       <tv-menu-item role="menuitem" tabindex="-1"><span>Insert column right</span></tv-menu-item>
       <tv-menu-item role="menuitem" tabindex="-1" intent="danger"><span>Delete ${count === 1 ? "column" : "columns"}</span></tv-menu-item>
       <hr>
-      <tv-menu-item role="menuitem" tabindex="-1"><span>${showHeader ? "Hide header row" : "Show header row"}</span></tv-menu-item>
+      <tv-menu-item role="menuitem" tabindex="-1"><span>${headerRow ? "Use first row as data" : "Use first row as header"}</span></tv-menu-item>
     </tv-menu>`;
 }
 
-const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, selection, menu, editable, status, loading, unreadable }: Args) => {
+const defaultColumnWidth = 160;
+const defaultRowHeight = 38;
+const referenceSize = 26;
+
+const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, selection, menu, editable, status, loading, unreadable }: Args) => {
   document.documentElement.dataset.theme = theme;
 
   if (unreadable) return html`
@@ -165,17 +173,23 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
 
   const columns = displayedColumns(storedColumns);
   const rows = displayedRows(storedRows);
-  const referencesVisible = selection !== null;
+  const columnWidths = columns.map((column) => column.width ?? defaultColumnWidth);
+  const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+  const rowNumberDigits = String(rows.length).length;
+  const rowReferenceWidth = referenceSize + Math.max(0, rowNumberDigits - 1) * 7;
 
   return html`
     <main class="table-page" data-editable="${String(editable)}">
-      <div class="table-frame" data-reference-visible="${referencesVisible ? "shown" : "hidden"}">
+      <div class="table-frame">
         <div class="table-scroll">
-          <div class="table-sheet" style="--table-column-count: ${columns.length}">
+          <div
+            class="table-sheet"
+            style="--table-grid-width: ${gridWidth}px; --table-row-reference-width: ${rowReferenceWidth}px"
+          >
             <div class="table-reference-corner" aria-hidden="true"></div>
-            <div class="table-column-strip table-reference-strip" aria-label="Column references" ${selection === null ? html`aria-hidden="true" inert` : ""}>
+            <div class="table-column-strip table-reference-strip" aria-label="Column references">
               ${columns.map((_, columnIndex) => html`
-                <div class="table-column-reference-item">
+                <div class="table-column-reference-item" style="width: ${columnWidths[columnIndex]}px">
                   <button
                     type="button"
                     class="table-reference-item"
@@ -185,16 +199,18 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     aria-haspopup="${editable ? "menu" : "false"}"
                     ${menu === "column" && columnIndex === 2 ? html`aria-expanded="true"` : ""}
                     aria-pressed="${String(columnSelected(selection, columnIndex))}"
+                    aria-description="${columnWidths[columnIndex]} pixels wide.${editable ? " Select this column, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
                   >${columnLetter(columnIndex)}</button>
+                  ${editable ? html`<span class="table-column-resize-handle" aria-hidden="true"></span>` : ""}
                 </div>`)}
               ${editable ? html`<div class="table-column-add-item">
                 <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
-            <div class="table-row-strip table-reference-strip${showHeader ? " table-row-strip-with-header" : ""}" aria-label="Row references" ${selection === null ? html`aria-hidden="true" inert` : ""}>
-              ${rows.map((_, rowIndex) => html`
-                <div class="table-row-reference-item">
+            <div class="table-row-strip table-reference-strip" aria-label="Row references">
+              ${rows.map((row, rowIndex) => html`
+                <div class="table-row-reference-item" style="--table-current-row-height: ${row.height ?? defaultRowHeight}px">
                   <button
                     type="button"
                     class="table-reference-item"
@@ -204,34 +220,25 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
                     aria-haspopup="${editable ? "menu" : "false"}"
                     ${menu === "row" && rowIndex === 1 ? html`aria-expanded="true"` : ""}
                     aria-pressed="${String(rowSelected(selection, rowIndex))}"
+                    aria-description="${row.height ?? defaultRowHeight} pixels tall.${editable ? " Select this row, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
                   >${rowIndex + 1}</button>
+                  ${editable ? html`<span class="table-row-resize-handle" aria-hidden="true"></span>` : ""}
                 </div>`)}
               ${editable ? html`<div class="table-row-add-item">
                 <button type="button" class="table-reference-item table-add-item" aria-label="Add row at end" title="Add row at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
-            <table class="table-grid" role="grid" aria-label="Table" aria-rowcount="${rows.length + (showHeader ? 1 : 0)}" aria-colcount="${columns.length}" tabindex="${selection === null ? 0 : -1}">
-              <colgroup>${columns.map(() => html`<col class="table-data-column">`)}</colgroup>
-              ${showHeader ? html`
-                <thead>
-                  <tr aria-rowindex="1">${columns.map((column, columnIndex) => {
-                    const selected = headerSelected(selection, columnIndex);
-                    return html`
-                      <th class="table-header" scope="col" data-axis-selected="${String(columnSelected(selection, columnIndex))}" aria-selected="${String(columnSelected(selection, columnIndex) || selected)}" aria-colindex="${columnIndex + 1}">
-                        <div class="table-header-content">
-                          <button type="button" class="table-header-button" data-selection="${selected ? "header" : "none"}" aria-label="${column.name ?? `Column ${columnLetter(columnIndex)}`}" tabindex="${selected ? 0 : -1}"><span>${column.name ?? ""}</span></button>
-                        </div>
-                      </th>`;
-                  })}</tr>
-                </thead>` : ""}
+            <table class="table-grid" role="grid" aria-label="Table" aria-rowcount="${rows.length}" aria-colcount="${columns.length}" tabindex="${selection === null ? 0 : -1}">
+              <colgroup>${columns.map((_, columnIndex) => html`<col style="width: ${columnWidths[columnIndex]}px">`)}</colgroup>
               <tbody>${rows.map((row, rowIndex) => html`
-                <tr aria-rowindex="${rowIndex + (showHeader ? 2 : 1)}">${columns.map((column, columnIndex) => {
+                <tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? defaultRowHeight}px">${columns.map((column, columnIndex) => {
                   const state = cellSelection(selection, rowIndex, columnIndex);
                   return html`
                     <td
                       class="table-cell"
-                      role="gridcell"
+                      role="${headerRow && rowIndex === 0 ? "columnheader" : "gridcell"}"
+                      data-header="${String(headerRow && rowIndex === 0)}"
                       data-selection="${state}"
                       aria-selected="${String(state !== "none")}"
                       aria-colindex="${columnIndex + 1}"
@@ -242,8 +249,8 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
           </div>
         </div>
       </div>
-      ${menu === "row" && editable ? rowMenu(showHeader, selection) : ""}
-      ${menu === "column" && editable ? columnMenu(showHeader, selection) : ""}
+      ${menu === "row" && editable ? rowMenu(headerRow, selection) : ""}
+      ${menu === "column" && editable ? columnMenu(headerRow, selection) : ""}
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : status === "save-failed" ? "Couldn't save that change." : ""}</div>
     </main>`;
 };
@@ -251,7 +258,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
 type Play = { canvasElement: HTMLElement };
 
 const focusSelection = ({ canvasElement }: Play) => {
-  canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-header-button[data-selection="header"], .table-reference-item[aria-pressed="true"]')?.focus();
+  canvasElement.querySelector<HTMLElement>('[data-selection="cell"], .table-reference-item[aria-pressed="true"]')?.focus();
 };
 
 const poseOpenMenu = ({ canvasElement }: Play) => {
@@ -294,7 +301,7 @@ export default {
     theme: "light",
     columns: parkColumns,
     rows: parkRows,
-    showHeader: true,
+    headerRow: true,
     selection: null,
     menu: null,
     editable: true,
@@ -304,12 +311,13 @@ export default {
   } satisfies Args,
 };
 
-export const Blank = { args: { columns: [], rows: [], showHeader: false } };
-export const PartiallyFilled = { name: "Partially filled", args: { columns: firstColumns, rows: firstRows, showHeader: false } };
+export const Blank = { args: { columns: [], rows: [], headerRow: false } };
+export const PartiallyFilled = { name: "Partially filled", args: { columns: firstColumns, rows: firstRows, headerRow: false } };
 export const WithData = { name: "With data" };
-export const HeaderOff = { name: "Header off", args: { columns: unnamedColumns, rows: scheduleRows, showHeader: false } };
+export const HeaderOff = { name: "First row as data", args: { columns: parkColumns.slice(0, 3), rows: scheduleRows, headerRow: false } };
+export const Resized = { name: "Saved sizes", args: { columns: resizedColumns, rows: resizedRows } };
 export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
-export const SelectedHeader = { name: "Selected header", args: { selection: { kind: "header", column: 1 } } };
+export const SelectedHeader = { name: "Selected header-row cell", args: { selection: { kind: "cell", row: 0, column: 1 } } };
 export const SelectedRow = { name: "Selected row", args: { selection: { kind: "row", start: 1, end: 1 } } };
 export const SelectedColumn = { name: "Selected column", args: { selection: { kind: "column", start: 2, end: 2 } } };
 export const KeyboardFocus = { name: "Keyboard focus", args: { selection: { kind: "cell", row: 3, column: 1 } }, play: focusSelection };
