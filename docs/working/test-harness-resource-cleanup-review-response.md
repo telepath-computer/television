@@ -1,6 +1,6 @@
 # Resource-cleanup proposal: review response
 
-Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. Slice 1 is implemented for independent review; its evidence is linked below. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
+Proposal round 3 at `57a701d0`, spec round 1 at `cd8aa453`, proof round 2 at `3fa15d47`, and plan round 2 at `04a6b275` all **PASS**, relayed by the supervisor. Proof round 2 also approves the narrow placement spec delta. Slices 1 and 2 have converged; slice 3 round 1 is corrected and ready for re-review. Earlier sections retain the response history, including the superseded private full-gate arrangement. Reviewer: Claude Fable (Nina), arranged by the supervisor.
 
 Independent round 1 reviewed `1652787e`. The [full review](test-harness-resource-cleanup-review-r1.md) remains unchanged: FAIL on two blockers. The response committed at `99b7ed93` narrowed the work pending Josh's decisions. The following sections through round 2 record that history, not the current review verdict.
 
@@ -285,3 +285,41 @@ Ownership now serializes through a short worker guard, renews through downloads,
 Seven real Linux lease seam cases and ten lifecycle/cleanup/pool contracts have passed, alongside affected provider, discovery, stale-owner, registry, diagnostic, shard-worker and process-helper files. Lint and type checking passed at the final executable checkpoint. The final full live driver passed on its first native attempt in 4m 31s, with zero outer failures, recovered retries, process leaks or infrastructure failures. Its intentional failed/recovered native fixtures, competing and absent-pool refusals, killed-coordinator reports, receipt links, and final cleanup are retained. The proof citations now name the implemented coverage, resolving the temporary live-provider obligations from slices 1 and 2.
 
 Both private workers were deleted and confirmed absent; the dedicated coordinator remains for the integrated gate. No tests or static checks ran on the shared host, and no shared-pool experiments occurred. Independent slice review and then integrated review/full verification remain; the draft PR is not ready to merge. No new lasting team decision was made. Primitive's unread conflict ID and incomplete hook scans are recorded in the validation record, and its CLI received no further debugging.
+
+## Slice 3 round 1: reusable qualification
+
+The [complete review](test-harness-resource-cleanup-slice-3-review-r1.md) is preserved
+unchanged. Its one blocker is warranted: a committed acceptance must remain
+runnable after this contribution's personal sandboxes are deleted. The placement
+spec already requires a dedicated coordinator generally; this corrects its
+implementation without changing the approved placement or lifecycle.
+
+| Finding | Assessment and disposition |
+| --- | --- |
+| B1: fixed personal coordinator, pool and fixture names | Require non-empty `TV_BLAXEL_HARNESS_COORDINATOR` and `TV_BLAXEL_HARNESS_POOL` in the CLI and driver. Preserve local-only execution, the shard-token refusal and the real coordinator-label check. Derive leftover and sentinel names from the configured pool. Remove every personal literal from the driver and fixture input. Document invocation and private-pool deletion in the harness README. |
+| R1: stop renewal after one transport failure | Retain the reviewed fail-closed behavior for this correction. A failed exec currently supplies no reliable ownership evidence, whether from transport, guard timeout or worker-command failure. Retrying safely would require distinguishing those cases and bounding uncertainty against the last confirmed deadline, plus new failure coverage. That may improve availability, but the unexplained 60-second lapse does not establish a transport cause. The cost remains explicit: one failed renewal can fail the shard and hold the worker until ordinary recovery. No claim of transport-error tolerance is made. |
+| R2: profile-independent recovery default | Accepted. Extend the existing forwarding contract to pin 1200 seconds for `normal`, `cold` and `repair`. No default changes. |
+| R3: remove checkout's results reset | Defer this optional simplification. It touches repository switching and its seam; that spec also requires live switching between two repositories. The existing preservation path is covered and passed. Expanding this name-configuration correction would buy no additional lifecycle guarantee. |
+
+The mode filename is neutral and fixed per worker rather than pool-derived:
+`/tmp/tv-blaxel-harness-mode.json`. Every worker is freshly created for one private
+pool and deleted afterward, so the input cannot collide across pools. This removes
+the personal dependency without adding production environment forwarding solely
+to locate fixture data. Pool-derived cleanup fixtures and sentinels remain distinct.
+
+The new placement acceptance spawns the real CLI with authored environment values
+and the existing guarded dry-run hook. It proves configuration and refusal before
+preflight, not provider identity. The complete live driver remains responsible for
+the real API, labels and configured pool. The default assertion is a source check,
+with actual lease behavior still covered by the existing Linux and live evidence.
+
+Validation is recorded in the [slice 3 record](test-harness-resource-cleanup-slice-3.md).
+Only the named private hosts are used. Integrated reconciliation, full verification,
+docs preparation and ready-PR status still follow slice convergence.
+
+At `7b0213bb`, the focused placement red became green, both affected whole files
+passed, and lint and type checking passed on Blaxel. The complete live qualification
+then passed on its first attempt in 4m 56s with fresh private workers. Both workers
+were deleted and confirmed absent; the complete reports are retained. No shared
+host tests or shared-pool experiments ran. The correction is ready for re-review;
+the subsequent documentation/proof commit changes no executable behavior.

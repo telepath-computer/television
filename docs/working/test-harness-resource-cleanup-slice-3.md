@@ -1,8 +1,9 @@
 # Slice 3: exclusive Blaxel worker lifecycle
 
-Status: implemented and privately qualified; ready for independent slice review.
-Final executable checkpoint: `45202ee9`. The final live qualification passed on its
-first native attempt in 4m 31s; complete evidence and limits are below.
+Status: review round 1 corrected and privately qualified; ready for independent re-review.
+Final executable checkpoint: `7b0213bb`. The repeated live qualification passed on
+its first native attempt in 4m 56s. The correction and evidence follow the original
+qualification history below.
 The converged plan and proofs govern the scope. Slice 2 passed at `296391c0`.
 No tests, builds, lint, type checks, browsers or servers run on the shared host.
 All executions below use pushed revisions on the private Blaxel coordinator and
@@ -258,7 +259,7 @@ log is `.test-runs/slice-3-static/rose-slice3-retention-green.log`.
 | `test/repo/test-runner-provider.test.ts` | `2026-10-27T20-29-27-245Z-p35174-r098f4b0d3cd1cad7` |
 | `test/repo/blaxel-stale-owner-audit.test.ts` | `2026-10-27T20-29-39-395Z-p35271-r3dc4727db3aa7390` |
 
-## Final qualification and handoff
+## Initial qualification and handoff
 
 At `45202ee9`, `npm test -- local --surface experiment:blaxel-harness` on
 `tv-cleanup-coordinator-rose` passed on its first native attempt in 271.207 seconds:
@@ -309,3 +310,89 @@ bounds. The earlier shortened-lease expiry's precise timing remains unknown and
 is recorded above. No production behavior, default retry budget, browser version
 or shard count was changed. Primitive's unread warning remains recorded above;
 its CLI was not debugged further.
+
+## Slice review round 1 correction
+
+The [review](test-harness-resource-cleanup-slice-3-review-r1.md) found one blocker:
+the live driver and CLI required personal resource names despite the general
+dedicated-coordinator contract. The [response](test-harness-resource-cleanup-review-response.md#Slice 3 round 1: reusable qualification)
+records the correction and all three refinement dispositions. The caller now
+supplies coordinator and private-pool names through environment variables; both
+are required, with the existing label, provider and shard-owner checks preserved.
+Pool-derived sentinels and a neutral worker-local mode file remove the personal
+fixture dependency. The harness README documents invocation and destructive pool
+ownership. The lease/recovery protocol is unchanged.
+
+Read-only inventory at 21:03:58 UTC counted 144 DEPLOYED sandboxes, including the
+dedicated coordinator and neither private worker. At pushed `6d505597`, the canonical
+pool manager provisioned the two `rose-cleanup` workers. No shared pool was changed.
+
+All focused commands below ran on the private coordinator with
+`npm test -- blaxel --pool rose-cleanup --file <file>`, adding `--grep` only as
+shown. Unit and infrastructure retry budgets retained their defaults. Every run
+tree is copied under `.test-runs/` in this worktree.
+
+| Revision | Selection | Canonical run | Result |
+| --- | --- | --- | --- |
+| `6d505597` | `test/repo/test-runner-guardrails.test.ts --grep "configured Blaxel harness coordinator"` | `2026-10-27T21-04-23-673Z-p37437-r2770a6d409ac3de3` | intended red: real CLI returned 2 instead of 0 with non-personal fixture names; native assertion failed and infrastructure completed |
+| `7b0213bb` | `test/repo/test-runner-guardrails.test.ts --grep "Blaxel harness"` | `2026-10-27T21-06-11-968Z-p37987-r702e58cd23f76853` | both configuration and refusal cases passed |
+| `7b0213bb` | `test/repo/test-runner-provider.test.ts --grep "explicitly supplied recovery interval"` | `2026-10-27T21-06-43-017Z-p38102-rb266ce5fc5f4db0e` | explicit/default forwarding and all three 1200-second profile assertions passed |
+| `7b0213bb` | whole `test/repo/test-runner-guardrails.test.ts` | `2026-10-27T21-06-55-197Z-p38199-rf555298cb899a967` | 65 passed; one existing skipped GitHub-only case |
+| `7b0213bb` | whole `test/repo/test-runner-provider.test.ts` | `2026-10-27T21-07-24-246Z-p38301-rebd40cb7ccb5bc87` | 43 passed |
+
+All four green runs completed without failed tests, recovered retries, process
+leaks or infrastructure failures. `npm run lint` and `npm run type-check` then
+passed on the dedicated coordinator at the same revision. Combined remote logs
+are `.test-runs/slice-3-static/rose-slice3-r1-red.log` and
+`rose-slice3-r1-green.log`.
+
+The earlier Primitive warning remains unread as directed. This correction follows
+the existing placement contract and changes no lasting decision. Commit-hook
+scans again returned existing decisions with truncated coverage; they supplied no
+new actionable constraint and are not a complete conflict check. No reconciliation
+or further CLI debugging was attempted.
+
+### Repeated live qualification
+
+At pushed `7b0213bb`, the dedicated coordinator ran:
+
+```sh
+TV_BLAXEL_HARNESS_COORDINATOR=tv-cleanup-coordinator-rose \
+TV_BLAXEL_HARNESS_POOL=rose-cleanup \
+npm test -- local --surface experiment:blaxel-harness
+```
+
+Canonical run `2026-10-27T21-08-38-267Z-p38866-r679cddb899712621` passed on its
+first native attempt in 296.197 seconds, with zero failed or recovered driver
+tests, process leaks and infrastructure failures. The retained live attempt is
+`.test-runs/blaxel-live-Py7UqI/`; its identity records the configured coordinator,
+pool and exact revision, `completed.json` says passed, and `cleanup.json` records
+exit 0. The driver retained the default two native retries and two infrastructure
+retries. Only its two deliberate abandoned runs used the 60-second interval.
+
+| Scenario | Canonical child run | Result |
+| --- | --- | --- |
+| planned retrieval | `2026-10-27T21-09-11-096Z-p39023-r7c42878bb3edd7a5` | expected failed/recovered native fixtures; infrastructure completed |
+| held-capacity refusal | `2026-10-27T21-09-44-524Z-p39141-r01321059d8eb93e8` | expected incomplete refusal |
+| targeted reuse | `2026-10-27T21-10-33-789Z-p39277-r92cce732e13126b3` | expected failed/recovered native fixtures; infrastructure completed |
+| active coordinator killed | `2026-10-27T21-10-49-716Z-p39365-rda3ab840cf51883d` | expected incomplete run |
+| active recovery | `2026-10-27T21-11-53-508Z-p39482-r6e6a876c57f088ee` | expected failed/recovered native fixtures; infrastructure completed |
+| quiet coordinator killed | `2026-10-27T21-12-07-353Z-p39581-re263e8075af61eb2` | expected incomplete run |
+| quiet recovery | `2026-10-27T21-13-11-418Z-p39676-rfa6c95cd577a4d4e` | expected failed/recovered native fixtures; infrastructure completed |
+| absent-pool refusal | `2026-10-27T21-13-30-318Z-p39800-ra32edd1d26498fce` | expected incomplete refusal |
+
+The driver deleted the earlier private pool after its focused reports were retained,
+provisioned fresh workers, and repeated every live acceptance. Pool-derived residue
+was removed, unrelated sentinels and caches survived, and the neutral mode input
+exercised both recovery scenarios. Both private workers were deleted and confirmed
+absent at completion. The entire outer run, attempt directory and eight child run
+trees are retained locally; the combined log is
+`.test-runs/slice-3-static/rose-slice3-r1-live.log`.
+
+The source correction and proof/document updates are ready for independent
+re-review. The dedicated coordinator remains for the later integrated gate.
+No tests, builds or static checks ran on the shared host; no shared worker was
+changed. Integrated review, target reconciliation, full verification and PR
+readiness remain pending. The availability tradeoff on renewal errors and optional
+checkout simplification remain as assessed in the review response, without claims
+that those refinements were implemented.
