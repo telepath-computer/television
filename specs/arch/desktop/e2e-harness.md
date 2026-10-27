@@ -85,6 +85,8 @@ npm test -- local --file packages/desktop/test/e2e/smoke.test.ts
 npm test -- local --surface e2e:desktop
 ```
 
+The surface command follows the runner's [local guardrails](../test-runner/test-runner.md#^local-one-file): on marked hosts use `npm test -- blaxel --surface e2e:desktop` for Linux coverage, or the documented broad-local override under [testing-policy permissions](../testing-policy.md#verification-provider-and-completion) when the complete surface must run on macOS.
+
 On macOS, `packages/desktop/test/e2e/user-data-identity.test.ts` uses Electron's real default `~/Library/Application Support/Television` application-data directory; expect the run to write Chromium profile files there.
 
 On a fresh Linux host, install Playwright's Chromium browser and shared system dependencies once with `npx playwright install --with-deps chromium`. The Electron preflight names a missing display or sandbox prerequisite; global setup owns Electron runtime preparation and desktop bundle builds, so neither is a manual prerequisite.

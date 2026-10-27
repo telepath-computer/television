@@ -109,7 +109,7 @@ brew install blaxel
 bl login
 ```
 
-The GitHub token the workers use is obtained from the corporate 1Password item **“Television Blaxel sharded test runner github PAT”**. The token supplied for a run must be able to read that run's repository, so a token shared by checkouts of several repositories needs access to each of them. Make it available either by exporting `BLAXEL_TV_GH_TOKEN` (which works across all worktrees) or by writing it to a `.blaxel-gh-token` file in the repository root; the runner's read precedence is in [#GitHub token](#GitHub token). Creating `~/.tvdev-use-blaxel` opts into Blaxel-preferred broad verification ([test-runner.md](./test-runner.md)).
+The GitHub token the workers use is obtained from the corporate 1Password item **“Television Blaxel sharded test runner github PAT”**. The token supplied for a run must be able to read that run's repository, so a token shared by checkouts of several repositories needs access to each of them. Make it available either by exporting `BLAXEL_TV_GH_TOKEN` (which works across all worktrees) or by writing it to a `.blaxel-gh-token` file in the repository root; the runner's read precedence is in [#GitHub token](#GitHub token). Creating `~/.tvdev-use-blaxel` selects Blaxel for automatic verification and enables the [one-file local limit](./test-runner.md#^local-one-file).
 
 ### Pool provisioning
 
@@ -119,7 +119,7 @@ The canonical runner uses pool `poc`. Provision it by deleting the complete pool
 
 The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs neither. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface). The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification.
 
-## Testing
+## Testing guidance
 
 Under the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#integration-against-paid-services-or-complex-host-dependencies-is-important), a change that could affect the Blaxel coordinator's remote operations requires evidence from a live Blaxel run before it reaches main. One targeted shard run (`--suite target`) is sufficient. The run must call the real Blaxel API and communicate with the remote process through the real transport. It must exercise worker leasing, the lock protocol, and architecture validation. It must also exercise checkout, runtime and dependency setup, streaming logs, and result download. Recorded responses cannot replace this live evidence.
 

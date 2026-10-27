@@ -280,8 +280,8 @@ export function collectRunSurfaces(runDir, { fs: fsModule } = {}) {
 }
 
 /** Canonical retry facts: runner-level 2 and the default flaky budget. */
-export function canonicalRetryFacts({ retriesOption, env = process.env } = {}) {
-  return (retriesOption ?? "2") === "2" && (env.FLAKY_TEST_RETRIES ?? "5") === "5";
+export function canonicalRetryFacts({ options = {}, env = process.env } = {}) {
+  return !options["against-test-guidance-turn-flakes-into-failures-on-broad-runs"] && (options.retries ?? "2") === "2" && (env.FLAKY_TEST_RETRIES ?? "5") === "5";
 }
 
 /**

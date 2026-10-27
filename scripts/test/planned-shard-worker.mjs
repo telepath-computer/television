@@ -343,7 +343,7 @@ function taskFromSurface(surface, assignedFiles, { resultsDir, shardIndex, testR
     nativeResultPath,
     services: surface.services ?? [],
     preCommand: surface.preCommand ? { command: surface.preCommand[0], args: surface.preCommand.slice(1), cwd: process.cwd() } : null,
-    retryArgs: surface.kind === "unit" || testRetries === 0 ? [] : [surface.runner === "playwright" ? `--retries=${testRetries}` : `--retry=${testRetries}`],
+    retryArgs: [surface.runner === "playwright" ? `--retries=${surface.kind === "unit" ? 0 : testRetries}` : `--retry=${surface.kind === "unit" ? 0 : testRetries}`],
   };
   if (surface.command) return { ...base, command: surface.command[0], args: surface.command.slice(1), env: {} };
   if (surface.runner === "playwright") return { ...base, command: npx(), args: ["playwright", "test", "--config", path.relative(cwd, path.resolve(surface.config))], env: {} };

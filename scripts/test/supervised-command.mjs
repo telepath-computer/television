@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { createSurfaceSupervisor } from "./surface-supervisor.mjs";
 import { startSurfaceServices } from "./surface-services.mjs";
+import { runnerEnv } from "./runner-env.mjs";
 
 const { runId, surfaceIds, resultPath, preCommand, services, command, args } = parseArgs(process.argv.slice(2));
 const supervisor = createSurfaceSupervisor({ runId, surfaceIds });
@@ -30,7 +31,7 @@ try {
     }
   }
   if (!executionFailure) {
-    commandResult = await supervisor.run(command, args, { cwd: process.cwd(), env: serviceScope?.env ?? process.env, stdio: "inherit" });
+    commandResult = await supervisor.run(command, args, { cwd: process.cwd(), env: runnerEnv(serviceScope?.env ?? process.env), stdio: "inherit" });
   }
 } finally {
   if (serviceScope) {

@@ -115,7 +115,7 @@ The command fetches the namespace explicitly (custom namespaces are not fetched 
 
 Attestations are pure optimization state and are always safe to delete (the cost of over-pruning is one redundant test run). Growth is naturally bounded at one ref per unique validated tree per version; age-based pruning bounds the live namespace and dead-version sweeps empty retired ones.
 
-## Testing
+## Testing guidance
 
 Under the testing policy's [seam-test rule](../testing-policy.md#^shape-seam), the repository's tests of the attestation writer and prune command use real Git. They create objects, fetch and push refs, collide with an existing ref, and delete refs. They do not replace any part of Git. The repository's tests inspect the workflow file. They provide evidence about its contents, not about a live GitHub Actions run.
 

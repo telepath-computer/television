@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import { defineConfig, devices } from "@playwright/test";
 
 const BASE_URL = requiredURL("TV_VIEW_MARKDOWN_E2E_URL");

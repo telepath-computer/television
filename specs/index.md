@@ -10,9 +10,9 @@ Generated from the first-line description of every spec by `scripts/specs-index.
 - `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
 - `spec-ui.md` (82 lines) — *How visual design is specified and held authoritative: a spec per surface whose reference frames are rendered truth, staged for judgment in the workshop ([staging.md](staging.md)), and enforced by automated conformance.*
-- `spec-workflow.md` (264 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
+- `spec-workflow.md` (268 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
 - `staging.md` (42 lines) — *The staging workshop: where spec renders are staged and judged — the frameset viewer, the frames tree, and its conventions.*
-- `terms.md` (200 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
+- `terms.md` (201 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
   - `artifacts.md` (135 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
@@ -40,7 +40,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
   - `licensing.md` (294 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and skill outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
   - `making-skills.md` (30 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
-  - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+  - `testing-policy.md` (244 lines) — *How Television is tested: test authoring and coverage, focused iteration, verification, and agent permissions.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
     - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
@@ -59,7 +59,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `artifact-partitions.md` (75 lines) — *Desktop artifact partitions: which Electron session each artifact webview uses, never the window's, how the served interface and the main process agree on it, the record of each server's partitions, and the reaper that deletes the partitions of deleted artifacts.*
     - `connect-flow.md` (50 lines) — *The desktop main-process connection flow: the local page, connection entry from a link, saved connections and their reconnection, Disconnect from Server, server-page loading and recovery, and the local-only IPC bridge.*
     - `distribution.md` (100 lines) — *The ToDesktop build of the desktop app: the private workspace, the ToDesktop configuration and build target, the upload directory, the build script, candidate and test builds, desktop releases, and the download link.*
-    - `e2e-harness.md` (101 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
+    - `e2e-harness.md` (103 lines) — *The Electron end-to-end harness: preparing the exact runtime, planning its Linux environment, handing a validated executable to Playwright, launching the package, and proving real-Electron seams.*
     - `index.md` (65 lines) — *The desktop architecture root: server connection, appearance, the ToDesktop build, the app's updates, the Electron runtime for development and tests, the test harness, and main-process identity.*
     - `runtime.md` (86 lines) — *The Electron runtime for development runs and tests: its exact version and declarations, installed-file validity on development and test hosts, how those hosts obtain it, and the recurring major-upgrade procedure.*
     - `updates.md` (47 lines) — *Desktop updates: how the main process starts ToDesktop's update runtime, records a downloaded update, tells the served interface about it, and restarts the app to install it.*
@@ -97,7 +97,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `reporting.md` (411 lines) — *The run directory, normalized reports, timing events, and CI run artifacts every test run produces.*
     - `sharded-execution.md` (341 lines) — *The shared remote execution model: deterministic duration-aware plans, per-worker execution, provider reports, retries, and normalization.*
     - `test-registry.md` (181 lines) — *The test registry: how `test.config.mjs` declares the surfaces, suites, and execution groups the test runner selects, owns files against, and validates.*
-    - `test-runner.md` (261 lines) — *The canonical `npm test` and `npm run verify` command surface: how a caller selects tests, picks where they run, and runs them, with the guardrails that keep broad runs honest.*
+    - `test-runner.md` (310 lines) — *The canonical `npm test` and `npm run verify` command surface: selection, providers, retries, and local guardrails for shared-host health and fast feedback.*
   - **themes/**
     - `authoring.md` (204 lines) — *Theme-authoring guidance: the self-contained theming document bundled inside the `television` skill, the authoritative UI material it carries, and the workflow it gives an agent.*
     - `bundled-installation.md` (77 lines) — *Bundled theme installation: validated package assets, CLI path resolution, minimum-version installation and replacement with backup copies, and the one-time default-theme selection.*
