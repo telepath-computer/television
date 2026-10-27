@@ -83,10 +83,10 @@ export function readLinuxResourceProbe(name, options = {}) {
     return stats.bavail * stats.bsize;
   }
   if (name === "kernelOOM") {
-    // util-linux accepts fractional epoch seconds, not ISO's trailing Z.
-    // Epoch bounds also avoid interpreting UTC observations in local time.
-    const epoch = (value) => `@${(Date.parse(value) / 1000).toFixed(3)}`;
-    const result = spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", epoch(options.since), "--until", epoch(options.until)], { encoding: "utf8", timeout: 2000, maxBuffer: 128 * 1024 });
+    // Calendar bounds work with the worker's util-linux/libc time parser;
+    // explicit UTC prevents local-time interpretation of our ISO observations.
+    const calendar = (value) => new Date(value).toISOString().slice(0, -1).replace("T", " ");
+    const result = spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", calendar(options.since), "--until", calendar(options.until)], { encoding: "utf8", env: { ...process.env, TZ: "UTC", LC_ALL: "C" }, timeout: 2000, maxBuffer: 128 * 1024 });
     const truncated = result.error?.code === "ENOBUFS";
     if (!truncated && (result.error || result.status !== 0)) {
       const permissionCode = /operation not permitted/i.test(result.stderr ?? "") ? "EPERM" : /permission denied/i.test(result.stderr ?? "") ? "EACCES" : "unavailable";

@@ -38,8 +38,7 @@ for (const entry of ["planned", "targeted"] as const) {
       if (record.kernel.status === "unavailable") {
         // Expected host limitations stay unknown; malformed reader invocations
         // must not masquerade as a successful probe of this installed tool.
-        const debug = record.kernel.reason === "unavailable" ? spawnSync("dmesg", ["--kernel", "--time-format", "iso", "--since", `@${Date.parse(record.start.observedAt) / 1000}`, "--until", `@${Date.parse(record.end.observedAt) / 1000}`], { encoding: "utf8", timeout: 2000, maxBuffer: 128 * 1024 }).stderr : "";
-        expect(["EPERM", "EACCES", "ENOENT", "ENOTSUP", "ETIMEDOUT", "ENOBUFS"], debug).toContain(record.kernel.reason);
+        expect(["EPERM", "EACCES", "ENOENT", "ENOTSUP", "ETIMEDOUT", "ENOBUFS"]).toContain(record.kernel.reason);
       }
       const resultRecord = entry === "planned" ? read(path.join(fixture.dir, "results/shard-1.json")).tasks[0] : read(path.join(fixture.dir, "results/lifecycle.json"));
       expect(resultRecord.resourceDiagnosticsPaths).toHaveLength(1);
