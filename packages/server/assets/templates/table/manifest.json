@@ -1,6 +1,6 @@
 {
   "name": "Table",
-  "description": "Browse, search and sort a list of records.",
+  "description": "An editable table to fill by hand or with an agent.",
   "version": "1.0.0",
   "icons": [
     {
@@ -11,10 +11,14 @@
   "dataSchema": {
     "type": "object",
     "required": [
+      "columns",
       "rows"
     ],
     "properties": {
-      "rows": {
+      "showHeader": {
+        "type": "boolean"
+      },
+      "columns": {
         "type": "object",
         "additionalProperties": {
           "type": "object",
@@ -24,6 +28,34 @@
           "properties": {
             "order": {
               "type": "number"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "rows": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "order",
+            "cells"
+          ],
+          "properties": {
+            "order": {
+              "type": "number"
+            },
+            "cells": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
             }
           }
         }

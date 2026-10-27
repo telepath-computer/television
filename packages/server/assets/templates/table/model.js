@@ -1,75 +1,318 @@
-/** Whether a value is an ordinary object rather than a list or null. */
+/* Pure store, display, ordering and write-planning rules for the Table page. */
+
+const MINIMUM_AXIS_SIZE = 4;
+
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-/** Validates the complete root without changing it. */
-export function isTableData(value) {
-  return isObject(value) && isObject(value.rows)
-    && Object.values(value.rows).every(row => isObject(row) && Number.isFinite(row.order));
+function isDisplayedEntry(value) {
+  return isObject(value) && Number.isFinite(value.order);
 }
 
-/** Rows in stored order, each with its stable key and visible cells. */
-export function orderedRows(value) {
-  if (!isTableData(value)) return undefined;
-  return Object.entries(value.rows)
-    .map(([key, { order, ...cells }]) => ({ key, order, cells }))
-    .sort((left, right) => left.order - right.order || left.key.localeCompare(right.key));
+/** Orders keys the same way JSON store child events do. */
+export function compareStoreKeys(left, right) {
+  const leftIndex = /^(?:0|[1-9][0-9]*)$/.test(left);
+  const rightIndex = /^(?:0|[1-9][0-9]*)$/.test(right);
+  if (leftIndex !== rightIndex) return leftIndex ? -1 : 1;
+  if (leftIndex && left.length !== right.length) return left.length - right.length;
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
-/** Reads only stored cells, never similarly named properties from Object.prototype. */
-export function cellValue(cells, key) {
-  return Object.hasOwn(cells, key) ? cells[key] : undefined;
+function orderedEntries(axis) {
+  return Object.entries(axis)
+    .filter(([, entry]) => isDisplayedEntry(entry))
+    .sort(([leftKey, left], [rightKey, right]) => left.order - right.order || compareStoreKeys(leftKey, rightKey));
 }
 
-/** Every cell key in first-seen order, with the presentation facts the page needs. */
-export function columnsOf(rows) {
-  const keys = [];
-  for (const row of rows) {
-    for (const key of Object.keys(row.cells)) if (!keys.includes(key)) keys.push(key);
-  }
-  return keys.map(key => {
-    const values = rows.map(row => cellValue(row.cells, key)).filter(value => value !== undefined && value !== null && value !== "");
-    return {
-      key,
-      numeric: values.length > 0 && values.every(value => typeof value === "number"),
-      long: values.some(value => typeof value === "string" && value.length > 40),
-    };
+function cellText(value) {
+  if (typeof value === "string") return value === "" ? null : value;
+  if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
+  if (typeof value === "boolean") return JSON.stringify(value);
+  return null;
+}
+
+/** Reads a store value into the tolerant display model, or returns null when the root is unreadable. */
+export function readTable(value) {
+  const root = value === undefined ? {} : value;
+  if (!isObject(root)) return null;
+  if (Object.hasOwn(root, "columns") && !isObject(root.columns)) return null;
+  if (Object.hasOwn(root, "rows") && !isObject(root.rows)) return null;
+
+  const columnAxis = root.columns ?? {};
+  const rowAxis = root.rows ?? {};
+  const columns = orderedEntries(columnAxis).map(([key, column]) => ({
+    key,
+    order: column.order,
+    ...(typeof column.name === "string" ? { name: column.name } : {}),
+  }));
+  const displayedColumnKeys = new Set(columns.map(column => column.key));
+  const rows = orderedEntries(rowAxis).map(([key, row]) => {
+    const sourceCells = isObject(row.cells) ? row.cells : {};
+    const cells = {};
+    for (const [columnKey, value] of Object.entries(sourceCells)) {
+      if (!displayedColumnKeys.has(columnKey)) continue;
+      const text = cellText(value);
+      if (text !== null) cells[columnKey] = text;
+    }
+    return { key, order: row.order, cells };
   });
+  return { columns, rows, showHeader: root.showHeader === true };
 }
 
-export function textOf(value) {
-  return typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
+/** Adds stable stored identities and enough count-based drawn identities to reach four positions. */
+export function displayAxis(entries) {
+  const stored = entries.map(entry => ({ ...entry, kind: "stored", id: `stored:${entry.key}` }));
+  const count = stored.length;
+  const drawn = Array.from({ length: Math.max(0, MINIMUM_AXIS_SIZE - count) }, (_, offset) => {
+    const index = count + offset;
+    return { kind: "drawn", id: `drawn:${count}:${index}`, index };
+  });
+  return [...stored, ...drawn];
 }
 
-function empty(value) {
-  return value === undefined || value === null || value === "";
+/** Reports whether two displayed items are the same still-current drawn position. */
+export function isCurrentDrawnPosition(previous, current) {
+  return previous?.kind === "drawn" && current?.kind === "drawn" && previous.id === current.id;
 }
 
-/** The current Table comparison: numeric pairs as numbers, everything else as natural text. */
-export function compareValues(left, right) {
-  if (empty(left) || empty(right)) return Number(empty(left)) - Number(empty(right));
-  if (typeof left === "number" && typeof right === "number") return left - right;
-  return textOf(left).localeCompare(textOf(right), undefined, { numeric: true, sensitivity: "base" });
+function selectedBounds(entries, selectedKeys) {
+  if (selectedKeys.length === 0) return entries.length === 0 ? { start: 0, end: -1 } : null;
+  const positions = selectedKeys.map(key => entries.findIndex(([entryKey]) => entryKey === key));
+  if (positions.some(position => position < 0) || new Set(positions).size !== positions.length) return null;
+  positions.sort((left, right) => left - right);
+  if (positions.at(-1) - positions[0] + 1 !== positions.length) return null;
+  return { start: positions[0], end: positions.at(-1) };
 }
 
-/** Applies page-only search and column sorting without changing the stored rows. */
-export function visibleRows(rows, state) {
-  let visible = rows.map(({ key, cells }) => ({ key, row: cells }));
-  const query = state.filter.trim().toLowerCase();
-  if (query) {
-    visible = visible.filter(({ row }) => Object.values(row)
-      .some(value => value != null && textOf(value).toLowerCase().includes(query)));
+function strictOrder(before, after) {
+  if (before === undefined && after === undefined) return 0;
+  const sum = before + after;
+  const candidate = before === undefined ? after - 1
+    : after === undefined ? before + 1
+      : Number.isFinite(sum) ? sum / 2 : before / 2 + after / 2;
+  return Number.isFinite(candidate)
+    && (before === undefined || candidate > before)
+    && (after === undefined || candidate < after) ? candidate : null;
+}
+
+/** Chooses a strict order beside a contiguous stored selection, or null when the axis needs renumbering. */
+export function insertionOrder(entries, selectedKeys, side) {
+  const ordered = [...entries].sort((left, right) => left.order - right.order || compareStoreKeys(left.key, right.key));
+  const pairs = ordered.map(entry => [entry.key, entry]);
+  const bounds = selectedBounds(pairs, selectedKeys);
+  if (bounds === null) return undefined;
+  const index = side === "before" ? bounds.start : bounds.end + 1;
+  return strictOrder(ordered[index - 1]?.order, ordered[index]?.order);
+}
+
+/** Chooses consecutive strict orders after an axis, or null when its end must be renumbered. */
+export function ordersAtEnd(entries, count) {
+  if (count === 0) return [];
+  const ordered = [...entries].sort((left, right) => left.order - right.order || compareStoreKeys(left.key, right.key));
+  const result = [];
+  let previous = ordered.at(-1)?.order;
+  for (let index = 0; index < count; index += 1) {
+    const next = strictOrder(previous, undefined);
+    if (next === null) return null;
+    result.push(next);
+    previous = next;
   }
-  if (state.sort) {
-    const { column, direction } = state.sort;
-    const sign = direction === "descending" ? -1 : 1;
-    visible = [...visible].sort((left, right) => {
-      const leftValue = cellValue(left.row, column);
-      const rightValue = cellValue(right.row, column);
-      const compared = compareValues(leftValue, rightValue);
-      return empty(leftValue) || empty(rightValue) ? compared : sign * compared;
-    });
+  return result;
+}
+
+/** Creates a retry-safe callback that inserts or appends entries while renumbering one current axis. */
+export function createAxisRenumberUpdate(request) {
+  return (current) => {
+    if (!isObject(current)) return undefined;
+    if (request.entries.some(entry => Object.hasOwn(current, entry.key))) return undefined;
+    const displayed = orderedEntries(current);
+    let insertionIndex = displayed.length;
+    if (request.mode === "insert") {
+      const bounds = selectedBounds(displayed, request.selectedKeys);
+      if (bounds === null) return undefined;
+      insertionIndex = request.side === "before" ? bounds.start : bounds.end + 1;
+    }
+
+    const sequence = [...displayed];
+    sequence.splice(insertionIndex, 0, ...request.entries.map(entry => [entry.key, entry.value]));
+    const result = { ...current };
+    for (const [order, [key, entry]] of sequence.entries()) result[key] = { ...entry, order };
+    return result;
+  };
+}
+
+function planningState(value) {
+  const model = readTable(value);
+  if (model === null) return null;
+  const root = value === undefined ? {} : value;
+  return {
+    model,
+    columns: isObject(root.columns) ? root.columns : {},
+    rows: isObject(root.rows) ? root.rows : {},
+  };
+}
+
+function set(path, value) {
+  return { kind: "set", path, value };
+}
+
+function remove(path) {
+  return { kind: "remove", path };
+}
+
+function newAxisEntries(axis, entries, keys, additions = {}) {
+  const orders = ordersAtEnd(entries, keys.length);
+  if (orders === null || new Set(keys).size !== keys.length) return null;
+  return keys.map((key, index) => ({
+    key,
+    order: orders[index],
+    value: axis === "rows" ? { order: orders[index], cells: {}, ...additions[key] }
+      : { order: orders[index], ...additions[key] },
+  }));
+}
+
+function neededKeys(supplied, count) {
+  if (count === 0) return [];
+  return Array.isArray(supplied) && supplied.length >= count ? supplied.slice(0, count) : null;
+}
+
+/** Plans a body-cell commit; null text means that editing was cancelled. */
+export function planCellCommit(value, target, openedText, text, keys) {
+  if (text === null || text === openedText) return [];
+  const state = planningState(value);
+  if (state === null) return null;
+  const columns = displayAxis(state.model.columns);
+  const rows = displayAxis(state.model.rows);
+  const column = columns[target.columnIndex];
+  const row = rows[target.rowIndex];
+  if (column === undefined || row === undefined) return null;
+  const empty = text.trim() === "";
+  if (empty) {
+    return column.kind === "stored" && row.kind === "stored"
+      ? [remove(["rows", row.key, "cells", column.key])] : [];
   }
-  return visible;
+
+  const columnCount = column.kind === "drawn" ? target.columnIndex - state.model.columns.length + 1 : 0;
+  const rowCount = row.kind === "drawn" ? target.rowIndex - state.model.rows.length + 1 : 0;
+  const columnKeys = neededKeys(keys.columns, columnCount);
+  const rowKeys = neededKeys(keys.rows, rowCount);
+  if (columnKeys === null || rowKeys === null) return null;
+  const addedColumns = newAxisEntries("columns", state.model.columns, columnKeys);
+  const addedRows = newAxisEntries("rows", state.model.rows, rowKeys);
+  if (addedColumns === null || addedRows === null) return null;
+  const columnKey = column.kind === "stored" ? column.key : addedColumns.at(-1).key;
+  const rowKey = row.kind === "stored" ? row.key : addedRows.at(-1).key;
+  const operations = addedColumns.map(entry => set(["columns", entry.key], entry.value));
+  for (const entry of addedRows) {
+    const cells = entry.key === rowKey ? { [columnKey]: text } : {};
+    operations.push(set(["rows", entry.key], { ...entry.value, cells }));
+  }
+  if (row.kind === "stored") operations.push(set(["rows", rowKey, "cells", columnKey], text));
+  return operations;
+}
+
+/** Plans a header-name commit; null text means that editing was cancelled. */
+export function planHeaderCommit(value, columnIndex, openedText, text, keys) {
+  if (text === null || text === openedText) return [];
+  const state = planningState(value);
+  if (state === null) return null;
+  const column = displayAxis(state.model.columns)[columnIndex];
+  if (column === undefined) return null;
+  const empty = text.trim() === "";
+  if (empty) return column.kind === "stored" ? [remove(["columns", column.key, "name"])] : [];
+
+  if (column.kind === "stored") return [set(["columns", column.key, "name"], text)];
+  const count = columnIndex - state.model.columns.length + 1;
+  const columnKeys = neededKeys(keys.columns, count);
+  if (columnKeys === null) return null;
+  const targetKey = columnKeys.at(-1);
+  const entries = newAxisEntries("columns", state.model.columns, columnKeys, { [targetKey]: { name: text } });
+  return entries?.map(entry => set(["columns", entry.key], entry.value)) ?? null;
+}
+
+/** Plans showing or hiding the header row. */
+export function planSetHeader(showHeader) {
+  return [set(["showHeader"], showHeader)];
+}
+
+/** Plans adding one row or column after storing every drawn position on that axis. */
+export function planAdd(value, axis, keys) {
+  const state = planningState(value);
+  if (state === null) return null;
+  const entries = state.model[axis];
+  const count = Math.max(0, MINIMUM_AXIS_SIZE - entries.length) + 1;
+  const selectedKeys = neededKeys(keys, count);
+  if (selectedKeys === null) return null;
+  const added = newAxisEntries(axis, entries, selectedKeys);
+  return added?.map(entry => set([axis, entry.key], entry.value)) ?? null;
+}
+
+/** Plans inserting one row or column and only the drawn positions before it. */
+export function planInsert(value, axis, selection, side, keys) {
+  const state = planningState(value);
+  if (state === null) return null;
+  const entries = state.model[axis];
+  const displayed = displayAxis(entries);
+  if (selection.start < 0 || selection.end < selection.start || selection.end >= displayed.length) return null;
+  const insertionIndex = side === "before" ? selection.start : selection.end + 1;
+  const drawnBefore = Math.max(0, insertionIndex - entries.length);
+  const selectedKeys = neededKeys(keys, drawnBefore + 1);
+  if (selectedKeys === null) return null;
+  const drawnKeys = selectedKeys.slice(0, drawnBefore);
+  const newKey = selectedKeys.at(-1);
+
+  if (insertionIndex >= entries.length) {
+    const added = newAxisEntries(axis, entries, [...drawnKeys, newKey]);
+    return added?.map(entry => set([axis, entry.key], entry.value)) ?? null;
+  }
+
+  const storedSelectionKeys = displayed.slice(selection.start, selection.end + 1)
+    .filter(item => item.kind === "stored").map(item => item.key);
+  const order = insertionOrder(entries, storedSelectionKeys, side);
+  if (order === null || order === undefined) return null;
+  const valueForEntry = axis === "rows" ? { order, cells: {} } : { order };
+  return [set([axis, newKey], valueForEntry)];
+}
+
+/** Plans removing the stored entries in a displayed row or column range. */
+export function planDelete(value, axis, selection) {
+  const state = planningState(value);
+  if (state === null) return null;
+  return displayAxis(state.model[axis]).slice(selection.start, selection.end + 1)
+    .filter(item => item.kind === "stored")
+    .map(item => remove([axis, item.key]));
+}
+
+function nonEmptyCell(state, rowKey, columnKey) {
+  const cells = state.rows[rowKey]?.cells;
+  return isObject(cells) && Object.hasOwn(cells, columnKey) && cellText(cells[columnKey]) !== null;
+}
+
+/** Plans clearing the selected name or non-empty body cells without removing structure. */
+export function planClear(value, selection) {
+  const state = planningState(value);
+  if (state === null) return null;
+  const rows = displayAxis(state.model.rows);
+  const columns = displayAxis(state.model.columns);
+  if (selection.kind === "header") {
+    const column = columns[selection.columnIndex];
+    return column?.kind === "stored" && typeof state.columns[column.key]?.name === "string"
+      ? [remove(["columns", column.key, "name"])] : [];
+  }
+
+  const selectedRows = selection.kind === "cell" ? rows.slice(selection.rowIndex, selection.rowIndex + 1)
+    : selection.kind === "rows" ? rows.slice(selection.start, selection.end + 1) : rows;
+  const selectedColumns = selection.kind === "cell" ? columns.slice(selection.columnIndex, selection.columnIndex + 1)
+    : selection.kind === "columns" ? columns.slice(selection.start, selection.end + 1) : columns;
+  const operations = [];
+  for (const row of selectedRows) {
+    if (row.kind !== "stored") continue;
+    for (const column of selectedColumns) {
+      if (column.kind === "stored" && nonEmptyCell(state, row.key, column.key)) {
+        operations.push(remove(["rows", row.key, "cells", column.key]));
+      }
+    }
+  }
+  return operations;
 }

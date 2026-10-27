@@ -28,7 +28,7 @@ describe("bundled Checklist package", () => {
       name: "Sticky note", description: "A yellow note to type into; an agent can write on it too.", version: "1.0.0",
     });
     expect(JSON.parse(readFileSync(path.join(sourceRoot, "table/manifest.json"), "utf8"))).toMatchObject({
-      name: "Table", description: "Browse, search and sort a list of records.", version: "1.0.0",
+      name: "Table", description: "An editable table to fill by hand or with an agent.", version: "1.0.0",
     });
   });
 
