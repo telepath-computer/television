@@ -77,9 +77,18 @@ test("only known real directories are removed, with allocated-byte evidence and 
 });
 
 test("mount boundaries and incomplete removal remain reported failures without reclaimed counts", async () => {
-  for (const failure of ["mount", "remove"]) {
+  for (const failure of ["mount", "identity", "remove"]) {
     const f = fixture(); const dir = path.join(f.tmpRoot, "television-web-bundle-old"); mkdirSync(dir);
-    const probes = failure === "mount" ? { lstat: (file: string) => { const stat = lstatSync(file); if (file === dir) Object.defineProperty(stat, "dev", { value: stat.dev + 1 }); return stat; } } : { remove: () => { throw Object.assign(Error("incomplete"), { code: "EIO" }); } };
+    let directoryReads = 0;
+    const probes = failure !== "remove" ? { lstat: (file: string) => {
+      const stat = lstatSync(file);
+      if (file === dir) {
+        directoryReads++;
+        if (failure === "mount") Object.defineProperty(stat, "dev", { value: stat.dev + 1 });
+        if (failure === "identity" && directoryReads === 3) Object.defineProperty(stat, "ino", { value: stat.ino + 1 });
+      }
+      return stat;
+    } } : { remove: () => { throw Object.assign(Error("incomplete"), { code: "EIO" }); } };
     const result = await cleanWorkerTemporaryDirectories({ tmpRoot: f.tmpRoot, current: null }, probes);
     expect(result.ok).toBe(false); expect(result.removed).toEqual({}); expect(result.errors).toHaveLength(1); expect(existsSync(dir)).toBe(true);
   }

@@ -261,6 +261,8 @@ export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", curren
       const stat = lstat(file);
       if (!stat.isDirectory() || stat.isSymbolicLink()) { report.skips.push({ prefix, reason: "not a real directory" }); continue; }
       const bytes = allocated(file, lstat(tmpRoot).dev);
+      const currentIdentity = lstat(file);
+      if (!currentIdentity.isDirectory() || currentIdentity.isSymbolicLink() || currentIdentity.dev !== stat.dev || currentIdentity.ino !== stat.ino) throw new Error("directory identity changed before removal");
       remove(file);
       const counts = report.removed[prefix] ??= { directories: 0, allocatedBytes: 0 };
       counts.directories++; counts.allocatedBytes += bytes;

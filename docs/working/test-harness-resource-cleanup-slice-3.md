@@ -71,3 +71,16 @@ and by confirmed teardown after a killed shell. The correction adds that fixture
 boundary without changing repository selection or checkout behavior. The new
 leases remain held until their ordinary deadlines (about 19:31 UTC); no lock was
 stolen or deadline edited.
+
+
+Read-only inventory at 19:29:39 UTC counted 146 sandboxes, all reported DEPLOYED,
+including the two `rose-cleanup` workers and `tv-cleanup-coordinator-rose` outside
+the pool. This does not establish active-work concurrency or an account-specific
+quota; it does establish that the historical 75 figure is not a sandbox-count
+limit here. Fresh live qualification replaces two owned workers after deletion,
+without increasing the private worker count or touching shared workers.
+
+`c7482876` passed lint and type checking on the dedicated coordinator. Its next
+lease run deliberately supplies `--lock-ttl-seconds 60` to qualify recovery from
+the retained failed attempt; native and infrastructure retry budgets stay at their
+defaults. The following contract run uses the ordinary recovery default.

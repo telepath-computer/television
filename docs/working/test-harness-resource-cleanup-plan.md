@@ -1,6 +1,6 @@
 # Test-harness resource cleanup: implementation plan
 
-Owner: rose. Branch: `thopter/test-harness-resource-cleanup`. Draft PR #12. Derived from the converged [proposal](test-harness-resource-cleanup-proposal.md), [spec checkpoint](test-harness-resource-cleanup-review-response.md#Spec round 1: convergence and proof derivation), and [proof round 2](test-harness-resource-cleanup-proof-review-r2.md) at `3fa15d47`. Status: [plan round 2](test-harness-resource-cleanup-plan-review-r2.md) passed at `04a6b275`; [slice 1 has converged](test-harness-resource-cleanup-slice-1-review-r1.md), and [slice 2 is implemented](test-harness-resource-cleanup-slice-2.md) for independent review. The supervisor arranges reviews. Josh reviews the spec deltas at PR time.
+Owner: rose. Branch: `thopter/test-harness-resource-cleanup`. Draft PR #12. Derived from the converged [proposal](test-harness-resource-cleanup-proposal.md), [spec checkpoint](test-harness-resource-cleanup-review-response.md#Spec round 1: convergence and proof derivation), and [proof round 2](test-harness-resource-cleanup-proof-review-r2.md) at `3fa15d47`. Status: [plan round 2](test-harness-resource-cleanup-plan-review-r2.md) passed at `04a6b275`; [slice 1 has converged](test-harness-resource-cleanup-slice-1-review-r1.md), and [slice 2 has converged](test-harness-resource-cleanup-slice-2-review-r1.md). [Slice 3](test-harness-resource-cleanup-slice-3.md) is in implementation and private qualification. The supervisor arranges reviews. Josh reviews the spec deltas at PR time.
 
 ## Slice judgment
 
