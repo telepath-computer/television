@@ -97,7 +97,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
-    - `table.md` (106 lines) — *The bundled Table artifact template: its store contract, packaged page, and adapting-agent guidance.*
+    - `table.md` (110 lines) — *The bundled Table artifact template: its store contract, packaged page, and adapting-agent guidance.*
   - **test-runner/**
     - `attestation.md` (132 lines) — *Tree-hash test attestation: recording that an exact tree passed full validation as a bare `refs/testpass/<version>/<tree-hash>` ref, and letting validation-bearing CI runs skip their heavy test jobs — never their cheap ones — when the identical tree is already attested under the current version.*
     - `blaxel-testshards.md` (133 lines) — *The Blaxel shard coordinator: leasing a persistent sandbox pool, selecting the repository workers fetch, sourcing a GitHub token, preparing and locking workers, running shards with dependency-hash caching, and classifying Blaxel shard outcomes.*
@@ -187,7 +187,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `calendar.mdx` (169 lines) — *UI spec: the bundled Calendar template page, with the month above one to seven days of events laid out like Apple Calendar.*
     - `checklist.mdx` (133 lines) — *UI spec: the bundled Checklist template page, with a title, list items and an add field in one centred column.*
     - `sticky-note.mdx` (86 lines) — *UI spec: the bundled Sticky note page, for text that a person and an agent can edit together.*
-    - `table.mdx` (170 lines) — *UI spec: the bundled Table template page, an editable grid that a person and an agent can fill together.*
+    - `table.mdx` (172 lines) — *UI spec: the bundled Table template page, an editable grid that a person and an agent can fill together.*
   - **themes/**
     - `index.md` (9 lines) — *UI spec: the bundled theme inventory and the design source for each theme ID.*
     - **aquarium/**

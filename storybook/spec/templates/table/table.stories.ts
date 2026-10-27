@@ -150,7 +150,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, showHeader, s
       <section class="table-unreadable" role="alert">
         <span class="table-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
         <h1 class="table-unreadable-title">This table can't be shown</h1>
-        <p class="table-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+        <p class="table-unreadable-text">Television can't read the saved table data. Ask your agent to check the data and access.</p>
       </section>
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : ""}</div>
     </main>`;
@@ -266,7 +266,7 @@ const beginEditing = ({ canvasElement }: Play) => {
   text.replaceWith(input);
   cell.dataset.editing = "true";
   input.focus();
-  input.select();
+  input.setSelectionRange(input.value.length, input.value.length);
 };
 
 const openMenu = async ({ canvasElement }: Play) => {
