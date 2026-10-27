@@ -60,14 +60,22 @@ function assertDiagnostics(runDir: string, expectedRecovery = false) {
   const sidecars = [...new Set<string>(normalized.surfaces.flatMap((surface: any) => surface.resourceDiagnosticsPaths ?? []))];
   expect(sidecars.length).toBeGreaterThan(0);
   const records = sidecars.map(file => readJson(path.resolve(runDir, file)));
-  for (const record of records) {
+  for (const [index, record] of records.entries()) {
+    expect(provider.shards.some((shard: any) => shard.shardIndex === record.identity.shardIndex)).toBe(true);
     expect(record.identity.runId).toBe(provider.runId);
     expect(record.identity.attemptId).toContain(provider.runId);
     if (record.kind === "surface") {
-      expect(record.start).toBeTruthy(); expect(record.end).toBeTruthy();
-      expect(["available", "unavailable"]).toContain(record.kernel?.status ?? "unavailable");
+      expect(record.identity.surfaceId).toBe("experiment:blaxel-harness-fixtures");
+      expect(record.start.status).toBe("observed"); expect(record.end.status).toBe("observed");
+      expect(record.nativeEvidence.status).toBe("complete");
+      for (const reference of [record.nativeEvidence.resultPath, record.nativeEvidence.attemptResultPath].filter(Boolean)) {
+        expect(existsSync(path.resolve(runDir, path.dirname(sidecars[index]), reference))).toBe(true);
+      }
+      if (record.nativeEvidence.failedAttempt) expect(["available", "unavailable"]).toContain(record.kernel?.status);
+      if (record.kernel?.status === "unavailable") expect(record.kernel.reason).toBeTruthy();
     }
   }
+  expect(records.some(record => record.nativeEvidence?.recovered === true)).toBe(true);
   if (expectedRecovery) {
     const receipts = records.filter(record => record.kind === "recovery");
     expect(receipts.length).toBe(2);
@@ -99,6 +107,7 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     const first = run(root, "planned", planned, gate);
     const waiting = await gates(gate);
     const before = await Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")));
+    const reportsBefore = await Promise.all(workers.map((worker, index) => worker.fs.read(`${resultsRoot}/shard-${before[index].shardIndex}.json`)));
     await until(async () => {
       const after = await Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")));
       return after.every((record, index) => record.lastRenewal > before[index].lastRenewal) ? after : null;
@@ -108,12 +117,15 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     expect(retained(await competed.directory()).summary.run.infraStatus).toBe("incomplete");
     expect(await poolCommand(root, "held-delete", "delete")).toBe(1);
     for (const worker of workers) expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).runId).toBe(before[0].runId);
+    const reportsAfter = await Promise.all(workers.map((worker, index) => worker.fs.read(`${resultsRoot}/shard-${before[index].shardIndex}.json`)));
+    expect(reportsAfter).toEqual(reportsBefore);
     writeFileSync(path.join(gate, "continue"), "continue");
     expect(await first.done).toBe(1); // intentional native fixture failure
     const firstDir = await first.directory(); const firstResult = retained(firstDir);
     expect(firstResult.summary.run.infraStatus).toBe("completed");
     expect(firstResult.summary.counts.testsFailed).toBe(1); expect(firstResult.summary.counts.testsFlakyRecovered).toBe(1);
     assertDiagnostics(firstDir);
+    const placements: any[] = [];
     for (const shard of firstResult.provider.shards) {
       expect(shard.remoteScript).toBe(`${shard.scratch}/worker.sh`);
       expect(shard.setupTimings.some((phase: any) => phase.name === "temporary-cleanup")).toBe(true);
@@ -123,8 +135,13 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       expect(cleanup.removed["television-web-bundle-"].directories).toBe(1);
       expect(cleanup.removed["stale-scratch"].directories).toBe(1);
       const placement = path.join(artifact, "temporary-placement.json");
-      if (existsSync(placement)) expect(readJson(placement).descriptors.some((entry: any) => entry.path.endsWith(" (deleted)"))).toBe(true);
+      if (existsSync(placement)) placements.push(readJson(placement));
     }
+    expect(placements).toHaveLength(1);
+    expect(placements[0].browserVersion).toMatch(/^\d+\./);
+    expect(placements[0].executable).toContain("/home/playwright/.cache/ms-playwright/");
+    expect(placements[0].nodeDir.startsWith(placements[0].tmp + "/")).toBe(true);
+    expect(placements[0].descriptors.some((entry: any) => entry.path.endsWith(" (deleted)"))).toBe(true);
     for (const worker of workers) {
       const ownGate = waiting.find(entry => entry.sandbox === worker.metadata.name)!;
       expect(await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).toBeNull();
@@ -136,6 +153,7 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     expect(await target.done).toBe(1);
     expect(retained(await target.directory()).summary.run.infraStatus).toBe("completed");
     assertDiagnostics(await target.directory());
+    expect(existsSync(path.join(await target.directory(), "provider/blaxel/artifacts/shard-1/temporary-placement.json"))).toBe(true);
 
     for (const scenario of ["active", "quiet"]) {
       for (const worker of workers) await worker.fs.write(modePath, JSON.stringify({mode: scenario === "active" ? "active" : "normal"}));
@@ -152,12 +170,21 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       process.kill(coordinatorPid, "SIGKILL"); // actual renewer, not just its shard
       expect(await abandoned.done).not.toBe(0);
       for (const worker of workers) await worker.fs.write(modePath, JSON.stringify({mode: "normal"}));
-      await until(async () => Date.now() > Math.max(...owners.map(record => record.recoverAfter)) + 500, 90_000);
+      owners = await until(async () => {
+        const current = await Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")));
+        return current.every((record, index) => record?.lockId === owners[index].lockId && Date.now() > record.recoverAfter + 500) ? current : null;
+      }, 120_000);
       const recovered = run(root, `${scenario}-recovered`, planned);
       expect(await recovered.done).toBe(1);
       const directory = await recovered.directory();
       expect(retained(directory).summary.run.infraStatus).toBe("completed");
       const records = assertDiagnostics(directory, true);
+      for (const receipt of records.filter(record => record.kind === "recovery")) {
+        const previous = owners.find(owner => owner.lockId === receipt.previous.lockId);
+        expect(previous).toBeTruthy();
+        expect(receipt.previous.lastRenewal).toBe(previous.lastRenewal);
+        expect(receipt.previous.recoverAfter).toBe(previous.recoverAfter);
+      }
       if (scenario === "active") expect(records.filter(record => record.kind === "recovery").every(record => record.processes.length > 0)).toBe(true);
       writeFileSync(path.join(root, `${scenario}-recovery-evidence.json`), JSON.stringify({owners, recoveredRun: directory}));
     }

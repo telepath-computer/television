@@ -141,6 +141,7 @@ async function runStaleOwnerAudit() {
   const sandboxes = rotatePool(await listPoolSandboxes(), `${runId}:stale-owner-audit`, 1);
   if (sandboxes.length === 0) fail(`No deployed x64 Blaxel worker is available in pool ${pool}.`);
   const lease = await acquireAny(sandboxes, { shardIndex: 1, slot: 0, requestedWorkers: 1, verifyArchitecture: false });
+  if (shuttingDown) await shutdownPromise;
   if (!lease) fail(`No available Blaxel worker in pool ${pool} for the read-only stale-owner audit.`);
 
   const { command, args } = buildLinuxStaleOwnerAuditInvocation();
@@ -364,12 +365,13 @@ async function acquireWorker(sandboxes, { shardIndex, slot, requestedWorkers, ve
       renew: () => leaseOperation(lease, "renew"),
       onLost: (error) => { lease.lost = error; console.error(`Lease renewal lost on ${sandbox.metadata.name}: ${error.message}`); },
     });
-    if (verifyArchitecture && !(await verifySandboxArchitecture(sandbox))) {
-      await stopAndReleaseLease(lease, { killProcess: false });
-      activeLeases.delete(lockId);
-      continue;
+    try {
+      if (!verifyArchitecture || await verifySandboxArchitecture(sandbox)) return lease;
+    } catch (error) {
+      console.error(`Architecture check failed on ${sandbox.metadata.name}: ${error.message}`);
     }
-    return lease;
+    await stopAndReleaseLease(lease, { killProcess: false });
+    activeLeases.delete(lockId);
   }
   return null;
 }

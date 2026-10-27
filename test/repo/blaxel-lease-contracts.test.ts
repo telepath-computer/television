@@ -1,13 +1,14 @@
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, symlinkSync, lstatSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, expect, test as platformTest, vi } from "vitest";
 import { workerLeaseOperation, cleanWorkerTemporaryDirectories } from "../../scripts/test/blaxel-worker-lease.mjs";
 import { finishLease, renewLease } from "../../scripts/test/blaxel-lease-lifecycle.mjs";
 import { publishWorker, deleteWorker } from "../../scripts/test/blaxel-pool-lifecycle.mjs";
 
 // Contract clocks, owner audits/signals and SDK operations are substitutions.
 // Filesystem assertions cross the real cleaner; the live driver proves transport.
+const test = platformTest.skipIf(process.platform !== "linux");
 const roots: string[] = [];
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }); });
 function fixture(record?: unknown) {
