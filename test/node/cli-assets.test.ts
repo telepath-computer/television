@@ -129,7 +129,7 @@ describe("full CLI build asset copies", () => {
   // The e2e:node preCommand runs the real CLI build, including the server build.
   it("ships the complete bundled template tree byte-for-byte through both builds", () => {
     const source = path.join(REPO_ROOT, "packages/server/assets/templates");
-    expect(readdirSync(source).sort()).toEqual(["checklist", "calendar", "sticky-note"].sort());
+    expect(readdirSync(source).sort()).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
     expectByteIdenticalTree(source, path.join(REPO_ROOT, "packages/server/dist/templates"));
     expectByteIdenticalTree(source, path.join(CLI_DIST, "templates"));
   });
@@ -201,7 +201,7 @@ const resolverCases: Array<{
     builtPath: path.join(CLI_DIST, "templates"),
     devResolver: resolveBundledTemplatesPath,
     devPath: path.join(REPO_ROOT, "packages/server/assets/templates"),
-    requiredChildren: ["checklist/manifest.json", "checklist/index.html", "checklist/README.md", "checklist/icon.svg", "calendar/manifest.json", "calendar/index.html", "calendar/README.md", "calendar/icon.svg", "sticky-note/manifest.json", "sticky-note/index.html", "sticky-note/README.md", "sticky-note/icon.svg"],
+    requiredChildren: ["checklist/manifest.json", "checklist/index.html", "checklist/README.md", "checklist/icon.svg", "calendar/manifest.json", "calendar/index.html", "calendar/README.md", "calendar/icon.svg", "sticky-note/manifest.json", "sticky-note/index.html", "sticky-note/README.md", "sticky-note/icon.svg", "map/manifest.json", "map/index.html", "map/README.md", "map/icon.svg", "map/THIRD-PARTY-NOTICES.txt"],
   },
   {
     name: "bundled skills",

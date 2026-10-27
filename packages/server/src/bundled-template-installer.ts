@@ -11,7 +11,10 @@ import { BUNDLED_ARTIFACT_TEMPLATE_IDS } from "./bundled-template-ids.ts";
 import { compareSemanticVersions } from "./themes.ts";
 import { getTemplatesDir, validateTemplatePackage } from "./templates.ts";
 
-export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({ id, minimumVersion: "1.0.0" }));
+export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({
+  id,
+  minimumVersion: id === "map" ? "2.0.0" : "1.0.0",
+}));
 export { BUNDLED_ARTIFACT_TEMPLATE_IDS } from "./bundled-template-ids.ts";
 
 interface BundledTemplateState {

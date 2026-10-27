@@ -128,6 +128,8 @@ describe("licensing configuration", () => {
       "caveat-story-font",
       "caveat-template-font",
       "sticky-note-icons",
+      "map-leaflet",
+      "map-lucide-icons",
     ]);
 
     const hind = assets[0];
@@ -176,6 +178,40 @@ describe("licensing configuration", () => {
     for (const file of calendarIcons.paths) {
       expect(readFileSync(path.join(repoRoot, file), "utf8")).toContain("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt");
     }
+
+    // proofs/arch/licensing.md#^licensing-t-map-assets
+    const leaflet = assets.find((asset) => asset.id === "map-leaflet")!;
+    expect(leaflet.paths).toEqual([
+      "packages/server/assets/templates/map/vendor/LICENSE",
+      "packages/server/assets/templates/map/vendor/leaflet.css",
+      "packages/server/assets/templates/map/vendor/leaflet.js",
+    ]);
+    expect(leaflet.surfaces).toEqual(["cli", "source"]);
+    expect(leaflet.noticesFolder).toBe("packages/server/assets/templates/map");
+    expect(leaflet.components).toHaveLength(1);
+    expect(leaflet.components[0]).toMatchObject({ package: "leaflet", version: "1.9.4", license: "BSD-2-Clause" });
+    expect(leaflet.components[0].noticeText).toBe(readFileSync(path.join(repoRoot, leaflet.paths[0]), "utf8"));
+
+    const lucide = assets.find((asset) => asset.id === "map-lucide-icons")!;
+    expect(lucide.paths).toEqual([
+      "packages/server/assets/templates/map/icons.svg",
+      "packages/server/assets/templates/map/index.html",
+      "packages/server/assets/templates/map/vendor/lucide/LICENSE",
+      "packages/server/assets/templates/map/vendor/lucide/README.md",
+      "packages/server/assets/templates/map/vendor/lucide/icons.js",
+      ...[
+        "airport", "bar", "beach", "bridge", "bus", "church", "coffee", "ferry", "flag", "heart", "home", "hospital", "hotel", "info", "landmark", "mountain", "museum", "music", "park", "parking", "pin", "restaurant", "school", "shop", "sports", "star", "theatre", "train", "viewpoint", "work",
+      ].map((name) => `packages/server/assets/templates/map/vendor/lucide/svg/${name}.svg`),
+    ]);
+    expect(lucide.surfaces).toEqual(["cli", "source"]);
+    expect(lucide.noticesFolder).toBe("packages/server/assets/templates/map");
+    expect(lucide.components).toHaveLength(2);
+    expect(lucide.components[0]).toMatchObject({ package: "lucide-static", version: "1.61.0", license: "ISC" });
+    expect(lucide.components[0].noticeText).toContain("Copyright (c) 2026 Lucide Icons and Contributors");
+    expect(lucide.components[1]).toMatchObject({ name: "Feather icon material", license: "MIT" });
+    expect(lucide.components[1].noticeText).toContain("Copyright (c) 2013-present Cole Bemis");
+    expect(readFileSync(path.join(repoRoot, "packages/server/assets/templates/map/index.html"), "utf8"))
+      .toContain("Lucide and Feather icons. See THIRD-PARTY-NOTICES.txt");
 
     // proofs/arch/licensing.md#^licensing-t-real-assets-seam
     const nord = assets[2];

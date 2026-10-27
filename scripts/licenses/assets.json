@@ -268,5 +268,84 @@
       "source"
     ],
     "noticesFolder": "packages/server/assets/templates/sticky-note"
+  },
+  {
+    "id": "map-leaflet",
+    "paths": [
+      "packages/server/assets/templates/map/vendor/LICENSE",
+      "packages/server/assets/templates/map/vendor/leaflet.css",
+      "packages/server/assets/templates/map/vendor/leaflet.js"
+    ],
+    "components": [
+      {
+        "package": "leaflet",
+        "version": "1.9.4",
+        "license": "BSD-2-Clause",
+        "noticeText": "BSD 2-Clause License\r\n\r\nCopyright (c) 2010-2023, Volodymyr Agafonkin\r\nCopyright (c) 2010-2011, CloudMade\r\nAll rights reserved.\r\n\r\nRedistribution and use in source and binary forms, with or without\r\nmodification, are permitted provided that the following conditions are met:\r\n\r\n1. Redistributions of source code must retain the above copyright notice, this\r\n   list of conditions and the following disclaimer.\r\n\r\n2. Redistributions in binary form must reproduce the above copyright notice,\r\n   this list of conditions and the following disclaimer in the documentation\r\n   and/or other materials provided with the distribution.\r\n\r\nTHIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS \"AS IS\"\r\nAND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE\r\nIMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE\r\nDISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE\r\nFOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL\r\nDAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR\r\nSERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\r\nCAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,\r\nOR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE\r\nOF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\r\n"
+      }
+    ],
+    "surfaces": [
+      "cli",
+      "source"
+    ],
+    "noticesFolder": "packages/server/assets/templates/map"
+  },
+  {
+    "id": "map-lucide-icons",
+    "paths": [
+      "packages/server/assets/templates/map/icons.svg",
+      "packages/server/assets/templates/map/index.html",
+      "packages/server/assets/templates/map/vendor/lucide/LICENSE",
+      "packages/server/assets/templates/map/vendor/lucide/README.md",
+      "packages/server/assets/templates/map/vendor/lucide/icons.js",
+      "packages/server/assets/templates/map/vendor/lucide/svg/airport.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/bar.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/beach.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/bridge.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/bus.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/church.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/coffee.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/ferry.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/flag.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/heart.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/home.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/hospital.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/hotel.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/info.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/landmark.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/mountain.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/museum.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/music.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/park.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/parking.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/pin.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/restaurant.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/school.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/shop.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/sports.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/star.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/theatre.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/train.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/viewpoint.svg",
+      "packages/server/assets/templates/map/vendor/lucide/svg/work.svg"
+    ],
+    "components": [
+      {
+        "package": "lucide-static",
+        "version": "1.61.0",
+        "license": "ISC",
+        "noticeText": "ISC License\n\nCopyright (c) 2026 Lucide Icons and Contributors\n\nPermission to use, copy, modify, and/or distribute this software for any\npurpose with or without fee is hereby granted, provided that the above\ncopyright notice and this permission notice appear in all copies.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\" AND THE AUTHOR DISCLAIMS ALL WARRANTIES\nWITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF\nMERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR\nANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES\nWHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN\nACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF\nOR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\n"
+      },
+      {
+        "name": "Feather icon material",
+        "license": "MIT",
+        "noticeText": "The following Lucide icons are derived from the Feather project:\n\nairplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out\n\nThe MIT License (MIT) (for the icons listed above)\n\nCopyright (c) 2013-present Cole Bemis\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n"
+      }
+    ],
+    "surfaces": [
+      "cli",
+      "source"
+    ],
+    "noticesFolder": "packages/server/assets/templates/map"
   }
 ]

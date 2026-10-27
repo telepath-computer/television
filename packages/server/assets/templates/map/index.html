@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Map</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+  <link rel="stylesheet" href="./vendor/leaflet.css">
+  <link rel="stylesheet" href="./map.css">
+  <script type="module" src="/canonical/v2/components.js"></script>
+  <script src="./vendor/leaflet.js"></script>
+</head>
+<body>
+  <!-- Lucide and Feather icons. See THIRD-PARTY-NOTICES.txt. -->
+  <svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="glyph-map" viewBox="0 0 24 24"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/></symbol>
+    <symbol id="glyph-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="glyph-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="glyph-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+    <symbol id="glyph-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="glyph-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="glyph-satellite" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c5 5 5 11 0 16-5-5-5-11 0-16Z"/></symbol>
+    <symbol id="glyph-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7"/></symbol>
+    <symbol id="glyph-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="glyph-clear" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+  </svg>
+  <main class="app" data-sidebar-open="false" data-has-places="false">
+    <section id="viewport" aria-label="Interactive map">
+      <div id="map" aria-label="Map. Arrow keys pan, plus and minus zoom, F fits all places." tabindex="0"></div>
+    </section>
+    <aside id="sidebar" aria-label="Places" data-open="false" hidden>
+      <div id="sidebar-surface" class="glass">
+      <section id="list-view" class="sidebar-view">
+        <header class="sidebar-header">
+          <div class="header-line"><h1 id="title" tabindex="-1">Map</h1><span id="place-count"></span></div>
+          <p id="subtitle" hidden></p>
+          <div class="filter-field" role="search">
+            <svg class="glyph" aria-hidden="true"><use href="#glyph-search"/></svg>
+            <input id="place-filter" type="search" placeholder="Filter places" aria-label="Filter places" aria-controls="place-list" autocomplete="off" spellcheck="false">
+            <button id="filter-clear" type="button" aria-label="Clear filter" title="Clear filter" hidden><svg class="glyph" aria-hidden="true"><use href="#glyph-clear"/></svg></button>
+          </div>
+        </header>
+        <div id="list-scroll" class="sidebar-scroll">
+          <ol id="place-list" aria-label="Places on the map"></ol>
+          <p id="no-matches" role="status" hidden>No matching places</p>
+        </div>
+      </section>
+      <article id="detail" class="sidebar-view" aria-labelledby="detail-title" hidden>
+        <header class="detail-bar">
+          <button type="button" id="close-detail" aria-label="Back to places" title="Back to places (Escape)"><svg class="glyph" aria-hidden="true"><use href="#glyph-back"/></svg>Back</button>
+        </header>
+        <div id="detail-scroll" class="sidebar-scroll">
+          <div id="detail-photo" class="detail-photo" hidden></div>
+          <div class="detail-body">
+            <h2 id="detail-title"></h2>
+            <p id="detail-category" class="category-pill" hidden></p>
+            <p id="detail-description" hidden></p>
+            <dl id="detail-fields" hidden></dl>
+            <p id="detail-credit" hidden></p>
+          </div>
+        </div>
+      </article>
+      </div>
+      <button type="button" id="sidebar-toggle" class="glass" aria-label="Show sidebar" aria-expanded="false" aria-controls="sidebar-surface"><svg class="glyph" aria-hidden="true"><use href="#glyph-back"/></svg></button>
+    </aside>
+    <div id="map-title" class="glass" hidden><span id="empty-title"></span></div>
+      <div class="map-toolbar" aria-label="Map controls">
+        <div class="control-group glass">
+          <button type="button" class="control-button" id="zoom-in" aria-label="Zoom in" title="Zoom in (+)"><svg class="glyph" aria-hidden="true"><use href="#glyph-plus"/></svg></button>
+          <button type="button" class="control-button" id="zoom-out" aria-label="Zoom out" title="Zoom out (−)"><svg class="glyph" aria-hidden="true"><use href="#glyph-minus"/></svg></button>
+        </div>
+        <div class="control-group glass">
+          <button type="button" class="control-button" id="layers-toggle" aria-label="Map layers" aria-expanded="false" aria-controls="layers-menu"><svg class="glyph" aria-hidden="true"><use href="#glyph-layers"/></svg><span id="layer-label">Standard</span><svg class="glyph" aria-hidden="true"><use href="#glyph-down"/></svg></button>
+        </div>
+        <div id="layers-menu" class="glass" role="group" aria-label="Basemap" hidden>
+          <button class="layer-option" type="button" data-basemap="standard" aria-pressed="true"><svg class="glyph" aria-hidden="true"><use href="#glyph-map"/></svg>Standard<svg class="glyph check" aria-hidden="true"><use href="#glyph-check"/></svg></button>
+          <button class="layer-option" type="button" data-basemap="satellite" aria-pressed="false"><svg class="glyph" aria-hidden="true"><use href="#glyph-satellite"/></svg>Satellite<svg class="glyph check" aria-hidden="true"><use href="#glyph-check"/></svg></button>
+          <button class="layer-option" type="button" data-basemap="hybrid" aria-pressed="false"><svg class="glyph" aria-hidden="true"><use href="#glyph-layers"/></svg>Hybrid<svg class="glyph check" aria-hidden="true"><use href="#glyph-check"/></svg></button>
+        </div>
+      </div>
+    <div id="empty" class="empty glass" hidden>
+      <h2>No places yet</h2>
+      <p>Ask your agent to add places to this map.</p>
+    </div>
+    <section id="error" class="map-unreadable" role="alert" hidden>
+      <span class="map-unreadable-icon"><tv-icon name="warning" size="xl"></tv-icon></span>
+      <h1>This map can't be shown</h1>
+      <p>Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+    </section>
+    <p id="selection-status" class="sr-only" role="status"></p>
+  </main>
+  <script type="module" src="./map.js"></script>
+</body>
+</html>

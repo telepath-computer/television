@@ -548,6 +548,7 @@ describe("notice rendering", () => {
     expect(folders.map((entry) => entry.folder)).toEqual([
       "packages/server/assets/templates/calendar",
       "packages/server/assets/templates/checklist",
+      "packages/server/assets/templates/map",
       "packages/server/assets/templates/sticky-note",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
@@ -571,6 +572,15 @@ describe("notice rendering", () => {
       expect(entryMetadata(notice)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
       expect(notice).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));
     }
+    const map = folders.find((entry) => entry.folder.endsWith("/map"))!.text;
+    expect(entryMetadata(map)).toEqual(expect.arrayContaining([
+      ["leaflet@1.9.4", "Licensed under BSD-2-Clause."],
+      ["lucide-static@1.61.0", "Licensed under ISC."],
+      ["Feather icon material", "Licensed under MIT."],
+    ]));
+    expect(map).toContain("Copyright (c) 2010-2023, Volodymyr Agafonkin");
+    expect(map).toContain("Copyright (c) 2026 Lucide Icons and Contributors");
+    expect(map).toContain("Copyright (c) 2013-present Cole Bemis");
   });
 
   test("regenerates the committed source-surface notices byte-for-byte", () => {
@@ -583,6 +593,9 @@ describe("notice rendering", () => {
     expect(notices).toContain("SIL OPEN FONT LICENSE Version 1.1");
     expect(notices).toContain("@phosphor-icons/core@2.1.1\nLicensed under MIT.");
     expect(notices).toContain("Nord color palette\nLicensed under MIT.");
+    expect(notices).toContain("leaflet@1.9.4\nLicensed under BSD-2-Clause.");
+    expect(notices).toContain("lucide-static@1.61.0\nLicensed under ISC.");
+    expect(notices).toContain("Feather icon material\nLicensed under MIT.");
     expect(notices).not.toMatch(/(?:@lit\/reactive-element|lit-element|lit-html)@/);
     expect(notices).not.toContain("@rupertsworld/");
     const renderedNames = entryMetadata(notices).map(([name]) => name);
