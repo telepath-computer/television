@@ -9,10 +9,10 @@ import { TemplateHarness, TEST_HOST_LAUNCH } from "./template-harness.ts";
 test.use({ launchOptions: TEST_HOST_LAUNCH, viewport: { width: 760, height: 770 }, actionTimeout: 15_000 });
 test.setTimeout(180_000);
 
-/** A stored column; `name` is optional and read through the index signature. */
+/** A stored column; saved width and unrelated fields are read through the index signature. */
 type Column = { order: number; [key: string]: JSONValue };
 type Row = { order: number; cells: Record<string, string | number | boolean>; [key: string]: JSONValue };
-/** The stored table; `showHeader` is optional and read through the index signature. */
+/** The stored table; `headerRow` is optional and read through the index signature. */
 type TableData = {
   columns: Record<string, Column>;
   rows: Record<string, Row>;
@@ -20,18 +20,18 @@ type TableData = {
 };
 
 const fixture = (): TableData => ({
-  showHeader: true,
+  headerRow: true,
   columns: {
-    c1: { order: 1, name: "Park" }, c2: { order: 2, name: "State" },
-    c3: { order: 3, name: "Open" }, c4: { order: 4, name: "Rating" },
+    c1: { order: 1 }, c2: { order: 2 }, c3: { order: 3 }, c4: { order: 4 },
   },
   rows: {
-    r1: { order: 1, cells: { c1: "Acadia", c2: "Maine", c3: true, c4: 4.9 } },
-    r2: { order: 2, cells: { c1: "Arches", c2: "Utah", c3: true, c4: 4.8 } },
-    r3: { order: 3, cells: { c1: "Everglades", c2: "Florida", c3: false, c4: 4.6 } },
-    r4: { order: 4, cells: { c1: "Olympic", c2: "Washington", c3: true, c4: 4.8 } },
-    r5: { order: 5, cells: { c1: "Yosemite", c2: "California", c3: true, c4: 4.9 } },
-    r6: { order: 6, cells: { c1: "Zion", c2: "Utah", c3: true } },
+    r1: { order: 1, cells: { c1: "Park", c2: "State", c3: "Open", c4: "Rating" } },
+    r2: { order: 2, cells: { c1: "Acadia", c2: "Maine", c3: true, c4: 4.9 } },
+    r3: { order: 3, cells: { c1: "Arches", c2: "Utah", c3: true, c4: 4.8 } },
+    r4: { order: 4, cells: { c1: "Everglades", c2: "Florida", c3: false, c4: 4.6 } },
+    r5: { order: 5, cells: { c1: "Olympic", c2: "Washington", c3: true, c4: 4.8 } },
+    r6: { order: 6, cells: { c1: "Yosemite", c2: "California", c3: true, c4: 4.9 } },
+    r7: { order: 7, cells: { c1: "Zion", c2: "Utah", c3: true } },
   },
 });
 
@@ -45,8 +45,6 @@ test.afterEach(async () => { await h?.cleanup(); });
 const grid = (page: Page | Frame): Locator => page.getByRole("grid", { name: "Table" });
 const cell = (page: Page | Frame, row: number, column: number): Locator =>
   page.locator(`[data-cell][data-row-index="${row}"][data-column-index="${column}"]`);
-const header = (page: Page | Frame, column: number): Locator =>
-  page.locator(`[data-header-text][data-column-index="${column}"]`);
 const rowButton = (page: Page | Frame, row: number): Locator => page.getByRole("button", { name: `Select row ${row + 1}`, exact: true });
 const columnButton = (page: Page | Frame, column: string): Locator => page.getByRole("button", { name: `Select column ${column}`, exact: true });
 const editor = (page: Page | Frame): Locator => page.locator(".table-input");
@@ -103,9 +101,13 @@ test("a new Table draws four by four without writing, then its independent copy 
   await expect(grid(frame)).toHaveAttribute("aria-rowcount", "4");
   await expect(grid(frame)).toHaveAttribute("aria-colcount", "4");
   await expect(frame.getByRole("gridcell")).toHaveCount(16);
+  await expect(frame.getByRole("columnheader")).toHaveCount(0);
   await expect(grid(frame)).not.toBeFocused();
   await expect(frame.locator(":focus")).toHaveCount(0);
-  await expect(frame.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await expect(frame.getByRole("button", { name: /^Select row / })).toHaveCount(4);
+  await expect(frame.getByRole("button", { name: /^Select column / })).toHaveCount(4);
+  await expect(frame.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await expect(frame.getByRole("button", { name: "Add column at end" })).toBeVisible();
   expect(await h.read(id)).toEqual({ columns: {}, rows: {} });
   expect(writes()).toEqual([]);
 
@@ -156,15 +158,15 @@ test("a new Table draws four by four without writing, then its independent copy 
 
 test("object-property column keys render as ordinary columns", async ({ page }) => {
   const columns = Object.fromEntries([
-    ["constructor", { order: 1, name: "Constructor" }],
-    ["toString", { order: 2, name: "Stringer" }],
-    ["__proto__", { order: 3, name: "Prototype" }],
+    ["constructor", { order: 1 }],
+    ["toString", { order: 2 }],
+    ["__proto__", { order: 3 }],
   ]);
   const cells = Object.fromEntries([["__proto__", "own prototype cell"]]);
-  await open(page, { showHeader: true, columns, rows: { r1: { order: 1, cells } } });
+  await open(page, { headerRow: true, columns, rows: { r1: { order: 1, cells } } });
 
   await expect(page.getByRole("columnheader")).toHaveCount(4);
-  await expect(grid(page)).toHaveAttribute("aria-rowcount", "5");
+  await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
   await expect(grid(page)).toHaveAttribute("aria-colcount", "4");
   await expect(page.locator('[data-column-key="constructor"]')).toHaveCount(4);
   await expect(page.locator('[data-column-key="__proto__"]')).toHaveCount(4);
@@ -179,14 +181,18 @@ test("object-property column keys render as ordinary columns", async ({ page }) 
 // proofs/ui/templates/table.md#^table-ac-editing
 // proofs/ui/templates/table.md#^table-ac-selection
 // proofs/ui/templates/table.md#^table-ac-keyboard
-test("stored values render in order and spreadsheet editing follows pointer and keyboard", async ({ page }) => {
+test("stored values and header row render in order", async ({ page }) => {
   const value = fixture();
   for (let index = 5; index <= 8; index += 1) {
-    value.columns[`c${index}`] = index === 6 ? { order: index } : { order: index, name: index === 5 ? "Notes" : `Column ${index}` };
+    value.columns[`c${index}`] = { order: index };
   }
-  value.rows.r1!.cells.c5 = "First\nsecond";
-  value.rows.r1!.cells.c8 = "A cell value long enough to overflow its fixed-width column";
-  for (let index = 7; index <= 40; index += 1) {
+  Object.assign(value.rows.r1!.cells, { c5: "Notes", c7: "Column 7", c8: "Column 8" });
+  value.rows.r2!.cells.c5 = "First\nsecond";
+  value.rows.r2!.cells.c8 = "A cell value long enough to overflow its fixed-width column";
+  value.columns.c1!.width = 230;
+  value.rows.r1!.height = 52;
+  value.rows.r7!.height = 28;
+  for (let index = 8; index <= 41; index += 1) {
     value.rows[`r${index}`] = { order: index, cells: { c1: `Park ${index}`, c2: "Somewhere", c8: "Wide" } };
   }
   const id = await open(page, value);
@@ -195,18 +201,24 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   expect(await page.getByRole("columnheader").allTextContents()).toEqual([
     "Park", "State", "Open", "Rating", "Notes", "", "Column 7", "Column 8",
   ]);
-  await expect(header(page, 5)).toHaveAccessibleName("Column F");
-  await expect(cell(page, 0, 2)).toHaveText("true");
-  await expect(cell(page, 2, 2)).toHaveText("false");
-  await expect(cell(page, 0, 3)).toHaveText("4.9");
-  await expect(cell(page, 0, 4)).toHaveText("First second");
-  await expect(cell(page, 5, 3)).toHaveText("");
-  await expect(cell(page, 0, 7)).toHaveCSS("text-overflow", "ellipsis");
-  await expect(cell(page, 0, 7)).toHaveCSS("white-space", "nowrap");
-  await expect.poll(() => cell(page, 0, 7).locator("span").evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  await expect(cell(page, 0, 5)).toHaveAccessibleName("");
+  await expect(cell(page, 1, 2)).toHaveText("true");
+  await expect(cell(page, 3, 2)).toHaveText("false");
+  await expect(cell(page, 1, 3)).toHaveText("4.9");
+  await expect(cell(page, 1, 4)).toHaveText("First second");
+  await expect(cell(page, 6, 3)).toHaveText("");
+  await expect(cell(page, 1, 7)).toHaveCSS("text-overflow", "ellipsis");
+  await expect(cell(page, 1, 7)).toHaveCSS("white-space", "nowrap");
+  await expect.poll(() => cell(page, 1, 7).locator("span").evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "41");
   await expect(grid(page)).toHaveAttribute("aria-colcount", "8");
-  await expect(cell(page, 0, 0)).toHaveAccessibleName("Acadia");
+  await expect(cell(page, 0, 0)).toHaveAccessibleName("Park");
+  await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
+  await expect(cell(page, 1, 0)).toHaveAttribute("role", "gridcell");
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /230 pixels wide/);
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /52 pixels tall/);
+  await expect(page.locator(".table-column-resize-handle")).toHaveCount(8);
+  await expect(page.locator(".table-row-resize-handle")).toHaveCount(41);
   await expect(page.locator('[data-action="add-row"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.locator('[data-action="add-column"]')).toHaveAttribute("tabindex", "-1");
   await expect(page.locator('[data-row-select][data-row-index="0"]')).toHaveAttribute("tabindex", "-1");
@@ -216,7 +228,7 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await page.keyboard.press("Tab");
   await expect(cell(page, 0, 0)).toBeFocused();
   await expect(cell(page, 0, 0)).toHaveAttribute("aria-selected", "true");
-  await expect(cell(page, 0, 0).locator("xpath=..")).toHaveAttribute("aria-rowindex", "2");
+  await expect(cell(page, 0, 0).locator("xpath=..")).toHaveAttribute("aria-rowindex", "1");
   await expect(cell(page, 0, 0)).toHaveAttribute("aria-colindex", "1");
   const scroll = page.locator(".table-scroll");
   await expect.poll(() => scroll.evaluate(element => element.scrollWidth > element.clientWidth && element.scrollHeight > element.clientHeight)).toBe(true);
@@ -242,52 +254,52 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   expect(focusedCellBox!.y + focusedCellBox!.height).toBeLessThanOrEqual(scrollBox!.y + scrollBox!.height);
   await scroll.evaluate(element => element.scrollTo(0, 0));
 
-  await cell(page, 1, 1).dblclick();
+  await cell(page, 2, 1).dblclick();
   await expect(editor(page)).toHaveValue("Utah");
-  await expect(editor(page)).toHaveAccessibleName("Row 2, column B");
+  await expect(editor(page)).toHaveAccessibleName("Row 3, column B");
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Utah".length);
   await editor(page).press("ArrowLeft");
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Utah".length - 1);
   await editor(page).press("Escape");
 
-  await cell(page, 3, 1).click();
-  await expect(cell(page, 3, 1)).toHaveAttribute("data-selection", "cell");
+  await cell(page, 4, 1).click();
+  await expect(cell(page, 4, 1)).toHaveAttribute("data-selection", "cell");
   await page.keyboard.type("C");
   await expect(editor(page)).toHaveValue("C");
   await editor(page).press("Escape");
-  await expect(cell(page, 3, 1)).toHaveText("Washington");
-  await expect(cell(page, 3, 1)).toHaveAttribute("data-selection", "cell");
+  await expect(cell(page, 4, 1)).toHaveText("Washington");
+  await expect(cell(page, 4, 1)).toHaveAttribute("data-selection", "cell");
 
   await page.keyboard.press("F2");
   await expect(editor(page)).toHaveValue("Washington");
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Washington".length);
   await editor(page).fill("Washington state");
   await editor(page).press("Enter");
-  await expect.poll(() => h.read(id, "rows/r4/cells/c2")).toBe("Washington state");
-  await expect(cell(page, 4, 1)).toHaveAttribute("data-selection", "cell");
-  expect(writes().at(-1)).toMatchObject({ kind: "set", path: "rows/r4/cells/c2" });
+  await expect.poll(() => h.read(id, "rows/r5/cells/c2")).toBe("Washington state");
+  await expect(cell(page, 5, 1)).toHaveAttribute("data-selection", "cell");
+  expect(writes().at(-1)).toMatchObject({ kind: "set", path: "rows/r5/cells/c2" });
 
-  await header(page, 1).click();
+  await cell(page, 0, 1).click();
   await page.keyboard.press("ArrowDown");
-  await expect(cell(page, 0, 1)).toBeFocused();
+  await expect(cell(page, 1, 1)).toBeFocused();
   await page.keyboard.press("ArrowUp");
-  await expect(header(page, 1)).toBeFocused();
-  await header(page, 1).press("Enter");
-  await expect(editor(page)).toHaveAccessibleName("Column B name");
+  await expect(cell(page, 0, 1)).toBeFocused();
+  await cell(page, 0, 1).press("Enter");
+  await expect(editor(page)).toHaveAccessibleName("Row 1, column B");
   await editor(page).fill("Region");
   const beforeHeaderEdit = writes().length;
   await editor(page).press("Tab");
-  await expect.poll(() => h.read(id, "columns/c2/name")).toBe("Region");
-  expect(writes().slice(beforeHeaderEdit)).toContainEqual(expect.objectContaining({ kind: "set", path: "columns/c2/name" }));
-  await expect(header(page, 2)).toHaveAttribute("data-selection", "header");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Region");
+  expect(writes().slice(beforeHeaderEdit)).toContainEqual(expect.objectContaining({ kind: "set", path: "rows/r1/cells/c2" }));
+  await expect(cell(page, 0, 2)).toHaveAttribute("data-selection", "cell");
 
   const beforeHeaderClear = writes().length;
-  await header(page, 2).press("Delete");
-  await expect.poll(() => h.read(id, "columns/c3/name")).toBeUndefined();
-  expect(writes().slice(beforeHeaderClear)).toContainEqual(expect.objectContaining({ kind: "remove", path: "columns/c3/name" }));
-  await expect(header(page, 2)).toHaveAttribute("data-selection", "header");
+  await cell(page, 0, 2).press("Delete");
+  await expect.poll(() => h.read(id, "rows/r1/cells/c3")).toBeUndefined();
+  expect(writes().slice(beforeHeaderClear)).toContainEqual(expect.objectContaining({ kind: "remove", path: "rows/r1/cells/c3" }));
+  await expect(cell(page, 0, 2)).toHaveAttribute("data-selection", "cell");
 
-  await cell(page, 0, 4).click();
+  await cell(page, 1, 4).click();
   await page.keyboard.press("Enter");
   await editor(page).press("ControlOrMeta+A");
   await editor(page).press("ControlOrMeta+C");
@@ -301,14 +313,14 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await editor(page).press("ControlOrMeta+Z");
   await expect(editor(page)).toHaveValue("Pasted\nline");
   await editor(page).press("Enter");
-  await expect.poll(() => h.read(id, "rows/r1/cells/c5")).toBe("Pasted\nline");
-  await expect(cell(page, 0, 4)).toHaveText("Pasted line");
+  await expect.poll(() => h.read(id, "rows/r2/cells/c5")).toBe("Pasted\nline");
+  await expect(cell(page, 1, 4)).toHaveText("Pasted line");
 
   await cell(page, 0, 0).click();
   await page.keyboard.type("Coast");
-  await header(page, 0).click();
+  await cell(page, 0, 1).click();
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Coast");
-  await expect(header(page, 0)).toHaveAttribute("data-selection", "header");
+  await expect(cell(page, 0, 1)).toHaveAttribute("data-selection", "cell");
 
   const columnCount = Object.keys((await h.read<TableData>(id))!.columns).length;
   await cell(page, 0, 7).click();
@@ -325,7 +337,9 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await page.keyboard.type("Outside");
   await page.mouse.click(1, 1);
   await expect.poll(() => h.read(id, "rows/r2/cells/c1")).toBe("Outside");
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
 
   await cell(page, 0, 0).click();
   await page.keyboard.press("ArrowRight");
@@ -338,7 +352,7 @@ test("stored values render in order and spreadsheet editing follows pointer and 
     await expect(page.getByRole("menu")).toHaveCount(0);
     await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
   }
-  await cell(page, 0, 1).click();
+  await cell(page, 1, 1).click();
   await page.keyboard.press("Control+Shift+Space");
   await expect(columnButton(page, "B")).toHaveAttribute("aria-pressed", "true");
   for (const key of ["Enter", "F2", "x", "Space"]) {
@@ -353,10 +367,112 @@ test("stored values render in order and spreadsheet editing follows pointer and 
   await expect(page.getByRole("menu", { name: "Column actions" })).toHaveCount(0);
   await expect(columnButton(page, "B")).toHaveAttribute("aria-pressed", "true");
   await page.keyboard.press("Escape");
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
   await expect(grid(page)).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await expect(cell(page, 0, 0)).toBeFocused();
+});
+
+// proofs/ui/templates/table.md#^table-ac-rows
+// proofs/ui/templates/table.md#^table-ac-keyboard
+test("the full-edge table scroll keeps strips, header row and selection visible", async ({ page }) => {
+  const widths = [230, 130, 96, 112, 180, 144, 160];
+  const columns = Object.fromEntries(widths.map((width, index) => [`c${index + 1}`, { order: index + 1, width }]));
+  const rows = Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`r${index + 1}`, {
+    order: index + 1,
+    ...(index === 0 ? { height: 52 } : index === 9 ? { height: 28 } : {}),
+    cells: Object.fromEntries(widths.map((_, columnIndex) => [
+      `c${columnIndex + 1}`,
+      index === 0 ? `Heading ${columnIndex + 1}` : `R${index + 1} C${columnIndex + 1}`,
+    ])),
+  }]));
+  const id = await open(page, { headerRow: true, columns, rows });
+  const frame = page.locator(".table-frame");
+  const scroll = page.locator(".table-scroll");
+  const sheet = page.locator(".table-sheet");
+  const [frameBox, scrollBox, sheetBox] = await Promise.all([frame.boundingBox(), scroll.boundingBox(), sheet.boundingBox()]);
+  expect(scrollBox).toEqual(frameBox);
+  expect(sheetBox!.x - scrollBox!.x).toBe(0);
+  expect(sheetBox!.y - scrollBox!.y).toBe(0);
+  await expect(scroll).toHaveCSS("overflow-x", "auto");
+  await expect(scroll).toHaveCSS("overflow-y", "auto");
+  await expect.poll(() => scroll.evaluate(element => ({
+    horizontal: element.scrollWidth > element.clientWidth,
+    vertical: element.scrollHeight > element.clientHeight,
+  }))).toEqual({ horizontal: true, vertical: true });
+  await expect(sheet).toHaveCSS("padding-left", "16px");
+  await expect(sheet).toHaveCSS("padding-right", "16px");
+
+  const topStrip = page.locator(".table-column-strip");
+  const sideStrip = page.locator(".table-row-strip");
+  await expect(topStrip).toHaveCSS("height", "26px");
+  await expect(sideStrip).toHaveCSS("width", "33px");
+  const gridBorders = await grid(page).evaluate(element => {
+    const style = getComputedStyle(element);
+    return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth];
+  });
+  expect(gridBorders).toEqual(["1px", "1px", "0px", "1px"]);
+  await expect(cell(page, 23, 6)).toHaveCSS("border-bottom-width", "1px");
+  await expect(cell(page, 0, 0)).toHaveCSS("vertical-align", "top");
+  expect((await cell(page, 0, 0).boundingBox())!.height).toBe(52);
+  expect((await rowButton(page, 0).locator("..").boundingBox())!.height).toBe(52);
+  expect((await cell(page, 9, 0).boundingBox())!.height).toBe(28);
+  expect((await rowButton(page, 9).locator("..").boundingBox())!.height).toBe(28);
+
+  const before = {
+    top: await topStrip.boundingBox(), side: await sideStrip.boundingBox(),
+    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).boundingBox(),
+  };
+  await scroll.evaluate(element => element.scrollTo(360, 180));
+  await expect.poll(() => scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
+    .toEqual({ left: 360, top: 180 });
+  const after = {
+    top: await topStrip.boundingBox(), side: await sideStrip.boundingBox(),
+    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).boundingBox(),
+  };
+  expect(after.top!.y).toBeCloseTo(scrollBox!.y, 0);
+  expect(after.side!.x).toBeCloseTo(scrollBox!.x, 0);
+  expect(after.header!.y).toBeCloseTo(after.top!.y + after.top!.height + 8, 0);
+  expect(after.rowOne!.y).toBeCloseTo(after.header!.y, 0);
+  const gapColors = await page.locator(".table-reference-corner").evaluate(element => ({
+    below: getComputedStyle(element, "::after").backgroundColor,
+    right: getComputedStyle(element, "::before").backgroundColor,
+    surface: getComputedStyle(element).backgroundColor,
+  }));
+  expect(gapColors.below).toBe(gapColors.surface);
+  expect(gapColors.right).toBe(gapColors.surface);
+
+  await scroll.evaluate(element => element.scrollTo(0, 0));
+  await cell(page, 0, 0).click();
+  for (let index = 0; index < 10; index += 1) await page.keyboard.press("ArrowDown");
+  for (let index = 0; index < 5; index += 1) await page.keyboard.press("ArrowRight");
+  const selectedBox = await page.locator('[data-selection="cell"]').boundingBox();
+  const topBox = await topStrip.boundingBox();
+  const sideBox = await sideStrip.boundingBox();
+  expect(selectedBox!.y).toBeGreaterThanOrEqual(topBox!.y + topBox!.height + 8);
+  expect(selectedBox!.x).toBeGreaterThanOrEqual(sideBox!.x + sideBox!.width + 8);
+
+  await rowButton(page, 0).click();
+  for (let index = 0; index < 10; index += 1) await page.keyboard.press("ArrowDown");
+  const selectedRowBox = await rowButton(page, 10).boundingBox();
+  expect(selectedRowBox!.y).toBeGreaterThanOrEqual(topBox!.y + topBox!.height + 8);
+  expect(selectedRowBox!.y + selectedRowBox!.height).toBeLessThanOrEqual(scrollBox!.y + scrollBox!.height);
+
+  await columnButton(page, "A").click();
+  for (let index = 0; index < 5; index += 1) await page.keyboard.press("ArrowRight");
+  const selectedColumnBox = await columnButton(page, "F").boundingBox();
+  expect(selectedColumnBox!.x).toBeGreaterThanOrEqual(sideBox!.x + sideBox!.width + 8);
+  expect(selectedColumnBox!.x + selectedColumnBox!.width).toBeLessThanOrEqual(scrollBox!.x + scrollBox!.width);
+
+  await scroll.evaluate(element => element.scrollTo(element.scrollWidth, element.scrollHeight));
+  const lastCellBox = await cell(page, 23, 6).boundingBox();
+  expect(scrollBox!.x + scrollBox!.width - (lastCellBox!.x + lastCellBox!.width)).toBeGreaterThanOrEqual(16);
+  expect(scrollBox!.y + scrollBox!.height - (lastCellBox!.y + lastCellBox!.height)).toBeGreaterThanOrEqual(16);
+
+  await h.set(id, false, "headerRow");
+  await scroll.evaluate(element => element.scrollTo(0, 180));
+  await expect.poll(async () => (await cell(page, 0, 0).boundingBox())!.y).toBeLessThan(before.header!.y);
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -366,17 +482,18 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
 
   await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
-  await expect(editor(page)).toHaveValue("Utah");
-  expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Utah".length);
+  await expect(editor(page)).toHaveValue("Maine");
+  expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Maine".length);
   await editor(page).press("Shift+Space");
   await editor(page).press("Control+Shift+Space");
-  await expect(editor(page)).toHaveValue("Utah ");
+  await expect(editor(page)).toHaveValue("Maine ");
   await expect(editor(page)).toBeFocused();
   await editor(page).press("Escape");
   await expect(cell(page, 1, 1)).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(grid(page)).toBeFocused();
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
 
   await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
@@ -392,35 +509,35 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
   await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Moved left");
   await expect(cell(page, 1, 0)).toBeFocused();
 
-  await cell(page, 0, 1).click();
+  await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Moved to header");
   await editor(page).press("Shift+Enter");
-  await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Moved to header");
-  await expect(header(page, 1)).toBeFocused();
+  await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Moved to header");
+  await expect(cell(page, 0, 1)).toBeFocused();
 
-  await header(page, 1).click();
+  await cell(page, 0, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Region");
   await editor(page).press("Enter");
-  await expect.poll(() => h.read(id, "columns/c2/name")).toBe("Region");
-  await expect(cell(page, 0, 1)).toBeFocused();
+  await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Region");
+  await expect(cell(page, 1, 1)).toBeFocused();
 
-  await header(page, 0).click();
+  await cell(page, 0, 0).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Park name");
   await editor(page).press("Shift+Enter");
-  await expect.poll(() => h.read(id, "columns/c1/name")).toBe("Park name");
-  await expect(header(page, 0)).toBeFocused();
+  await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Park name");
+  await expect(cell(page, 0, 0)).toBeFocused();
 
   const rowCount = Object.keys((await h.read<TableData>(id))!.rows).length;
-  await cell(page, 5, 1).click();
+  await cell(page, 6, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Last row");
   await editor(page).press("Enter");
-  await expect.poll(() => h.read(id, "rows/r6/cells/c2")).toBe("Last row");
+  await expect.poll(() => h.read(id, "rows/r7/cells/c2")).toBe("Last row");
   expect(Object.keys((await h.read<TableData>(id))!.rows)).toHaveLength(rowCount);
-  await expect(cell(page, 5, 1)).toBeFocused();
+  await expect(cell(page, 6, 1)).toBeFocused();
 
   const columnCount = Object.keys((await h.read<TableData>(id))!.columns).length;
   await cell(page, 0, 0).click();
@@ -462,7 +579,8 @@ test("a press in blank page space clears selection and page menu state", async (
   const firstBlank = await blankAreaBelowGrid(page);
   await page.mouse.click(firstBlank.x, firstBlank.y);
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Blank area commit");
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
 
   await cell(page, 0, 0).click();
   await rowButton(page, 0).click({ button: "right" });
@@ -470,7 +588,7 @@ test("a press in blank page space clears selection and page menu state", async (
   const blank = await blankAreaBelowGrid(page);
   await page.mouse.click(blank.x, blank.y);
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
   await h.set(id, "After menu close", "rows/r2/cells/c1");
   await expect(cell(page, 1, 0)).toHaveText("After menu close");
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
@@ -493,10 +611,10 @@ test("right-button presses on body and header cells keep the editor focused", as
   await editor(page).fill("Right-button draft");
   await cell(page, 1, 1).click({ button: "right" });
   await expect(editor(page)).toBeFocused();
-  await header(page, 1).click({ button: "right" });
+  await cell(page, 0, 1).click({ button: "right" });
   await expect(editor(page)).toBeFocused();
   await expect(editor(page)).toHaveValue("Right-button draft");
-  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -723,7 +841,7 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const rowsBeforeInsert = Object.keys((await h.read<TableData>(id))!.rows);
   const beforeRowInsert = writes().length;
   await rowMenu.getByText("Insert row below", { exact: true }).click();
-  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(7);
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(8);
   const insertedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeInsert.includes(key));
   expect(insertedRowKey).toBeDefined();
   expect(writes().slice(beforeRowInsert)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${insertedRowKey}` }));
@@ -732,21 +850,20 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const rowsBeforeAdd = Object.keys((await h.read<TableData>(id))!.rows);
   const beforeRowAdd = writes().length;
   await page.getByRole("button", { name: "Add row at end" }).click();
-  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(8);
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(9);
   const addedRowKey = Object.keys((await h.read<TableData>(id))!.rows).find(key => !rowsBeforeAdd.includes(key));
   expect(addedRowKey).toBeDefined();
   expect(writes().slice(beforeRowAdd)).toContainEqual(expect.objectContaining({ kind: "set", path: `rows/${addedRowKey}` }));
-  await expect(cell(page, 7, 0)).toBeFocused();
+  await expect(cell(page, 8, 0)).toBeFocused();
 
   await columnButton(page, "A").click();
   const beforeColumnClear = writes().length;
   await page.keyboard.press("Delete");
-  await expect.poll(() => h.read(id, "columns/c1/name")).toBe("Park");
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBeUndefined();
   await expect(columnButton(page, "A")).toHaveAttribute("aria-pressed", "true");
   const columnClear = writes().slice(beforeColumnClear).find(write => write.kind === "update");
   expect(updateKeys(columnClear!)).toEqual([
-    "rows/r1/cells/c1", "rows/r5/cells/c1", "rows/r6/cells/c1",
+    "rows/r1/cells/c1", "rows/r5/cells/c1", "rows/r6/cells/c1", "rows/r7/cells/c1",
   ]);
 
   await columnButton(page, "A").click({ button: "right" });
@@ -773,9 +890,19 @@ test("row and column selections clear, insert, add, delete and toggle through ca
 
   await columnButton(page, "A").click({ button: "right" });
   const columnMenu = page.getByRole("menu", { name: "Column actions" });
-  await columnMenu.getByText("Hide header row", { exact: true }).click();
-  await expect.poll(() => h.read(id, "showHeader")).toBe(false);
+  await expect(columnMenu.getByText(/header row/i)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await rowButton(page, 1).click({ button: "right" });
+  await expect(page.getByRole("menu", { name: "Row actions" }).getByText(/header row/i)).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await rowButton(page, 0).click({ button: "right" });
+  await page.getByRole("menu", { name: "Row actions" }).getByText("Remove header row", { exact: true }).click();
+  await expect.poll(() => h.read(id, "headerRow")).toBe(false);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
+  await rowButton(page, 0).click({ button: "right" });
+  await page.getByRole("menu", { name: "Row actions" }).getByText("Make header row", { exact: true }).click();
+  await expect.poll(() => h.read(id, "headerRow")).toBe(true);
+  await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
 
   await columnButton(page, "B").click({ button: "right" });
   await page.getByRole("menu", { name: "Column actions" }).getByText("Delete column", { exact: true }).click();
@@ -789,22 +916,35 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await expect.poll(() => h.read(id, "columns/c2")).toBeUndefined();
   await expect(columnButton(page, "B")).toHaveAttribute("aria-pressed", "true");
 
+  const firstRowBeforeInsert = Object.keys((await h.read<TableData>(id))!.rows);
+  await rowButton(page, 0).click({ button: "right" });
+  await page.getByRole("menu", { name: "Row actions" }).getByText("Insert row above", { exact: true }).click();
+  const insertedFirstRow = Object.keys((await h.read<TableData>(id))!.rows).find(key => !firstRowBeforeInsert.includes(key));
+  expect(insertedFirstRow).toBeDefined();
+  await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
+  await expect(cell(page, 0, 0)).toHaveText("");
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Delete row", { exact: true }).click();
-  await expect.poll(() => h.read(id, "rows/r1")).toBeUndefined();
+  await expect.poll(() => h.read(id, `rows/${insertedFirstRow}`)).toBeUndefined();
   await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
+  await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
 
   expect(await h.read(id, "extra")).toBe("root field");
   expect(await h.read(id, "columns/c4/extra")).toBe("column field");
   expect(await h.read(id, "rows/r6/extra")).toBe("row field");
 
   expect(writes().some(write => write.kind === "update" && write.path === "")).toBe(true);
-  expect(writes().some(write => write.kind === "set" && write.path === "showHeader")).toBe(true);
+  expect(writes().some(write => write.kind === "set" && write.path === "headerRow")).toBe(true);
   expect(writes().some(write => write.kind === "remove" && write.path === "columns/c2")).toBe(true);
-  expect(writes().some(write => write.kind === "remove" && write.path === "rows/r1")).toBe(true);
+  expect(writes().some(write => write.kind === "remove" && write.path === `rows/${insertedFirstRow}`)).toBe(true);
 
   await h.set(id, { columns: {}, rows: {} });
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  await rowButton(page, 0).click({ button: "right" });
+  await page.getByRole("menu", { name: "Row actions" }).getByText("Make header row", { exact: true }).click();
+  await expect.poll(() => h.read(id, "headerRow")).toBe(true);
+  expect(await h.read(id, "rows")).toEqual({});
+  await expect(page.getByRole("columnheader")).toHaveCount(4);
   await cell(page, 0, 0).click();
   const beforeDrawnAdd = writes().length;
   await page.getByRole("button", { name: "Add row at end" }).click();
@@ -825,7 +965,7 @@ test("menus preserve ranges, expose applicable actions and stay out of an active
   await rowButton(page, 1).click({ button: "right" });
   let menu = page.getByRole("menu", { name: "Row actions" });
   await expect(menu.locator("tv-menu-item")).toHaveText([
-    "Insert row above", "Insert row below", "Delete rows", "Hide header row",
+    "Insert row above", "Insert row below", "Delete rows",
   ]);
   await expect(menu.getByText("Delete rows", { exact: true }).locator(".." )).toHaveAttribute("intent", "danger");
   await expect(rowButton(page, 1)).toHaveAttribute("aria-pressed", "true");
@@ -833,11 +973,12 @@ test("menus preserve ranges, expose applicable actions and stay out of an active
   await page.keyboard.press("Escape");
   await expect(menu).toHaveCount(0);
 
-  await header(page, 2).click();
+  await cell(page, 0, 2).click();
   await page.keyboard.press("Shift+F10");
-  let keyboardMenu = page.getByRole("menu", { name: "Column actions" });
+  let keyboardMenu = page.getByRole("menu", { name: "Row actions" });
   await expect(keyboardMenu).toBeVisible();
   await expect(keyboardMenu.locator("tv-menu-item").first()).toBeFocused();
+  await expect(keyboardMenu.getByText("Remove header row", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await cell(page, 2, 1).click();
@@ -856,7 +997,7 @@ test("menus preserve ranges, expose applicable actions and stay out of an active
   await page.keyboard.press("Escape");
 
   await h.set(id, {
-    columns: { c1: { order: 1, name: "Only" } },
+    columns: { c1: { order: 1 } },
     rows: { r1: { order: 1, cells: { c1: "One" } } },
   });
   await expect(cell(page, 2, 0)).toBeVisible();
@@ -917,7 +1058,7 @@ test("a grid key returns focus to an editor stranded by another button press", a
   await page.keyboard.press("Backspace");
   await expect(editor(page)).toBeFocused();
   await expect(editor(page)).toHaveValue("Uncommitted draft");
-  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
 });
 
 // proofs/arch/templates/table.md#^templates-table-t-write-scope
@@ -1059,7 +1200,7 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await editor(page).fill("Local draft");
   await editor(page).evaluate((element: HTMLTextAreaElement) => element.setSelectionRange(5, 5));
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "columns/c1/name", '"Place"']);
-  await expect(header(page, 0)).toHaveText("Place");
+  await expect(cell(page, 0, 0)).toHaveText("Place");
   await expect(editor(page)).toBeFocused();
   await expect(editor(page)).toHaveValue("Local draft");
 
@@ -1110,7 +1251,7 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeRemoval);
 
-  await header(page, 1).click();
+  await cell(page, 0, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Header draft");
   const beforeHeaderHidden = writes().length;
@@ -1149,11 +1290,15 @@ test("an agent write preserves an empty selection and focused grid", async ({ pa
   await editor(page).press("Escape");
   await page.keyboard.press("Escape");
   await expect(grid(page)).toBeFocused();
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
 
   await h.set(id, "Agent update", "rows/r2/cells/c2");
   await expect(grid(page)).toBeFocused();
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(page.locator('[data-selection="cell"]')).toHaveCount(0);
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
   await page.keyboard.press("ArrowDown");
   await expect(cell(page, 0, 0)).toBeFocused();
 });

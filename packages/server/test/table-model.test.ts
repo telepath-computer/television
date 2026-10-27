@@ -111,7 +111,7 @@ describe("Table tolerant reading, stored sizes and order", () => {
     expect(value).toEqual(former);
   });
 
-  it("marks the first displayed row as the header, including when the first position is drawn", () => {
+  it("reads headerRow independently of whether rows are stored", () => {
     expect(readTable({ headerRow: true, columns: {}, rows: {} })).toEqual({ columns: [], rows: [], headerRow: true });
     const result = readTable({
       headerRow: true,
@@ -370,40 +370,40 @@ describe("Table write planning", () => {
   });
 
   it("plans stored, drawn, clamped and unchanged resizes", () => {
-    expect(planResize(table, "columns", 0, 140, 200, {})).toEqual(operations(
+    expect(planResize(table, "columns", 0, 140, 200, [])).toEqual(operations(
       set(["columns", "c1", "width"], 200),
     ));
-    expect(planResize(table, "rows", 0, 52, 80, {})).toEqual(operations(
+    expect(planResize(table, "rows", 0, 52, 80, [])).toEqual(operations(
       set(["rows", "r1", "height"], 80),
     ));
-    expect(planResize(table, "columns", 0, 140, 2, {})).toEqual(operations(
+    expect(planResize(table, "columns", 0, 140, 2, [])).toEqual(operations(
       set(["columns", "c1", "width"], 64),
     ));
-    expect(planResize(table, "rows", 0, 52, 999, {})).toEqual(operations(
+    expect(planResize(table, "rows", 0, 52, 999, [])).toEqual(operations(
       set(["rows", "r1", "height"], 240),
     ));
-    expect(planResize({ columns: { c1: { order: 0, width: 640 } }, rows: {} }, "columns", 0, 640, 900, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 640 } }, rows: {} }, "columns", 0, 640, 900, []))
       .toEqual(noWrite("unchanged"));
-    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 160, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 160, []))
       .toEqual(noWrite("unchanged"));
-    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 200, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 160, 200, []))
       .toEqual(operations(set(["columns", "c1", "width"], 200)));
-    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 300, 0, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 300 } }, rows: {} }, "columns", 0, 300, 0, []))
       .toEqual(operations(set(["columns", "c1", "width"], 64)));
-    expect(planResize({ columns: {}, rows: { r1: { order: 0, height: 80, cells: {} } } }, "rows", 0, 80, -10, {}))
+    expect(planResize({ columns: {}, rows: { r1: { order: 0, height: 80, cells: {} } } }, "rows", 0, 80, -10, []))
       .toEqual(operations(set(["rows", "r1", "height"], 28)));
-    expect(planResize({ columns: { c1: { order: 0, width: 200 } }, rows: {} }, "columns", 0, 200, Number.NaN, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 200 } }, rows: {} }, "columns", 0, 200, Number.NaN, []))
       .toEqual(noWrite("invalid-size"));
-    expect(planResize({ columns: { c1: { order: 0, width: 64 } }, rows: {} }, "columns", 0, 64, 54, {}))
+    expect(planResize({ columns: { c1: { order: 0, width: 64 } }, rows: {} }, "columns", 0, 64, 54, []))
       .toEqual(noWrite("unchanged"));
-    expect(planResize(table, "columns", 8, 160, 200, {})).toEqual(noWrite("invalid-target"));
-    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 200, { columns: ["same", "same"] }))
+    expect(planResize(table, "columns", 8, 160, 200, [])).toEqual(noWrite("invalid-target"));
+    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 200, ["same", "same"]))
       .toEqual(noWrite("invalid-keys"));
 
-    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 210, { columns: ["c1", "c2"] })).toEqual(operations(
+    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 210, ["c1", "c2"])).toEqual(operations(
       set(["columns", "c1"], { order: 0 }), set(["columns", "c2"], { order: 1, width: 210 }),
     ));
-    expect(planResize({ columns: {}, rows: {} }, "rows", 2, 38, 60, { rows: ["r1", "r2", "r3"] })).toEqual(operations(
+    expect(planResize({ columns: {}, rows: {} }, "rows", 2, 38, 60, ["r1", "r2", "r3"])).toEqual(operations(
       set(["rows", "r1"], { order: 0, cells: {} }), set(["rows", "r2"], { order: 1, cells: {} }),
       set(["rows", "r3"], { order: 2, cells: {}, height: 60 }),
     ));
@@ -411,7 +411,7 @@ describe("Table write planning", () => {
 
   it("carries a drawn size through renumbering and rejects missing resize keys", () => {
     const columnPlan = planResize({ columns: { last: { order: Number.MAX_VALUE } }, rows: {} },
-      "columns", 1, 160, 220, { columns: ["new-column"] });
+      "columns", 1, 160, 220, ["new-column"]);
     expect(columnPlan).toEqual(renumber("columns", {
       mode: "append", entries: [{ key: "new-column", value: { width: 220 } }],
     }));
@@ -423,11 +423,11 @@ describe("Table write planning", () => {
       "new-column": { order: 1, width: 220 },
     });
     expect(planResize({ columns: {}, rows: { last: { order: Number.MAX_VALUE, cells: {} } } },
-      "rows", 1, 38, 60, { rows: ["new-row"] })).toEqual(renumber("rows", {
+      "rows", 1, 38, 60, ["new-row"])).toEqual(renumber("rows", {
       mode: "append", entries: [{ key: "new-row", value: { cells: {}, height: 60 } }],
     }));
-    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 220, {})).toEqual(noWrite("missing-keys"));
-    expect(planResize(null, "columns", 0, 160, 220, {})).toEqual(noWrite("unreadable"));
+    expect(planResize({ columns: {}, rows: {} }, "columns", 1, 160, 220, [])).toEqual(noWrite("missing-keys"));
+    expect(planResize(null, "columns", 0, 160, 220, [])).toEqual(noWrite("unreadable"));
   });
 
   it("adds through drawn positions and inserts at the end, through drawn positions or between entries", () => {

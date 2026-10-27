@@ -26,7 +26,11 @@ This template makes an editable table that a person and an agent can change at t
 }
 ```
 
-`headerRow` is optional. Only `true` shows a header row; the header row is the first displayed row and remains an ordinary row, numbered 1. Agents put column titles in its `cells`. When the header row is on, keep that title row first when sorting, reordering, or inserting rows. Each entry in `columns` has a finite numeric `order` and may have a positive numeric `width`. `width` defaults to 160 pixels, and a positive finite value is clamped to 64–640 pixels for each column. An absent, zero, negative, non-finite, or non-number value uses that default. Each entry in `rows` has its own finite numeric `order`, a `cells` object, and may have a positive numeric `height`. `height` defaults to 38 pixels, and a positive finite value is clamped to 28–240 pixels for each row. An absent, zero, negative, non-finite, or non-number value uses that default. `cells` is an object keyed by column key, never an array. Empty cells are left out. Cell values may be strings, finite numbers, or booleans; other values appear blank.
+`headerRow` is optional. Only `true` shows a header row; the header row is the first displayed row and remains an ordinary row, numbered 1. Agents put column titles in its `cells`. When the header row is on, keep that title row first when sorting, reordering, or inserting rows.
+
+Each entry in `columns` has a finite numeric `order` and may have a positive numeric `width`. The default width is 160 pixels. A positive finite width is clamped to 64–640 pixels; an absent, zero, negative, non-finite, or non-number value uses the default.
+
+Each entry in `rows` has its own finite numeric `order`, a `cells` object, and may have a positive numeric `height`. The default height is 38 pixels. A positive finite height is clamped to 28–240 pixels; an absent, zero, negative, non-finite, or non-number value uses the default. `cells` is an object keyed by column key, never an array. Empty cells are left out. Cell values may be strings, finite numbers, or booleans; other values appear blank.
 
 Column and row keys are opaque IDs. Never derive a key from a title or cell value, and never reuse a deleted key. `push` is the normal way to add one row or column. When writing a whole table in one `set`, generate a fresh random key, such as a UUID, for every row and column.
 
@@ -52,7 +56,7 @@ For ordinary changes, update only the path you mean to change. Add a column with
 
 ```sh
 tv resource json push --artifact "$ARTIFACT_ID" columns '{"order":2}'
-tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" '1.5'
+tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" '0.5'
 tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/width" '200'
 ```
 
@@ -64,7 +68,7 @@ tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" '1.5'
 tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/height" '52'
 ```
 
-Write or clear one cell, and remove or make the header row treatment, with:
+Write or clear one cell, and turn the header row off or on, with:
 
 ```sh
 tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/cells/$COLUMN_KEY" '"Yosemite"'

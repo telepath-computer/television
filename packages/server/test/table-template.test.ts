@@ -87,15 +87,17 @@ describe("bundled Table package", () => {
     expect(prose).toMatch(/do not repair[^.]*without an order/i);
     expect(prose).toMatch(/number or boolean[\s\S]*writes[^.]*string/i);
     expect(prose).toMatch(/header row[^.]*first displayed row[^.]*ordinary row/i);
-    expect(prose).toMatch(/160[^.]*64[^.]*640[^.]*column/i);
-    expect(prose).toMatch(/38[^.]*28[^.]*240[^.]*row/i);
+    expect(prose).toMatch(/default width[^.]*160/i);
+    expect(prose).toMatch(/width[^.]*clamped[^.]*64[^.]*640/i);
+    expect(prose).toMatch(/default height[^.]*38/i);
+    expect(prose).toMatch(/height[^.]*clamped[^.]*28[^.]*240/i);
     expect(prose).toMatch(/zero[^.]*negative[^.]*non-number[^.]*default/i);
     expect(prose).toMatch(/person[^.]*editing[^.]*path-level/i);
     for (const command of [
       "export ARTIFACT_ID=<id>",
       'tv resource json set --artifact "$ARTIFACT_ID" \'{"headerRow":true,"columns":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":{"order":1,"width":200}},"rows":{"514c6a2b-1324-4d21-9810-595750df8493":{"order":1,"height":52,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Park"}},"d4999152-5c07-4c4b-9311-397e48033472":{"order":2,"cells":{"b57c9dd8-00d4-49c2-a382-e5cd6e45d935":"Yosemite"}}}}\'',
       'tv resource json push --artifact "$ARTIFACT_ID" columns \'{"order":2}\'',
-      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'1.5\'',
+      'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/order" \'0.5\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "columns/$COLUMN_KEY/width" \'200\'',
       'tv resource json push --artifact "$ARTIFACT_ID" rows \'{"order":3,"cells":{}}\'',
       'tv resource json set --artifact "$ARTIFACT_ID" "rows/$ROW_KEY/order" \'1.5\'',

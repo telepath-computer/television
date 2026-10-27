@@ -40,7 +40,7 @@ function clampSize(value, rules) {
   return Math.max(rules.minimum, Math.min(value, rules.maximum));
 }
 
-function clampedSize(value, rules) {
+function storedSize(value, rules) {
   if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return rules.defaultValue;
   return clampSize(value, rules);
 }
@@ -57,7 +57,7 @@ export function readTable(value) {
   const columns = orderedEntries(columnAxis).map(([key, column]) => ({
     key,
     order: column.order,
-    width: clampedSize(column.width, AXIS_SIZES.columns),
+    width: storedSize(column.width, AXIS_SIZES.columns),
   }));
   const displayedColumnKeys = new Set(columns.map(column => column.key));
   const rows = orderedEntries(rowAxis).map(([key, row]) => {
@@ -66,7 +66,7 @@ export function readTable(value) {
       const text = cellText(value);
       return displayedColumnKeys.has(columnKey) && text !== null ? [[columnKey, text]] : [];
     }));
-    return { key, order: row.order, height: clampedSize(row.height, AXIS_SIZES.rows), cells };
+    return { key, order: row.order, height: storedSize(row.height, AXIS_SIZES.rows), cells };
   });
   return { columns, rows, headerRow: root.headerRow === true };
 }
@@ -272,7 +272,7 @@ export function planResize(value, axis, targetIndex, openedSize, committedSize, 
   if (target.kind === "stored") return operations([set([axis, target.key, rules.field], size)]);
 
   const count = targetIndex - entries.length + 1;
-  const suppliedKeys = neededKeys(keys[axis], count);
+  const suppliedKeys = neededKeys(keys, count);
   if (suppliedKeys === null) return noWrite("missing-keys");
   if (new Set(suppliedKeys).size !== suppliedKeys.length) return noWrite("invalid-keys");
   const targetKey = suppliedKeys.at(-1);
@@ -287,10 +287,10 @@ export function planAdd(value, axis, keys) {
   if (state === null) return noWrite("unreadable");
   const entries = state.model[axis];
   const count = Math.max(0, MINIMUM_AXIS_SIZE - entries.length) + 1;
-  const selectedKeys = neededKeys(keys, count);
-  if (selectedKeys === null) return noWrite("missing-keys");
-  if (new Set(selectedKeys).size !== selectedKeys.length) return noWrite("invalid-keys");
-  const added = newAxisEntries(axis, entries, selectedKeys);
+  const newKeys = neededKeys(keys, count);
+  if (newKeys === null) return noWrite("missing-keys");
+  if (new Set(newKeys).size !== newKeys.length) return noWrite("invalid-keys");
+  const added = newAxisEntries(axis, entries, newKeys);
   if (added.kind === "renumber") return renumber(axis, added.request);
   return operations(added.entries.map(entry => set([axis, entry.key], entry.value)));
 }
@@ -306,11 +306,11 @@ export function planInsert(value, axis, selection, side, keys) {
   }
   const insertionIndex = side === "before" ? selection.start : selection.end + 1;
   const drawnBefore = Math.max(0, insertionIndex - entries.length);
-  const selectedKeys = neededKeys(keys, drawnBefore + 1);
-  if (selectedKeys === null) return noWrite("missing-keys");
-  if (new Set(selectedKeys).size !== selectedKeys.length) return noWrite("invalid-keys");
-  const drawnKeys = selectedKeys.slice(0, drawnBefore);
-  const newKey = selectedKeys.at(-1);
+  const newKeys = neededKeys(keys, drawnBefore + 1);
+  if (newKeys === null) return noWrite("missing-keys");
+  if (new Set(newKeys).size !== newKeys.length) return noWrite("invalid-keys");
+  const drawnKeys = newKeys.slice(0, drawnBefore);
+  const newKey = newKeys.at(-1);
   const storedSelectionKeys = displayed.slice(selection.start, selection.end + 1)
     .filter(item => item.kind === "stored").map(item => item.key);
 

@@ -87,10 +87,12 @@ textarea {
   background: var(--color-surface);
 }
 
+/* The covering bands start outside each strip's border, so the border stays
+   visible: an absolute child's 100% is the inner edge of that border. */
 .table-reference-corner::after,
 .table-column-strip::after {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 1px);
   right: 0;
   left: 0;
   height: var(--reference-gap);
@@ -104,7 +106,7 @@ textarea {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 100%;
+  left: calc(100% + 1px);
   width: var(--reference-gap);
   background: var(--color-surface);
   content: "";

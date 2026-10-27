@@ -139,7 +139,7 @@ export function planSetHeader(headerRow: boolean): TablePlanResult;
  * finite committed sizes clamp to the axis limits, while a non-finite size produces no write.
  */
 export function planResize(value: unknown, axis: "rows" | "columns", targetIndex: number,
-  openedSize: number, committedSize: number, keys: TableCommitKeys): TablePlanResult;
+  openedSize: number, committedSize: number, keys: string[]): TablePlanResult;
 
 /** Plans adding one row or column after storing every drawn position on that axis. */
 export function planAdd(value: unknown, axis: "rows" | "columns", keys: string[]): TablePlanResult;

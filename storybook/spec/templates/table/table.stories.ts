@@ -68,6 +68,12 @@ const firstColumns: Column[] = [{ key: "c1" }];
 const firstRows: Row[] = [{ key: "r1", cells: { c1: "Yosemite" } }];
 
 const columnAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const unavailableCadence = 4;
+const ratingBase = 4.2;
+const ratingCycle = 8;
+const seasonalAccessCadence = 3;
+const extraRowNumberWidth = 7;
+const scheduleColumnCount = 3;
 
 const scheduleRows: Row[] = [
   { key: "r1", cells: { c1: "Time", c2: "Plan", c3: "Starts" } },
@@ -98,11 +104,11 @@ const scrolledRows: Row[] = [
     cells: {
       c1: `Park ${index + 1}`,
       c2: index % 2 === 0 ? "California" : "Utah",
-      c3: index % 4 === 0 ? "No" : "Yes",
-      c4: (4.2 + (index % 8) / 10).toFixed(1),
+      c3: index % unavailableCadence === 0 ? "No" : "Yes",
+      c4: (ratingBase + (index % ratingCycle) / 10).toFixed(1),
       c5: index % 2 === 0 ? "West" : "Mountain",
       c6: `${index + 2}.${index % 10}m`,
-      c7: index % 3 === 0 ? "Seasonal access" : "",
+      c7: index % seasonalAccessCadence === 0 ? "Seasonal access" : "",
     },
   })),
 ];
@@ -193,7 +199,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
   const columnWidths = columns.map((column) => column.width ?? defaultColumnWidth);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(rows.length).length;
-  const rowReferenceWidth = referenceSize + Math.max(0, rowNumberDigits - 1) * 7;
+  const rowReferenceWidth = referenceSize + Math.max(0, rowNumberDigits - 1) * extraRowNumberWidth;
   const menuTrigger = menu === "row"
     ? selection?.kind === "row" ? selection.start : 0
     : selection?.kind === "column" ? selection.start : 0;
@@ -344,7 +350,7 @@ export default {
 export const Blank = { args: { columns: [], rows: [], headerRow: false } };
 export const PartiallyFilled = { name: "Partially filled", args: { columns: firstColumns, rows: firstRows, headerRow: false } };
 export const WithData = { name: "With data" };
-export const HeaderOff = { name: "Header row off", args: { columns: parkColumns.slice(0, 3), rows: scheduleRows, headerRow: false } };
+export const HeaderOff = { name: "Header row off", args: { columns: parkColumns.slice(0, scheduleColumnCount), rows: scheduleRows, headerRow: false } };
 export const Resized = { name: "Saved sizes", args: { columns: resizedColumns, rows: resizedRows } };
 export const Scrolled = { args: { columns: scrolledColumns, rows: scrolledRows }, play: poseScrolled };
 export const SelectedCell = { name: "Selected cell", args: { selection: { kind: "cell", row: 3, column: 1 } } };
