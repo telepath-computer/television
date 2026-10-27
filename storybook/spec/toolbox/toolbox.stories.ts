@@ -140,7 +140,7 @@ export const SuppliedIcons = { args: { items: [calendar, mailCompose].sort(byDis
 export const DefaultIcons = { args: { items: items.filter(item => !item.icon) } };
 // The failed request has settled; the tile now displays its default icon.
 export const FailedIcon = { args: { items: [{ id: calendar.id, name: calendar.name }] } };
-export const LongName = { args: { items: [calendar, { id: "long-name", name: "An item with a much longer name than usual" }].sort(byDiscoveryOrder) } };
+export const LongName = { args: { items: [calendar, { id: "long-name", name: "An item with a much longer name than usual" }, { id: "long-word", name: "Extraordinarilylongartifactname" }].sort(byDiscoveryOrder) } };
 export const WithErrors = { args: { invalid } };
 export const SearchWithErrors = { args: { search: "spreadsheet", items: [], invalid } };
 export const MultipleErrors = {

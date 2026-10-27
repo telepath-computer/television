@@ -48,7 +48,7 @@ const states: Record<string, State> = {
   "supplied-icons": { items: [calendar, mail] },
   "default-icons": { items: items.filter(item => !item.icon) },
   "failed-icon": { items: [calendar], failedIcon: true },
-  "long-name": { items: [{ id: "long-name", name: "An item with a much longer name than usual" }, calendar] },
+  "long-name": { items: [{ id: "long-name", name: "An item with a much longer name than usual" }, calendar, { id: "long-word", name: "Extraordinarilylongartifactname" }] },
   "with-errors": { errors: invalid },
   "search-with-errors": { query: "spreadsheet", errors: invalid },
   "multiple-errors": { errors: [...invalid, { folder: "weekly-review", error: "index.html is missing." }, { folder: "old-dashboard", error: "manifest.json is not valid JSON." }] },

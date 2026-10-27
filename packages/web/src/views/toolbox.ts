@@ -96,7 +96,8 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
     }
     const direction = ARROW_DIRECTIONS[event.key];
     if (!direction || this.#selection.matches.length === 0) return;
-    if ((direction === "left" || direction === "right") && this.#selection.highlighted === null) return;
+    const horizontal = direction === "left" || direction === "right";
+    if (horizontal && (this.#selection.highlighted === null || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing)) return;
     event.preventDefault();
     event.stopPropagation();
     this.#selection.move(direction);

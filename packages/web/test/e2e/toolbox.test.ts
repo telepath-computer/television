@@ -48,6 +48,22 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await search.fill("  ITEM 0  ");
   await expect(tiles).toHaveCount(10);
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  for (const modifier of ["shiftKey", "altKey", "metaKey", "ctrlKey"] as const) {
+    const claimed = await search.evaluate((input, modified) => {
+      const event = new KeyboardEvent("keydown", { key: "ArrowLeft", [modified]: true, bubbles: true, cancelable: true });
+      input.dispatchEvent(event);
+      return event.defaultPrevented;
+    }, modifier);
+    expect(claimed).toBe(false);
+    await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
+  }
+  const queryEnd = await search.evaluate((input: HTMLInputElement) => {
+    input.setSelectionRange(input.value.length, input.value.length);
+    return input.value.length;
+  });
+  await search.press("Shift+ArrowLeft");
+  expect(await search.evaluate((input: HTMLInputElement) => [input.selectionStart, input.selectionEnd])).toEqual([queryEnd - 1, queryEnd]);
+  await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowLeft");
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
   await search.press("ArrowRight");

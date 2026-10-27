@@ -112,7 +112,7 @@ const templates: Template[] = [
 ];
 
 export default {
-  title: "Experiments/2026-10/Templates popover",
+  title: "Experiments/2026-10/Templates popover alternatives",
   render,
   args: { open: true, search: "", templates, highlighted: null, invalid: [] } satisfies Args,
 };
