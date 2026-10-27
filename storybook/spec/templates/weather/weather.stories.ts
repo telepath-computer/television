@@ -468,4 +468,5 @@ export const Empty = { args: { state: "empty" } };
 export const SavedAfterFailure = { name: "Saved forecast after a failed refresh", args: { forecast: savedAfterFailure } };
 export const Unavailable = { name: "Forecast unavailable", args: { state: "unavailable" } };
 export const Unreadable = { args: { state: "unreadable" } };
+export const MinimumUnreadable = { name: "Unreadable at minimum size", ...sized("minimum"), args: { state: "unreadable" } };
 export const DarkAppearance = { name: "Dark appearance", args: { theme: "dark" } };

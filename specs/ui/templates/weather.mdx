@@ -43,7 +43,7 @@ Across this page, the stories show every condition, both designs for clear and p
 
 ## Attribution
 
-At the bottom trailing edge of every card, including placeholders, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every sky without competing with the weather, remains clear of the card content at every specified size, and has a visible keyboard-focus treatment. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
+At the bottom trailing edge of every card, including placeholders, a small line reads “Open-Meteo data · adapted · CC BY 4.0”. “Open-Meteo” links to the provider and “CC BY 4.0” links to the licence, each in a new tab. The line stays readable against every sky without competing with the weather, remains clear of the card content at every size down to 230×230 pixels, and has a visible keyboard-focus treatment. The unavailable and unreadable content also fits clear of the credit at that minimum size. “adapted” records the page's selection, condition mapping, labels, and rounded presentation of the source data.
 
 ## Size
 
@@ -65,7 +65,7 @@ This state has no daily entry for the current date, so it keeps the current summ
 
 <Artifact><Canvas of={Stories.NoCurrentDay} /></Artifact>
 
-At least 600 pixels wide and 480 pixels high, the medium layout adds a translucent hourly panel for the [hourly display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-hourly-window), independently of the daily window. It leaves out that panel when no saved entries remain after “Now”. Requiring both dimensions is intentional: a wide artifact below 480 pixels high keeps the balanced current-only layout instead of squeezing in a short forecast panel. The first cell is labelled “Now” and uses `temperature`, `condition`, and `isDay` from `current`. The following cells use the retained hourly entries. The window and labels update within one minute after the clock changes which entries or labels should appear. The strip scrolls horizontally when all entries do not fit.
+At least 600 pixels wide and 480 pixels high, the medium layout adds a translucent hourly panel for the [hourly display window](../../arch/templates/weather.md#^bundled-artifact-template-weather-hourly-window), independently of the daily window. It leaves out that panel when no entries from the shown forecast remain after “Now”. Requiring both dimensions is intentional: a wide artifact below 480 pixels high keeps the balanced current-only layout instead of squeezing in a short forecast panel. The first cell is labelled “Now” and uses `temperature`, `condition`, and `isDay` from `current`. The following cells use the retained hourly entries. The window and labels update within one minute after the clock changes which entries or labels should appear. The strip scrolls horizontally when all entries do not fit.
 
 <Artifact width="700px"><Canvas of={Stories.Medium} /></Artifact>
 
@@ -81,39 +81,43 @@ The hourly strip is named “Hourly forecast; scroll for later hours” and can 
 
 ## Opening and an empty location
 
-Before the first store value arrives, the card keeps a quiet blue sky and shows a compact loading state. It is a status region named “Loading weather”. A configured location with no compatible saved forecast keeps that state while its first request is in progress.
+Before the first store value arrives, the card keeps a quiet blue sky and shows a compact loading state. It is a status region named “Loading weather”. A configured location with no compatible saved forecast keeps that state while it waits for weather.
 
 <Artifact><Canvas of={Stories.Loading} /></Artifact>
 
-A new Weather artifact starts with an empty object and makes no forecast request. It shows a calm sky, a partly cloudy glyph, “No location yet”, and “Ask your agent to choose a place for this weather card.” The same state appears when the store has no value.
+A new Weather artifact starts with an empty object. It shows a calm sky, a partly cloudy glyph, “No location yet”, and “Ask your agent to choose a place for this weather card.” The same state appears when the store has no value.
 
 <Artifact><Canvas of={Stories.Empty} /></Artifact>
 
 ## Fetching, saved weather, and failure
 
-The page follows the [request cadence and mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-request). A compatible saved forecast appears immediately. A forecast fetched fewer than 15 minutes ago remains without an opening refresh until the rest of that interval passes; an older one appears while the page refreshes it. A successful response updates the sky, conditions, panels, age, and current high and low together.
+The architecture spec owns the [request cadence and mapping](../../arch/templates/weather.md#^bundled-artifact-template-weather-request). A compatible saved forecast appears immediately. When an update succeeds, the sky, conditions, panels, age, and current high and low update together.
 
 When a refresh fails after the page has weather to show, the card keeps that weather and adds no failure message. The unchanged “Updated” age makes its freshness honest. This story represents a failed refresh using an older saved forecast.
 
 <Artifact><Canvas of={Stories.SavedAfterFailure} /></Artifact>
 
-When the first request fails and there is no compatible forecast, the loading state becomes a status region with a warning icon, “Forecast unavailable”, and “Weather couldn't be updated. It will try again soon.” A scheduled retry or relevant store change returns to loading, and a successful response restores the forecast.
+When an attempt fails and there is no compatible forecast, the loading state becomes a status region with a warning icon, “Forecast unavailable”, and “Weather couldn't be updated. It will try again soon.” A later attempt returns to loading, and a successful response restores the forecast.
 
 <Artifact><Canvas of={Stories.Unavailable} /></Artifact>
 
 ## Changes, access, and disconnection
 
-When a person or agent changes either coordinate or the units, the page requests again. A saved forecast for different coordinates or units is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units without making a request.
+When a person or agent changes either coordinate or the units, a forecast for the previous values is not shown. Changing only the place name updates that label and keeps the forecast for the same coordinates and units.
 
-A page with write access saves each successful forecast. A read-only share looks and behaves like any other Weather page, fetches for itself, and does not save its result. While the page cannot reach the Television server or its share access has been revoked, it keeps showing and refreshing the last readable location in memory. When the Television connection returns, the page catches up by itself. If the first store result had not arrived before the connection was lost or access was revoked, it keeps showing loading.
+A page with write access saves each successful forecast. A read-only share looks and behaves like any other Weather page but does not save its result. An ordinary Television disconnection keeps the last readable location and shown forecast, and provider refreshes continue in memory while the document remains visible. Once `onAccessChanged(null)` reports revocation, the page stops new Open-Meteo requests and keeps showing the forecast already shown. When the Television connection returns after an ordinary disconnection, the page catches up by itself. If the first store result had not arrived before the connection was lost or access was revoked, it keeps showing loading.
 
 ## Data the page cannot read
 
-A person or agent can write incomplete location data that breaks the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never rewrites configuration it cannot read. A saved forecast that fails its schema or page checks, or belongs to different coordinates or units, is instead ignored and replaced on the next successful save as the store contract describes.
+A person or agent can write incomplete location data that breaks the [store contract](../../arch/templates/weather.md#^bundled-artifact-template-weather-store). The page never writes `place`, `latitude`, `longitude`, or `units`. A saved forecast that fails its schema or page checks, or belongs to different coordinates or units, is instead ignored and replaced on the next successful save as the store contract describes.
 
-Any value other than the empty object or one configured location replaces the forecast with an alert: a warning icon in a softly ruled circle, “This forecast can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” The same alert appears when the server reports the store's saved data unavailable. Once the value is fixed, the page fetches and the forecast returns without reopening the page.
+Any value other than the empty object or one configured location replaces the forecast with an alert: a warning icon in a softly ruled circle, “This forecast can't be shown”, and “Its saved data isn't in the form this page reads. Ask your agent to check it.” The same alert appears when the server reports the store's saved data unavailable. Once the value is fixed, the card leaves the alert and weather can return without reopening the page.
 
 <Artifact><Canvas of={Stories.Unreadable} /></Artifact>
+
+This story places the longer unreadable copy and the credit at the minimum artifact size.
+
+<Artifact width="230px"><Canvas of={Stories.MinimumUnreadable} /></Artifact>
 
 ## Icon
 
@@ -126,5 +130,3 @@ The sky communicates the weather and time of day, so the active theme and light 
 This dark-appearance story is otherwise the same clear daylight card as the first story.
 
 <Artifact><Canvas of={Stories.DarkAppearance} /></Artifact>
-
-The spec-story renderer uses deterministic normalized forecasts and makes no Open-Meteo request. Network behavior belongs to the architecture spec's [testing guidance](../../arch/templates/weather.md#testing-guidance).

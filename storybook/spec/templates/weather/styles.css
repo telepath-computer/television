@@ -586,6 +586,32 @@ body {
   outline-offset: 2px;
 }
 
+@media (max-width: 280px), (max-height: 280px) {
+  .weather-error {
+    padding: var(--space-12) var(--space-12) var(--space-32);
+  }
+
+  .weather-error .weather-placeholder-icon {
+    width: 44px;
+    height: 44px;
+    flex: none;
+  }
+
+  .weather-error h1 {
+    max-width: 180px;
+    margin-top: var(--space-6);
+    font-size: 16px;
+    line-height: 1.15;
+  }
+
+  .weather-error p {
+    max-width: 180px;
+    margin-top: var(--space-4);
+    font-size: var(--text-sm);
+    line-height: 1.25;
+  }
+}
+
 @media (min-width: 600px) and (min-height: 480px) {
   .weather-page { padding: var(--space-16); }
 
