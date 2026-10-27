@@ -3,7 +3,7 @@ import { conform } from "@telepath-computer/conform";
 import type { StorybookSource } from "@telepath-computer/conform/storybook";
 import { test, expect } from "@playwright/test";
 import type { ArtifactTemplateScan } from "@telepath-computer/television-shared";
-import { specStories, storybook } from "./conformance-harness.ts";
+import { specDocs, specStories, storybook } from "./conformance-harness.ts";
 
 // Use Conform's Playwright peer for capture; the runner uses the root toolchain.
 let browser: Browser;
@@ -48,7 +48,7 @@ const states: Record<string, State> = {
   "supplied-icons": { items: [calendar, mail] },
   "default-icons": { items: items.filter(item => !item.icon) },
   "failed-icon": { items: [calendar], failedIcon: true },
-  "long-name": { items: [{ id: "long-name", name: "An item with a much longer name than usual" }, calendar] },
+  "long-name": { items: [{ id: "long-name", name: "An item with a much longer name than usual" }, calendar, { id: "long-word", name: "Extraordinarilylongartifactname" }] },
   "with-errors": { errors: invalid },
   "search-with-errors": { query: "spreadsheet", errors: invalid },
   "multiple-errors": { errors: [...invalid, { folder: "weekly-review", error: "index.html is missing." }, { folder: "old-dashboard", error: "manifest.json is not valid JSON." }] },
@@ -81,7 +81,7 @@ async function prepare(page: Page, state: State): Promise<void> {
   const search = page.getByRole("combobox", { name: "Search toolbox" });
   await page.locator(".toolbox-search input:focus").waitFor();
   if (state.query) await search.pressSequentially(state.query);
-  if (state.highlight) await page.getByRole("option").nth(1).hover();
+  if (state.highlight) await page.getByRole("gridcell").nth(1).hover();
   else await page.mouse.move(0, 0);
   if (state.pressed) await page.mouse.down();
   if (state.failedIcon) await page.locator(".toolbox-letter").filter({ hasText: "C" }).waitFor();
@@ -107,7 +107,8 @@ for (const id of stories) {
   });
 }
 
-test("Toolbox documentation renders its MDX and all embedded stories", async () => {
+test("Toolbox has one docs entry rendering its MDX and all embedded stories", async () => {
+  expect(specDocs("toolbox")).toEqual(["spec-toolbox--docs"]);
   const page = await browser.newPage();
   try {
     const errors: string[] = [];

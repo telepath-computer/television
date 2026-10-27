@@ -2,7 +2,7 @@
 
 > Historical record of the copy-based template implementation. The October 22 linked-template and Toolbox draft supersedes its creation, starting-data, icon, and UI assumptions; the validation below applies only to the earlier implementation. [The updated proposal](templates-proposal.md) records the new decisions. Proofs, implementation, tests, and production Storybook conformance for those decisions remain follow-up work.
 
-Working record for the artifact templates change on `feat/artifact-templates`. The work was developed on a private branch and moved here as one change on October 16, 2026; the revisions named below are on that private branch. The intent is `docs/working/templates-proposal.md`; the authority is the specs it was derived into, plus the Templates popover's UI spec pilot in `storybook/spec/templates-popover/`.
+Working record for the artifact templates change on `feat/artifact-templates`. The work was developed on a private branch and moved here as one change on October 16, 2026; the revisions named below are on that private branch. The intent is `docs/working/templates-proposal.md`; the authority is the specs it was derived into, including the current [Toolbox UI spec](../../specs/ui/app/toolbox.mdx).
 
 ## Settled
 

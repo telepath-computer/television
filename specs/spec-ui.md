@@ -25,6 +25,10 @@ A UI spec is an MDX file under `specs/ui/`, one per surface. It is written like 
 
 What binds in a story is what it looks like in the state its args, globals, parameters and `play` function set up, including the state of its controls, such as a ticked box or the text in a field. Its markup does not bind: production can use different elements and attributes as long as it looks the same. Where something that does not show matters, such as a role or an accessible name, the prose names it. A spec story's `play` function sets up its state deterministically, so the story always ends in the same state. Anything else about a surface binds only where the prose says so. ^ui-story-output
 
+## Experiments
+
+Experiments carry no spec authority; stories a spec needs live in `storybook/spec/`. An active experiment lives at `storybook/experiments/<name>/`; when it finishes, move it under `storybook/experiments/<YYYY-MM>/<name>/` for its finishing month. Its title is `Experiments/<Name>` while active and `Experiments/<YYYY-MM>/<Name>` when finished; `<Name>` is any descriptive name and need not match the folder. Neither the folder nor title uses an outcome category such as `Rejected`.
+
 ## Conformance
 
 Production is checked against each state by conform (`@telepath-computer/conform`), which compares what two pages look like in Chromium and reports every difference. ^ui-conformance

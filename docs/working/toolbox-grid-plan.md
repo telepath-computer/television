@@ -1,0 +1,31 @@
+# Toolbox grid plan
+
+This document records the decisions and open questions for moving the approved Toolbox grid from the Storybook experiment into the UI spec, spec stories, production, and tests. The specification edits remain drafts until Rupert reviews them.
+
+## Decisions supplied by the design
+
+- Use the three-column grid and the `toolbox` title and search copy from the experiment, not the `list` layout or `saved` copy variant. Retain the existing footer copy recorded below instead of the experimental footer copy.
+- Use the stated panel, tile, icon, text, footer, scrolling, pointer, activation, and keyboard behavior.
+- Keep every existing story and state, every behavior not changed by the grid, and the exact copy “Toolbox”, “Search toolbox…” and “Saved artifacts, ready to reuse anywhere. Ask your agent to add one.”
+- Use dated October 2026 folders for every finished experiment named in the task. Storybook has no `Rejected` category.
+
+## Decisions completed during derivation
+
+- Use a combobox controlling a single-select grid. The input remains the only DOM focus target and carries `role="combobox"`, `aria-haspopup="grid"`, `aria-autocomplete="list"`, `aria-expanded`, `aria-controls`, and `aria-activedescendant` as applicable. The popup is a named `grid`; each visual row is a `row`; each tile is a named, selected or unselected `gridcell`. Toolbox defines its own keyboard behavior.
+- Group cells into semantic rows of three. The final row has one or two cells when the result count is not divisible by three; it has no placeholder cells.
+- Up with no highlight leaves the highlight clear. Only unmodified Up and Down are claimed as grid-navigation keys while the grid is present. Unmodified Left and Right are claimed only after a tile is highlighted; modified arrows, horizontal arrows with no highlight, and every arrow during input-method composition retain normal text-field behavior. An unmodified arrow at a first or last endpoint is still claimed.
+- Return during input-method composition stays with the search field and does not activate the highlighted tile.
+- Calculate keyboard movement over the filtered items in discovery order. Down from a tile with no cell directly below moves to the final filtered tile, including when the highlighted tile is already last.
+- Keep empty and error content in the existing plain text layouts instead of forcing those states into cells. Keep the 16px warning icon centred in its existing 20px slot beside the message.
+- Make the footer the sticky last child of the scrolling body. Its place in the scrolling content lets the final row move fully above it without a measured-height variable, scrolling over it scrolls the grid, and its top rule reaches the scroll bar without covering the bar while preserving the floating translucent appearance.
+- Use real `row` wrappers, each containing a three-column CSS grid. This avoids relying on `display: contents` for accessibility semantics.
+- Keep the historical Templates popover alternatives under `2026-10/templates-popover-alternatives`; neither its folder nor Storybook title uses an outcome category.
+- Delete the empty Templates popover pilot placeholder because it declares no stories and nothing references it.
+- A visual review rendered the Checklist, Calendar, Sticky note, and experimental Table icons in the 28-pixel Toolbox slot on light and dark backgrounds. Each icon remains clear: the Checklist marks, Calendar date, Sticky note writing and fold, and Table cells are distinguishable.
+- The input-method tests use the Chromium DevTools protocol and a synthetic `keyCode` 229 event for the WebKit guard. They do not cover real Safari composition behavior or key delivery from an operating-system input method.
+
+## Open questions
+
+1. **Should Left and Right navigate after search highlights the first match?** A non-empty matching search highlights the first tile, so unmodified Left and Right immediately navigate the results in reading order; they stop at the endpoints. Modified Left and Right, including Shift, Option/Alt, Command or Control, retain normal text-field behavior. Recommendation: keep this rule because the visible highlight consistently identifies the next action, while modifiers preserve text selection and larger cursor movements.
+2. **Should Up from the top row clear the highlight?** Recommendation: keep this rule because it gives the input an explicit route back to ordinary unmodified Left and Right cursor movement without clearing the query.
+3. **Should Down without a tile directly below move to the last tile?** Recommendation: keep this rule because every column reaches the final available result rather than stopping above a short last row.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <title>POI detail</title>
+  <ellipse cx="10" cy="17.25" rx="5.5" ry="1.75" fill="#b9d7e3"/>
+  <path d="M16.5 7.5c0 4.5-6.5 10-6.5 10s-6.5-5.5-6.5-10a6.5 6.5 0 0 1 13 0Z" fill="#ef6464"/>
+  <path d="M10 1a6.5 6.5 0 0 1 6.5 6.5c0 4.5-6.5 10-6.5 10s4-6 4-10A6.8 6.8 0 0 0 10 1Z" fill="#d94b58"/>
+  <circle cx="10" cy="7.5" r="2.75" fill="#fff5ec"/>
+</svg>

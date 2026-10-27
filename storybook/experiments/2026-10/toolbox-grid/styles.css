@@ -1,0 +1,176 @@
+/* Experiment: the Toolbox as a grid of icons with names below, like
+   Launchpad on macOS. Shared foundation styles draw the panel and trigger. */
+.tg-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 272px;
+  max-width: calc(100vw - 2 * var(--popover-distance));
+  max-height: 480px;
+  padding: var(--space-8) var(--space-8) 0;
+  overflow: hidden;
+}
+
+.tg-search {
+  position: relative;
+  display: block;
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.tg-search tv-icon {
+  position: absolute;
+  left: var(--space-8);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.tg-search input {
+  width: 100%;
+  padding: var(--control-padding);
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  border: 0;
+  background: var(--neutral-alpha-10);
+  box-shadow: none;
+}
+
+.tg-search input:focus,
+.tg-search input:focus-visible {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.tg-body {
+  min-height: 0;
+  overflow-y: auto;
+  /* Room at the end for the footer, which floats over the bottom of the
+     grid so tiles scroll under it. */
+  padding: var(--space-6) 0 64px;
+}
+
+.tg-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  /* Gaps between tiles, taken from the tiles' own padding, so the spacing
+     is unchanged and the hover highlight stops short of its neighbours. */
+  gap: var(--space-6);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tg-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: calc(var(--space-12) - var(--space-6) / 2) var(--space-2);
+  border-radius: var(--control-radius);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tg-tile[data-highlighted],
+.tg-tile:hover {
+  background: var(--option-background-highlighted);
+}
+
+.tg-tile:active {
+  background: var(--option-background-active);
+}
+
+.tg-icon {
+  display: block;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+.tg-letter {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+/* Up to two lines, centred under the icon. */
+.tg-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+
+.tg-empty {
+  margin: 0;
+  padding: var(--space-6) var(--space-8);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* A translucent, blurred bar over the bottom of the grid, like the bars in
+   macOS windows: tiles scroll under it and show through, softened. */
+.tg-footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: var(--space-8) var(--space-16);
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--panel-background) 72%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* The alternative: the current Toolbox list, with bigger rows and icons. */
+.tg-list-popover[open] {
+  width: 272px;
+}
+
+.tg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tg-list .tg-tile {
+  flex-direction: row;
+  gap: var(--space-12);
+  /* 2px on the left puts the 24px icon's centre under the search icon's. */
+  padding: var(--space-8) var(--space-8) var(--space-8) 2px;
+}
+
+.tg-list .tg-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.tg-list .tg-letter {
+  font-size: 12px;
+}
+
+.tg-list .tg-name {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: start;
+  font-size: var(--text-base);
+}

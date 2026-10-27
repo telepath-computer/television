@@ -24,7 +24,7 @@ import { isSemanticVersion } from "./themes.ts";
 const MAX_SLUG_LENGTH = 60;
 const SUFFIX_RADIX = 36;
 const SUFFIX_LENGTH = 5;
-const ICON_TARGET_SIZE = 40;
+const ICON_TARGET_SIZE = 56;
 const ICON_RANK = { scalable: 0, sufficient: 1, undersized: 2, unsized: 3 } as const;
 const PNG_HEADER_LENGTH = 24;
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
