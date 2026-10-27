@@ -65,7 +65,6 @@ const LIST_ITEM_LINE_CLASS = "cm-md-list-item";
 const LIST_MARKER_LINE_CLASS = "cm-md-list-marker-line";
 const LIST_BULLET_LINE_CLASS = "cm-md-list-bullet";
 const LIST_PREFIX_CLASS = "cm-md-list-prefix";
-const LIST_BODY_CLASS = "cm-md-list-body";
 const LIST_PREFIX_SPACE_CLASS = "cm-md-list-prefix-space";
 const BLOCKQUOTE_LINE_CLASS = "cm-md-blockquote-line";
 const FENCED_LINE_CLASS = "cm-md-fenced-line";
@@ -77,9 +76,10 @@ const LINK_CLASS = "cm-md-link";
 const TAG_CLASS = "cm-md-tag";
 const LIST_INDENT_SOURCE_CLASS = "cm-md-list-indent-source";
 const LIST_INDENT_COLUMN_WIDTH = "0.62em";
-// Source markers render at 0.9em in the platform monospace font. This is that
-// font's effective source-column advance at the marker size. Keeping it in one
-// value lets line padding and marker-prefix width use identical geometry.
+// Source markers render at 0.9em in the platform monospace font. This deliberate
+// upper bound for one marker column keeps every fallback font inside the space
+// reserved for it. Keeping it in one value gives source and rendered markers
+// identical hanging-indent geometry.
 const LIST_PREFIX_COLUMN_WIDTH = "0.588em";
 
 // Hidden state: chars vanish from rendered DOM via empty-widget replace.
@@ -90,7 +90,6 @@ const markerMark = Decoration.mark({ class: MARK_CLASS });
 const listIndentSourceMark = Decoration.mark({ class: LIST_INDENT_SOURCE_CLASS });
 const listPrefixMark = Decoration.mark({ class: LIST_PREFIX_CLASS });
 const listPrefixSpaceMark = Decoration.mark({ class: LIST_PREFIX_SPACE_CLASS });
-const listBodyMark = Decoration.mark({ class: LIST_BODY_CLASS });
 const inlineCodeMark = Decoration.mark({ class: INLINE_CODE_CLASS });
 const listBulletLineDeco = Decoration.line({ class: LIST_BULLET_LINE_CLASS });
 const blockquoteLineDeco = Decoration.line({ class: BLOCKQUOTE_LINE_CLASS });
@@ -260,6 +259,7 @@ interface VisibleRange {
 interface ListLineState {
   indentColumns: number;
   prefixColumns: number;
+  quoteColumns: number;
   prefixRevealed: boolean;
   markerLine: boolean;
 }
@@ -437,7 +437,8 @@ function listItemLineDecoration(state: ListLineState): Decoration {
       style: [
         `--cm-md-list-indent: ${state.indentColumns}`,
         `--cm-md-list-prefix-columns: ${state.prefixColumns}`,
-        `--cm-md-list-prefix-pull-indent: ${state.prefixRevealed ? state.indentColumns : 0}`,
+        `--cm-md-list-source-indent: ${state.prefixRevealed ? state.indentColumns : 0}`,
+        `--cm-md-list-source-quote: ${state.prefixRevealed ? state.quoteColumns : 0}`,
       ].join("; ") + ";",
     },
   });
@@ -476,8 +477,9 @@ function pushLineRange(
  * The recorded indent comes from the marker's source column. Ancestor
  * ListItems also see nested item lines as whitespace-starting lines, so
  * the map keeps the deepest/largest indent recorded for each rendered line.
- * Marker lines additionally record whether their source prefix is revealed;
- * in that state the literal source whitespace carries nesting by itself.
+ * Padding always carries the nesting and marker widths. Marker lines also
+ * record whether their source prefix is revealed so that prefix can be pulled
+ * back over the same reserved space without moving the body or wrapped rows.
  */
 function emitListItemLineRanges(
   state: EditorState,
@@ -485,6 +487,7 @@ function emitListItemLineRanges(
   lineStates: Map<number, ListLineState>,
   prefixRevealed: boolean,
   prefixColumns: number,
+  quoteColumns: number,
 ): void {
   const listMark = findChild(item, "ListMark");
   const markerLineStart = state.doc.lineAt(
@@ -501,6 +504,7 @@ function emitListItemLineRanges(
       const nextState = {
         indentColumns: markerIndent,
         prefixColumns: isMarkerLine ? prefixColumns : 0,
+        quoteColumns: isMarkerLine ? quoteColumns : 0,
         prefixRevealed: isMarkerLine && prefixRevealed,
         markerLine: isMarkerLine,
       };
@@ -510,6 +514,7 @@ function emitListItemLineRanges(
         lineStates.set(line.from, {
           ...existing,
           prefixColumns: nextState.prefixColumns,
+          quoteColumns: nextState.quoteColumns,
           prefixRevealed: existing.prefixRevealed || nextState.prefixRevealed,
           markerLine: true,
         });
@@ -707,23 +712,28 @@ function computeDecorations(
           const isOrdered = node.node.parent?.name === "OrderedList";
           let prefixRevealed = false;
           let prefixColumns = 0;
+          let quoteColumns = 0;
           if (listMark) {
             const range = taskMarker
               ? taskPrefixRange(state, node.node, taskMarker)
               : markerLinePrefixRange(state, listMark);
             prefixRevealed = selectionTouchesRange(selFrom, selTo, range.from, range.to);
             prefixColumns = indentationColumns(state, listMark.from, range.to);
+            quoteColumns = Math.max(
+              0,
+              indentationColumns(state, range.from, listMark.from) -
+                listIndentationColumns(state, listMark),
+            );
 
-            // Reserve the source prefix's actual column count on the line,
-            // then pull this inline prefix back into that padding. The body
-            // remains inline, so CodeMirror retains a separate text rectangle
-            // for every wrapped visual row. Outer decorations keep nested
-            // inline marks inside these spans without changing those boxes.
-            outerRanges.push(listPrefixMark.range(listMark.from, range.to));
-            const markerLine = state.doc.lineAt(listMark.from);
-            if (range.to < markerLine.to) {
-              outerRanges.push(listBodyMark.range(range.to, markerLine.to));
-            }
+            // Keep the hidden marker box limited to the marker itself. When
+            // source is visible, start the box at the first source column so
+            // nesting and `> ` remain in source order as the whole prefix is
+            // pulled into the reserved line padding. The body stays inline,
+            // preserving one CodeMirror rectangle per wrapped visual row.
+            outerRanges.push(listPrefixMark.range(
+              prefixRevealed ? range.from : listMark.from,
+              range.to,
+            ));
           }
           emitListItemLineRanges(
             state,
@@ -731,14 +741,14 @@ function computeDecorations(
             listLineStates,
             prefixRevealed,
             prefixColumns,
+            quoteColumns,
           );
           // Unordered, non-task items get a `•` bullet rendered via
           // CSS — gated on the same caret-proximity-to-marker condition
           // as the ListMark hide above, so source indentation/`- ` and
-          // visual `•` never overlap. Padding-left on `cm-md-list-item`
-          // carries the source nesting column only while the source
-          // prefix is hidden, so revealed source whitespace and rendered
-          // nesting do not stack.
+          // visual `•` never overlap. The line padding always reserves the
+          // nesting and marker widths; a revealed prefix is pulled back over
+          // that same space so neither the marker nor the body jumps.
           if (!isTask && !isOrdered && listMark && !prefixRevealed) {
             const firstLine = state.doc.lineAt(node.from);
             bulletLines.add(firstLine.from);
@@ -746,10 +756,9 @@ function computeDecorations(
         } else if (node.name === "Blockquote") {
           // Per-line emit of the border + padding decoration. With the
           // hide implemented as `Decoration.replace`, the source `> ` is
-          // gone from layout when caret is off and present at full width
-          // when on; padding-left alone keeps wrap continuation aligned
-          // with the marker column in either state. No separate source
-          // class needed.
+          // gone from layout when the caret is off. On a revealed list line,
+          // the list prefix box includes and pulls back the visible quote
+          // columns so the marker and wrapped body stay fixed.
           pushLineRange(state, node.from, node.to, blockquoteLineDeco, ranges);
         } else if (node.name === "ATXHeading1") {
           // Line-level decoration so the size lives on `.cm-line`, not
@@ -893,6 +902,9 @@ function computeDecorations(
               widget: new TaskCheckboxWidget(checked, node.from, node.to),
             });
             ranges.push(widget.range(node.from, node.to));
+            if (node.to < markerRange.to) {
+              ranges.push(hiddenReplace.range(node.to, markerRange.to));
+            }
           } else {
             // Raw mode: indentation, leading `- ` and `[ ]` are visible
             // source. The visible indentation uses the mono source-indent
@@ -1047,43 +1059,45 @@ const renderingTheme = EditorView.theme({
     paddingLeft: `calc(0.5rem + var(--cm-md-list-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH} + var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
   },
   // The prefix is an inline box pulled into the reserved line padding. Its
-  // width and the line's hanging indent come from the same source-column
-  // count, so `- `, `-   `, `1. `, `10. `, and task prefixes all reserve
-  // their actual widths. When literal nesting whitespace is visible, the
-  // pull also cancels the line's nesting reserve; otherwise that reserve
-  // positions the rendered marker. Keep the body inline: a flex body creates
-  // one tall rectangle for all wrapped rows and breaks CodeMirror's Home,
-  // ArrowDown, and left-edge click hit-testing. Negative `text-indent` has
-  // the same coordinate-mapping problem and must not be used here.
+  // marker width comes from the source-column count, so `- `, `-   `, `1. `,
+  // `10. `, and task prefixes reserve their actual widths. A revealed prefix
+  // starts at the line's first visible source and additionally spans nesting
+  // and blockquote columns; pulling that complete box back keeps source order,
+  // marker position, body position, and wrapped rows stable. Keep the body
+  // inline: a flex body creates one tall rectangle for all wrapped rows and
+  // breaks CodeMirror's Home, ArrowDown, and left-edge click hit-testing.
+  // Negative `text-indent` has the same coordinate-mapping problem and must
+  // not be used here.
   [`.${LIST_PREFIX_CLASS}`]: {
     display: "inline-block",
-    width: `calc(var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
-    marginLeft: `calc(-1 * (var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-prefix-pull-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH}))`,
+    width: `calc((var(--cm-md-list-prefix-columns, 0) + var(--cm-md-list-source-quote, 0)) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-source-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH})`,
+    marginLeft: `calc(-1 * ((var(--cm-md-list-prefix-columns, 0) + var(--cm-md-list-source-quote, 0)) * ${LIST_PREFIX_COLUMN_WIDTH} + var(--cm-md-list-source-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH}))`,
     whiteSpace: "pre",
     fontFamily: "var(--font-mono)",
   },
-  [`.${LIST_BODY_CLASS}`]: {
-    display: "inline",
+  // In checkbox mode the wrapper only supplies horizontal geometry. Removing
+  // its box leaves the 32px checkbox in the same inline formatting context it
+  // had before prefix wrappers were introduced, preserving the old row height.
+  [`.${LIST_PREFIX_CLASS}:has(.${TASK_CHECKBOX_CLASS})`]: {
+    display: "contents",
+  },
+  [`.${LIST_PREFIX_CLASS} .${TASK_CHECKBOX_CLASS}`]: {
+    boxSizing: "border-box",
+    width: "13px",
+    marginLeft: `calc(-1 * var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
+    marginRight: `calc(var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH} - 13px)`,
   },
   // A rendered bullet has no source content, so CodeMirror omits its empty
-  // outer prefix span. Put the glyph in an inline line pseudo-element instead:
-  // its negative margin pulls it into the reserved padding and its matching
-  // width leaves the body at the same point. Extra source spaces enlarge the
-  // shared column count without letting revealed prefix contents overlap the
-  // body.
+  // outer prefix span. Put the glyph in an inline box whose width and pull use
+  // the same source-column measure. Extra source spaces enlarge both equally.
   [`.${LIST_BULLET_LINE_CLASS}::before`]: {
     content: "'•'",
     display: "inline-block",
-    boxSizing: "border-box",
     width: `calc(var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
     marginLeft: `calc(-1 * var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
     fontFamily: "var(--font-mono)",
-    // Keep box dimensions in the line's font metrics so its margin exactly
-    // cancels the reserved padding. The transform gives the glyph the same
-    // visual size as a 0.9em revealed source marker without shrinking the box.
     transform: "scale(0.9)",
     transformOrigin: "left center",
-    paddingRight: "0.5rem",
   },
   [`.${BLOCKQUOTE_LINE_CLASS}`]: {
     borderLeft: "3px solid transparent",
@@ -1091,8 +1105,8 @@ const renderingTheme = EditorView.theme({
     marginLeft: "0.25rem",
   },
   // Blockquote padding otherwise wins over the list rule above. Add only the
-  // list nesting and marker reservation here; quote source columns belong to
-  // the blockquote and are deliberately excluded from list indentation.
+  // list nesting and marker reservation here. A revealed `> ` joins the pulled
+  // source-prefix box instead of moving the marker or the wrapped body.
   [`.${BLOCKQUOTE_LINE_CLASS}.${LIST_MARKER_LINE_CLASS}`]: {
     paddingLeft: `calc(1rem + var(--cm-md-list-indent, 0) * ${LIST_INDENT_COLUMN_WIDTH} + var(--cm-md-list-prefix-columns, 0) * ${LIST_PREFIX_COLUMN_WIDTH})`,
   },

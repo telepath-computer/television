@@ -11,7 +11,6 @@ import {
   unorderedBulletMetrics,
   visibleTextMetrics,
   taskCheckboxMetrics,
-  wrappedListLineMetrics,
   selectSourceRange,
 } from "./markers.helpers.ts";
 
@@ -293,27 +292,6 @@ test.describe("disappearing markers", () => {
     const revealedTask = await visibleTextMetrics(page, "task child", "-");
     expect(Math.abs(renderedTask.checkboxLeft - revealedTask.markerLeft)).toBeLessThan(3);
     expect(revealedTask.markerLeft - renderedTask.checkboxLeft).toBeLessThan(3);
-  });
-
-  test("nested unordered wrapped lines align with the body column", async ({ page }) => {
-    await setDocument(
-      page,
-      [
-        "- parent",
-        "  - nested item with a really long body that should wrap across multiple visual lines so we can test that the wrap continuation aligns with the nested body content rather than with the nested bullet marker — repeated again to make sure this line is forced to wrap onto a second visual line. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        "",
-        "plain paragraph",
-      ].join("\n"),
-    );
-    await placeCaretAfter(page, "plain paragraph");
-
-    const result = await wrappedListLineMetrics(page, "nested item");
-
-    expect(result).not.toBeNull();
-    expect(result!.bodyLeft).not.toBeNull();
-    expect(result!.visualLines.length).toBeGreaterThan(1);
-    const wrapLeft = result!.visualLines[1];
-    expect(Math.abs(wrapLeft - result!.bodyLeft!)).toBeLessThan(5);
   });
 
   test("Tab and Shift-Tab indent every selected line by two spaces", async ({ page }) => {

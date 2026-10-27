@@ -1,10 +1,15 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
+  caretLineText,
   getDocumentSelection,
   lineWithText,
   placeCaretAfter,
   placeCaretAtColumn0,
+  placeCaretAtPosition,
   placeCaretInLine,
+  placeSelectionFromLineStart,
+  placeSelectionFromListPrefixToLineStart,
+  primaryCaretLeft,
   setDocument,
 } from "./markers.helpers.ts";
 
@@ -15,6 +20,7 @@ const SCREENSHOT_DIR = process.env.TV_MARKDOWN_LIST_SCREENSHOT_DIR;
 const SCREENSHOT_LABEL = process.env.TV_MARKDOWN_LIST_SCREENSHOT_LABEL;
 const MAX_ALIGNMENT_ERROR_PX = 1;
 const MAX_POSITION_DELTA_PX = 1.5;
+const MAX_ROW_HEIGHT_DELTA_PX = 0.5;
 const NAVIGATION_LINE_ABOVE = "Navigation line above the wrapped list.";
 const NAVIGATION_LINE_BELOW = "Navigation line below the wrapped list.";
 
@@ -274,29 +280,80 @@ test.describe("wrapped list indentation", () => {
     }
   });
 
-  test("keeps a multiline link inside the list body layout box", async ({ page }) => {
+  test("lays out revealed nesting source before its list marker", async ({ page }) => {
+    const nestedItem = listCase("revealed nested bullet", "  - ", "Nested source item");
     await setDocument(
       page,
       [
-        "- Before [linked label",
-        "  continued](https://example.com) after the link.",
+        "- Parent item",
+        nestedItem.sourceLine,
         "",
         OUTSIDE_LINE,
       ].join("\n"),
     );
-    await placeCaretAfter(page, OUTSIDE_LINE);
 
-    const markerLine = lineWithText(page, "Before");
-    await expect(markerLine.locator(".cm-md-list-body a.cm-md-link")).toHaveCount(1);
+    for (const headColumn of [0, 1]) {
+      await placeCaretInLine(page, nestedItem.sourceLine, headColumn);
+      const line = lineWithText(page, nestedItem.bodyText);
+      await expect(line.locator(".cm-md-list-prefix")).toContainText("-");
+
+      const marker = await textRect(page, nestedItem.bodyText, "-");
+      const caretLeft = await primaryCaretLeft(page);
+      expect(
+        caretLeft,
+        `${nestedItem.name}: caret at column ${headColumn} (${caretLeft}px) must be left of the marker (${marker.left}px)`,
+      ).toBeLessThan(marker.left);
+    }
   });
 
-  test("hangs wrapped list text inside a blockquote", async ({ page }) => {
+  test("keeps a revealed quote and list marker separate with aligned wraps", async ({ page }) => {
     await setDocument(page, [quotedBullet.sourceLine, "", OUTSIDE_LINE].join("\n"));
-    await placeCaretAfter(page, OUTSIDE_LINE);
+    await placeCaretInLine(page, quotedBullet.sourceLine, quotedBullet.prefixColumn - 1);
+
+    const line = lineWithText(page, quotedBullet.bodyText);
+    await expect(line.locator(".cm-md-mark").filter({ hasText: ">" })).toHaveCount(1);
+    await expect(line.locator(".cm-md-list-prefix")).toContainText("-");
+
+    const quote = await textRect(page, quotedBullet.bodyText, ">");
+    const marker = await textRect(page, quotedBullet.bodyText, "-");
+    expect(
+      marker.left,
+      `quoted source: marker at ${marker.left}px must not overlap quote ending at ${quote.right}px`,
+    ).toBeGreaterThanOrEqual(quote.right);
 
     const layout = await listLayout(page, quotedBullet);
-    assertWrappedRows(quotedBullet, "rendered", layout);
-    await clickFirstContinuation(page, quotedBullet, "rendered", layout);
+    assertWrappedRows(quotedBullet, "source", layout);
+  });
+
+  test("keeps a rendered task at its main and source task row heights", async ({ page }) => {
+    const referenceLine = "Reference text row";
+    const taskLine = "- [ ] Height comparison task";
+    await setDocument(page, [referenceLine, taskLine, OUTSIDE_LINE].join("\n"));
+    await placeCaretAfter(page, OUTSIDE_LINE);
+
+    const referenceHeight = await lineHeight(page, referenceLine);
+    const renderedHeight = await lineHeight(page, "Height comparison task");
+    const mainHeight = await mainTaskLineHeight(page, referenceLine, "Height comparison task");
+
+    await placeCaretInLine(page, taskLine, 3);
+    await expect(lineWithText(page, "Height comparison task").locator(".cm-md-list-prefix"))
+      .toContainText("[ ]");
+    const sourceHeight = await lineHeight(page, "Height comparison task");
+
+    if (SCREENSHOT_LABEL) {
+      console.log(
+        `[task-row-height:${SCREENSHOT_LABEL}] main=${mainHeight.toFixed(2)}px rendered=${renderedHeight.toFixed(2)}px source=${sourceHeight.toFixed(2)}px`,
+      );
+    }
+
+    expect(
+      Math.abs(renderedHeight - mainHeight),
+      `rendered task row ${renderedHeight}px must match main's direct-checkbox row ${mainHeight}px`,
+    ).toBeLessThanOrEqual(MAX_ROW_HEIGHT_DELTA_PX);
+    expect(
+      Math.abs(sourceHeight - referenceHeight),
+      `source task row ${sourceHeight}px must match the normal row ${referenceHeight}px`,
+    ).toBeLessThanOrEqual(MAX_ROW_HEIGHT_DELTA_PX);
   });
 });
 
@@ -505,93 +562,6 @@ async function assertInitialMarkerState(
   }
 }
 
-async function placeCaretAtPosition(page: Page, position: number): Promise<void> {
-  await page.evaluate((anchor) => {
-    type ViewWindow = Window & {
-      __cmView?: { dispatch: (spec: unknown) => void; focus: () => void };
-    };
-    const view = (window as ViewWindow).__cmView;
-    if (!view) throw new Error("EditorView not exposed on window.__cmView");
-    view.focus();
-    view.dispatch({ selection: { anchor } });
-  }, position);
-}
-
-async function placeSelectionFromLineStart(
-  page: Page,
-  lineText: string,
-  head: number,
-): Promise<void> {
-  await page.evaluate(({ lineText: needle, head: headPosition }) => {
-    type ViewWindow = Window & {
-      __cmView?: {
-        state: {
-          doc: { lines: number; line(number: number): { from: number; text: string } };
-        };
-        dispatch: (spec: unknown) => void;
-        focus: () => void;
-      };
-    };
-    const view = (window as ViewWindow).__cmView;
-    if (!view) throw new Error("EditorView not exposed on window.__cmView");
-    for (let number = 1; number <= view.state.doc.lines; number += 1) {
-      const line = view.state.doc.line(number);
-      if (line.text !== needle) continue;
-      view.focus();
-      view.dispatch({ selection: { anchor: line.from, head: headPosition } });
-      return;
-    }
-    throw new Error(`Line not found: ${needle}`);
-  }, { lineText, head });
-}
-
-async function placeSelectionFromListPrefixToLineStart(
-  page: Page,
-  listLineText: string,
-  headLineText: string,
-): Promise<void> {
-  await page.evaluate(({ listNeedle, headNeedle }) => {
-    type ViewWindow = Window & {
-      __cmView?: {
-        state: {
-          doc: { lines: number; line(number: number): { from: number; text: string } };
-        };
-        dispatch: (spec: unknown) => void;
-        focus: () => void;
-      };
-    };
-    const view = (window as ViewWindow).__cmView;
-    if (!view) throw new Error("EditorView not exposed on window.__cmView");
-    let anchor: number | undefined;
-    let head: number | undefined;
-    for (let number = 1; number <= view.state.doc.lines; number += 1) {
-      const line = view.state.doc.line(number);
-      if (line.text === listNeedle) anchor = line.from;
-      if (line.text === headNeedle) head = line.from;
-    }
-    if (anchor === undefined) throw new Error(`List line not found: ${listNeedle}`);
-    if (head === undefined) throw new Error(`Head line not found: ${headNeedle}`);
-    view.focus();
-    view.dispatch({ selection: { anchor, head } });
-  }, { listNeedle: listLineText, headNeedle: headLineText });
-}
-
-async function caretLineText(page: Page): Promise<string> {
-  return page.evaluate(() => {
-    type ViewWindow = Window & {
-      __cmView?: {
-        state: {
-          selection: { main: { head: number } };
-          doc: { lineAt(position: number): { text: string } };
-        };
-      };
-    };
-    const view = (window as ViewWindow).__cmView;
-    if (!view) throw new Error("EditorView not exposed on window.__cmView");
-    return view.state.doc.lineAt(view.state.selection.main.head).text;
-  });
-}
-
 async function sourcePrefixRight(page: Page, item: ListCase): Promise<number> {
   return page.evaluate((bodyNeedle) => {
     const line = Array.from(document.querySelectorAll<HTMLElement>(".cm-line"))
@@ -612,6 +582,12 @@ async function sourcePrefixRight(page: Page, item: ListCase): Promise<number> {
 
 async function captureScreenshots(page: Page): Promise<void> {
   if (!SCREENSHOT_DIR || !SCREENSHOT_LABEL) return;
+
+  await placeCaretAfter(page, OUTSIDE_LINE);
+  await screenshotLine(
+    lineWithText(page, cases[0].bodyText),
+    `${SCREENSHOT_DIR}/${SCREENSHOT_LABEL}-bullet-rendered.png`,
+  );
 
   await placeCaretInLine(page, cases[0].sourceLine, cases[0].prefixColumn);
   await screenshotLine(
@@ -666,4 +642,58 @@ async function renderedTaskGap(page: Page, item: ListCase): Promise<number> {
     }
     throw new Error(`Task body text not found: ${bodyNeedle}`);
   }, item.bodyText);
+}
+
+async function textRect(
+  page: Page,
+  lineNeedle: string,
+  textNeedle: string,
+): Promise<{ left: number; right: number }> {
+  return page.evaluate(({ lineNeedle, textNeedle }) => {
+    const line = Array.from(document.querySelectorAll<HTMLElement>(".cm-line"))
+      .find((element) => element.innerText.includes(lineNeedle));
+    if (!line) throw new Error(`Line not found: ${lineNeedle}`);
+
+    const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const offset = (node as Text).data.indexOf(textNeedle);
+      if (offset < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + textNeedle.length);
+      const rect = range.getBoundingClientRect();
+      return { left: rect.left, right: rect.right };
+    }
+    throw new Error(`Text not found on line: ${textNeedle}`);
+  }, { lineNeedle, textNeedle });
+}
+
+async function lineHeight(page: Page, lineNeedle: string): Promise<number> {
+  return lineWithText(page, lineNeedle).evaluate((line) => line.getBoundingClientRect().height);
+}
+
+async function mainTaskLineHeight(
+  page: Page,
+  referenceNeedle: string,
+  taskNeedle: string,
+): Promise<number> {
+  return page.evaluate(({ referenceNeedle, taskNeedle }) => {
+    const lines = Array.from(document.querySelectorAll<HTMLElement>(".cm-line"));
+    const reference = lines.find((line) => line.innerText.includes(referenceNeedle));
+    const task = lines.find((line) => line.innerText.includes(taskNeedle));
+    const checkbox = task?.querySelector<HTMLInputElement>("input.cm-md-task-checkbox");
+    if (!reference || !checkbox) throw new Error("Task height fixture not found");
+
+    // Main placed the widget directly in the line. A detached clone in the
+    // reference line reproduces that inline formatting without changing the
+    // editor document or relying on a platform-specific pixel constant.
+    const clone = checkbox.cloneNode() as HTMLInputElement;
+    clone.style.margin = "0 0.4em 0 0";
+    clone.style.width = "auto";
+    reference.prepend(clone);
+    const height = reference.getBoundingClientRect().height;
+    clone.remove();
+    return height;
+  }, { referenceNeedle, taskNeedle });
 }

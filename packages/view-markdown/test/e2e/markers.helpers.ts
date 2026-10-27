@@ -84,6 +84,19 @@ export async function placeCaretAtColumn0(page: Page, lineText: string): Promise
   }, lineText);
 }
 
+/** Place the caret at an absolute document position. */
+export async function placeCaretAtPosition(page: Page, position: number): Promise<void> {
+  await page.evaluate((anchor) => {
+    type ViewWindow = Window & {
+      __cmView?: { dispatch: (spec: unknown) => void; focus: () => void };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    view.focus();
+    view.dispatch({ selection: { anchor } });
+  }, position);
+}
+
 export async function placeCaretInLine(page: Page, lineText: string, column: number): Promise<void> {
   await page.evaluate(({ lineText: needle, column: offset }) => {
     type V = Window & {
@@ -105,6 +118,91 @@ export async function placeCaretInLine(page: Page, lineText: string, column: num
     }
     throw new Error(`Line not found: ${needle}`);
   }, { lineText, column });
+}
+
+/**
+ * Keep the exact source line selected from column zero while placing the
+ * selection head at an absolute document position.
+ */
+export async function placeSelectionFromLineStart(
+  page: Page,
+  lineText: string,
+  head: number,
+): Promise<void> {
+  await page.evaluate(({ lineText: needle, head: headPosition }) => {
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: {
+          doc: { lines: number; line(number: number): { from: number; text: string } };
+        };
+        dispatch: (spec: unknown) => void;
+        focus: () => void;
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    for (let number = 1; number <= view.state.doc.lines; number += 1) {
+      const line = view.state.doc.line(number);
+      if (line.text !== needle) continue;
+      view.focus();
+      view.dispatch({ selection: { anchor: line.from, head: headPosition } });
+      return;
+    }
+    throw new Error(`Line not found: ${needle}`);
+  }, { lineText, head });
+}
+
+/**
+ * Keep a list prefix revealed while putting the selection head at column zero
+ * of a second exact source line.
+ */
+export async function placeSelectionFromListPrefixToLineStart(
+  page: Page,
+  listLineText: string,
+  headLineText: string,
+): Promise<void> {
+  await page.evaluate(({ listNeedle, headNeedle }) => {
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: {
+          doc: { lines: number; line(number: number): { from: number; text: string } };
+        };
+        dispatch: (spec: unknown) => void;
+        focus: () => void;
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    let anchor: number | undefined;
+    let head: number | undefined;
+    for (let number = 1; number <= view.state.doc.lines; number += 1) {
+      const line = view.state.doc.line(number);
+      if (line.text === listNeedle) anchor = line.from;
+      if (line.text === headNeedle) head = line.from;
+    }
+    if (anchor === undefined) throw new Error(`List line not found: ${listNeedle}`);
+    if (head === undefined) throw new Error(`Head line not found: ${headNeedle}`);
+    view.focus();
+    view.dispatch({ selection: { anchor, head } });
+  }, { listNeedle: listLineText, headNeedle: headLineText });
+}
+
+/** Read the browser X coordinate where CodeMirror draws the primary caret. */
+export async function primaryCaretLeft(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: { selection: { main: { head: number } } };
+        coordsAtPos(position: number, side?: number): { left: number } | null;
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    const coordinates = view.coordsAtPos(view.state.selection.main.head);
+    if (!coordinates) throw new Error("CodeMirror caret coordinates unavailable");
+    return coordinates.left;
+  });
 }
 
 /** Read the line text the caret currently sits on. */
@@ -252,42 +350,6 @@ export async function taskCheckboxMetrics(page: Page, bodyText: string): Promise
     }
     throw new Error(`Text node not found: ${bodyNeedle}`);
   }, bodyText);
-}
-
-export async function wrappedListLineMetrics(page: Page, text: string): Promise<{
-  bodyLeft: number | null;
-  visualLines: number[];
-} | null> {
-  return page.evaluate((needle) => {
-    const line = Array.from(document.querySelectorAll(".cm-line"))
-      .find((el) => (el as HTMLElement).innerText.includes(needle)) as HTMLElement | undefined;
-    if (!line) return null;
-    const range = document.createRange();
-    const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
-    let bodyLeft: number | null = null;
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const text = (node as Text).data ?? "";
-      const idx = text.indexOf(needle);
-      if (idx >= 0) {
-        range.setStart(node, idx);
-        range.setEnd(node, idx + 1);
-        bodyLeft = range.getBoundingClientRect().left;
-        break;
-      }
-    }
-    range.selectNodeContents(line);
-    const rects = Array.from(range.getClientRects()).filter((rect) => rect.width > 0);
-    const byTop = new Map<number, number>();
-    for (const rect of rects) {
-      const cur = byTop.get(rect.top);
-      if (cur === undefined || rect.left < cur) byTop.set(rect.top, rect.left);
-    }
-    const visualLines = Array.from(byTop.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([, left]) => left);
-    return { bodyLeft, visualLines };
-  }, text);
 }
 
 export async function getDocumentSelection(page: Page): Promise<{
