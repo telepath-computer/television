@@ -1,6 +1,7 @@
 /**
  * Gives static open-panel story markup the edge layers normally placed by the
- * foundation panel controller at runtime.
+ * foundation panel controller at runtime, including the panel content's
+ * native overflow behavior.
  */
 export function poseOpenFoundationPanel(panel: HTMLElement): void {
   const box = panel.getBoundingClientRect();

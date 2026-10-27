@@ -271,6 +271,7 @@ const beginEditing = ({ canvasElement }: Play) => {
   input.setAttribute("aria-label", "Row 4, column A");
   input.spellcheck = false;
   text.replaceWith(input);
+  cell.tabIndex = -1;
   cell.dataset.editing = "true";
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
@@ -319,8 +320,8 @@ export const OpenMultiRowMenu = { name: "Open multi-row menu", args: { selection
 export const ReadOnly = { name: "Read-only", args: { editable: false, selection: { kind: "cell", row: 3, column: 1 } } };
 export const Disconnected = { args: { editable: false, status: "reconnecting", selection: { kind: "cell", row: 3, column: 1 } } };
 export const SaveFailed = { name: "Save failed", args: { status: "save-failed", selection: { kind: "cell", row: 3, column: 1 } } };
-export const Loading = { args: { columns: [], rows: [], loading: true } };
-export const LoadingDisconnected = { name: "Loading while disconnected", args: { columns: [], rows: [], loading: true, status: "reconnecting" } };
+export const Loading = { args: { columns: [], rows: [], loading: true, editable: false } };
+export const LoadingDisconnected = { name: "Loading while disconnected", args: { columns: [], rows: [], loading: true, editable: false, status: "reconnecting" } };
 export const Unreadable = { args: { unreadable: true } };
 export const UnreadableDisconnected = { name: "Unreadable while disconnected", args: { unreadable: true, status: "reconnecting" } };
 export const Dark = { args: { theme: "dark", selection: { kind: "cell", row: 3, column: 1 } } };

@@ -17,6 +17,7 @@ Plan revision after review: slice 2 now owns the renumbering transaction proof a
 9. **Should typing in a drawn position be discarded when another writer changes the number of stored entries on that axis?** The draft clears the selection and closes the editor, discarding the text being typed. Recommendation: keep this predictable loss rather than risk writing the text into the other writer's new row or column.
 10. **Should the experiment's insert and delete shortcuts remain?** The draft drops Cmd/Ctrl-Shift-= and Cmd/Ctrl-minus because they conflict with browser zoom. Recommendation: leave them out; the context-menu key and Shift-F10 provide keyboard access to the same commands.
 11. **Should open-menu stories model the canonical panel clip and exterior rim?** Each open-menu story `play` function calls a foundation-owned helper. The helper sets native content scrolling and the private `--_panel-edge-*` properties that the runtime panel controller sets, keeping the edge rim outside that clip. Recommendation: keep this correction and mechanism so later open-panel stories reuse the same foundation treatment.
+12. **Should non-editable stories stop reserving space for add controls?** The draft sets `data-editable="false"` for read-only, disconnected and loading stories, matching production and activating the existing no-add-controls layout. Recommendation: keep this visual correction because the reserved edge serves no purpose when the controls are absent.
 
 ## Draft decisions
 
@@ -47,6 +48,7 @@ Plan revision after review: slice 2 now owns the renumbering transaction proof a
 - Preserve line breaks in the editor while showing them as spaces in the grid. Native text editing and undo work inside the editor. Whole-cell or range clipboard operations and undo after commit remain accepted limitations.
 - Treat whitespace-only edited text as empty. Display booleans as `true` and `false`, and tell agents that editing a numeric or boolean cell writes it back as a string. Tell agents that `cells` is an object keyed by column key, never an array, and leaves empty cells out. Use error text that covers unreadable data and unavailable access before data arrives.
 - Show the normal save-failure message when renumbering cannot complete. Make a Delete label singular or plural from the number of stored entries the action removes.
+- Keep the transient save-failure message visible for six seconds, long enough for a person to notice it and for the conformance capture to settle without making it persistent.
 - Keep version `1.0.0` because Table has not been released. A development host with the earlier read-only `1.0.0` copy keeps it until that installed copy is removed.
 - Keep the existing icon, shared display defaults, bundled ID order, loading, access, save-failure, and dark treatments.
 

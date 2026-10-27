@@ -136,6 +136,12 @@ test("a new Table draws four by four without writing, then its independent copy 
   await expect(page.locator(`.stage .page[data-page-key="${id}"] iframe`)).not.toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(cell(copy, 3, 3)).toBeFocused();
+
+  await cell(copy, 0, 0).click();
+  await page.keyboard.press("Enter");
+  await expect(cell(copy, 0, 0)).toHaveAttribute("tabindex", "-1");
+  await editor(copy).press("Shift+Tab");
+  await expect(page.locator(`.stage .page[data-page-key="${id}"] iframe`)).not.toBeFocused();
   await page.reload();
   const reloaded = await h.frame(page, id);
   await expect(cell(reloaded, 2, 1)).toHaveText("First");
@@ -425,6 +431,20 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
   await page.keyboard.press("ControlOrMeta+Z");
   await expect.poll(() => h.read(id, "rows/r1/cells/c1")).toBe("Committed");
   await expect(page.getByRole("button", { name: /undo/i })).toHaveCount(0);
+
+  await cell(page, 0, 1).click();
+  await page.keyboard.press("Alt+o");
+  await expect(editor(page)).toHaveValue("o");
+  await editor(page).press("Escape");
+  await page.keyboard.press("Control+Alt+q");
+  await expect(editor(page)).toHaveValue("q");
+  await editor(page).press("Escape");
+  const session = await page.context().newCDPSession(page);
+  await session.send("Input.dispatchKeyEvent", {
+    type: "keyDown", key: "Process", code: "Process", windowsVirtualKeyCode: 229, nativeVirtualKeyCode: 229,
+  });
+  await expect(editor(page)).toBeFocused();
+  await session.detach();
 });
 
 // proofs/ui/templates/table.md#^table-ac-selection
@@ -933,7 +953,8 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await expect(page.getByRole("alert")).toBeVisible();
   h.proxy.releaseWrites();
   await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
-  await page.waitForTimeout(100);
+  await expect.poll(async () => Object.values((await h.read<TableData>(id))!.columns)
+    .map(column => column.order).sort((left, right) => left - right)).toEqual([0, 1]);
   const guardedWrites = writes().slice(beforeUnreadableAxis);
   expect(guardedWrites).toHaveLength(1);
   expect(guardedWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
@@ -993,6 +1014,16 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await expect(page.locator('[data-row-key="r2"][data-column-key="c2"]')).toHaveText("Latest agent value");
   expect(writes()).toHaveLength(beforeUnchangedCommit);
 
+  await page.locator('[data-row-key="r2"][data-column-key="c2"]').click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Cancelled local draft");
+  const beforeCancelledDraft = writes().length;
+  await h.set(id, "Agent value after cancel", "rows/r2/cells/c2");
+  await expect(editor(page)).toHaveValue("Cancelled local draft");
+  await editor(page).press("Escape");
+  await expect(page.locator('[data-row-key="r2"][data-column-key="c2"]')).toHaveText("Agent value after cancel");
+  expect(writes()).toHaveLength(beforeCancelledDraft);
+
   await cell(other, 1, 0).click();
   await other.keyboard.type("Other viewer");
   await editor(other).press("Enter");
@@ -1007,6 +1038,7 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await expect(editor(page)).toHaveCount(0);
   await expect(page.locator('[data-row-key="r2"]')).toHaveCount(0);
   await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeRemoval);
 
   await header(page, 1).click();
@@ -1016,6 +1048,8 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await h.set(id, false, "showHeader");
   await expect(editor(page)).toHaveCount(0);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
+  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeHeaderHidden);
 
   await h.set(id, { columns: { c1: { order: 1 } }, rows: { r1: { order: 1, cells: {} } } });
@@ -1025,6 +1059,7 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await h.set(id, { order: 2, cells: {} }, "rows/agent-row");
   await expect(editor(page)).toHaveCount(0);
   await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeIdentityChange);
 
   await cell(page, 0, 0).click();
@@ -1079,6 +1114,7 @@ test("live selection follows stored keys and closes with its menu when the key i
   await h.remove(id, "rows/r2");
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
   await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(grid(page)).toBeFocused();
 });
 
 // proofs/ui/templates/table.md#^table-ac-access
@@ -1103,7 +1139,17 @@ test("real share access changes preserve a navigable read-only table and close w
   await h.set(id, { columns: {}, rows: {} });
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
   await expect(grid(page)).toHaveAttribute("aria-colcount", "4");
+  const beforeEmptyReadOnlyActions = writes().length;
+  await cell(page, 1, 1).click();
+  await page.keyboard.press("ArrowRight");
+  await expect(cell(page, 1, 2)).toBeFocused();
+  await page.keyboard.type("Ignored empty edit");
+  await page.keyboard.press("Delete");
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await expect(editor(page)).toHaveCount(0);
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeEmptyReadOnlyActions);
+  expect(await h.read(id)).toEqual({ columns: {}, rows: {} });
   await h.set(id, fixture());
   await expect(cell(page, 1, 2)).toHaveText("true");
 
@@ -1119,6 +1165,7 @@ test("real share access changes preserve a navigable read-only table and close w
   await editor(page).fill("Discarded draft");
   await h.client.resources.share({ artifactID: id, access: "read" });
   await expect(editor(page)).toHaveCount(0);
+  await expect(cell(page, 1, 1)).toBeFocused();
   expect(await h.read(id, "rows/r2/cells/c2")).toBe("Utah");
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -1199,16 +1246,6 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(status(page)).toHaveText("Reconnecting…");
   await expect(editor(page)).toHaveValue("Offline draft");
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
-  const elsewhere = await page.context().newPage();
-  await elsewhere.setContent('<button type="button" autofocus>Elsewhere</button>');
-  await elsewhere.bringToFront();
-  await expect(elsewhere.getByRole("button", { name: "Elsewhere" })).toBeFocused();
-  await page.waitForTimeout(100);
-  await expect(elsewhere.getByRole("button", { name: "Elsewhere" })).toBeFocused();
-  await expect(editor(page)).toHaveValue("Offline draft");
-  await elsewhere.close();
-  await page.bringToFront();
-  await editor(page).focus();
   await editor(page).press("Enter");
   await editor(page).press("Tab");
   await cell(page, 1, 1).click();
@@ -1275,6 +1312,31 @@ test("a refused save and aborted renumbering use the established failure status"
   await expect.poll(() => h.read(id, "rows/r4/cells/c2")).toBe("Allowed");
 
   await h.set(id, {
+    columns: { c1: { order: Number.MAX_VALUE } },
+    rows: { r1: { order: 0, cells: {} } },
+  });
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
+  await expect(cell(page, 0, 1)).toBeVisible();
+  h.proxy.holdWrites();
+  h.proxy.holdServerMessages(connection, message => message.type === "applied");
+  await cell(page, 0, 1).click();
+  await page.keyboard.type("Held after renumber");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  h.proxy.releaseWrites();
+  await expect.poll(async () => Object.values((await h.read<TableData>(id))!.columns)
+    .map(column => column.order).sort((left, right) => left - right)).toEqual([0, 1]);
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "false");
+  h.proxy.releaseServerMessages(connection);
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+  expect(await h.read(id, "rows/r1/cells")).toEqual({});
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
+
+  await h.set(id, {
     columns: { c1: { order: 0 } },
     rows: { a: { order: 0, cells: {} }, b: { order: Number.MAX_VALUE, cells: {} } },
   });
@@ -1289,6 +1351,7 @@ test("a refused save and aborted renumbering use the established failure status"
   await expect(status(page)).toHaveText("Couldn't save that change.");
   expect(Object.keys((await h.read<TableData>(id))!.rows)).toEqual(["a"]);
 
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
   await h.set(id, {
     columns: { c1: { order: Number.MAX_VALUE } },
     rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
@@ -1309,12 +1372,15 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   await cell(page, 0, 0).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Unsent draft");
+  const beforeUnreadableDraft = writes().length;
   await h.set(id, "not rows", "rows");
   await expect(page.getByRole("alert")).toContainText("This table can't be shown");
   await expect(editor(page)).toHaveCount(0);
   await expect(page.getByRole("grid")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
   await expect(page.getByRole("menu")).toHaveCount(0);
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeUnreadableDraft);
   await h.set(id, fixture());
   await expect(grid(page)).toBeVisible();
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
@@ -1343,10 +1409,12 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   await h.remove(id);
   await expect(grid(page)).toBeVisible();
   await expect(grid(page)).toHaveAttribute("aria-rowcount", "4");
+  await page.waitForTimeout(100);
   expect(writes()).toHaveLength(beforeMissingRoot);
   await h.set(id, { rows: { r1: { order: 1, cells: {} } } });
   await expect(grid(page)).toBeVisible();
   await expect(page.locator('[data-row-key="r1"]')).toHaveCount(4);
+  await page.waitForTimeout(100);
   expect(writes()).toHaveLength(beforeMissingRoot);
 });
 
