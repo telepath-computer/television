@@ -85,6 +85,8 @@ test.skipIf(process.platform !== "linux")("an obsolete delayed entry cannot touc
   writeFileSync(script, `touch ${shell(sentinel)}\n`);
   expect(f.run({ operation: "dispatch", processName }).status).toBe(0);
   const entry = workerEntryCommand({ ...f.input, processName }, script);
+  expect(f.run({ operation: "teardown" }).status).toBe(42);
+  expect(f.run({ operation: "release", retrieved: true }).status).toBe(42);
   // The real entry command is delayed until after the old identity is replaced.
   writeFileSync(f.recordPath, JSON.stringify({ ...f.record(), recoverAfter: 1 }));
   expect(f.run({ lockId: "new-lock", attemptId: "new-attempt" }).status).toBe(0);

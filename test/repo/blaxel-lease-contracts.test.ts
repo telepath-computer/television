@@ -48,6 +48,15 @@ test("legacy, incomplete, unreadable and audit leases fail closed without clean 
   }
   const f = fixture({ lockId: "legacy", expiresAt: 100 });
   expect(await workerLeaseOperation(f.input, { now: () => 3000, scanOwners: async () => [] })).toMatchObject({ ok: false });
+  const audit = fixture();
+  const residue = path.join(audit.tmpRoot, "television-web-bundle-preserve"); mkdirSync(residue);
+  const staleScratch = path.join(audit.tmpRoot, "tv-testshards/stale"); mkdirSync(staleScratch, { recursive: true });
+  const auditInput = { ...audit.input, audit: true };
+  const auditHooks = { scanOwners: async () => { throw Error("audit must observe existing owners before cleanup"); }, stopOwners: async () => [] };
+  expect((await workerLeaseOperation(auditInput, auditHooks)).ok).toBe(true);
+  expect((await workerLeaseOperation({ ...auditInput, operation: "prepare" }, auditHooks)).ok).toBe(true);
+  expect((await workerLeaseOperation({ ...auditInput, operation: "teardown" }, auditHooks)).ok).toBe(true);
+  expect(existsSync(residue)).toBe(true); expect(existsSync(staleScratch)).toBe(true);
 });
 
 test("cleanup failures keep the old identity, while explicit deletion reserves an expired worker", async () => {
