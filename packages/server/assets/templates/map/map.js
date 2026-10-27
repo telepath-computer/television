@@ -474,7 +474,7 @@ function render(value) {
   byId('subtitle').hidden = !byId('subtitle').textContent;
   const categories = readCategories(data.categories);
   places = Object.entries(data.places && typeof data.places === 'object' && !Array.isArray(data.places) ? data.places : {})
-    .filter(([, place]) => place && Number.isFinite(place.lat) && Number.isFinite(place.lng) && Math.abs(place.lat) <= 90 && Math.abs(place.lng) <= 180)
+    .filter(([key, place]) => stableKey.test(key) && place && Number.isFinite(place.lat) && Number.isFinite(place.lng) && Math.abs(place.lat) <= 90 && Math.abs(place.lng) <= 180)
     .map(([key, place]) => {
       const category = categories.get(place.category);
       const icon = category && typeof place.icon === 'string' && Object.hasOwn(icons, place.icon) ? place.icon : category?.icon || 'pin';
@@ -546,8 +546,8 @@ function render(value) {
     byId('place-list').append(row);
   });
   applyFilter();
-  const desiredSidebar = data.sidebar === 'closed' ? 'closed' : 'open';
-  if (desiredSidebar !== storedSidebar) { storedSidebar = desiredSidebar; sidebarOpen = desiredSidebar === 'open'; }
+  const desiredSidebar = ['open', 'closed'].includes(data.sidebar) ? data.sidebar : undefined;
+  if (desiredSidebar !== storedSidebar) { storedSidebar = desiredSidebar; sidebarOpen = desiredSidebar !== 'closed'; }
   const selected = places.find((place) => place.key === selectedKey);
   if (selected) renderDetail(selected);
   else selectedKey = null;
@@ -561,8 +561,8 @@ function render(value) {
   byId('list-scroll').scrollTop = listScrollTop;
   byId('detail-scroll').scrollTop = detailScrollTop;
   byId('empty').hidden = places.length > 0;
-  const desiredBasemap = ['standard', 'satellite', 'hybrid'].includes(data.basemap) ? data.basemap : 'standard';
-  if (desiredBasemap !== storedBasemap) { storedBasemap = desiredBasemap; basemap = desiredBasemap; }
+  const desiredBasemap = ['standard', 'satellite', 'hybrid'].includes(data.basemap) ? data.basemap : undefined;
+  if (desiredBasemap !== storedBasemap) { storedBasemap = desiredBasemap; basemap = desiredBasemap || 'standard'; }
   setBasemap(basemap);
   const signature = JSON.stringify(places.map((place) => [place.key, place.lat, place.lng]).sort((a, b) => a[0] < b[0] ? -1 : 1));
   if (signature !== locationSignature) { locationSignature = signature; fit(false); }

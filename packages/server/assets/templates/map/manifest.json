@@ -1,7 +1,7 @@
 {
   "name": "Map",
   "description": "An interactive map with category colours and icons, a floating place list, photos, and detailed place information.",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "icons": [
     {
       "src": "icon.svg",
@@ -11,7 +11,7 @@
   "dataSchema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "Map store",
-    "description": "An agent-owned collection of places. Missing, null, and empty stores show an empty map; the page never writes defaults.",
+    "description": "An agent-owned collection of places.",
     "type": [
       "object",
       "null"
@@ -20,7 +20,7 @@
     "properties": {
       "title": {
         "type": "string",
-        "description": "Collection heading and document title. An empty or omitted value displays Places in the sidebar and Map as the document title."
+        "description": "Collection heading and document title. An empty or omitted value uses the fallback heading and document title defined by the page."
       },
       "subtitle": {
         "type": "string",
@@ -39,7 +39,7 @@
           "hybrid"
         ],
         "default": "standard",
-        "description": "Initial map layer. Hybrid adds Esri boundaries and place labels to satellite imagery."
+        "description": "Stored map layer. Hybrid adds Esri boundaries and place labels to satellite imagery."
       },
       "sidebar": {
         "type": "string",
@@ -48,7 +48,7 @@
           "closed"
         ],
         "default": "open",
-        "description": "Initial sidebar visibility. The sidebar is hidden when there are no valid places; the viewer can change visibility locally."
+        "description": "Stored sidebar visibility. The sidebar is hidden when there are no valid places; the viewer can change visibility locally."
       },
       "categories": {
         "type": "object",
@@ -182,7 +182,7 @@
           },
           "description": {
             "type": "string",
-            "description": "Up to two lines of preview text in the list; the full text appears in details."
+            "description": "Optional place description shown in the list and details."
           },
           "photo": {
             "type": "string",
@@ -218,7 +218,7 @@
           "fields": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Detail labels mapped to any JSON values. Arrays and objects display as JSON; empty values display as a dash."
+            "description": "Detail labels mapped to any JSON values. Arrays and objects are serialized; empty values use the empty-value fallback defined by the page."
           }
         }
       }

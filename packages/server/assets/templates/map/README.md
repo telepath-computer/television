@@ -26,7 +26,7 @@ Keys start with a letter and contain only letters, digits, `_`, and `-`. Choose 
 
 All visible values render as plain text. Relative photo paths can begin with `./` and can contain spaces inside filenames. They cannot use absolute paths, edge whitespace, empty path segments, `.` or `..` segments, backslashes, colons, percent escapes, query strings, fragments, or control characters. Remote photos and credit links must use HTTPS. Include the creator and licence in `credit.text` when a photo requires attribution.
 
-Writes after creation are not schema-validated. A later place with unusable coordinates is omitted. An empty or unusable title displays as Untitled place. Unknown categories are uncategorised. An unknown place icon inherits a valid category icon; an unknown category icon becomes `pin`. Unusable optional text, media, credit, or fields are omitted. The page never repairs the store.
+Writes after creation are not schema-validated. Properties the schema does not name are ignored, and invalid category and place keys are ignored. A later place with unusable coordinates is omitted. An empty or unusable title displays as Untitled place. Unknown categories are uncategorised. An unknown place icon inherits a valid category icon; an unknown category icon becomes `pin`. Unusable optional text, media, credit, or fields are omitted. The page never repairs the store.
 
 ## Example and commands
 
@@ -70,7 +70,7 @@ To replace the complete value, use `tv resource json set --artifact "$ARTIFACT_I
 
 Supported icons are `pin`, `landmark`, `museum`, `restaurant`, `coffee`, `bar`, `hotel`, `park`, `beach`, `mountain`, `viewpoint`, `shop`, `airport`, `train`, `bus`, `parking`, `hospital`, `school`, `home`, `work`, `star`, `heart`, `flag`, `music`, `theatre`, `sports`, `church`, `bridge`, `ferry`, and `info`. `icons.svg` shows the set, and `vendor/lucide/README.md` records the upstream drawing for each name.
 
-Select a row or pin to open details. The filter matches a place's title, category, and description without changing the store. The sidebar becomes a draggable three-height sheet in narrow windows. Standard, Satellite, and Hybrid layers, pan and zoom, the filter, selection, sidebar and sheet position, and expanded overlapping pins are viewer-local. A local sidebar or basemap choice survives unrelated data updates until the corresponding store setting changes.
+Select a row or pin to open details. The filter matches a place's title, category, and description without changing the store. The sidebar becomes a draggable three-height sheet in narrow windows. Standard, Satellite, and Hybrid layers, pan and zoom, the filter, selection, sidebar and sheet position, and expanded overlapping pins are viewer-local. A local sidebar or basemap choice survives unrelated data updates. A later stored `sidebar` or `basemap` value overrides the corresponding local choice.
 
 Press **F** to fit all places. **Escape** closes the layers menu or details, or clears a focused filter. Place rows support arrow keys, Home, End, Enter, and Space. The map supports Leaflet's arrow and zoom keys. Motion follows `prefers-reduced-motion`, and colours follow Television's active theme.
 

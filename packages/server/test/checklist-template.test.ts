@@ -16,7 +16,7 @@ describe("bundled Checklist package", () => {
       { id: "checklist", minimumVersion: "1.0.0" },
       { id: "calendar", minimumVersion: "1.0.0" },
       { id: "sticky-note", minimumVersion: "1.0.0" },
-      { id: "map", minimumVersion: "2.0.0" },
+      { id: "map", minimumVersion: "2.1.0" },
     ]);
     expect(JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"))).toMatchObject({
       name: "Checklist", description: "A list of items to tick off and edit.", version: "1.0.0",
@@ -28,7 +28,7 @@ describe("bundled Checklist package", () => {
       name: "Sticky note", description: "A yellow note to type into; an agent can write on it too.", version: "1.0.0",
     });
     expect(JSON.parse(readFileSync(path.join(sourceRoot, "map/manifest.json"), "utf8"))).toMatchObject({
-      name: "Map", description: "An interactive map with category colours and icons, a floating place list, photos, and detailed place information.", version: "2.0.0",
+      name: "Map", description: "An interactive map with category colours and icons, a floating place list, photos, and detailed place information.", version: "2.1.0",
     });
   });
 

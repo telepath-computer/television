@@ -13,7 +13,7 @@ import { getTemplatesDir, validateTemplatePackage } from "./templates.ts";
 
 export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({
   id,
-  minimumVersion: id === "map" ? "2.0.0" : "1.0.0",
+  minimumVersion: id === "map" ? "2.1.0" : "1.0.0",
 }));
 export { BUNDLED_ARTIFACT_TEMPLATE_IDS } from "./bundled-template-ids.ts";
 

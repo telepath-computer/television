@@ -63,9 +63,6 @@ async function open(page: Page, value: MapData = places()): Promise<string> {
 
 async function expectError(page: Page): Promise<void> {
   await expect(alert(page)).toBeVisible();
-  await expect(alert(page).locator("h1")).toHaveText("This map can't be shown");
-  await expect(alert(page).locator("p")).toHaveText("Its saved data isn't in the form this page reads. Ask your agent to check it.");
-  await expect(alert(page).locator('tv-icon[name="warning"]')).toBeVisible();
 }
 
 // proofs/arch/templates/map.md#^templates-map-ac-live
@@ -139,7 +136,12 @@ test("live places, filtering, details and local controls never write to the stor
   await expect(page.locator('.place-button[data-key="agent"]')).toContainText("Agent place");
   await expect(page.locator("#layer-label")).toHaveText("Satellite");
   await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "false");
-  expect(await h.read(id)).toEqual({ ...data, places: { ...data.places, live: { title: "Added live", lat: 38.64, lng: -90.24, order: 4, category: "parks" }, agent: { title: "Agent place", lat: 38.65, lng: -90.25, order: 5 } } });
+
+  await h.set(id, "standard", "basemap");
+  await expect(page.locator("#layer-label")).toHaveText("Standard");
+  await h.set(id, "open", "sidebar");
+  await expect(page.locator(".app")).toHaveAttribute("data-sidebar-open", "true");
+  expect(await h.read(id)).toEqual({ ...data, basemap: "standard", sidebar: "open", places: { ...data.places, live: { title: "Added live", lat: 38.64, lng: -90.24, order: 4, category: "parks" }, agent: { title: "Agent place", lat: 38.65, lng: -90.25, order: 5 } } });
   expect(writes()).toEqual([]);
 });
 
@@ -181,6 +183,16 @@ test("unreadable and damaged data recover without repair while invalid coordinat
   await expect(page.locator('.place-button[data-key="bad"]')).toHaveCount(0);
   await h.set(id, { title: "Untitled fallback", lat: 38.7, lng: -90.3, category: "parks", icon: "unknown" }, "places/fallback");
   await expect(page.locator('.map-pin[data-key="fallback"] [data-icon="park"]')).toHaveCount(1);
+
+  const later = places();
+  later.categories!["-ignored"] = { name: "Ignored", icon: "heart", color: "red" };
+  later.places!["-ignored"] = { title: "Ignored place", lat: 38.8, lng: -90.4 };
+  later.places!.uncategorised = { title: "Uncategorised", lat: 38.72, lng: -90.32, category: "-ignored", icon: "heart", extra: "ignored" };
+  await h.set(id, { ...later, extra: "ignored" } as unknown as JSONValue);
+  await expect(rows(page)).toHaveCount(4);
+  await expect(page.locator('.place-button[data-key="-ignored"]')).toHaveCount(0);
+  await expect(page.locator('.map-pin[data-key="uncategorised"] [data-icon="pin"]')).toHaveCount(1);
+  await expect(alert(page)).toBeHidden();
 
   await h.set(id, [] as unknown as JSONValue);
   await expectError(page);

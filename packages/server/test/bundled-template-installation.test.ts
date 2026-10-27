@@ -89,7 +89,7 @@ describe("bundled artifact template package", () => {
       const old = sourceCopy();
       const manifestPath = path.join(old, id, "manifest.json");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: "0.9.9" }));
+      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: id === "map" ? "2.0.0" : "0.9.9" }));
       expectRefused(old, new RegExp(`${id}.*below minimum`, "i"));
     }
   }, 90_000);
@@ -553,7 +553,7 @@ describe("bundled artifact template serving installation", () => {
       expect(snapshotRegularFiles(installed)).toEqual(edited);
       const manifestPath = path.join(installed, "manifest.json");
       const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: "0.9.9" }));
+      writeFileSync(manifestPath, JSON.stringify({ ...manifest, version: id === "map" ? "2.0.0" : "0.9.9" }));
       const old = snapshotRegularFiles(installed);
       servingBoot(home);
       expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));

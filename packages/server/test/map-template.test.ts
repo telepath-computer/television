@@ -20,7 +20,7 @@ describe("bundled Map package", () => {
     expect(manifest).toMatchObject({
       name: "Map",
       description: "An interactive map with category colours and icons, a floating place list, photos, and detailed place information.",
-      version: "2.0.0",
+      version: "2.1.0",
       icons: [{ src: "icon.svg", type: "image/svg+xml" }],
     });
     expect(manifest).not.toHaveProperty("display");
@@ -67,6 +67,9 @@ describe("bundled Map package", () => {
     expect(readme).toContain('tv resource json set --artifact "$ARTIFACT_ID" places/place-01');
     expect(readme).toContain('tv resource json remove --artifact "$ARTIFACT_ID" places/place-01');
     expect(readme).not.toMatch(/tv resource json push/);
+    expect(readme).toMatch(/properties the schema does not name are ignored/i);
+    expect(readme).toMatch(/invalid category and place keys are ignored/i);
+    expect(readme).toMatch(/stored `sidebar` or `basemap` value overrides/i);
     expect(readme).toMatch(/Esri.*network/i);
     expect(readme).toMatch(/never writes|does not write/i);
   });
