@@ -54,7 +54,8 @@ async function poolCommand(root: string, name: string, operation: string) {
   return code;
 }
 async function gates(gate: string) {
-  return until(async () => [1,2].every(index => existsSync(path.join(gate, `shard-${index}.json`))) ? [1,2].map(index => readJson(path.join(gate, `shard-${index}.json`))) : null);
+  // Cold worker execution is allowed 480 seconds, before teardown and retrieval.
+  return until(async () => [1,2].every(index => existsSync(path.join(gate, `shard-${index}.json`))) ? [1,2].map(index => readJson(path.join(gate, `shard-${index}.json`))) : null, 600_000);
 }
 function retained(runDir: string) {
   const summary = readJson(path.join(runDir, "summary.json"));

@@ -32,7 +32,7 @@ export async function finishLease({ settleWrites, teardown, download, release, a
 }
 
 export async function retainAttemptEvidence(lease, directory) {
-  if (!lease.executionRequested) { lease.retrieved = true; return; }
+  if (!lease.preparationRequested && !lease.executionRequested) { lease.retrieved = true; return; }
   const root = "/workspace/television/.testshards/results";
   const identity = JSON.parse(await lease.sandbox.fs.read(`${root}/attempt.json`));
   for (const key of ["lockId", "runId", "shardIndex", "attemptId"]) if (identity[key] !== lease.input[key]) throw new Error(`attempt evidence identity mismatch: ${key}`);

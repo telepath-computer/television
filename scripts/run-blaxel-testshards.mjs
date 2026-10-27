@@ -327,6 +327,7 @@ function hashString(value) {
 
 async function leaseOperation(lease, operation, extra = {}) {
   if (lease.lost) throw lease.lost;
+  if (operation === "prepare") lease.preparationRequested = true;
   const body = ["set -eo pipefail", 'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', '. "$NVM_DIR/nvm.sh"', "nvm use --silent default", "set -u", workerLeaseCommand({ ...lease.input, operation, ...extra })].join("; ");
   const result = await lease.sandbox.process.exec({ name: `tv-${operation}-${randomUUID()}`, command: `bash -lc ${shellQuote(body)}`, waitForCompletion: true, timeout: 30 });
   const lines = chunkToText(result.logs ?? "").trim().split("\n");
@@ -487,10 +488,17 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       teardown: () => confirmTeardown(lease),
       download: async () => {
         await beforeDownload(lease);
-        const logs = await sandbox.process.logs(processName, "all");
-        appendLog(logPath, `\n[coordinator] final worker log:\n${chunkToText(logs)}`);
+        let logError = null;
+        if (lease.executionRequested) {
+          try {
+            const logs = await sandbox.process.logs(processName, "all");
+            appendLog(logPath, `\n[coordinator] final worker log:\n${chunkToText(logs)}`);
+          } catch (error) { logError = error; }
+        }
         failureStep = "report-download";
         result = await downloadResult();
+        // Retain available artifacts even when a required log read failed.
+        if (logError) throw logError;
         lease.retrieved = true;
       },
       release: async () => { await leaseOperation(lease, "release", { retrieved: true }); lease.released = true; },
@@ -1092,7 +1100,7 @@ async function stopAndReleaseLease(lease, { killProcess }) {
       await confirmTeardown(lease);
       if (killProcess && lease.workPromise) await lease.workPromise;
       if (lease.released) return;
-      if (!lease.executionRequested) lease.retrieved = true;
+      if (!lease.preparationRequested && !lease.executionRequested) lease.retrieved = true;
       if (!lease.retrieved) throw new Error("results not fully retained; keeping lease for recovery");
       await leaseOperation(lease, "release", { retrieved: true });
       lease.released = true;
