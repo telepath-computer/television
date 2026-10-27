@@ -3,6 +3,7 @@ import {
   getDocumentSelection,
   lineWithText,
   placeCaretAfter,
+  placeCaretAtColumn0,
   placeCaretInLine,
   setDocument,
 } from "./markers.helpers.ts";
@@ -13,7 +14,9 @@ const OUTSIDE_LINE = "Outside paragraph for the rendered state.";
 const SCREENSHOT_DIR = process.env.TV_MARKDOWN_LIST_SCREENSHOT_DIR;
 const SCREENSHOT_LABEL = process.env.TV_MARKDOWN_LIST_SCREENSHOT_LABEL;
 const MAX_ALIGNMENT_ERROR_PX = 1;
-const MAX_POSITION_DELTA_PX = 2;
+const MAX_POSITION_DELTA_PX = 1.5;
+const NAVIGATION_LINE_ABOVE = "Navigation line above the wrapped list.";
+const NAVIGATION_LINE_BELOW = "Navigation line below the wrapped list.";
 
 interface ListCase {
   name: string;
@@ -32,6 +35,48 @@ const cases: readonly ListCase[] = [
   listCase("numbered task", "10. [ ] ", "Numbered task item", "task", "10."),
   listCase("nested bullet", "  - ", "Nested bullet item"),
   listCase("nested number", "  1. ", "Nested number item", "number", "1."),
+  listCase("spaced bullet", "-   ", "Spaced bullet item"),
+  {
+    name: "hidden markup body",
+    sourceLine: `- **Hidden markup item** ${LONG_BODY}`,
+    bodyText: "Hidden markup item",
+    // Keep the caret inside the list mark. Putting it after `- ` also
+    // touches the adjacent strong-emphasis range and reveals `**`.
+    prefixColumn: 1,
+    marker: "bullet",
+    markerText: "-",
+  },
+];
+
+const quotedBullet = listCase("quoted bullet", "> - ", "Quoted bullet item");
+
+interface NavigationCase {
+  name: string;
+  item: ListCase;
+  initialMarkerState: "rendered" | "source";
+}
+
+const navigationCases: readonly NavigationCase[] = [
+  {
+    name: "numbered item",
+    item: listCase("navigation number", "1. ", "Numbered navigation item", "number", "1."),
+    initialMarkerState: "rendered",
+  },
+  {
+    name: "rendered bullet",
+    item: listCase("navigation rendered bullet", "- ", "Rendered bullet navigation item"),
+    initialMarkerState: "rendered",
+  },
+  {
+    name: "rendered task",
+    item: listCase("navigation rendered task", "- [ ] ", "Rendered task navigation item", "task"),
+    initialMarkerState: "rendered",
+  },
+  {
+    name: "source-revealed bullet",
+    item: listCase("navigation source bullet", "- ", "Source bullet navigation item"),
+    initialMarkerState: "source",
+  },
 ];
 
 const documentSource = [
@@ -51,6 +96,10 @@ const documentSource = [
   "1. Nested number parent",
   cases[6].sourceLine,
   "",
+  cases[7].sourceLine,
+  "",
+  cases[8].sourceLine,
+  "",
   OUTSIDE_LINE,
 ].join("\n");
 
@@ -60,6 +109,7 @@ interface VisualRow {
   height: number;
   firstCharWidth: number;
   expectedHead: number;
+  lastHead: number;
 }
 
 interface ListLayout {
@@ -114,6 +164,114 @@ test.describe("wrapped list indentation", () => {
       numberedTask.bodyLeft - numberedTask.markerLeft,
       "a numbered task must reserve its full marker and checkbox prefix",
     ).toBeGreaterThan(bulletTask.bodyLeft - bulletTask.markerLeft + 3);
+
+    await placeCaretInLine(page, cases[7].sourceLine, cases[7].prefixColumn);
+    const spacedBullet = await listLayout(page, cases[7]);
+    const spacedPrefixRight = await sourcePrefixRight(page, cases[7]);
+    expect.soft(
+      spacedPrefixRight - spacedBullet.bodyLeft,
+      "a source bullet followed by several spaces must not overlap its body text",
+    ).toBeLessThanOrEqual(0.5);
+  });
+
+  test("Home, left-edge clicks, and ArrowDown preserve visual row two", async ({ page }) => {
+    for (const navigationCase of navigationCases) {
+      await test.step(`${navigationCase.name}: Home stays on row two`, async () => {
+        const initial = await loadNavigationFixture(page, navigationCase);
+        assertExactlyTwoRows(navigationCase, "initial Home layout", initial);
+
+        const initialInsideSecondRow = positionInsideRow(initial.rows[1]);
+        if (navigationCase.initialMarkerState === "source") {
+          // Keep the prefix revealed with a selection whose anchor touches
+          // the list mark and whose head sits inside visual row two. Home
+          // moves from the head, so this exercises the source DOM rather than
+          // silently switching back to the rendered bullet first.
+          await placeSelectionFromLineStart(
+            page,
+            navigationCase.item.sourceLine,
+            initialInsideSecondRow,
+          );
+          await assertInitialMarkerState(page, navigationCase);
+        } else {
+          await placeCaretAtPosition(page, initialInsideSecondRow);
+        }
+        const active = await listLayout(page, navigationCase.item);
+        assertExactlyTwoRows(navigationCase, "active Home layout", active);
+        const secondRow = active.rows[1];
+        const insideSecondRow = positionInsideRow(secondRow);
+        expect(
+          insideSecondRow,
+          `${navigationCase.name}: Home must begin inside visual row two`,
+        ).toBeGreaterThan(secondRow.expectedHead);
+        if (navigationCase.initialMarkerState === "source") {
+          expect(
+            (await getDocumentSelection(page)).head,
+            `${navigationCase.name}: source selection head must remain on visual row two`,
+          ).toBe(initialInsideSecondRow);
+        } else {
+          await placeCaretAtPosition(page, insideSecondRow);
+        }
+
+        await page.keyboard.press("Home");
+        expect(
+          (await getDocumentSelection(page)).head,
+          `${navigationCase.name}: Home from row two must land at row two's start`,
+        ).toBe(secondRow.expectedHead);
+      });
+
+      await test.step(`${navigationCase.name}: click left of row two stays on row two`, async () => {
+        const layout = await loadNavigationFixture(page, navigationCase);
+        assertExactlyTwoRows(navigationCase, "click layout", layout);
+        const secondRow = layout.rows[1];
+
+        await page.mouse.click(secondRow.left - 4, secondRow.top + secondRow.height / 2);
+        expect(
+          (await getDocumentSelection(page)).head,
+          `${navigationCase.name}: clicking just left of row two must land at row two's start`,
+        ).toBe(secondRow.expectedHead);
+      });
+
+      await test.step(`${navigationCase.name}: ArrowDown visits row two`, async () => {
+        const initial = await loadNavigationFixture(page, navigationCase);
+        assertExactlyTwoRows(navigationCase, "initial ArrowDown layout", initial);
+
+        // Keep the source prefix revealed with the selection anchor while its
+        // head establishes goal x=0 on the preceding line. ArrowDown moves
+        // from the head, so the first vertical mapping uses the source DOM.
+        if (navigationCase.initialMarkerState === "source") {
+          await placeSelectionFromListPrefixToLineStart(
+            page,
+            navigationCase.item.sourceLine,
+            NAVIGATION_LINE_ABOVE,
+          );
+          await assertInitialMarkerState(page, navigationCase);
+        } else {
+          await placeCaretAtColumn0(page, NAVIGATION_LINE_ABOVE);
+        }
+        const beforeArrowDown = await listLayout(page, navigationCase.item);
+        assertExactlyTwoRows(navigationCase, "ArrowDown layout", beforeArrowDown);
+
+        await page.keyboard.press("ArrowDown");
+        expect(
+          await caretLineText(page),
+          `${navigationCase.name}: first ArrowDown must enter the list item`,
+        ).toBe(navigationCase.item.sourceLine);
+
+        const entered = await listLayout(page, navigationCase.item);
+        assertExactlyTwoRows(navigationCase, "entered ArrowDown layout", entered);
+        await page.keyboard.press("ArrowDown");
+        expect(
+          (await getDocumentSelection(page)).head,
+          `${navigationCase.name}: second ArrowDown must land at row two's start`,
+        ).toBe(entered.rows[1].expectedHead);
+
+        await page.keyboard.press("ArrowDown");
+        expect(
+          await caretLineText(page),
+          `${navigationCase.name}: third ArrowDown must leave the two-row item`,
+        ).toBe(NAVIGATION_LINE_BELOW);
+      });
+    }
   });
 
   test("keeps a multiline link inside the list body layout box", async ({ page }) => {
@@ -130,6 +288,15 @@ test.describe("wrapped list indentation", () => {
 
     const markerLine = lineWithText(page, "Before");
     await expect(markerLine.locator(".cm-md-list-body a.cm-md-link")).toHaveCount(1);
+  });
+
+  test("hangs wrapped list text inside a blockquote", async ({ page }) => {
+    await setDocument(page, [quotedBullet.sourceLine, "", OUTSIDE_LINE].join("\n"));
+    await placeCaretAfter(page, OUTSIDE_LINE);
+
+    const layout = await listLayout(page, quotedBullet);
+    assertWrappedRows(quotedBullet, "rendered", layout);
+    await clickFirstContinuation(page, quotedBullet, "rendered", layout);
   });
 });
 
@@ -161,6 +328,21 @@ function assertWrappedRows(item: ListCase, state: string, layout: ListLayout): v
       `${item.name} (${state}) continuation ${index + 1} must start under the body text`,
     ).toBeLessThanOrEqual(MAX_ALIGNMENT_ERROR_PX);
   }
+}
+
+function assertExactlyTwoRows(
+  navigationCase: NavigationCase,
+  state: string,
+  layout: ListLayout,
+): void {
+  expect(
+    layout.rows,
+    `${navigationCase.name} (${state}): navigation fixture must wrap to exactly two rows`,
+  ).toHaveLength(2);
+}
+
+function positionInsideRow(row: VisualRow): number {
+  return Math.min(row.expectedHead + 4, row.lastHead);
 }
 
 async function clickFirstContinuation(
@@ -227,14 +409,17 @@ async function listLayout(page: Page, item: ListCase): Promise<ListLayout> {
         );
         if (!rect) continue;
         const topKey = Math.round(rect.top * 10) / 10;
+        const expectedHead = view.posAtDOM(node, offset);
         const current = rows.get(topKey);
+        if (current) current.lastHead = Math.max(current.lastHead, expectedHead);
         if (current && current.left <= rect.left) continue;
         rows.set(topKey, {
           left: rect.left,
           top: rect.top,
           height: rect.height,
           firstCharWidth: rect.width,
-          expectedHead: view.posAtDOM(node, offset),
+          expectedHead,
+          lastHead: Math.max(current?.lastHead ?? expectedHead, expectedHead),
         });
       }
     }
@@ -247,12 +432,12 @@ async function listLayout(page: Page, item: ListCase): Promise<ListLayout> {
     if (marker === "bullet" && line.classList.contains("cm-md-list-bullet")) {
       const lineRect = line.getBoundingClientRect();
       const lineStyle = getComputedStyle(line);
-      const beforeStyle = getComputedStyle(line, "::before");
+      const bulletStyle = getComputedStyle(line, "::before");
       markerLeft =
         lineRect.left +
         Number.parseFloat(lineStyle.borderLeftWidth) +
         Number.parseFloat(lineStyle.paddingLeft) +
-        Number.parseFloat(beforeStyle.marginLeft);
+        Number.parseFloat(bulletStyle.marginLeft);
     } else if (marker === "task") {
       const checkbox = line.querySelector<HTMLElement>("input.cm-md-task-checkbox");
       if (checkbox) {
@@ -282,6 +467,149 @@ async function listLayout(page: Page, item: ListCase): Promise<ListLayout> {
   }, { bodyNeedle: item.bodyText, marker: item.marker, markerNeedle: item.markerText });
 }
 
+async function loadNavigationFixture(
+  page: Page,
+  navigationCase: NavigationCase,
+): Promise<ListLayout> {
+  await setDocument(
+    page,
+    [NAVIGATION_LINE_ABOVE, navigationCase.item.sourceLine, NAVIGATION_LINE_BELOW].join("\n"),
+  );
+  if (navigationCase.initialMarkerState === "source") {
+    await placeCaretInLine(
+      page,
+      navigationCase.item.sourceLine,
+      navigationCase.item.prefixColumn,
+    );
+  } else {
+    await placeCaretAfter(page, NAVIGATION_LINE_BELOW);
+  }
+  await assertInitialMarkerState(page, navigationCase);
+  return listLayout(page, navigationCase.item);
+}
+
+async function assertInitialMarkerState(
+  page: Page,
+  navigationCase: NavigationCase,
+): Promise<void> {
+  const line = lineWithText(page, navigationCase.item.bodyText);
+  if (navigationCase.initialMarkerState === "source") {
+    await expect(line).not.toHaveClass(/cm-md-list-bullet/);
+    await expect(line.locator(".cm-md-list-prefix .cm-md-mark")).toContainText("-");
+    return;
+  }
+  if (navigationCase.item.marker === "bullet") {
+    await expect(line).toHaveClass(/cm-md-list-bullet/);
+  } else if (navigationCase.item.marker === "task") {
+    await expect(line.locator("input.cm-md-task-checkbox")).toBeAttached();
+  }
+}
+
+async function placeCaretAtPosition(page: Page, position: number): Promise<void> {
+  await page.evaluate((anchor) => {
+    type ViewWindow = Window & {
+      __cmView?: { dispatch: (spec: unknown) => void; focus: () => void };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    view.focus();
+    view.dispatch({ selection: { anchor } });
+  }, position);
+}
+
+async function placeSelectionFromLineStart(
+  page: Page,
+  lineText: string,
+  head: number,
+): Promise<void> {
+  await page.evaluate(({ lineText: needle, head: headPosition }) => {
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: {
+          doc: { lines: number; line(number: number): { from: number; text: string } };
+        };
+        dispatch: (spec: unknown) => void;
+        focus: () => void;
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    for (let number = 1; number <= view.state.doc.lines; number += 1) {
+      const line = view.state.doc.line(number);
+      if (line.text !== needle) continue;
+      view.focus();
+      view.dispatch({ selection: { anchor: line.from, head: headPosition } });
+      return;
+    }
+    throw new Error(`Line not found: ${needle}`);
+  }, { lineText, head });
+}
+
+async function placeSelectionFromListPrefixToLineStart(
+  page: Page,
+  listLineText: string,
+  headLineText: string,
+): Promise<void> {
+  await page.evaluate(({ listNeedle, headNeedle }) => {
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: {
+          doc: { lines: number; line(number: number): { from: number; text: string } };
+        };
+        dispatch: (spec: unknown) => void;
+        focus: () => void;
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    let anchor: number | undefined;
+    let head: number | undefined;
+    for (let number = 1; number <= view.state.doc.lines; number += 1) {
+      const line = view.state.doc.line(number);
+      if (line.text === listNeedle) anchor = line.from;
+      if (line.text === headNeedle) head = line.from;
+    }
+    if (anchor === undefined) throw new Error(`List line not found: ${listNeedle}`);
+    if (head === undefined) throw new Error(`Head line not found: ${headNeedle}`);
+    view.focus();
+    view.dispatch({ selection: { anchor, head } });
+  }, { listNeedle: listLineText, headNeedle: headLineText });
+}
+
+async function caretLineText(page: Page): Promise<string> {
+  return page.evaluate(() => {
+    type ViewWindow = Window & {
+      __cmView?: {
+        state: {
+          selection: { main: { head: number } };
+          doc: { lineAt(position: number): { text: string } };
+        };
+      };
+    };
+    const view = (window as ViewWindow).__cmView;
+    if (!view) throw new Error("EditorView not exposed on window.__cmView");
+    return view.state.doc.lineAt(view.state.selection.main.head).text;
+  });
+}
+
+async function sourcePrefixRight(page: Page, item: ListCase): Promise<number> {
+  return page.evaluate((bodyNeedle) => {
+    const line = Array.from(document.querySelectorAll<HTMLElement>(".cm-line"))
+      .find((element) => element.innerText.includes(bodyNeedle));
+    if (!line) throw new Error(`List line not found: ${bodyNeedle}`);
+    const prefix = line.querySelector<HTMLElement>(".cm-md-list-prefix");
+    if (!prefix) throw new Error(`List prefix not found: ${bodyNeedle}`);
+
+    const range = document.createRange();
+    range.selectNodeContents(prefix);
+    const rightEdges = Array.from(range.getClientRects())
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => rect.right);
+    if (rightEdges.length === 0) throw new Error(`List prefix has no visible box: ${bodyNeedle}`);
+    return Math.max(...rightEdges);
+  }, item.bodyText);
+}
+
 async function captureScreenshots(page: Page): Promise<void> {
   if (!SCREENSHOT_DIR || !SCREENSHOT_LABEL) return;
 
@@ -296,8 +624,46 @@ async function captureScreenshots(page: Page): Promise<void> {
     lineWithText(page, cases[2].bodyText),
     `${SCREENSHOT_DIR}/${SCREENSHOT_LABEL}-numbered.png`,
   );
+
+  await placeCaretAfter(page, OUTSIDE_LINE);
+  await screenshotLine(
+    lineWithText(page, cases[3].bodyText),
+    `${SCREENSHOT_DIR}/${SCREENSHOT_LABEL}-task-rendered.png`,
+  );
+  await screenshotLine(
+    lineWithText(page, cases[4].bodyText),
+    `${SCREENSHOT_DIR}/${SCREENSHOT_LABEL}-numbered-task-rendered.png`,
+  );
+
+  const plainGap = await renderedTaskGap(page, cases[3]);
+  const numberedGap = await renderedTaskGap(page, cases[4]);
+  console.log(
+    `[rendered-task-gap:${SCREENSHOT_LABEL}] plain=${plainGap.toFixed(2)}px numbered=${numberedGap.toFixed(2)}px`,
+  );
 }
 
 async function screenshotLine(line: Locator, path: string): Promise<void> {
   await line.screenshot({ path, animations: "disabled" });
+}
+
+async function renderedTaskGap(page: Page, item: ListCase): Promise<number> {
+  return page.evaluate((bodyNeedle) => {
+    const line = Array.from(document.querySelectorAll<HTMLElement>(".cm-line"))
+      .find((element) => element.innerText.includes(bodyNeedle));
+    if (!line) throw new Error(`Task line not found: ${bodyNeedle}`);
+    const checkbox = line.querySelector<HTMLElement>("input.cm-md-task-checkbox");
+    if (!checkbox) throw new Error(`Task checkbox not found: ${bodyNeedle}`);
+
+    const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const offset = (node as Text).data.indexOf(bodyNeedle);
+      if (offset < 0) continue;
+      const range = document.createRange();
+      range.setStart(node, offset);
+      range.setEnd(node, offset + 1);
+      return range.getBoundingClientRect().left - checkbox.getBoundingClientRect().right;
+    }
+    throw new Error(`Task body text not found: ${bodyNeedle}`);
+  }, item.bodyText);
 }
