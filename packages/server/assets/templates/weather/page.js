@@ -225,11 +225,13 @@ function hourlyPanel(forecast, hours) {
   strip.addEventListener("keydown", (event) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     // Modified arrows belong to browser and assistive-technology shortcuts.
-    // Plain arrows move by one compact forecast-cell step because the native
+    // Plain arrows move by one complete forecast cell because the native
     // scroll distance varies by browser and can leave a cell barely exposed.
     if (event.altKey || event.metaKey) return;
     event.preventDefault();
-    strip.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96 });
+    const firstCell = strip.firstElementChild;
+    const step = firstCell?.getBoundingClientRect().width ?? 0;
+    strip.scrollBy({ left: event.key === "ArrowRight" ? step : -step });
   });
   const entries = [{
     label: "Now",
@@ -307,8 +309,8 @@ function readyCard(configuration, forecast, now) {
   const content = element("div", "weather-content");
   const header = element("header", "weather-header");
   const heading = element("div");
-  const meta = element("p");
-  meta.append(document.createTextNode(`Updated ${ageLabel(forecast.updatedAt, now)}`));
+  const meta = element("p", "weather-meta");
+  meta.append(element("span", "weather-updated", `Updated ${ageLabel(forecast.updatedAt, now)}`));
   const separator = element("span", "", " · ");
   separator.setAttribute("aria-hidden", "true");
   const unit = element("span", "", forecast.units === "celsius" ? "°C" : "°F");
@@ -348,6 +350,9 @@ function render() {
     card = placeholderCard("loading");
   }
   const previous = main.firstElementChild;
+  const previousUpdated = previous?.querySelector(".weather-updated");
+  const nextUpdated = card.querySelector(".weather-updated");
+  if (previousUpdated && nextUpdated) previousUpdated.textContent = nextUpdated.textContent;
   if (previous?.outerHTML === card.outerHTML) return;
   const previousStrip = previous?.querySelector(".weather-hourly-strip");
   const stripScrollLeft = previousStrip?.scrollLeft ?? null;

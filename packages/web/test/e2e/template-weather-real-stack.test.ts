@@ -1667,6 +1667,9 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   const strip = frame.locator(".weather-hourly-strip");
   await expect(strip).toHaveAttribute("aria-label", "Hourly forecast; scroll for later hours");
   await strip.focus();
+  await frame.locator(".weather-updated").evaluate((node) => {
+    (window as unknown as { __weatherUpdated?: Element }).__weatherUpdated = node;
+  });
   await strip.evaluate((node) => { node.scrollLeft = 140; });
   const focusedBefore = await strip.evaluate((node) => document.activeElement === node);
   const scrollBefore = await strip.evaluate((node) => node.scrollLeft);
@@ -1675,6 +1678,9 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await page.clock.fastForward(60_000);
   await expect.poll(() => strip.evaluate((node) => document.activeElement === node)).toBe(true);
   expect(await strip.evaluate((node) => node.scrollLeft)).toBe(scrollBefore);
+  expect(await frame.locator(".weather-updated").evaluate((node) => (
+    (window as unknown as { __weatherUpdated?: Element }).__weatherUpdated === node
+  ))).toBe(true);
   await strip.evaluate((node) => node.blur());
   await strip.evaluate((node) => { node.scrollLeft = 220; });
   const unfocusedScroll = await strip.evaluate((node) => node.scrollLeft);
@@ -1690,6 +1696,20 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
     expect(await strip.evaluate((node) => node.scrollLeft)).toBe(modifiedKey.scrollLeft);
   }
   await strip.focus();
+  await strip.evaluate((node) => { node.scrollLeft = 0; });
+  const cellStep = await strip.evaluate((node) => {
+    const stripBox = node.getBoundingClientRect();
+    const first = node.children[0]!.getBoundingClientRect();
+    const second = node.children[1]!.getBoundingClientRect();
+    return {
+      width: first.width,
+      interval: second.left - first.left,
+      snapTarget: second.left - stripBox.left + node.scrollLeft,
+    };
+  });
+  expect(cellStep.interval).toBeCloseTo(cellStep.width, 5);
+  await strip.press("ArrowRight");
+  await expect.poll(() => strip.evaluate((node) => node.scrollLeft)).toBeCloseTo(cellStep.snapTarget, 0);
   for (let index = 0; index < 30; index += 1) {
     const finalVisible = await strip.evaluate((node) => {
       const stripBox = node.getBoundingClientRect();
@@ -1729,8 +1749,13 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await expect(creditLinks.nth(1)).toHaveAttribute("target", "_blank");
   await expect(creditLinks.nth(0)).toHaveAttribute("href", "https://open-meteo.com/");
   await expect(creditLinks.nth(1)).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/");
-  await creditLinks.first().focus();
-  expect(await creditLinks.first().evaluate((link) => getComputedStyle(link).outlineStyle)).not.toBe("none");
+  await strip.focus();
+  await strip.press("Tab");
+  await expect.poll(() => creditLinks.first().evaluate((link) => document.activeElement === link)).toBe(true);
+  expect(await creditLinks.first().evaluate((link) => {
+    const style = getComputedStyle(link);
+    return [style.outlineStyle, style.outlineWidth, style.outlineColor, style.outlineOffset];
+  })).toEqual(["solid", "1px", "rgba(255, 255, 255, 0.86)", "2px"]);
   await page.clock.fastForward(60_000);
   await expect.poll(() => creditLinks.first().evaluate((link) => document.activeElement === link)).toBe(true);
 

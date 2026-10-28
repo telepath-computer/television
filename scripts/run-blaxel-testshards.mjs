@@ -9,6 +9,7 @@ import { BLAXEL_GITHUB_TOKEN_ENV, BLAXEL_GITHUB_TOKEN_FILE, readBlaxelGithubToke
 import { blaxelCheckoutScript, blaxelDependencyScript, resolveBlaxelRepositoryUrl } from "./test/blaxel-repository.mjs";
 import { transferShardInputs } from "./test/blaxel-shard-dispatch.mjs";
 import { buildLinuxStaleOwnerAuditInvocation, parseLinuxStaleOwnerAuditOutput } from "./test/blaxel-stale-owner-audit.mjs";
+import { loadTestConfig } from "./test/config.mjs";
 import { normalizeSetupTimingStatus, normalizeTimingPhase } from "./test/phase-metrics.mjs";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -17,6 +18,7 @@ import path from "node:path";
 import process from "node:process";
 
 const options = parseArgs(process.argv.slice(2));
+let cachedTestConfig;
 const auditStaleOwners = Boolean(options["audit-stale-owners"]);
 const suite = options.suite ?? "all";
 const selectedSurfaceIds = options.surfaces ?? null;
@@ -433,7 +435,7 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
       shardIndex,
       lockId,
       planRemotePath,
-      weatherArtworkSelected: shardRunsWeatherArtwork(shardIndex),
+      webkitRequired: shardRequiresWebKit(shardIndex),
     }),
   });
   if (!dispatch.ok) {
@@ -769,21 +771,32 @@ function parseTargetServices(raw) {
 
 function systemDependenciesCommand({ includeWebKit = false } = {}) {
   const base = 'if ! command -v python3 >/dev/null 2>&1 || ! command -v xauth >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1 || ! ldconfig -p 2>/dev/null | grep -q "libgtk-3.so.0" || ! ldconfig -p 2>/dev/null | grep -q "libXtst.so.6"; then apt-get update && apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2; fi';
-  return includeWebKit ? `${base}; npx playwright install-deps webkit` : base;
+  return includeWebKit ? `${base} && npx playwright install-deps webkit` : base;
 }
 
-function shardRunsWeatherArtwork(shardIndex) {
+function testSurfaces() {
+  cachedTestConfig ??= loadTestConfig();
+  return cachedTestConfig.surfaces;
+}
+
+function surfaceRequiresWebKit(surfaceId) {
+  const surface = testSurfaces().find((candidate) => candidate.id === surfaceId);
+  if (!surface) return false;
+  return surface.preflight.includes("playwright-webkit");
+}
+
+function shardRequiresWebKit(shardIndex) {
   const plannedShard = shardPlan?.shards?.[shardIndex - 1];
   if (plannedShard) {
     return plannedShard.surfaces.some((surface) => (
-      surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0
+      surface.files.length > 0 && surfaceRequiresWebKit(surface.surfaceId)
     ));
   }
-  if (suite === "target") return targetOptions()?.surfaceId === "e2e:weather-artwork";
+  if (suite === "target") return surfaceRequiresWebKit(targetOptions()?.surfaceId);
   return false;
 }
 
-function shardScript({ shardIndex, lockId, planRemotePath, weatherArtworkSelected }) {
+function shardScript({ shardIndex, lockId, planRemotePath, webkitRequired }) {
   return `#!/usr/bin/env bash
 set -euo pipefail
 lock=/tmp/tv-testshard.lock
@@ -891,7 +904,7 @@ cd /workspace/television
 run_step runtime-activation activate_runtime
 run_step runtime-versions runtime_versions
 run_step deps bash -c ${shellQuote(blaxelDependencyScript())}
-run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand({ includeWebKit: weatherArtworkSelected }))}
+run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand({ includeWebKit: webkitRequired }))}
 if run_step owner-lifecycle node scripts/test/stale-owner-reaper-cli.mjs --output "$owner_report"; then
   owner_status=0
 else
@@ -938,7 +951,7 @@ OWNER_SUMMARY_NODE
   exit "$owner_status"
 fi
 run_step playwright-cache npx playwright install chromium firefox
-${weatherArtworkSelected ? `run_step playwright-webkit-cache npx playwright install webkit
+${webkitRequired ? `run_step playwright-webkit-cache npx playwright install webkit
 run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs` : ""}
 run_step electron-repair bash -c ${shellQuote(`electron_config_cache=/cache/electron node node_modules/electron/install.js`)}
 set +e

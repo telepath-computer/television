@@ -61,6 +61,11 @@ function ciEndToEndShardUploadStep(workflowText: string): string {
 const setupWorkspacePath = ".github/actions/setup-workspace/action.yml";
 const setupShardReadinessPath = ".github/actions/setup-shard-readiness/action.yml";
 
+function compositeStep(action: string, name: string): string {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return action.match(new RegExp(`- name: ${escaped}\\n([\\s\\S]*?)(?=\\n    - name:|$)`))?.[0] ?? "";
+}
+
 function ciWorkflowJobs(workflow: string): Map<string, string> {
   const jobsStart = workflow.indexOf("\njobs:\n");
   if (jobsStart < 0) throw new Error("CI workflow has no jobs mapping");
@@ -182,24 +187,38 @@ describe("test runner guardrails", () => {
   });
 
   // proofs/arch/test-runner/github-ci.md#^gha-t-playwright-three-browsers
-  test("ci prepares and launch-probes WebKit only on the Weather-artwork shard", () => {
+  test("ci prepares and launch-probes WebKit only on a shard assigned a WebKit-preflight surface", () => {
     const workflow = readFileSync(ciWorkflowPath, "utf8");
     const action = readFileSync(".github/actions/setup-playwright/action.yml", "utf8");
     const webkitAction = readFileSync(".github/actions/setup-webkit/action.yml", "utf8");
+    const testJob = workflow.slice(workflow.indexOf("\n  test:"), workflow.indexOf("\n  build:"));
     const buildJob = workflow.slice(workflow.indexOf("\n  build:"), workflow.indexOf("\n  e2e:"));
     const e2eJob = workflow.slice(workflow.indexOf("\n  e2e:"), workflow.indexOf("\n  e2e-required:"));
 
     expect(action).not.toContain("webkit");
-    expect(webkitAction).toContain("playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-webkit");
+    expect(webkitAction).toContain("cache-namespace:");
+    expect(webkitAction).toContain("default: playwright");
+    expect(webkitAction).toContain("${{ inputs.cache-namespace }}-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-webkit");
+    expect(webkitAction).toContain("path: ~/.cache/ms-playwright/webkit-*");
     expect(webkitAction).toContain("npx playwright install webkit");
     expect(webkitAction).toContain("npx playwright install-deps webkit");
+    const dependencyStep = compositeStep(webkitAction, "Install WebKit system dependencies");
+    expect(dependencyStep).not.toContain("if:");
+    expect(dependencyStep).toContain("playwright-webkit-system-deps");
+    expect(webkitAction).toContain("playwright-webkit-cache-restore");
+    expect(webkitAction).toContain("playwright-webkit-browser-install");
     expect(buildJob).not.toContain("setup-webkit");
     expect(buildJob).not.toContain("webkit");
-    expect(e2eJob).toContain("Detect whether this shard runs Weather artwork");
-    expect(e2eJob).toContain('surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0');
-    expect(e2eJob).toMatch(/name: Install WebKit for the Weather-artwork shard\s+if:.*steps\.weather-artwork\.outputs\.selected == 'true'[\s\S]*uses: \.\/\.github\/actions\/setup-webkit/);
-    expect(e2eJob).toMatch(/name: Prove WebKit launches on the Weather-artwork shard\s+if:.*steps\.weather-artwork\.outputs\.selected == 'true'[\s\S]*run: node scripts\/check-playwright-webkit-launch\.mjs/);
-    expect(workflow.match(/name: Prove WebKit launches on the Weather-artwork shard/g)).toHaveLength(1);
+    expect(testJob).not.toContain("setup-webkit");
+    expect(testJob).not.toContain("check-playwright-webkit-launch");
+    expect(e2eJob).toContain("Detect whether this shard requires WebKit");
+    expect(e2eJob).toContain('candidate?.preflight.includes("playwright-webkit")');
+    expect(e2eJob).toContain("surface.files.length > 0");
+    expect(e2eJob).toMatch(/name: Install WebKit for the selected shard\s+if:.*steps\.webkit\.outputs\.selected == 'true'[\s\S]*uses: \.\/\.github\/actions\/setup-webkit/);
+    expect(e2eJob).toMatch(/name: Prove WebKit launches on the selected shard\s+if:.*steps\.webkit\.outputs\.selected == 'true'[\s\S]*check-playwright-webkit-launch\.mjs[\s\S]*playwright-webkit-launch/);
+    expect(workflow.match(/name: Prove WebKit launches on the selected shard/g)).toHaveLength(1);
+    expect(workflow.match(/import \{ chromium, firefox \} from "@playwright\/test";/g)).toHaveLength(2);
+    expect(workflow.match(/for \(const browserType of \[chromium, firefox\]\)/g)).toHaveLength(2);
   });
 
   // specs/arch/test-runner/github-ci.md#test-assertions — the committed
@@ -351,7 +370,7 @@ describe("test runner guardrails", () => {
     // silently skip the heavy tier when attest-check CRASHES — never-skip-
     // on-doubt applies to the job graph too), no-op explicitly, and guard
     // every real step.
-    for (const [heavy, realSteps] of [[job("test", "build"), 14], [job("build", "e2e"), 10], [job("e2e", "e2e-required"), 25]] as const) {
+    for (const [heavy, realSteps] of [[job("test", "build"), 14], [job("build", "e2e"), 10], [job("e2e", "e2e-required"), 26]] as const) {
       expect(heavy).toContain("attest-check");
       const jobIf = heavy.match(/^    if: (.*)$/m);
       expect(jobIf).not.toBeNull();

@@ -86,10 +86,15 @@ describe("provider result normalization", () => {
   });
 
   // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-playwright-cache-command
-  test("prepares WebKit and its libraries only on the Blaxel shard that runs Weather artwork", () => {
+  test("prepares WebKit and its libraries only on a Blaxel worker assigned a WebKit-preflight surface", () => {
     const source = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
-    expect(source).toContain("weatherArtworkSelected");
-    expect(source).toContain('surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0');
+    expect(source.indexOf("let cachedTestConfig")).toBeLessThan(source.indexOf("await runInfrastructureAttempts"));
+    expect(source).toMatch(/function shardRequiresWebKit\(shardIndex\) \{\s+const plannedShard/);
+    expect(source).toContain("webkitRequired");
+    expect(source).toContain('surface.preflight.includes("playwright-webkit")');
+    expect(source).toContain("surface.files.length > 0 && surfaceRequiresWebKit(surface.surfaceId)");
+    expect(source).toContain("if (suite === \"target\") return surfaceRequiresWebKit(targetOptions()?.surfaceId)");
+    expect(source).toContain("includeWebKit ? `${base} && npx playwright install-deps webkit` : base");
     expect(source).toContain("run_step playwright-cache npx playwright install chromium firefox");
     expect(source).toContain("run_step playwright-webkit-cache npx playwright install webkit");
     expect(source).toContain("run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs");
@@ -97,6 +102,9 @@ describe("provider result normalization", () => {
     expect(source).toContain("export PLAYWRIGHT_BROWSERS_PATH=${playwrightBrowsersPath}");
     expect(source.indexOf("run_step deps")).toBeLessThan(source.indexOf("run_step playwright-cache"));
     expect(source.indexOf("run_step playwright-cache")).toBeLessThan(source.indexOf("run_step test-run"));
+    expect(source.indexOf("run_step playwright-webkit-cache")).toBeLessThan(source.indexOf("run_step test-run"));
+    expect(source).toContain('${webkitRequired ? `run_step playwright-webkit-cache');
+    expect(source).toContain('run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs` : ""}');
   });
 
   test("uses Electron's installer for the Blaxel runtime preparation phase", () => {

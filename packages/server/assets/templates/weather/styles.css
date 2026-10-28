@@ -686,6 +686,5 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .weather-spinner { animation: none; }
   .weather-hourly-strip { scroll-behavior: auto; }
 }

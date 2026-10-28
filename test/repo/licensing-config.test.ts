@@ -192,7 +192,6 @@ describe("licensing configuration", () => {
     for (const file of weatherIcons.paths) {
       expect(readFileSync(path.join(repoRoot, file), "utf8")).toContain("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt");
     }
-    expect(assets.flatMap((asset) => asset.paths)).not.toContain("packages/server/assets/templates/weather/artwork.svg");
     expect(assets.flatMap((asset) => asset.paths)).not.toContain("packages/server/assets/templates/weather/icon.svg");
 
     // proofs/arch/licensing.md#^licensing-t-real-assets-seam

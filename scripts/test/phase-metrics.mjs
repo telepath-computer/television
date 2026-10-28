@@ -33,7 +33,7 @@ export function inferPhaseCategory(name) {
   if (/checkout|git-fetch|git-reset/.test(value)) return "checkout";
   if (/dependenc|\bdeps\b|npm-ci|workspace-cache|runtime-versions|system-deps/.test(value)) return "dependencies";
   if (/runner|test-run|execution-group|surface-compute/.test(value)) return "test";
-  if (/browser|playwright-cache|electron-repair|readiness|surface-services|first-test/.test(value)) return "readiness";
+  if (/browser|playwright(?:-[a-z]+)*-(?:cache|launch)|electron-repair|readiness|surface-services|first-test/.test(value)) return "readiness";
   if (/\bplan\b|planning/.test(value)) return "plan";
   if (/join|agreement/.test(value)) return "join";
   if (/report|artifact-download|output-download/.test(value)) return "report";

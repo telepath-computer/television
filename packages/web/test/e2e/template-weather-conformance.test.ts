@@ -7,9 +7,9 @@ import { TemplateHarness } from "./template-harness.ts";
 
 const run = useConformance();
 // Each comparison owns two Chromium pages and can capture a 900×780 root.
-// Keeping this file serial avoids exhausting small remote workers while other
-// conformance files still use the configured worker pool.
-test.describe.configure({ mode: "serial" });
+// Default mode keeps this file on one worker in declaration order without
+// serial mode's group-wide skip and retry behavior.
+test.describe.configure({ mode: "default" });
 const DAY_NOW = "2026-10-27T10:30:00Z";
 const NIGHT_NOW = "2026-10-27T22:30:00Z";
 const COORDINATES = { latitude: 37.7749, longitude: -122.4194 };
@@ -36,6 +36,21 @@ interface State {
   now?: string;
   provider?: "none" | "fail";
   loading?: boolean;
+}
+
+interface CardPresentation {
+  theme: string | undefined;
+  themeSurface: string;
+  background: string;
+  color: string;
+  scheme: string;
+  overflow: string;
+  className: string;
+  condition: string | undefined;
+  day: string | undefined;
+  text: string | null;
+  creditCount: number;
+  size: [number, number];
 }
 
 function forecast(input: ForecastInput): WeatherConfiguration {
@@ -227,52 +242,69 @@ for (const storyID of stories) {
 
 // proofs/ui/templates/weather.md#^weather-ui-ac-appearance
 test("Weather keeps its sky composition and legibility in dark appearance with the bundled Nord theme", async () => {
+  test.setTimeout(120_000);
   const harness = await TemplateHarness.start({ id: "weather", name: "Weather" }, { bundledThemes: true });
   try {
     const cases = [
-      { value: sanFrancisco as unknown as JSONValue, provider: "none" },
-      { value: empty, provider: "none" },
-      { value: unavailable, provider: "hold" },
-      { value: unavailable, provider: "fail" },
-      { value: unreadable, provider: "none" },
-    ];
+      { value: sanFrancisco as unknown as JSONValue, provider: "none", state: "populated" },
+      { value: empty, provider: "none", state: "empty" },
+      { value: unavailable, provider: "hold", state: "loading" },
+      { value: unavailable, provider: "fail", state: "unavailable" },
+      { value: unreadable, provider: "none", state: "unreadable" },
+    ] as const;
     const artifacts = await Promise.all(cases.map(({ value }) => harness.createStored(value)));
     const presentations = async (colorScheme: "light" | "dark") => {
-      const results = [];
-      for (const [{ provider }, index] of cases.map((entry, index) => [entry, index] as const)) {
-        const context = await run.browser.newContext({ colorScheme });
-        try {
-          await context.clock.setFixedTime(new Date(DAY_NOW));
-          await context.route("https://api.open-meteo.com/**", async (route) => {
-            if (provider === "fail") await route.abort("failed");
+      const results: CardPresentation[] = [];
+      const context = await run.browser.newContext({ colorScheme });
+      try {
+        await context.clock.setFixedTime(new Date(DAY_NOW));
+        for (const [{ provider, state }, index] of cases.map((entry, index) => [entry, index] as const)) {
+          await test.step(`${colorScheme} ${state}`, async () => {
+            const page = await context.newPage();
+            try {
+              await page.route("https://api.open-meteo.com/**", async (route) => {
+                if (provider !== "hold") await route.abort("failed");
+              });
+              await page.setViewportSize(small);
+              await harness.client.display.focus({ artifactID: artifacts[index]! });
+              await harness.openApp(page);
+              const frame = await harness.frame(page, artifacts[index]!);
+              const marker = { state: "attached" as const, timeout: 10_000 };
+              if (state === "populated") await frame.locator(".weather-temperature").waitFor(marker);
+              if (state === "empty") await frame.getByRole("heading", { name: "No location yet" }).waitFor(marker);
+              if (state === "loading") await frame.getByRole("status", { name: "Loading weather" }).waitFor(marker);
+              if (state === "unavailable") await frame.getByRole("status", { name: "Forecast unavailable" }).waitFor(marker);
+              if (state === "unreadable") await frame.getByRole("alert").waitFor(marker);
+              const card = frame.locator(".weather-card");
+              const actualState = await card.evaluate((node) => {
+                const stateClass = [...node.classList].find((name) => name.startsWith("weather-card-") && name !== "weather-card-loading");
+                return stateClass?.slice("weather-card-".length) ?? (node.classList.contains("weather-card-loading") ? "loading" : "populated");
+              });
+              expect(actualState).toBe(state);
+              results.push(await card.evaluate((card) => {
+                const box = card.getBoundingClientRect();
+                return {
+                  theme: document.documentElement.dataset.theme,
+                  themeSurface: getComputedStyle(document.documentElement).getPropertyValue("--color-surface").trim(),
+                  background: getComputedStyle(card).backgroundImage,
+                  color: getComputedStyle(card).color,
+                  scheme: getComputedStyle(card).colorScheme,
+                  overflow: getComputedStyle(card).overflow,
+                  className: card.className,
+                  condition: (card as HTMLElement).dataset.condition,
+                  day: (card as HTMLElement).dataset.day,
+                  text: card.textContent,
+                  creditCount: card.querySelectorAll(".weather-credit").length,
+                  size: [box.width, box.height],
+                };
+              }));
+            } finally {
+              await page.close();
+            }
           });
-          const page = await context.newPage();
-          await page.setViewportSize(small);
-          await harness.client.display.focus({ artifactID: artifacts[index]! });
-          await harness.openApp(page);
-          const frame = await harness.frame(page, artifacts[index]!);
-          if (provider === "hold") await frame.getByRole("status", { name: "Loading weather" }).waitFor();
-          if (provider === "fail") await frame.getByRole("status", { name: "Forecast unavailable" }).waitFor();
-          await frame.locator(".weather-card").waitFor();
-          results.push(await frame.locator(".weather-card").evaluate((card) => {
-            const box = card.getBoundingClientRect();
-            return {
-              theme: document.documentElement.dataset.theme,
-              background: getComputedStyle(card).backgroundImage,
-              color: getComputedStyle(card).color,
-              scheme: getComputedStyle(card).colorScheme,
-              overflow: getComputedStyle(card).overflow,
-              className: card.className,
-              condition: (card as HTMLElement).dataset.condition,
-              day: (card as HTMLElement).dataset.day,
-              text: card.textContent,
-              creditCount: card.querySelectorAll(".weather-credit").length,
-              size: [box.width, box.height],
-            };
-          }));
-        } finally {
-          await context.close();
         }
+      } finally {
+        await context.close();
       }
       return results;
     };
@@ -290,12 +322,14 @@ test("Weather keeps its sky composition and legibility in dark appearance with t
     });
     const dark = await presentations("dark");
     for (let index = 0; index < light.length; index += 1) {
-      const { theme: lightTheme, scheme: lightScheme, ...lightCard } = light[index]!;
-      const { theme: darkTheme, scheme: darkScheme, ...darkCard } = dark[index]!;
+      const { theme: lightTheme, themeSurface: lightSurface, scheme: lightScheme, ...lightCard } = light[index]!;
+      const { theme: darkTheme, themeSurface: darkSurface, scheme: darkScheme, ...darkCard } = dark[index]!;
       expect(lightTheme).toBe("light");
       expect(lightScheme).toBe("dark");
+      expect(lightSurface).not.toBe("#2e3440");
       expect(darkTheme).toBe("dark");
       expect(darkScheme).toBe("dark");
+      expect(darkSurface).toBe("#2e3440");
       expect(darkCard).toEqual(lightCard);
       expect(darkCard.background).toContain("linear-gradient");
       expect(darkCard.color).toBe("rgb(255, 255, 255)");

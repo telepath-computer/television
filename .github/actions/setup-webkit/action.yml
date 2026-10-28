@@ -1,8 +1,14 @@
 name: Setup Playwright WebKit
 description: >-
-  Install Playwright WebKit for the Weather-artwork shard. The browser cache is
+  Install Playwright WebKit for a shard whose surface requires it. The browser cache is
   version-keyed, while system libraries are installed on every ephemeral VM.
   Requires the caller to have selected Node and restored node_modules first.
+
+inputs:
+  cache-namespace:
+    description: Cache namespace used by production and isolated validation runs.
+    required: false
+    default: playwright
 
 runs:
   using: composite
@@ -16,14 +22,46 @@ runs:
       id: pw-cache
       uses: actions/cache@v4
       with:
-        path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-webkit
+        path: ~/.cache/ms-playwright/webkit-*
+        key: ${{ inputs.cache-namespace }}-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-webkit
+
+    - name: Record WebKit cache restore
+      shell: bash
+      run: |
+        cache_status=miss
+        if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then cache_status=hit; fi
+        node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+          --name playwright-webkit-cache-restore --category readiness \
+          --started-ms "$TV_PLAYWRIGHT_WEBKIT_CACHE_STARTED_MS" --cache-status "$cache_status" \
+          || echo "::warning::WebKit cache phase metric recorder crashed"
 
     - name: Install WebKit browser (cache miss)
       if: steps.pw-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npx playwright install webkit
+      run: |
+        started=$(date +%s%3N)
+        set +e
+        npx playwright install webkit
+        status=$?
+        set -e
+        phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+        node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+          --name playwright-webkit-browser-install --category readiness \
+          --started-ms "$started" --status "$phase_status" \
+          || echo "::warning::WebKit browser-install phase metric recorder crashed"
+        exit "$status"
 
     - name: Install WebKit system dependencies
       shell: bash
-      run: npx playwright install-deps webkit
+      run: |
+        started=$(date +%s%3N)
+        set +e
+        npx playwright install-deps webkit
+        status=$?
+        set -e
+        phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+        node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+          --name playwright-webkit-system-deps --category readiness \
+          --started-ms "$started" --status "$phase_status" \
+          || echo "::warning::WebKit system-deps phase metric recorder crashed"
+        exit "$status"

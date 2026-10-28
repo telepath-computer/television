@@ -5,8 +5,8 @@ const firefoxAvailable = fs.existsSync(firefox.executablePath());
 // Mirrors scripts/playwright-webkit-availability.mjs for the preflight path.
 const webkitAvailable = fs.existsSync(webkit.executablePath());
 
-if (process.env.GITHUB_ACTIONS && (!firefoxAvailable || !webkitAvailable)) {
-  throw new Error("Weather artwork requires Playwright Firefox and WebKit in GitHub Actions.");
+if (process.env.CI && (!firefoxAvailable || !webkitAvailable)) {
+  throw new Error("Weather artwork requires Playwright Firefox and WebKit in CI.");
 }
 
 export default defineConfig({

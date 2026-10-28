@@ -521,28 +521,51 @@ jobs:
             || echo "::warning::shard-plan phase metric recorder crashed"
           exit "$status"
 
-      - name: Detect whether this shard runs Weather artwork
-        id: weather-artwork
+      - name: Detect whether this shard requires WebKit
+        id: webkit
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         env:
           TV_SHARD_INDEX: ${{ matrix.shard }}
         run: |
           selected="$(node --input-type=module -e '
             import fs from "node:fs";
+            import { loadTestConfig } from "./scripts/test/config.mjs";
             const plan = JSON.parse(fs.readFileSync(".testshards/results/shard-plan.json", "utf8"));
             const shard = plan.shards[Number(process.env.TV_SHARD_INDEX) - 1];
-            const selected = shard.surfaces.some((surface) => surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0);
+            const config = loadTestConfig();
+            const selected = shard.surfaces.some((surface) => {
+              const candidate = config.surfaces.find((entry) => entry.id === surface.surfaceId);
+              return surface.files.length > 0 && candidate?.preflight.includes("playwright-webkit");
+            });
             process.stdout.write(String(selected));
           ')"
           echo "selected=$selected" >> "$GITHUB_OUTPUT"
 
-      - name: Install WebKit for the Weather-artwork shard
-        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.weather-artwork.outputs.selected == 'true' }}
+      - name: Start WebKit cache timer
+        id: webkit-cache-timer
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.webkit.outputs.selected == 'true' }}
+        run: echo "started_ms=$(date +%s%3N)" >> "$GITHUB_OUTPUT"
+
+      - name: Install WebKit for the selected shard
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.webkit.outputs.selected == 'true' }}
+        env:
+          TV_PLAYWRIGHT_WEBKIT_CACHE_STARTED_MS: ${{ steps.webkit-cache-timer.outputs.started_ms }}
         uses: ./.github/actions/setup-webkit
 
-      - name: Prove WebKit launches on the Weather-artwork shard
-        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.weather-artwork.outputs.selected == 'true' }}
-        run: node scripts/check-playwright-webkit-launch.mjs
+      - name: Prove WebKit launches on the selected shard
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.webkit.outputs.selected == 'true' }}
+        run: |
+          started=$(date +%s%3N)
+          set +e
+          node scripts/check-playwright-webkit-launch.mjs
+          status=$?
+          set -e
+          phase_status=passed; if [ "$status" -ne 0 ]; then phase_status=failed; fi
+          node scripts/record-test-phase.mjs --file "$TV_TEST_PHASE_METRICS_FILE" \
+            --name playwright-webkit-launch --category readiness \
+            --started-ms "$started" --status "$phase_status" \
+            || echo "::warning::WebKit launch phase metric recorder crashed"
+          exit "$status"
 
       - name: Run e2e shard ${{ matrix.shard }}/16
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
