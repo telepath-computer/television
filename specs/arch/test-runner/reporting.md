@@ -69,36 +69,47 @@ interface SummaryTest {
 
 `events.ndjson` records the run, its shards, surfaces and files, and every test attempt, with durations and setup phases. The same input gives the same bytes. Phases cover every step that can cost tens of seconds, such as worker wake-up, checkout, dependencies, browser readiness, planning, tests and report download, so that slow setup is visible. The summary repeats the phases.
 
-Later invocations read earlier runs' event streams. `npm test -- baseline update` ([sharded-execution.md](./sharded-execution.md#duration-baseline)) validates the stream of every Blaxel run of the full suite it finds in `.test-runs/` and stops on one it cannot read, and those runs may come from earlier revisions of the runner. A revision that changes the stream must therefore keep accepting streams with `schemaVersion: 1`, or introduce a new version and decide how the update treats older runs. The update uses these fields:
+Later invocations read earlier runs' event streams. `npm test -- baseline update` ([sharded-execution.md](./sharded-execution.md#duration-baseline)) validates the stream of every Blaxel run of the full suite it finds in `.test-runs/` and stops on one it cannot read, and those runs may come from earlier revisions of the runner. A revision that changes the stream must therefore keep accepting streams with `schemaVersion: 1`, or introduce a new version and decide how the update treats older runs.
+
+The update checks every event before using any. Each event carries `schemaVersion: 1`, the run's `runId` and a zero-based `sequence` equal to its line position. Every event except a `process-leak` event carries one of the statuses below. Blaxel runs record the timing provider `blaxel-playwright-x64-4vcpu`, and the update reads only runs with that identity. Beyond that envelope, the update uses these fields:
 
 ```ts
-// events.ndjson: one JSON event per line, the run event first; other fields and event kinds belong to the writer
-type TimingEvent =
+// events.ndjson: one JSON event per line, the run event first; other fields belong to the writer
+type EventStatus = "passed" | "failed" | "skipped" | "timed-out" | "interrupted" | "not-assigned" | "incomplete" | "unknown";
+
+interface EventEnvelope {
+  schemaVersion: 1;
+  runId: string;    // the same on every event of a run
+  sequence: number; // zero-based line position
+}
+
+type TimingEvent = EventEnvelope & (
   | {
-      schemaVersion: 1;
       kind: "run";
-      commandProvider: "local" | "blaxel" | null;
-      timingProvider: string;
       status: "passed" | "failed" | "incomplete";
+      commandProvider: "local" | "blaxel" | null;
+      timingProvider: string; // "blaxel-playwright-x64-4vcpu" for Blaxel runs
       completedAt: string;
       selection: { suite?: string; surfaces?: string[]; files?: string[]; grep?: string | null };
     }
-  | { schemaVersion: 1; kind: "shard"; index: number; total: number }
-  | { schemaVersion: 1; kind: "surface"; surfaceEventId: string; surfaceId: string; status: string }
+  | { kind: "shard"; status: EventStatus; index: number; total: number }
+  | { kind: "surface"; status: EventStatus; surfaceEventId: string; surfaceId: string }
   | {
-      schemaVersion: 1;
       kind: "file";
+      status: EventStatus;
       surfaceEventId: string;
-      path: string;              // repository-relative
-      status: string;
-      complete: boolean;         // false when the native report cannot account for every attempt
+      path: string;               // repository-relative
+      complete: boolean;          // false when the native report cannot account for every attempt
       planningDurationMs: number; // the file's duration without its retry attempts
       retryCount: number;
       recoveredFlakeCount: number;
-    };
+    }
+  | { kind: "test-attempt"; status: EventStatus }
+  | { kind: "process-leak" }
+);
 ```
 
-The event stream and the summary are part of finalizing a run: failing to write them fails the command. Additions made afterwards are best-effort. They include verify's own phases, added to its test run's summary after the test command finishes, metrics that GitHub workflows record, and resource probes. A failure to record or upload them is a warning and never changes a command's or a test's result.
+The event stream and the initial summary are required parts of a run: failing to write them fails the command. Optional diagnostics are best-effort whenever they are collected. They include resource probes, metrics that GitHub workflows record, and phases appended later; verify, for example, adds its own phases to its test run's summary after the test command finishes. A failure to record or upload a diagnostic is a warning and never changes a command's or a test's result.
 
 ## Nothing secret
 

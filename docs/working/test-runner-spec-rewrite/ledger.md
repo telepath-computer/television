@@ -234,9 +234,9 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **P9. Timing records: their contents, determinism, the phases covered, and that they feed the baseline.** The baseline update depends on them. Phase coverage is the decision that makes setup cost visible.
 
-**P9a. Event streams are read across revisions; the rule for changing them; the pinned fields baseline update uses, including the meaning of `planningDurationMs`.** `baseline update` validates streams that earlier revisions left in `.test-runs/` and aborts on one it cannot read, so the stream is persisted data another version reads (review round 1, finding 1).
+**P9a. Event streams are read across revisions; the rule for changing them; the envelope every event carries (version, `runId`, contiguous `sequence`, a recognized status except on leak events); the Blaxel timing-provider identity; the pinned fields baseline update uses, including the meaning of `planningDurationMs`.** `baseline update` validates streams that earlier revisions left in `.test-runs/` and aborts on one it cannot read, so everything its validator checks is persisted data another version reads, not only the fields its calculation uses (review rounds 1 and 2, finding 1).
 
-**P10. The event stream and summary are part of finalizing a run; additions afterwards (verify's phases, workflow metrics, resource probes) are best-effort and never change a result.** This decision prevents metrics from turning green red or the reverse, without making the required report optional (review round 1, finding 6).
+**P10. The event stream and initial summary are required; optional diagnostics (resource probes, workflow metrics, later phase appends such as verify's) are best-effort whenever they are collected and never change a result.** This decision prevents metrics from turning green red or the reverse, without making the required report optional (review round 1, finding 6; round 2, finding 2).
 
 **P11. No secrets in run directories, because CI artifacts are readable by anyone who can read the repository.** This security requirement comes from an external fact: the repository is public.
 
@@ -337,3 +337,13 @@ The review is `second-opinion-r1.md` in this folder, on `f71b1f7d`.
 8. **Failure cap versus the opt-in early stop.** Agreed, and changed. The sentence now says that ordinary runs impose no automatic cap on failures. I did not document the shard worker's `--fail-fast` option: nothing in the repository passes it, and the policy leaves out mechanisms nothing uses.
 9. **The mutex update algorithm.** Agreed, and changed. The compare-and-swap sentence is gone. What remains is atomic acquisition, identity-checked changes, the shared representation, and no transaction held while tests run.
 10. **Scoped defaults.** Agreed, and changed all three. The `against-test-guidance` naming is limited to the shared-host and retry overrides. `FLAKY_TEST_RETRIES` is 5 under the runner and CI unless the variable is set. Blaxel verify tests the selected committed revision, `HEAD` by default.
+
+### Round 2
+
+The review is `second-opinion-r2.md` in this folder, on `28039415`.
+
+1. **The event contract omits fields the reader requires.** Agreed, and changed. `validateTimingEvents` (`scripts/test/timing-events.mjs`) rejects a stream whose events lack `schemaVersion: 1`, a shared `runId` or a `sequence` equal to the line position, or whose events other than leak events lack a recognized status. It also checks the timing provider, and `baseline update` reads only streams with the Blaxel identity. `reporting.md` now states that envelope and the Blaxel identity in a sentence each. It pins them in the type: a shared envelope, the status union, the shard status, and the `test-attempt` and `process-leak` kinds as far as the envelope and status reach them. Attempt payloads, hash formulas and the normalized result model stay in code.
+2. **Best-effort described by timing.** Agreed, and changed. The paragraph now says that the event stream and initial summary are required, and that optional diagnostics are best-effort whenever they are collected. That covers resource probes, including the start observation saved before a surface prepares, workflow metrics and later phase appends such as verify's.
+
+The reviewer agreed that `test/timing-baseline.json` can stay unpinned and confirmed that the Firefox statements are accurate (TV-1011).
+
