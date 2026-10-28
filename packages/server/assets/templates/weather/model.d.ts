@@ -93,6 +93,12 @@ export function readWeatherValue(value: unknown):
     forecast: WeatherForecast | null;
   };
 
+/** Returns the Gregorian calendar date for an instant in an IANA time zone. */
+export function localDate(
+  value: string | number | Date,
+  timeZone: string,
+): string;
+
 /** Selects later hourly entries for display or response retention. */
 export function getHourlyWindow(
   forecast: WeatherForecast,

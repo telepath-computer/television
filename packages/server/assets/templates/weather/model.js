@@ -172,7 +172,7 @@ function instantOf(value) {
   return typeof value === "number" ? value : new Date(value).getTime();
 }
 
-function localDate(value, timeZone) {
+export function localDate(value, timeZone) {
   const parts = partsAt(value, timeZone);
   return `${parts.year}-${parts.month}-${parts.day}`;
 }

@@ -8,6 +8,7 @@ import {
   getHourlyWindow,
   isCompatibleForecast,
   isWeatherForecast,
+  localDate,
   readWeatherValue,
   reconcileRequestContext,
   roundTemperature,
@@ -505,6 +506,8 @@ describe("Open-Meteo contract", () => {
 
   // proofs/arch/templates/weather.md#^templates-weather-t-provider-time-zones
   it("uses captured fixed offsets for daily dates across New York fallback and Kolkata half hours", () => {
+    expect(localDate("2026-11-01T02:30:00Z", "America/New_York")).toBe("2026-10-31");
+    expect(localDate("2026-10-27T20:00:00Z", "Asia/Kolkata")).toBe("2026-10-28");
     const newYork = fixture("new-york-dst-2026-10-27.json").response.body as any;
     const newYorkForecast = normalizeOpenMeteoResponse(newYork, { latitude: 40.7128, longitude: -74.006, units: "celsius" }, "2026-11-01T02:30:00Z")!;
     expect(newYorkForecast.daily.map((entry: { date: string }) => entry.date)).toEqual([
@@ -561,6 +564,25 @@ describe("Weather request state and saving", () => {
     expect(shouldRequestForecast({ configuration, state: { ...context.state, memoryForecast: forecast({ updatedAt: "2026-10-27T17:00:02Z" }) }, savedForecast: null, now })).toBe(false);
     expect(shouldRequestForecast({ configuration, state: context.state, savedForecast: forecast({ latitude: 1, updatedAt: "2026-10-27T17:00:02Z" }), now })).toBe(true);
     expect(shouldRequestForecast({ configuration, state: context.state, savedForecast: forecast({ updatedAt: "2026-10-27T18:00:00Z" }), now })).toBe(true);
+  });
+
+  it("starts an attempt without changing identity or memory and clears the failure throttle", () => {
+    const memoryForecast = forecast();
+    const state = {
+      identity: { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units },
+      runningAttemptId: null,
+      runningStartedAt: null,
+      failedStartedAt: "2026-10-27T16:59:00Z",
+      memoryForecast,
+    };
+    expect(startRequestAttempt(state, 7, "2026-10-27T17:15:01Z")).toEqual({
+      ...state,
+      runningAttemptId: 7,
+      runningStartedAt: "2026-10-27T17:15:01Z",
+      failedStartedAt: null,
+    });
+    expect(state.failedStartedAt).toBe("2026-10-27T16:59:00Z");
+    expect(state.memoryForecast).toBe(memoryForecast);
   });
 
   it.each([

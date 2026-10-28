@@ -64,10 +64,10 @@ A *selector* chooses which tests run; the runner resolves selectors against [tes
 | `--package <name>` | Surfaces associated with a workspace package. |
 | `--file <path>` | The surface that owns a test file, running that file. |
 | `--grep <pattern>` | Test-title filter, translated to `-t` for Vitest and `-g` for Playwright. |
-| `--runner <vitest\|playwright>` | Surfaces using a runner. A runner-only selection excludes opt-in live-provider surfaces; select those with their suite or another explicit selector. |
+| `--runner <vitest\|playwright>` | Surfaces using a runner. The registry owns [the explicit selection rules for live-provider surfaces](./test-registry.md#^test-registry-live-providers). |
 | `--tag <tag>` | Surfaces carrying a registry tag, such as `browser` or `electron`. |
 
-The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path. A selection that resolves to a `live-provider` surface is local-only and is refused on every Blaxel path before remote preflight or dispatch.
+The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path. [The Blaxel spec](./blaxel-testshards.md#^blaxel-live-provider-exclusion) owns the remote exclusion for live-provider surfaces.
 
 `--file` must resolve to exactly one owning surface: if no surface owns the file the runner fails; if several do, it fails and asks for `--surface` to disambiguate. On the local execution path, a `--file` or `--grep` selection against a surface that does not declare support for it is rejected while building that surface's command. The targeted Blaxel path does not currently apply this `supports` check. The runner parses these selectors itself and rejects unknown positional arguments; the sole positional accepted is the `verify` provider.
 
@@ -138,7 +138,7 @@ The suite is excluded from `all`, so `npm run verify`, CI, and Blaxel `--suite a
 npm test -- local --suite live-providers
 ```
 
-The surface runs Chromium with its dedicated Playwright config after the Chromium preflight and the web-and-artifact-documents build. Every live-provider test isolates mutable application state in a temporary home and does not use a person's application home; the provider's spec and proof own the subject-specific harness. It is excluded from `all`, `e2e`, and `e2e-ci`, and a bare `--runner playwright` also excludes it, so default tests, `npm run verify`, and CI never contact those providers. An explicit suite, surface, file, or live-provider tag can select it locally. The suite is local-only: Blaxel refuses a suite, surface, file, runner plus live-provider tag, or other selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's relevant spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
+Every live-provider test isolates mutable application state in a temporary home and does not use the developer's own Television home; the provider's spec and proof own the subject-specific harness. [The registry](./test-registry.md#^test-registry-live-providers) owns suite membership and explicit selection, including broad-suite and runner-only exclusions. [The Blaxel spec](./blaxel-testshards.md#^blaxel-live-provider-exclusion) owns remote refusal. Each provider's relevant spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
 
 ## Production daemon acceptance suite
 

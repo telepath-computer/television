@@ -180,20 +180,47 @@ function captureTime(offsetMs = 0, units: Units = "celsius"): string {
   return new Date(captureClock(units).getTime() + offsetMs).toISOString();
 }
 
-function shiftedCaptureForNow(name = "current-success.json", targetTime = Date.now()): Capture {
-  const captured = structuredClone(fixture(name));
+function shiftedCaptureForNow(source: Capture | string = "current-success.json", targetTime = Date.now()): Capture {
+  const captured = structuredClone(typeof source === "string" ? fixture(source) : source);
   const body = captured.response.body as {
     current: { time: number };
     hourly: { time: number[] };
     daily: { time: number[] };
   };
-  const elapsedDays = Math.round((targetTime - Date.parse(captured.capturedAt)) / 86_400_000);
+  const elapsedDays = Math.floor((targetTime - Date.parse(captured.capturedAt)) / 86_400_000);
   const shiftSeconds = elapsedDays * 86_400;
   body.current.time += shiftSeconds;
   body.hourly.time = body.hourly.time.map((instant) => instant + shiftSeconds);
   body.daily.time = body.daily.time.map((instant) => instant + shiftSeconds);
   captured.capturedAt = new Date(Date.parse(captured.capturedAt) + shiftSeconds * 1000).toISOString();
   return captured;
+}
+
+function captureAtLocalHour(name: string, hour: number): Capture {
+  const captured = structuredClone(fixture(name));
+  const body = captured.response.body as {
+    current: { time: number };
+    utc_offset_seconds: number;
+  };
+  const localDate = new Date(
+    Date.parse(captured.capturedAt) + body.utc_offset_seconds * 1000,
+  ).toISOString().slice(0, 10);
+  const localInstant = Date.parse(`${localDate}T${String(hour).padStart(2, "0")}:00:00Z`);
+  const captureInstant = localInstant - body.utc_offset_seconds * 1000;
+  captured.capturedAt = new Date(captureInstant).toISOString();
+  body.current.time = Math.floor(captureInstant / 1000);
+  return captured;
+}
+
+function dateInTimeZone(instant: string | number | Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(instant));
+  const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
 }
 
 function captureWithCurrent(
@@ -248,7 +275,15 @@ async function pauseClock(
   },
 ): Promise<void> {
   const now = await frameOwner.evaluate(() => Date.now());
+  // Move past setup work queued at the observed instant before advancing a
+  // controlled boundary. The 250 ms does not cross any production threshold.
   await frameOwner.clock.pauseAt(now + 250);
+}
+
+function resourceWrites(): Record<string, unknown>[] {
+  return harness.proxy.messages
+    .filter(({ message }) => message.type === "write")
+    .map(({ message }) => message.write as Record<string, unknown>);
 }
 
 function degree(value: number): string {
@@ -362,6 +397,7 @@ test("creates Weather, follows the README changes, and saves the newest whole ro
   await installClock(page);
   await page.setViewportSize({ width: 1600, height: 1200 });
   const messageStart = harness.proxy.messages.length;
+  const writeStart = resourceWrites().length;
   const created = await harness.create(page);
   const { artifactID, frame } = created;
   await expectEmpty(frame);
@@ -391,6 +427,7 @@ test("creates Weather, follows the README changes, and saves the newest whole ro
     place: "San Francisco",
     forecast: { units: "celsius", hourly: expect.any(Array), daily: expect.any(Array) },
   });
+  expect(resourceWrites().slice(writeStart).some((write) => write.kind === "compare-and-set")).toBe(true);
   const firstRoot = await harness.read<WeatherConfiguration>(artifactID);
   expect(firstRoot?.forecast).toMatchObject({ units: "celsius", hourly: expect.any(Array) });
   const visibleForecast = await frame.locator(".weather-current, .weather-panel, .weather-header p").allTextContents();
@@ -744,7 +781,6 @@ test("checks only while visible and times out one non-overlapping attempt", asyn
   await pauseClock(page);
   await provider.saw(1);
 
-  const held = provider.hold(config);
   await setVisibility(frame, "hidden");
   await page.clock.fastForward(16 * 60_000);
   await harness.set(artifactID, storeJSON({
@@ -752,7 +788,9 @@ test("checks only while visible and times out one non-overlapping attempt", asyn
     place: "Hidden rename",
   }));
   await expect(frame.locator(".weather-header h1")).toHaveText("Hidden rename");
+  await frame.evaluate(() => Promise.resolve());
   expect(provider.requests).toHaveLength(1);
+  const held = provider.hold(config);
   let requestFailed = false;
   const timeoutFailure = page.waitForEvent("requestfailed", {
     predicate: (request) => request.url() === buildOpenMeteoRequest(config).url,
@@ -767,9 +805,10 @@ test("checks only while visible and times out one non-overlapping attempt", asyn
   await timeoutFailure;
   expect(requestFailed).toBe(true);
   await expectReady(frame, "Hidden rename");
-  const retry = provider.success(config);
   await page.clock.fastForward(14 * 60_000 + 49_000);
+  await frame.evaluate(() => Promise.resolve());
   expect(provider.requests).toHaveLength(2);
+  const retry = provider.success(config);
   await page.clock.fastForward(61_000);
   await provider.saw(3);
   await retry.finished;
@@ -786,6 +825,7 @@ test("renders loading, empty and all uncached provider failures, then retries", 
   const loadingPage = await context.newPage();
   await installClock(loadingPage);
   const emptyID = await harness.createStored();
+  const writesBeforeEmpty = resourceWrites().length;
   harness.proxy.hold("to-browser");
   const opening = harness.open(loadingPage, emptyID);
   await harness.proxy.waitFor(() => harness.proxy.openWebSockets > 0);
@@ -794,6 +834,8 @@ test("renders loading, empty and all uncached provider failures, then retries", 
   expect(provider.requests).toHaveLength(0);
   harness.proxy.release("to-browser");
   await expectEmpty(loadingFrame);
+  await expect(loadingFrame.locator(".weather-empty .weather-glyph-empty")).toBeVisible();
+  expect(resourceWrites()).toHaveLength(writesBeforeEmpty);
   await loadingPage.close();
 
   const fetchPage = await context.newPage();
@@ -1148,34 +1190,48 @@ test("ignores bad caches, rejects unreadable roots, and recovers after real stor
   late.release();
   await late.finished;
   await expect(frame.locator(".weather-header")).toHaveCount(0);
+  const repairedRequestCount = provider.requests.length + 1;
   provider.success(repaired);
   await harness.restart(() => writeFileSync(file, original));
+  await provider.saw(repairedRequestCount);
   await expectReady(frame, repaired.place);
   provider.done();
 });
 
 // proofs/ui/templates/weather.md#^weather-ui-ac-current
-test("renders current values from forecasts aligned to the actual browser clock", async ({ page, context }) => {
+test("renders current values from morning and evening captures shifted to the browser clock", async ({ page, context }) => {
   const provider = await ScriptedProvider.install(context);
-  const actualPage = await context.newPage();
-  await actualPage.setViewportSize({ width: 760, height: 740 });
-  const actualNow = await actualPage.evaluate(() => Date.now());
-  const shifted = shiftedCaptureForNow("current-success.json", actualNow);
-  const actualConfig = configuration({ place: "Actual-clock fetch" });
-  const actualResponse = provider.success(actualConfig, shifted);
-  const actualID = await harness.createStored(actualConfig);
-  const actualFrame = await harness.open(actualPage, actualID);
-  await expectReady(actualFrame, actualConfig.place);
-  await actualResponse.finished;
-  await expect.poll(() => harness.read<WeatherConfiguration>(actualID)).toMatchObject({
-    forecast: { units: "celsius", current: expect.any(Object) },
-  });
-  const actualSaved = (await harness.read<WeatherConfiguration>(actualID))?.forecast as WeatherForecast;
-  const actualExpected = normalizeOpenMeteoResponse(shifted.response.body, actualConfig, actualSaved.updatedAt)!;
-  expect(actualSaved).toEqual(actualExpected);
-  await expect(actualFrame.locator(".weather-header p")).toContainText("Updated now");
-  await expect(actualFrame.locator(".weather-temperature")).toContainText(degree(actualExpected.current.temperature));
-  await actualPage.close();
+  const shiftedScenarios = [
+    { name: "Morning capture, evening browser", sourceHour: 8, elapsedHours: 37 },
+    { name: "Evening capture, morning browser", sourceHour: 21, elapsedHours: 35 },
+  ];
+  for (const scenario of shiftedScenarios) {
+    const actualPage = await context.newPage();
+    await actualPage.setViewportSize({ width: 760, height: 740 });
+    const source = captureAtLocalHour("current-success.json", scenario.sourceHour);
+    const actualNow = Date.parse(source.capturedAt) + scenario.elapsedHours * 60 * 60_000;
+    await actualPage.clock.install({ time: new Date(actualNow) });
+    const shifted = shiftedCaptureForNow(source, actualNow);
+    const actualConfig = configuration({ place: scenario.name });
+    const actualResponse = provider.success(actualConfig, shifted);
+    const actualID = await harness.createStored(actualConfig);
+    const actualFrame = await harness.open(actualPage, actualID);
+    await expectReady(actualFrame, actualConfig.place);
+    await actualResponse.finished;
+    await expect.poll(() => harness.read<WeatherConfiguration>(actualID)).toMatchObject({
+      forecast: { units: "celsius", current: expect.any(Object) },
+    });
+    const actualSaved = (await harness.read<WeatherConfiguration>(actualID))?.forecast as WeatherForecast;
+    const actualExpected = normalizeOpenMeteoResponse(shifted.response.body, actualConfig, actualSaved.updatedAt)!;
+    const currentDay = getDailyWindow(actualExpected, new Date(actualNow))[0];
+    expect(Date.parse(shifted.capturedAt)).toBeLessThanOrEqual(actualNow);
+    expect(currentDay?.date).toBe(dateInTimeZone(actualNow, actualExpected.timeZone));
+    expect(actualSaved).toEqual(actualExpected);
+    await expect(actualFrame.locator(".weather-header p")).toContainText("Updated now");
+    await expect(actualFrame.locator(".weather-temperature")).toContainText(degree(actualExpected.current.temperature));
+    await expect(actualFrame.locator(".weather-high-low")).toBeVisible();
+    await actualPage.close();
+  }
 
   await page.setViewportSize({ width: 760, height: 740 });
   const browserNow = await page.evaluate(() => Date.now());
@@ -1208,7 +1264,7 @@ test("renders current values from forecasts aligned to the actual browser clock"
     configuration({ place: "No current daily row", forecast: noToday }),
   ));
   await expect(frame.locator(".weather-high-low")).toHaveCount(0);
-  expect(provider.requests).toHaveLength(1);
+  expect(provider.requests).toHaveLength(shiftedScenarios.length);
   provider.done();
 });
 

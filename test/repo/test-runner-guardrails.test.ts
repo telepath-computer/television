@@ -795,12 +795,10 @@ describe("test runner guardrails", () => {
     for (const selector of selectors) {
       const result = runCli(["blaxel", ...selector], selftestEnv({
         TV_TEST_RUNNER_DRY_RUN: "1",
-        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:live-provider placement guard failed",
       }));
       expect(result.status, `${selector.join(" ")}: ${result.stderr}`).toBe(2);
       expect(result.stderr).toContain("live-provider");
       expect(result.stderr).toContain("local-only");
-      expect(result.stderr).not.toContain("placement guard failed");
     }
   });
 

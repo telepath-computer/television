@@ -12,6 +12,7 @@ import {
   getDailyWindow,
   getHourlyWindow,
   isCompatibleForecast,
+  localDate,
   readWeatherValue,
   reconcileRequestContext,
   roundTemperature,
@@ -145,17 +146,6 @@ function ageLabel(updatedAt, now) {
   if (age.unit === "minute") return `${age.value} min ago`;
   if (age.unit === "hour") return `${age.value} hr${age.value === 1 ? "" : "s"} ago`;
   return `${age.value} day${age.value === 1 ? "" : "s"} ago`;
-}
-
-function localDate(instant, timeZone) {
-  const parts = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date(instant));
-  const fields = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
-  return `${fields.year}-${fields.month}-${fields.day}`;
 }
 
 function hourLabel(instant, timeZone) {
