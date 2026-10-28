@@ -13,13 +13,13 @@ Each run writes a *run directory*, `.test-runs/<run-id>/`, in the checkout. Run 
 - `events.ndjson`, the timing records;
 - `logs/`, `native/` (the Vitest and Playwright reports) and, for Blaxel, `provider/`.
 
-Files are written atomically. A run that fails before any test still writes its summary, recording the failure it reached. The local runner owns the directory of a local run. For a Blaxel run, the coordinator's caller writes one combined directory after downloading each shard's parts. Each GitHub CI test job writes its own.
+Files are written atomically. Once a run directory exists, a run that fails still writes its summary with the failure it reached, even when no test ran. The local runner owns the directory of a local run and creates it before local preflight. For a Blaxel run, the canonical runner creates the directory once the dispatch checks have passed, and writes one combined report after downloading each shard's parts. Each GitHub CI test job writes its own. A guardrail refusal, or a Blaxel run refused by its dispatch checks, leaves no run directory.
 
-`--run-dir-output <file>` makes a run write the absolute path of its own run directory into the caller's file as soon as the directory exists, before preflight. Orchestration such as CI reads that file instead of searching `.test-runs/`, where tests themselves create other run directories.
+`--run-dir-output <file>` makes a run write the absolute path of its own run directory into the caller's file as soon as the directory exists. Orchestration such as CI reads that file instead of searching `.test-runs/`, where tests themselves create other run directories.
 
 ## Honest status
 
-The summary answers three questions separately:
+The summary's `run` block answers three questions separately:
 
 - `infraStatus`: did the infrastructure deliver complete evidence for the selection? `completed` or `incomplete`.
 - `testStatus`: did the tests pass? `passed`, `failed`, or `unknown` whenever the evidence is incomplete.
@@ -31,13 +31,74 @@ A process leak fails each surface it belongs to and marks it incomplete, because
 
 ## The compact summary
 
-`summary.json` is written so that an agent can read it without flooding its context. It lists failed tests, recovered flakes and process leaks, and gives passing tests only as counts. Each listed test has its file, line, title, attempts, whether it was annotated flaky, and a short error excerpt. Each leak keeps its PID, command, owning surfaces and listening sockets, since those identify the harness that leaked. Detailed evidence stays in the other files.
+`summary.json` is written so that an agent can read it without flooding its context. It lists failed tests, recovered flakes and process leaks, and gives passing tests only as counts. Each listed test has a short error excerpt alongside the fields below. Each leak keeps its PID, command, owning surfaces and listening sockets, since those identify the harness that leaked. Detailed evidence stays in the other files.
+
+People, agents and scripts read these fields, including from earlier runs:
+
+```ts
+// summary.json; other fields belong to the writer
+interface RunSummary {
+  schemaVersion: 1;
+  run: {
+    id: string;
+    status: "passed" | "failed" | "incomplete";
+    infraStatus: "completed" | "incomplete";
+    testStatus: "passed" | "failed" | "unknown";
+  };
+  failedTests: SummaryTest[];
+  flakyRecoveredTests: SummaryTest[];
+  processLeaks: Array<{
+    pid: number;
+    command: string; // the executable, without arguments
+    owningSurfaceIds: string[];
+    listeningSockets: Array<{ host: string; port: number }>;
+  }>;
+}
+
+interface SummaryTest {
+  surfaceId: string;
+  file: string;
+  line: number | null;
+  title: string;
+  attempts: number;
+  flakyAnnotated: boolean;
+}
+```
 
 ## Timing records
 
-`events.ndjson` records the run, its shards, surfaces and files, and every test attempt, with durations and setup phases. The same input gives the same bytes. Phases cover every step that can cost tens of seconds, such as worker wake-up, checkout, dependencies, browser readiness, planning, tests, report download and verify's phases, so that slow setup is visible. The summary repeats the phases.
+`events.ndjson` records the run, its shards, surfaces and files, and every test attempt, with durations and setup phases. The same input gives the same bytes. Phases cover every step that can cost tens of seconds, such as worker wake-up, checkout, dependencies, browser readiness, planning, tests and report download, so that slow setup is visible. The summary repeats the phases.
 
-Recording phases and other diagnostics is best-effort: a failure to record or upload them is a warning and never changes a command's or a test's result.
+Later invocations read earlier runs' event streams. `npm test -- baseline update` ([sharded-execution.md](./sharded-execution.md#duration-baseline)) validates the stream of every Blaxel run of the full suite it finds in `.test-runs/` and stops on one it cannot read, and those runs may come from earlier revisions of the runner. A revision that changes the stream must therefore keep accepting streams with `schemaVersion: 1`, or introduce a new version and decide how the update treats older runs. The update uses these fields:
+
+```ts
+// events.ndjson: one JSON event per line, the run event first; other fields and event kinds belong to the writer
+type TimingEvent =
+  | {
+      schemaVersion: 1;
+      kind: "run";
+      commandProvider: "local" | "blaxel" | null;
+      timingProvider: string;
+      status: "passed" | "failed" | "incomplete";
+      completedAt: string;
+      selection: { suite?: string; surfaces?: string[]; files?: string[]; grep?: string | null };
+    }
+  | { schemaVersion: 1; kind: "shard"; index: number; total: number }
+  | { schemaVersion: 1; kind: "surface"; surfaceEventId: string; surfaceId: string; status: string }
+  | {
+      schemaVersion: 1;
+      kind: "file";
+      surfaceEventId: string;
+      path: string;              // repository-relative
+      status: string;
+      complete: boolean;         // false when the native report cannot account for every attempt
+      planningDurationMs: number; // the file's duration without its retry attempts
+      retryCount: number;
+      recoveredFlakeCount: number;
+    };
+```
+
+The event stream and the summary are part of finalizing a run: failing to write them fails the command. Additions made afterwards are best-effort. They include verify's own phases, added to its test run's summary after the test command finishes, metrics that GitHub workflows record, and resource probes. A failure to record or upload them is a warning and never changes a command's or a test's result.
 
 ## Nothing secret
 

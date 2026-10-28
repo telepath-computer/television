@@ -8,7 +8,7 @@ The CI jobs that skip are owned by [github-ci.md](./github-ci.md), and the verif
 
 ## The claim
 
-An attestation is the ref `refs/testpass/<version>/<tree-hash>` on `origin`, pointing at the commit that was validated. It claims that the tree with that hash passed lint, type-check, the package manifest checks and the complete `all` suite, desktop included, with the runner's standard retry budget. A recovered flake counts as passing, as it does in the gate.
+An attestation is the ref `refs/testpass/<version>/<tree-hash>` on `origin`, pointing at the commit that was validated. It claims that the tree with that hash passed lint, type-check, the package manifest checks and the complete `all` suite, desktop included, with the runner's standard retry budget. A recovered flake counts as passing, as it does in the gate. Blaxel workers have no Firefox ([test-runner.md](./test-runner.md#the-test-registry)), so an attestation from a Blaxel verify does not cover the Firefox projects, and CI skips them too for that tree.
 
 - The tree hash, `git rev-parse <commit>^{tree}`, covers every tracked file, including the workflows, the registry and the tests. Any tracked change that alters the gate therefore gives a different tree.
 - It does not cover what lives outside the tree: the versions behind action tags, the runner image, repository settings, secrets and variables, and external services. Two things bound that exposure. An attestation is honored only while its commit's committer time is at most 7 days old; a future committer time is rejected. And the ref carries a version that the operator raises when a known outside change alters what passing means.

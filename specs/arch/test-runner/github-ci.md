@@ -18,9 +18,9 @@ The repository's ruleset for `main` and `integration/**` requires the checks `li
 
 - the build and every shard succeeded, counting the successful no-ops of an attested skip;
 - the vibe-mode job succeeded, so an attested tree is not exempt from that check;
-- the shards agree: each index from 1 to the shard total appears once, all ran the same plan on the same commit, tree and total, and each collected exactly its assigned files.
+- when the shards ran tests, they agree: each index from 1 to the shard total appears once, all ran the same plan on the same commit, tree and total, and each collected exactly its assigned files.
 
-Missing, skipped, cancelled or failed dependencies fail the join, so a job skipped by an upstream failure is never read as success.
+An authorized attested skip needs the successful build and shard no-ops and a successful vibe-mode check; it produces no shard reports, and none are required. Missing, skipped, cancelled or failed dependencies fail the join, so a job skipped by an upstream failure is never read as success.
 
 ## Jobs
 

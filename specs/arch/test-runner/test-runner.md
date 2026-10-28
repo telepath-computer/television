@@ -8,7 +8,7 @@ This spec owns the command, its guardrails, retries, `verify`, the test registry
 
 ## Guidance, not enforcement
 
-The runner steers callers towards fast feedback and a usable shared host. Its checks recognize departures at the ordinary entrypoints, and every refusal says what to run instead. Where a departure is sometimes the right call, a deliberately named override permits it; each override's name contains `against-test-guidance`, so using one reads as a considered choice. None of this is a security boundary. Anyone can run other commands, and the runner does not try to police the host.
+The runner steers callers towards fast feedback and a usable shared host. Its checks recognize departures at the ordinary entrypoints, and every refusal says what to run instead. Where a departure from the shared-host or retry guardrails below is sometimes the right call, a deliberately named override permits it. Each of those overrides has `against-test-guidance` in its name, so using one reads as a considered choice. None of this is a security boundary. Anyone can run other commands, and the runner does not try to police the host.
 
 ## Providers
 
@@ -68,6 +68,8 @@ A *suite* is a named selection over kinds, tags and runners. `all` is the unit a
 - daemon acceptance, which installs a freshly packed `tv` into the global npm prefix and replaces the real `com.television.server` user service. It runs only on a designated host that is not meant to run a normal Television server, and it refuses to start unless `TV_DAEMON_TEST_HOST=1` is set;
 - experiment surfaces: fixtures for testing the runner itself, and live qualifications.
 
+Some browser surfaces have Firefox projects. Outside GitHub Actions, their configs omit those projects with a warning when Playwright's Firefox is not installed. GitHub CI installs Firefox, and its configs fail when it is missing. Blaxel workers have no Firefox, so a Blaxel run, including a Blaxel verify, covers Chromium only.
+
 Surfaces tagged `isolated-github-only` deliberately leak, orphan or kill processes to test cleanup. The runner refuses them before any work, on developer hosts and on every Blaxel path. They run only inside an operator-run GitHub workflow named `Process Lifecycle Fault Injection`, with `GITHUB_ACTIONS=true` and `TV_TEST_ISOLATED_GITHUB=1`. That workflow is not committed. It must run only on branches, on an ephemeral runner, with its own timeout, cleanup by owner token, and upload of the complete run directory. The workflow name and variable prevent accidents in trusted automation; they do not stop someone who sets them on purpose.
 
 ## Shared development hosts
@@ -101,7 +103,7 @@ The wait option and the contention bypass cannot be combined. The bypass leaves 
 
 A holder is stale only when none of its recorded processes is still alive, judged by PID and start time. The next run then takes over the mutex. If the stale run left test processes behind, the new run reaps them and fails, as any run does that finds stale processes ([Processes started by tests](#processes-started-by-tests)); otherwise it proceeds. Elapsed time never makes a holder stale, because a long run is not a dead one.
 
-Checkouts on one host can run different revisions of the runner, so the mutex's location and record are a compatibility contract between revisions: a change must keep coordinating with checkouts still using the current form. The mutex is a SQLite database at `.cache/television/local-test-mutex.sqlite3` under the operating-system account's home directory. The path is read from the account, not from `$HOME`, so test environments that override `HOME` still share it. The database holds a single row. Acquisition and changes are compare-and-swap updates of that row, and no transaction stays open while tests run.
+Checkouts on one host can run different revisions of the runner, so the mutex's location and record are a compatibility contract between revisions: a change must keep coordinating with checkouts still using the current form. The mutex is a SQLite database at `.cache/television/local-test-mutex.sqlite3` under the operating-system account's home directory. The path is read from the account, not from `$HOME`, so test environments that override `HOME` still share it. The database holds a single row. Acquisition is atomic, every change to the row checks the recorded identity first, and no transaction stays open while tests run.
 
 ```ts
 // CREATE TABLE local_test_mutex (slot INTEGER PRIMARY KEY CHECK(slot = 1), record TEXT NOT NULL)
@@ -133,19 +135,19 @@ Flaky tests are a fact of end-to-end testing, so failed tests are retried, and e
 
 - **Runner budget.** On surfaces other than unit surfaces, a failed test is retried up to twice by default, whatever the selection. Unit surfaces get no runner retries. A positive `--retries <n>` sets the count for the non-unit surfaces. A test that fails and then passes counts as passed and is reported as a *recovered flake*.
 - **Zero retries.** Plain `--retries 0` is for running a new or changed test once. It is accepted when `--file` selects exactly one test file, optionally narrowed by `--grep`, with either provider. For any broader selection, including verify, it is refused with exit `2` unless `--against-test-guidance-turn-flakes-into-failures-on-broad-runs` is passed, which sets the runner budget to zero on purpose. Neither zero form changes unit surfaces, per-test annotations or Blaxel's infrastructure retries.
-- **Per-test annotation.** One known-flaky case may get more retries from `FLAKY_TEST_RETRIES` in `test/flaky-retries.ts` (5 in runner and CI runs), with a title that starts with `flaky:`. Reports use that prefix to mark the recovery as annotated. An annotation is for investigated flakiness in the harness or environment, on the one offending case and never on a whole file or suite. A real failure is fixed instead.
+- **Per-test annotation.** One known-flaky case may get more retries from `FLAKY_TEST_RETRIES` in `test/flaky-retries.ts`, with a title that starts with `flaky:`. Runner and CI runs give it 5 unless the `FLAKY_TEST_RETRIES` environment variable is set. Reports use that prefix to mark the recovery as annotated. An annotation is for investigated flakiness in the harness or environment, on the one offending case and never on a whole file or suite. A real failure is fixed instead.
 - **Infrastructure retries.** Blaxel reruns a shard whose infrastructure failed, up to twice, with the same assignment. A completed shard with a failed test is never rerun ([sharded-execution.md](./sharded-execution.md)).
 
 No retry clears a process leak: a surface that leaves a process running fails even when every test passed or recovered ([Processes started by tests](#processes-started-by-tests)).
 
-Failing tests do not end a run early. Tests run in many independent processes, so a cap on failures would only leave assigned tests unrun and the evidence incomplete.
+Ordinary runs impose no automatic cap on failures, so independent work continues after a test fails. Tests run in many independent processes, so a cap would only leave assigned tests unrun and the evidence incomplete.
 
 ## Verify
 
 `npm run verify` is the full gate. It stops at the first failing phase:
 
 - locally: preflight for the `all` suite, lint, type-check, package manifest checks, the `all` suite, then the vibe-mode check;
-- on Blaxel: lint, type-check and package manifest checks in the checkout, the `all` suite on Blaxel at the committed `HEAD`, then the vibe-mode check.
+- on Blaxel: lint, type-check and package manifest checks in the checkout, the `all` suite on Blaxel at the selected committed revision (`HEAD` by default), then the vibe-mode check.
 
 On success it prints `verify passed (<provider>)`. A passing complete Blaxel verify publishes an attestation for its tree unless `--no-publish` is passed ([attestation.md](./attestation.md)). A local verify never publishes. `--plan` prints the chosen provider and the phase commands without running anything.
 
@@ -161,7 +163,7 @@ A *surface process scope* is everything started for one surface run: its build s
 
 - The owner puts a token in `TV_TEST_SURFACE_OWNER`, and every child inherits it. Test helpers that build child environments must preserve it.
 - After the tests exit, whether normally, by failure, timeout or interruption, the owner stops the scope's services, allows a short grace period, then finds every live process still carrying the token. It sends each `SIGTERM`, then `SIGKILL` after a short interval, and confirms none survived. Before each signal it rechecks the process's start time and token, so a reused PID is never hit. A process that needed a signal is a *process leak*. It fails the surface even when every test passed, and the report identifies it by PID, command and listening sockets ([reporting.md](./reporting.md)). ^test-process-leak
-- Processes are found only through the inherited token, using `/proc` and `ss` on Linux, or `ps` and `lsof` on macOS. Killing by port or process name is not used: on a shared host it can kill another run's processes. Preflight checks that the host's process backend works and fails rather than letting a run proceed without cleanup.
+- Processes are found only through the inherited token, using `/proc` and `ss` on Linux, or `ps` and `lsof` on macOS. Killing by port or process name is not used: on a shared host it can kill another run's processes. Canonical local runs and planned shard workers check that the host's process backend works before tests, and fail rather than run without cleanup. Other paths, such as targeted Blaxel runs, skip that check; on Blaxel, worker setup installs the tools.
 - When an owner is itself killed, nothing can clean up at that moment. Before running tests, the runner and each shard worker look for tokens whose supervisor is gone. They reap those processes and fail that run as an infrastructure problem instead of running beside them. Tokens whose supervisor is alive belong to a concurrent run and are left alone.
 
 Hosts inspect tokens left by runs of other runner revisions, so the token format is shared across revisions. A token is `tv1.` followed by the base64url encoding of the JSON object below. It is stale when no live process has that PID and start time.

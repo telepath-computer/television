@@ -16,7 +16,7 @@ Before any shard runs, a *shard plan* assigns every selected test file to exactl
 
 ## Duration baseline
 
-`test/timing-baseline.json` holds each test file's median duration measured on Blaxel. Every plan, including GitHub CI's, balances with these Blaxel measurements, because balance depends on the files' relative cost rather than their absolute time.
+`test/timing-baseline.json` holds a duration for each test file, measured on Blaxel. It is the median planning duration, which leaves out time spent on retry attempts ([reporting.md](./reporting.md#timing-records)). Only complete observations of a file that finally passed supply samples; that includes recovered flakes. Failed and incomplete observations supply none, so failures and flake overhead do not inflate the weights. Every plan, including GitHub CI's, balances with these Blaxel measurements, because balance depends on the files' relative cost rather than their absolute time.
 
 The baseline changes only when a person runs `npm test -- baseline update` in a checkout that holds recent Blaxel run directories, reviews the diff and commits it. Test runs and CI never edit it. The update recomputes every entry from the runs it reads and carries nothing forward, so it reads only complete Blaxel runs of the full suite: a partial run would erase the measurements of every file it did not run. With no such run available, the command fails without touching the file. `--dry-run` shows the change without writing it.
 

@@ -30,7 +30,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R2. Ownership and pointers to the companion specs and the testing policy.** The policy asks for ownership where it would not be obvious. The testing policy owns permissions, and readers expect them here.
 
-**R3. Guidance, not enforcement; overrides carry `against-test-guidance`; not a security boundary.** This design intent decides how far the checks go. Without it, an implementer would plausibly harden checks into authentication or host-wide policing. The shared phrase is a naming convention people and agents rely on.
+**R3. Guidance, not enforcement; the shared-host and retry overrides carry `against-test-guidance`; not a security boundary.** This design intent decides how far the checks go. Without it, an implementer would plausibly harden checks into authentication or host-wide policing. The shared phrase is a naming convention people and agents rely on, scoped to those overrides because `--force` and others do not carry it (review round 1, finding 10).
 
 **R4. Providers: local runs the working tree; Blaxel runs a committed revision; CI is not a provider; only verify chooses automatically.** These define what a result means, which callers depend on.
 
@@ -52,6 +52,8 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R13. `all` is unit plus end-to-end and means "the full suite" for verify, CI and attestation; agent, PostHog, daemon and experiment surfaces are outside it.** This defines the gate other specs depend on, and it records why each excluded class is excluded.
 
+**R13a. Firefox projects are omitted with a warning outside GitHub Actions when Firefox is missing; GitHub CI requires it; Blaxel workers have none, so Blaxel runs cover Chromium only.** This is an accepted limitation that changes what a passing local or Blaxel result proves, which a reader would not derive from the registry. It was observed in Blaxel shard logs and native reports (review round 1, finding 4).
+
 **R14. Daemon acceptance mutates the real global `tv` and user service, runs only on a designated host, and refuses without `TV_DAEMON_TEST_HOST=1`.** This is a contract with the people who run it, and a safety decision. The variable is set by hand.
 
 **R15. `isolated-github-only` placement, the uncommitted operator workflow's name and variables, and that workflow's obligations.** The workflow is outside the repository and maintained by an operator, who depends on these exact names. The obligations are what make destructive fixtures safe there.
@@ -72,7 +74,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R23. Staleness is by process identity, never elapsed time; the next run reaps leftovers and fails.** A time-to-live is the obvious derivation and would break long runs. The failure outcome matches the stale-owner rule.
 
-**R24. The mutex's location and record are a cross-revision contract; the path rule ignoring `$HOME`; the pinned SQLite table and record.** Checkouts at different revisions on one host read and write this record. The policy says to pin stored data another version reads. That the path ignores `$HOME` is non-obvious and load-bearing.
+**R24. The mutex's location and record are a cross-revision contract; the path rule ignoring `$HOME`; the pinned SQLite table and record; atomic acquisition, identity-checked changes, no transaction held during tests.** Checkouts at different revisions on one host read and write this record. The policy says to pin stored data another version reads. That the path ignores `$HOME` is non-obvious and load-bearing. The update method is left open (review round 1, finding 9).
 
 **R25. Native-entrypoint refusal and `TV_TEST_AGAINST_TEST_GUIDANCE_DIRECT_NATIVE_RUN=1`; runner launches mark their environment.** People set the variable by hand, and the testing policy cites the route. The last clause keeps implementers from breaking the runner's own launches.
 
@@ -82,15 +84,15 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R28. The zero-retry rule and `--against-test-guidance-turn-flakes-into-failures-on-broad-runs`.** This decision and flag are command contract, cited by the testing policy and contributor docs.
 
-**R29. The per-test annotation: `FLAKY_TEST_RETRIES`, the `flaky:` prefix that reports read, one case only, and only after investigation.** Test authors would not derive that the title prefix is load-bearing for reports. The "one case after investigation" rule counters a known agent tendency to annotate broadly to get a green run.
+**R29. The per-test annotation: `FLAKY_TEST_RETRIES` (5 under the runner and CI unless the variable is set), the `flaky:` prefix that reports read, one case only, and only after investigation.** Test authors would not derive that the title prefix is load-bearing for reports. The "one case after investigation" rule counters a known agent tendency to annotate broadly to get a green run.
 
 **R30. Infrastructure retries rerun only infrastructure failures.** This decision keeps test failures from being hidden. Detail lives in `sharded-execution.md`.
 
 **R31. No retry clears a process leak.** A derivation that treats leaks as flakes would retry them away.
 
-**R32. Runs do not stop after a number of failures.** This answers an objection an implementer can be expected to raise (a `maxFailures` cap), and it keeps evidence complete.
+**R32. Ordinary runs impose no automatic failure cap.** This answers an objection an implementer can be expected to raise (a `maxFailures` cap), and it keeps evidence complete. It is scoped to ordinary runs, so it does not forbid the shard worker's deliberate opt-in early stop (review round 1, finding 8).
 
-**R33. Verify's phases for each provider, its success line, publication, and `--plan`.** The contribution workflow, people and agents rely on the gate's composition and output. Publication rules live in `attestation.md`.
+**R33. Verify's phases for each provider (Blaxel tests the selected committed revision, `HEAD` by default), its success line, publication, and `--plan`.** The contribution workflow, people and agents rely on the gate's composition and output. Publication rules live in `attestation.md`.
 
 **R34. Verify's provider choice: unmarked means local; marked means Blaxel if its checks pass, and refusal otherwise, never a silent fallback.** This decision's behavior people depend on, and silent fallback is the plausible wrong derivation.
 
@@ -102,7 +104,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R38. Teardown, leak detection, start-time revalidation, and that leaks fail the surface.** This strict decision has visible consequences. Warning instead of failing is a plausible derivation. Anchored `^test-process-leak`.
 
-**R39. Discovery only by token through `/proc`/`ss` or `ps`/`lsof`, never by port or name; preflight checks the backend.** This prohibition is stated on purpose: `pkill`-style cleanup is the obvious derivation and would kill concurrent runs on shared hosts. The preflight clause prevents silently running without cleanup.
+**R39. Discovery only by token through `/proc`/`ss` or `ps`/`lsof`, never by port or name; local runs and planned workers check the backend, and other paths such as targeted Blaxel runs do not.** This prohibition is stated on purpose: `pkill`-style cleanup is the obvious derivation and would kill concurrent runs on shared hosts. The preflight clause prevents silently running without cleanup where it applies. Its scope is stated so that it does not promise a check targeted runs lack (review round 1, finding 7).
 
 **R40. Stale owners are reaped and fail the run; live ones are left alone.** This decision is about safety beside concurrent runs and about not running in a contaminated state.
 
@@ -198,7 +200,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **X7. The plan is fixed; no queue; retries reuse the assignment.** This decision is about reproducibility, and a dynamic queue is a plausible alternative.
 
-**X8. The baseline holds Blaxel medians, and all plans use them, CI included.** This decision would otherwise look like an error to a reader of the CI plan.
+**X8. The baseline holds Blaxel medians of planning duration from complete, finally passing observations, and all plans use them, CI included.** What is measured is a decision: an ordinary elapsed median would let failures and flake overhead into the weights (review round 1, finding 3). Using Blaxel time for CI would otherwise look like an error to a reader of the CI plan. The baseline file's format is not pinned because it is committed with the code that reads it.
 
 **X9. The baseline is manual-only, from complete Blaxel full-suite runs, and fails without such runs, with the reason.** This decision guards against erasing measurements, which is non-obvious.
 
@@ -214,11 +216,11 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **P1. One result shape everywhere, and the uses: the summary, debugging, planning.** This is design intent.
 
-**P2. The run directory's location and files; the summary path printed; atomic writes; a summary even on early failure; who owns the directory.** People, agents and CI read these locations. The early-failure rule is a decision for diagnosability.
+**P2. The run directory's location and files; the summary path printed; atomic writes; a summary on failure once the directory exists; when local and Blaxel runs create it; refusals leave none.** People, agents and CI read these locations. The early-failure rule is a decision for diagnosability, scoped to what the code delivers (review round 1, finding 5).
 
-**P3. `--run-dir-output`, and why `.test-runs/` is not searched.** This is a contract with orchestration, and the trap of enumerating directories is non-obvious.
+**P3. `--run-dir-output`, written when the directory exists, and why `.test-runs/` is not searched.** This is a contract with orchestration, and the trap of enumerating directories is non-obvious.
 
-**P4. The three status fields and their relations.** This contract with every reader of results is the honesty mechanism the other specs refer to.
+**P4. The three status fields, in the summary's `run` block, and their relations.** This contract with every reader of results is the honesty mechanism the other specs refer to.
 
 **P5. Reports state only what was observed.** This design intent is the rule a derivation under completion bias would bend.
 
@@ -228,9 +230,13 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **P8. The compact summary for agents: what is listed, what is not, and what each entry keeps.** This design intent is about agents' context budget. The leak fields are what diagnosis needs.
 
+**P8a. The pinned `RunSummary` fields.** People, agents and `scripts/test/failing-set.mjs` read summaries, including from earlier runs, so the status block and the identifying fields of listed tests and leaks are command output to pin. The rest of the summary is left to the writer (review round 1, finding 1).
+
 **P9. Timing records: their contents, determinism, the phases covered, and that they feed the baseline.** The baseline update depends on them. Phase coverage is the decision that makes setup cost visible.
 
-**P10. Observability is best-effort and never changes a result.** This decision prevents metrics from turning green red or the reverse.
+**P9a. Event streams are read across revisions; the rule for changing them; the pinned fields baseline update uses, including the meaning of `planningDurationMs`.** `baseline update` validates streams that earlier revisions left in `.test-runs/` and aborts on one it cannot read, so the stream is persisted data another version reads (review round 1, finding 1).
+
+**P10. The event stream and summary are part of finalizing a run; additions afterwards (verify's phases, workflow metrics, resource probes) are best-effort and never change a result.** This decision prevents metrics from turning green red or the reverse, without making the required report optional (review round 1, finding 6).
 
 **P11. No secrets in run directories, because CI artifacts are readable by anyone who can read the repository.** This security requirement comes from an external fact: the repository is public.
 
@@ -248,7 +254,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **G4. The required check names as a contract with the ruleset maintained in GitHub.** These names come from GitHub's settings, not from the code. The old spec named required contexts that the live ruleset does not require.
 
-**G5. The join's conditions, and that a skip is never read as success.** Branch protection depends on this decision about integrity. The conditions are what make a green join mean all tests ran once.
+**G5. The join's conditions, including that shard agreement applies when shards ran and that an authorized attested skip requires no shard reports, and that a skip is never read as success.** Branch protection depends on this decision about integrity. The conditions are what make a green join mean all tests ran once (review round 1, finding 2).
 
 **G6. What the unit and desktop jobs run; shards use `e2e-ci` and the worker directly, so they pass the retry budget; 16 shards and why; the total changes together.** These are decisions with reasons. The retry clause prevents CI from silently dropping retries.
 
@@ -270,7 +276,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **A1. The purpose, and that attestation is an optimization, never a gate, resolving doubt to running tests.** This design intent decides every failure mode.
 
-**A2. The ref name, the claim, and recovered flakes counting.** The ref is shared across runs and revisions on GitHub. The claim is what readers trust.
+**A2. The ref name, the claim, recovered flakes counting, and that a Blaxel attestation does not cover Firefox projects.** The ref is shared across runs and revisions on GitHub. The claim is what readers trust, so it must say what a Blaxel-sourced attestation leaves out.
 
 **A3. Tree hashing pins tracked content; what it does not pin; the 7-day bound; future dates rejected; the version.** This decision comes with its accepted limitation. Future-dated rejection is a non-obvious edge.
 
@@ -317,4 +323,17 @@ The method defers repairing citations until after review. These references outsi
 
 ## Responses to second opinions
 
-None yet.
+### Round 1
+
+The review is `second-opinion-r1.md` in this folder, on `f71b1f7d`.
+
+1. **Persisted reporting contract.** Agreed in part, and changed. `reporting.md` now places the statuses in the summary's `run` block. It pins the summary fields that people, agents and `failing-set.mjs` read. It states that event streams are read across revisions by `baseline update`, gives the rule for changing them, and pins the fields the update uses, with the meaning of `planningDurationMs`. I did not pin `test/timing-baseline.json`: it is committed in the same tree as the planner and updater that read and write it, so a format change lands together with a regenerated file. Run directories, by contrast, stay in `.test-runs/` from runs at earlier revisions.
+2. **The join and the attested skip.** Agreed, and changed. Shard agreement now applies when shards ran tests. A new sentence says that an authorized attested skip needs the build and shard no-ops and the vibe-mode check, and no shard reports. This matches `ci.yml` and `attestation.md`.
+3. **What the baseline measures.** Agreed, and changed. `sharded-execution.md` now says the baseline is the median planning duration of complete observations that finally passed, recovered flakes included, and that failed and incomplete observations supply no samples. `planningDurationMs` is defined with the pinned event fields in `reporting.md`. The median arithmetic and the unknown-file constants stay in the code.
+4. **Firefox outside GitHub CI.** Agreed, and changed. The registry section of `test-runner.md` now states the omission outside GitHub Actions and the failure inside it. Checking this found a wider consequence: Blaxel workers have no Firefox. In the full verify of `8e6cfcb2`, every browser-app shard ran only the `chromium` project, and the shard logs carry the skip warning. The spec now says that Blaxel runs cover Chromium only, and `attestation.md` says that a Blaxel attestation does not cover Firefox and lets CI skip it for that tree. Both statements describe current behavior; whether that is acceptable is a question for the owner.
+5. **Run-directory promises.** Agreed, and changed. The summary-on-failure promise now holds once a directory exists. Local runs create theirs before local preflight; Blaxel runs create theirs after the dispatch checks pass. Refusals leave no directory, and `--run-dir-output` is written when the directory exists.
+6. **Best-effort scope.** Agreed, and changed. The event stream and summary are now part of finalizing a run, and failing to write them fails the command. Only later additions are best-effort: verify's phases, which are added to the summary after the test command, workflow metrics and resource probes. Verify is no longer listed among the event stream's phases.
+7. **Process-backend preflight scope.** Agreed, and changed. Canonical local runs and planned shard workers check the backend, and other paths such as targeted Blaxel runs skip it, with worker setup supplying the tools on Blaxel. I did not name the shard worker's diagnostic mode without a plan, which the specs mention nowhere else; "such as" keeps the list open.
+8. **Failure cap versus the opt-in early stop.** Agreed, and changed. The sentence now says that ordinary runs impose no automatic cap on failures. I did not document the shard worker's `--fail-fast` option: nothing in the repository passes it, and the policy leaves out mechanisms nothing uses.
+9. **The mutex update algorithm.** Agreed, and changed. The compare-and-swap sentence is gone. What remains is atomic acquisition, identity-checked changes, the shared representation, and no transaction held while tests run.
+10. **Scoped defaults.** Agreed, and changed all three. The `against-test-guidance` naming is limited to the shared-host and retry overrides. `FLAKY_TEST_RETRIES` is 5 under the runner and CI unless the variable is set. Blaxel verify tests the selected committed revision, `HEAD` by default.
