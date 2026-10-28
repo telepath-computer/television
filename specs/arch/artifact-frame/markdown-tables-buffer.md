@@ -2,11 +2,11 @@
 
 # Markdown tables — buffer
 
-**Plain English:** viewing or navigating a table must not rewrite the Markdown file. Editing a cell keeps untouched content and formatting; explicit changes to the table structure can still reformat the table. Links work like other Markdown links, and rendering does not depend on first changing the source.
+**Plain English:** viewing or navigating a table must not rewrite the Markdown document. Editing a cell keeps untouched content and formatting; explicit changes to the table structure can still reformat the table. Links work like other Markdown links, and rendering does not depend on first changing the source.
 
 ## Authority
 
-This buffer owns only the interactive table contracts below in the bundled Markdown view. The remaining Markdown renderer/editor behavior stays code-authoritative under [the frame-core boundary](index.md#^frame-core-carve-out); editor colors remain owned by [the Markdown UI spec](../../ui/markdown-editor/index.md). Server-rendered read-only Markdown is outside this buffer. A future Markdown-editor spec absorbs these contracts and their proof relationships. ^mt-buffer-boundary
+This buffer owns only the interactive table contracts below in the Markdown file view and the Document template's Markdown editor. The remaining Markdown renderer/editor behavior stays code-authoritative under [the frame-core boundary](index.md#^frame-core-carve-out); editor colors remain owned by [the Markdown UI spec](../../ui/markdown-editor/index.md). Server-rendered read-only Markdown is outside this buffer. A future Markdown-editor spec absorbs these contracts and their proof relationships. ^mt-buffer-boundary
 
 ## Source preservation
 

@@ -12,6 +12,11 @@ import {
   renderFolderNotices,
   renderThirdPartyNotices,
 } from "./lib/notices.mjs";
+import {
+  packagedMarkdownEditorFolderPath,
+  packagedMarkdownEditorLicensingRecordPath,
+  readPackagedMarkdownEditorRecord,
+} from "./lib/packaged-markdown-editor.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -21,12 +26,41 @@ export function generateSourceNotices({
   outputPath,
   config = loadLicenseConfig({ root }),
   assets = loadAssetManifest({ root, config }),
+  packagedMarkdownEditorRecord,
+  packagedMarkdownEditorRecordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
 } = {}) {
+  const record = packagedMarkdownEditorRecord ?? (
+    fs.existsSync(packagedMarkdownEditorRecordPath)
+      ? readPackagedMarkdownEditorRecord({ root, recordPath: packagedMarkdownEditorRecordPath, assets })
+      : { packages: [], assets: [] }
+  );
   const text = renderThirdPartyNotices({
     surface: "source",
-    inventory: { surface: "source", packages: [] },
+    inventory: { surface: "source", packages: record.packages },
     config,
     assets,
+    root,
+  });
+  if (outputPath !== undefined) syncOutput(outputPath, text);
+  return text;
+}
+
+/** Render the notices carried beside Document's self-contained Markdown editor. */
+export function generateDocumentTemplateNotices({
+  root = repositoryRoot,
+  outputPath,
+  config = loadLicenseConfig({ root }),
+  assets = loadAssetManifest({ root, config }),
+  record,
+  recordPath = packagedMarkdownEditorLicensingRecordPath({ root }),
+} = {}) {
+  const resolvedRecord = record ?? readPackagedMarkdownEditorRecord({ root, recordPath, assets });
+  const recordedAssets = new Set(resolvedRecord.assets);
+  const text = renderThirdPartyNotices({
+    surface: "view:markdown",
+    inventory: { surface: "view:markdown", packages: resolvedRecord.packages },
+    config,
+    assets: assets.filter((asset) => recordedAssets.has(asset.id)),
     root,
   });
   if (outputPath !== undefined) syncOutput(outputPath, text);
@@ -152,6 +186,9 @@ function runCLI() {
       throw new Error("The source surface does not accept a bundle inventory");
     }
     generateSourceNotices({ outputPath: options.output });
+    generateDocumentTemplateNotices({
+      outputPath: path.join(packagedMarkdownEditorFolderPath({ root: repositoryRoot }), "THIRD-PARTY-NOTICES.txt"),
+    });
     generateFolderNotices({ write: true });
     return;
   }

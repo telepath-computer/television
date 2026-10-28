@@ -14,8 +14,8 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
 - `staging.md` (42 lines) — *The workshop for retained frame and template UI specs: the frameset viewer, the frames tree, and their staging conventions.*
 - `terms.md` (205 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
-  - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
-  - `artifacts.md` (139 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, its transparency setting, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
+  - `artifact-navigation.md` (53 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
+  - `artifacts.md` (138 lines) — *What the user can do with and rely on from an artifact: its document's independence, sandbox and interactivity, its name, its unguessable ID, its store and share link, its transparency setting, how its record is saved, deleting it, moving it to another channel, a shared one outliving its producer, and what survives moving around the app.*
   - `channels.md` (64 lines) — *What a channel is to a user: identity, creation, renaming, deletion and last-channel replacement, pinning, ordering, and how one channel is the focused one everywhere.*
   - `cli.md` (686 lines) — *The user-facing `tv` command surface: help, the installation home and its config file, connection, server lifecycle, channels, artifacts, artifact templates, display focus, themes, bundled skills, the place of the share and resource commands, and output.*
   - `desktop-app.md` (60 lines) — *The desktop application users download: its Mac installer and download link, the platforms it supports, Television identity and saved data, and the npm package that distributed releases through 1.3.x.*
@@ -38,13 +38,13 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - `explainer-appearance.md` (97 lines) — *Explainer: how Television combines a theme with the server-wide appearance preference across the application, artifacts, theme script frames, and Electron-native surfaces.*
   - `explainer-connection-states.md` (60 lines) — *Explainer: what a person sees while Television can't use its server — the desktop setup screen, the connection dialogs in the browser and the desktop app, and the rules that choose between them.*
   - `explainer-desktop-app.md` (77 lines) — *Explainer: the desktop app across the spec tree — what users install, how it connects to a server and shows the served interface, how it stays current, how it is built, released and tested, and which specs own each part.*
-  - `licensing.md` (293 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, and onboarding component outputs, the config file for elections, notice texts, and ignored packages, the vendored-asset provenance manifest, the committed source-surface notices, the suite-run allowlist gate, and the assertions on the CLI tarball and the desktop upload directory — wired into the existing build, verify, and publish pipeline.*
+  - `licensing.md` (311 lines) — *The licensing implementation: bundle-derived third-party notices generation for the esbuild, Vite, onboarding component, and checked packaged Markdown editor outputs; the editor licensing record; the config file for elections, notice texts, and ignored packages; the vendored-asset provenance manifest; the committed source, template, and other folder notices; the suite-run allowlist gate; and the assertions on the CLI tarball and desktop upload directory — wired into the existing build, verify, and publish pipeline.*
   - `making-skills.md` (25 lines) — *Arch spec: how a bundled skill gets made — authority, bundle derivation, and final consumer delivery.*
   - `node-versions.md` (68 lines) — *The Node and npm versions used for repository work, automation, publishing, and published-package support.*
   - `testing-policy.md` (234 lines) — *How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
   - **artifact-frame/**
     - `artifact-bridge.md` (354 lines) — *The artifact bridge: how an embedded artifact document and the app cooperate across the iframe/webview boundary — lifecycle and readiness, navigation reporting, input observation, keyboard forwarding, and live updates for shared artifacts.*
-    - `index.md` (51 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
+    - `index.md` (50 lines) — *The artifact-frame architecture root: the domain's module map, the frame lifecycle rules, and the deliberate boundary between what is specified here and what remains governed by code.*
     - `isolation.md` (118 lines) — *Artifact isolation: the sandbox HTML artifact documents run in, in a browser, and the separate sessions that isolate them in the desktop app; the browser features artifact documents are granted; the cross-origin rules on the routes they load; and the known limitations of each.*
     - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
@@ -92,9 +92,10 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
   - **templates/**
     - `authoring.md` (23 lines) — *Artifact template guidance: using copies, saving artifact snapshots, and maintaining templates through the bundled television skill.*
     - `bundled-installation.md` (36 lines) — *Bundled artifact template installation: package validation, minimum-version replacement, backups, and handled IDs per Television home.*
-    - `bundled-templates.md` (13 lines) — *The bundled artifact template inventory and shared rules.*
+    - `bundled-templates.md` (14 lines) — *The bundled artifact template inventory and shared rules.*
     - `calendar.md` (73 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
+    - `document.md` (66 lines) — *The bundled Document artifact template: its packaged Markdown editor, store contract, page, and adapting-agent guidance.*
     - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
   - **test-runner/**
@@ -129,7 +130,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `runbook-channel-deploy.md` (84 lines) — *Runbook: announcing a curated release on the update channel — authoring and deploying `update-channel.json`, bumping the required desktop version when the release needs it, and verifying the deploy.*
     - `runbook-ux-staging.md` (151 lines) — *Runbook: staging every user-visible update-notifications state — server toast, bell, dismissal, desktop self-update notice, desktop recommendation, and desktop upgrade gate — on a development machine, for design/UX review.*
     - `update-channel.md` (135 lines) — *The public update channel: the manually-deployed JSON notice at television.run, its schema and additive evolution protocol; server-side polling with silent failure semantics; the update-state relay to clients; dismissal persistence; the notice telemetry events; and the channel-deploy procedure.*
-    - `version-advertisement.md` (74 lines) — *How the server advertises its release version to clients (health endpoint, response header, `/events` message), how the web bundle learns its own version at build time, the cache headers that make a reload effective, and the client auto-reload contract with its loop guard.*
+    - `version-advertisement.md` (73 lines) — *How the server advertises its release version to clients (health endpoint, response header, `/events` message), how the web bundle learns its own version at build time, the cache headers that make a reload effective, and the client auto-reload contract with its loop guard.*
 - **ui/**
   - `index.md` (7 lines) — *UI policy authority: cross-cutting requirements shared by every Television surface and browser-facing behavior.*
   - **app/**

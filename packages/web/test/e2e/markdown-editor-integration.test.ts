@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { appearanceResolverScriptSource } from "@telepath-computer/television-artifact/browser";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/markdown-editor-integration.html";
+const PACKAGED_MARKDOWN_EDITOR_FIXTURE = "/packages/web/test/e2e/fixtures/document-editor-integration.html";
 
 // Trust has no public presentation state; this helper is reserved for lifecycle-adoption evidence.
 async function artifactTrustGuid(page: Page): Promise<string | null> {
@@ -27,6 +28,633 @@ test.describe("markdown editor integration", () => {
     });
   });
 
+  // proofs/arch/templates/document.md#^templates-document-t-editor-build
+  test("the packaged Markdown editor files add only the editor API and editor-scoped styles", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+
+    expect(await page.evaluate(() => window.__packagedEditorAddedGlobals)).toEqual([
+      "TelevisionMarkdownEditor",
+    ]);
+    expect(await page.evaluate(() => window.__packagedEditorTrustedPolicyCreates)).toEqual([]);
+    expect(await page.evaluate(() => document.head.innerHTML)).toBe(
+      await page.evaluate(() => window.__packagedEditorHeadBefore),
+    );
+    await expect(page.locator("#editor > .cm-editor")).toHaveCount(0);
+    const script = await page.evaluate(async () => (
+      await fetch("/packages/server/assets/templates/document/editor.js")
+    ).text());
+    expect(script).not.toContain("modulepreload");
+    expect(script).not.toContain("The view never transforms the source");
+
+    const rules = await page.evaluate(() => {
+      const sheet = [...document.styleSheets].find(
+        candidate => candidate.href?.endsWith("/packages/server/assets/templates/document/editor.css"),
+      );
+      if (!sheet) throw new Error("missing packaged Markdown editor stylesheet");
+      return [...sheet.cssRules].map(rule => ({
+        type: rule.type,
+        selector: rule instanceof CSSStyleRule ? rule.selectorText : null,
+      }));
+    });
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      expect(rule.type).toBe(1);
+      for (const selector of rule.selector!.split(",")) {
+        expect(selector.trim()).toMatch(/^#editor(?:\s|>)/);
+      }
+    }
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("the packaged Markdown editor mount exposes only document controls and no production editor test hook", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+
+    const keys = await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      const handle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+        },
+      });
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = handle;
+      return Reflect.ownKeys(handle).map(String).sort();
+    });
+
+    expect(keys).toEqual(["dispose", "focus", "setEditable", "setValue"]);
+    expect(await page.evaluate(() => "__cmView" in window)).toBe(false);
+    await expect(page.locator("#editor > .cm-editor")).toHaveCount(1);
+    await expect(page.locator(".cm-content")).toContainText("Stored document");
+
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Agent replacement"));
+    await expect(page.locator(".cm-content")).toContainText("Agent replacement");
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+
+    await page.locator(".cm-content").press("ControlOrMeta+End");
+    await page.keyboard.insertText(" edited");
+    await page.locator(".cm-content").press("ControlOrMeta+Z");
+    await expect(page.locator(".cm-content")).toHaveText("Agent replacement");
+
+    await page.evaluate(() => window.__packagedEditorHandle!.focus());
+    await expect(page.locator(".cm-content")).toBeFocused();
+    await page.evaluate(() => window.__packagedEditorHandle!.setEditable(false));
+    await page.locator(".cm-content").press("ControlOrMeta+A");
+    await page.keyboard.type("blocked");
+    await expect(page.locator(".cm-content")).toContainText("Agent replacement");
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+
+    await page.evaluate(() => window.__packagedEditorHandle!.setEditable(true));
+    await page.locator(".cm-content").press("ControlOrMeta+End");
+    await page.locator(".cm-content").pressSequentially(" pending save");
+    await page.evaluate(() => window.__packagedEditorHandle!.dispose());
+    await expect(page.locator("#editor > .cm-editor")).toHaveCount(0);
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("an equal authoritative value records the current text without replacing it", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initial stored value",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          throw new Error("save refused");
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Current local string");
+    await editor.press("ArrowLeft");
+    const sameValue = await page.evaluate(async () => {
+      const content = document.querySelector<HTMLElement>(".cm-content");
+      if (!content) throw new Error("missing editor content");
+      const before = window.getSelection()?.anchorOffset;
+      let mutations = 0;
+      const observer = new MutationObserver(records => { mutations += records.length; });
+      observer.observe(content, { childList: true, characterData: true, subtree: true });
+      window.__packagedEditorHandle!.setValue("Current local string");
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      observer.disconnect();
+      return {
+        active: document.activeElement === content,
+        before,
+        after: window.getSelection()?.anchorOffset,
+        mutations,
+      };
+    });
+    expect(sameValue).toEqual({ active: true, before: 19, after: 19, mutations: 0 });
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Refused later save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Refused later save"]);
+    await expect(editor).toHaveText("Current local string");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a matching authoritative value remains after its save promise rejects", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const pendingSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectTemplateSave = reject;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          window.__packagedEditorHandle!.setValue(value);
+          await pendingSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Confirmed replacement");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Confirmed replacement"]);
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__rejectTemplateSave!(
+      Object.assign(new Error("acknowledgement lost"), { code: "disconnected" }),
+    ));
+    await expect(editor).toHaveText("Confirmed replacement with newer typing");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "Confirmed replacement",
+      "Confirmed replacement with newer typing",
+    ]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("an older save confirmation preserves a newer local edit", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__resolveFirstTemplateSave = undefined;
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("First saved string");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["First saved string"]);
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Newer pending string");
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("First saved string"));
+    await expect(editor).toContainText("Newer pending string");
+    await page.evaluate(() => window.__resolveFirstTemplateSave!());
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "First saved string",
+      "Newer pending string",
+    ]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("repeated confirmation of a save in progress preserves newer typing", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("First saved string");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["First saved string"]);
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => {
+      window.__packagedEditorHandle!.setValue("First saved string");
+      window.__packagedEditorHandle!.setValue("First saved string");
+    });
+    await expect(editor).toHaveText("First saved string with newer typing");
+
+    await page.evaluate(() => window.__resolveFirstTemplateSave!());
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "First saved string",
+      "First saved string with newer typing",
+    ]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a value received during a save disqualifies its later completed-save echo", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const pendingSave = new Promise<void>((resolve) => {
+        window.__resolveFirstTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          await pendingSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Saved A");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Saved A"]);
+
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Authoritative B"));
+    await expect(editor).toContainText("Authoritative B");
+    await page.evaluate(() => window.__resolveFirstTemplateSave!());
+    await page.waitForTimeout(0);
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Saved A"));
+    await expect(editor).toContainText("Saved A");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a completed save does not replace a newer authoritative rollback baseline", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initially stored",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) {
+            await firstSave;
+            window.__firstTemplateSaveFinished = true;
+            return;
+          }
+          throw new Error("later save refused");
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Saved A");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Saved A"]);
+
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Authoritative B"));
+    await expect(editor).toHaveText("Authoritative B");
+    await page.evaluate(() => window.__resolveFirstTemplateSave!());
+    await page.waitForFunction(() => window.__firstTemplateSaveFinished === true);
+
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Refused C");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "Saved A",
+      "Refused C",
+    ]);
+    await expect(editor).toHaveText("Authoritative B");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("disabling editing cancels a local change waiting for its save pause", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" unsent draft");
+    await page.evaluate(() => window.__packagedEditorHandle!.setEditable(false));
+    await expect(editor).toHaveAttribute("contenteditable", "false");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("setValue replaces a newer draft after editing is disabled", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const pendingSave = new Promise<void>(() => {});
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          await pendingSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+End");
+    await editor.pressSequentially("x");
+    await editor.press("Backspace");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Stored document"]);
+
+    await editor.press("ControlOrMeta+End");
+    await editor.pressSequentially(" newer draft");
+    await page.evaluate(() => {
+      window.__packagedEditorHandle!.setEditable(false);
+      window.__packagedEditorHandle!.setValue("Stored document");
+    });
+    await expect(editor).toHaveText("Stored document");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Stored document"]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a temporary disabled interval does not forget a save still in progress", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((resolve) => {
+        window.__resolveFirstTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Saved string");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Saved string"]);
+
+    await page.evaluate(() => {
+      window.__packagedEditorHandle!.setEditable(false);
+      window.__packagedEditorHandle!.setEditable(true);
+    });
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Saved string"));
+    await expect(editor).toHaveText("Saved string with newer typing");
+    await page.evaluate(() => window.__resolveFirstTemplateSave!());
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "Saved string",
+      "Saved string with newer typing",
+    ]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a refused save does not replace a newer authoritative value", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const pendingSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectTemplateSave = reject;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          await pendingSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Person save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Person save"]);
+    await page.evaluate(() => {
+      window.__packagedEditorHandle!.setValue("Newer stored value");
+      window.__rejectTemplateSave!(new Error("save refused"));
+    });
+    await expect(editor).toHaveText("Newer stored value");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a completed save becomes the rollback baseline", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initial stored value",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length > 1) throw new Error("save refused");
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Completed save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Completed save"]);
+    await page.waitForTimeout(0);
+
+    await editor.press("ControlOrMeta+A");
+    await editor.pressSequentially("Refused later save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "Completed save",
+      "Refused later save",
+    ]);
+    await expect(editor).toHaveText("Completed save");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("restoring after a refused save cancels a newer scheduled save", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectTemplateSave = reject;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Refused save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Refused save"]);
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await page.evaluate(() => window.__rejectTemplateSave!(new Error("save refused")));
+    await expect(editor).toHaveText("Stored document");
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Refused save"]);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a later successful save replaces a document restored after an older refusal", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectTemplateSave = reject;
+      });
+      const secondSave = new Promise<void>((resolve) => {
+        window.__resolveSecondTemplateSave = resolve;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+          if (window.__packagedEditorSaves!.length === 2) await secondSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("First refused save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["First refused save"]);
+
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Second successful save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "First refused save",
+      "Second successful save",
+    ]);
+
+    await page.evaluate(() => window.__rejectTemplateSave!(new Error("save refused")));
+    await expect(editor).toHaveText("Stored document");
+    await page.evaluate(() => {
+      window.__packagedEditorHandle!.setValue("Second successful save");
+      window.__resolveSecondTemplateSave!();
+    });
+    await expect(editor).toHaveText("Second successful save");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a repeated completed save preserves newer typing and its pending save", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Initial stored value",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Completed save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Completed save"]);
+    await page.waitForTimeout(0);
+
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual(["Completed save"]);
+    await page.evaluate(() => window.__packagedEditorHandle!.setValue("Completed save"));
+    await expect(editor).toHaveText("Completed save with newer typing");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "Completed save",
+      "Completed save with newer typing",
+    ]);
+  });
+
   // spec: proofs/arch/artifact-frame/artifact-bridge.md#^ab-ac-markdown-bridge-seam
   test("loads markdown bytes after lifecycle adoption, saves edits, and treats script source as text", async ({ page }) => {
     await page.goto(FIXTURE);
@@ -47,6 +675,40 @@ test.describe("markdown editor integration", () => {
 
     await expect.poll(async () => page.evaluate(() => window.__savedMarkdown)).toEqual([
       { artifactID: "md", content: "# Saved markdown" },
+    ]);
+  });
+
+  test("file editor keeps newer typing when the watcher repeats a completed save", async ({ page }) => {
+    await page.goto(FIXTURE);
+    await page.waitForFunction(() => window.__fixtureReady === true);
+
+    const editor = page.frameLocator("iframe[src='/views/markdown/']").locator(".cm-content");
+    await expect(editor).toContainText("Hello");
+    await editor.click();
+    await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+    await page.keyboard.insertText("First saved text");
+    await expect.poll(() => page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    // Let the save response and its first content echo finish before posing the
+    // later file-watcher delivery.
+    await page.waitForTimeout(50);
+
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with newer typing");
+    await expect(editor).toHaveText("First saved text with newer typing");
+    expect(await page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    await page.evaluate(() => window.__emitArtifactChanged());
+    await page.waitForTimeout(50);
+    await expect(editor).toHaveText("First saved text with newer typing");
+    expect(await page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+    ]);
+    await expect.poll(() => page.evaluate(() => window.__savedMarkdown)).toEqual([
+      { artifactID: "md", content: "First saved text" },
+      { artifactID: "md", content: "First saved text with newer typing" },
     ]);
   });
 
@@ -222,6 +884,13 @@ test.describe("markdown editor integration", () => {
 });
 
 declare global {
+  interface PackagedMarkdownEditorHandle {
+    setValue(value: string): void;
+    setEditable(editable: boolean): void;
+    focus(): void;
+    dispose(): void;
+  }
+
   interface Window {
     __fixtureReady?: boolean;
     __markdownContent: string;
@@ -242,5 +911,24 @@ declare global {
     __emitAppearanceChanged(): void;
     __pwned?: boolean;
     __cmView?: { state: { doc: { toString(): string } } };
+    TelevisionMarkdownEditor?: {
+      mount(options: {
+        parent: HTMLElement;
+        value: string;
+        editable: boolean;
+        onSave(value: string): Promise<void>;
+      }): PackagedMarkdownEditorHandle;
+    };
+    __packagedEditorHandle?: PackagedMarkdownEditorHandle;
+    __packagedEditorSaves?: string[];
+    __resolveFirstTemplateSave?: () => void;
+    __resolveSecondTemplateSave?: () => void;
+    __firstTemplateSaveFinished?: boolean;
+    __rejectTemplateSave?: (reason?: unknown) => void;
+    __packagedEditorGlobalsBefore: string[];
+    __packagedEditorAddedGlobals: string[];
+    __packagedEditorHeadBefore: string;
+    __packagedEditorTrustedPolicyCreates: string[];
+    __packagedEditorReady?: boolean;
   }
 }

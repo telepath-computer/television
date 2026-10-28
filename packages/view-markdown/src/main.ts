@@ -1,4 +1,5 @@
 import "./styles.css";
+import "./editor.css";
 import "./colors.css";
 import {
   ArtifactContext,
@@ -28,6 +29,12 @@ if (!parent) {
   throw new Error("Editor mount point #editor not found");
 }
 
+function exposeTestEditor(view: EditorView): void {
+  // Retain the file view's established hook for its browser and Electron
+  // tests. The packaged-template entry does not expose this editor object.
+  (window as Window & { __cmView?: EditorView }).__cmView = view;
+}
+
 const isWebview = !!(window as Window & { __televisionContentBridge?: unknown }).__televisionContentBridge;
 const isFramed = window.parent !== window;
 const standalone = !isWebview && !isFramed;
@@ -51,17 +58,12 @@ context?.onStylesChanged(() => {
   current.href = next.href;
 });
 
-const view = context === null
-  ? new EditorView({
-      parent,
-      state: EditorState.create({ doc: seed, extensions: editorExtensions }),
-    })
-  : installEditor({ parent, ctx: context }).view;
-
-// Expose the EditorView for e2e tests. Inline-code body text is a bare
-// text node inside `.cm-line` (lang-markdown's CodeText tag has no rule
-// in `markdownHighlight`), so Playwright's `getByText` can't locate
-// it. Tests dispatch transactions on this handle to position the caret
-// programmatically. Harmless in production; the package is private and
-// only ever loaded inside the editor iframe.
-(window as Window & { __cmView?: EditorView }).__cmView = view;
+if (context === null) {
+  const view = new EditorView({
+    parent,
+    state: EditorState.create({ doc: seed, extensions: editorExtensions }),
+  });
+  exposeTestEditor(view);
+} else {
+  installEditor({ parent, ctx: context }, exposeTestEditor);
+}

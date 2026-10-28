@@ -26,7 +26,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
 - **arch/**
   - `canonical.md` (36 lines) — *How the promises in Canonical are proven.*
   - `developer-skills.md` (21 lines) — *Developer skill installation proven through real temporary homes and installer processes.*
-  - `licensing.md` (28 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
+  - `licensing.md` (36 lines) — *How the licensing machinery is proven: generator, gate and loader contracts over authored inputs, and seams through every real shipping build, the suite's inventory handoff and the committed asset manifest.*
   - `making-skills.md` (24 lines) — *How the promises in Making skills are proven.*
   - `node-versions.md` (18 lines) — *How the Node version contracts are proven: repository declarations, the advisory floor in the packed CLI package, and the toolchain checker at its two developer entry points.*
   - `testing-policy.md` (9 lines) — *How the testing policy’s development discipline is checked.*
@@ -34,7 +34,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `artifact-bridge.md` (121 lines) — *How the promises in Artifact bridge are proven.*
     - `index.md` (24 lines) — *How the promises in Artifact frame (architecture) are proven.*
     - `isolation.md` (86 lines) — *How artifact isolation is proven: escalation walks in which hostile artifact code, sandboxed in Chromium and Firefox and unsandboxed in its partition in the real Electron app, fails to obtain the token, act with the app's authority or reach the main process; a desktop walk showing artifacts' storage apart from the window's and from each other's; walks showing artifacts still load what they need; and the header, route, frame-attribute, header-rewriting and permission rules as contracts with real-browser and real-Electron crossings.*
-    - `markdown-tables-buffer.md` (31 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
+    - `markdown-tables-buffer.md` (33 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
     - `reload-navigation.md` (101 lines) — *How the promises in Reload and navigation are proven.*
   - **artifacts/**
@@ -83,6 +83,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `bundled-templates.md` (19 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
     - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
+    - `document.md` (48 lines) — *Proves the bundled Document package, self-contained editor, blank start, scoped saves, live store binding, and sandboxed link route.*
     - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
   - **test-runner/**
@@ -163,7 +164,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - **select/**
       - `index.md` (24 lines) — *How the production select's value, semantics, interaction, and placement are proven in Chromium.*
   - **markdown-editor/**
-    - `index.md` (29 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
+    - `index.md` (35 lines) — *How the Markdown editor’s color sheet reaches production, where its appearance is judged, and how its narrow table interactions are proven.*
   - **onboarding-artifacts/**
     - `index.md` (250 lines) — *How onboarding design sources are proven through the bake and the browser components they use.*
   - **setup/**
