@@ -1,6 +1,6 @@
 # Editable Table spec plan
 
-The first editable design and implementation passed review. Rupert's hands-on review produced a Numbers-style revision, and its spec delta has now passed independent review. The specs, stories, proofs, package, contracts and ordinary browser paths now implement that revision. Slice 3 below adds resizing and updates the remaining live and fault paths.
+The first editable design and implementation passed review. Rupert's hands-on review produced a Numbers-style revision, and its spec delta has now passed independent review. The specs, stories, proofs, package, contracts, resizing, live paths and fault paths now implement that revision.
 
 ## Decisions for Rupert — Numbers-style revision
 
@@ -42,6 +42,7 @@ The first editable design and implementation passed review. Rupert's hands-on re
     - the empty corner and all four frozen gaps as inert parts of the table control, so clicking them changes no selection, editor or focus; and
     - named row and column strip groups whose closed buttons expose `aria-expanded="false"` only when their menu is available.
     Recommendation: accept these as one visual correction. They preserve the approved geometry while closing the seams that appear only during scrolling.
+26. **Should the superseded Table editing experiment remain?** The implementation removes `storybook/experiments/table-editing/`. It uses the replaced store shape, separate header behavior and earlier strip behavior, while the spec stories now carry the approved design. Recommendation: keep it removed so future work has one current design reference.
 
 ## Earlier open decisions
 

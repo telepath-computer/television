@@ -245,6 +245,7 @@ textarea {
 .table-row-resize-handle {
   position: absolute;
   z-index: 2;
+  touch-action: none;
 }
 
 .table-column-resize-handle {
@@ -445,11 +446,12 @@ textarea {
 
 .table-resize-announcement {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  width: 0;
+  height: 0;
   padding: 0;
   overflow: hidden;
   clip-path: inset(50%);
+  opacity: 0;
   white-space: nowrap;
 }
 

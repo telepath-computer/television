@@ -17,6 +17,7 @@ const statusRegion = main.querySelector(".table-status");
 const resizeAnnouncement = main.querySelector(".table-resize-announcement");
 const store = getStore();
 const root = ref(store);
+const KEYBOARD_RESIZE_STEP = 8;
 
 let value;
 let model;
@@ -406,6 +407,11 @@ function showFailure() {
   renderStatus();
 }
 
+function reportUnsentFollowUp() {
+  if (connection === "disconnected") failureAfterReconnect = true;
+  else showFailure();
+}
+
 function renderStatus() {
   const message = connection === "disconnected" ? "Reconnecting…" : failure ? "Couldn't save that change." : "";
   if (statusRegion.textContent !== message) statusRegion.textContent = message;
@@ -454,18 +460,16 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
       onLocalApply?.();
       const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
-      if (!canWrite()) {
-        if (connection === "disconnected") failureAfterReconnect = true;
-        else showFailure();
-        return false;
-      }
       if (plan.operations.length > 0) {
+        if (!canWrite()) {
+          reportUnsentFollowUp();
+          return false;
+        }
         // Let access, connection and value notifications queued with the
         // transaction acknowledgement reach the write guard first.
         await new Promise(resolve => setTimeout(resolve, 0));
         if (!canWrite()) {
-          if (connection === "disconnected") failureAfterReconnect = true;
-          else showFailure();
+          reportUnsentFollowUp();
           return false;
         }
       }
@@ -480,8 +484,7 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
   } catch (error) {
     if (error?.code === "disconnected") {
       if (plan.kind === "renumber" && plan.operations.length > 0 && !followUpStarted) {
-        if (connection === "disconnected") failureAfterReconnect = true;
-        else showFailure();
+        reportUnsentFollowUp();
       }
     } else showFailure();
     return false;
@@ -494,7 +497,7 @@ function beginResize(axis, index, pointerPosition, pointerId) {
   if (!item) return;
   const openedSize = displayedSize(axis, index);
   resizing = {
-    axis, targetId: item.id, index, openedSize, previewSize: openedSize,
+    axis, targetId: item.id, openedSize, previewSize: openedSize,
     pointerPosition, pointerId,
   };
 }
@@ -503,7 +506,6 @@ function reconcileResizing(displayed) {
   if (!resizing) return;
   const index = indexOf(displayed[resizing.axis], resizing.targetId);
   if (index < 0) resizing = null;
-  else resizing.index = index;
 }
 
 async function finishResize() {
@@ -529,7 +531,14 @@ async function resizeSelection(direction) {
   const openedSize = displayedSize(selection.kind, index);
   const selected = selection;
   const beforeSave = axes();
-  const plan = planResize(value, selection.kind, index, openedSize, openedSize + direction * 8, reserveKeys(selection.kind));
+  const plan = planResize(
+    value,
+    selection.kind,
+    index,
+    openedSize,
+    openedSize + direction * KEYBOARD_RESIZE_STEP,
+    reserveKeys(selection.kind),
+  );
   const saved = await applyPlan(plan, nextAxes => selectionAtSamePosition(selected, beforeSave, nextAxes));
   if (!saved) return;
   announceResize(selected.kind, index, displayedSize(selected.kind, index));
@@ -841,13 +850,16 @@ main.addEventListener("keydown", event => {
     return;
   }
   if (selection.kind === "rows" || selection.kind === "columns") {
+    const commandModified = event.ctrlKey || event.metaKey || event.altKey;
     if ((event.key === "+" || event.key === "Add" || event.key === "-" || event.key === "Subtract")
-        && selection.ids.length === 1) {
+        && selection.ids.length === 1 && !menu && !commandModified) {
       event.preventDefault();
       void resizeSelection(event.key === "+" || event.key === "Add" ? 1 : -1);
       return;
     }
-    if (["Enter", "F2", " "].includes(event.key) || event.key.length === 1) event.preventDefault();
+    if (!commandModified && (["Enter", "F2", " "].includes(event.key) || event.key.length === 1)) {
+      event.preventDefault();
+    }
   } else if (event.key === "Process" || event.isComposing) {
     const position = selectedCellPosition();
     beginEditing(position.rowIndex, position.columnIndex, "");
@@ -909,16 +921,18 @@ document.addEventListener("pointerdown", event => {
   pointerMovedFocus = editing !== null && event.target instanceof Element && !event.target.closest(".table-input");
 }, { capture: true });
 
-document.addEventListener("pointerup", () => { pointerMovedFocus = false; }, { capture: true });
 document.addEventListener("pointermove", event => {
   if (!resizing || event.pointerId !== resizing.pointerId) return;
   const rules = AXIS_SIZES[resizing.axis];
   const position = resizing.axis === "columns" ? event.clientX : event.clientY;
   resizing.previewSize = Math.max(rules.minimum, Math.min(rules.maximum,
     resizing.openedSize + position - resizing.pointerPosition));
+  // Pointer previews rerender the grid. This favors one consistent rendering
+  // path; very large tables may therefore resize less smoothly.
   render();
 }, { capture: true });
 document.addEventListener("pointerup", event => {
+  pointerMovedFocus = false;
   if (resizing && event.pointerId === resizing.pointerId) void finishResize();
 }, { capture: true });
 document.addEventListener("pointercancel", event => {
