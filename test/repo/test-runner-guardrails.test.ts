@@ -977,6 +977,16 @@ describe("local file and retry admission", () => {
     expect(dry(["local", "--file", selectedFile], true).status).toBe(0);
   });
 
+  test.each([["--surface", "experiment:blaxel-harness"], ["--tag", "blaxel-harness-driver"]])("routes the configured harness driver %s %s to its local one-file form", (flag, value) => {
+    const coordinator = selftestEnv({ HOME: markedHome, TV_TEST_RUNNER_DRY_RUN: "1", TV_TEST_SHARD_OWNER: undefined, TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator", TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool" });
+    const driver = "test/runner-fixtures/blaxel-harness/driver/harness.test.ts";
+    const result = runCli(["local", flag, value], coordinator);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`npm test -- local --file ${driver}`);
+    expect(result.stderr).not.toContain("npm test -- blaxel");
+    expect(runCli(["local", "--file", driver], coordinator).status).toBe(0);
+  });
+
   test("list and standalone preflight use the execution file resolver", () => {
     const listed = runCli(["list", "--file", "runner-guardrails"], { HOME: markedHome });
     expect(listed.status, listed.stderr).toBe(0);

@@ -49,10 +49,10 @@ export function resolveRetryPolicy(options, { oneFile = false } = {}) {
 
 export function enforceLocalFileGuidance(options, { surfaces, oneFile }) {
   if (!hasBlaxelMarker() || oneFile || options[BROAD_LOCAL]) return;
-  const localOnly = surfaces.filter((surface) => surface.agent || /^(telemetry-posthog-roundtrip|daemon-acceptance):/.test(surface.id));
+  const localOnly = surfaces.filter((surface) => localOnlyRequirement(surface));
   let route;
   if (localOnly.length) {
-    const requirements = localOnly.map((surface) => surface.agent ? "agent tests require local agent setup" : surface.id.startsWith("telemetry") ? "PostHog tests require the local PostHog test read key" : "daemon tests require a dedicated local host with TV_DAEMON_TEST_HOST=1");
+    const requirements = localOnly.map(localOnlyRequirement);
     const commands = localOnly.map((surface) => {
       const file = surface.roots.length === 1 && TEST_FILE_PATTERN.test(surface.roots[0]) ? shellQuote(surface.roots[0]) : "<one-test-file>";
       return `${surface.id.startsWith("daemon-acceptance:") ? "TV_DAEMON_TEST_HOST=1 " : ""}npm test -- local --file ${file}`;
@@ -68,6 +68,15 @@ export function enforceLocalFileGuidance(options, { surfaces, oneFile }) {
     route = `Commit and push to origin first, then run: ${args.map(shellQuote).join(" ")}.`;
   }
   throw new Error(`~/.tvdev-use-blaxel is present. Local iteration selects at most one test file with --file, optionally narrowed by --grep. A file filter can match several files. Broader runs can exhaust the shared host. ${route} Do not replace broader validation with serial file loops. With explicit human permission under testing policy, --${BROAD_LOCAL} permits a broader local run.`);
+}
+
+// Selections with no Blaxel equivalent: refusals route these to their local one-file form.
+function localOnlyRequirement(surface) {
+  if (surface.agent) return "agent tests require local agent setup";
+  if (surface.id.startsWith("telemetry-posthog-roundtrip:")) return "PostHog tests require the local PostHog test read key";
+  if (surface.id.startsWith("daemon-acceptance:")) return "daemon tests require a dedicated local host with TV_DAEMON_TEST_HOST=1";
+  if (surface.id === "experiment:blaxel-harness") return "the Blaxel harness driver runs locally on its dedicated coordinator outside every worker pool";
+  return null;
 }
 
 function shellQuote(value) {

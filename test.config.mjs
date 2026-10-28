@@ -93,7 +93,7 @@ export default {
       surface("agent:root", "vitest", "test/agent/vitest.config.ts", { kind: "agent", roots: ["test/agent"], agent: true, tags: ["agent"] }),
     ]),
     executionGroup("experiment:blaxel-harness", "experiment: Blaxel harness", 88, [
-      surface("experiment:blaxel-harness", "vitest", "test/runner-fixtures/blaxel-harness/driver/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/blaxel-harness/driver"], tags: ["blaxel-harness-driver"] }),
+      surface("experiment:blaxel-harness", "vitest", "test/runner-fixtures/blaxel-harness/driver/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/blaxel-harness/driver/harness.test.ts"], tags: ["blaxel-harness-driver"] }),
       surface("experiment:blaxel-harness-fixtures", "vitest", "test/runner-fixtures/blaxel-harness/fixtures/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/blaxel-harness/fixtures"], tags: ["blaxel-harness-fixture"] }),
     ]),
     executionGroup("experiment:guidance", "experiment: guidance fixtures", 88, [
