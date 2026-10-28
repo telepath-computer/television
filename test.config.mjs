@@ -33,7 +33,7 @@ export default {
     ]),
     // Resolve Playwright from the root toolchain, not a workspace peer dependency.
     executionGroup("e2e:browser-app", "e2e: web", 5, [
-      surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { cwd: ".", package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/template-calendar-real-stack.test.ts", "packages/web/test/e2e/template-sticky-note-real-stack.test.ts", "packages/web/test/e2e/template-weather-real-stack.test.ts", "packages/web/test/e2e/template-weather-artwork.test.ts", "packages/web/test/e2e/template-weather-conformance.test.ts", "packages/web/test/e2e/templates-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts", "packages/web/test/e2e/template-checklist-conformance.test.ts", "packages/web/test/e2e/template-calendar-conformance.test.ts", "packages/web/test/e2e/template-sticky-note-conformance.test.ts", "packages/web/test/e2e/toolbox-conformance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
+      surface("e2e:browser-app", "playwright", "packages/web/playwright.config.ts", { cwd: ".", package: "@telepath-computer/television-web", kind: "e2e", roots: ["packages/web/test/e2e"], excludeRoots: ["packages/web/test/e2e/appearance-delivery.test.ts", "packages/web/test/e2e/onboarding-browser.test.ts", "packages/web/test/e2e/path-artifact-real-stack-coverage.test.ts", "packages/web/test/e2e/sidebar-collapse.test.ts", "packages/web/test/e2e/sidebar-resize.test.ts", "packages/web/test/e2e/template-checklist-real-stack.test.ts", "packages/web/test/e2e/template-calendar-real-stack.test.ts", "packages/web/test/e2e/template-sticky-note-real-stack.test.ts", "packages/web/test/e2e/template-weather-real-stack.test.ts", "packages/web/test/e2e/template-weather-conformance.test.ts", "packages/web/test/e2e/templates-real-stack.test.ts", "packages/web/test/e2e/theme-product-acceptance.test.ts", "packages/web/test/e2e/template-checklist-conformance.test.ts", "packages/web/test/e2e/template-calendar-conformance.test.ts", "packages/web/test/e2e/template-sticky-note-conformance.test.ts", "packages/web/test/e2e/toolbox-conformance.test.ts"], preflight: ["node", "playwright-chromium", "playwright-firefox"], tags: ["browser"], preCommand: ["npm", "run", "build:web-and-artifact-documents"], services: [{ id: "browser-app", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" }] }),
     ]),
     // These files boot product servers per test; sharing a Playwright invocation
     // with a parallel worker starves those servers on 2-vCPU CI runners
@@ -58,16 +58,6 @@ export default {
           { id: "spec-storybook", kind: "vite", config: "config/vite.spec-storybook.ts", publishUrlEnv: "TV_SPEC_STORYBOOK_URL" },
           { id: "conformance-production", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" },
         ],
-      }),
-    ]),
-    executionGroup("e2e:weather-artwork", "e2e: Weather artwork", 17, [
-      surface("e2e:weather-artwork", "playwright", "packages/web/playwright.weather-artwork.config.ts", {
-        cwd: ".",
-        kind: "e2e",
-        roots: ["packages/web/test/e2e/template-weather-artwork.test.ts"],
-        preflight: ["node", "playwright-chromium", "playwright-firefox", "playwright-webkit"],
-        tags: ["browser"],
-        preCommand: ["npm", "run", "build:web-and-artifact-documents"],
       }),
     ]),
     executionGroup("live-providers:browser", "live providers: browser", 18, [

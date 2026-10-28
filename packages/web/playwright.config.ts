@@ -24,7 +24,6 @@ const realStackTests = [
   "**/template-calendar-real-stack.test.ts",
   "**/template-sticky-note-real-stack.test.ts",
   "**/template-weather-real-stack.test.ts",
-  "**/template-weather-artwork.test.ts",
   "**/templates-real-stack.test.ts",
   "**/theme-product-acceptance.test.ts",
 ];

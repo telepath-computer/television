@@ -1,6 +1,6 @@
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { expect, test, type Browser, type BrowserContext, type Frame, type Route } from "@playwright/test";
+import { expect, test, type BrowserContext, type Frame, type Route } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import {
   buildOpenMeteoRequest,
@@ -47,21 +47,6 @@ interface HeldResponse extends ScriptedResponse {
 }
 
 type StoredWeatherConfiguration = WeatherConfiguration & Record<string, JSONValue>;
-
-interface CardPresentation {
-  theme: string | undefined;
-  themeSurface: string;
-  background: string;
-  color: string;
-  scheme: string;
-  overflow: string;
-  className: string;
-  condition: string | undefined;
-  day: string | undefined;
-  text: string | null;
-  creditCount: number;
-  size: [number, number];
-}
 
 class ScriptedProvider {
   readonly requests: string[] = [];
@@ -347,10 +332,6 @@ function differentCurrent(forecast: WeatherForecast, temperature: number): Weath
 
 async function cardState(frame: Frame): Promise<Record<string, unknown>> {
   return frame.locator(".weather-card").evaluate((card) => ({
-    condition: (card as HTMLElement).dataset.condition,
-    day: (card as HTMLElement).dataset.day,
-    background: getComputedStyle(card).backgroundImage,
-    artwork: [...card.querySelectorAll<SVGElement>(".weather-glyph")].map((image) => image.dataset.artwork),
     summary: card.querySelector(".weather-summary")?.textContent,
     temperature: card.querySelector(".weather-temperature")?.textContent,
     age: card.querySelector(".weather-header p")?.textContent,
@@ -373,7 +354,6 @@ async function expectLoading(frame: Frame): Promise<void> {
 async function expectReady(frame: Frame, place: string): Promise<void> {
   await expect(frame.locator(".weather-header h1")).toHaveText(place);
   await expect(frame.locator(".weather-temperature")).toBeVisible();
-  await expect(frame.locator(".weather-current-glyph svg[data-artwork]")).toBeVisible();
   await expect(frame.locator(".weather-credit")).toContainText("Open-Meteo data · adapted · CC BY 4.0");
 }
 
@@ -395,23 +375,12 @@ let toolboxWeatherID: string;
 let toolboxWeatherConfiguration: WeatherConfiguration;
 
 test.beforeAll(async () => {
-  harness = await TemplateHarness.start(
-    { id: "weather", name: "Weather" },
-    { bundledThemes: true },
-  );
+  harness = await TemplateHarness.start({ id: "weather", name: "Weather" });
 });
 
 test.afterAll(async () => {
   await harness.cleanup();
 });
-
-// Run first because opening the app loads every artifact in the shared channel.
-// Weather artifacts left by later tests would make Open-Meteo requests this acceptance has not scripted.
-// proofs/ui/templates/weather.md#^weather-ui-ac-appearance
-test(
-  "Weather keeps its sky composition and legibility in dark appearance with the bundled Nord theme",
-  weatherAppearanceAcceptance,
-);
 
 // proofs/arch/templates/weather.md#^templates-weather-ac-live
 // proofs/ui/templates/weather.md#^weather-ui-ac-new
@@ -504,7 +473,6 @@ test("creates Weather, follows the README changes, and saves the newest whole ro
   expect(resourceWrites().slice(fahrenheitWriteStart).some((write) => (
     write.kind === "compare-and-set" && write.path === ""
   ))).toBe(true);
-  expect(await frame.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
   toolboxWeatherID = artifactID;
   toolboxWeatherConfiguration = newest!;
   provider.done();
@@ -654,7 +622,6 @@ test("changes request identity, discards late responses, and swaps a held refres
       const card = document.querySelector(".weather-card");
       if (!card) return;
       observed.push({
-        condition: (card as HTMLElement).dataset.condition,
         summary: card.querySelector(".weather-summary")?.textContent,
         temperature: card.querySelector(".weather-temperature")?.textContent,
         age: card.querySelector(".weather-header p")?.textContent,
@@ -669,14 +636,10 @@ test("changes request identity, discards late responses, and swaps a held refres
   const after = await cardState(frame);
   expect(after).not.toEqual(before);
   expect(after).toMatchObject({
-    condition: expected.current.condition,
-    day: String(expected.current.isDay),
     summary: expected.current.summary,
     temperature: degree(expected.current.temperature),
     age: expect.stringContaining("Updated now"),
   });
-  expect(after.background).not.toBe(before.background);
-  expect(after.artwork).not.toEqual(before.artwork);
   const expectedHours = [expected.current, ...getHourlyWindow(expected, pageNow)];
   expect((after.hourly as string[])).toHaveLength(expectedHours.length);
   for (const [index, hour] of expectedHours.entries()) {
@@ -693,7 +656,6 @@ test("changes request identity, discards late responses, and swaps a held refres
   expect(renders.length).toBeGreaterThan(0);
   for (const render of renders) {
     expect(render).toEqual({
-      condition: expected.current.condition,
       summary: expected.current.summary,
       temperature: degree(expected.current.temperature),
       age: expect.stringContaining("Updated now"),
@@ -866,7 +828,6 @@ test("renders loading, empty and all uncached provider failures, then retries", 
   expect(provider.requests).toHaveLength(0);
   harness.proxy.release("to-browser");
   await expectEmpty(loadingFrame);
-  await expect(loadingFrame.locator(".weather-empty .weather-glyph-empty")).toBeVisible();
   expect(resourceWrites()).toHaveLength(writesBeforeEmpty);
   await loadingPage.close();
 
@@ -900,7 +861,6 @@ test("renders loading, empty and all uncached provider failures, then retries", 
     await failed.finished;
     await expect(frame.getByRole("status", { name: "Forecast unavailable" })).toBeVisible();
     await expect(frame.getByText("Weather couldn't be updated. It will try again in about 15 minutes.")).toBeVisible();
-    await expect(frame.locator(".weather-error .weather-placeholder-icon tv-icon")).toBeVisible();
     await expect(frame.locator(".weather-credit")).toHaveCount(0);
     expect((await harness.read<WeatherConfiguration>(artifactID))?.forecast).toBeUndefined();
     if (mode === "http") {
@@ -1040,7 +1000,6 @@ test("keeps read-only, disconnected and revoked forecasts in memory without savi
   expect(shownAfter).not.toEqual(shownBefore);
   const expectedRefresh = normalizeOpenMeteoResponse(changedCapture.response.body, ownerConfig, captureTime(16 * 60_000));
   expect(shownAfter).toMatchObject({
-    condition: expectedRefresh?.current.condition,
     summary: expectedRefresh?.current.summary,
     temperature: degree(expectedRefresh!.current.temperature),
   });
@@ -1203,7 +1162,6 @@ test("ignores bad caches, rejects unreadable roots, and recovers after real stor
   await harness.set(artifactID, unreadable);
   await expect(frame.getByRole("alert")).toContainText("This forecast can't be shown");
   await expect(frame.getByText("Its saved data isn't in the form this page reads. Ask your agent to check it.")).toBeVisible();
-  await expect(frame.locator(".weather-error .weather-placeholder-icon tv-icon")).toBeVisible();
   await expect(frame.locator(".weather-credit")).toHaveCount(0);
   expect(await harness.read(artifactID)).toEqual(unreadable);
   const requestsBeforeRepair = provider.requests.length;
@@ -1227,7 +1185,6 @@ test("ignores bad caches, rejects unreadable roots, and recovers after real stor
   const original = readFileSync(file);
   await harness.restart(() => writeFileSync(file, "{damaged json"));
   await expect(frame.getByRole("alert")).toContainText("This forecast can't be shown");
-  await expect(frame.locator(".weather-error .weather-placeholder-icon tv-icon")).toBeVisible();
   await unavailableAbort;
   late.release();
   await late.finished;
@@ -1290,9 +1247,6 @@ test("renders current values from morning and evening captures shifted to the br
   const frame = await harness.open(page, artifactID);
   await expectReady(frame, config.place);
   await expect(frame.locator(".weather-temperature")).toContainText("0°");
-  await expect(frame.locator(".weather-current-glyph svg")).toHaveAttribute("data-artwork", "partly-cloudy-night");
-  await expect(frame.locator(".weather-hour").first().locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-night");
-  await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-day");
   await expect(frame.locator(".weather-hour").nth(1).locator("strong")).toHaveText("3°");
   await expect(frame.locator(".weather-high-low")).toHaveText("H:4°L:−2°");
   await expect(frame.locator(".weather-day").first().locator(".weather-day-low")).toHaveText("−2°");
@@ -1307,77 +1261,6 @@ test("renders current values from morning and evening captures shifted to the br
   ));
   await expect(frame.locator(".weather-high-low")).toHaveCount(0);
   expect(provider.requests).toHaveLength(shiftedScenarios.length);
-  provider.done();
-});
-
-// proofs/ui/templates/weather.md#^weather-ui-ac-fixed-condition-day-night
-test("takes partly-cloudy artwork from isDay and keeps invariant condition artwork unchanged", async ({ page, context }) => {
-  const provider = await ScriptedProvider.install(context);
-  await installClock(page);
-  await page.setViewportSize({ width: 760, height: 740 });
-  const base = capturedForecast(configuration(), captureTime(-5 * 60_000));
-  base.current = { temperature: 8, condition: "partly-cloudy", summary: "Partly cloudy", isDay: false };
-  base.hourly = base.hourly.map((hour) => ({ ...hour, condition: "partly-cloudy", isDay: true }));
-  const config = configuration({ place: "Partly cloudy night", forecast: base });
-  const artifactID = await harness.createStored(config);
-  const frame = await harness.open(page, artifactID);
-  await expectReady(frame, config.place);
-  await pauseClock(page);
-  await expect(frame.locator(".weather-current-glyph svg")).toHaveAttribute("data-artwork", "partly-cloudy-night");
-  await expect(frame.locator(".weather-hour").first().locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-night");
-  await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-day");
-
-  const partlyCloudyDay = structuredClone(base);
-  partlyCloudyDay.current.isDay = true;
-  await replaceStoreAndWait(frame, () => harness.set(
-    artifactID,
-    configuration({ place: "Partly cloudy day", forecast: partlyCloudyDay }),
-  ));
-  await expect(frame.locator(".weather-current-glyph svg")).toHaveAttribute("data-artwork", "partly-cloudy-day");
-  await expect(frame.locator(".weather-hour").first().locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-day");
-  await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", "partly-cloudy-day");
-
-  await page.setViewportSize({ width: 700, height: 540 });
-
-  for (const condition of ["cloudy", "rain", "snow", "fog", "thunderstorm"] as const) {
-    const day = structuredClone(base);
-    day.current = { temperature: 8, condition, summary: condition, isDay: true };
-    day.hourly = day.hourly.map((hour) => ({ ...hour, condition, isDay: true }));
-    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: condition, forecast: day })));
-    await expectReady(frame, condition);
-    const daySignature = await frame.locator(".weather-card").evaluate((card) => ({
-      background: getComputedStyle(card).backgroundImage,
-      before: getComputedStyle(card, "::before").backgroundImage,
-      after: getComputedStyle(card, "::after").backgroundImage,
-    }));
-    const dayPixels = await frame.locator(".weather-page").screenshot({ animations: "disabled" });
-    const dayHourlyPixels = await frame.locator(".weather-hourly-strip").screenshot({ animations: "disabled" });
-    await expect(frame.locator(".weather-current-glyph svg")).toHaveAttribute("data-artwork", condition);
-    await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", condition);
-
-    const currentNight = structuredClone(day);
-    currentNight.current.isDay = false;
-    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: condition, forecast: currentNight })));
-    await expectReady(frame, condition);
-    expect(await frame.locator(".weather-card").evaluate((card) => ({
-      background: getComputedStyle(card).backgroundImage,
-      before: getComputedStyle(card, "::before").backgroundImage,
-      after: getComputedStyle(card, "::after").backgroundImage,
-    }))).toEqual(daySignature);
-    expect(await frame.locator(".weather-page").screenshot({ animations: "disabled" })).toEqual(dayPixels);
-    await expect(frame.locator(".weather-current-glyph svg")).toHaveAttribute("data-artwork", condition);
-    await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", condition);
-
-    const allNight = structuredClone(currentNight);
-    allNight.hourly = allNight.hourly.map((hour) => ({ ...hour, isDay: false }));
-    const nightCellsPlace = `${condition} night cells`;
-    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: nightCellsPlace, forecast: allNight })));
-    await expectReady(frame, nightCellsPlace);
-    expect(await frame.locator(".weather-hourly-strip").screenshot({ animations: "disabled" })).toEqual(dayHourlyPixels);
-    await expect(frame.locator(".weather-hour").nth(1).locator("svg")).toHaveAttribute("data-artwork", condition);
-  }
-
-  expect(provider.requests).toEqual([]);
   provider.done();
 });
 
@@ -1554,9 +1437,8 @@ test("updates hourly and daily windows, high and low, and age across forecast-zo
   }
 });
 
-// proofs/ui/templates/weather.md#^weather-ui-ac-size
 // proofs/ui/templates/weather.md#^weather-ui-ac-accessibility
-test("keeps responsive panels, forecast semantics, focus, scroll, and credit usable", async ({ page, context }) => {
+test("keeps forecast semantics, focus, scroll, keyboard movement, and credit usable", async ({ page, context }) => {
   const provider = await ScriptedProvider.install(context);
   const now = "2026-10-27T10:30:00Z";
   await context.clock.install({ time: new Date(now) });
@@ -1586,91 +1468,9 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   const frame = await harness.open(page, artifactID);
   await expectReady(frame, config.place);
 
-  const sizes = [
-    [230, 230, false, false],
-    [280, 280, false, false],
-    [340, 340, false, false],
-    [760, 300, false, false],
-    [400, 740, false, false],
-    [600, 480, true, false],
-    [900, 600, true, false],
-    [700, 780, true, false],
-    [760, 740, true, true],
-  ] as const;
-  for (const [width, height, hourly, daily] of sizes) {
-    await page.setViewportSize({ width, height });
-    if (hourly) await expect(frame.locator(".weather-hourly")).toBeVisible();
-    else await expect(frame.locator(".weather-hourly")).toBeHidden();
-    if (daily) await expect(frame.locator(".weather-daily")).toBeVisible();
-    else await expect(frame.locator(".weather-daily")).toBeHidden();
-  }
-
-  await page.setViewportSize({ width: 230, height: 230 });
-  const layoutReport = async () => frame.locator(".weather-card").evaluate((card) => {
-    const outer = card.getBoundingClientRect();
-    const textBox = (selector: string) => {
-      const node = card.querySelector(selector)!;
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      return { node, box: range.getBoundingClientRect() };
-    };
-    const parts = [
-      textBox(".weather-temperature"),
-      { node: card.querySelector(".weather-current-glyph")!, box: card.querySelector(".weather-current-glyph")!.getBoundingClientRect() },
-      textBox(".weather-summary"),
-      textBox(".weather-high-low"),
-    ];
-    const credit = card.querySelector(".weather-credit")!.getBoundingClientRect();
-    const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-    const contained = parts.every(({ node, box }) => (
-      box.left >= outer.left && box.right <= outer.right && box.top >= outer.top && box.bottom <= outer.bottom
-      && node.scrollWidth <= node.clientWidth
-      && box.bottom <= credit.top
-    ));
-    const separated = parts.every(({ box }, index) => parts.slice(index + 1).every((other) => !intersects(box, other.box)));
-    const ok = contained
-      && separated
-      && credit.left >= outer.left && credit.right <= outer.right && credit.bottom <= outer.bottom
-      && card.scrollWidth <= card.clientWidth
-      && card.scrollHeight <= card.clientHeight;
-    return {
-      ok,
-      contained,
-      separated,
-      card: { clientWidth: card.clientWidth, scrollWidth: card.scrollWidth, clientHeight: card.clientHeight, scrollHeight: card.scrollHeight },
-      parts: parts.map(({ node, box }) => ({
-        className: node.className,
-        box: { left: box.left, right: box.right, top: box.top, bottom: box.bottom },
-        clientWidth: node.clientWidth,
-        scrollWidth: node.scrollWidth,
-        clientHeight: node.clientHeight,
-        scrollHeight: node.scrollHeight,
-      })),
-      credit: { left: credit.left, right: credit.right, top: credit.top, bottom: credit.bottom },
-    };
-  });
-  const expectSafeLayout = async () => {
-    const report = await layoutReport();
-    expect(report.ok, JSON.stringify(report, null, 2)).toBe(true);
-  };
-  await expectSafeLayout();
-
-  const negative = structuredClone(forecast);
-  negative.current.temperature = -11.5;
-  negative.daily[0] = { ...negative.daily[0]!, high: -8, low: -15 };
-  await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast: negative })));
-  await expect(frame.locator(".weather-temperature")).toContainText("−12°");
-  await expectSafeLayout();
-
-  await page.setViewportSize({ width: 760, height: 300 });
-  await expectSafeLayout();
-
   const noHours = structuredClone(forecast);
   noHours.hourly = [];
   await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast: noHours })));
-  await page.setViewportSize({ width: 700, height: 540 });
-  await expect(frame.locator(".weather-hourly")).toHaveCount(0);
-  await page.setViewportSize({ width: 760, height: 740 });
   await expect(frame.locator(".weather-hourly")).toHaveCount(0);
   await expect(frame.locator(".weather-daily")).toBeVisible();
 
@@ -1679,25 +1479,6 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast: noDays })));
   await expect(frame.locator(".weather-hourly")).toBeVisible();
   await expect(frame.locator(".weather-daily")).toHaveCount(0);
-  await expect(frame.locator(".weather-card")).toHaveAttribute("data-has-daily", "false");
-  expect(await frame.locator(".weather-current").evaluate((node) => getComputedStyle(node).flexBasis)).toBe("0%");
-
-  await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast })));
-  const ranges = async () => frame.locator(".weather-range").evaluateAll((nodes) => nodes.map((node) => [
-    (node as HTMLElement).style.getPropertyValue("--range-start"),
-    (node as HTMLElement).style.getPropertyValue("--range-end"),
-  ]));
-  const rangesBefore = await ranges();
-  const pastExtreme = structuredClone(forecast);
-  pastExtreme.daily.unshift({ date: "2026-10-26", condition: "snow", high: 1_000, low: -1_000 });
-  await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({
-    ...config,
-    place: "Past row ignored",
-    forecast: pastExtreme,
-  })));
-  await expect(frame.locator(".weather-header h1")).toHaveText("Past row ignored");
-  await expect(frame.locator(".weather-day")).toHaveCount(7);
-  expect(await ranges()).toEqual(rangesBefore);
 
   await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast })));
 
@@ -1737,34 +1518,13 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   }
   await strip.focus();
   await strip.evaluate((node) => { node.scrollLeft = 0; });
-  const cellStep = await strip.evaluate((node) => {
-    const stripBox = node.getBoundingClientRect();
-    const first = node.children[0]!.getBoundingClientRect();
-    const second = node.children[1]!.getBoundingClientRect();
-    return {
-      width: first.width,
-      interval: second.left - first.left,
-      snapTarget: second.left - stripBox.left + node.scrollLeft,
-    };
-  });
-  expect(cellStep.interval).toBeCloseTo(cellStep.width, 5);
   await strip.press("ArrowRight");
-  await expect.poll(() => strip.evaluate((node) => node.scrollLeft)).toBeCloseTo(cellStep.snapTarget, 0);
+  await expect.poll(() => strip.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
+  const firstArrowScroll = await strip.evaluate((node) => node.scrollLeft);
   for (let index = 0; index < 30; index += 1) {
-    const finalVisible = await strip.evaluate((node) => {
-      const stripBox = node.getBoundingClientRect();
-      const finalBox = node.lastElementChild!.getBoundingClientRect();
-      return finalBox.right <= stripBox.right && finalBox.left >= stripBox.left;
-    });
-    if (finalVisible) break;
     await strip.press("ArrowRight");
   }
-  expect(await strip.evaluate((node) => node.scrollLeft)).toBeGreaterThan(scrollBefore);
-  expect(await strip.evaluate((node) => {
-    const stripBox = node.getBoundingClientRect();
-    const finalBox = node.lastElementChild!.getBoundingClientRect();
-    return finalBox.right <= stripBox.right && finalBox.left >= stripBox.left;
-  })).toBe(true);
+  expect(await strip.evaluate((node) => node.scrollLeft)).toBeGreaterThan(firstArrowScroll);
   await expect(frame.locator(".weather-hour").nth(1).locator(".weather-hour-label")).toHaveText("11 AM");
   await expect(frame.locator(".weather-hour").nth(1).getByRole("img")).toHaveAccessibleName("Partly cloudy");
   await expect(frame.locator(".weather-hour").nth(1).locator("strong")).toHaveText("104°");
@@ -1776,13 +1536,6 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await expect(frame.locator(".weather-day").first().getByRole("img")).toHaveAccessibleName("Clear");
   await expect(frame.locator(".weather-day").first().locator(".weather-day-low")).toHaveText("81°");
   await expect(frame.locator(".weather-day").first().locator(".weather-day-high")).toHaveText("108°");
-  expect(await frame.locator(".weather-daily").evaluate((panel) => {
-    const panelBox = panel.getBoundingClientRect();
-    const cardBox = panel.closest(".weather-card")!.getBoundingClientRect();
-    const first = panel.querySelector(".weather-day")!.getBoundingClientRect();
-    const last = panel.querySelector(".weather-day:last-child")!.getBoundingClientRect();
-    return first.top >= panelBox.top && last.bottom <= panelBox.bottom && panelBox.bottom <= cardBox.bottom;
-  })).toBe(true);
   const creditLinks = frame.locator(".weather-credit a");
   await expect(creditLinks).toHaveCount(2);
   await expect(creditLinks.nth(0)).toHaveAttribute("target", "_blank");
@@ -1792,17 +1545,8 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await strip.focus();
   await strip.press("Tab");
   await expect.poll(() => creditLinks.first().evaluate((link) => document.activeElement === link)).toBe(true);
-  expect(await creditLinks.first().evaluate((link) => {
-    const style = getComputedStyle(link);
-    return [style.outlineStyle, style.outlineWidth, style.outlineColor, style.outlineOffset];
-  })).toEqual(["solid", "1px", "rgba(255, 255, 255, 0.86)", "2px"]);
   await page.clock.fastForward(60_000);
   await expect.poll(() => creditLinks.first().evaluate((link) => document.activeElement === link)).toBe(true);
-
-  for (const viewport of [{ width: 230, height: 230 }, { width: 340, height: 340 }]) {
-    await page.setViewportSize(viewport);
-    await expectSafeLayout();
-  }
 
   const alertConfig = configuration({ place: "No forecast" });
   const failed = provider.abort(alertConfig);
@@ -1821,124 +1565,3 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await alertPage.close();
   provider.done();
 });
-
-async function weatherAppearanceAcceptance({ browser }: { browser: Browser }): Promise<void> {
-  const readyConfiguration = configuration();
-  readyConfiguration.forecast = capturedForecast(
-    readyConfiguration,
-    captureTime(-6 * 60_000),
-  );
-  const configured = configuration({ place: "Appearance fetch" });
-  const cases = [
-    { value: storeJSON(readyConfiguration), provider: "none", state: "populated", configuration: null },
-    { value: storeJSON({}), provider: "none", state: "empty", configuration: null },
-    { value: storeJSON(configured), provider: "hold", state: "loading", configuration: configured },
-    { value: storeJSON(configured), provider: "fail", state: "unavailable", configuration: configured },
-    { value: storeJSON({ place: "Broken" }), provider: "none", state: "unreadable", configuration: null },
-  ] as const;
-  const artifactID = await harness.createStored();
-
-  const presentations = async (colorScheme: "light" | "dark") => {
-    const results: CardPresentation[] = [];
-    const context = await browser.newContext({ colorScheme });
-    const provider = await ScriptedProvider.install(context);
-    try {
-      await context.clock.setFixedTime(captureClock());
-      for (const [{ configuration: requestConfiguration, provider: disposition, state }, index] of cases.map(
-        (entry, caseIndex) => [entry, caseIndex] as const,
-      )) {
-        await test.step(`${colorScheme} ${state}`, async () => {
-          const response = disposition === "hold"
-            ? provider.hold(requestConfiguration!)
-            : disposition === "fail"
-              ? provider.abort(requestConfiguration!)
-              : null;
-          const page = await context.newPage();
-          try {
-            await harness.set(artifactID, cases[index]!.value);
-            await page.setViewportSize({ width: 340, height: 340 });
-            await harness.client.display.focus({ artifactID });
-            await harness.openApp(page);
-            const frame = await harness.frame(page, artifactID);
-            const marker = { state: "attached" as const, timeout: 10_000 };
-            if (state === "populated") await frame.locator(".weather-temperature").waitFor(marker);
-            if (state === "empty") await frame.getByRole("heading", { name: "No location yet" }).waitFor(marker);
-            if (state === "loading") {
-              await provider.saw(1);
-              await frame.getByRole("status", { name: "Loading weather" }).waitFor(marker);
-            }
-            if (state === "unavailable") {
-              await response!.finished;
-              await frame.getByRole("status", { name: "Forecast unavailable" }).waitFor(marker);
-            }
-            if (state === "unreadable") await frame.getByRole("alert").waitFor(marker);
-
-            const card = frame.locator(".weather-card");
-            const actualState = await card.evaluate((node) => (
-              node.className.match(/\bweather-card-(empty|loading|unavailable|unreadable)\b/)?.[1]
-              ?? "populated"
-            ));
-            expect(actualState).toBe(state);
-            results.push(await card.evaluate((card) => {
-              const box = card.getBoundingClientRect();
-              return {
-                theme: document.documentElement.dataset.theme,
-                themeSurface: getComputedStyle(document.documentElement).getPropertyValue("--color-surface").trim(),
-                background: getComputedStyle(card).backgroundImage,
-                color: getComputedStyle(card).color,
-                scheme: getComputedStyle(card).colorScheme,
-                overflow: getComputedStyle(card).overflow,
-                className: card.className,
-                condition: (card as HTMLElement).dataset.condition,
-                day: (card as HTMLElement).dataset.day,
-                text: card.textContent,
-                creditCount: card.querySelectorAll(".weather-credit").length,
-                size: [box.width, box.height] as [number, number],
-              };
-            }));
-          } finally {
-            await page.close();
-          }
-        });
-      }
-      provider.done();
-    } finally {
-      await context.close();
-    }
-    return results;
-  };
-
-  try {
-    await harness.client.display.patch({ activeThemeName: null, appearanceMode: "light" });
-    await expect.poll(async () => harness.client.display.get()).toMatchObject({
-      activeThemeName: null,
-      appearanceMode: "light",
-    });
-    const light = await presentations("light");
-    await harness.client.display.patch({ activeThemeName: "nord", appearanceMode: "dark" });
-    await expect.poll(async () => harness.client.display.get()).toMatchObject({
-      activeThemeName: "nord",
-      appearanceMode: "dark",
-    });
-    const dark = await presentations("dark");
-    for (let index = 0; index < light.length; index += 1) {
-      const { theme: lightTheme, themeSurface: lightSurface, scheme: lightScheme, ...lightCard } = light[index]!;
-      const { theme: darkTheme, themeSurface: darkSurface, scheme: darkScheme, ...darkCard } = dark[index]!;
-      expect(lightTheme).toBe("light");
-      expect(lightScheme).toBe("dark");
-      expect(lightSurface).not.toBe("#2e3440");
-      expect(darkTheme).toBe("dark");
-      expect(darkScheme).toBe("dark");
-      expect(darkSurface).toBe("#2e3440");
-      expect(darkCard).toEqual(lightCard);
-      expect(darkCard.background).toContain("linear-gradient");
-      expect(darkCard.color).toBe("rgb(255, 255, 255)");
-    }
-  } finally {
-    try {
-      await harness.client.display.patch({ activeThemeName: null, appearanceMode: "light" });
-    } finally {
-      await harness.client.artifacts.delete({ artifactID });
-    }
-  }
-}

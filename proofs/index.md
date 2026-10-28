@@ -91,10 +91,10 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `blaxel-testshards.md` (66 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
-    - `preflight.md` (43 lines) — *How the promises in Preflight are proven.*
+    - `preflight.md` (41 lines) — *How the promises in Preflight are proven.*
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
-    - `test-registry.md` (39 lines) — *How the promises in Test Registry are proven.*
+    - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
     - `test-runner.md` (76 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
     - `authoring.md` (37 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
@@ -173,7 +173,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (80 lines) — *Proves the Calendar template page's layout, hours in view, live in-place updates, attendee fitting, highlight and its motion, and appearance in a real browser against a running server, and rendered conformance to every spec story.*
     - `checklist.md` (83 lines) — *Proves Checklist editing, live store changes, access and failure states in a real browser, and rendered conformance to every spec story.*
     - `sticky-note.md` (73 lines) — *Proves Sticky note editing, live changes, offline drafts, access and failure states in a real browser, and rendered conformance to every spec story.*
-    - `weather.md` (88 lines) — *Proves Weather states, provider-driven updates, time-zone behavior, responsive forecast panels, access, attribution and rendered conformance in a real browser.*
+    - `weather.md` (82 lines) — *Proves Weather states, provider-driven updates, time-zone behavior, access, attribution and rendered conformance in a real browser.*
   - **themes/**
     - `index.md` (7 lines) — *How the authoritative bundled theme inventory is proven through package generation and delivery.*
     - **aquarium/**

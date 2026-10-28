@@ -7,17 +7,13 @@ import { buildReports, normalizeSurfaceResult, type NormalizedSurfaceResult } fr
 import { createRunContext, createRunId, finalizeRun, readRunDirectoryIdentity, resolveTimingProvider } from "../../scripts/test/run-context.mjs";
 import { isQualifyingRun } from "../../scripts/test/publication-eligibility.mjs";
 import { buildTimingEvents, canonicalize, normalizeProcessLeak, processLeakIdentity, serializeTimingEvents, testIdentity } from "../../scripts/test/timing-events.mjs";
-import { inferPhaseCategory, recordPhaseMetricBestEffort, summarizePhaseMetrics } from "../../scripts/test/phase-metrics.mjs";
+import { recordPhaseMetricBestEffort, summarizePhaseMetrics } from "../../scripts/test/phase-metrics.mjs";
 import { mergeSurfaceParts } from "../../scripts/test/provider-normalization.mjs";
 
 const vitestSurface = { id: "unit:probe", runner: "vitest" } as const;
 const playwrightSurface = { id: "e2e:probe", runner: "playwright" } as const;
 
 describe("test runner reporting", () => {
-  test("classifies WebKit setup phases as browser readiness", () => {
-    expect(inferPhaseCategory("playwright-webkit-cache")).toBe("readiness");
-    expect(inferPhaseCategory("playwright-webkit-launch")).toBe("readiness");
-  });
   test("native failure finalization fixture", () => {
     if (process.env.TV_TEST_FINALIZATION_FAIL === "1") throw new Error("intentional native-runner failure");
     expect(true).toBe(true);

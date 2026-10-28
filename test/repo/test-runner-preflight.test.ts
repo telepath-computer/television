@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -13,7 +12,6 @@ describe("test runner preflight selection", () => {
         "electron",
         "playwright-chromium",
         "playwright-firefox",
-        "playwright-webkit",
         "posthog-test-key",
       ],
     }];
@@ -24,80 +22,9 @@ describe("test runner preflight selection", () => {
       "electron",
       "playwright-chromium",
       "playwright-firefox",
-      "playwright-webkit",
       "posthog-test-key",
     ]);
     expect(requiredPreflights(surfaces, "blaxel")).toEqual(["node", "blaxel-github-token", "blaxel-auth"]);
-  });
-
-  // proofs/arch/test-runner/preflight.md#^preflight-t-playwright-webkit
-  test("selects WebKit for Weather artwork and dispatches its preflight", () => {
-    const weatherArtwork = [{ preflight: ["node", "playwright-chromium", "playwright-firefox", "playwright-webkit"] }];
-    expect(requiredPreflights(weatherArtwork, "local")).toEqual([
-      "node",
-      "process-lifecycle",
-      "playwright-chromium",
-      "playwright-firefox",
-      "playwright-webkit",
-    ]);
-    const available = existsSync(createRequire(import.meta.url).resolve("@playwright/test"))
-      && existsSync(createRequire(import.meta.url)("@playwright/test").webkit.executablePath());
-    const installed = runPreflights(["playwright-webkit"], { provider: "local" });
-    expect(installed).toEqual([expect.objectContaining({ name: "playwright-webkit", status: "passed" })]);
-    if (available) expect(installed[0]).not.toHaveProperty("skipped");
-    else expect(installed[0]).toMatchObject({ skipped: true, reason: expect.stringContaining("does not exist") });
-
-    const emptyBrowsers = mkdtempSync(path.join(os.tmpdir(), "tv-webkit-empty-"));
-    const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
-    try {
-      process.env.PLAYWRIGHT_BROWSERS_PATH = emptyBrowsers;
-      expect(runPreflights(["playwright-webkit"], { provider: "local" })).toEqual([
-        expect.objectContaining({
-          name: "playwright-webkit",
-          status: "passed",
-          skipped: true,
-          reason: expect.stringContaining(emptyBrowsers),
-        }),
-      ]);
-    } finally {
-      if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
-      else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
-    }
-  });
-
-  test("fails the Weather artwork configuration under CI when Firefox or WebKit is absent", () => {
-    for (const available of [[], ["firefox"], ["webkit"]] as const) {
-      const result = loadWeatherArtworkConfig(available);
-      expect(result.status).not.toBe(0);
-      expect(`${result.stdout}${result.stderr}`).toContain(
-        "Weather artwork requires Playwright Firefox and WebKit in CI.",
-      );
-    }
-
-    const complete = loadWeatherArtworkConfig(["firefox", "webkit"]);
-    expect(complete.status, `${complete.stdout}${complete.stderr}`).toBe(0);
-  });
-
-  test("keeps the GitHub Firefox requirement distinct from the Weather artwork CI requirement", () => {
-    for (const filename of [
-      "packages/web/playwright.config.ts",
-      "packages/web/playwright.real-stack.config.ts",
-    ]) {
-      const source = readFileSync(filename, "utf8");
-      expect(source).toContain("process.env.GITHUB_ACTIONS");
-      expect(source).toContain("Playwright Firefox is required in GitHub CI; setup-playwright must install it.");
-      expect(source).toContain("Playwright Firefox is unavailable; skipping the Firefox project.");
-      expect(source).toContain("...(firefoxAvailable");
-    }
-
-    const resourceProduct = readFileSync("test/node/resource-product-harness.ts", "utf8");
-    expect(resourceProduct).toContain("process.env.GITHUB_ACTIONS");
-    expect(resourceProduct).toContain("Playwright Firefox is required in GitHub CI; setup-playwright must install it.");
-    expect(resourceProduct).toContain('return name === "chromium" || FIREFOX_AVAILABLE;');
-
-    const artwork = readFileSync("packages/web/playwright.weather-artwork.config.ts", "utf8");
-    expect(artwork).toContain("process.env.CI && (!firefoxAvailable || !webkitAvailable)");
-    expect(artwork).not.toContain("GITHUB_ACTIONS");
   });
 
   test("checks Electron package presence and consumes every planner state without installing", () => {
@@ -228,42 +155,6 @@ describe("test runner preflight selection", () => {
     expect(readPostHogTestReadKey({ env: {}, root })).toBeNull();
   });
 });
-
-function loadWeatherArtworkConfig(available: readonly ("firefox" | "webkit")[]) {
-  const browserRoot = mkdtempSync(path.join(os.tmpdir(), "tv-weather-artwork-browsers-"));
-  try {
-    const env = { ...process.env, CI: "1", PLAYWRIGHT_BROWSERS_PATH: browserRoot };
-    const paths = spawnSync(process.execPath, [
-      "-e",
-      "const { firefox, webkit } = require('@playwright/test'); process.stdout.write(JSON.stringify({ firefox: firefox.executablePath(), webkit: webkit.executablePath() }));",
-    ], { cwd: process.cwd(), encoding: "utf8", env });
-    expect(paths.status, paths.stderr).toBe(0);
-    const executables = JSON.parse(paths.stdout) as Record<"firefox" | "webkit", string>;
-    for (const executable of Object.values(executables)) {
-      const relative = path.relative(browserRoot, executable);
-      expect(path.isAbsolute(relative)).toBe(false);
-      expect(relative).not.toMatch(/^\.\.(?:[\\/]|$)/);
-    }
-    for (const name of available) {
-      mkdirSync(path.dirname(executables[name]), { recursive: true });
-      writeFileSync(executables[name], "fixture browser\n");
-    }
-
-    return spawnSync(process.execPath, [
-      createRequire(import.meta.url).resolve("@playwright/test/cli"),
-      "test",
-      "--config",
-      "packages/web/playwright.weather-artwork.config.ts",
-      "--list",
-    ], {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      env,
-    });
-  } finally {
-    rmSync(browserRoot, { recursive: true, force: true });
-  }
-}
 
 function electronPlan(runtime: { state: "absent" } | { state: "valid"; executablePath: string } | { state: "invalid"; reason: string }) {
   return {
