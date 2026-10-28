@@ -86,11 +86,14 @@ describe("provider result normalization", () => {
   });
 
   // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-playwright-cache-command
-  test("prepares the installed Playwright browsers in the existing Blaxel cache phase", () => {
+  test("prepares WebKit and its libraries only on the Blaxel shard that runs Weather artwork", () => {
     const source = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
-    const phase = source.match(/^run_step playwright-cache .*$/m)?.[0];
-
-    expect(phase).toBe("run_step playwright-cache npx playwright install chromium firefox webkit");
+    expect(source).toContain("weatherArtworkSelected");
+    expect(source).toContain('surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0');
+    expect(source).toContain("run_step playwright-cache npx playwright install chromium firefox");
+    expect(source).toContain("run_step playwright-webkit-cache npx playwright install webkit");
+    expect(source).toContain("run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs");
+    expect(source).toContain("npx playwright install-deps webkit");
     expect(source).toContain("export PLAYWRIGHT_BROWSERS_PATH=${playwrightBrowsersPath}");
     expect(source.indexOf("run_step deps")).toBeLessThan(source.indexOf("run_step playwright-cache"));
     expect(source.indexOf("run_step playwright-cache")).toBeLessThan(source.indexOf("run_step test-run"));

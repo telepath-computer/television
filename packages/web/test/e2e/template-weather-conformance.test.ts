@@ -6,6 +6,10 @@ import { artifactURL, createArtifact, specStories, storybook, useConformance } f
 import { TemplateHarness } from "./template-harness.ts";
 
 const run = useConformance();
+// Each comparison owns two Chromium pages and can capture a 900×780 root.
+// Keeping this file serial avoids exhausting small remote workers while other
+// conformance files still use the configured worker pool.
+test.describe.configure({ mode: "serial" });
 const DAY_NOW = "2026-10-27T10:30:00Z";
 const NIGHT_NOW = "2026-10-27T22:30:00Z";
 const COORDINATES = { latitude: 37.7749, longitude: -122.4194 };

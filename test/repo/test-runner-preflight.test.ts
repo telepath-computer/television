@@ -39,9 +39,29 @@ describe("test runner preflight selection", () => {
       "playwright-firefox",
       "playwright-webkit",
     ]);
-    expect(runPreflights(["playwright-webkit"], { provider: "local" })).toEqual([
-      expect.objectContaining({ name: "playwright-webkit", status: "passed" }),
-    ]);
+    const available = existsSync(createRequire(import.meta.url).resolve("@playwright/test"))
+      && existsSync(createRequire(import.meta.url)("@playwright/test").webkit.executablePath());
+    const installed = runPreflights(["playwright-webkit"], { provider: "local" });
+    expect(installed).toEqual([expect.objectContaining({ name: "playwright-webkit", status: "passed" })]);
+    if (available) expect(installed[0]).not.toHaveProperty("skipped");
+    else expect(installed[0]).toMatchObject({ skipped: true, reason: expect.stringContaining("does not exist") });
+
+    const emptyBrowsers = mkdtempSync(path.join(os.tmpdir(), "tv-webkit-empty-"));
+    const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
+    try {
+      process.env.PLAYWRIGHT_BROWSERS_PATH = emptyBrowsers;
+      expect(runPreflights(["playwright-webkit"], { provider: "local" })).toEqual([
+        expect.objectContaining({
+          name: "playwright-webkit",
+          status: "passed",
+          skipped: true,
+          reason: expect.stringContaining(emptyBrowsers),
+        }),
+      ]);
+    } finally {
+      if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
+      else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
+    }
   });
 
   test("checks Electron package presence and consumes every planner state without installing", () => {

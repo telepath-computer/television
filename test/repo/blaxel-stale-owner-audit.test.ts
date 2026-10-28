@@ -83,7 +83,7 @@ describe("Blaxel stale-owner audit", () => {
     }
     expect(source).toContain("acquireAny(sandboxes, { shardIndex: 1, slot: 0, requestedWorkers: 1, verifyArchitecture: false })");
     expect(source).toContain("const setup = await runSystemDependencySetup(lease)");
-    expect(source).toContain("run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand())}");
+    expect(source).toContain("run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand({ includeWebKit: weatherArtworkSelected }))}");
     expect(source).toContain("apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2");
     expect(source).not.toContain("psmisc");
     expect(source).not.toContain("fuser");

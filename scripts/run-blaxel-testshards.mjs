@@ -429,7 +429,12 @@ async function runShard(lease, outputDir, { onExecutionRequested = () => {}, onE
     planRemotePath,
     planRaw: shardPlanRaw,
     remoteScript,
-    remoteScriptContents: shardScript({ shardIndex, lockId, planRemotePath }),
+    remoteScriptContents: shardScript({
+      shardIndex,
+      lockId,
+      planRemotePath,
+      weatherArtworkSelected: shardRunsWeatherArtwork(shardIndex),
+    }),
   });
   if (!dispatch.ok) {
     appendLog(logPath, `\n[coordinator] ${dispatch.failureMessage}\n`);
@@ -762,11 +767,23 @@ function parseTargetServices(raw) {
   return parsed;
 }
 
-function systemDependenciesCommand() {
-  return 'if ! command -v python3 >/dev/null 2>&1 || ! command -v xauth >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1 || ! ldconfig -p 2>/dev/null | grep -q "libgtk-3.so.0" || ! ldconfig -p 2>/dev/null | grep -q "libXtst.so.6"; then apt-get update && apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2; fi';
+function systemDependenciesCommand({ includeWebKit = false } = {}) {
+  const base = 'if ! command -v python3 >/dev/null 2>&1 || ! command -v xauth >/dev/null 2>&1 || ! command -v ss >/dev/null 2>&1 || ! ldconfig -p 2>/dev/null | grep -q "libgtk-3.so.0" || ! ldconfig -p 2>/dev/null | grep -q "libXtst.so.6"; then apt-get update && apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2; fi';
+  return includeWebKit ? `${base}; npx playwright install-deps webkit` : base;
 }
 
-function shardScript({ shardIndex, lockId, planRemotePath }) {
+function shardRunsWeatherArtwork(shardIndex) {
+  const plannedShard = shardPlan?.shards?.[shardIndex - 1];
+  if (plannedShard) {
+    return plannedShard.surfaces.some((surface) => (
+      surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0
+    ));
+  }
+  if (suite === "target") return targetOptions()?.surfaceId === "e2e:weather-artwork";
+  return false;
+}
+
+function shardScript({ shardIndex, lockId, planRemotePath, weatherArtworkSelected }) {
   return `#!/usr/bin/env bash
 set -euo pipefail
 lock=/tmp/tv-testshard.lock
@@ -874,7 +891,7 @@ cd /workspace/television
 run_step runtime-activation activate_runtime
 run_step runtime-versions runtime_versions
 run_step deps bash -c ${shellQuote(blaxelDependencyScript())}
-run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand())}
+run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand({ includeWebKit: weatherArtworkSelected }))}
 if run_step owner-lifecycle node scripts/test/stale-owner-reaper-cli.mjs --output "$owner_report"; then
   owner_status=0
 else
@@ -920,7 +937,9 @@ OWNER_SUMMARY_NODE
   write_setup_metrics
   exit "$owner_status"
 fi
-run_step playwright-cache npx playwright install chromium firefox webkit
+run_step playwright-cache npx playwright install chromium firefox
+${weatherArtworkSelected ? `run_step playwright-webkit-cache npx playwright install webkit
+run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs` : ""}
 run_step electron-repair bash -c ${shellQuote(`electron_config_cache=/cache/electron node node_modules/electron/install.js`)}
 set +e
 if [ -n "$shard_plan" ]; then

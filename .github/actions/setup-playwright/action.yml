@@ -1,6 +1,6 @@
 name: Setup Playwright
 description: >-
-  Install the Chromium, Firefox, and WebKit browsers for Playwright, restoring them from a
+  Install the Chromium and Firefox browsers for Playwright, restoring them from a
   version-keyed cache when possible. On a cache hit the browser binary is
   reused and only the apt system dependencies are (re)installed, since those
   cannot be cached on an ephemeral runner. Requires `npm ci` to have run first
@@ -26,14 +26,14 @@ runs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-chromium-firefox-webkit
+        key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-chromium-firefox
 
-    - name: Install Chromium, Firefox, WebKit, and system deps (cache miss)
+    - name: Install Chromium, Firefox, and system deps (cache miss)
       if: steps.pw-cache.outputs.cache-hit != 'true'
       shell: bash
-      run: npx playwright install --with-deps chromium firefox webkit
+      run: npx playwright install --with-deps chromium firefox
 
     - name: Install system deps only (cache hit)
       if: steps.pw-cache.outputs.cache-hit == 'true'
       shell: bash
-      run: npx playwright install-deps chromium firefox webkit
+      run: npx playwright install-deps chromium firefox

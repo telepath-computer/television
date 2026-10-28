@@ -1,0 +1,29 @@
+name: Setup Playwright WebKit
+description: >-
+  Install Playwright WebKit for the Weather-artwork shard. The browser cache is
+  version-keyed, while system libraries are installed on every ephemeral VM.
+  Requires the caller to have selected Node and restored node_modules first.
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve Playwright version
+      id: pw-version
+      shell: bash
+      run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Playwright WebKit
+      id: pw-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-webkit
+
+    - name: Install WebKit browser (cache miss)
+      if: steps.pw-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: npx playwright install webkit
+
+    - name: Install WebKit system dependencies
+      shell: bash
+      run: npx playwright install-deps webkit

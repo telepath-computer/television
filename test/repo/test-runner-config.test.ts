@@ -66,6 +66,8 @@ describe("test runner registry", () => {
     });
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-weather-artwork.test.ts").map((surface) => surface.id))
       .toEqual(["e2e:weather-artwork"]);
+    expect(readFileSync("packages/web/playwright.config.ts", "utf8"))
+      .toContain('"**/template-weather-artwork.test.ts"');
     for (const suite of ["all", "e2e", "e2e-ci"]) {
       expect(selectSurfaces(config, { suite }).map((surface) => surface.id)).toContain("e2e:weather-artwork");
     }

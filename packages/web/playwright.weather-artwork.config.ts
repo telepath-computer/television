@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { defineConfig, firefox, webkit } from "@playwright/test";
 
 const firefoxAvailable = fs.existsSync(firefox.executablePath());
+// Mirrors scripts/playwright-webkit-availability.mjs for the preflight path.
 const webkitAvailable = fs.existsSync(webkit.executablePath());
 
 if (process.env.GITHUB_ACTIONS && (!firefoxAvailable || !webkitAvailable)) {

@@ -220,9 +220,14 @@ function hourlyPanel(forecast, hours) {
   section.append(element("h2", "", "Hourly forecast"));
   const strip = element("div", "weather-hourly-strip");
   strip.tabIndex = 0;
+  strip.dataset.focusKey = "hourly-strip";
   strip.setAttribute("aria-label", "Hourly forecast; scroll for later hours");
   strip.addEventListener("keydown", (event) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    // Modified arrows belong to browser and assistive-technology shortcuts.
+    // Plain arrows move by one compact forecast-cell step because the native
+    // scroll distance varies by browser and can leave a cell barely exposed.
+    if (event.altKey || event.metaKey) return;
     event.preventDefault();
     strip.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96 });
   });
@@ -281,10 +286,12 @@ function credit() {
   provider.href = "https://open-meteo.com/";
   provider.target = "_blank";
   provider.rel = "noreferrer";
+  provider.dataset.focusKey = "provider-credit";
   const licence = element("a", "", "CC BY 4.0");
   licence.href = "https://creativecommons.org/licenses/by/4.0/";
   licence.target = "_blank";
   licence.rel = "noreferrer";
+  licence.dataset.focusKey = "licence-credit";
   line.append(provider, document.createTextNode(" data · adapted · "), licence);
   return line;
 }
@@ -342,17 +349,15 @@ function render() {
   }
   const previous = main.firstElementChild;
   if (previous?.outerHTML === card.outerHTML) return;
-  const strip = previous?.querySelector(".weather-hourly-strip");
-  const restoreStrip = strip && document.activeElement === strip
-    ? { focused: true, scrollLeft: strip.scrollLeft }
+  const previousStrip = previous?.querySelector(".weather-hourly-strip");
+  const stripScrollLeft = previousStrip?.scrollLeft ?? null;
+  const focusedKey = previous?.contains(document.activeElement)
+    ? document.activeElement?.dataset?.focusKey ?? null
     : null;
   main.replaceChildren(card);
-  if (restoreStrip) {
-    const nextStrip = card.querySelector(".weather-hourly-strip");
-    if (!nextStrip) return;
-    nextStrip.scrollLeft = restoreStrip.scrollLeft;
-    nextStrip.focus({ preventScroll: true });
-  }
+  const nextStrip = card.querySelector(".weather-hourly-strip");
+  if (nextStrip && stripScrollLeft !== null) nextStrip.scrollLeft = stripScrollLeft;
+  if (focusedKey) card.querySelector(`[data-focus-key="${focusedKey}"]`)?.focus({ preventScroll: true });
 }
 
 function abortTrackedAttempt() {

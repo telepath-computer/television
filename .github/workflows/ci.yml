@@ -281,16 +281,16 @@ jobs:
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
         run: npm ci
 
-      - name: Seed Playwright browsers and system dependencies (combined-cache miss only)
+      - name: Seed Chromium, Firefox, and system dependencies (combined-cache miss only)
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
         uses: ./.github/actions/setup-playwright
 
-      - name: Prove Chromium, Firefox, and WebKit launch on this runner image
+      - name: Prove Chromium and Firefox launch on this runner image
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         run: |
           node --input-type=module <<'EOF'
-          import { chromium, firefox, webkit } from "@playwright/test";
-          for (const browserType of [chromium, firefox, webkit]) {
+          import { chromium, firefox } from "@playwright/test";
+          for (const browserType of [chromium, firefox]) {
             const browser = await browserType.launch();
             await browser.close();
           }
@@ -416,7 +416,7 @@ jobs:
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
         run: npm ci
 
-      - name: Install Playwright browsers and system dependencies (shard-readiness fallback)
+      - name: Install Chromium, Firefox, and system dependencies (shard-readiness fallback)
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
         uses: ./.github/actions/setup-playwright
 
@@ -452,12 +452,12 @@ jobs:
       # in the cache key, and every consuming shard still proves the restored
       # browsers launch on its own VM. The operator may remove these probes only
       # after the post-promotion runner-image rollover observation window.
-      - name: Prove Chromium, Firefox, and WebKit launch on this runner image
+      - name: Prove Chromium and Firefox launch on this runner image
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         run: |
           node --input-type=module <<'EOF'
-          import { chromium, firefox, webkit } from "@playwright/test";
-          for (const browserType of [chromium, firefox, webkit]) {
+          import { chromium, firefox } from "@playwright/test";
+          for (const browserType of [chromium, firefox]) {
             const browser = await browserType.launch();
             await browser.close();
           }
@@ -520,6 +520,29 @@ jobs:
             --name shard-plan --category plan --started-ms "$started" --status "$phase_status" \
             || echo "::warning::shard-plan phase metric recorder crashed"
           exit "$status"
+
+      - name: Detect whether this shard runs Weather artwork
+        id: weather-artwork
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
+        env:
+          TV_SHARD_INDEX: ${{ matrix.shard }}
+        run: |
+          selected="$(node --input-type=module -e '
+            import fs from "node:fs";
+            const plan = JSON.parse(fs.readFileSync(".testshards/results/shard-plan.json", "utf8"));
+            const shard = plan.shards[Number(process.env.TV_SHARD_INDEX) - 1];
+            const selected = shard.surfaces.some((surface) => surface.surfaceId === "e2e:weather-artwork" && surface.files.length > 0);
+            process.stdout.write(String(selected));
+          ')"
+          echo "selected=$selected" >> "$GITHUB_OUTPUT"
+
+      - name: Install WebKit for the Weather-artwork shard
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.weather-artwork.outputs.selected == 'true' }}
+        uses: ./.github/actions/setup-webkit
+
+      - name: Prove WebKit launches on the Weather-artwork shard
+        if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.weather-artwork.outputs.selected == 'true' }}
+        run: node scripts/check-playwright-webkit-launch.mjs
 
       - name: Run e2e shard ${{ matrix.shard }}/16
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}

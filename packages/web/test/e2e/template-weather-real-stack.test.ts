@@ -903,14 +903,24 @@ test("renders loading, empty and all uncached provider failures, then retries", 
   const savedID = await harness.createStored(withSaved);
   const savedFrame = await harness.open(page, savedID);
   await expectReady(savedFrame, withSaved.place);
-  const oldCard = await savedFrame.locator(".weather-card").elementHandle();
   failed.release();
   await failed.finished;
-  await expect.poll(async () => oldCard ? oldCard.evaluate((node) => node.isConnected) : false).toBe(true);
+  // A second attempt at the normal boundary is the observable sign that the
+  // first failure settled into throttle state. Waiting only for the route to
+  // abort can race the page's rejection handler.
+  const requestsBeforeRetry = provider.requests.length;
+  await page.clock.fastForward(14 * 60_000 + 59_000);
+  await savedFrame.evaluate(() => Promise.resolve());
+  expect(provider.requests).toHaveLength(requestsBeforeRetry);
+  const retry = provider.holdAbort(withSaved);
+  await page.clock.fastForward(62_000);
+  await provider.saw(requestsBeforeRetry + 1);
   await expectReady(savedFrame, withSaved.place);
   await expect(savedFrame.locator(".weather-header p")).toContainText("Updated 3 hrs ago");
   await expect(savedFrame.getByText("Forecast unavailable", { exact: true })).toHaveCount(0);
   expect((await harness.read<WeatherConfiguration>(savedID))?.forecast).toEqual(saved);
+  retry.release();
+  await retry.finished;
   provider.done();
 });
 
@@ -1417,6 +1427,9 @@ test("formats provider windows in the forecast zone and en-US locale across DST"
         nodes.map((node) => node.textContent).slice(0, count), entry.hours.length)).toEqual([...entry.hours]);
       expect(await frame.locator(".weather-day-label").evaluateAll((nodes, count) =>
         nodes.map((node) => node.textContent).slice(0, count), entry.days.length)).toEqual([...entry.days]);
+      if (entry.locale === "de-DE") {
+        await expect(frame.locator(".weather-header p")).toContainText("Updated now");
+      }
       provider.done();
     } finally {
       await context.close();
@@ -1458,43 +1471,49 @@ test("formats provider windows in the forecast zone and en-US locale across DST"
 });
 
 // proofs/ui/templates/weather.md#^weather-ui-ac-clock
-test("updates hourly and daily windows, high and low, and age across forecast-zone rollover", async ({ page, context }) => {
-  const provider = await ScriptedProvider.install(context);
-  const now = "2026-10-27T18:29:30Z";
-  await context.clock.install({ time: new Date(now) });
-  await page.setViewportSize({ width: 760, height: 740 });
-  const config = configuration({ place: "Kolkata rollover", latitude: 22.5726, longitude: 88.3639 });
-  const forecast: WeatherForecast = {
-    latitude: config.latitude,
-    longitude: config.longitude,
-    units: config.units,
-    timeZone: "Asia/Kolkata",
-    updatedAt: "2026-10-27T18:28:00Z",
-    current: { temperature: 12, condition: "partly-cloudy", summary: "Partly cloudy", isDay: false },
-    hourly: [
-      { time: "2026-10-27T18:30:00Z", temperature: 11, condition: "clear", isDay: false },
-      { time: "2026-10-27T19:30:00Z", temperature: 10, condition: "clear", isDay: false },
-    ],
-    daily: [
-      { date: "2026-10-27", condition: "partly-cloudy", high: 18, low: 9 },
-      { date: "2026-10-28", condition: "clear", high: 20, low: 10 },
-    ],
-  };
-  const artifactID = await harness.createStored(configuration({ ...config, forecast }));
-  const frame = await harness.open(page, artifactID);
-  await expectReady(frame, config.place);
-  await expect(frame.locator(".weather-header p")).toContainText("Updated 1 min ago");
-  await expect(frame.locator(".weather-hour-label")).toHaveText(["Now", "12 AM", "1 AM"]);
-  await expect(frame.locator(".weather-high-low")).toContainText("H:18°");
-  await expect(frame.locator(".weather-day-label")).toHaveText(["Today", "Wed"]);
+test("updates hourly and daily windows, high and low, and age across forecast-zone rollover", async ({ browser }) => {
+  const context = await browser.newContext({ timezoneId: "America/Los_Angeles" });
+  try {
+    const provider = await ScriptedProvider.install(context);
+    const now = "2026-10-27T18:29:30Z";
+    await context.clock.install({ time: new Date(now) });
+    const page = await context.newPage();
+    await page.setViewportSize({ width: 760, height: 740 });
+    const config = configuration({ place: "Kolkata rollover", latitude: 22.5726, longitude: 88.3639 });
+    const forecast: WeatherForecast = {
+      latitude: config.latitude,
+      longitude: config.longitude,
+      units: config.units,
+      timeZone: "Asia/Kolkata",
+      updatedAt: "2026-10-27T18:28:00Z",
+      current: { temperature: 12, condition: "partly-cloudy", summary: "Partly cloudy", isDay: false },
+      hourly: [
+        { time: "2026-10-27T18:30:00Z", temperature: 11, condition: "clear", isDay: false },
+        { time: "2026-10-27T19:30:00Z", temperature: 10, condition: "clear", isDay: false },
+      ],
+      daily: [
+        { date: "2026-10-27", condition: "partly-cloudy", high: 18, low: 9 },
+        { date: "2026-10-28", condition: "clear", high: 20, low: 10 },
+      ],
+    };
+    const artifactID = await harness.createStored(configuration({ ...config, forecast }));
+    const frame = await harness.open(page, artifactID);
+    await expectReady(frame, config.place);
+    await expect(frame.locator(".weather-header p")).toContainText("Updated 1 min ago");
+    await expect(frame.locator(".weather-hour-label")).toHaveText(["Now", "12 AM", "1 AM"]);
+    await expect(frame.locator(".weather-high-low")).toContainText("H:18°");
+    await expect(frame.locator(".weather-day-label")).toHaveText(["Today", "Wed"]);
 
-  await page.clock.fastForward(61_000);
-  await expect(frame.locator(".weather-header p")).toContainText("Updated 2 min ago");
-  await expect(frame.locator(".weather-hour-label")).toHaveText(["Now", "1 AM"]);
-  await expect(frame.locator(".weather-high-low")).toContainText("H:20°");
-  await expect(frame.locator(".weather-day-label")).toHaveText(["Today"]);
-  expect(provider.requests).toEqual([]);
-  provider.done();
+    await page.clock.fastForward(61_000);
+    await expect(frame.locator(".weather-header p")).toContainText("Updated 2 min ago");
+    await expect(frame.locator(".weather-hour-label")).toHaveText(["Now", "1 AM"]);
+    await expect(frame.locator(".weather-high-low")).toContainText("H:20°");
+    await expect(frame.locator(".weather-day-label")).toHaveText(["Today"]);
+    expect(provider.requests).toEqual([]);
+    provider.done();
+  } finally {
+    await context.close();
+  }
 });
 
 // proofs/ui/templates/weather.md#^weather-ui-ac-size
@@ -1549,26 +1568,64 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   }
 
   await page.setViewportSize({ width: 230, height: 230 });
-  const contained = async () => frame.locator(".weather-card").evaluate((card) => {
+  const layoutReport = async () => frame.locator(".weather-card").evaluate((card) => {
     const outer = card.getBoundingClientRect();
-    const selectors = [".weather-temperature", ".weather-current-glyph", ".weather-current-detail", ".weather-credit"];
-    const boxes = selectors.map((selector) => card.querySelector(selector)!.getBoundingClientRect());
-    return boxes.every((box) => box.left >= outer.left && box.right <= outer.right && box.top >= outer.top && box.bottom <= outer.bottom)
-      && boxes.slice(0, -1).every((box) => box.bottom <= boxes.at(-1)!.top)
+    const textBox = (selector: string) => {
+      const node = card.querySelector(selector)!;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      return { node, box: range.getBoundingClientRect() };
+    };
+    const parts = [
+      textBox(".weather-temperature"),
+      { node: card.querySelector(".weather-current-glyph")!, box: card.querySelector(".weather-current-glyph")!.getBoundingClientRect() },
+      textBox(".weather-summary"),
+      textBox(".weather-high-low"),
+    ];
+    const credit = card.querySelector(".weather-credit")!.getBoundingClientRect();
+    const intersects = (a: DOMRect, b: DOMRect) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    const contained = parts.every(({ node, box }) => (
+      box.left >= outer.left && box.right <= outer.right && box.top >= outer.top && box.bottom <= outer.bottom
+      && node.scrollWidth <= node.clientWidth
+      && box.bottom <= credit.top
+    ));
+    const separated = parts.every(({ box }, index) => parts.slice(index + 1).every((other) => !intersects(box, other.box)));
+    const ok = contained
+      && separated
+      && credit.left >= outer.left && credit.right <= outer.right && credit.bottom <= outer.bottom
       && card.scrollWidth <= card.clientWidth
       && card.scrollHeight <= card.clientHeight;
+    return {
+      ok,
+      contained,
+      separated,
+      card: { clientWidth: card.clientWidth, scrollWidth: card.scrollWidth, clientHeight: card.clientHeight, scrollHeight: card.scrollHeight },
+      parts: parts.map(({ node, box }) => ({
+        className: node.className,
+        box: { left: box.left, right: box.right, top: box.top, bottom: box.bottom },
+        clientWidth: node.clientWidth,
+        scrollWidth: node.scrollWidth,
+        clientHeight: node.clientHeight,
+        scrollHeight: node.scrollHeight,
+      })),
+      credit: { left: credit.left, right: credit.right, top: credit.top, bottom: credit.bottom },
+    };
   });
-  expect(await contained()).toBe(true);
+  const expectSafeLayout = async () => {
+    const report = await layoutReport();
+    expect(report.ok, JSON.stringify(report, null, 2)).toBe(true);
+  };
+  await expectSafeLayout();
 
   const negative = structuredClone(forecast);
   negative.current.temperature = -11.5;
   negative.daily[0] = { ...negative.daily[0]!, high: -8, low: -15 };
   await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ ...config, forecast: negative })));
   await expect(frame.locator(".weather-temperature")).toContainText("−12°");
-  expect(await contained()).toBe(true);
+  await expectSafeLayout();
 
   await page.setViewportSize({ width: 760, height: 300 });
-  expect(await contained()).toBe(true);
+  await expectSafeLayout();
 
   const noHours = structuredClone(forecast);
   noHours.hourly = [];
@@ -1618,6 +1675,21 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await page.clock.fastForward(60_000);
   await expect.poll(() => strip.evaluate((node) => document.activeElement === node)).toBe(true);
   expect(await strip.evaluate((node) => node.scrollLeft)).toBe(scrollBefore);
+  await strip.evaluate((node) => node.blur());
+  await strip.evaluate((node) => { node.scrollLeft = 220; });
+  const unfocusedScroll = await strip.evaluate((node) => node.scrollLeft);
+  await page.clock.fastForward(60_000);
+  expect(await strip.evaluate((node) => node.scrollLeft)).toBe(unfocusedScroll);
+
+  for (const modifier of ["altKey", "metaKey"] as const) {
+    const modifiedKey = await strip.evaluate((node, key) => {
+      const event = new KeyboardEvent("keydown", { key: "ArrowRight", [key]: true, bubbles: true, cancelable: true });
+      return { dispatched: node.dispatchEvent(event), scrollLeft: node.scrollLeft };
+    }, modifier);
+    expect(modifiedKey.dispatched).toBe(true);
+    expect(await strip.evaluate((node) => node.scrollLeft)).toBe(modifiedKey.scrollLeft);
+  }
+  await strip.focus();
   for (let index = 0; index < 30; index += 1) {
     const finalVisible = await strip.evaluate((node) => {
       const stripBox = node.getBoundingClientRect();
@@ -1659,10 +1731,12 @@ test("keeps responsive panels, forecast semantics, focus, scroll, and credit usa
   await expect(creditLinks.nth(1)).toHaveAttribute("href", "https://creativecommons.org/licenses/by/4.0/");
   await creditLinks.first().focus();
   expect(await creditLinks.first().evaluate((link) => getComputedStyle(link).outlineStyle)).not.toBe("none");
+  await page.clock.fastForward(60_000);
+  await expect.poll(() => creditLinks.first().evaluate((link) => document.activeElement === link)).toBe(true);
 
   for (const viewport of [{ width: 230, height: 230 }, { width: 340, height: 340 }]) {
     await page.setViewportSize(viewport);
-    expect(await contained()).toBe(true);
+    await expectSafeLayout();
   }
 
   const alertConfig = configuration({ place: "No forecast" });
