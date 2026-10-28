@@ -1,174 +1,123 @@
-*The Blaxel shard coordinator: persistent workers, exclusive leases and abandoned-run recovery, owned temporary files, remote checkout and execution, and retained shard results.*
+*Blaxel: the pool of persistent remote workers that runs broad validation, how runs from many branches and repositories share it safely, and how to set it up.*
 
-# Blaxel Test Shards
+# Blaxel test shards
 
-Blaxel is the recommended way for agents and humans to run broad validation during development. It cuts the time a full run takes substantially — usually under three minutes, sometimes under two — which is the whole point. It works by keeping a pool of machines on hot standby, preconfigured so a run pays none of the usual setup cost: copying the container image, installing Playwright browsers, and the like. Routing runs to infrastructure like this, for speed and reliability, is also the principal reason Television has a single centralized test runner.
+Blaxel is the recommended way for people and agents to run broad validation during development, including `npm run verify -- blaxel`. A pool of persistent sandboxes is kept ready with browsers, the Node runtime and dependencies installed, so a run pays almost no setup and a full verification usually takes about three minutes. Even a run on one worker takes its load off a shared development host. `npm test -- blaxel` drives the coordinator, `scripts/run-blaxel-testshards.mjs`, and `npm test -- pool blaxel` manages the pool.
 
-This spec is authoritative for the Blaxel coordinator: how it leases a persistent sandbox pool, recovers abandoned runs, owns temporary files, selects the repository workers fetch and sources the GitHub token they fetch it with, prepares and locks each worker, runs the shard, caches dependencies by hash, classifies a Blaxel shard's outcome, and its options and output layout. Resource evidence is owned by [reporting.md](./reporting.md#Resource diagnostics). The selected Node/npm values and `.nvmrc` authority are owned by [arch/node-versions.md](../node-versions.md). It extends the shared model in [sharded-execution.md](./sharded-execution.md); the git-safety and auth checks before dispatch are [preflight.md](./preflight.md); the canonical command surface that invokes it is [test-runner.md](./test-runner.md).
+Every branch and checkout that uses the pool runs its own revision of the runner, and several repositories use it. Much of this spec is therefore the protocol that lets those runs share workers safely, and changes to it must stay compatible with revisions still in use.
 
-Blaxel is the only remote provider. `npm test -- blaxel <selection>` runs the coordinator `scripts/run-blaxel-testshards.mjs`; `npm test -- pool blaxel <list|ensure|delete>` manages the pool through `scripts/manage-blaxel-testshards.mjs`.
-
-## Repository
-
-Workers fetch the commit under test from a GitHub repository. By default it is the repository the invoking checkout calls `origin`: the remote whose branches the [remote preflight](./preflight.md#Blaxel remote preflight) requires to contain that commit. `--repo-url` names a different repository instead; it does not change the coordinator's checks against `origin`. The coordinator converts the selected URL, whether a GitHub HTTPS, `git@github.com:`, or `ssh://git@github.com/` URL, to `https://github.com/<owner>/<repository>.git` and drops any credentials embedded in it. A missing `origin`, or a selected URL that does not name a GitHub repository, fails the run before dispatch. A checkout of public Television therefore runs against the public repository, and a checkout of a private development repository runs against that repository, with no repository option.
-
-One pool serves every repository, in any order. Each worker keeps one persistent checkout at `/workspace/television`, and the `checkout` step points that checkout's `origin` at the run's repository before fetching the commit into it. A worker that last ran another repository keeps its clone and its installed dependencies; Git transfers only the objects the checkout lacks. Dependency reuse depends only on the dependency declarations ([#Dependency-hash caching](#Dependency-hash caching)), so changing repositories reinstalls dependencies only when those declarations differ.
-
-Repositories that share a pool share a trust boundary. A run's code can read the Git objects and ignored files that earlier runs of other repositories left in the worker's checkout, as well as the token in its own environment.
-
-## GitHub token
-
-Workers fetch the repository with a GitHub token, sourced from the `.blaxel-gh-token` file in the repository root first (trimmed), then the `BLAXEL_TV_GH_TOKEN` environment variable (trimmed), else none. A missing token fails the run. The token is passed to each worker as `GH_TOKEN` and consumed through `GIT_ASKPASS`; it is never written into repository files or persistent git config.
+How a suite run is divided into shards and how shard outcomes combine are owned by [sharded-execution.md](./sharded-execution.md). Resource evidence and recovery receipts are owned by [reporting.md](./reporting.md#resource-diagnostics). The Node version workers use comes from [node-versions.md](../node-versions.md).
 
 ## Pool
 
-Workers are persistent sandboxes labelled `project=television`, `purpose=testshards`, `pool=<name>`, `arch=x64`. The coordinator leases only sandboxes in the `DEPLOYED` state for the requested pool and architecture, and fails if fewer workers exist than requested shards. The shared pool size is 72 sandboxes (`DEFAULT_BLAXEL_POOL_SIZE`) and the standard run is 36 shards (`RECOMMENDED_TEST_SHARD_COUNT`), allowing two standard runs to pack exactly within the Blaxel tier's hard limit of 75 concurrent shards. Non-target runs reject any other shard count unless `--allow-shard-count-override 1` is passed. Only verified x64/Linux sandboxes are supported; a worker is verified with `uname -m` and `process.arch` before use, and any non-`x64` `--arch` is rejected.
+Workers are sandboxes labelled `project=television`, `purpose=testshards`, `pool=<name>` and `arch=x64`. The coordinator uses only `DEPLOYED` workers of the requested pool, checks that each is x64 Linux before use, and fails if there are fewer workers than shards. The runner uses the pool `poc`.
 
-The 36-shard default reduces the file-atomic plan's mean baseline work from 42.957 seconds at 18 shards to 21.479 seconds. Its 30-second modeled maximum is the heaviest atomic file weight rather than insufficient shard capacity. The unchanged 72-worker pool provides two independent verify lanes (`2 × 36 = 72 ≤ 75`) without oversubscribing the tier.
+Blaxel's account tier allows at most 75 workers to run at once. The pool has 72 workers and a standard run uses 36 shards, so two verifications fit side by side within that limit. Suite runs refuse other shard counts unless `--allow-shard-count-override 1` is passed.
 
-The pool manager `ensure` creates sandboxes named `tv-testshard-<arch>-<pool>-NN` (default pool `default`, size 72, image `blaxel/playwright-chromium:latest`, memory 8192 MB). The base image supplies the browser and system environment; its ambient Node is not part of the toolchain contract. Each fresh sandbox installs nvm from pinned release tag `v0.40.3`, installs the Node selected by the manager's repository `.nvmrc`, makes that runtime the nvm default, and verifies x64/Linux under it.
+Provisioning is fresh-only: `ensure` creates and provisions every worker of an absent pool and refuses a pool that already has workers. Blaxel's create-if-absent call applies a sandbox specification only when the sandbox does not exist, so it cannot update an existing worker, and the pool manager does not try to reconcile unknown runtime state. A new worker installs nvm and the Node version selected by the repository's `.nvmrc`. It becomes eligible for test runs only after provisioning and its architecture check succeed. To change worker provisioning, delete the pool and ensure it again.
 
-Provisioning requires an absent pool: delete the target pool before `ensure`, then let `ensure` create and provision every worker. Blaxel's `createIfNotExists` applies a creation specification only when a sandbox is absent; it does not reconcile provisioning commands or runtime state inside an existing sandbox. `ensure` therefore refuses a populated target pool, keeping provisioning fresh-only instead of carrying convergence logic for unknown nvm/Node state.
+## Repository and credentials
 
-Fresh workers receive the labels that make them discoverable for test dispatch only after provisioning and architecture verification succeed. Pool management still identifies and reports partially provisioned workers; `ensure` must not treat them as absent or silently reuse them. Pool mutations follow [Locking](#Locking). A partly deleted pool is not refilled by `ensure`: replacing missing capacity requires deleting the remaining target pool and provisioning it afresh.
+Workers fetch the commit under test from GitHub. By default they use the repository the invoking checkout calls `origin`; `--repo-url` names another. The URL is normalized to `https://github.com/<owner>/<repository>.git` without embedded credentials, and a URL that is not a GitHub repository fails before dispatch. A checkout of the public repository therefore tests against it, and a checkout of a private development repository tests against that, with no option.
 
-## Locking
+One pool serves several repositories. Each worker keeps a single checkout at `/workspace/television`, points its `origin` at the run's repository and fetches what it lacks; dependencies are reinstalled only when the dependency declarations differ. Repositories that share a pool share a trust boundary: a run can read the Git objects and ignored files that earlier runs of other repositories left on the worker.
 
-The coordinator leases one worker per shard through `/tmp/tv-testshard.lock`. Its `owner.json` records the unique `lockId`, run/shard/attempt identity, owner and acquisition time, worker-local last renewal and `recoverAfter` deadline, and dispatch ownership. Acquisition, renewal, dispatch registration, recovery, and release serialize their worker-local changes under one short OS-released guard outside the disposable lock directory. Rechecking identity under that guard prevents an earlier renewal or release from overwriting a new owner. The guard is not held during network downloads. ^blaxel-reservation
+Workers authenticate to GitHub with a token from `.blaxel-gh-token` in the repository root, or else `BLAXEL_TV_GH_TOKEN`; a run without one fails. The token must be able to read the run's repository. Workers receive it through the environment and use it through `GIT_ASKPASS`; it is never written to repository files or Git configuration.
 
-Normal runs use at most 32 concurrent lease acquisitions (`MAX_PARALLEL_LEASE_ACQUISITIONS`), starting another as each settles. Each shard attempt retains its unique lock ID, validates `uname -m` and `process.arch`, and records a lease as soon as it succeeds. The coordinator waits for every requested lease before starting any shard process. Discovery failure, an undersized deployed pool, or incomplete acquisition starts no shard. The attempt records one infrastructure-failed result per requested shard, including whether a lease was acquired, `executionStarted: false`, the assignment, and the exact cause. Partial leases follow the release conditions below; incomplete shards remain eligible for infrastructure retry.
+## Leases
 
-Only the coordinator renews a lease, throughout acquisition barriers, preparation, execution, teardown, and result download. Each successful renewal sets `recoverAfter` to worker-local time plus the recovery interval: 20 minutes by default, overridden by `--lock-ttl-seconds`. This interval is independent of the shard execution timeout. Renewal requires the same owner and an unexpired deadline; it cannot revive an expired lease. A surviving shard cannot renew on its coordinator's behalf.
+A shard attempt leases one worker for its whole life: from before checkout, through setup, tests and teardown, until its reports have been downloaded and checked. Releasing earlier would let the next run's checkout overwrite results that are still being read.
 
-The outer shard has a unique shard attempt owner token inherited by setup commands, surface supervisors, and their descendants. It remains available alongside the surface token that nested supervisors replace. Dispatch is recorded before the API request; the remote entry point checks the matching, unexpired lease and registers its process name and PID/start identity under the guard before touching checkout or starting setup. A delayed request cannot launch obsolete work after recovery. Uploads use paths specific to the shard attempt. Unknown dispatch outcomes retain the lease until resolved or recovered.
+- The lease is `/tmp/tv-testshard.lock/owner.json` on the worker. Every change to it, whether acquiring, renewing, registering a dispatch, recovering or releasing, happens under a short `flock` on `/tmp/tv-testshard.guard` and rechecks the current owner first, so a delayed renewal or release can never overwrite a newer owner. The guard is never held during downloads.
+- Only the coordinator renews. Each renewal sets `recoverAfter` to the worker's clock plus the recovery interval: 20 minutes by default, or `--lock-ttl-seconds`. An expired lease cannot be renewed, and a shard process cannot renew on behalf of a coordinator that has gone.
+- Every process the attempt starts inherits `TV_TEST_SHARD_OWNER`, set to the lease's `lockId`, alongside each surface's own owner token ([test-runner.md](./test-runner.md#processes-started-by-tests)). The coordinator records a dispatch before requesting it. The remote entry point registers its PID and start time in the lease before touching the checkout, and only while the lease is still the dispatching coordinator's, so a delayed request cannot start work after recovery.
+- Release requires that the attempt's processes are confirmed gone and its reports retrieved. A shell exit or a Blaxel process stop does not prove that descendants have exited. The coordinator audits for processes carrying the attempt's tokens and stops survivors, validating PID and start time before each signal. If the audit cannot be read, the dispatch outcome is unknown, or an owner survives, the worker stays leased and is not reused for the run's retries.
+- On `SIGINT` or `SIGTERM`, the coordinator writes an interrupted report that keeps whatever it has already retrieved, cleans up, and exits `130`; a second signal exits at once. A lease it cannot release safely is left for recovery.
 
-Normal release requires confirmed process teardown and completed retrieval of that shard attempt's reports. The shard shell finalizes evidence but never unlocks on exit. Named Blaxel process stop or successful shell completion does not establish that descendants are gone: audit the attributed processes and use token- and PID/start-validated TERM/KILL cleanup for survivors. Preserve the audit in the shard log. Remote cleanup activates nvm before enabling nounset, with strict handling in the cleanup body. An unreadable audit, uncertain dispatch, or surviving owner retains the lease and excludes the worker from immediate test retries. ^blaxel-release
+Other revisions read the lease, so the fields that decide ownership are shared across revisions:
 
-While still renewing and holding the lock, download summaries, native reports, logs, and setup/cleanup/diagnostic artifacts; check their identities and required evidence. Missing or corrupt evidence remains an infrastructure failure. An early setup failure records which outputs were never produced and retains those that were. Incomplete retrieval keeps the lease while retrieval is retried, without rerunning tests. An unused lease can be released only when execution was never requested, pending writes have settled, and any produced evidence has been retained. The fixed worker results tree must not be reset by a later checkout before this boundary.
+```ts
+// /tmp/tv-testshard.lock/owner.json; other fields belong to the writer
+interface WorkerLease {
+  lockId: string;       // also the value of TV_TEST_SHARD_OWNER
+  runId: string;
+  attemptId: string;
+  lastRenewal: number;  // worker clock, milliseconds since the epoch
+  recoverAfter: number; // worker clock, milliseconds since the epoch
+  expiresAt: 0;         // see Older runners
+}
+```
 
-On `SIGINT` or `SIGTERM` while an attempt exists, the attempt becomes interrupted even if its shard promises have all just completed. Completed shard results remain intact. An unfinished shard retains downloaded summaries, native results, task artifacts, parsed task evidence, assignments, collections, and logs, and records `interrupted/coordinator-interruption` plus its known lease and execution state. A pending shard has no synthetic task result. A dispatched process whose start is unconfirmed omits `executionStarted`; absence means unknown, while `false` means execution was not requested. The coordinator makes this interrupted snapshot authoritative before cleanup and retrieval, and cleanup cannot replace it with an ordinary completion report. A report-write failure does not suppress process cleanup. The first signal exits 130 after cleanup; a second exits immediately. Any lease that cannot be released safely stops renewing when the coordinator exits and follows abandoned-run recovery. A signal before the first attempt has no shard result to preserve; the canonical runner treats absent provider evidence as incomplete. Console summaries name only retained log files.
+### Abandoned runs
 
-### Abandoned-run recovery
+A lease whose coordinator has stopped renewing for the recovery interval is abandoned, whether the coordinator died, hung or lost its connection. The next ordinary acquisition then, under the guard:
 
-After renewal stops for the recovery interval, the next ordinary acquisition stops and audits the abandoned shard attempt's owned processes, clears its leftovers, and takes the lock. The same sequence applies to a quiet worker and to a surviving supervisor or test descendant. Expiry authorizes cleanup, never reuse beneath live processes. This operational definition of abandonment also covers a coordinator suspended or disconnected longer than the interval; it does not claim to prove the coordinator's OS process died. Quiet abandoned workers wait the same interval to keep recovery to one procedure. ^blaxel-recovery
+1. rechecks the record and its deadline;
+2. stops only the abandoned attempt's processes, found by its tokens and validated by PID and start time;
+3. confirms that no live or stale test owner remains on the worker;
+4. removes the abandoned scratch and the known leftovers listed under [Temporary files](#temporary-files);
+5. discards the abandoned attempt's undownloaded reports;
+6. takes the lease.
 
-Under the guard, recheck the old identity and deadline, terminate only its attributed processes with revalidated identity, and confirm the worker has no remaining live or stale test owners. This recovery may stop the abandoned shard attempt's still-live supervisors; ordinary stale-owner cleanup continues to protect other live owners. Only then remove abandoned scratch and the known leftovers below, discard that shard attempt's undownloaded results, and publish the new lease. A bounded [recovery receipt](./reporting.md#Resource diagnostics) identifies the old run, deadline, process cleanup, and discarded reports; it survives the results reset as part of the incoming shard attempt's evidence. This is the explicit exception to normal download-before-release. Lost evidence can never establish a pass for the abandoned run.
+It writes a recovery receipt describing the previous run, its deadline, the processes stopped and the reports discarded into the new attempt's evidence. Discarded reports can never count as a pass for the abandoned run. Expiry authorizes cleanup, never running beside live processes: if the owners cannot be identified or stopped, the worker is held and reported for an operator. An unreadable or incomplete lease record is reclaimed only after a clean audit of the worker. A coordinator that returns after losing its lease cannot renew, release, dispatch or touch the attempt; it reports an infrastructure failure.
 
-Interrupted recovery leaves the old expired identity until another acquisition completes cleanup. A returning coordinator cannot renew, release, dispatch, or mutate a shard attempt whose ownership it lost; it reports infrastructure failure. Failure to identify or stop owners holds and reports the worker instead of dispatching tests. An unreadable or incomplete lock record may be reclaimed by ordinary acquisition or pool deletion only after a clean worker audit; otherwise hold and report it. Execution cannot precede complete registration, and missing ownership evidence cannot authorize signalling by name. Ordinary attributable coordinator crashes recover automatically; persistent cleanup/provider failures require operator action.
+### Older runners
 
-### Older runners and pool operations
+**Transitional, while branches still run a runner that predates this lease protocol.** Those runners keep a single `expiresAt` deadline in seconds and reclaim a lock once that time has passed. New records set `expiresAt: 0`, which older runners never treat as passed, so they leave current leases alone. A current runner respects a legacy record until its `expiresAt` passes, then acquires only after a clean audit of the worker. Older runners release before downloading their reports, so the lease cannot protect their results; a branch gets that protection when it takes up the current runner.
 
-**Transitional, while branches still run the timestamp-only lock protocol:** write `expiresAt: 0` in new records: older runners reclaim only positive past timestamps, so they leave these leases alone. For a legacy record with no renewable deadline, respect its unexpired TTL; after expiry, require a clean worker audit before acquisition. Skip and report live or ambiguous legacy work. Its normal exit trap removes only its matching `lockId`. Updated runners cannot protect an older coordinator's downloads after that coordinator releases early; branches acquire the corrected behavior when they integrate it.
+### Deleting workers
 
-Pool deletion checks the same identity and deadline under the guard and refuses unexpired leases. An unlocked worker may be reserved for deletion after a clean owner audit. Explicit deletion may also reserve and destroy a worker with an expired lease even when process cleanup failed, because sandbox deletion is the cleanup. Before issuing deletion, remove the worker from test dispatch eligibility; failed or delayed deletion must not admit a new test run. The manager continues to identify and report it as unavailable for operator repair. Unreadable records follow the recovery rule above. A newly created worker that has never been published for test dispatch may be deleted without a lease. Any other worker that cannot answer the ownership check is held for operator repair; discovery ineligibility alone does not establish that an earlier run has stopped. Fresh provisioning follows [Pool](#Pool).
-
-`--audit-stale-owners` reserves an available worker without recovering a held lease or deleting residue before observing it. It holds its lease through its prerequisite setup and report collection, then releases normally. Held workers are reported/skipped. This preserves the diagnostic's read-only view of stale owners.
+`npm test -- pool blaxel delete` follows the lease rules. It refuses workers with unexpired leases and reserves an idle worker only after a clean audit. It may destroy a worker whose lease has expired even if process cleanup failed, because deleting the sandbox is the cleanup. Before deleting, it removes the worker's eligibility for test runs, so a slow or failed deletion cannot admit a new run. A worker that cannot answer the ownership check is held for operator repair. A new worker that was never made eligible for test runs may be deleted without a lease.
 
 ## Temporary files
 
-Every leased shard attempt has a fresh private directory under `/tmp/tv-testshards/`, identified with its run, shard, provider attempt, and lock. An absolute `TMPDIR` points to its `tmp/` child before preparation or tests begin and is preserved by child environments. Uploaded scripts, plans, askpass helpers, and setup sidecars are written in the shard attempt directory. Setup sidecars are finalized into the results tree before that directory is removed. Paths stay short enough for browser Unix sockets. Intentional npm, Electron, browser-download, and dependency-hash caches retain their existing persistent locations. ^blaxel-scratch
+Worker `/tmp` is memory-backed, and Chromium keeps its shared memory there, so temporary files cost memory, not just disk. Each shard attempt gets a fresh private directory under `/tmp/tv-testshards/`, named for its run, shard, attempt and lease, and `TMPDIR` points inside it for everything the attempt runs. The path stays short enough for browser Unix sockets. Persistent caches for npm, Electron, browsers and dependencies stay where they are. ^blaxel-scratch
 
-After taking the lease and confirming no prior execution remains, each run removes only:
+Once it holds the lease and no earlier execution remains, a run removes only:
 
-- Real directories directly under `/tmp` matching `television-source-cli-e2e-*` or `television-web-bundle-*`.
-- Every non-current shard attempt directory directly under `/tmp/tv-testshards/`, including ones with missing or incomplete metadata.
+- directories directly under `/tmp` named `television-source-cli-e2e-*` or `television-web-bundle-*`: generated runtimes that test helpers on some branches leave behind;
+- earlier attempts' directories under `/tmp/tv-testshards/`.
 
-The lock and clean worker audit establish disuse; metadata or age alone does not. Prior result retrieval is protected by the lease, with only the abandoned-run exception above. Reject symlink roots, unexpected mount boundaries, and paths escaping the allowed parent; recursive removal must not follow links into another tree. Preserve the current shard attempt, lock and guard, provider uploads, X11 state, unrelated temporary files, checkouts, and persistent caches. Report counts and allocated bytes removed per prefix, filesystem free space before/after, and skips/errors. ^blaxel-known-leftovers
+Removal does not follow links out of these locations. The current attempt, the lease and guard, unrelated temporary files, the checkout and persistent caches are kept. The run reports what it removed and the free space before and after.
 
-After success, failure, timeout, or interruption, stop attributed processes, finalize evidence outside scratch, and remove the current shard attempt directory while retaining the lock through download. An uncertain teardown preserves scratch. Failed cleanup retains its cause and native outcomes, but prevents new test dispatch until cleanup succeeds; an inconclusive worker audit likewise skips deletion and dispatch. Download available evidence even when cleanup fails. Directory deletion cannot release Chromium's open, unlinked shared-memory files: their owning processes must stop first.
+After the attempt, whether it succeeded, failed, timed out or was interrupted, the worker stops the attempt's processes, moves its evidence out of scratch and removes the attempt's directory, still holding the lease until download. Deleting files does not free Chromium's open, unlinked shared memory; only stopping the processes does. If teardown is uncertain, scratch is kept, and if cleanup fails the worker takes no new tests until a later cleanup succeeds. Workers keep only the current attempt's results and diagnostics under `/workspace/television/.testshards/results`; no archive accumulates on them.
 
-Retain at most the current shard attempt's bounded resource evidence on the worker under the existing `.testshards/results` tree. The next reset follows protected download, or the explicitly recorded abandonment decision above. There is no accumulating cross-run diagnostic archive. Coordinator-side run retention is unchanged. Evidence contents and byte limits belong to [reporting.md](./reporting.md#Resource diagnostics).
+## Runs
 
-## Shard lifecycle
+A selection made with `--surface`, `--file` or `--grep` must resolve to one surface, and runs as a single targeted shard. The suites `all`, `unit` and `e2e`, and selections by package, runner or tag, are divided across shards ([sharded-execution.md](./sharded-execution.md)). Other suites are refused.
 
-After acquiring the complete batch, the coordinator uploads each shard's plan and worker script before starting its remote process. A rejected upload returns an infrastructure-failed shard result with the sandbox, assignment, and `transport/worker-dispatch` cause; it cannot reject the whole attempt without a report.
+Either way, a Blaxel run uses the same registry declarations as a local run, including build steps, services, wrapper commands and the runner's retry budget. That way a remote result stands for the local one. Each worker activates the Node version in the checked-out `.nvmrc` before installing or running anything.
 
-Each shard runs a script on its worker whose steps are recorded as setup timings: `temporary-cleanup` (the pre-run cleanup above), `checkout` (clone if the worker has no checkout, point `origin` at the run's repository, then fetch and hard-reset to the commit), `runtime-activation`, `runtime-versions`, `deps`, `system-deps` (`xauth`, `libgtk-3-0`, and `iproute2` for `ss`), `owner-lifecycle`, `playwright-cache`, `electron-repair`, then `test-run`. The `electron-repair` phase invokes the installed Electron package's own `install.js` with `/cache/electron` as its archive cache. Electron's installer reuses a complete runtime or prepares an absent one; the phase carries no separate download/extraction implementation and does not delete runtime files. ^blaxel-electron-repair After checkout, `runtime-activation` loads the provisioned nvm and runs `nvm use` from the checked-out `.nvmrc`; it does not run a second version checker or install/repair a runtime. All dependency, repair, and test commands inherit the activated Node/npm path. The `system-deps` step asserts these tools on every lease and installs the package set when any prerequisite is absent. `owner-lifecycle` leaves live-supervisor tokens untouched, reaps stale token-bearing groups with revalidated TERM/KILL, and fails before `test-run` whenever it found contamination. That sandbox is excluded from every later attempt by the coordinator. A configured infrastructure retry may run the shard on a different sandbox, whose own lease and owner audit must pass before `test-run`; without an exact contaminated-sandbox identity or enough distinct clean capacity, the shard remains infrastructure-failed. The test run is `scripts/run-test-shard.mjs` ([sharded-execution.md](./sharded-execution.md)) for suite and selection runs, or a single targeted command for a `target` run. A target executes its registry-declared `preCommand` and then its registry `command` when one is declared, otherwise its native runner, inside one surface process scope carrying the selected surface ID and owner token. Selectors, retry arguments, and the native JSON reporter are forwarded through a declared command, so wrappers such as the headless-Linux Electron launcher remain active remotely. It always writes a target shard summary after `test-run`, including native results and any normalized process leaks, so a native test failure is classified as `failed` rather than a setup failure. The worker exports `CI=1` and `TEST_RETRIES`, so child runners see the `FLAKY_TEST_RETRIES` default ([flaky-tests.md](./flaky-tests.md)).
+Before tests, each worker looks for stale owner tokens ([test-runner.md](./test-runner.md#processes-started-by-tests)). A worker that finds them runs no tests for that attempt, and the coordinator excludes it from the run's later attempts. An infrastructure retry may use a different worker once that worker has its own lease and a clean audit. Without a clean worker to use, the shard stays infrastructure-failed.
 
-If a setup step fails before the test run and no shard summary was produced, the worker synthesizes an `infra-failed` shard summary naming the failed step (`checkout` failures are reported distinctly). Native result paths rooted at the worker checkout (`/workspace/television`) are normalized to repository-relative paths after download.
+## Setup
 
-### Dependency-hash caching
-
-The `deps` step hashes the tracked root `.nvmrc`, `package-lock.json`, root `package.json`, and workspace `*/package.json` files into a marker `/cache/blaxel-testshards/deps-<hash>.ok`. `.nvmrc` carries the Node selector, while the root manifest carries the declared Node/npm ranges; changing either toolchain declaration therefore invalidates dependency state. With the marker present and `node_modules` in place the step is a cache hit; otherwise it runs `npm ci --prefer-offline --no-audit --fund=false` under the activated runtime and rewrites the marker.
-
-## Classification
-
-A Blaxel shard is classified `passed`, `failed`, or `infra-failed` from its worker exit, readable shard summary, and recorded setup timings:
-
-- A known nonzero exit whose setup timings show a failed step *before* `test-run` is `infra-failed`.
-- No readable shard summary is `infra-failed`, even when setup timings show that `test-run` was reached. Reaching the command does not establish a test result.
-- A summary with `status: "passed"` and worker exit `0` is `passed`.
-- A summary with `status: "passed"` and a known nonzero worker exit is a self-contradictory `failed` result. It is not retried. Its `result-report/summary-validation` provider result is infrastructure-incomplete after normalization, making the run incomplete and its test status unknown without inventing a failed test.
-- A summary with `status: "passed"` but no known worker exit is `infra-failed` because completion is unconfirmed.
-- A summary declaring `status: "failed"` is `failed`; a summary declaring `status: "infra-failed"` or an unsupported status is `infra-failed`.
-
-This realizes the infrastructure-vs-test distinction from [sharded-execution.md](./sharded-execution.md) for Blaxel. After download, the coordinator also validates the summary's plan ID, timing provider, tested commit/tree, index/total, and assigned/collected files against the provider plan. Any identity disagreement overrides the classifier result to `infra-failed` with `failureKind` and `failureStep` set to `plan-validation`.
-
-The coordinator attributes failures through remote wait and final log capture to `worker-execution`; a matching worker deadline is `timeout` and other coordinator errors are `transport`. After report retrieval begins, failures while retaining the summary and artifacts are `transport/report-download`. Either path preserves any result progress already downloaded before the failure.
-
-`stale-owner` fails closed at the sandbox boundary. The contaminated sandbox runs no selected test, is excluded from every later attempt by that coordinator, and retains its failed-attempt evidence. A configured infrastructure retry may use a different sandbox only after that sandbox acquires its own lease and passes its owner audit. If no distinct clean sandbox is available, the shard remains infrastructure-failed. Attempt files and final provider-report construction preserve the contaminated attempt and follow [sharded-execution.md](./sharded-execution.md).
-
-## Options
-
-The coordinator's options and defaults follow. The canonical runner ([test-runner.md](./test-runner.md)) overrides some of these, noted inline.
-
-| Option | Default | Notes |
-|---|---|---|
-| `--suite` | `all` | `all` \| `unit` \| `e2e` \| `target` \| `selection`. |
-| `--surfaces` | — | required for `--suite selection`. |
-| `--shards` | `36` | other counts rejected unless `--allow-shard-count-override 1` (non-target). |
-| `--shard-indices` | all | run a subset while preserving the total. |
-| `--pool` | `default` | the canonical runner passes `poc`. |
-| `--arch` | `x64` | other values rejected. |
-| `--commit` | `HEAD` | the committed revision to test. |
-| `--timeout-profile` | `normal` | the canonical runner passes `cold`. See drift note below. |
-| `--worker-timeout-seconds` | per profile | override the shard execution timeout. |
-| `--lock-ttl-seconds` | `1200` | positive recovery interval since the last successful renewal, independent of timeout profile; expiry requires cleanup before test reuse. |
-| `--retry-infra` | `0` | the canonical runner passes `2`. |
-| `--allow-dirty` | off | dispatch from a dirty tree, ignoring local edits. The canonical runner's `--ignore-uncommitted` is translated to this. |
-| `--test-retries` | `0` | non-unit retry count passed to the worker. |
-| `--repo-url` | the checkout's `origin` as a GitHub HTTPS URL | repository fetched in the sandbox ([#Repository](#Repository)). |
-| `--playwright-browsers-path` | `/home/playwright/.cache/ms-playwright` | browser cache path. |
-| `--output-dir` | `.blaxel-testshards/latest` | run output location. |
-| `--audit-stale-owners` | off | reserve one available worker without recovery or residue removal, install/check system prerequisites, run the read-only stale-owner diagnostic, print its JSON result, and release without dispatching tests. It may be combined only with `--pool` and `--arch`. |
-
-Worker execution timeout profiles: `normal` = 240 s; `cold` = 480 s; `repair` = 480 s. All profiles use the same default recovery interval above.
-
-**Default profile.** The coordinator's own default timeout profile is `normal`, but the canonical runner invokes Blaxel with `--timeout-profile cold`, so a `npm test -- blaxel` run uses `cold` unless overridden.
-
-## Output
-
-The run output directory (default `.blaxel-testshards/latest`) contains `request.json`, combined `report.json`, compact `summary.json`, and any retained per-shard `shard-<i>.log` and `shard-<i>.json` files ([sharded-execution.md](./sharded-execution.md)). A path is exposed only after its local file is retained; shards that never produced a log or result do not advertise an inferred filename. Planned suite runs also contain `shard-plan.json`. Completed shard downloads add `setup-shard-<i>.json` and, when the worker produced it, top-level `native-shard-<i>.json`. Per-surface native reports, Vitest attempt sidecars, lifecycle results, process-leak results, resource sidecars, recovery receipts, and generated runner inputs are downloaded under `artifacts/shard-<i>/`, preserving their worker-relative paths. Infrastructure retries write `attempt-<n>/` subdirectories with the same applicable layout. Each shard summary exposes normalized restore/wake, checkout, dependency cache hit/miss, system setup, readiness, test-compute, and report-download phases; the coordinator prints those rows and passes them into the canonical run events and summary. Ordinary completion exits `0` only for a passed combined report and `1` for a failed report. A handled `SIGINT` or `SIGTERM` exits `130`; when an attempt exists it writes the interrupted provider report first. When the canonical runner receives that coordinator exit, it finalizes the normalized incomplete run and propagates `130`.
-
-## Operations
-
-### Local setup
-
-Running Blaxel shards requires a Blaxel account with the CLI logged in:
+Running Blaxel shards needs a Blaxel account with the CLI logged in:
 
 ```bash
 brew install blaxel
 bl login
 ```
 
-The GitHub token the workers use is obtained from the corporate 1Password item **“Television Blaxel sharded test runner github PAT”**. The token supplied for a run must be able to read that run's repository, so a token shared by checkouts of several repositories needs access to each of them. Make it available either by exporting `BLAXEL_TV_GH_TOKEN` (which works across all worktrees) or by writing it to a `.blaxel-gh-token` file in the repository root; the runner's read precedence is in [#GitHub token](#GitHub token). Creating `~/.tvdev-use-blaxel` selects Blaxel for automatic verification and enables the [one-file local limit](./test-runner.md#^local-one-file).
+The GitHub token is in the 1Password item **“Television Blaxel sharded test runner github PAT”**. Export it as `BLAXEL_TV_GH_TOKEN`, which works across worktrees, or write it to `.blaxel-gh-token` in the repository root. Creating `~/.tvdev-use-blaxel` makes the host a [marked host](./test-runner.md#^blaxel-host-marker), so that verify uses Blaxel by default.
 
-### Pool provisioning
+To provision the pool, delete it and recreate it, which needs the pool to be idle:
 
-The canonical runner uses pool `poc`. Provision it by deleting the complete pool with `npm test -- pool blaxel delete --pool poc`, then recreating all 72 fresh workers with `npm test -- pool blaxel ensure --pool poc` ([#Pool](#Pool)). Recreation needs an idle pool: deletion reports workers it refused and exits nonzero if any requested worker was not deleted. Use `list --pool poc` for inspection. `ensure` refuses a populated pool and intentionally does not reconcile existing runtime state. A bare command targets the manager's `default` pool, which the canonical runner does not use.
+```bash
+npm test -- pool blaxel delete --pool poc
+npm test -- pool blaxel ensure --pool poc
+```
 
-### Opt-in local suite exclusions
-
-The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs neither. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface). The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification.
+Deletion reports any worker it refused and exits nonzero if any requested worker remains. `npm test -- pool blaxel list --pool poc` shows the pool. Without `--pool`, these commands act on a pool named `default`, which the runner does not use.
 
 ## Testing guidance
 
-Under the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#integration-against-paid-services-or-complex-host-dependencies-is-important), a change that could affect the Blaxel coordinator's remote operations requires evidence from a live Blaxel run before it reaches main. One targeted shard run (`--suite target`) is sufficient. The run must call the real Blaxel API and communicate with the remote process through the real transport. It must exercise worker leasing, the lock protocol, and architecture validation. It must also exercise checkout, runtime and dependency setup, streaming logs, and result download. Recorded responses cannot replace this live evidence.
+A change that could affect the coordinator's remote operation needs a live Blaxel run before it reaches `main`; recorded responses cannot stand in for one. One targeted run is enough to exercise the API, the transport, leasing, setup, log streaming and result download. Runs that check other changes:
 
-`--suite target` is not sufficient for a change that affects plan transfer; [sharded-execution.md's Testing section](./sharded-execution.md#Testing) defines the required evidence.
+- a planned suite run checks a change to how plans reach workers, since a targeted run carries no plan;
+- freshly provisioned workers on a dedicated pool check a change to provisioning or runtime selection, leaving the shared `poc` workers alone;
+- runs from checkouts of two repositories on one pool, including a worker whose checkout last served the other repository, check a change to repository selection or switching.
 
-A change to pool provisioning or runtime selection requires the live run to use freshly provisioned workers, since `ensure` refuses a populated pool ([#Pool](#Pool)). A dedicated pool may supply this evidence without deleting shared `poc` workers.
+Recovery and cleanup experiments use disposable processes on a dedicated pool and never contaminate shared workers. Temporary-file placement is shown only by observing, on a live worker, the files Node creates and Chromium's shared-memory descriptors under the attempt's `TMPDIR`.
 
-Recovery and cleanup experiments use disposable owned processes on a dedicated pool, never intentionally contaminating shared workers. Automated qualification uses the runner's [Blaxel harness placement](./test-runner.md#^blaxel-harness-placement) and the registry's explicitly selected experiment surfaces, excluded from `all` and ordinary CI. Temporary-file placement needs live observation of Node-created paths and Chromium shared-memory descriptor paths under the attempt's `TMPDIR`.
-
-A change to repository selection, or to how a worker's checkout moves between repositories, requires live runs from checkouts of two repositories on the same pool, including a run on workers whose checkout last served the other repository.
+The automated live qualification is the `experiment:blaxel-harness` surface, with the fixtures it dispatches in `experiment:blaxel-harness-fixtures`. Both stay out of `all` and CI. The driver runs only on a dedicated, credentialed Blaxel coordinator sandbox outside every worker pool, never on a shared development host or a leased worker. It runs from a committed and pushed checkout, with `TV_BLAXEL_HARNESS_COORDINATOR` naming that sandbox and `TV_BLAXEL_HARNESS_POOL` naming a disposable pool it owns, deletes and recreates. The runner refuses the driver on Blaxel, inside a leased worker, or without both names; choosing the right sandbox is the operator's job. Its usage is in `test/runner-fixtures/blaxel-harness/README.md`. ^blaxel-harness-placement

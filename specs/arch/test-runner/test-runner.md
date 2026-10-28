@@ -1,317 +1,194 @@
-*The canonical `npm test` and `npm run verify` command surface: selection, providers, retries, and local guardrails for shared-host health and fast feedback.*
+*Television's one test command: how callers select and run tests, the guardrails that protect shared development hosts, retries, verification, the test registry, and the rules for processes and network addresses that tests create.*
 
-# Test Runner
+# Test runner
 
-This spec is authoritative for Television's one canonical test command surface and its behavior: the commands, selectors, provider selection, local mutex and selection guardrails, broad-run guardrail, native-entrypoint checks, retry conditions, `verify` orchestration, exit codes, local execution, and the Cursor-agent environment workaround. It is the boundary spec for the testing area and delegates to its companions: the surface registry it selects from is [test-registry.md](./test-registry.md); the preflight checks it runs are [preflight.md](./preflight.md); the normalized results and run directory it writes are [reporting.md](./reporting.md); remote execution is [sharded-execution.md](./sharded-execution.md), realized by [blaxel-testshards.md](./blaxel-testshards.md); the GitHub Actions CI workflow's setup and execution contract is [github-ci.md](./github-ci.md). The discipline every test is held to is [testing-policy.md](../testing-policy.md).
+Television has one way to run its tests: `npm test -- <command>` and `npm run verify`, implemented by `scripts/test/cli.mjs`. People and coding agents use it for anything from one test case to the full gate, locally or on Blaxel, and get results in one shape. Agents readily write plausible test commands whose arguments are quietly ignored; a single documented command that honors its options is what makes a test result trustworthy. Package-level `test` scripts and direct `vitest` or `playwright` invocations are not supported ways to run the suite.
 
-This spec is also authoritative for test-service address allocation, the responses of registry-declared services, and process lifecycle. Service declarations are owned by [test-registry.md](./test-registry.md).
+This spec owns the command, its guardrails, retries, `verify`, the test registry, and the rules for processes and addresses that tests create. Blaxel is owned by [blaxel-testshards.md](./blaxel-testshards.md), dividing runs across machines by [sharded-execution.md](./sharded-execution.md), run output by [reporting.md](./reporting.md), the CI workflow by [github-ci.md](./github-ci.md), and tree attestations by [attestation.md](./attestation.md). How tests are written, when to run what, and what agents may do without asking belong to the [testing policy](../testing-policy.md).
 
-## Why this exists
+## Guidance, not enforcement
 
-Television has one test runner so that anyone — and especially a coding agent — has a single, reliable way to run tests in whatever form a task needs: one case, one file, one suite, one package, a whole surface, locally or on a remote provider. The command grammar below is the contract: it is the one documented way to select and run tests, so callers stop improvising per-package invocations.
+The runner steers callers towards fast feedback and a usable shared host. Its checks recognize departures at the ordinary entrypoints, and every refusal says what to run instead. Where a departure is sometimes the right call, a deliberately named override permits it; each override's name contains `against-test-guidance`, so using one reads as a considered choice. None of this is a security boundary. Anyone can run other commands, and the runner does not try to police the host.
 
-Without a single runner, package areas accumulate separate invocations, the permutations drift apart, and a caller cannot trust that a given flag is even respected. That unreliability falls hardest on agents, which readily emit plausible-looking test commands whose arguments are silently ignored or mean something other than intended. Consolidating invocation into one canonical surface is what makes running tests trustworthy.
-
-The runner guides callers toward good wall-clock time and shared-host health through clear defaults, active checks, and actionable refusals. Deliberately named overrides make callers reflect before departing from the guidance and then allow the needed work. It is not a security boundary: callers can bypass repository entrypoints or exhaust the host with other commands. Checks cover recognizable departures at ordinary entrypoints without attempting host-wide resource policing.
-
-The consolidation pays off three ways:
-
-- **Operationally, for agents and people** — one predictable, documented grammar to learn and use, rather than a different ad-hoc invocation per package.
-- **Operationally, across runners** — a normalized way to route the same run to different underlying runners and providers and collect results in one shape.
-- **Architecturally** — a single place that knows where all the tests are and holds the knobs for managing them: suites, surfaces, sharding, and selection.
+## Providers
 
 A *provider* is where tests run:
 
-- `local` — the current checkout, including uncommitted edits.
-- `blaxel` — a persistent remote sandbox pool, running a committed revision.
+- `local` runs the current checkout, including uncommitted and untracked files.
+- `blaxel` runs a committed revision on a pool of remote workers that fetch it from GitHub ([blaxel-testshards.md](./blaxel-testshards.md)).
 
-GitHub Actions runs tests as the CI workflow ([github-ci.md](./github-ci.md)), not as a runner-selectable provider.
+GitHub CI runs the same tests through its own workflow; it is not a provider a caller selects. `npm test -- local` and `npm test -- blaxel` name their provider; only `verify` chooses one automatically.
 
-There is no default provider for direct test execution: a provider shortcut names it explicitly, and remote providers run a committed revision fetched from `origin` rather than local edits. `verify` is the one command that may resolve a provider automatically.
+Because workers fetch the revision from GitHub, a Blaxel run first checks that the working tree is clean and that the commit under test is on a branch on `origin`. Contributors commit and push before using Blaxel. `--ignore-uncommitted` lets a run start from a dirty tree; it still tests only the committed revision. `--commit <rev>` tests a revision other than `HEAD`. ^remote-revision
 
 ## Commands
 
-```
-npm test -- <command> [options]
-npm run verify                  # broad verification; auto-resolves a provider
-npm run verify -- local         # explicit provider (also: blaxel)
-npm run verify -- --no-publish  # run the gate without publishing its attestation
-npm run verify -- --plan        # print the resolved provider and phase commands, run nothing
-```
-
-`npm run verify -- <args>` forwards to the `verify` command; `npm test -- verify <args>` is equivalent.
-
 | Command | Purpose |
 |---|---|
-| `local` \| `blaxel` | Provider shortcut: run a selection on that provider. With no selector it defaults to the `all` suite, which is a *broad run* and is refused without `--force`. |
-| `verify` | Run lint, type-check, package-manifests, and the `all` suite (preflight too, locally), resolving a provider. The broad-verification entrypoint. |
-| `list` | Print the surfaces a selection resolves to. |
-| `preflight --provider <p>` | Run only the preflight checks for a provider and selection. See [preflight.md](./preflight.md). |
-| `pool blaxel <list\|ensure\|delete>` | Manage the Blaxel sandbox pool. See [blaxel-testshards.md](./blaxel-testshards.md). |
-| `baseline update [--dry-run]` | Recompute the committed duration baseline from the checkout's Blaxel run directories. See [sharded-execution.md](./sharded-execution.md). |
-| `testpass prune <--older-than <days>d\|--dead-version <n>\|--delete-ref <ref>> [--apply]` | Inspect or apply attestation-ref retention, version sweeps, and exact-ref revocation. See [attestation.md](./attestation.md). |
-| `help` | Print usage. |
+| `npm test -- local [selectors]`, `npm test -- blaxel [selectors]` | Run a selection on that provider. |
+| `npm run verify [-- local\|blaxel]` | The full gate, described under [Verify](#verify). |
+| `npm test -- list [selectors]` | Print the surfaces a selection resolves to. |
+| `npm test -- preflight --provider <local\|blaxel>` | Run only the checks that precede tests. |
+| `npm test -- pool blaxel <list\|ensure\|delete>` | Manage the Blaxel pool ([blaxel-testshards.md](./blaxel-testshards.md)). |
+| `npm test -- baseline update` | Refresh the durations used to plan shards ([sharded-execution.md](./sharded-execution.md)). |
+| `npm test -- testpass prune` | Remove attestations ([attestation.md](./attestation.md)). |
+| `npm test -- help` | Usage, including the guardrails and overrides below. |
 
-Package-level `test` / `test:e2e` scripts are not supported entrypoints; the root runner invokes each surface's config directly. This is the canonical command surface for test execution.
+Selectors choose what runs:
 
-## Native test entrypoints
+- `--suite <name>`, or `--all` for `--suite all`;
+- `--surface <id>[,<id>…]`, `--package <workspace>`, `--runner <vitest|playwright>`, `--tag <tag>`;
+- `--file <path>`: an exact path selects that test file; any other value selects every test file whose path contains it. A file owned by more than one selected surface needs `--surface` to choose;
+- `--grep <pattern>`: a test-title filter within the rest of the selection. On its own it narrows nothing.
 
-Registered Vitest and Playwright configs refuse recognizable direct invocations outside the canonical runner by default, before tests start. This applies to marked and unmarked hosts. Native tools launched by the canonical runner, planned shard workers, targeted Blaxel execution, the non-plan diagnostic shard path, and declared runner test fixtures carry invocation context so their native execution is admitted. The context tells the check that a runner or declared fixture started the tool; it is not authenticated. The non-plan path retains its [preflight exception](./preflight.md#required-checks-per-provider).
+With no selector, the selection is the `all` suite.
 
-The refusal explains that direct execution skips the runner's protections and gives the canonical form `npm test -- local --file <path> [--grep <pattern>]`. On marked hosts it also directs broader work to commit, push, then `npm test -- blaxel --surface <id>` or `npm run verify -- blaxel`. Unmarked hosts receive a usable local path without requiring Blaxel. Fixed command examples suffice; a config check need not parse native-tool arguments to reconstruct the intended selection. These checks cover registered entrypoints, not arbitrary commands or deliberate circumvention.
+The runner resolves `--file` to actual files itself and hands the native tool exactly those files. Vitest treats a file argument as a substring and Playwright as a regular expression, so passing the user's string through would also run sibling files.
 
-The refusal also names `TV_TEST_AGAINST_TEST_GUIDANCE_DIRECT_NATIVE_RUN=1` as the deliberate override, for cases such as watch mode, headed/debug mode, or an editor's test explorer. Only the exact value `1` permits direct invocation. The diagnostic explains that this route runs outside the canonical mutex and marked-host file limit. The override bypasses only the entrypoint check; native configuration and required service setup still apply. CLI help documents this route alongside the canonical forms. The [testing policy](../testing-policy.md#verification-provider-and-completion) owns permission to use the overrides.
+Exit codes:
 
-## Selectors
+- `0`: the run passed, or an informational command completed. `verify --plan` exits `0` without verifying anything.
+- `1`: tests failed, or the run failed while executing.
+- `2`: a usage error or a guardrail refusal.
+- `130`: `SIGINT` cancelled a wait for the local-test mutex, or a Blaxel run was interrupted by `SIGINT` or `SIGTERM` and finished its cleanup.
+- `143`: `SIGTERM` cancelled a wait for the local-test mutex.
 
-A *selector* chooses which tests run; the runner resolves selectors against [test-registry.md](./test-registry.md) and translates them to the underlying runner's flags.
+A Blaxel command exits `0` only when its coordinator succeeded and the normalized report passed. Missing or contradictory evidence cannot turn a zero exit into a pass, and a nonzero coordinator exit is never reported as success.
 
-| Selector | Meaning |
-|---|---|
-| `--suite <unit\|e2e\|e2e-ci\|agent\|experiment\|telemetry-posthog-roundtrip\|daemon-acceptance\|all>` | A named suite. `e2e-ci` is the registry-owned non-Electron CI shard selection; desktop runs in its dedicated job. |
-| `--all` | Alias for `--suite all`. |
-| `--surface <id>` | One or more registered surfaces (comma-separated). |
-| `--package <name>` | Surfaces associated with a workspace package. |
-| `--file <path>` | The surface that owns a test file, running that file. |
-| `--grep <pattern>` | Test-title filter, translated to `-t` for Vitest and `-g` for Playwright. |
-| `--runner <vitest\|playwright>` | Surfaces using a runner. |
-| `--tag <tag>` | Surfaces carrying a registry tag, such as `browser` or `electron`. |
+## The test registry
 
-The local provider accepts every registered suite subject to the [local guardrails](#local-guardrails) and placement restrictions. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path, or package, runner, or tag selection through the planned selection path.
+`test.config.mjs` declares every *test surface*: an independently runnable test area, usually one Vitest or Playwright config and the files it covers. A surface declares its id, runner, config, the paths it owns, its kind and tags, and anything it needs: a build step, Vite services, a wrapper command, or checks that must pass before it runs. Facts such as unit or end-to-end, browser or Electron, are declared there and never inferred from file or package names.
 
-`--file` must resolve to exactly one owning surface: if no surface owns the file the runner fails; if several do, it fails and asks for `--surface` to disambiguate. On the local execution path, a `--file` or `--grep` selection against a surface that does not declare support for it is rejected while building that surface's command. The targeted Blaxel path does not currently apply this `supports` check. The runner parses these selectors itself and rejects unknown positional arguments; the sole positional accepted is the `verify` provider. Unrecognized options beginning with `--against-test-guidance` are usage errors (exit `2`), so a misspelled override suffix cannot silently retain the default retry budget.
+Every test file under `packages/` and `test/` belongs to exactly one surface, and a runner config there that no surface declares is a registry error. A test therefore cannot silently drop out of every run.
 
-## Publication qualification
+A *suite* is a named selection over kinds, tags and runners. `all` is the unit and end-to-end surfaces; it is what verification, CI and attestation mean by the full suite. Some surfaces stay out of `all` and run only when selected:
 
-A *publication-qualifying test execution* uses the `blaxel` provider for the complete `all` suite with no narrowing selector and no shard subset. Precisely, its effective suite is `all`; `--surface`, `--package`, `--file`, `--grep`, `--runner`, and `--tag` are all absent; and `--shard-indices` is absent. An explicit `--suite all` or `--all` remains complete. `--shards <n>` changes how the complete suite is partitioned, so it does not narrow the run when every index executes. A local-provider execution never qualifies, even when it runs `all`, because a developer host does not provide the controlled execution environment required for durable pass evidence. ^test-publication-qualifying
+- agent surfaces, which need a local agent setup and a live inference service;
+- the PostHog roundtrip suite, which needs a secret read key and runs only locally; its setup is owned by the [telemetry sink](../telemetry/sink.md#real-posthog-integration-test-surface);
+- daemon acceptance, which installs a freshly packed `tv` into the global npm prefix and replaces the real `com.television.server` user service. It runs only on a designated host that is not meant to run a normal Television server, and it refuses to start unless `TV_DAEMON_TEST_HOST=1` is set;
+- experiment surfaces: fixtures for testing the runner itself, and live qualifications.
 
-A *publication-qualifying verify* is a `verify` whose test phase is a publication-qualifying test execution. The normal `npm run verify -- blaxel` command has this shape. Selection options supplied to `verify` are part of the qualification decision even when verify's phase construction would otherwise force `all`; a caller cannot attach a narrowing option and receive publication credit for the resulting run.
+Surfaces tagged `isolated-github-only` deliberately leak, orphan or kill processes to test cleanup. The runner refuses them before any work, on developer hosts and on every Blaxel path. They run only inside an operator-run GitHub workflow named `Process Lifecycle Fault Injection`, with `GITHUB_ACTIONS=true` and `TV_TEST_ISOLATED_GITHUB=1`. That workflow is not committed. It must run only on branches, on an ephemeral runner, with its own timeout, cleanup by owner token, and upload of the complete run directory. The workflow name and variable prevent accidents in trusted automation; they do not stop someone who sets them on purpose.
 
-Publication requires no opt-in. A passing publication-qualifying verify is eligible for its `refs/testpass/*` attestation under [attestation.md](./attestation.md). `--no-publish` is an opt-out that suppresses that write. It does not alter which phases or tests execute. There is no publication opt-in flag: narrowed and local runs never publish regardless of caller intent, and passing `--publish` is a usage error.
+## Shared development hosts
 
-Production attestations have exactly two source classes: a publication-qualifying Blaxel verify and the complete GitHub Actions CI workflow. The workflow's `attest-write` job is a CI-only writer after the strict join; individual GitHub-hosted commands that use `provider=local` are not attestation writers. A developer-host local verify cannot publish an attestation under any scope or result. [attestation.md](./attestation.md) owns the complete source predicate.
+Several agents often share one development host. Concurrent test runs compete for memory and CPU, push the host into swap and get processes killed by the kernel's out-of-memory killer, which disrupts every agent on it. Keeping the host usable comes first. The guardrails in this section keep local runs small and one at a time, and send broader work to Blaxel. The [testing policy](../testing-policy.md#verification-provider-and-completion) says when agents may use the overrides.
 
-## Run-directory identity output
+### Marked hosts
 
-`--run-dir-output <file>` asks a local or Blaxel provider invocation to atomically write the absolute path of the run directory it owns. The write happens immediately after run-directory creation, before local preflight and test execution, so the identity remains available when either of those phases fails. The option is per invocation rather than inherited through the environment: a test that spawns another canonical runner cannot replace its parent's identity unless it explicitly passes the same option. Workflow orchestration reads this file and validates that the path is a direct child of the expected `.test-runs/` root; it never discovers ownership by enumerating that root.
-
-## Broad-run guardrail
-
-A *broad run* is a provider shortcut that runs the full `all` set with no narrowing selector. A broad run skips lint and type-check, so the provider shortcuts refuse it with a message directing the caller to `npm run verify`.
-
-The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites and [Blaxel harness surfaces](#Blaxel harness qualification) are not broad verification and are excluded from `all`. The two suites are specialized, opt-in local suites: the first crosses the live telemetry ↔ PostHog boundary; the second replaces the active global `tv` package and the literal `com.television.server` user service on a designated developer host. The harness surfaces have the separate coordinator/worker placement below. Build-config-integrity tests are not part of either suite: `unit:build-config` is a normal unit surface in `all` and uses no secrets, network, or host service mutation.
-
-This guardrail trips only on the effective `all` suite with nothing narrowing it: a bare provider (which defaults to `--suite all`), an explicit `--suite all` or `--all`, or a bare `--grep` with no other selector. The following selections pass this guardrail but remain subject to the local guardrails and placement restrictions:
-
-- any narrowing selector — `--file`, `--surface`, `--package`, `--runner`, or `--tag`;
-- a non-`all` suite — for example `--suite unit`, `--suite e2e`, `--suite telemetry-posthog-roundtrip`, or `--suite daemon-acceptance`.
-
-`--grep` does not narrow on its own: a bare `--grep` defaults to the `all` suite and is refused, but `--grep` rides along with any of the selections above, including `--suite unit --grep ...`. To run a genuinely broad provider shortcut anyway, pass `--force`; `verify` passes `--force` internally to its own broad test phase. The broad-local override below does not lift this guardrail: a full-`all` local provider shortcut on a marked host requires both `--force` and `--against-test-guidance-broad-local-run`.
-
-## Local guardrails
-
-### Host marker
-
-A *marked host* has `.tvdev-use-blaxel` in the invoking user's home directory (`os.homedir()`); an *unmarked host* does not. The marker selects Blaxel for automatic verification and enables the one-file local limit below across checkouts and sessions. Its contents are ignored. The runner consults this marker without a dedicated environment-variable switch. Unmarked hosts retain local selection and verification without requiring Blaxel access; the mutex and native-entrypoint checks apply on both marked and unmarked hosts. ^blaxel-host-marker
+A *marked host* has the file `~/.tvdev-use-blaxel`, in the home directory that `HOME` names. Team development hosts carry it; public contributors' and fork hosts normally do not, and keep full local use without any Blaxel access. The file's contents are ignored. On a marked host, verify uses Blaxel by default and local runs are limited to one file. ^blaxel-host-marker
 
 ### One local file on marked hosts
 
-On a marked host, local test execution supplies `--file` resolving to exactly one actual test file in the working tree, optionally narrowed by `--grep`. This limit applies to the `local` provider shortcut and local verify, not standalone `preflight` or `list`. Other selectors may restrict or disambiguate that file's owning surface. A suite, surface, package, runner, or tag alone is refused with exit `2`, even when it contains only one file. Local verify is broader than one file and is subject to the same refusal. `--against-test-guidance-broad-local-run` permits these broader local selections; agent permission to use it is owned by the [testing policy](../testing-policy.md#verification-provider-and-completion). ^local-one-file
+On a marked host, a local test run, including local verify, must select exactly one test file with `--file`, optionally narrowed by `--grep`. Other selectors may accompany `--file` to choose its surface. Anything broader is refused with exit `2` before any test work. Uncommitted and untracked files count; the limit applies to the files that will actually run, not to the filter string. `--force` does not lift it. ^local-one-file
 
-`--allow-extreme-inefficiency` is refused with exit `2` and a message naming `--against-test-guidance-broad-local-run` as its replacement. It is not a working alias. The shared phrase `against-test-guidance` identifies the deliberate overrides for broad local work, host contention, native execution, and disabling retries on broader selections; each permits only its stated departure.
+The refusal explains the limit. When Blaxel can run the same selection, the refusal prints the equivalent `npm test -- blaxel` command and the reminder to commit and push first; otherwise it names the selections Blaxel supports. Agent, PostHog and daemon surfaces and the Blaxel harness driver cannot run on Blaxel, so their refusal gives the one-file local command instead. The runner never commits, pushes or dispatches on the caller's behalf.
 
-The runner establishes the file boundary before preflight or test work. Native substring or regular-expression filtering must not turn an accepted file selection into several files. Selection accounts for uncommitted and newly created files; a committed-file inventory alone is insufficient. A directory or filter selecting several test files is refused with exit `2`; invalid or empty selections retain their ordinary selection errors. `--force` does not lift this limit.
+`--against-test-guidance-broad-local-run` lifts the limit.
 
-A refusal explains the one-file rule and that a file filter can match several files. When Blaxel supports the selection, it prints a shell-usable equivalent command with the provider changed and selectors and grep preserved. Otherwise it explains the unsupported selection and points to supported remote forms without claiming equivalence. In either case it states the [commit-and-push prerequisite](./preflight.md#contributor-branches-and-remote-revisions). Full verification points to `npm run verify -- blaxel`. It directs known multi-file checks to Blaxel rather than a serial loop of local files, and never commits, pushes, or dispatches on the caller's behalf.
+### One local run at a time
 
-Local-only placement takes precedence over remote redirection. A selection containing live PostHog or daemon acceptance, however selected, names the local requirement and gives a supported one-file local command or the explicit broad-local override. Agent tests also receive a local route because the pool does not provide their live-agent setup. The mutex and required preflights still apply. The commands below show the PostHog and daemon one-file forms.
+Every local test run and local verify holds a mutex shared by all checkouts of the same operating-system user on the host. It is taken before preflight and held until the run's test processes have exited and cleanup has finished, including after failures and handled interruptions. Verify takes it before its first phase, and the test phase it starts shares that hold. Blaxel runs, `list`, `help`, `preflight` and `verify --plan` do not take it. Different operating-system users are not coordinated. ^local-test-mutex
 
-### Host-wide mutex for one operating-system user
+While the mutex is held, another local run is refused at once with exit `2`. The refusal identifies the holder's process, command and checkout, explains the contention risk, advises against stopping another agent's run to free the lock, and offers these choices:
 
-Every canonical local test run, including local verify, takes one atomically acquired mutex shared by all checkouts, worktrees, and clones for the same operating-system user on the host. Its production location is outside every checkout and independent of ordinary home-directory and temporary-directory environment overrides. The location and ownership record are a compatibility contract between runner revisions: participating checkouts at different revisions must coordinate through the same mutex. It does not coordinate different operating-system users. ^local-test-mutex
+- try again after that run finishes;
+- pass `--wait-for-local-test-mutex` to wait. The wait has no time limit, and `SIGINT` or `SIGTERM` cancels it without affecting the holder;
+- use Blaxel;
+- pass `--against-test-guidance-major-host-contention-and-oom-killed-processes` to run alongside the holder.
 
-Direct local execution takes the mutex before preflight or test work. Local verify takes it before its first phase and retains it through all phases and cleanup. Its direct test-phase child shares that ownership and receives the applicable override options; unrelated and arbitrarily nested runs do not inherit an exemption. If the verify parent exits while its test-phase supervisor is alive, the run remains protected. Blaxel dispatch, standalone preflight, and informational commands such as `list`, `help`, and `verify --plan` acquire no local-test mutex.
+The wait option and the contention bypass cannot be combined. The bypass leaves the one-file limit in place, and the broad-local override leaves the mutex in place; `--force` lifts neither.
 
-By default, an occupied mutex refuses another local run immediately with exit `2`. The message names the holder's process identity, command, and checkout; tells the caller to try after that run finishes, pass `--wait-for-local-test-mutex`, use Blaxel when available, or deliberately use `--against-test-guidance-major-host-contention-and-oom-killed-processes`; and explains the contention and OOM-kill risk. It cautions against stopping another agent's run to free the lock. Unmarked hosts receive a usable local next step without needing Blaxel.
+A holder is stale only when none of its recorded processes is still alive, judged by PID and start time. The next run then takes over the mutex. If the stale run left test processes behind, the new run reaps them and fails, as any run does that finds stale processes ([Processes started by tests](#processes-started-by-tests)); otherwise it proceeds. Elapsed time never makes a holder stale, because a long run is not a dead one.
 
-`--wait-for-local-test-mutex` makes a local run, including local verify, block until it acquires the mutex. It has no time limit or ordering guarantee among waiters. Usage validation and selection and placement guardrails apply before waiting; waiting permits no broader selection or concurrent execution. While blocked, the runner identifies the holder and explains that the caller can interrupt the wait. `SIGINT` or `SIGTERM` cancels the wait without stopping the holder or starting the waiting run's phases or tests, with the signal-specific status in [Exit codes](#exit-codes). Once acquired, the usual ownership and cleanup rules apply. Passing this option together with the contention bypass is a usage error (exit `2`). CLI help documents the wait option alongside the default refusal.
+Checkouts on one host can run different revisions of the runner, so the mutex's location and record are a compatibility contract between revisions: a change must keep coordinating with checkouts still using the current form. The mutex is a SQLite database at `.cache/television/local-test-mutex.sqlite3` under the operating-system account's home directory. The path is read from the account, not from `$HOME`, so test environments that override `HOME` still share it. The database holds a single row. Acquisition and changes are compare-and-swap updates of that row, and no transaction stays open while tests run.
 
-The mutex stays held until the run's test processes have exited and lifecycle cleanup has completed, including after failure and handled interruption. Recovery after abrupt owner death uses process identity and the [surface lifecycle](#surface-process-lifecycle) machinery to establish that owned test processes have exited or to clean up stale processes before another run is admitted. A live test-phase supervisor prevents reclamation even if its verify parent died. Elapsed time alone never makes a holder stale. Finding stale test processes retains the lifecycle failure outcome: reap them and fail that invocation; a later clean invocation can proceed.
-
-`--against-test-guidance-major-host-contention-and-oom-killed-processes` allows concurrent local execution. It still acquires and holds the mutex when free. When occupied, it permits execution without displacing the holder. It does not lift the marked-host file limit. `--against-test-guidance-broad-local-run` lifts that limit but not the mutex, and `--force` bypasses neither protection; a caller needing both local exceptions passes both options. The [testing policy](../testing-policy.md#verification-provider-and-completion) owns permission to use them.
-
-Runner tests that launch nested canonical runs use a private lock-location hook accepted only with `TV_TEST_RUNNER_SELFTEST=1`. Supplying the hook without that gate is a usage error. This is the explicit test-only exception to the production location rule: independent test scenarios use separate locations; contention participants share one. Real acquisition, ownership, and release still execute, and the self-test warning identifies the substitution. The self-test dry run checks selection guardrails but acquires no mutex because it starts no test work. These hooks preserve destructive-fixture placement and cleanup requirements; their coverage limits belong in the proof.
-
-CLI help exposes the one-file local path, committed-and-pushed remote path, mutex, and independent overrides, with the testing policy's permission distinction.
-
-## Verify orchestration
-
-`verify` runs the broad verification that the guardrail steers callers toward. It resolves a provider, then runs phases in order, stopping at the first failure.
-
-The [host marker](#^blaxel-host-marker) controls automatic provider resolution; local verify also follows the [local guardrails](#local-guardrails).
-
-**Provider resolution.** The provider comes from `--provider`, or a single positional (`local` | `blaxel`), or defaults to `auto`. Passing both a positional and `--provider` is an error, as is an invalid positional.
-
-- An explicit provider (`local` or `blaxel`) is used as given; resolution itself runs no preflight. An explicit `local` when `~/.tvdev-use-blaxel` exists is refused unless `--against-test-guidance-broad-local-run` is passed, to keep broad verification on the chosen remote path. Explicit Blaxel commands remain available regardless of the marker.
-- Without `~/.tvdev-use-blaxel`, `auto` (the default) selects `local` without remote preflight, Blaxel access attempts, or Blaxel warnings. Local verification requires no bypass flag.
-- With the marker, `auto` runs the Blaxel remote preflight ([preflight.md](./preflight.md)): if it passes, the provider is `blaxel`; if it fails, verification is refused with exit `2`, remediation and the explicit `local --against-test-guidance-broad-local-run` escape hatch. There is no automatic local fallback on a marked host.
-
-**Phases.** Local verify runs six phases: local preflight (`all`), lint, type-check, package-manifests, the `all` suite locally with `--force`, then the vibe-mode check. Remote verify runs five: lint, type-check, package-manifests, the `all` suite on the chosen provider against the committed revision (`--commit HEAD` by default) with `--force`, then the vibe-mode check. There is no separate remote-preflight phase in the list; the remote preflight runs inside the provider's own test phase, before it dispatches. So an explicit remote provider runs the remote preflight once, in the test phase, while `auto` that resolved to `blaxel` runs the Blaxel preflight twice — once during resolution, once inside the test phase. Verify validates the [retry options](#retries) before phases execute and forwards the selected policy to its test phase. On success verify prints `verify passed (<provider>)`. A passing publication-qualifying verify automatically publishes a tree-hash attestation when the attestation eligibility predicate and activation policy permit; `--no-publish` suppresses that write ([attestation.md](./attestation.md)). Local and narrowed verifies do not publish attestations.
-
-The *vibe-mode check*, `scripts/test/vibe-mode-check.mjs`, is the last phase for both providers. It fails when `specs/vibe-waiver.md` exists in the checkout, because a branch in vibe mode is never merged into `main`; verify then reports failure and publishes no attestation. It runs after every other phase has run and reported normally, so the lint, type-check, and test results on a vibe branch are real, and its message names vibe mode as the reason. ^verify-vibe-mode
-
-`--plan` prints the resolved provider and the phase commands without running them. A `--plan` exit of 0 is not a verification — it reports what would run, nothing more. Verify has no path that reports a pass without running its phases.
-
-## Build-config integrity surface
-
-`unit:build-config` runs in `all` and CI. It runs the real CLI build script and inspects the default output for the ordinary configuration and an isolated `--outfile` bundle for the release configuration to verify the [ordinary and npm-release telemetry build configurations](../telemetry/sink.md#Behavior and operations). It is separate from `telemetry-posthog-roundtrip:integration`: it does not contact PostHog, does not require `TV_POSTHOG_TEST_READ_KEY`, and is safe for Blaxel and GitHub Actions.
-
-## Telemetry PostHog roundtrip suite
-
-`--suite telemetry-posthog-roundtrip` selects the live telemetry ↔ PostHog integration surface, currently `telemetry-posthog-roundtrip:integration`. The one-file invocation works on marked and unmarked hosts:
-
-```bash
-npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts
+```ts
+// CREATE TABLE local_test_mutex (slot INTEGER PRIMARY KEY CHECK(slot = 1), record TEXT NOT NULL)
+// `record` holds this value as JSON.
+interface LocalTestMutexRecord {
+  version: 1;
+  id: string; // unique per acquisition
+  participants: Array<{
+    pid: number;
+    startTime: string; // process start time as the host's process table reports it
+    command: string;
+    checkout: string;
+    role: "run" | "verify";
+  }>;
+}
 ```
 
-The suite is excluded from `all`, so `npm run verify`, CI, and Blaxel `--suite all` do not run it. It is intentionally local-only because it requires the secret PostHog test read key; remote providers do not receive that key. The selected surface declares the `posthog-test-key` preflight, so a missing key fails before Vitest starts. The PostHog key setup and the test project safety guard are specified in [../telemetry/sink.md#real-posthog-integration-test-surface](../telemetry/sink.md#real-posthog-integration-test-surface).
+### Native test entrypoints
 
-## Production daemon acceptance suite
+Registered Vitest and Playwright configs refuse to load when started directly rather than by the runner, on every host. The refusal gives the canonical command and, on marked hosts, the Blaxel route for broader work. For deliberate native use, such as watch mode, a debugger or an editor's test explorer, `TV_TEST_AGAINST_TEST_GUIDANCE_DIRECT_NATIVE_RUN=1` (exactly `1`) lets the config load. Such a run is outside the mutex and the one-file limit, and native setup such as required services remains the caller's job. Every way the runner itself starts a native tool, locally, on Blaxel and in CI, marks its environment so that its own runs load.
 
-`--suite daemon-acceptance` selects `daemon-acceptance:cli`, the packed-and-installed CLI acceptance surface for persisted service installation and removal. The one-file invocation works on marked and unmarked hosts:
+## The full-suite shortcut
 
-```bash
-TV_DAEMON_TEST_HOST=1 npm test -- local --file test/node/daemon-acceptance.test.ts
-```
-
-The suite is excluded from `all`, ordinary `verify`, CI, and Blaxel broad verification. It is manually run only on a designated developer host that is not intended to run a normal Television server. The `daemon-test-host` preflight requires the exact acknowledgement `TV_DAEMON_TEST_HOST=1` before the surface's build pre-command or test process starts; the test file repeats that check if invoked outside the canonical runner. The acknowledgement is an accidental-execution guard, not an authorization boundary.
-
-The surface builds the publishable CLI, packs it, and force-installs that tarball into the active npm global prefix. Its bulldozer first removes any existing `com.television.server` user service through the real `Daemon`, logs the service and PATH-visible `tv` state it found, and always replaces the global package with the freshly packed build. The asserted path then invokes the installed `tv` symlink, production `createDaemon`, literal service identity and arguments, and the host service manager. It proves daemon boot through `/health`, removes the service through `tv stop`, installs a service whose server cannot bind its listener and observes the command fail with the service left installed, repeats installation over that service for `tv serve --persist-uninstall`, and verifies no service definition or active registration remains. The final bulldozer observes that successful CLI removal left no service, invokes idempotent real cleanup, and removes residue if an earlier assertion failed. The freshly packed global `tv` package remains installed after the suite.
-
-Persisted serve rejects port `0`, so the surface cannot keep a kernel-owned port reservation while handing a stable number to the service's config file. For each installation it creates a temporary [Television home](../../product/cli.md#^cli-home), binds loopback port `0`, reads the assigned nonzero port, closes the reservation, writes that port with `tv --home <temporary-home> config set port <port>`, and immediately installs with `tv --home <temporary-home> serve --persist` and probes the daemon on that number. This is a narrow declared exception to [the normal continuous-reservation rule](#^test-dynamic-ports). `TV_DAEMON_TEST_DIRTY_START=1` asks the surface to create a production-identity installation before its foundation bulldozer; this is a test-harness mode for proving convergence from prior service residue, and it remains protected by `TV_DAEMON_TEST_HOST=1`.
-
-## Blaxel harness qualification
-
-Live tests of the Blaxel harness use the opt-in [driver and fixture surfaces](./test-registry.md#^blaxel-harness-surfaces). Run the automated driver with `npm test -- local --file test/runner-fixtures/blaxel-harness/driver/harness.test.ts` on a dedicated credentialed Blaxel coordinator sandbox outside the worker pool, using a committed and pushed checkout. It must not run on a shared developer host or a leased shard worker. It owns a disposable private pool and uses canonical Blaxel commands against that pool; it never selects itself for remote execution. Ordinary repository contracts and Linux process/filesystem seams remain ordinary repository tests and need no live-provider credentials. ^blaxel-harness-placement
-
-The driver selects only the committed fixture surface for worker runs: `--tag blaxel-harness-fixture` delegates a planned `--suite selection --surfaces experiment:blaxel-harness-fixtures` run; `--surface experiment:blaxel-harness-fixtures` delegates a targeted run. Workers load these fixtures from the committed registry, without a forwarded replacement-registry hook. Deliberate fixture failures remain failed native results; the driver asserts their expected outcomes and retained evidence. The driver cleans up its coordinators and private pool when it finishes, retaining reports and identifying any cleanup it could not complete.
+`npm test -- local` or `npm test -- blaxel` with the whole `all` suite is refused with exit `2` and directed to `npm run verify`. That covers no selector, `--suite all`, `--all`, and `--grep` alone. The full suite without lint and type-check is not a verification. `--force` permits it deliberately, and verify passes `--force` to its own test phase. On a marked host, a full local shortcut also needs the broad-local override.
 
 ## Retries
 
-Non-unit Vitest and Playwright surfaces retry twice at the runner level by default, including targeted file/grep/surface runs; unit surfaces receive no runner-level retries. A positive integer `--retries <n>` overrides the non-unit count; for a unit-only selection it is ignored with a notice. This is the runner's blanket retry budget; the per-test flaky annotation that opts a single case into retries is owned by [flaky-tests.md](./flaky-tests.md).
+Flaky tests are a fact of end-to-end testing, so failed tests are retried, and every recovery is reported rather than hidden ([reporting.md](./reporting.md)).
 
-Plain `--retries 0` is allowed for an explicit `--file` selection resolving to exactly one actual test file, optionally narrowed by `--grep`. Other selectors may restrict or disambiguate that file's owning surface. Resolution uses the files that will execute: the working tree for local runs and the selected committed revision for Blaxel. Native substring or regular-expression filtering must not widen an accepted one-file selection. A surface or other selector without `--file`, or a file filter matching several files, does not qualify; `--grep` alone does not establish a one-file boundary. Invalid or empty selections retain their ordinary selection errors.
+- **Runner budget.** On surfaces other than unit surfaces, a failed test is retried up to twice by default, whatever the selection. Unit surfaces get no runner retries. A positive `--retries <n>` sets the count for the non-unit surfaces. A test that fails and then passes counts as passed and is reported as a *recovered flake*.
+- **Zero retries.** Plain `--retries 0` is for running a new or changed test once. It is accepted when `--file` selects exactly one test file, optionally narrowed by `--grep`, with either provider. For any broader selection, including verify, it is refused with exit `2` unless `--against-test-guidance-turn-flakes-into-failures-on-broad-runs` is passed, which sets the runner budget to zero on purpose. Neither zero form changes unit surfaces, per-test annotations or Blaxel's infrastructure retries.
+- **Per-test annotation.** One known-flaky case may get more retries from `FLAKY_TEST_RETRIES` in `test/flaky-retries.ts` (5 in runner and CI runs), with a title that starts with `flaky:`. Reports use that prefix to mark the recovery as annotated. An annotation is for investigated flakiness in the harness or environment, on the one offending case and never on a whole file or suite. A real failure is fixed instead.
+- **Infrastructure retries.** Blaxel reruns a shard whose infrastructure failed, up to twice, with the same assignment. A completed shard with a failed test is never rerun ([sharded-execution.md](./sharded-execution.md)).
 
-For anything broader, plain `--retries 0` is refused with exit `2` before test execution or remote dispatch, even for a unit-only selection. The message recommends the default budget, explains the one-file form, and names `--against-test-guidance-turn-flakes-into-failures-on-broad-runs` for deliberately proceeding with zero retries. That override sets the runner-level budget to zero and may be passed alone or together with `--retries 0`; combining it with a positive count is a usage error. Negative or invalid counts are usage errors. These rules apply on marked and unmarked hosts, with either provider. Verify is broader than one file, so it requires the override for zero retries, validates that requirement before running phases, and forwards the chosen policy. The retry override lifts neither local protection nor the full-`all` shortcut guardrail. CLI help follows the [iteration policy](../testing-policy.md#test-iteration-discipline), which owns guidance and permissions.
+No retry clears a process leak: a surface that leaves a process running fails even when every test passed or recovered ([Processes started by tests](#processes-started-by-tests)).
 
-Both zero-retry forms leave unit defaults, per-test flaky annotations, and infrastructure retry budgets unchanged. They disable the runner-level budget only, so a test with an explicit per-test annotation can still retry. Native-worker retry parameters receive the resolved numeric budget; selection-dependent admission belongs at the canonical command boundary.
+Failing tests do not end a run early. Tests run in many independent processes, so a cap on failures would only leave assigned tests unrun and the evidence incomplete.
 
-The canonical runner does not impose an automatic cap on observed failure counts through Playwright `maxFailures` or an equivalent mechanism. Tests are typically sharded across independent processes, so such a cap does not meaningfully bound a complete run; it only leaves assigned tests unexecuted and reduces the diagnostic evidence available from that run.
+## Verify
 
-Blaxel infrastructure retries are separate from this per-test budget. Infrastructure failure is the only condition that causes a shard to run again. A completed rerun supersedes the prior infrastructure-failed result. The canonical Blaxel command permits two such retries and reuses the shard's unchanged assignment, including for unit work and when the incomplete attempt retained failed task observations. Retry eligibility is independent per shard, so a completed test failure elsewhere does not suppress it. `stale-owner` is the sandbox-safety exception defined by [blaxel-testshards.md](./blaxel-testshards.md): the contaminated sandbox runs no selected test and is excluded from later attempts, while a configured retry may run the unchanged shard assignment on a distinct sandbox only after that sandbox acquires its own lease and passes its owner audit. Without an exact contaminated-sandbox identity or distinct clean capacity, the shard remains infrastructure-failed. If the retry budget ends without a complete result, the normalized run remains incomplete and the command fails.
+`npm run verify` is the full gate. It stops at the first failing phase:
 
-The GitHub Actions CI workflow at .github/workflows/ci.yml is part of the runner-retry contract. Its browser and Node end-to-end shard job calls scripts/run-test-shard.mjs directly instead of entering through npm test, so that job must pass --test-retries 2. The desktop end-to-end job enters through npm test -- local --surface e2e:desktop, so it receives the same default retry count from the runner. If the default retry count for non-unit surfaces changes, this workflow must change in the same update.
+- locally: preflight for the `all` suite, lint, type-check, package manifest checks, the `all` suite, then the vibe-mode check;
+- on Blaxel: lint, type-check and package manifest checks in the checkout, the `all` suite on Blaxel at the committed `HEAD`, then the vibe-mode check.
 
-## Local execution
+On success it prints `verify passed (<provider>)`. A passing complete Blaxel verify publishes an attestation for its tree unless `--no-publish` is passed ([attestation.md](./attestation.md)). A local verify never publishes. `--plan` prints the chosen provider and the phase commands without running anything.
 
-A local run admitted by the guardrails writes a run directory and normalized reports ([reporting.md](./reporting.md)) and exits 0 when the run passed, 1 otherwise.
+`npm run verify -- local` or `npm run verify -- blaxel` chooses the provider explicitly. Otherwise an unmarked host verifies locally without contacting Blaxel. A marked host runs the Blaxel checks first: credentials, a clean tree and a pushed commit. When they pass it uses Blaxel; when they fail it refuses with exit `2` and the remediation, and never silently falls back to local. An explicit local verify on a marked host also needs `--against-test-guidance-broad-local-run`.
 
-- A suite or broad local selection with no `--file` / `--grep` runs surfaces grouped by execution group, in group order ([test-registry.md](./test-registry.md)). The group whose id is `unit:workspaces` runs as one Vitest process when all of its members use Vitest and declare no services. The combined native result is split back to per-surface results by file ownership. Other groups run surface by surface, even when every member uses Vitest.
-- A `--file` or `--grep` selection runs the selected surfaces one at a time.
-- Each independently spawned surface task runs inside the owned process scope defined below. The runner starts its declared services, publishes their URLs, and completes teardown and leak detection before the next task starts.
-- A surface may declare a build to run first, services to run alongside it, or a command that overrides the default runner invocation; these declarations are registry-owned ([test-registry.md](./test-registry.md)).
-- When `SKIP_ELECTRON_E2E=1`, the desktop command still starts through the normal surface path. If it exits cleanly without leaks or cleanup failure, the runner reclassifies that result as `skipped` with `SKIP_ELECTRON_E2E=1` as its reason.
+The *vibe-mode check* fails when `specs/vibe-waiver.md` exists. That file marks a branch in vibe mode, an experiment branch with the spec-driven process switched off, which must never merge into `main`. The check runs last, so the lint, type-check and test results on such a branch are still real, and its failure names vibe mode as the reason. CI applies the same check ([github-ci.md](./github-ci.md)). ^verify-vibe-mode
 
-## Test infrastructure addresses
+## Processes started by tests
 
-A *test infrastructure listener* is a network listener created to support a canonical test run: an application server, development server, proxy, fixture server, or other harness service. Every such listener asks the operating system for an available port by binding port `0` (or the runtime's equivalent) and reads back the assigned address after the bind succeeds. Test infrastructure has no fixed port, planned port range, adjacent-port convention, or reserve-then-release allocator. This is required because only the successful bind reserves a port; selecting a number before binding has a time-of-check/time-of-use race with every other process on the host. ^test-dynamic-ports
+Developer machines and Blaxel workers run many test runs over time, often concurrently. A process a test leaves behind can hold ports, memory and files that break later runs, so the runner owns every process a surface starts.
 
-A consumer receives a full URL from the component that owns the successful bind. This applies to runner configs, helpers, test cases, browser navigation, and URLs embedded in served fixtures; none may use a numeric test-infrastructure URL literal or a fallback to one.
+A *surface process scope* is everything started for one surface run: its build step, services, the test runner and its workers, browsers, Electron, and anything tests spawn. Its owner is the local runner, or the shard worker on Blaxel and in CI. The owner stays alive when a test worker crashes, so it is the final reaper. ^test-surface-owner
 
-- For a registry-declared service, the runner creates an HTTP listener, mounts Vite's Node-API middleware on it, connects Vite HMR to that same listener, disables speculative request pretransforms, binds the listener to loopback port `0`, and reads its address after `listen()`. Vite treats `server.port: 0` as a falsy value and substitutes its default port, so Vite does not own this bind. Its speculative pretransforms can also retain pending transform promises after the public idle barrier; on-demand transforms remain enabled while the runner disables that optimization so bounded teardown can complete. The runner writes the full bound URL to the service's `publishUrlEnv` variable ([test-registry.md](./test-registry.md)). Services start in declaration order, and each published URL is present while later services load their config and while the test command loads its config. A missing required variable is a configuration failure before tests start.
-- A test helper that starts its own listener returns the bound URL directly. A subprocess that implements the listener may publish it through a machine-readable readiness message; the helper waits for that message before returning.
-- A test that spawns the product's `tv serve` gives it a temporary [Television home](../../product/cli.md#^cli-home) whose config file sets port `0`, passes that home with `--home` to the server and to every client command it spawns, and passes the server [the hidden `--print-links` flag](../cli/index.md#Server process boundary), so that it prints its connect links even though its output is a pipe. The test reads the acquired URL from those links. Spawned client commands also pass that URL's port with `--port`, as the [client-port rule](../../product/cli.md#^cli-client-port) requires for config port `0`.
-- A Playwright config reads its base URL from the published environment. It does not start a second copy through Playwright's `webServer` option and does not fall back to a numeric localhost URL. A test whose framework `baseURL` type is optional asserts that it is present before use.
-- A committed static fixture uses relative `src` and `href` values for dependencies served by its own origin. If it needs another independently published service, the serving Vite config uses `define` injection to supply that service's named URL to the consuming module. If a fixture needs a second origin on the same service, it derives the alternate hostname from `location` at runtime while preserving the published port. The committed fixture never contains a numeric live-service origin.
+- The owner puts a token in `TV_TEST_SURFACE_OWNER`, and every child inherits it. Test helpers that build child environments must preserve it.
+- After the tests exit, whether normally, by failure, timeout or interruption, the owner stops the scope's services, allows a short grace period, then finds every live process still carrying the token. It sends each `SIGTERM`, then `SIGKILL` after a short interval, and confirms none survived. Before each signal it rechecks the process's start time and token, so a reused PID is never hit. A process that needed a signal is a *process leak*. It fails the surface even when every test passed, and the report identifies it by PID, command and listening sockets ([reporting.md](./reporting.md)). ^test-process-leak
+- Processes are found only through the inherited token, using `/proc` and `ss` on Linux, or `ps` and `lsof` on macOS. Killing by port or process name is not used: on a shared host it can kill another run's processes. Preflight checks that the host's process backend works and fails rather than letting a run proceed without cleanup.
+- When an owner is itself killed, nothing can clean up at that moment. Before running tests, the runner and each shard worker look for tokens whose supervisor is gone. They reap those processes and fail that run as an infrastructure problem instead of running beside them. Tokens whose supervisor is alive belong to a concurrent run and are left alone.
 
-Each URL is independent. A harness with two origins receives two published URLs and never derives one by adding to another port. The artifact host and artifact view are two independently bound services under this rule; their addresses are not allocated from a precomputed range.
-
-A test may contain a numeric port as inert input or expected output only when the value is never dereferenced as the address of a live test-infrastructure listener. This permits parser/serialization fixtures and a deliberate unreachable target to which no test process binds. It does not permit a URL used by navigation, `fetch`, a socket client, `src`, or `href` to identify a running test service.
-
-When a browser origin must remain stable while its backend restarts, one front listener binds port `0` for the whole test and updates its forwarding target after each independently bound backend starts. The test never closes a reservation and asks a replacement server to rebind its number.
-
-## Vite service responses
-
-A registry-declared service answers every request in full and never with `304 Not Modified`: its listener removes the `If-None-Match` and `If-Modified-Since` headers from each request before Vite handles it. ^test-service-full-responses
-
-The reason is a Chromium behavior, observed on Linux in the Chromium 145 build that Playwright 1.58.2 installs, both its headless shell and full Chromium. There, each script, module, stylesheet, or image response with status 304 left the page's renderer holding a 2 MB shared-memory buffer until the page's browser context closed, even after the page navigated elsewhere. Vite serves the application's development build as hundreds of separate modules that the browser revalidates on every load, so in that build each further load of the application in one page held about 465 MB more. Other Chromium versions may differ. Playwright launches Chromium with `--disable-dev-shm-usage`, which places those buffers in the temporary directory. Where that directory is kept in memory, as on [Blaxel workers](./blaxel-testshards.md), a test that loads the application several times in one page can run out of memory and crash the page.
-
-## Destructive fixture placement
-
-A surface tagged `isolated-github-only` is refused with usage exit `2` before local preflight, Blaxel preflight, dispatch, or lease acquisition. It is never eligible for developer-host local execution or any Blaxel path. The only accepted placement is `provider=local` inside an operator-authorized, branch-only GitHub workflow named `Process Lifecycle Fault Injection`, with `GITHUB_ACTIONS=true` and `TV_TEST_ISOLATED_GITHUB=1`. The repository does not commit this fault-injection workflow. Its exact identity and explicit opt-in prevent accidental execution in trusted automation, but they are not a security boundary because callers can set the same environment values. Any authorized workflow must use an isolated ephemeral runner, an independent timeout, owner-token cleanup, and complete hidden run-artifact upload. Repository workflow controls, registry exclusion, provider refusal, host isolation, and independent cleanup provide the protection. This execution restriction is permanent.
-
-## Surface process lifecycle
+Hosts inspect tokens left by runs of other runner revisions, so the token format is shared across revisions. A token is `tv1.` followed by the base64url encoding of the JSON object below. It is stale when no live process has that PID and start time.
 
 ```ts
-const TEST_SURFACE_OWNER_ENV: "TV_TEST_SURFACE_OWNER";
-const TEST_PROCESS_TERM_GRACE_MS: 2_000;
+interface SurfaceOwner {
+  runId: string;
+  surfaceId: string; // comma-separated when one scope runs several surfaces
+  supervisorPid: number;
+  supervisorStartTime: string; // as the host's process table reports it
+}
 ```
 
-A *surface process scope* is the complete set of operating-system processes started for one independently spawned surface task: its `preCommand`, declared services, test command, runner workers, browsers, Electron applications, and subprocesses started by tests. The local runner owns local scopes; the shared shard worker owns remote scopes ([sharded-execution.md](./sharded-execution.md)). A worker process and a test callback may perform prompt cleanup, but the outer scope owner is the final reaper because it remains alive when a worker crashes or a test callback is interrupted. ^test-surface-owner
+## Network addresses in tests
 
-Before starting a scope, its owner creates a unique owner token whose encoding contains the run ID, surface identity, supervisor PID, and supervisor process start time. The token is opaque to tests and child consumers; the scope owner and preflight scanner decode it. The owner exports it to every child and launches each root command in a POSIX process group. Repository test helpers preserve the token in child environments. Declared services and helpers that create detached children give those children their own process groups so the owner can signal each tree. Descendants that create another process group remain discoverable through the inherited token.
+Test infrastructure, such as application and development servers, proxies and fixture servers, binds port `0` and reads back the port the kernel assigned. There are no fixed ports, port ranges or reserve-then-release allocators. Choosing a number before binding races every other process on the host, and concurrent runs on shared hosts make that race real. The component that bound a listener hands consumers its full URL: as a return value, through a readiness message, or, for a registry-declared service, in the environment variable the registry names. Nothing derives one service's address from another's port, and no test uses a numeric URL literal for a live test service. A port number may still appear as inert test data that nothing connects to. ^test-dynamic-ports
 
-A surface scope proceeds in this order:
+Persisted `tv serve` rejects port `0`, so the daemon acceptance suite takes a kernel-assigned port, releases it and immediately configures the installed service with it. This is the one exception.
 
-1. Run `preCommand`, if declared. It must exit without a live descendant before service startup.
-2. Start declared services in declaration order and wait for each bound URL.
-3. Run the test command and wait for its exit.
-4. Stop declared services in reverse order and allow a bounded graceful-exit interval.
-5. Run the leak check below, reap any survivors, and only then complete the surface result or start another task.
+Registry-declared services are Vite middleware on a listener the runner binds itself, because Vite treats `server.port: 0` as unset and falls back to its default port. The runner also turns off Vite's speculative pre-transforms, which can leave transform work pending after the server reports idle and stall teardown.
 
-The same teardown runs after a non-zero child exit, thrown runner error, timeout, `SIGINT`, or `SIGTERM`. It sends `SIGTERM` to registered process groups and token-matched processes, waits up to `TEST_PROCESS_TERM_GRACE_MS`, then sends `SIGKILL` to survivors. Two seconds lets a test server close sockets and flush output without allowing a leaked process to consume a material share of the run. Cleanup functions are idempotent. No test-owned process may transfer out of the scope or survive it.
+Registry-declared Vite services always answer in full and never with `304 Not Modified`: the listener strips `If-None-Match` and `If-Modified-Since` from every request. In the Chromium 145 build that Playwright 1.58.2 installs, each 304 response to a script, stylesheet or image left the renderer holding a 2 MB shared-memory buffer until the browser context closed. The development build is hundreds of modules, so every reload of the application in one page held about 465 MB more. On Blaxel workers, where Chromium's shared memory lives in memory-backed temporary storage, tests that reloaded the application several times crashed. ^test-service-full-responses
 
-`SIGKILL` of the scope owner itself cannot execute teardown. On an ephemeral GitHub host, job disposal removes its processes. A persistent or local execution host finds the abandoned token during its next preflight and reaps it before running a surface. The lifecycle guarantee is that no subsequent surface starts alongside an abandoned process; it does not claim that a killed supervisor can execute code.
+## Cursor agent environment
 
-A combined Vitest run uses a generated config with one `test.projects` entry per member surface. Each entry extends the surface's Vitest config and uses that config file's directory as its root. Attempt recording follows [reporting.md](./reporting.md#^vitest-attempt-recording). This structure applies to local and sharded execution. The command is one process scope whose token names every member surface. It may contain only surfaces with no declared services and no test that intentionally leaves a long-running subprocess alive while another surface executes. A leak fails every member because the shared process boundary cannot attribute the spawn more narrowly. A surface that needs services or long-running subprocesses runs as an independent task.
-
-Persistent workers inspect Television owner tokens before accepting a new scope. A token is stale only when its recorded supervisor PID and process start time no longer identify a live supervisor; a concurrent run with a live supervisor is left untouched. A stale process is captured and reaped, and the worker reports an infrastructure preflight failure naming the token and process; it does not run a new surface in contaminated state. An ephemeral provider still performs the check so its correctness does not depend on host disposal.
-
-Blaxel additionally reserves the whole worker through result retrieval. Its [abandoned-run recovery](./blaxel-testshards.md#Abandoned-run recovery) may stop that abandoned attempt's live supervisors after coordinator renewal expires; it does not weaken the ordinary stale-owner rule for other runs. Surface supervisors and helpers preserve the outer shard attempt attribution alongside their own surface tokens. [Reporting](./reporting.md#Resource diagnostics) owns the resource evidence captured across Blaxel surface preparation, execution, and teardown.
-
-## End-of-surface leak detection
-
-After registered teardown and its graceful interval, the scope owner enumerates every live process carrying the owner token. Each candidate is revalidated immediately before cleanup. A candidate that exits naturally before any cleanup signal is sent is not a *process leak* and is omitted; this closes the normal child-exit race where a runner exits just before one of its helper processes. A process that requires `SIGTERM` or `SIGKILL` remains a leak even if a later revalidation finds that it has exited. For every actual leak, the owner captures its identity and listening sockets before sending `SIGTERM`, escalates to `SIGKILL` after the bounded interval, and scans once more to confirm that no survivor remains. Before each signal it confirms that the PID still has the same process start time and owner token, preventing PID reuse from targeting another process. The diagnostic identifies at least the surface owner, PID, parent PID, process group, process start time, executable command, and every attributable listening TCP socket. [reporting.md](./reporting.md) owns the normalized record that carries this attribution. ^test-process-leak
-
-Linux discovery reads process identity and inherited owner tokens from `/proc` and attributes listening sockets with `ss`. macOS discovery reads process identity and inherited owner tokens with `ps` and attributes sockets with `lsof`. The required backend is checked before execution ([preflight.md](./preflight.md)). Port-based process killing and executable-name matching are not lifecycle mechanisms: they cannot establish which surface owns a process and can kill an unrelated concurrent run.
-
-A leak makes its owning surface fail even when all native test results passed or a retry recovered. Native failures and recovered-flake records remain visible alongside the lifecycle failure. [reporting.md](./reporting.md) owns the normalized field names and run-status classification for this concept. In a combined Vitest run scope, each member surface receives the lifecycle failure and the report names the shared owner token.
-
-## Exit codes
-
-- `0` — the run passed, or an informational command completed (`list`, `help`, `verify --plan`).
-- `1` — a test run failed, or a preflight/run-time failure during execution.
-- `2` — a usage error or a canonical-runner guardrail refusal, including a broad provider shortcut, a marked-host local selection, or an occupied local-test mutex.
-- `130` — a local-test mutex wait was cancelled by `SIGINT`; or a delegated Blaxel coordinator handled `SIGINT` or `SIGTERM`, finalized an interrupted provider report, and completed cleanup. When the canonical provider command receives this coordinator exit, it finalizes the normalized incomplete run and preserves `130`; `verify` likewise propagates that status from its test phase.
-- `143` — a local-test mutex wait was cancelled by `SIGTERM`.
-
-A remote provider command exits `0` only when both the delegated coordinator exits successfully and the normalized run report is `passed`; missing, contradictory, or infrastructure-incomplete report evidence cannot produce a successful command through a zero delegated exit. A nonzero delegated exit remains nonzero even if retained report evidence appears passed.
-
-## Cursor-agent environment workaround
-
-```ts
-const CURSOR_AGENT_ENV_FLAG: string;          // "CURSOR_AGENT"
-const CURSOR_AGENT_ENV_VARS: readonly string[]; // "ELECTRON_RUN_AS_NODE", "PLAYWRIGHT_BROWSERS_PATH"
-```
-
-When `CURSOR_AGENT=1`, the Cursor environment injects variables that break local Electron and Playwright tests. The runner strips those variables for its own process and child test processes. Without the flag it is a no-op. The flag is set only inside the Cursor agent environment; terminals, the remote providers, and CI never set it.
+When `CURSOR_AGENT=1`, the runner removes `ELECTRON_RUN_AS_NODE` and `PLAYWRIGHT_BROWSERS_PATH` from its own environment and its children's. The Cursor agent environment sets both, and they break Electron and Playwright tests.
 
 ## Testing guidance
 
-Proof of canonical CLI guardrail decisions, provider resolution, and `verify` orchestration must spawn the canonical CLI. The proof must exercise the CLI's real argument parsing and observe its exit status, standard output, and standard error. Native-entrypoint refusals are exercised through the corresponding native tool loading a registered config. Under the testing policy's [mocking policy](../testing-policy.md#Mocking policy), self-test seams may replace only downstream work that is not part of the decision being proven.
-
-Coverage for surface services must begin with a `TestService` declaration. It must use the service manager and process environment to pass the service's URL to a real Playwright configuration. It must use real Vite listeners and real HTTP requests. Coverage must also show that, after successful execution and after a service fails to start, services stop in reverse order and the parent environment is restored.
-
-Under the testing policy's [compositional coverage rule](../testing-policy.md#Compositional coverage across clean seams), this spec owns the decision that selects a provider automatically from the home marker and, on marked hosts, a remote preflight result. [Preflight's testing guidance](./preflight.md#testing-guidance) requires a real Git process to run the production git-safety sequence in a repository with an `origin` remote. It also requires live evidence for the Blaxel capability checks. The live planned run required by [sharded execution's Testing section](./sharded-execution.md#Testing) supplies the real provider report for the remote run.
-
-Reading `.github/workflows/ci.yml` proves only which command the file contains. The isolated live run required by [GitHub CI's Testing section](./github-ci.md#Testing) establishes that GitHub starts the job and that the job invokes the test runner.
+Tests that deliberately leak, orphan or kill processes, or kill a supervisor, belong in `isolated-github-only` surfaces. On a shared host they could disturb other runs or leave residue for them.
