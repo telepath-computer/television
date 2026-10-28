@@ -827,6 +827,20 @@ describe("test runner guardrails", () => {
     expect(result.stderr).not.toContain("option guard failed");
   });
 
+  test("refuses a local guardrail violation before any run directory", () => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), "tv-runner-run-dir-output-"));
+    const output = path.join(outputDir, "run-dir");
+    try {
+      const result = runCli(["local", "--run-dir-output", output], selftestEnv());
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(broadShortcutMessage);
+      expect(existsSync(output)).toBe(false);
+    } finally {
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
   // The architect accepted this deviation as closed pending TV-597's cause investigation and restoration.
   test.skip("allows isolated lifecycle fixtures only under the authorized GitHub workflow identity and opt-in", () => {
     const result = runCli(["local", "--surface", "experiment:lifecycle-leak"], selftestEnv({

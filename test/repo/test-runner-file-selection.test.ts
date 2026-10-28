@@ -14,7 +14,7 @@ const zero = "--against-test-guidance-turn-flakes-into-failures-on-broad-runs";
 
 // proofs/arch/test-runner/test-runner.md#^t-runner-file-boundary
 describe("actual file resolution", () => {
-  // proofs/arch/test-runner/test-registry.md#^registry-committed-normalization
+  // proofs/arch/test-runner/test-runner.md#^registry-committed-normalization
   test("normalizes committed and local registry surfaces identically", async () => {
     // Compares this checkout with HEAD: commit registry or package-name edits first.
     const snapshot = await loadRegistrySnapshotAtCommit();
@@ -22,7 +22,7 @@ describe("actual file resolution", () => {
     expect(snapshot.surfaces.find((surface) => surface.id === "e2e:artifact")?.cwd).toBe("packages/artifact");
   });
 
-  // proofs/arch/test-runner/test-registry.md#^registry-committed-normalization
+  // proofs/arch/test-runner/test-runner.md#^registry-committed-normalization
   test("derives package directories from the selected commit's manifests", async () => {
     const f = guidanceCheckout();
     try {

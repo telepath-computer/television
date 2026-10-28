@@ -405,3 +405,27 @@ The reviews are the `*-r2.md` files in `file-reviews/`, on `db88693c`. `test-run
 #### reporting.md
 
 1. **The run-directory code repair is outstanding.** Done. `runBlaxel` (`scripts/test/cli.mjs`) now computes its selection arguments, including the one-surface check for targeted selections and the supported-suite check, before remote preflight and before the run directory exists. The arguments passed to the coordinator are unchanged. The same review of the path found one more refusal after the directory existed: an invalid `--run-dir-output` value was rejected only when the identity was written. That check now runs first in `runWithSelection`, for local and Blaxel runs. `test/repo/test-runner-guardrails.test.ts` adds cases showing that each refusal comes before remote preflight and writes no run-directory identity. P2; removal account reporting 5.
+
+## Repair phase
+
+Josh approved the converged specs at `85b82b0d`. The repair phase brings everything that cites them into line, without re-deriving proofs: Josh asked for surgical proof edits that repoint citations, fold the proofs as the specs were folded, and correct what the new specs contradict, keeping coverage of anything the specs no longer promise and marking it *superfluous*. No proof, test or covered code is removed. Test changes are limited to the two tests that read old spec text, citation comments, and tests a new spec promise plainly lacks.
+
+### Citations outside the proofs (`961967df`)
+
+Every row of "Inbound citations affected" above is repaired, along with the removal account's table of old targets:
+
+- Spec links in `AGENTS.md`, `spec-workflow.md`, `testing-policy.md`, the desktop, licensing, Node-version and telemetry specs, the migration map and `developer-skills/tvdev-setup/SKILL.md` now point at `test-runner.md` sections and anchors. `specs/product/desktop-app.md` cited preflight's testing guidance as the reason for its Mac verify run; that guidance is gone, so the sentence now says what the run exercises: the runner's macOS process backend.
+- `specs/terms.md`: owners updated; *shard*, *attempt*, *infrastructure failure* and *test failure* restated against `sharded-execution.md`; *flaky test* replaced by *recovered flake*, the term `test-runner.md#retries` defines. *Execution group* and *normalized surface result* are removed: no spec defines them now.
+- Workflow, script and test comments that named old headings now name current ones. Three pre-existing broken wikilinks in test comments (`^gha-prebuilt-consumer`, `^gha-prebuilt-cli-outputs`) became checked path citations.
+- The two tests that read old spec text (`test-runner-guardrails.test.ts` "keeps CI-planned e2e surfaces registry-owned…", `test-runner-provider.test.ts` "keeps canonical stale-owner retry authority…") now read the sentences in `github-ci.md#jobs` and `blaxel-testshards.md#runs` that state the same rules.
+
+### Proofs
+
+- **Fold.** `proofs/arch/test-runner/test-registry.md`, `preflight.md` and `flaky-tests.md` are folded into `test-runner.md`'s proof as "Test registry", "Preflight checks" and a paragraph under "Retry selection and execution". Their hooks join its Test hooks. Every assertion and anchor is kept, so test citations change only their file (`^registry-committed-normalization`, `^preflight-t-electron-planner-handoff`).
+- **Citations.** Every proof link to a removed heading or anchor is repointed, following the removal account's table.
+- **Contradictions corrected.** Attestation eligibility is by tree, not by `--commit` ≠ `HEAD`. CI recipe coverage is for surfaces in `all`. The shard-count recommendation is "at most" two minutes, with the pool-size fallback. Two references to spec testing directives that no longer exist (a CLI-boundary directive, native-config loading "as directed by the spec") are removed, and the proof now names where it honors the one directive the spec has: destructive lifecycle tests in isolated surfaces.
+- **Superfluous, kept.** Marked where an assertion covers detail the spec leaves to the code: the `tv serve` test recipe, `--allow-extreme-inefficiency`, execution groups and their order, invalid Vite service forms, the `node` check's name, the coordinator script's `--repo-url`, nvm's pinned version, image and memory size, worker Electron repair, the normalized result type, the LPT algorithm and weighting constants, combined Vitest invocation, diagnostic byte bounds, and the `e2e:browser-app` worker pin.
+- **New promises cited to existing tests.** The owner-token format (`process-lifecycle.test.ts`), plan validation by digest (`test-runner-shard-plan.test.ts`), refusal of a reserved worker (`blaxel-lease-contracts.test.ts`), `--run-dir-output` and refusals before preflight (`test-runner-reporting.test.ts`, `test-runner-guardrails.test.ts`), and one rule of the event envelope (`test-runner-timing-baseline.test.ts`, with the rest of the envelope stated as having no cases of its own).
+- **New tests for promises that plainly lacked one.** A local guardrail refusal leaves no run directory (`test-runner-guardrails.test.ts`). The summary keeps the fields `RunSummary` pins (expectations added to two existing tests in `test-runner-reporting.test.ts`). Both pass locally, one file each.
+
+Primitive flagged `dec_8e3d38a8` (crash cases belong on the isolated lifecycle surface) on the new guardrails test. That test is a plain CLI refusal, not a crash case; recorded as followed.

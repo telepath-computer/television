@@ -79,13 +79,10 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **test-runner/**
     - `attestation.md` (67 lines) — *How the promises in Test Attestation are proven.*
     - `blaxel-testshards.md` (101 lines) — *How the promises in Blaxel Test Shards are proven.*
-    - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
-    - `preflight.md` (42 lines) — *How the promises in Preflight are proven.*
-    - `reporting.md` (59 lines) — *How the promises in Reporting are proven.*
-    - `sharded-execution.md` (53 lines) — *How the promises in Sharded Execution are proven.*
-    - `test-registry.md` (39 lines) — *How the promises in Test Registry are proven.*
-    - `test-runner.md` (143 lines) — *Canonical CLI guardrails, local ownership, native entrypoints, and retry policy proven through real process boundaries and declared downstream substitutions.*
+    - `reporting.md` (63 lines) — *How the promises in Reporting are proven.*
+    - `sharded-execution.md` (54 lines) — *How the promises in Sharded Execution are proven.*
+    - `test-runner.md` (207 lines) — *Canonical CLI guardrails, local ownership, native entrypoints, retry policy, the test registry, and preflight checks proven through real process boundaries and declared downstream substitutions.*
   - **themes/**
     - `authoring.md` (35 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*
