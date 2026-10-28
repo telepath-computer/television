@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
 import { loadTestConfig, selectSurfaces } from "../../scripts/test/config.mjs";
+import { guidanceCheckout } from "./fixtures/test-runner/guidance-checkout.ts";
 
 const cli = ["scripts/test/cli.mjs"];
 // Real child-process homes isolate host configuration without mocking marker lookup.
@@ -797,47 +798,60 @@ describe("test runner guardrails", () => {
     expect(result.stderr).not.toContain("placement guard failed");
   });
 
+  // Each refusal runs in a disposable checkout, so its own .test-runs/ shows
+  // whether the command made a run directory.
+  function refusalCheckout() {
+    const f = guidanceCheckout();
+    const playwrightRoot = "test/runner-fixtures/guidance/playwright";
+    cpSync(playwrightRoot, path.join(f.root, playwrightRoot), { recursive: true });
+    f.registry.executionGroups[0]!.surfaces.push({
+      ...f.surface, id: "fixture:playwright", runner: "playwright", config: `${playwrightRoot}/playwright.config.ts`,
+      roots: [playwrightRoot], absoluteConfig: path.join(f.root, playwrightRoot, "playwright.config.ts"),
+    });
+    f.registry.suites.all.include = ["kind:experiment"];
+    f.registry.suites.experiment.include = ["kind:experiment"];
+    f.writeRegistry();
+    // Blaxel selection reads the registry from the tested commit.
+    f.git("add", ".");
+    f.git("commit", "-qm", "Second fixture surface");
+    return f;
+  }
+
   test.each([
-    [["--surface", "unit:root,unit:artifact"], "resolves to exactly one surface"],
-    [["--suite", "e2e-ci"], "Blaxel suite runs require --suite all|unit|e2e"],
-  ])("refuses unsupported Blaxel selections before remote preflight and any run directory: %j", (args, message) => {
-    const outputDir = mkdtempSync(path.join(os.tmpdir(), "tv-runner-run-dir-output-"));
-    const output = path.join(outputDir, "run-dir");
+    [["local"], broadShortcutMessage],
+    [["blaxel", "--surface", "fixture:vitest,fixture:playwright"], "resolves to exactly one surface"],
+    [["blaxel", "--suite", "experiment"], "Blaxel suite runs require --suite all|unit|e2e"],
+  ])("refuses %j before remote preflight and creates no run directory", (args, message) => {
+    const f = refusalCheckout();
     try {
-      const result = runCli(["blaxel", ...args, "--run-dir-output", output], selftestEnv({
+      const output = path.join(f.root, "run-dir");
+      const result = f.run([...args, "--run-dir-output", output], {
         TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:selection guard failed",
-      }));
+      });
 
       expect(result.status, result.stderr).toBe(2);
       expect(result.stderr).toContain(message);
       expect(result.stderr).not.toContain("selection guard failed");
       expect(existsSync(output)).toBe(false);
+      expect(existsSync(path.join(f.root, ".test-runs"))).toBe(false);
     } finally {
-      rmSync(outputDir, { recursive: true, force: true });
+      f.cleanup();
     }
   });
 
-  test("refuses an empty --run-dir-output before remote preflight and any run directory", () => {
-    const result = runCli(["blaxel", "--suite", "unit", "--run-dir-output="], selftestEnv({
-      TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:option guard failed",
-    }));
-
-    expect(result.status, result.stderr).toBe(2);
-    expect(result.stderr).toContain("--run-dir-output requires a file path");
-    expect(result.stderr).not.toContain("option guard failed");
-  });
-
-  test("refuses a local guardrail violation before any run directory", () => {
-    const outputDir = mkdtempSync(path.join(os.tmpdir(), "tv-runner-run-dir-output-"));
-    const output = path.join(outputDir, "run-dir");
+  test("refuses an empty --run-dir-output before remote preflight and creates no run directory", () => {
+    const f = refusalCheckout();
     try {
-      const result = runCli(["local", "--run-dir-output", output], selftestEnv());
+      const result = f.run(["blaxel", "--suite", "experiment", "--run-dir-output="], {
+        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:option guard failed",
+      });
 
       expect(result.status, result.stderr).toBe(2);
-      expect(result.stderr).toContain(broadShortcutMessage);
-      expect(existsSync(output)).toBe(false);
+      expect(result.stderr).toContain("--run-dir-output requires a file path");
+      expect(result.stderr).not.toContain("option guard failed");
+      expect(existsSync(path.join(f.root, ".test-runs"))).toBe(false);
     } finally {
-      rmSync(outputDir, { recursive: true, force: true });
+      f.cleanup();
     }
   });
 

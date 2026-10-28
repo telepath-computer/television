@@ -429,3 +429,13 @@ Every row of "Inbound citations affected" above is repaired, along with the remo
 - **New tests for promises that plainly lacked one.** A local guardrail refusal leaves no run directory (`test-runner-guardrails.test.ts`). The summary keeps the fields `RunSummary` pins (expectations added to two existing tests in `test-runner-reporting.test.ts`). Both pass locally, one file each.
 
 Primitive flagged `dec_8e3d38a8` (crash cases belong on the isolated lifecycle surface) on the new guardrails test. That test is a plain CLI refusal, not a crash case; recorded as followed.
+
+### Responses to repair review round 1
+
+The review is `repair-review-r1.md` in this folder, on `609a1b6d`.
+
+1. **The refusal tests observed the identity file, not the run directory.** Agreed, and changed. Creating the directory and writing its identity are separate steps in `scripts/test/cli.mjs`, so the identity file's absence could not show that no directory was made. The four refusal cases in `test-runner-guardrails.test.ts` now run in the disposable checkout that `guidanceCheckout()` provides, with a second fixture surface committed there, because Blaxel selection reads the registry from the tested commit. Each asserts that the checkout has no `.test-runs/` directory afterwards. They keep the diagnostic, tripwire and identity-file assertions. The same fixture creates `.test-runs/<id>/` for an admitted run, so the observation can fail. The proof's `^reporting-t-refusal-no-run-dir` now describes that observation.
+2. **The *broad run* entry added a routing rule.** Agreed, and changed to the suggested definition and pointer.
+3. **The *test failure* entry equated a failed test with the `failed` classification.** Agreed. The entry is now *failed shard*, a pointer to the classification in `sharded-execution.md#shard-outcomes`. No spec uses *test failure* as a term.
+
+While building the fixture I noticed that `--surface` silently ignores an ID that names no surface: `npm test -- list --surface unit:root,unit:nonexistent` lists `unit:root` alone. This predates the branch and the repair scope does not cover it; it is reported to Josh rather than changed.
