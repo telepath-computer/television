@@ -103,10 +103,12 @@ describe("bundled Weather package", () => {
       },
     });
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({});
-    for (const file of ["index.html", "styles.css", "page.js", "model.js", "provider.js", "icon.svg", "artwork.svg", "README.md", "THIRD-PARTY-NOTICES.txt"]) {
+    for (const file of ["index.html", "styles.css", "page.js", "model.js", "provider.js", "icon.svg", "README.md", "THIRD-PARTY-NOTICES.txt"]) {
       expect(existsSync(path.join(folder, file)), file).toBe(true);
     }
-    expect(readFileSync(path.join(folder, "index.html"), "utf8")).not.toContain("weather-credit");
+    const index = readFileSync(path.join(folder, "index.html"), "utf8");
+    expect(index).toContain('/canonical/v2/components.js');
+    expect(index).not.toContain("weather-credit");
   });
 
   // proofs/arch/templates/weather.md#^templates-weather-t-icon
@@ -139,7 +141,7 @@ describe("bundled Weather package", () => {
     expect(prose).toMatch(/shows forecast data[\s\S]*credits/i);
     expect(prose).toMatch(/external[ -]network[\s\S]*fresh forecast/i);
     expect(readme).toContain("`styles.css`");
-    expect(readme).toContain("`artwork.svg`");
+    expect(readme).toContain("`weather-artwork`");
     expect(prose).toMatch(/transparent[\s\S]*creation/i);
   });
 });

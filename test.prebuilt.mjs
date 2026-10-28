@@ -13,7 +13,7 @@ export default {
       // server, view, and skills builds.
       id: "products",
       command: ["node", "scripts/licenses/build-suite.mjs"],
-      coversPreCommands: ["e2e:node", "e2e:browser-app", "e2e:browser-app-real-stack", "e2e:view-markdown", "e2e:desktop", "e2e:server"],
+      coversPreCommands: ["e2e:node", "e2e:browser-app", "e2e:browser-app-real-stack", "e2e:weather-artwork", "e2e:view-markdown", "e2e:desktop", "e2e:server"],
     },
     {
       // Product artifacts above and the built Storybook cover conformance setup.

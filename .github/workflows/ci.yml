@@ -285,12 +285,12 @@ jobs:
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && steps.shard-readiness.outputs.cache-hit != 'true' }}
         uses: ./.github/actions/setup-playwright
 
-      - name: Prove Chromium and Firefox launch on this runner image
+      - name: Prove Chromium, Firefox, and WebKit launch on this runner image
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         run: |
           node --input-type=module <<'EOF'
-          import { chromium, firefox } from "@playwright/test";
-          for (const browserType of [chromium, firefox]) {
+          import { chromium, firefox, webkit } from "@playwright/test";
+          for (const browserType of [chromium, firefox, webkit]) {
             const browser = await browserType.launch();
             await browser.close();
           }
@@ -452,12 +452,12 @@ jobs:
       # in the cache key, and every consuming shard still proves the restored
       # browsers launch on its own VM. The operator may remove these probes only
       # after the post-promotion runner-image rollover observation window.
-      - name: Prove Chromium and Firefox launch on this runner image
+      - name: Prove Chromium, Firefox, and WebKit launch on this runner image
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         run: |
           node --input-type=module <<'EOF'
-          import { chromium, firefox } from "@playwright/test";
-          for (const browserType of [chromium, firefox]) {
+          import { chromium, firefox, webkit } from "@playwright/test";
+          for (const browserType of [chromium, firefox, webkit]) {
             const browser = await browserType.launch();
             await browser.close();
           }

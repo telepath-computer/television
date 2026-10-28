@@ -97,6 +97,7 @@ function runPreflight(check, { provider, electron }) {
   }
   if (check === "playwright-chromium") return nodeScript("scripts/check-playwright-chromium.mjs", ok, failed);
   if (check === "playwright-firefox") return nodeScript("scripts/check-playwright-firefox.mjs", ok, failed);
+  if (check === "playwright-webkit") return nodeScript("scripts/check-playwright-webkit.mjs", ok, failed);
   if (check === "electron") {
     if (process.env.SKIP_ELECTRON_E2E === "1") return ok({ skipped: true, reason: "SKIP_ELECTRON_E2E=1" });
     const root = electron?.root ?? process.cwd();

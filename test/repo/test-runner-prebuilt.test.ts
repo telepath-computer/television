@@ -58,7 +58,7 @@ describe("prebuilt manifest", () => {
     expect(recipe?.command).toEqual(["node", "scripts/licenses/build-suite.mjs"]);
     expect(recipe?.command).toEqual(nodeSurface?.preCommand);
     expect(recipe).not.toHaveProperty("outputs");
-    expect(recipe?.coversPreCommands).toEqual(["e2e:node", "e2e:browser-app", "e2e:browser-app-real-stack", "e2e:view-markdown", "e2e:desktop", "e2e:server"]);
+    expect(recipe?.coversPreCommands).toEqual(["e2e:node", "e2e:browser-app", "e2e:browser-app-real-stack", "e2e:weather-artwork", "e2e:view-markdown", "e2e:desktop", "e2e:server"]);
   });
 
   test("covers every preCommand-declaring surface in the real registry exactly once", () => {

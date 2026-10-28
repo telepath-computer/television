@@ -547,18 +547,9 @@ body {
   height: 52px;
 }
 
-.weather-placeholder-icon > svg,
-.weather-spinner {
+.weather-placeholder-icon > tv-icon {
   width: 28px;
   height: 28px;
-}
-
-.weather-spinner {
-  animation: weather-spin 1s linear infinite;
-}
-
-@keyframes weather-spin {
-  to { transform: rotate(360deg); }
 }
 
 .weather-card-loading .weather-placeholder-content h1 {

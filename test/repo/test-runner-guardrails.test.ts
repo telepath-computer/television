@@ -131,7 +131,7 @@ describe("test runner guardrails", () => {
     expect(action).toContain("ImageVersion");
     expect(action).toContain("node${node_major}");
     expect(action).not.toContain("fail-on-cache-miss");
-    expect(action).toContain("default: shard-readiness-v2");
+    expect(action).toContain("default: shard-readiness-v3");
     expect(action).toContain("cache-key-suffix");
     expect(action).toContain('if [ -n "$CACHE_KEY_SUFFIX" ]');
     for (const input of ["package-lock.json", "packages/skills/package.json"]) {
@@ -170,11 +170,23 @@ describe("test runner guardrails", () => {
 
     expect(action).not.toContain("actions/setup-node");
     expect(action).not.toContain("node-version");
-    expect(action).toContain("npx playwright install --with-deps chromium firefox");
-    expect(action).toContain("npx playwright install-deps chromium firefox");
+    expect(action).toContain("npx playwright install --with-deps chromium firefox webkit");
+    expect(action).toContain("npx playwright install-deps chromium firefox webkit");
     expect(testJob.indexOf("setup-workspace")).toBeLessThan(testJob.indexOf("setup-playwright"));
     expect(buildJob.indexOf("setup-shard-readiness")).toBeLessThan(buildJob.indexOf("setup-playwright"));
     expect(e2eJob.indexOf("setup-shard-readiness")).toBeLessThan(e2eJob.indexOf("setup-playwright"));
+  });
+
+  // proofs/arch/test-runner/github-ci.md#^gha-t-playwright-three-browsers
+  test("ci prepares and launch-probes Chromium, Firefox, and WebKit", () => {
+    const workflow = readFileSync(ciWorkflowPath, "utf8");
+    const action = readFileSync(".github/actions/setup-playwright/action.yml", "utf8");
+    expect(action).toContain("chromium-firefox-webkit");
+    expect(action).toContain("npx playwright install --with-deps chromium firefox webkit");
+    expect(action).toContain("npx playwright install-deps chromium firefox webkit");
+    expect(workflow.match(/name: Prove Chromium, Firefox, and WebKit launch on this runner image/g)).toHaveLength(2);
+    expect(workflow.match(/import \{ chromium, firefox, webkit \} from "@playwright\/test";/g)).toHaveLength(2);
+    expect(workflow.match(/for \(const browserType of \[chromium, firefox, webkit\]\)/g)).toHaveLength(2);
   });
 
   // specs/arch/test-runner/github-ci.md#test-assertions — the committed
@@ -185,8 +197,8 @@ describe("test runner guardrails", () => {
     const e2eJob = workflow.slice(workflow.indexOf("\n  e2e:"), workflow.indexOf("\n  e2e-required:"));
     const joinJob = workflow.slice(workflow.indexOf("\n  e2e-required:"), workflow.indexOf("\n  attest-write:"));
     // Containerization remains deferred. Desktop uses setup-playwright; the
-    // build seeds both Playwright browsers on a miss; shards restore only the
-    // combined exact cache and prove both browsers launch on their own runner image.
+    // The build seeds all three Playwright browsers on a miss; shards restore
+    // only the combined exact cache and prove all three launch on their image.
     expect(workflow).not.toContain("container:");
     expect(workflow.match(/uses: \.\/\.github\/actions\/setup-playwright/g)).toHaveLength(3);
     expect(workflow).toMatch(/- if: \$\{\{ \(needs\.attest-check\.outputs\.skip != 'true' \|\| needs\.attest-check\.outputs\.authorized != 'true'\) && matrix\.suite\.playwright \}\}\s*\n\s*id: playwright\s*\n\s*uses: \.\/\.github\/actions\/setup-playwright/);
@@ -207,9 +219,9 @@ describe("test runner guardrails", () => {
     expect(e2eJob).toContain("--shards 16");
     expect(e2eJob).toContain("--total 16");
     expect(e2eJob).toContain('--github-job-name "e2e shard ${{ matrix.shard }}/16" --needs-job-name "build prebuilt dists"');
-    expect(workflow.match(/name: Prove Chromium and Firefox launch on this runner image/g)).toHaveLength(2);
-    expect(workflow.match(/import \{ chromium, firefox \} from "@playwright\/test";/g)).toHaveLength(2);
-    expect(workflow.match(/for \(const browserType of \[chromium, firefox\]\)/g)).toHaveLength(2);
+    expect(workflow.match(/name: Prove Chromium, Firefox, and WebKit launch on this runner image/g)).toHaveLength(2);
+    expect(workflow.match(/import \{ chromium, firefox, webkit \} from "@playwright\/test";/g)).toHaveLength(2);
+    expect(workflow.match(/for \(const browserType of \[chromium, firefox, webkit\]\)/g)).toHaveLength(2);
     expect(buildJob).toContain("uses: actions/cache/save@v4");
     expect(buildJob).toContain("steps.shard-readiness.outputs.cache-hit != 'true'");
     // Build job + untracked-file fan-out: the manifest declares only the

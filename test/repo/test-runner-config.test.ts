@@ -50,6 +50,27 @@ describe("test runner registry", () => {
       .toEqual(["live-providers:browser"]);
   });
 
+  // proofs/arch/test-runner/test-registry.md#^test-registry-t-weather-artwork
+  test("registers Weather artwork in default verification with three browser preflights", () => {
+    const selected = selectSurfaces(config, { surface: "e2e:weather-artwork" });
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toMatchObject({
+      runner: "playwright",
+      config: "packages/web/playwright.weather-artwork.config.ts",
+      kind: "e2e",
+      roots: ["packages/web/test/e2e/template-weather-artwork.test.ts"],
+      preflight: ["node", "playwright-chromium", "playwright-firefox", "playwright-webkit"],
+      tags: ["browser"],
+      preCommand: ["npm", "run", "build:web-and-artifact-documents"],
+      services: [],
+    });
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-weather-artwork.test.ts").map((surface) => surface.id))
+      .toEqual(["e2e:weather-artwork"]);
+    for (const suite of ["all", "e2e", "e2e-ci"]) {
+      expect(selectSurfaces(config, { suite }).map((surface) => surface.id)).toContain("e2e:weather-artwork");
+    }
+  });
+
   test("restricts lifecycle fault surfaces to isolated GitHub runners", () => {
     const lifecycle = selectSurfaces(config, { tag: "isolated-github-only" });
     const ids = [
@@ -89,6 +110,7 @@ describe("test runner registry", () => {
       "e2e:server",
       "e2e:tasks-skill",
       "e2e:conformance",
+      "e2e:weather-artwork",
     ]);
     expect(allSurfaces.filter((surface) => surface.executionGroup?.id === "unit:workspaces").map((surface) => surface.id)).toEqual([
       "unit:artifact",
@@ -122,6 +144,7 @@ describe("test runner registry", () => {
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-calendar-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-sticky-note-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-weather-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-weather-artwork.test.ts").map((surface) => surface.id)).toEqual(["e2e:weather-artwork"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/toolbox-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/swipe-gesture.test.ts").map((surface) => surface.id)).toEqual(["unit:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/canonical/test/build-canonical.test.ts").map((surface) => surface.id)).toEqual(["unit:canonical"]);

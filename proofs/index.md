@@ -94,7 +94,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `preflight.md` (42 lines) — *How the promises in Preflight are proven.*
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
-    - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
+    - `test-registry.md` (39 lines) — *How the promises in Test Registry are proven.*
     - `test-runner.md` (76 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
     - `authoring.md` (37 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*

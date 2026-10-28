@@ -2,8 +2,11 @@ import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Response } from "@playwright/test";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
-import { buildOpenMeteoRequest } from "../../packages/server/assets/templates/weather/provider.js";
-import type { WeatherConfiguration } from "../../packages/server/assets/templates/weather/model.js";
+import { buildOpenMeteoRequest, normalizeOpenMeteoResponse } from "../../packages/server/assets/templates/weather/provider.js";
+import {
+  localDate,
+  type WeatherConfiguration,
+} from "../../packages/server/assets/templates/weather/model.js";
 import { TemplateHarness, TEST_HOST_LAUNCH } from "../../packages/web/test/e2e/template-harness.ts";
 
 const FIXTURES = path.resolve(import.meta.dirname, "../fixtures/weather/open-meteo");
@@ -44,6 +47,8 @@ test("refreshes the Weather provider captures through a copied sandboxed page", 
     const fahrenheitCapture = await requiredResponse(responses, "fahrenheit");
     expect(celsiusCapture.request.url).toBe(buildOpenMeteoRequest(celsius).url);
     expect(fahrenheitCapture.request.url).toBe(buildOpenMeteoRequest(fahrenheit).url);
+    expectRefreshable(celsiusCapture, celsius);
+    expectRefreshable(fahrenheitCapture, fahrenheit);
     writeCapture("current-success.json", celsiusCapture);
     writeCapture("current-success-fahrenheit.json", fahrenheitCapture);
   } finally {
@@ -53,6 +58,17 @@ test("refreshes the Weather provider captures through a copied sandboxed page", 
 
 function configuration(units: "celsius" | "fahrenheit"): WeatherConfiguration {
   return { place: "San Francisco", latitude: 37.7749, longitude: -122.4194, units };
+}
+
+function expectRefreshable(captured: CapturedResponse, config: WeatherConfiguration): void {
+  const updatedAt = new Date().toISOString();
+  const forecast = normalizeOpenMeteoResponse(captured.response.body, config, updatedAt);
+  expect(forecast, "live response must pass the page success rule").not.toBeNull();
+  expect(forecast!.hourly, "capture refresh must retain 24 displayable hourly entries").toHaveLength(24);
+  expect(
+    forecast!.daily.some(({ date }) => date === localDate(Date.parse(updatedAt), forecast!.timeZone)),
+    "capture refresh must retain a daily entry for the current forecast-zone date",
+  ).toBe(true);
 }
 
 interface CapturedResponse {

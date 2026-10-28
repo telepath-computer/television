@@ -12,6 +12,7 @@ describe("test runner preflight selection", () => {
         "electron",
         "playwright-chromium",
         "playwright-firefox",
+        "playwright-webkit",
         "posthog-test-key",
       ],
     }];
@@ -22,9 +23,25 @@ describe("test runner preflight selection", () => {
       "electron",
       "playwright-chromium",
       "playwright-firefox",
+      "playwright-webkit",
       "posthog-test-key",
     ]);
     expect(requiredPreflights(surfaces, "blaxel")).toEqual(["node", "blaxel-github-token", "blaxel-auth"]);
+  });
+
+  // proofs/arch/test-runner/preflight.md#^preflight-t-playwright-webkit
+  test("selects WebKit for Weather artwork and dispatches its preflight", () => {
+    const weatherArtwork = [{ preflight: ["node", "playwright-chromium", "playwright-firefox", "playwright-webkit"] }];
+    expect(requiredPreflights(weatherArtwork, "local")).toEqual([
+      "node",
+      "process-lifecycle",
+      "playwright-chromium",
+      "playwright-firefox",
+      "playwright-webkit",
+    ]);
+    expect(runPreflights(["playwright-webkit"], { provider: "local" })).toEqual([
+      expect.objectContaining({ name: "playwright-webkit", status: "passed" }),
+    ]);
   });
 
   test("checks Electron package presence and consumes every planner state without installing", () => {

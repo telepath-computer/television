@@ -43,4 +43,4 @@ The page fetches forecasts from Open-Meteo and caches its last successful result
 
 An external network request to Open-Meteo is required for each fresh forecast. Whenever the card shows forecast data, it visibly credits Open-Meteo and the CC BY 4.0 source data.
 
-To adapt the design, edit `styles.css` and the first-party drawings in `artwork.svg` and `icon.svg`. The document background is transparent so the rounded card floats in the artifact frame when the manifest display setting is applied at creation.
+To adapt the design, edit `styles.css`, the first-party drawings in the `weather-artwork` template in `index.html`, and `icon.svg`. The document background is transparent so the rounded card floats in the artifact frame when the manifest display setting is applied at creation.

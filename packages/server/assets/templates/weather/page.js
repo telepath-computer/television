@@ -39,6 +39,7 @@ const CONDITION_NAMES = {
 const main = document.querySelector(".weather-page");
 const warningTemplate = document.querySelector("#weather-warning");
 const spinnerTemplate = document.querySelector("#weather-spinner");
+const artworkTemplate = document.querySelector("#weather-artwork");
 const storeRoot = ref(getStore());
 
 let access;
@@ -79,12 +80,26 @@ function artworkId(condition, isDay) {
 }
 
 function glyph(condition, isDay, size = "hero") {
-  const image = document.createElement("img");
-  image.classList.add("weather-glyph", `weather-glyph-${size}`, `weather-glyph-${condition}`);
-  image.src = `./artwork.svg#${artworkId(condition, isDay)}`;
-  image.alt = "";
-  image.setAttribute("aria-hidden", "true");
-  return image;
+  const artwork = artworkTemplate.content.firstElementChild.cloneNode(true);
+  const selectedId = artworkId(condition, isDay);
+  for (const drawing of [...artwork.children].filter((child) => child.classList.contains("weather-condition"))) {
+    if (drawing.id === selectedId) {
+      drawing.classList.remove("weather-condition");
+      drawing.removeAttribute("id");
+    } else {
+      drawing.remove();
+    }
+  }
+  for (const use of artwork.querySelectorAll("use")) {
+    const target = artwork.querySelector(use.getAttribute("href"));
+    const clone = target.cloneNode(true);
+    clone.removeAttribute("id");
+    use.replaceWith(clone);
+  }
+  artwork.querySelector("defs").remove();
+  artwork.classList.add("weather-glyph", `weather-glyph-${size}`, `weather-glyph-${condition}`);
+  artwork.dataset.artwork = selectedId;
+  return artwork;
 }
 
 function warningIcon() {
@@ -206,6 +221,11 @@ function hourlyPanel(forecast, hours) {
   const strip = element("div", "weather-hourly-strip");
   strip.tabIndex = 0;
   strip.setAttribute("aria-label", "Hourly forecast; scroll for later hours");
+  strip.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    strip.scrollBy({ left: event.key === "ArrowRight" ? 96 : -96 });
+  });
   const entries = [{
     label: "Now",
     temperature: forecast.current.temperature,
@@ -320,7 +340,19 @@ function render() {
   } else {
     card = placeholderCard("loading");
   }
+  const previous = main.firstElementChild;
+  if (previous?.outerHTML === card.outerHTML) return;
+  const strip = previous?.querySelector(".weather-hourly-strip");
+  const restoreStrip = strip && document.activeElement === strip
+    ? { focused: true, scrollLeft: strip.scrollLeft }
+    : null;
   main.replaceChildren(card);
+  if (restoreStrip) {
+    const nextStrip = card.querySelector(".weather-hourly-strip");
+    if (!nextStrip) return;
+    nextStrip.scrollLeft = restoreStrip.scrollLeft;
+    nextStrip.focus({ preventScroll: true });
+  }
 }
 
 function abortTrackedAttempt() {
