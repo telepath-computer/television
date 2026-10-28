@@ -93,8 +93,8 @@ textarea {
   background: var(--color-surface);
 }
 
-/* The corner has no border, so its bands begin at 100%. Each strip's bands
-   begin one pixel later, outside that strip's border. */
+/* The corner and row strip have no border, so their bands begin at 100%.
+   The column strip's bands begin one pixel later, outside its border. */
 .table-reference-corner::after {
   position: absolute;
   top: 100%;
@@ -132,7 +132,7 @@ textarea {
   position: absolute;
   top: -1px;
   bottom: -1px;
-  left: calc(100% + 1px);
+  left: 100%;
   width: var(--reference-gap);
   background: var(--color-surface);
   content: "";
@@ -186,9 +186,6 @@ textarea {
   display: flex;
   width: var(--table-row-reference-width);
   overflow: visible;
-  border: 1px solid var(--color-border);
-  border-top: 0;
-  border-bottom: 0;
   border-radius: var(--control-radius);
   background: var(--color-surface);
   flex-direction: column;
@@ -203,6 +200,12 @@ textarea {
   background: var(--color-surface);
   content: "";
   pointer-events: none;
+}
+
+.table-row-reference-item,
+.table-row-add-item {
+  border-right: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border);
 }
 
 .table-row-reference-item {
@@ -356,8 +359,6 @@ textarea {
   white-space: nowrap;
   cursor: cell;
 }
-
-.table-grid tbody tr:hover .table-cell:not([data-header="true"]) { background: oklch(from var(--color-text) l c h / var(--alpha-5)); }
 
 .table-cell[data-header="true"] {
   position: sticky;
