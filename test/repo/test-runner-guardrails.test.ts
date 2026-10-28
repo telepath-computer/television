@@ -764,6 +764,41 @@ describe("test runner guardrails", () => {
     expect(result.stderr).not.toContain("placement guard failed");
   });
 
+  // proofs/arch/test-runner/test-runner.md#^t-live-providers-local-only
+  // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-t-live-provider-exclusion
+  test("selects live providers locally and refuses every Blaxel path before preflight", () => {
+    const local = runCli(["local", "--suite", "live-providers"], selftestEnv({
+      TV_TEST_RUNNER_DRY_RUN: "1",
+    }));
+    expect(local.status, local.stderr).toBe(0);
+    expect(local.stdout).toContain(
+      "[dry-run] provider=local suite=live-providers surfaces=live-providers:browser",
+    );
+
+    const help = runCli(["help"]);
+    expect(help.status, help.stderr).toBe(0);
+    expect(help.stdout).toContain("live-providers");
+    expect(help.stdout).toContain("npm test -- local --suite live-providers");
+
+    const selectors = [
+      ["--suite", "live-providers"],
+      ["--surface", "live-providers:browser"],
+      ["--file", "test/live-providers/weather.test.ts"],
+      ["--tag", "live-provider"],
+      ["--runner", "playwright", "--tag", "live-provider"],
+    ];
+    for (const selector of selectors) {
+      const result = runCli(["blaxel", ...selector], selftestEnv({
+        TV_TEST_RUNNER_DRY_RUN: "1",
+        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:live-provider placement guard failed",
+      }));
+      expect(result.status, `${selector.join(" ")}: ${result.stderr}`).toBe(2);
+      expect(result.stderr).toContain("live-provider");
+      expect(result.stderr).toContain("local-only");
+      expect(result.stderr).not.toContain("placement guard failed");
+    }
+  });
+
   // The architect accepted this deviation as closed pending TV-597's cause investigation and restoration.
   test.skip("allows isolated lifecycle fixtures only under the authorized GitHub workflow identity and opt-in", () => {
     const result = runCli(["local", "--surface", "experiment:lifecycle-leak"], selftestEnv({

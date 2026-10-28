@@ -129,7 +129,7 @@ function sameIdentity(left, right) {
     && left.units === right.units;
 }
 
-function compatible(forecast, configuration) {
+export function isCompatibleForecast(forecast, configuration) {
   return isWeatherForecast(forecast) && sameIdentity(forecast, configuration);
 }
 
@@ -141,7 +141,7 @@ export function readWeatherValue(value) {
   return {
     kind: "configured",
     configuration: value,
-    forecast: compatible(value.forecast, value) ? value.forecast : null,
+    forecast: isCompatibleForecast(value.forecast, value) ? value.forecast : null,
   };
 }
 
@@ -274,6 +274,15 @@ export function reconcileRequestContext(state, configuration) {
   };
 }
 
+export function startRequestAttempt(state, attemptId, startedAt) {
+  return {
+    ...state,
+    runningAttemptId: attemptId,
+    runningStartedAt: startedAt,
+    failedStartedAt: null,
+  };
+}
+
 export function settleRequestAttempt(state, attemptId, normalizedForecast) {
   if (state.runningAttemptId !== attemptId) return null;
   const failed = normalizedForecast === null;
@@ -307,8 +316,8 @@ export function shouldRequestForecast({ configuration, state, savedForecast, now
     if (failureAge >= 0 && failureAge < FIFTEEN_MINUTES) return false;
   }
   const selected = selectForecast(
-    compatible(savedForecast, configuration) ? savedForecast : null,
-    compatible(state.memoryForecast, configuration) ? state.memoryForecast : null,
+    isCompatibleForecast(savedForecast, configuration) ? savedForecast : null,
+    isCompatibleForecast(state.memoryForecast, configuration) ? state.memoryForecast : null,
     now,
   );
   if (!selected) return true;

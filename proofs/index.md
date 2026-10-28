@@ -88,14 +88,14 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `weather.md` (60 lines) — *Proves the bundled Weather package, its Open-Meteo request and cache contracts, and live delivery through a copied artifact.*
   - **test-runner/**
     - `attestation.md` (66 lines) — *How the promises in Test Attestation are proven.*
-    - `blaxel-testshards.md` (64 lines) — *How the promises in Blaxel Test Shards are proven.*
+    - `blaxel-testshards.md` (66 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
     - `preflight.md` (42 lines) — *How the promises in Preflight are proven.*
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*
-    - `test-runner.md` (75 lines) — *How the promises in Test Runner are proven.*
+    - `test-runner.md` (76 lines) — *How the promises in Test Runner are proven.*
   - **themes/**
     - `authoring.md` (37 lines) — *How theme guidance, generated vocabulary and the authored application reference are proven at the built `television` skill boundary.*
     - `bundled-installation.md` (42 lines) — *How the promises in Bundled theme installation are proven.*

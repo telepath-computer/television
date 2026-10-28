@@ -6,13 +6,13 @@ import {
   getCurrentHighLow,
   getDailyWindow,
   getHourlyWindow,
-  isWeatherDay,
+  isCompatibleForecast,
   isWeatherForecast,
-  isWeatherHour,
   readWeatherValue,
   reconcileRequestContext,
   roundTemperature,
   selectForecast,
+  startRequestAttempt,
   settleRequestAttempt,
   shouldRequestForecast,
   updateForecastRoot,
@@ -54,6 +54,22 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+function localHourKey(value: string | number | Date, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-gregory-nu-latn", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    timeZoneName: "longOffset",
+  }).formatToParts(new Date(value));
+  return parts
+    .filter(({ type }) => type !== "literal")
+    .map(({ type, value: part }) => `${type}:${part}`)
+    .join("|");
+}
+
 function expectedHourlyEntries(body: any, receivedAt: string): WeatherHour[] {
   const receivedInstant = Date.parse(receivedAt);
   const entries: Array<{ entry: WeatherHour; sourceIndex: number }> = body.hourly.time.flatMap((instant: unknown, sourceIndex: number) => {
@@ -62,20 +78,24 @@ function expectedHourlyEntries(body: any, receivedAt: string): WeatherHour[] {
     const day = body.hourly.is_day[sourceIndex];
     if (!Number.isFinite(instant) || !Number.isFinite(temperature) || !mapping || (day !== 0 && day !== 1)) return [];
     const date = new Date((instant as number) * 1000);
+    if (!Number.isFinite(date.getTime()) || date.getUTCFullYear() < 0 || date.getUTCFullYear() > 9999) return [];
     const entry = {
       time: date.toISOString(),
       temperature,
       condition: mapping.condition,
       isDay: day === 1,
     };
-    return isWeatherHour(entry) ? [{ entry, sourceIndex }] : [];
+    return [{ entry, sourceIndex }];
   });
+  const currentHour = localHourKey(receivedAt, body.timezone);
   const seen = new Set<number>();
   return entries
     .sort((left, right) => Date.parse(left.entry.time) - Date.parse(right.entry.time) || left.sourceIndex - right.sourceIndex)
     .filter(({ entry }) => {
       const instant = Date.parse(entry.time);
-      if (instant <= receivedInstant || seen.has(instant)) return false;
+      if (instant <= receivedInstant
+        || localHourKey(entry.time, body.timezone) === currentHour
+        || seen.has(instant)) return false;
       seen.add(instant);
       return true;
     })
@@ -90,13 +110,14 @@ function expectedDailyEntries(body: any): WeatherDay[] {
     const mapping = mapWeatherCode(body.daily.weather_code[sourceIndex]);
     if (!Number.isFinite(instant) || !Number.isFinite(high) || !Number.isFinite(low) || high < low || !mapping) return [];
     const shifted = new Date(((instant as number) + body.utc_offset_seconds) * 1000);
+    if (!Number.isFinite(shifted.getTime()) || shifted.getUTCFullYear() < 0 || shifted.getUTCFullYear() > 9999) return [];
     const entry = {
       date: shifted.toISOString().slice(0, 10),
       condition: mapping.condition,
       high,
       low,
     };
-    return isWeatherDay(entry) ? [entry] : [];
+    return [entry];
   });
 }
 
@@ -174,6 +195,9 @@ describe("Weather store validity", () => {
     });
     expect(validateTemplateData(forecastSchema, offsetForecast, "weather forecast")).toBeUndefined();
     expect(isWeatherForecast(offsetForecast)).toBe(true);
+    expect(isCompatibleForecast(offsetForecast, configuration)).toBe(true);
+    expect(isCompatibleForecast(offsetForecast, { ...configuration, units: "fahrenheit" })).toBe(false);
+    expect(isCompatibleForecast({ ...offsetForecast, updatedAt: "invalid" }, configuration)).toBe(false);
     expect(readWeatherValue({ ...configuration, forecast: offsetForecast })).toMatchObject({
       kind: "configured",
       forecast: offsetForecast,
@@ -374,9 +398,20 @@ describe("Open-Meteo contract", () => {
     for (const field of ["time", "temperature_2m", "weather_code", "is_day"] as const) {
       body.hourly[field] = order.map((index) => body.hourly[field][index]);
     }
+    body.hourly.temperature_2m[0] += 100;
+    const sameHourInstant = Date.parse(receivedAt) + 15 * 60_000;
+    body.hourly.time.push(sameHourInstant / 1000);
+    body.hourly.temperature_2m.push(77);
+    body.hourly.weather_code.push(0);
+    body.hourly.is_day.push(1);
+    const original = clone(body);
     const result = normalizeOpenMeteoResponse(body, configuration, receivedAt)!;
     expect(result.hourly).toEqual(expectedHourlyEntries(body, receivedAt));
+    expect(result.hourly.map(({ time }) => Date.parse(time))).not.toContain(sameHourInstant);
+    expect(result.hourly.find(({ time }) => Date.parse(time) === body.hourly.time[0] * 1000)?.temperature)
+      .toBe(body.hourly.temperature_2m[0]);
     expect(result.daily).toEqual(expectedDailyEntries(body));
+    expect(body).toEqual(original);
   });
 
   it("rejects bad metadata and current data while dropping only bad list entries", () => {
@@ -442,6 +477,7 @@ describe("Open-Meteo contract", () => {
     edited.daily.temperature_2m_max.push(999);
     edited.daily.temperature_2m_min.push(-999);
     edited.daily.weather_code.push(0);
+    const editedOriginal = clone(edited);
     const normalized = normalizeOpenMeteoResponse(edited, identity, receivedAt);
     expect(normalized).not.toBeNull();
     expect(normalized!.hourly).toHaveLength(24);
@@ -449,6 +485,7 @@ describe("Open-Meteo contract", () => {
     expect(normalized!.hourly).toEqual(expectedHourlyEntries(edited, receivedAt));
     expect(normalized!.daily).toEqual(expectedDailyEntries(edited));
     expect(isWeatherForecast(normalized)).toBe(true);
+    expect(edited).toEqual(editedOriginal);
 
     const missingValue = clone(body);
     missingValue.hourly.temperature_2m.length = damagedIndices[0];
@@ -588,28 +625,27 @@ describe("Weather request state and saving", () => {
   });
 
   it("settles success or failure only for the tracked attempt after A to B to A", () => {
-    const firstA = {
-      ...reconcileRequestContext(
-        { identity: null, runningAttemptId: null, runningStartedAt: null, failedStartedAt: null, memoryForecast: null },
-        configuration,
-      ).state,
-      runningAttemptId: 1,
-      runningStartedAt: "2026-10-27T17:00:00Z",
-    };
-    const b = {
-      ...reconcileRequestContext(firstA, { ...configuration, units: "fahrenheit" }).state,
-      runningAttemptId: 2,
-      runningStartedAt: "2026-10-27T17:00:10Z",
-    };
-    const secondA = {
-      ...reconcileRequestContext(b, configuration).state,
-      runningAttemptId: 3,
-      runningStartedAt: "2026-10-27T17:00:20Z",
-    };
+    const firstAContext = reconcileRequestContext({
+      identity: null,
+      runningAttemptId: null,
+      runningStartedAt: null,
+      failedStartedAt: null,
+      memoryForecast: null,
+    }, configuration).state;
+    const firstA = startRequestAttempt(firstAContext, 1, "2026-10-27T17:00:00Z");
+    const bContext = reconcileRequestContext(firstA, { ...configuration, units: "fahrenheit" }).state;
+    const b = startRequestAttempt(bContext, 2, "2026-10-27T17:00:10Z");
+    const secondAContext = reconcileRequestContext(b, configuration).state;
+    const secondA = startRequestAttempt(secondAContext, 3, "2026-10-27T17:00:20Z");
 
     const successfulForecast = forecast({ updatedAt: "2026-10-27T17:00:30Z" });
     expect(settleRequestAttempt(secondA, 1, successfulForecast)).toBeNull();
-    expect(secondA).toMatchObject({ runningAttemptId: 3, runningStartedAt: "2026-10-27T17:00:20Z", failedStartedAt: null });
+    expect(settleRequestAttempt(secondA, 1, null)).toBeNull();
+    expect(secondA).toMatchObject({
+      runningAttemptId: 3,
+      runningStartedAt: "2026-10-27T17:00:20Z",
+      failedStartedAt: null,
+    });
     expect(settleRequestAttempt(secondA, 3, successfulForecast)).toEqual({
       ...secondA,
       runningAttemptId: null,
@@ -657,7 +693,15 @@ describe("Weather request state and saving", () => {
       expect(updateForecastRoot(root, identity, normalized)).toEqual({ ...root, forecast: normalized });
       expect(root).toEqual(original);
     }
-    for (const current of [undefined, {}, null, { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units }, { ...configuration, latitude: 1 }, { ...configuration, longitude: 1 }, { ...configuration, units: "fahrenheit" }]) {
+    for (const current of [
+      undefined,
+      {},
+      null,
+      { latitude: configuration.latitude, longitude: configuration.longitude, units: configuration.units },
+      { ...configuration, latitude: 1 },
+      { ...configuration, longitude: 1 },
+      { ...configuration, units: "fahrenheit" },
+    ]) {
       expect(updateForecastRoot(current, identity, normalized)).toBeUndefined();
     }
   });

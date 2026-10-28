@@ -77,6 +77,12 @@ export function isWeatherDay(value: unknown): value is WeatherDay;
 /** Reports whether a value is a complete display-safe forecast. */
 export function isWeatherForecast(value: unknown): value is WeatherForecast;
 
+/** Reports whether a complete forecast matches the configured request values. */
+export function isCompatibleForecast(
+  forecast: unknown,
+  configuration: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">,
+): forecast is WeatherForecast;
+
 /** Classifies a store value and returns a compatible saved forecast when present. */
 export function readWeatherValue(value: unknown):
   | { kind: "empty" }
@@ -120,6 +126,13 @@ export function reconcileRequestContext(
   state: RequestState,
   configuration: WeatherConfiguration | null,
 ): { state: RequestState; abortRunning: boolean };
+
+/** Starts an attempt and clears the earlier failure throttle. */
+export function startRequestAttempt(
+  state: RequestState,
+  attemptId: number,
+  startedAt: string,
+): RequestState;
 
 /** Settles only the tracked attempt, installing success or recording failure. */
 export function settleRequestAttempt(

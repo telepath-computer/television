@@ -119,7 +119,7 @@ The canonical runner uses pool `poc`. Provision it by deleting the complete pool
 
 ### Opt-in local suite exclusions
 
-The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs neither. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface). The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification.
+The `telemetry-posthog-roundtrip`, `live-providers`, and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs none of them. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface). Live-provider surfaces deliberately contact public providers from the developer's checkout, so every Blaxel selection that resolves to one is refused before preflight or dispatch. The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification. ^blaxel-live-provider-exclusion
 
 ## Testing
 
@@ -130,4 +130,3 @@ Under the testing policy's [rule for integration against paid services or comple
 A change to pool provisioning or runtime selection requires the live run to use freshly recreated `poc` workers, since `ensure` refuses a populated pool ([#Pool](#Pool)).
 
 A change to repository selection, or to how a worker's checkout moves between repositories, requires live runs from checkouts of two repositories on the same pool, including a run on workers whose checkout last served the other repository.
-

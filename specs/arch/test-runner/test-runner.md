@@ -58,7 +58,7 @@ A *selector* chooses which tests run; the runner resolves selectors against [tes
 
 | Selector | Meaning |
 |---|---|
-| `--suite <unit\|e2e\|e2e-ci\|agent\|experiment\|telemetry-posthog-roundtrip\|daemon-acceptance\|all>` | A named suite. `e2e-ci` is the registry-owned non-Electron CI shard selection; desktop runs in its dedicated job. |
+| `--suite <unit\|e2e\|e2e-ci\|agent\|experiment\|telemetry-posthog-roundtrip\|live-providers\|daemon-acceptance\|all>` | A named suite. `e2e-ci` is the registry-owned non-Electron CI shard selection; desktop runs in its dedicated job. |
 | `--all` | Alias for `--suite all`. |
 | `--surface <id>` | One or more registered surfaces (comma-separated). |
 | `--package <name>` | Surfaces associated with a workspace package. |
@@ -67,7 +67,7 @@ A *selector* chooses which tests run; the runner resolves selectors against [tes
 | `--runner <vitest\|playwright>` | Surfaces using a runner. |
 | `--tag <tag>` | Surfaces carrying a registry tag, such as `browser` or `electron`. |
 
-The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path.
+The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path. A selection that resolves to a `live-provider` surface is local-only and is refused on every Blaxel path before remote preflight or dispatch.
 
 `--file` must resolve to exactly one owning surface: if no surface owns the file the runner fails; if several do, it fails and asks for `--surface` to disambiguate. On the local execution path, a `--file` or `--grep` selection against a surface that does not declare support for it is rejected while building that surface's command. The targeted Blaxel path does not currently apply this `supports` check. The runner parses these selectors itself and rejects unknown positional arguments; the sole positional accepted is the `verify` provider.
 
@@ -89,12 +89,12 @@ Production attestations have exactly two source classes: a publication-qualifyin
 
 A *broad run* is a provider shortcut that runs the full `all` set with no narrowing selector. A broad run skips lint and type-check, so the provider shortcuts refuse it with a message directing the caller to `npm run verify`.
 
-The `telemetry-posthog-roundtrip` and `daemon-acceptance` suites are not broad verification. They are specialized, opt-in local suites and are excluded from `all`. The first crosses the live telemetry ↔ PostHog boundary; the second replaces the active global `tv` package and the literal `com.television.server` user service on a designated developer host. Build-config-integrity tests are not part of either suite: `unit:build-config` is a normal unit surface in `all` and uses no secrets, network, or host service mutation.
+The `telemetry-posthog-roundtrip`, `live-providers`, and `daemon-acceptance` suites are not broad verification. They are specialized, opt-in local suites and are excluded from `all`. The first crosses the live telemetry ↔ PostHog boundary, the second intentionally contacts external providers from copied artifact pages, and the third replaces the active global `tv` package and the literal `com.television.server` user service on a designated developer host. Build-config-integrity tests are not part of these suites: `unit:build-config` is a normal unit surface in `all` and uses no secrets, network, or host service mutation.
 
 The guardrail trips only on the effective `all` suite with nothing narrowing it: a bare provider (which defaults to `--suite all`), an explicit `--suite all` or `--all`, or a bare `--grep` with no other selector. Everything else passes through:
 
 - any narrowing selector — `--file`, `--surface`, `--package`, `--runner`, or `--tag`;
-- a non-`all` suite — for example `--suite unit`, `--suite e2e`, `--suite telemetry-posthog-roundtrip`, or `--suite daemon-acceptance`.
+- a non-`all` suite — for example `--suite unit`, `--suite e2e`, `--suite telemetry-posthog-roundtrip`, `--suite live-providers`, or `--suite daemon-acceptance`.
 
 `--grep` does not narrow on its own: a bare `--grep` defaults to the `all` suite and is refused, but `--grep` rides along with any of the selections above, including `--suite unit --grep ...`. To run a genuinely broad provider shortcut anyway, pass `--force`; `verify` passes `--force` internally to its own broad test phase.
 
@@ -129,6 +129,16 @@ npm test -- local --suite telemetry-posthog-roundtrip
 ```
 
 The suite is excluded from `all`, so `npm run verify`, CI, and Blaxel `--suite all` do not run it. It is intentionally local-only because it requires the secret PostHog test read key; remote providers do not receive that key. The selected surface declares the `posthog-test-key` preflight, so a missing key fails before Vitest starts. The PostHog key setup and the test project safety guard are specified in [../telemetry/sink.md#real-posthog-integration-test-surface](../telemetry/sink.md#real-posthog-integration-test-surface).
+
+### Live provider suite
+
+`--suite live-providers` selects provider-backed browser seams that deliberately cross the public network, initially `live-providers:browser`. The canonical invocation is:
+
+```sh
+npm test -- local --suite live-providers
+```
+
+The surface runs Chromium with its dedicated Playwright config, after the Chromium preflight and the web-and-artifact-documents build, against a runner-owned local Vite service and a temporary Television home. It is excluded from `all`, `e2e`, and `e2e-ci`, so default tests, `npm run verify`, and CI never contact those providers. The suite is local-only: Blaxel refuses a suite, surface, file, runner, or tag selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's product spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
 
 ## Production daemon acceptance suite
 
@@ -258,4 +268,3 @@ Under the testing policy's [mocking policy](../testing-policy.md#Mocking policy)
 Under the testing policy's [compositional coverage rule](../testing-policy.md#Compositional coverage across clean seams), this spec owns the decision that selects a provider automatically from the home marker and, on marked hosts, a remote preflight result. [Preflight's Testing section](./preflight.md#Testing) requires a real Git process to run the production git-safety sequence in a repository with an `origin` remote. It also requires live evidence for the Blaxel capability checks. The live planned run required by [sharded execution's Testing section](./sharded-execution.md#Testing) supplies the real provider report for the remote run.
 
 Reading `.github/workflows/ci.yml` proves only which command the file contains. The isolated live run required by [GitHub CI's Testing section](./github-ci.md#Testing) establishes that GitHub starts the job and that the job invokes the test runner.
-

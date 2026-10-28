@@ -95,7 +95,6 @@ function hourlyEntries(hourly) {
     const instant = time[index];
     const mapping = mapWeatherCode(code[index]);
     if (!isFiniteNumber(instant)
-      || !isFiniteNumber(temperature[index])
       || !mapping
       || !isDayFlag(day[index])) continue;
     const date = new Date(instant * 1000);
@@ -124,8 +123,7 @@ function dailyEntries(daily, offsetSeconds) {
     if (!isFiniteNumber(instant)
       || !isFiniteNumber(high[index])
       || !isFiniteNumber(low[index])
-      || !mapping
-      || high[index] < low[index]) continue;
+      || !mapping) continue;
     const shifted = new Date((instant + offsetSeconds) * 1000);
     if (!Number.isFinite(shifted.getTime())) continue;
     // Open-Meteo daily UNIX values use one response-wide fixed offset. Shift
