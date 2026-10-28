@@ -41,14 +41,18 @@ let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
 let pageActionSelection = null;
 let gridEntryScrollPosition = null;
 
-const REFERENCE_SIZE = 26;
-const REFERENCE_GAP = 8;
 const EXTRA_ROW_NUMBER_WIDTH = 7;
 
 const rejectedNoWriteReasons = new Set([
   "unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys",
   "multiple-renumbering-required",
 ]);
+
+function cssPixels(property) {
+  const value = Number.parseFloat(getComputedStyle(main).getPropertyValue(property));
+  if (!Number.isFinite(value)) throw new Error(`Table CSS property ${property} is not a pixel length`);
+  return value;
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -243,9 +247,10 @@ function keepClearOfFrozenAreas(target) {
   const rowStripBox = main.querySelector(".table-row-strip")?.getBoundingClientRect();
   const headerBox = model?.headerRow && !target.closest('[data-row-index="0"]')
     ? main.querySelector('[data-cell][data-row-index="0"]')?.getBoundingClientRect() : null;
-  const minimumX = (rowStripBox?.right ?? scrollBox.left) + REFERENCE_GAP;
+  const referenceGap = cssPixels("--reference-gap");
+  const minimumX = (rowStripBox?.right ?? scrollBox.left) + referenceGap;
   const minimumY = Math.max(
-    (columnStripBox?.bottom ?? scrollBox.top) + REFERENCE_GAP,
+    (columnStripBox?.bottom ?? scrollBox.top) + referenceGap,
     headerBox?.bottom ?? scrollBox.top,
   );
   let left = 0;
@@ -301,7 +306,7 @@ function render(focus = "none", nextAxes = buildAxes()) {
   const columnWidths = displayed.columns.map(column => column.width ?? AXIS_SIZES.columns.defaultValue);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(displayed.rows.length).length;
-  const rowReferenceWidth = REFERENCE_SIZE + Math.max(0, rowNumberDigits - 1) * EXTRA_ROW_NUMBER_WIDTH;
+  const rowReferenceWidth = cssPixels("--reference-size") + Math.max(0, rowNumberDigits - 1) * EXTRA_ROW_NUMBER_WIDTH;
   const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? AXIS_SIZES.rows.defaultValue}px">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
   replaceContents(`<div class="table-frame">
@@ -640,11 +645,11 @@ main.addEventListener("focusin", event => {
   if (!suppressGridEntry && event.target === main.querySelector(".table-grid") && selection === null) {
     const entryScrollPosition = gridEntryScrollPosition;
     gridEntryScrollPosition = null;
+    if (entryScrollPosition) {
+      main.querySelector(".table-scroll")?.scrollTo(entryScrollPosition.left, entryScrollPosition.top);
+    }
     selection = enterTable(selection, axes());
     render("selection");
-    if (entryScrollPosition) {
-      queueMicrotask(() => main.querySelector(".table-scroll")?.scrollTo(entryScrollPosition.left, entryScrollPosition.top));
-    }
   }
 });
 

@@ -50,6 +50,32 @@ const columnButton = (page: Page | Frame, column: string): Locator => page.getBy
 const editor = (page: Page | Frame): Locator => page.locator(".table-input");
 const status = (page: Page | Frame): Locator => page.locator(".table-status");
 
+type ScreenshotPoint = { x: number; y: number };
+
+async function screenshotPixels(page: Page, points: Record<string, ScreenshotPoint>): Promise<Record<string, number[]>> {
+  const screenshot = (await page.screenshot()).toString("base64");
+  return page.evaluate(async ({ imageData, samplePoints }) => {
+    const image = new Image();
+    const loaded = new Promise<void>((resolve, reject) => {
+      image.addEventListener("load", () => resolve(), { once: true });
+      image.addEventListener("error", () => reject(new Error("Could not decode browser screenshot")), { once: true });
+    });
+    image.src = `data:image/png;base64,${imageData}`;
+    await loaded;
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Could not create screenshot canvas");
+    context.drawImage(image, 0, 0);
+    return Object.fromEntries(Object.entries(samplePoints).map(([name, point]) => {
+      const x = Math.floor(point.x * window.devicePixelRatio);
+      const y = Math.floor(point.y * window.devicePixelRatio);
+      return [name, [...context.getImageData(x, y, 1, 1).data]];
+    }));
+  }, { imageData: screenshot, samplePoints: points });
+}
+
 async function navigationChord(page: Page, arrow: "ArrowLeft" | "ArrowRight"): Promise<void> {
   const platform = await page.evaluate(() => navigator.platform);
   if (platform.length === 0) throw new Error("Browser exposed no platform identity");
@@ -246,7 +272,7 @@ test("stored values and header row render in order", async ({ page }) => {
     .toEqual({ left: 200, top: 300 });
   const headerAfter = await page.getByRole("columnheader").first().boundingBox();
   const stripAfter = await page.locator(".table-column-strip").boundingBox();
-  expect(headerBefore!.y).toBeCloseTo(gridBefore!.y + 1, 0);
+  expect(headerBefore!.y).toBeCloseTo(gridBefore!.y, 0);
   expect(stripAfter!.y).toBeCloseTo((await scroll.boundingBox())!.y, 0);
   expect(headerAfter!.y).toBeCloseTo(stripAfter!.y + stripAfter!.height + 8, 0);
   await scroll.evaluate(element => element.scrollTo(0, 0));
@@ -381,6 +407,77 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(cell(page, 0, 0)).toBeFocused();
 });
 
+// proofs/ui/templates/table.md#^table-ac-keyboard
+test("Tab enters from the artifact and Television shell without leaving A1 hidden", async ({ page }) => {
+  const value = fixture();
+  for (let index = 5; index <= 8; index += 1) value.columns[`c${index}`] = { order: index };
+  for (let index = 8; index <= 24; index += 1) {
+    value.rows[`r${index}`] = { order: index, cells: { c1: `Park ${index}`, c8: `Last ${index}` } };
+  }
+  const id = await open(page, value);
+  const directScroll = page.locator(".table-scroll");
+  await directScroll.evaluate(element => element.scrollTo(360, 180));
+  await expect.poll(() => directScroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
+    .toEqual({ left: 360, top: 180 });
+  await page.keyboard.press("Tab");
+  await expect(cell(page, 0, 0)).toBeFocused();
+  const [directCellBox, directRowStripBox, directColumnStripBox] = await Promise.all([
+    cell(page, 0, 0).boundingBox(),
+    page.locator(".table-row-strip").boundingBox(),
+    page.locator(".table-column-strip").boundingBox(),
+  ]);
+  expect(directCellBox!.x).toBeGreaterThanOrEqual(directRowStripBox!.x + directRowStripBox!.width + 8);
+  expect(directCellBox!.y).toBeGreaterThanOrEqual(directColumnStripBox!.y + directColumnStripBox!.height + 8);
+
+  await h.openApp(page);
+  await page.locator(`.tab-strip > .tab[data-artifact-id="${id}"]`).click();
+  const frame = await h.frame(page, id);
+  const shellScroll = frame.locator(".table-scroll");
+  await shellScroll.evaluate(element => element.scrollTo(360, 180));
+  await expect.poll(() => shellScroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
+    .toEqual({ left: 360, top: 180 });
+  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
+  await toolbox.focus();
+  let enteredArtifact = false;
+  for (let presses = 0; presses < 20 && !enteredArtifact; presses += 1) {
+    await page.keyboard.press("Tab");
+    enteredArtifact = await cell(frame, 0, 0).evaluate(element => element === element.ownerDocument.activeElement);
+  }
+  expect(enteredArtifact).toBe(true);
+  const [shellCellBox, shellRowStripBox, shellColumnStripBox] = await Promise.all([
+    cell(frame, 0, 0).boundingBox(),
+    frame.locator(".table-row-strip").boundingBox(),
+    frame.locator(".table-column-strip").boundingBox(),
+  ]);
+  expect(shellCellBox!.x).toBeGreaterThanOrEqual(shellRowStripBox!.x + shellRowStripBox!.width + 8);
+  expect(shellCellBox!.y).toBeGreaterThanOrEqual(shellColumnStripBox!.y + shellColumnStripBox!.height + 8);
+});
+
+// proofs/ui/templates/table.md#^table-ac-rows
+// proofs/ui/templates/table.md#^table-ac-keyboard
+test("a selected frozen header keeps its solid surface and top border", async ({ page }) => {
+  const value = fixture();
+  for (let index = 8; index <= 24; index += 1) {
+    value.rows[`r${index}`] = { order: index, cells: { c1: `Park ${index}`, c2: `State ${index}` } };
+  }
+  await open(page, value);
+  const headerSurface = await cell(page, 0, 1).evaluate(element => getComputedStyle(element).backgroundColor);
+  const scroll = page.locator(".table-scroll");
+  await scroll.evaluate(element => element.scrollTo(0, 180));
+  await columnButton(page, "B").click();
+  const selectedHeaderStyle = await cell(page, 0, 1).evaluate(element => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundColor: style.backgroundColor,
+      backgroundImage: style.backgroundImage,
+      borderTopWidth: style.borderTopWidth,
+    };
+  });
+  expect(selectedHeaderStyle.backgroundColor).toBe(headerSurface);
+  expect(selectedHeaderStyle.backgroundImage).not.toBe("none");
+  expect(selectedHeaderStyle.borderTopWidth).toBe("1px");
+});
+
 // proofs/ui/templates/table.md#^table-ac-rows
 // proofs/ui/templates/table.md#^table-ac-keyboard
 test("the full-edge table scroll keeps strips, header row and selection visible", async ({ page }) => {
@@ -422,24 +519,33 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
     const style = getComputedStyle(element);
     return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth];
   });
-  expect(gridBorders).toEqual(["1px", "1px", "0px", "1px"]);
+  expect(gridBorders).toEqual(["0px", "1px", "0px", "1px"]);
   await expect(cell(page, 23, 6)).toHaveCSS("border-bottom-width", "1px");
   await expect(cell(page, 0, 0)).toHaveCSS("vertical-align", "top");
   expect((await cell(page, 0, 0).boundingBox())!.height).toBe(52);
   expect((await rowButton(page, 0).locator("..").boundingBox())!.height).toBe(52);
   expect((await cell(page, 9, 0).boundingBox())!.height).toBe(28);
   expect((await rowButton(page, 9).locator("..").boundingBox())!.height).toBe(28);
+  for (const rowIndex of [0, 1, 9]) {
+    const [cellBox, referenceBox] = await Promise.all([
+      cell(page, rowIndex, 0).boundingBox(), rowButton(page, rowIndex).locator("..").boundingBox(),
+    ]);
+    expect(referenceBox!.y).toBeCloseTo(cellBox!.y, 0);
+    expect(referenceBox!.height).toBeCloseTo(cellBox!.height, 0);
+    await expect(rowButton(page, rowIndex).locator("..")).toHaveCSS("border-bottom-width", "1px");
+    await expect(rowButton(page, rowIndex).locator("..")).toHaveCSS("border-top-width", rowIndex === 0 ? "1px" : "0px");
+  }
 
   const before = {
     top: await topStrip.boundingBox(), side: await sideStrip.boundingBox(),
-    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).boundingBox(),
+    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).locator("..").boundingBox(),
   };
   await scroll.evaluate(element => element.scrollTo(360, 180));
   await expect.poll(() => scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
     .toEqual({ left: 360, top: 180 });
   const after = {
     top: await topStrip.boundingBox(), side: await sideStrip.boundingBox(),
-    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).boundingBox(),
+    header: await cell(page, 0, 0).boundingBox(), rowOne: await rowButton(page, 0).locator("..").boundingBox(),
   };
   expect(after.top!.y).toBeCloseTo(scrollBox!.y, 0);
   expect(after.side!.x).toBeCloseTo(scrollBox!.x, 0);
@@ -495,7 +601,7 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(selectedRowBox!.y).toBeGreaterThanOrEqual(headerBox!.y + headerBox!.height);
   expect(selectedRowBox!.y + selectedRowBox!.height).toBeLessThanOrEqual(scrollBox!.y + scrollBox!.height);
 
-  await scroll.evaluate(element => element.scrollTo(360, 0));
+  await scroll.evaluate(element => element.scrollTo(360, 180));
   await columnButton(page, "C").click();
   await page.keyboard.press("ArrowLeft");
   const selectedColumnBox = await columnButton(page, "B").boundingBox();
@@ -510,12 +616,79 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(sheetEndBox!.y + sheetEndBox!.height - (sideStripEndBox!.y + sideStripEndBox!.height)).toBeCloseTo(16, 0);
 
   await h.set(id, false, "headerRow");
+  await expect(grid(page)).toHaveCSS("border-top-width", "1px");
   await scroll.evaluate(element => element.scrollTo(0, 0));
   const rowOneAtOrigin = await cell(page, 0, 0).boundingBox();
   await scroll.evaluate(element => element.scrollTo(0, 180));
   const headerOffScrollTop = await scroll.evaluate(element => element.scrollTop);
   await expect.poll(async () => (await cell(page, 0, 0).boundingBox())!.y)
     .toBeCloseTo(rowOneAtOrigin!.y - headerOffScrollTop, 0);
+});
+
+// proofs/ui/templates/table.md#^table-ac-rows
+test("a click in a frozen strip gap does not select content underneath", async ({ page }) => {
+  const columns = Object.fromEntries(Array.from({ length: 4 }, (_, index) => [`c${index + 1}`, { order: index + 1 }]));
+  const rows = Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`r${index + 1}`, {
+    order: index + 1,
+    cells: { c1: index === 0 ? "Heading" : `Row ${index + 1}` },
+  }]));
+  await open(page, { headerRow: true, columns, rows });
+  await page.locator(".table-scroll").evaluate(element => element.scrollTo(0, 180));
+  const topStrip = (await page.locator(".table-column-strip").boundingBox())!;
+  await page.mouse.click(topStrip.x + 40, topStrip.y + topStrip.height + 4);
+  await expect(page.locator('[data-selection="cell"], [data-selection="range"]')).toHaveCount(0);
+});
+
+// proofs/ui/templates/table.md#^table-ac-rows
+test("strip gap pixels stay solid during one-axis scrolling and in read-only tables", async ({ page }) => {
+  const columns = Object.fromEntries(Array.from({ length: 4 }, (_, index) => [`c${index + 1}`, { order: index + 1 }]));
+  const manyRows = Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`r${index + 1}`, {
+    order: index + 1,
+    cells: { c1: index === 0 ? "Heading" : `Row ${index + 1}` },
+  }]));
+  await open(page, { headerRow: true, columns, rows: manyRows });
+  const verticalScroll = page.locator(".table-scroll");
+  await verticalScroll.evaluate(element => element.scrollTo(0, 180));
+  const verticalTopStrip = (await page.locator(".table-column-strip").boundingBox())!;
+  const verticalPixels = await screenshotPixels(page, {
+    surface: { x: 1, y: 1 },
+    gapStart: { x: verticalTopStrip.x, y: verticalTopStrip.y + verticalTopStrip.height + 4 },
+    gapEnd: { x: verticalTopStrip.x + verticalTopStrip.width - 1, y: verticalTopStrip.y + verticalTopStrip.height + 4 },
+  });
+  expect(verticalPixels.gapStart).toEqual(verticalPixels.surface);
+  expect(verticalPixels.gapEnd).toEqual(verticalPixels.surface);
+
+  const manyColumns = Object.fromEntries(Array.from({ length: 8 }, (_, index) => [`c${index + 1}`, { order: index + 1 }]));
+  const fewRows = Object.fromEntries(Array.from({ length: 4 }, (_, index) => [`r${index + 1}`, {
+    order: index + 1,
+    cells: { c1: index === 0 ? "Heading" : `Row ${index + 1}` },
+  }]));
+  await open(page, { headerRow: true, columns: manyColumns, rows: fewRows });
+  const horizontalScroll = page.locator(".table-scroll");
+  await horizontalScroll.evaluate(element => element.scrollTo(180, 0));
+  const horizontalSideStrip = (await page.locator(".table-row-strip").boundingBox())!;
+  const horizontalPixels = await screenshotPixels(page, {
+    surface: { x: 1, y: 1 },
+    gapStart: { x: horizontalSideStrip.x + horizontalSideStrip.width + 4, y: horizontalSideStrip.y },
+    gapEnd: { x: horizontalSideStrip.x + horizontalSideStrip.width + 4, y: horizontalSideStrip.y + horizontalSideStrip.height - 1 },
+  });
+  expect(horizontalPixels.gapStart).toEqual(horizontalPixels.surface);
+  expect(horizontalPixels.gapEnd).toEqual(horizontalPixels.surface);
+
+  const readOnlyID = await h.createStored({ headerRow: true, columns, rows: manyRows });
+  const share = await h.client.resources.share({ artifactID: readOnlyID, access: "read" });
+  await h.open(page, readOnlyID, share.shareID);
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "false");
+  const readOnlyScroll = page.locator(".table-scroll");
+  await readOnlyScroll.evaluate(element => element.scrollTo(0, 180));
+  const readOnlyTopStrip = (await page.locator(".table-column-strip").boundingBox())!;
+  const readOnlyPixels = await screenshotPixels(page, {
+    surface: { x: 1, y: 1 },
+    gapStart: { x: readOnlyTopStrip.x, y: readOnlyTopStrip.y + readOnlyTopStrip.height + 4 },
+    gapEnd: { x: readOnlyTopStrip.x + readOnlyTopStrip.width - 1, y: readOnlyTopStrip.y + readOnlyTopStrip.height + 4 },
+  });
+  expect(readOnlyPixels.gapStart).toEqual(readOnlyPixels.surface);
+  expect(readOnlyPixels.gapEnd).toEqual(readOnlyPixels.surface);
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
