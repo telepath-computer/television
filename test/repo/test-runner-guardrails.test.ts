@@ -808,8 +808,7 @@ describe("test runner guardrails", () => {
       ...f.surface, id: "fixture:playwright", runner: "playwright", config: `${playwrightRoot}/playwright.config.ts`,
       roots: [playwrightRoot], absoluteConfig: path.join(f.root, playwrightRoot, "playwright.config.ts"),
     });
-    f.registry.suites.all.include = ["kind:experiment"];
-    f.registry.suites.experiment.include = ["kind:experiment"];
+    Object.assign(f.registry.suites, { all: { include: ["kind:experiment"] }, experiment: { include: ["kind:experiment"] } });
     f.writeRegistry();
     // Blaxel selection reads the registry from the tested commit.
     f.git("add", ".");

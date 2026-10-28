@@ -655,8 +655,9 @@ describe("test runner reporting", () => {
     const { summary, results } = buildReports({ runId: "run", provider: "local", runDir: dir, selection: { surfaces: ["unit:one", "unit:two"] }, surfaces: [base("unit:one", [rawLeak, rawLeak]), base("unit:two", [])], preflights: [], startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:01.000Z" });
     expect(summary.counts.processLeaks).toBe(1);
     expect(summary.processLeaks).toHaveLength(1);
-    expect(summary.processLeaks[0]).toMatchObject({ pid: leak.pid, command: leak.command, owningSurfaceIds: ["unit:one", "unit:two"] });
-    expect(summary.processLeaks[0].listeningSockets).toEqual(leak.listeningSockets.map(({ host, port }) => expect.objectContaining({ host, port })));
+    const [summaryLeak] = summary.processLeaks as Array<{ listeningSockets: unknown }>;
+    expect(summaryLeak).toMatchObject({ pid: leak.pid, command: leak.command, owningSurfaceIds: ["unit:one", "unit:two"] });
+    expect(summaryLeak!.listeningSockets).toEqual(leak.listeningSockets.map(({ host, port }) => expect.objectContaining({ host, port })));
     expect(summary.run.status).toBe("incomplete");
     expect(summary.failedTests).toEqual([expect.objectContaining({ title: "native failure" })]);
     expect(summary.flakyRecoveredTests).toEqual([expect.objectContaining({ title: "recovered flake" })]);
