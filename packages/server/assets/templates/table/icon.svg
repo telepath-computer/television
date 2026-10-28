@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <title>Table</title>
+  <rect x="1.5" y="2.5" width="17" height="15" rx="2.5" fill="#effcfb" stroke="#4a9d9e" stroke-width="1.25"/>
+  <path d="M4 2.5h12a2.5 2.5 0 0 1 2.5 2.5v2h-17V5A2.5 2.5 0 0 1 4 2.5Z" fill="#25a8a7"/>
+  <path d="M7 7v10M12.5 7v10M2 10.5h16M2 14h16" fill="none" stroke="#79bbbc" stroke-width="1.5"/>
+</svg>

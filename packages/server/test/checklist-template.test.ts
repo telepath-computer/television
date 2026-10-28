@@ -9,13 +9,14 @@ const folder = path.join(sourceRoot, "checklist");
 
 describe("bundled Checklist package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-bundled-t-inventory
-  it("ships Checklist, Calendar and Sticky note with their exact inventory identities and minimum versions", () => {
-    expect(readdirSync(sourceRoot).sort()).toEqual(["checklist", "calendar", "sticky-note"].sort());
-    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist", "calendar", "sticky-note"]);
+  it("ships Checklist, Calendar, Sticky note and Table with their exact inventory identities and minimum versions", () => {
+    expect(readdirSync(sourceRoot).sort()).toEqual(["checklist", "calendar", "sticky-note", "table"].sort());
+    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist", "calendar", "sticky-note", "table"]);
     expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([
       { id: "checklist", minimumVersion: "1.0.0" },
       { id: "calendar", minimumVersion: "1.0.0" },
       { id: "sticky-note", minimumVersion: "1.0.0" },
+      { id: "table", minimumVersion: "1.0.0" },
     ]);
     expect(JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"))).toMatchObject({
       name: "Checklist", description: "A list of items to tick off and edit.", version: "1.0.0",
@@ -25,6 +26,9 @@ describe("bundled Checklist package", () => {
     });
     expect(JSON.parse(readFileSync(path.join(sourceRoot, "sticky-note/manifest.json"), "utf8"))).toMatchObject({
       name: "Sticky note", description: "A yellow note to type into; an agent can write on it too.", version: "1.0.0",
+    });
+    expect(JSON.parse(readFileSync(path.join(sourceRoot, "table/manifest.json"), "utf8"))).toMatchObject({
+      name: "Table", description: "An editable table to fill by hand or with an agent.", version: "1.0.0",
     });
   });
 
