@@ -25,7 +25,6 @@ import { buildOpenMeteoRequest, normalizeOpenMeteoResponse } from "./provider.js
 
 const CHECK_INTERVAL_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 10_000;
-const SVG_NS = "http://www.w3.org/2000/svg";
 const CONDITION_NAMES = {
   clear: "Clear",
   "partly-cloudy": "Partly cloudy",
@@ -38,6 +37,7 @@ const CONDITION_NAMES = {
 
 const main = document.querySelector(".weather-page");
 const warningTemplate = document.querySelector("#weather-warning");
+const spinnerTemplate = document.querySelector("#weather-spinner");
 const storeRoot = ref(getStore());
 
 let access;
@@ -95,17 +95,7 @@ function warningIcon() {
 
 function spinnerIcon() {
   const icon = element("span", "weather-placeholder-icon weather-loading-icon");
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.classList.add("weather-spinner");
-  svg.setAttribute("viewBox", "0 0 256 256");
-  svg.setAttribute("fill", "currentColor");
-  svg.setAttribute("aria-hidden", "true");
-  const quiet = document.createElementNS(SVG_NS, "path");
-  quiet.setAttribute("d", "M128,24a104,104,0,1,0,104,104A104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Z");
-  quiet.setAttribute("opacity", "0.2");
-  const active = document.createElementNS(SVG_NS, "path");
-  active.setAttribute("d", "M128,24a104.11,104.11,0,0,0-91.5,54.5,8,8,0,0,0,14,7.69A88.09,88.09,0,0,1,128,40a8,8,0,0,0,0-16Z");
-  svg.append(quiet, active);
+  const svg = spinnerTemplate.content.firstElementChild.cloneNode(true);
   icon.append(svg);
   return icon;
 }
@@ -372,6 +362,11 @@ function applyStoreUnavailable() {
 function subscribe() {
   if (listening) return;
   listening = true;
+  // The SDK resubscribes an active listener after an ordinary reconnect. A
+  // listener error removes it, so a later connected/access callback listens
+  // again. Revocation reports `no-store`: keep the last store result and let
+  // its retained location continue refreshing. Other store errors replace it
+  // with the unavailable state until a later subscription recovers.
   onValue(storeRoot, (snapshot) => applyStoreValue(snapshot.val()), (error) => {
     listening = false;
     if (error.code !== "no-store") applyStoreUnavailable();

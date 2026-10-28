@@ -180,6 +180,11 @@ describe("licensing configuration", () => {
 
     // proofs/arch/licensing.md#^licensing-t-weather-icons
     const weatherIcons = assets.find((asset) => asset.id === "weather-icons")!;
+    const weatherProductionFiles = ["index.html", "page.js", "model.js", "provider.js", "styles.css"]
+      .map((file) => `packages/server/assets/templates/weather/${file}`);
+    const productionFilesWithPhosphor = weatherProductionFiles.filter((file) =>
+      readFileSync(path.join(repoRoot, file), "utf8").includes("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt"));
+    expect(weatherIcons.paths).toEqual(productionFilesWithPhosphor);
     expect(weatherIcons.paths).toEqual(["packages/server/assets/templates/weather/index.html"]);
     expect(weatherIcons.components).toEqual(phosphor.components);
     expect(weatherIcons.surfaces).toEqual(["cli", "source"]);

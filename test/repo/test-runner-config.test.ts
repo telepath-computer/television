@@ -35,7 +35,7 @@ describe("test runner registry", () => {
       kind: "live-provider",
       roots: ["test/live-providers/weather.test.ts"],
       preflight: ["node", "playwright-chromium"],
-      tags: ["browser", "live-provider"],
+      tags: ["live-provider"],
       preCommand: ["npm", "run", "build:web-and-artifact-documents"],
       services: [{
         id: "live-provider-browser",

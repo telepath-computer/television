@@ -399,7 +399,7 @@ describe("Open-Meteo contract", () => {
       body.hourly[field] = order.map((index) => body.hourly[field][index]);
     }
     body.hourly.temperature_2m[0] += 100;
-    const sameHourInstant = Date.parse(receivedAt) + 15 * 60_000;
+    const sameHourInstant = Date.parse(receivedAt) + 60_000;
     body.hourly.time.push(sameHourInstant / 1000);
     body.hourly.temperature_2m.push(77);
     body.hourly.weather_code.push(0);

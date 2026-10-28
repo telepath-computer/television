@@ -138,7 +138,7 @@ The suite is excluded from `all`, so `npm run verify`, CI, and Blaxel `--suite a
 npm test -- local --suite live-providers
 ```
 
-The surface runs Chromium with its dedicated Playwright config, after the Chromium preflight and the web-and-artifact-documents build, against a runner-owned local Vite service and a temporary Television home. It is excluded from `all`, `e2e`, and `e2e-ci`, so default tests, `npm run verify`, and CI never contact those providers. The suite is local-only: Blaxel refuses a suite, surface, file, runner, or tag selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's product spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
+The surface runs Chromium with its dedicated Playwright config, after the Chromium preflight and the web-and-artifact-documents build, against a runner-owned local Vite service. Its test harness owns the temporary Television home. It is excluded from `all`, `e2e`, and `e2e-ci`, so default tests, `npm run verify`, and CI never contact those providers. The suite is local-only: Blaxel refuses a suite, surface, file, runner, or tag selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's relevant spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
 
 ## Production daemon acceptance suite
 

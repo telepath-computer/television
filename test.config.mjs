@@ -66,7 +66,7 @@ export default {
         kind: "live-provider",
         roots: ["test/live-providers/weather.test.ts"],
         preflight: ["node", "playwright-chromium"],
-        tags: ["browser", "live-provider"],
+        tags: ["live-provider"],
         preCommand: ["npm", "run", "build:web-and-artifact-documents"],
         services: [
           { id: "live-provider-browser", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" },
