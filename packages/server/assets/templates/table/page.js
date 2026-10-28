@@ -39,9 +39,7 @@ let interactionVersion = 0;
 let menuObserver = null;
 let renderedAxes = { columns: displayAxis([]), rows: displayAxis([]) };
 let pageActionSelection = null;
-let gridEntryScrollPosition = null;
-
-const EXTRA_ROW_NUMBER_WIDTH = 7;
+let gridEntryScrollPosition = { left: 0, top: 0 };
 
 const rejectedNoWriteReasons = new Set([
   "unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys",
@@ -306,7 +304,8 @@ function render(focus = "none", nextAxes = buildAxes()) {
   const columnWidths = displayed.columns.map(column => column.width ?? AXIS_SIZES.columns.defaultValue);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(displayed.rows.length).length;
-  const rowReferenceWidth = cssPixels("--reference-size") + Math.max(0, rowNumberDigits - 1) * EXTRA_ROW_NUMBER_WIDTH;
+  const rowReferenceWidth = cssPixels("--reference-size")
+    + Math.max(0, rowNumberDigits - 1) * cssPixels("--row-reference-extra-digit-width");
   const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? AXIS_SIZES.rows.defaultValue}px">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
   replaceContents(`<div class="table-frame">
@@ -574,6 +573,7 @@ main.addEventListener("click", event => { void handleClick(event); });
 
 async function handleClick(event) {
   if (!(event.target instanceof Element) || event.target instanceof HTMLTextAreaElement) return;
+  if (event.target.matches(".table-reference-corner, .table-reference-strip")) return;
   interactionVersion += 1;
   let actionApplied = false;
   const applyClick = () => {
@@ -641,13 +641,17 @@ document.addEventListener("keydown", event => {
   }
 }, { capture: true });
 
+main.addEventListener("scroll", event => {
+  const grid = main.querySelector(".table-grid");
+  if (!(event.target instanceof HTMLElement) || !event.target.matches(".table-scroll")
+      || selection === null && document.activeElement === grid) return;
+  gridEntryScrollPosition = { left: event.target.scrollLeft, top: event.target.scrollTop };
+}, { capture: true });
+
 main.addEventListener("focusin", event => {
   if (!suppressGridEntry && event.target === main.querySelector(".table-grid") && selection === null) {
     const entryScrollPosition = gridEntryScrollPosition;
-    gridEntryScrollPosition = null;
-    if (entryScrollPosition) {
-      main.querySelector(".table-scroll")?.scrollTo(entryScrollPosition.left, entryScrollPosition.top);
-    }
+    main.querySelector(".table-scroll")?.scrollTo(entryScrollPosition.left, entryScrollPosition.top);
     selection = enterTable(selection, axes());
     render("selection");
   }
@@ -776,6 +780,12 @@ document.addEventListener("keydown", event => {
 }, { capture: true });
 
 document.addEventListener("pointerdown", event => {
+  if (event.target instanceof Element
+      && event.target.matches(".table-reference-corner, .table-reference-strip")) {
+    event.preventDefault();
+    pointerMovedFocus = false;
+    return;
+  }
   if (editing && event.button === 2 && event.target instanceof Element
       && event.target.closest("[data-cell]")
       && !event.target.closest(".table-input")) {
@@ -785,13 +795,19 @@ document.addEventListener("pointerdown", event => {
   }
   pointerMovedFocus = editing !== null && event.target instanceof Element && !event.target.closest(".table-input");
 }, { capture: true });
+document.addEventListener("mousedown", event => {
+  if (event.target instanceof Element
+      && event.target.matches(".table-reference-corner, .table-reference-strip")) {
+    event.preventDefault();
+  }
+}, { capture: true });
 
 document.addEventListener("pointerup", () => { pointerMovedFocus = false; }, { capture: true });
 document.addEventListener("pointercancel", () => { pointerMovedFocus = false; }, { capture: true });
 
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)
-      || event.target.closest(".table-grid, .table-reference-strip, tv-menu")) return;
+      || event.target.closest(".table-grid, .table-reference-strip, .table-reference-corner, tv-menu")) return;
   if (editing) void commitEditing(null, false, () => clearSelection("none"));
   else if (selection) clearSelection("none");
 });

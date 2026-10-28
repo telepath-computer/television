@@ -433,9 +433,9 @@ test("Tab enters from the artifact and Television shell without leaving A1 hidde
   await page.locator(`.tab-strip > .tab[data-artifact-id="${id}"]`).click();
   const frame = await h.frame(page, id);
   const shellScroll = frame.locator(".table-scroll");
-  await shellScroll.evaluate(element => element.scrollTo(360, 180));
+  await shellScroll.evaluate(element => element.scrollTo(0, 0));
   await expect.poll(() => shellScroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
-    .toEqual({ left: 360, top: 180 });
+    .toEqual({ left: 0, top: 0 });
   const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
   await toolbox.focus();
   let enteredArtifact = false;
@@ -444,6 +444,8 @@ test("Tab enters from the artifact and Television shell without leaving A1 hidde
     enteredArtifact = await cell(frame, 0, 0).evaluate(element => element === element.ownerDocument.activeElement);
   }
   expect(enteredArtifact).toBe(true);
+  expect(await shellScroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
+    .toEqual({ left: 0, top: 0 });
   const [shellCellBox, shellRowStripBox, shellColumnStripBox] = await Promise.all([
     cell(frame, 0, 0).boundingBox(),
     frame.locator(".table-row-strip").boundingBox(),
@@ -476,6 +478,36 @@ test("a selected frozen header keeps its solid surface and top border", async ({
   expect(selectedHeaderStyle.backgroundColor).toBe(headerSurface);
   expect(selectedHeaderStyle.backgroundImage).not.toBe("none");
   expect(selectedHeaderStyle.borderTopWidth).toBe("1px");
+});
+
+// proofs/ui/templates/table.md#^table-ac-rows
+test("strip outlines remain rounded above their solid gap backing", async ({ page }) => {
+  await open(page);
+  const columnStrip = (await page.locator(".table-column-strip").boundingBox())!;
+  const rowStrip = (await page.locator(".table-row-strip").boundingBox())!;
+  const firstColumn = (await page.locator(".table-column-reference-item").first().boundingBox())!;
+  const firstRow = (await page.locator(".table-row-reference-item").first().boundingBox())!;
+  const pixels = await screenshotPixels(page, {
+    surface: { x: 1, y: 1 },
+    columnDivider: { x: firstColumn.x + firstColumn.width, y: columnStrip.y + columnStrip.height / 2 },
+    columnLeft: { x: columnStrip.x, y: columnStrip.y + columnStrip.height / 2 },
+    columnRight: { x: columnStrip.x + columnStrip.width - 1, y: columnStrip.y + columnStrip.height / 2 },
+    rowDivider: { x: rowStrip.x + rowStrip.width / 2, y: firstRow.y + firstRow.height - 1 },
+    rowLeft: { x: rowStrip.x, y: firstRow.y + firstRow.height / 2 },
+    rowRight: { x: rowStrip.x + rowStrip.width - 1, y: firstRow.y + firstRow.height / 2 },
+    rowTop: { x: rowStrip.x + rowStrip.width / 2, y: rowStrip.y },
+    rowBottom: { x: rowStrip.x + rowStrip.width / 2, y: rowStrip.y + rowStrip.height - 1 },
+    rowTopRound: { x: rowStrip.x + 2, y: rowStrip.y },
+    rowBottomRound: { x: rowStrip.x + 2, y: rowStrip.y + rowStrip.height - 1 },
+  });
+  expect(pixels.columnLeft).toEqual(pixels.columnDivider);
+  expect(pixels.columnRight).toEqual(pixels.columnDivider);
+  expect(pixels.rowLeft).toEqual(pixels.rowDivider);
+  expect(pixels.rowRight).toEqual(pixels.rowDivider);
+  expect(pixels.rowTop).toEqual(pixels.rowDivider);
+  expect(pixels.rowBottom).toEqual(pixels.rowDivider);
+  expect(pixels.rowTopRound).toEqual(pixels.surface);
+  expect(pixels.rowBottomRound).toEqual(pixels.surface);
 });
 
 // proofs/ui/templates/table.md#^table-ac-rows
@@ -526,6 +558,11 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect((await rowButton(page, 0).locator("..").boundingBox())!.height).toBe(52);
   expect((await cell(page, 9, 0).boundingBox())!.height).toBe(28);
   expect((await rowButton(page, 9).locator("..").boundingBox())!.height).toBe(28);
+  const [shortCellBox, shortTextBox] = await Promise.all([
+    cell(page, 9, 0).boundingBox(), cell(page, 9, 0).locator("span").boundingBox(),
+  ]);
+  expect(shortTextBox!.y).toBeGreaterThanOrEqual(shortCellBox!.y);
+  expect(shortTextBox!.y + shortTextBox!.height).toBeLessThanOrEqual(shortCellBox!.y + shortCellBox!.height);
   for (const rowIndex of [0, 1, 9]) {
     const [cellBox, referenceBox] = await Promise.all([
       cell(page, rowIndex, 0).boundingBox(), rowButton(page, rowIndex).locator("..").boundingBox(),
@@ -616,8 +653,16 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(sheetEndBox!.y + sheetEndBox!.height - (sideStripEndBox!.y + sideStripEndBox!.height)).toBeCloseTo(16, 0);
 
   await h.set(id, false, "headerRow");
-  await expect(grid(page)).toHaveCSS("border-top-width", "1px");
+  await expect(grid(page)).toHaveCSS("border-top-width", "0px");
+  await expect(cell(page, 0, 0)).toHaveCSS("border-top-width", "1px");
   await scroll.evaluate(element => element.scrollTo(0, 0));
+  for (const rowIndex of [0, 1, 9]) {
+    const [cellBox, referenceBox] = await Promise.all([
+      cell(page, rowIndex, 0).boundingBox(), rowButton(page, rowIndex).locator("..").boundingBox(),
+    ]);
+    expect(referenceBox!.y).toBeCloseTo(cellBox!.y, 0);
+    expect(referenceBox!.height).toBeCloseTo(cellBox!.height, 0);
+  }
   const rowOneAtOrigin = await cell(page, 0, 0).boundingBox();
   await scroll.evaluate(element => element.scrollTo(0, 180));
   const headerOffScrollTop = await scroll.evaluate(element => element.scrollTop);
@@ -626,7 +671,8 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
 });
 
 // proofs/ui/templates/table.md#^table-ac-rows
-test("a click in a frozen strip gap does not select content underneath", async ({ page }) => {
+// proofs/ui/templates/table.md#^table-ac-editing
+test("clicks in all frozen strip gaps preserve the active editor", async ({ page }) => {
   const columns = Object.fromEntries(Array.from({ length: 4 }, (_, index) => [`c${index + 1}`, { order: index + 1 }]));
   const rows = Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`r${index + 1}`, {
     order: index + 1,
@@ -634,9 +680,38 @@ test("a click in a frozen strip gap does not select content underneath", async (
   }]));
   await open(page, { headerRow: true, columns, rows });
   await page.locator(".table-scroll").evaluate(element => element.scrollTo(0, 180));
-  const topStrip = (await page.locator(".table-column-strip").boundingBox())!;
-  await page.mouse.click(topStrip.x + 40, topStrip.y + topStrip.height + 4);
-  await expect(page.locator('[data-selection="cell"], [data-selection="range"]')).toHaveCount(0);
+  await cell(page, 6, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Uncommitted draft");
+  const beforeGapClicks = writes().length;
+  const [corner, topStrip, sideStrip] = await Promise.all([
+    page.locator(".table-reference-corner").boundingBox(),
+    page.locator(".table-column-strip").boundingBox(),
+    page.locator(".table-row-strip").boundingBox(),
+  ]);
+  const gapPoints = [
+    ["below corner", { x: corner!.x + corner!.width / 2, y: corner!.y + corner!.height + 4 }],
+    ["right of corner", { x: corner!.x + corner!.width + 4, y: corner!.y + corner!.height / 2 }],
+    ["below column strip", { x: topStrip!.x + 40, y: topStrip!.y + topStrip!.height + 4 }],
+    ["right of row strip", { x: sideStrip!.x + sideStrip!.width + 4, y: Math.max(sideStrip!.y, 0) + 80 }],
+  ] as const;
+  expect(await page.evaluate(points => points.map(([, { x, y }]) =>
+    document.elementFromPoint(x, y)?.className ?? null), gapPoints)).toEqual([
+    "table-reference-corner",
+    "table-reference-corner",
+    "table-column-strip table-reference-strip",
+    "table-row-strip table-reference-strip",
+  ]);
+  for (const [name, point] of gapPoints) {
+    await page.mouse.move(point.x, point.y);
+    await page.mouse.down();
+    await expect(editor(page), `${name} pointer down`).toBeFocused();
+    await page.mouse.up();
+    await expect(editor(page), `${name} click`).toBeFocused();
+    await expect(editor(page)).toHaveValue("Uncommitted draft");
+    await expect(cell(page, 6, 1)).toHaveAttribute("data-selection", "cell");
+    expect(writes()).toHaveLength(beforeGapClicks);
+  }
 });
 
 // proofs/ui/templates/table.md#^table-ac-rows
@@ -682,10 +757,12 @@ test("strip gap pixels stay solid during one-axis scrolling and in read-only tab
   const readOnlyScroll = page.locator(".table-scroll");
   await readOnlyScroll.evaluate(element => element.scrollTo(0, 180));
   const readOnlyTopStrip = (await page.locator(".table-column-strip").boundingBox())!;
+  const readOnlyGrid = (await grid(page).boundingBox())!;
+  expect(readOnlyGrid.width).toBe(readOnlyTopStrip.width);
   const readOnlyPixels = await screenshotPixels(page, {
     surface: { x: 1, y: 1 },
     gapStart: { x: readOnlyTopStrip.x, y: readOnlyTopStrip.y + readOnlyTopStrip.height + 4 },
-    gapEnd: { x: readOnlyTopStrip.x + readOnlyTopStrip.width - 1, y: readOnlyTopStrip.y + readOnlyTopStrip.height + 4 },
+    gapEnd: { x: readOnlyGrid.x + readOnlyGrid.width - 1, y: readOnlyTopStrip.y + readOnlyTopStrip.height + 4 },
   });
   expect(readOnlyPixels.gapStart).toEqual(readOnlyPixels.surface);
   expect(readOnlyPixels.gapEnd).toEqual(readOnlyPixels.surface);
@@ -1470,20 +1547,23 @@ test("agent commands and a second viewer update live while stored-key edits stay
   h.product.runCLI(["resource", "json", "remove", "--artifact", id, "rows/r2"]);
   await expect(editor(page)).toHaveCount(0);
   await expect(page.locator('[data-row-key="r2"]')).toHaveCount(0);
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
   await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeRemoval);
 
   await cell(page, 0, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Header draft");
-  const beforeHeaderHidden = writes().length;
-  await h.set(id, false, "showHeader");
-  await expect(editor(page)).toHaveCount(0);
+  const beforeHeaderChange = writes().length;
+  await h.set(id, false, "headerRow");
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Header draft");
   await expect(page.getByRole("columnheader")).toHaveCount(0);
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
-  await expect(grid(page)).toBeFocused();
-  expect(writes()).toHaveLength(beforeHeaderHidden);
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
+  expect(writes()).toHaveLength(beforeHeaderChange);
+  await editor(page).press("Escape");
 
   await h.set(id, { columns: { c1: { order: 1 } }, rows: { r1: { order: 1, cells: {} } } });
   await cell(page, 2, 2).click();
@@ -1491,7 +1571,8 @@ test("agent commands and a second viewer update live while stored-key edits stay
   const beforeIdentityChange = writes().length;
   await h.set(id, { order: 2, cells: {} }, "rows/agent-row");
   await expect(editor(page)).toHaveCount(0);
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
   await expect(grid(page)).toBeFocused();
   expect(writes()).toHaveLength(beforeIdentityChange);
 
@@ -1550,7 +1631,8 @@ test("live selection follows stored keys and closes with its menu when the key i
   await expect(page.getByRole("menuitem", { name: "Insert row above" })).toBeFocused();
   await h.remove(id, "rows/r2");
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
-  await expect(page.locator('.table-frame[data-reference-visible="hidden"]')).toBeVisible();
+  await expect(rowButton(page, 0)).toBeVisible();
+  await expect(columnButton(page, "A")).toBeVisible();
   await expect(grid(page)).toBeFocused();
 });
 

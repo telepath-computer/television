@@ -28,6 +28,7 @@ textarea {
   --reference-size: 26px;
   --reference-add-size: 26px;
   --reference-gap: 8px;
+  --row-reference-extra-digit-width: 7px;
   --table-content-padding: var(--space-16);
 
   display: flex;
@@ -54,11 +55,13 @@ textarea {
 }
 
 .table-sheet {
+  --table-grid-outer-width: calc(var(--table-grid-width) + 2px);
+
   display: grid;
   width: max-content;
   min-height: 100%;
   min-width: calc(
-    var(--table-grid-width)
+    var(--table-grid-outer-width)
     + var(--table-row-reference-width)
     + var(--reference-gap)
     + var(--reference-add-size)
@@ -66,7 +69,7 @@ textarea {
     + var(--table-content-padding)
   );
   padding: var(--table-content-padding);
-  grid-template-columns: var(--table-row-reference-width) var(--table-grid-width);
+  grid-template-columns: var(--table-row-reference-width) var(--table-grid-outer-width);
   grid-template-rows: var(--reference-size) max-content;
   gap: var(--reference-gap);
   align-content: start;
@@ -136,12 +139,14 @@ textarea {
   top: 0;
   z-index: 5;
   display: flex;
-  width: calc(var(--table-grid-width) + var(--reference-add-size));
+  width: calc(var(--table-grid-outer-width) + var(--reference-add-size));
   height: var(--reference-size);
   overflow: visible;
-  border: 1px solid var(--color-border);
+  border: 1px solid transparent;
   border-radius: var(--control-radius);
   background: var(--color-surface);
+  outline: 1px solid var(--color-border);
+  outline-offset: -1px;
   grid-column: 2;
   grid-row: 1;
 }
@@ -181,7 +186,6 @@ textarea {
   border-bottom: 0;
   border-radius: var(--control-radius);
   background: var(--color-surface);
-  box-shadow: inset 0 1px var(--color-border), inset 0 -1px var(--color-border);
   flex-direction: column;
   grid-column: 1;
   grid-row: 2;
@@ -207,7 +211,10 @@ textarea {
   justify-content: center;
 }
 
-.table-row-reference-item:first-child { border-top: 1px solid var(--color-border); }
+.table-row-reference-item:first-child {
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--control-radius) var(--control-radius) 0 0;
+}
 
 .table-page[data-header-row="true"] .table-row-reference-item:first-child {
   position: sticky;
@@ -222,8 +229,12 @@ textarea {
   height: var(--reference-add-size);
   flex: none;
   align-items: center;
-  border-bottom: 1px solid var(--color-border);
   justify-content: center;
+}
+
+.table-row-strip > :last-child {
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0 0 var(--control-radius) var(--control-radius);
 }
 
 .table-column-resize-handle,
@@ -299,18 +310,16 @@ textarea {
   grid-row: 2;
   border-spacing: 0;
   border-collapse: separate;
-  border-top: 1px solid var(--color-border);
   border-right: 1px solid var(--color-border);
   border-left: 1px solid var(--color-border);
   table-layout: fixed;
 }
 
-.table-page[data-header-row="true"] .table-grid { border-top: 0; }
-
 .table-grid th,
 .table-grid td { padding: 0; }
 
 .table-grid tbody td + td { border-left: 1px solid var(--color-border); }
+.table-grid tbody tr:first-child .table-cell { border-top: 1px solid var(--color-border); }
 
 .table-cell {
   position: relative;
@@ -332,7 +341,6 @@ textarea {
   position: sticky;
   top: calc(var(--reference-size) + var(--reference-gap));
   z-index: 2;
-  border-top: 1px solid var(--color-border);
   background: var(--color-surface-muted);
   font-weight: var(--font-weight-medium);
 }
