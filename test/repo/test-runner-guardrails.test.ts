@@ -178,17 +178,17 @@ describe("test runner guardrails", () => {
     expect(action).not.toContain("node-version");
     expect(action).toContain("npx playwright install --with-deps chromium firefox");
     expect(action).toContain("npx playwright install-deps chromium firefox");
-    expect(action).not.toMatch(/^\s*path: ~\/\.cache\/ms-playwright\s*$/m);
-    for (const cached of [
+    const cachePaths = action.match(/^\s{8}path: \|\n((?:\s{10}\S.*\n)+)/m)?.[1]
+      .trim()
+      .split("\n")
+      .map((line) => line.trim());
+    expect(cachePaths).toEqual([
       "~/.cache/ms-playwright/.links",
       "~/.cache/ms-playwright/chromium-*",
       "~/.cache/ms-playwright/chromium_headless_shell-*",
       "~/.cache/ms-playwright/ffmpeg-*",
       "~/.cache/ms-playwright/firefox-*",
-    ]) {
-      expect(action).toContain(cached);
-    }
-    expect(action).not.toContain("~/.cache/ms-playwright/webkit-*");
+    ]);
     expect(action).not.toContain("webkit");
     expect(webkitAction).not.toContain("actions/setup-node");
     expect(webkitAction).not.toContain("node-version");

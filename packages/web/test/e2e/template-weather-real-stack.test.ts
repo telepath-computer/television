@@ -405,7 +405,8 @@ test.afterAll(async () => {
   await harness.cleanup();
 });
 
-// Run before other tests populate the shared channel; this acceptance opens every artifact page.
+// Run first because opening the app loads every artifact in the shared channel.
+// Weather artifacts left by later tests would make Open-Meteo requests this acceptance has not scripted.
 // proofs/ui/templates/weather.md#^weather-ui-ac-appearance
 test(
   "Weather keeps its sky composition and legibility in dark appearance with the bundled Nord theme",

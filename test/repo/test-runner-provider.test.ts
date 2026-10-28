@@ -95,12 +95,12 @@ describe("provider result normalization", () => {
     expect(source).toContain("surface.files.length > 0 && surfaceRequiresWebKit(surface.surfaceId)");
     expect(source).toContain("if (suite === \"target\") return surfaceRequiresWebKit(targetOptions()?.surfaceId)");
     expect(source).toContain("includeWebKit ? `${base} && npx playwright install-deps webkit` : base");
-    expect(source.match(/^run_step playwright-cache .*$/m)?.[0]).toBe(
+    expect(source.match(/^run_step playwright-cache .*$/gm)).toEqual([
       "run_step playwright-cache npx playwright install chromium firefox",
-    );
-    expect(source.match(/run_step playwright-webkit-cache .*$/m)?.[0]).toBe(
+    ]);
+    expect(source.match(/run_step playwright-webkit-cache .*$/gm)).toEqual([
       "run_step playwright-webkit-cache npx playwright install webkit",
-    );
+    ]);
     expect(source).toContain("run_step playwright-webkit-launch node scripts/check-playwright-webkit-launch.mjs");
     expect(source).toContain("npx playwright install-deps webkit");
     expect(source).toContain("export PLAYWRIGHT_BROWSERS_PATH=${playwrightBrowsersPath}");
