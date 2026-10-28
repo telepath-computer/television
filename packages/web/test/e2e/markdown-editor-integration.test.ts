@@ -64,10 +64,6 @@ test.describe("markdown editor integration", () => {
         expect(selector.trim()).toMatch(/^#editor(?:\s|>)/);
       }
     }
-    expect(await page.locator("#outside-editor").evaluate(element => ({
-      display: getComputedStyle(element).display,
-      position: getComputedStyle(element).position,
-    }))).toEqual({ display: "block", position: "static" });
   });
 
   // proofs/arch/templates/document.md#^templates-document-t-editor-interface

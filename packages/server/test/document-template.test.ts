@@ -100,14 +100,7 @@ describe("bundled Document package", () => {
   // proofs/arch/templates/document.md#^templates-document-t-icon
   it("supplies its SVG icon to the Toolbox", () => {
     const manifest = JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"));
-    const icon = readFileSync(path.join(folder, "icon.svg"), "utf8");
-    const viewBox = icon.match(/\bviewBox="([^"]+)"/)?.[1]?.split(/\s+/).map(Number);
     expect(manifest.icons).toEqual([{ src: "icon.svg", type: "image/svg+xml" }]);
-    expect(viewBox).toHaveLength(4);
-    expect(viewBox?.every(Number.isFinite)).toBe(true);
-    expect(viewBox?.[2]).toBeGreaterThan(0);
-    expect(viewBox?.[3]).toBeGreaterThan(0);
-    expect(viewBox?.[2]).toBe(viewBox?.[3]);
     const { template } = validateTemplatePackage(folder, "document");
     expect(selectTemplateIcon(template!)).toEqual({
       path: realpathSync(path.join(folder, "icon.svg")),

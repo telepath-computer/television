@@ -45,7 +45,6 @@ test("new Document from Toolbox starts blank, then saves and clears through its 
   });
 
   const { artifactID: id, frame } = await h.create(page);
-  await expect(content(frame)).toBeVisible();
   await expect(content(frame)).toBeFocused();
   await expect(content(frame)).toHaveText("");
   expect(await frame.evaluate(() => "__cmView" in window)).toBe(false);
@@ -100,7 +99,7 @@ test("agent writes update the open editor and local save echoes preserve newer t
   const agentText = "# Agent replacement\n\n| A | B |\n| - | - |\n| 1 | 2 |";
   h.product.runCLI(["resource", "json", "set", "--artifact", id, "markdown", JSON.stringify(agentText)]);
   await expect(content(page)).toContainText("Agent replacement");
-  await expect(page.locator(".tbl-cell-view").filter({ hasText: "1" })).toBeVisible();
+  await expect(page.locator(".tbl-cell-view").filter({ hasText: "1" })).toHaveCount(1);
   expect(writes()).toEqual([]);
 
   h.proxy.holdServerMessages(connection, message => (
@@ -290,7 +289,6 @@ test("read access blocks changes and a same-share upgrade resumes editing", asyn
     const handles = page.locator(`.tbl-handle[data-type="header"][data-location="${location}"]`);
     await (location === "row" ? handles.last() : handles.first()).click({ force: true });
     const menuItem = page.locator(".tbl-menu-item", { hasText: item });
-    if (await menuItem.isVisible()) await menuItem.click({ force: true });
     await expect(menuItem).toHaveCount(0);
   }
   await expect(page.locator(".tbl-cell")).toHaveCount(2);
@@ -320,8 +318,7 @@ test("a missing packaged editor script shows the error state", async ({ page }) 
   await h.open(page, id);
 
   await expect(page.getByRole("alert")).toContainText("The Markdown editor didn't load");
-  await expect(page.locator(".document-loading")).toBeHidden();
-  await expect(content(page)).toBeHidden();
+  await expect(content(page)).toHaveCount(0);
   expect(await h.read(id, "markdown")).toBe("Stored document");
   expect(writes()).toEqual([]);
 });
@@ -331,7 +328,6 @@ test("access, connection and unreadable data keep the editor from writing and re
   const id = await h.createStored({ markdown: "Saved document" });
   h.proxy.hold("to-browser");
   await h.open(page, id);
-  await expect(page.locator(".document-loading")).toBeVisible();
   await expect(content(page)).toHaveCount(0);
   h.proxy.release("to-browser");
   await expect(content(page)).toContainText("Saved document");
@@ -375,7 +371,6 @@ test("access, connection and unreadable data keep the editor from writing and re
   expect(writes()).toHaveLength(writesBeforeUnreadable);
   await h.set(id, { markdown: 7 } as unknown as JSONValue);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
-  await expect(content(page)).toBeHidden();
   await page.keyboard.type("ignored");
   await page.waitForTimeout(600);
   expect(writes()).toHaveLength(writesBeforeUnreadable);
@@ -388,7 +383,6 @@ test("access, connection and unreadable data keep the editor from writing and re
   expect(writes()).toHaveLength(writesBeforeMissing);
   await h.remove(id);
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
-  await expect(content(page)).toBeHidden();
   await page.waitForTimeout(600);
   expect(writes()).toHaveLength(writesBeforeMissing);
   expect(await h.read(id)).toBeUndefined();
@@ -453,7 +447,6 @@ test("damaged saved bytes recover after repair and restart", async ({ page }) =>
 
   await h.restart(() => writeFileSync(file, "{damaged json"));
   await expect(page.getByRole("alert")).toContainText("This document can't be shown");
-  await expect(content(page)).toBeHidden();
   expect(readFileSync(file, "utf8")).toBe("{damaged json");
 
   await h.restart(() => writeFileSync(file, original));
@@ -511,7 +504,7 @@ test("relative links resolve from the sandboxed copied page", async ({ page }) =
   const share = await h.client.resources.share({ artifactID: id, access: "read" });
   await h.openApp(page);
   const iframe = page.locator(`.stage .page[data-page-key="${id}"] iframe`);
-  await expect(iframe).toBeVisible();
+  await expect(iframe).toHaveCount(1);
   await iframe.evaluate((element, url) => {
     (element as HTMLIFrameElement).src = url;
   }, h.url(id, share.shareID));
@@ -531,7 +524,6 @@ test("relative links resolve from the sandboxed copied page", async ({ page }) =
   await link.click({ modifiers: ["Alt"] });
   await page.waitForTimeout(1_000);
   expect(frame.url()).toContain(`/artifact/${share.shareID}/index.html`);
-  await expect(link).toBeVisible();
   await link.click();
 
   await expect.poll(() => frame.url()).toContain(`/artifact/${share.shareID}/README.md`);

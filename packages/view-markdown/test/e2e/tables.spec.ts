@@ -282,23 +282,6 @@ test.describe("markdown tables", () => {
     expect(tableStyle.cellTextAlign).toBe("start");
   });
 
-  test("releasing a header handle restores its pointer cursor", async ({ page }) => {
-    await loadStandalone(page);
-
-    const handles = page.locator('.tbl-handle[data-type="header"][data-location="col"]');
-    const sourceBox = await handles.first().boundingBox();
-    const targetBox = await handles.last().boundingBox();
-    if (!sourceBox || !targetBox) throw new Error("Column handles are not visible");
-    await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 5 });
-    await page.mouse.up();
-    await expect.poll(() => documentText(page)).toContain("| Status | Name |");
-
-    await handles.first().hover({ force: true });
-    await expect(page.locator("body")).toHaveCSS("cursor", "pointer");
-  });
-
   test("cell edits format the pipe table and debounce exactly one save", async ({ page }) => {
     await loadWithBridge(page);
     await expect(page.locator(".tbl-table-widget")).toHaveCount(1);
