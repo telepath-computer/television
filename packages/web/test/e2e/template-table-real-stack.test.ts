@@ -51,7 +51,7 @@ const editor = (page: Page | Frame): Locator => page.locator(".table-input");
 const status = (page: Page | Frame): Locator => page.locator(".table-status");
 
 type ScreenshotPoint = { x: number; y: number };
-type TouchResizeProbe = { pointerType: string; trusted: boolean; captured: boolean };
+type TouchResizeProbe = { pointerType: string; trusted: boolean };
 
 async function screenshotPixels(page: Page, points: Record<string, ScreenshotPoint>): Promise<Record<string, number[]>> {
   const screenshot = (await page.screenshot()).toString("base64");
@@ -1081,8 +1081,12 @@ test("moving focus to another artifact frame commits and keeps selection", async
     && (message.write as { path?: string }).path === "rows/r2/cells/c1")!.connection;
 
   await firstTab.click();
+  await expect(page.locator(`.stage .page[data-page-key="${id}"]`)).toHaveAttribute("selected", "");
+  await expect(firstFrame.locator(".table-page")).toHaveAttribute("data-editable", "true");
   await cell(firstFrame, 0, 0).click();
+  await expect(cell(firstFrame, 0, 0)).toBeFocused();
   await page.keyboard.press("Enter");
+  await expect(editor(firstFrame)).toBeVisible();
   await editor(firstFrame).fill("Offline draft");
   h.proxy.refuse(true);
   h.proxy.severConnection(firstConnection);
@@ -1344,14 +1348,18 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await page.getByRole("menu", { name: "Row actions" }).getByText("Remove header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(false);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
-  expect(await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe(mutedHeaderSurface);
+  await expect.poll(async () => {
+    const color = await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor);
+    return color !== "" && color !== mutedHeaderSurface;
+  }).toBe(true);
   await expect(rowButton(page, 0)).toHaveText("1");
   const firstRowCells = await h.read(id, "rows/r1/cells");
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Make header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(true);
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
-  expect(await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(mutedHeaderSurface);
+  await expect.poll(() => cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor))
+    .toBe(mutedHeaderSurface);
   await expect(rowButton(page, 0)).toHaveText("1");
   expect(await h.read(id, "rows/r1/cells")).toEqual(firstRowCells);
 
@@ -1533,6 +1541,10 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
   await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Committed before resize");
   await page.mouse.move(columnStart.x + 70, columnStart.y, { steps: 2 });
   expect((await cell(page, 1, 0).boundingBox())!.width).toBeCloseTo(230, 0);
+  await expect.poll(() => page.evaluate(({ x, y }) => {
+    const element = document.elementFromPoint(x, y);
+    return element ? getComputedStyle(element).cursor : null;
+  }, { x: columnStart.x + 70, y: columnStart.y })).toBe("col-resize");
   await expect(cell(page, 1, 1)).toHaveAttribute("data-selection", "cell");
   const beforeStoredColumnResize = writes().length;
   await page.mouse.up();
@@ -1560,7 +1572,6 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
       owner.tableTouchResizeProbe = {
         pointerType: event.pointerType,
         trusted: event.isTrusted,
-        captured: main.hasPointerCapture(event.pointerId),
       };
     }, { once: true });
   });
@@ -1573,7 +1584,7 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
   });
   await expect.poll(() => page.evaluate(() =>
     (window as Window & { tableTouchResizeProbe?: TouchResizeProbe | null }).tableTouchResizeProbe ?? null,
-  )).toEqual({ pointerType: "touch", trusted: true, captured: true });
+  )).toEqual({ pointerType: "touch", trusted: true });
   await touchSession.send("Input.dispatchTouchEvent", {
     type: "touchMove",
     touchPoints: [{ x: touchPoint.x + 40, y: touchPoint.y, radiusX: 1, radiusY: 1, force: 1, id: 1 }],
@@ -1674,8 +1685,12 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
     .find(([, row]) => row.height !== undefined)?.[0];
   expect(storedRowKey).toBeDefined();
   const firstHeight = await h.read<number>(id, `rows/${storedRowKey}/height`);
+  const beforeStoredRowKey = writes().length;
   await page.keyboard.press("+");
   await expect.poll(() => h.read<number>(id, `rows/${storedRowKey}/height`)).toBeGreaterThan(firstHeight!);
+  expect(writes().slice(beforeStoredRowKey)).toEqual([
+    expect.objectContaining({ kind: "set", path: `rows/${storedRowKey}/height` }),
+  ]);
   await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -1703,6 +1718,19 @@ test("resizing reconciles concurrent, access and disconnected changes", async ({
   await expect.poll(() => h.read(id, "columns/c1/width")).toBe(224);
   expect(await h.read(id, "columns/c2/width")).toBe(280);
   await expect.poll(async () => (await cell(page, 1, 0).boundingBox())?.width ?? null).toBe(224);
+
+  const beforeUnchangedConcurrent = writes().length;
+  await startResize(page, "column", 0);
+  await h.set(id, 300, "columns/c1/width");
+  expect((await cell(page, 1, 0).boundingBox())!.width).toBeCloseTo(224, 0);
+  await page.mouse.up();
+  await expect.poll(async () => (await cell(page, 1, 0).boundingBox())?.width ?? null).toBe(300);
+  await expect(columnButton(page, "A")).toHaveAttribute(
+    "aria-description",
+    "300 pixels wide. Select this column, then use plus or minus to resize.",
+  );
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeUnchangedConcurrent);
 
   const beforeRemovedTarget = writes().length;
   const removed = await startResize(page, "row", 1);
@@ -2033,7 +2061,11 @@ test("live selection follows stored keys and closes with its menu when the key i
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-row-reference-3");
   await h.set(id, -1, "rows/r3/order");
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-row-reference-1");
-  await page.keyboard.press("Escape");
+  await h.set(id, 99, "rows/r2/order");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
+  await expect(page.locator('.table-reference-item[aria-pressed="true"]')).toHaveCount(0);
+  await expect(page.locator('[data-selection="range"]')).toHaveCount(0);
+  await expect(grid(page)).toBeFocused();
 
   await h.set(id, fixture());
   await expect(cell(page, 1, 1)).toHaveText("Maine");
@@ -2246,6 +2278,11 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(editor(page)).toHaveValue("Offline draft");
   await expect(editor(page)).toBeFocused();
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
+  const disconnectedOutside = await blankAreaBelowGrid(page);
+  await page.mouse.click(disconnectedOutside.x, disconnectedOutside.y);
+  await expect(editor(page)).toHaveValue("Offline draft");
+  await expect(editor(page)).toBeFocused();
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
   await editor(page).press("Escape");
   await expect(cell(page, 0, 0)).toHaveAttribute("data-selection", "cell");
   await page.keyboard.press("Enter");
@@ -2294,11 +2331,16 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(status(page)).toHaveText("Reconnecting…");
   h.proxy.releaseServerMessages(connection);
   expect(await h.read(id, "rows/r1/cells")).toEqual({ c1: "Disconnected follow-up base" });
+  const writesBeforeReconnect = writes().length;
+  // Stay offline beyond showFailure's six-second timer; an early message would expire before reconnection.
   await page.waitForTimeout(6_500);
   await expect(status(page)).toHaveText("Reconnecting…");
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible({ timeout: 30_000 });
   await expect(status(page)).toHaveText("Couldn't save that change.");
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(writesBeforeReconnect);
+  expect(await h.read(id, "rows/r1/cells")).toEqual({ c1: "Disconnected follow-up base" });
 });
 
 // proofs/ui/templates/table.md#^table-ac-save-failure

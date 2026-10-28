@@ -28,7 +28,7 @@ The first editable design and implementation passed review. Rupert's hands-on re
 22. **What if a renumbering transaction commits but its required follow-up write does not happen?** The draft names the cases: the write is refused, or not sent because write access was lost, the data became unreadable, or the connection dropped. Each shows “Couldn't save that change.” A disconnected page shows “Reconnecting…” first, then the failure for a few seconds after reconnection, even when the disconnection outlasts the usual six-second failure message. The page knows a held-back follow-up was never sent, so this case has no uncertain server outcome. Recommendation: report the incomplete action after the higher-priority connection status clears.
 23. **When should the resize keys be announced?** The strip item's accessible description names plus and minus only when resizing is available. Recommendation: keep unavailable actions out of the description.
 24. **Which spec should own save-failure messages?** The UI spec now owns every condition that shows “Couldn't save that change.” or “Reconnecting…”. The architecture spec keeps the model rule that a two-axis renumbering cannot be saved and links to the UI conditions. Recommendation: keep one owner so the message rules cannot drift between the two specs.
-25. **Which slice-2 UI details need acceptance by Rupert?** The spec stories and UI spec now establish:
+25. **Which visual details need acceptance by Rupert?** The spec stories and UI spec now establish:
     - selected header-row cells tinting a solid muted surface;
     - surface-coloured bands covering all four frozen gaps, with the row-strip band extending one pixel past both ends and the column-strip band spanning its outer width;
     - the corner's lower band spanning the otherwise uncovered intersection between the two gaps;
@@ -38,13 +38,15 @@ The first editable design and implementation passed review. Rupert's hands-on re
     - row-strip width calculated in CSS from the displayed digit count;
     - a frozen header row with its own top border;
     - a 28-pixel row 1 whose one-pixel top border replaces one pixel of padding, plus an editor that fills its cell's padding box without changing row height;
-    - a `Resized` story with a 28-pixel header row and 52-pixel ordinary row, reversing the earlier fixture so both row-1 minimum geometry and later-row extra space are visible;
-    - the empty corner and all four frozen gaps as inert parts of the table control, so clicking them changes no selection, editor or focus; and
+    - a `Resized` story with a 28-pixel header row and 52-pixel ordinary row, reversing the earlier fixture so both row-1 minimum geometry and later-row extra space are visible.
+    Recommendation: accept these as the visual baseline. They preserve the approved geometry while closing the seams that appear during scrolling.
+26. **Which interaction and accessibility details need acceptance by Rupert?** The spec stories and UI spec now establish:
+    - the empty corner and all four frozen gaps as inert parts of the table control, so clicking them changes no selection, editor or focus;
     - named row and column strip groups whose closed buttons expose `aria-expanded="false"` only when their menu is available;
     - a one-pixel clipped live region in every story that announces keyboard resize results without becoming visible; and
-    - `touch-action: none` on pointer resize handles and pointer capture on the stable page root, so touch resizing survives handle redraws without scrolling the table.
-    Recommendation: accept these as one visual correction. They preserve the approved geometry while closing the seams that appear only during scrolling.
-26. **Should the superseded Table editing experiment remain?** The implementation removes `storybook/experiments/table-editing/`. It uses the replaced store shape, separate header behavior and earlier strip behavior, while the spec stories now carry the approved design. Recommendation: keep it removed so future work has one current design reference.
+    - `touch-action: none` on pointer resize handles, so touch resizing does not scroll the table.
+    Recommendation: accept these small behaviour and accessibility details alongside the visual baseline.
+27. **Should the superseded Table editing experiment remain?** The implementation removes `storybook/experiments/table-editing/`. It uses the replaced store shape, separate header behavior and earlier strip behavior, while the spec stories now carry the approved design. Recommendation: keep it removed so future work has one current design reference.
 
 ## Earlier open decisions
 
@@ -124,4 +126,5 @@ The first editable design and implementation passed review. Rupert's hands-on re
 
 ## Validation record
 
-- On 28 October 2026, the existing 20-pixel Table icon renders were reviewed at `/tmp/claude-0/-root-workspace/a2cef88c-31c0-42d9-aa90-a927056829e0/scratchpad/table-icon/table-icon-light-20px.png` and `table-icon-dark-20px.png`. The pale cells, solid teal header and teal grid remain distinct on both the light and dark backgrounds, satisfying `^table-review-icon`.
+- On 28 October 2026, the Table icon was rendered in an exact 20-by-20 CSS-pixel box on light and dark backgrounds at [1× light](table-icon-light-20csspx-1x.png), [1× dark](table-icon-dark-20csspx-1x.png), [2× light](table-icon-light-20csspx-2x.png), and [2× dark](table-icon-dark-20csspx-2x.png). The 1× PNG canvases are 64 by 64 device pixels and the 2× canvases are 128 by 128. The pale cells, solid teal header and teal grid remain distinct in all four renders, satisfying `^table-review-icon`.
+- On 28 October 2026, Chromium kept the `col-resize` cursor throughout a mouse drag. The touch drag committed the same width and scoped write with or without explicit pointer capture, so the page retains `touch-action: none` and omits capture that has no observable effect in this browser.

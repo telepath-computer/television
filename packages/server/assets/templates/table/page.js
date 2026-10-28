@@ -681,7 +681,6 @@ main.addEventListener("pointerdown", event => {
   const item = handle.parentElement;
   const index = item ? [...item.parentElement.children].indexOf(item) : -1;
   if (index < 0) return;
-  main.setPointerCapture(event.pointerId);
   const pointerPosition = axis === "columns" ? event.clientX : event.clientY;
   const start = () => beginResize(axis, index, pointerPosition, event.pointerId);
   if (editing) void commitEditing(null, false, start);
