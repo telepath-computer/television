@@ -140,7 +140,7 @@ export function createAxisRenumberUpdate(request: TableRenumberRequest):
 export function planCellCommit(value: unknown, target: TableCellPosition, openedText: string, text: string | null,
   keys: TableCommitKeys): TablePlanResult;
 
-/** Plans showing or hiding the header row. */
+/** Plans turning the header row on or off. */
 export function planSetHeader(headerRow: boolean): TablePlanResult;
 
 /**

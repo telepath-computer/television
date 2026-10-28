@@ -149,7 +149,7 @@ function referenceButton(kind, index) {
       data-${isRows ? "row" : "column"}-select data-${isRows ? "row" : "column"}-index="${index}"
       data-emphasis="${referenceEmphasis(kind, index)}" data-menu-trigger="${menuTrigger(kind, index)}"
       aria-label="${label}" aria-haspopup="${canWrite() ? "menu" : "false"}" aria-pressed="${selected}"
-      aria-description="${description}" ${menuTrigger(kind, index) ? 'aria-expanded="true"' : ""}
+      aria-description="${description}" aria-expanded="${menuTrigger(kind, index)}"
       tabindex="${anchorId === item?.id ? 0 : -1}">${isRows ? index + 1 : columnLetter(index)}</button>
     ${canWrite() ? `<span class="table-${axisName}-resize-handle" aria-hidden="true"></span>` : ""}
   </div>`;
@@ -304,18 +304,16 @@ function render(focus = "none", nextAxes = buildAxes()) {
   const columnWidths = displayed.columns.map(column => column.width ?? AXIS_SIZES.columns.defaultValue);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(displayed.rows.length).length;
-  const rowReferenceWidth = cssPixels("--reference-size")
-    + Math.max(0, rowNumberDigits - 1) * cssPixels("--row-reference-extra-digit-width");
   const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? AXIS_SIZES.rows.defaultValue}px">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
   replaceContents(`<div class="table-frame">
-    <div class="table-scroll"><div class="table-sheet" style="--table-grid-width: ${gridWidth}px; --table-row-reference-width: ${rowReferenceWidth}px">
+    <div class="table-scroll"><div class="table-sheet" style="--table-grid-width: ${gridWidth}px; --table-row-reference-digits: ${rowNumberDigits}">
       <div class="table-reference-corner" aria-hidden="true"></div>
-      <div class="table-column-strip table-reference-strip" aria-label="Column references">
+      <div class="table-column-strip table-reference-strip" role="group" aria-label="Column references">
         ${displayed.columns.map((_, index) => referenceButton("columns", index)).join("")}
         ${editable ? `<div class="table-column-add-item"><button type="button" class="table-reference-item table-add-item" data-action="add-column" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button></div>` : ""}
       </div>
-      <div class="table-row-strip table-reference-strip" aria-label="Row references">
+      <div class="table-row-strip table-reference-strip" role="group" aria-label="Row references">
         ${displayed.rows.map((_, index) => referenceButton("rows", index)).join("")}
         ${editable ? `<div class="table-row-add-item"><button type="button" class="table-reference-item table-add-item" data-action="add-row" aria-label="Add row at end" title="Add row at end" tabindex="-1">+</button></div>` : ""}
       </div>
@@ -643,6 +641,9 @@ document.addEventListener("keydown", event => {
 
 main.addEventListener("scroll", event => {
   const grid = main.querySelector(".table-grid");
+  // Chromium scrolls a focused grid into view before focusin. Ignore that one
+  // native entry scroll so both in-frame Tab and shell-to-artifact Tab can
+  // restore the person's position before selecting A1.
   if (!(event.target instanceof HTMLElement) || !event.target.matches(".table-scroll")
       || selection === null && document.activeElement === grid) return;
   gridEntryScrollPosition = { left: event.target.scrollLeft, top: event.target.scrollTop };
@@ -794,12 +795,6 @@ document.addEventListener("pointerdown", event => {
     return;
   }
   pointerMovedFocus = editing !== null && event.target instanceof Element && !event.target.closest(".table-input");
-}, { capture: true });
-document.addEventListener("mousedown", event => {
-  if (event.target instanceof Element
-      && event.target.matches(".table-reference-corner, .table-reference-strip")) {
-    event.preventDefault();
-  }
 }, { capture: true });
 
 document.addEventListener("pointerup", () => { pointerMovedFocus = false; }, { capture: true });

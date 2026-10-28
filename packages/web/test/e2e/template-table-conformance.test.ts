@@ -41,7 +41,8 @@ const resized = {
   },
   rows: {
     ...parks.rows,
-    r1: { ...parks.rows.r1, height: 52 },
+    r1: { ...parks.rows.r1, height: 28 },
+    r2: { ...parks.rows.r2, height: 52 },
     r8: { order: 8, cells: { c1: "Grand Canyon", c2: "Arizona", c3: "Yes", c4: "4.9" } },
     r9: { order: 9, cells: { c1: "Joshua Tree", c2: "California", c3: "Yes", c4: "4.7" } },
     r10: { order: 10, height: 28, cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },

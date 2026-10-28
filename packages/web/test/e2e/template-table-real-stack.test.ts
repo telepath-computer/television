@@ -243,6 +243,10 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(cell(page, 1, 0)).toHaveAttribute("role", "gridcell");
   await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /230 pixels wide/);
   await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /52 pixels tall/);
+  await expect(page.getByRole("group", { name: "Column references" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Row references" })).toBeVisible();
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-expanded", "false");
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-expanded", "false");
   await expect(page.locator(".table-column-resize-handle")).toHaveCount(8);
   await expect(page.locator(".table-row-resize-handle")).toHaveCount(41);
   expect(await page.locator(".table-column-resize-handle, .table-row-resize-handle")
@@ -517,7 +521,7 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   const columns = Object.fromEntries(widths.map((width, index) => [`c${index + 1}`, { order: index + 1, width }]));
   const rows = Object.fromEntries(Array.from({ length: 24 }, (_, index) => [`r${index + 1}`, {
     order: index + 1,
-    ...(index === 0 ? { height: 52 } : index === 9 ? { height: 28 } : {}),
+    ...(index === 0 || index === 9 ? { height: 28 } : index === 1 ? { height: 52 } : {}),
     cells: Object.fromEntries(widths.map((_, columnIndex) => [
       `c${columnIndex + 1}`,
       index === 0 ? `Heading ${columnIndex + 1}` : `R${index + 1} C${columnIndex + 1}`,
@@ -547,6 +551,7 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   const sideStrip = page.locator(".table-row-strip");
   await expect(topStrip).toHaveCSS("height", "26px");
   await expect(sideStrip).toHaveCSS("width", "33px");
+  await expect(sheet).toHaveCSS("--table-row-reference-digits", "2");
   const gridBorders = await grid(page).evaluate(element => {
     const style = getComputedStyle(element);
     return [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth];
@@ -554,8 +559,12 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(gridBorders).toEqual(["0px", "1px", "0px", "1px"]);
   await expect(cell(page, 23, 6)).toHaveCSS("border-bottom-width", "1px");
   await expect(cell(page, 0, 0)).toHaveCSS("vertical-align", "top");
-  expect((await cell(page, 0, 0).boundingBox())!.height).toBe(52);
-  expect((await rowButton(page, 0).locator("..").boundingBox())!.height).toBe(52);
+  expect((await cell(page, 0, 0).boundingBox())!.height).toBe(28);
+  expect((await rowButton(page, 0).locator("..").boundingBox())!.height).toBe(28);
+  expect((await cell(page, 0, 0).locator("span").boundingBox())!.y
+    - (await cell(page, 0, 0).boundingBox())!.y).toBe(9);
+  expect((await cell(page, 1, 0).boundingBox())!.height).toBe(52);
+  expect((await rowButton(page, 1).locator("..").boundingBox())!.height).toBe(52);
   expect((await cell(page, 9, 0).boundingBox())!.height).toBe(28);
   expect((await rowButton(page, 9).locator("..").boundingBox())!.height).toBe(28);
   const [shortCellBox, shortTextBox] = await Promise.all([
@@ -663,6 +672,8 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
     expect(referenceBox!.y).toBeCloseTo(cellBox!.y, 0);
     expect(referenceBox!.height).toBeCloseTo(cellBox!.height, 0);
   }
+  expect((await cell(page, 0, 0).locator("span").boundingBox())!.y
+    - (await cell(page, 0, 0).boundingBox())!.y).toBe(9);
   const rowOneAtOrigin = await cell(page, 0, 0).boundingBox();
   await scroll.evaluate(element => element.scrollTo(0, 180));
   const headerOffScrollTop = await scroll.evaluate(element => element.scrollTop);
@@ -772,10 +783,23 @@ test("strip gap pixels stay solid during one-axis scrolling and in read-only tab
 // proofs/ui/templates/table.md#^table-ac-keyboard
 test("editing covers reverse movement, edges, cancellation and editor keys", async ({ page }) => {
   const id = await open(page);
+  const expectEditorKeepsRowHeight = async (rowIndex: number) => {
+    const [cellBox, rowBox, referenceBox, editorBox] = await Promise.all([
+      cell(page, rowIndex, 0).boundingBox(),
+      cell(page, rowIndex, 0).locator("xpath=..").boundingBox(),
+      rowButton(page, rowIndex).locator("..").boundingBox(),
+      editor(page).boundingBox(),
+    ]);
+    expect(cellBox!.height).toBe(referenceBox!.height);
+    expect(rowBox!.height).toBe(referenceBox!.height);
+    expect(editorBox!.y).toBeGreaterThanOrEqual(cellBox!.y);
+    expect(editorBox!.y + editorBox!.height).toBeLessThanOrEqual(cellBox!.y + cellBox!.height);
+  };
 
   await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
   await expect(editor(page)).toHaveValue("Maine");
+  await expectEditorKeepsRowHeight(1);
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Maine".length);
   await editor(page).press("Shift+Space");
   await editor(page).press("Control+Shift+Space");
@@ -811,6 +835,7 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
 
   await cell(page, 0, 1).click();
   await page.keyboard.press("Enter");
+  await expectEditorKeepsRowHeight(0);
   await editor(page).fill("Region");
   await editor(page).press("Enter");
   await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Region");
@@ -1130,6 +1155,7 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await rowButton(page, 1).click({ button: "right" });
   const rowMenu = page.getByRole("menu", { name: "Row actions" });
   await expect(rowMenu).toHaveAttribute("open", "");
+  await expect(rowButton(page, 1)).toHaveAttribute("aria-expanded", "true");
   await expect(rowMenu.getByText("Delete rows", { exact: true })).toBeVisible();
   const rowsBeforeInsert = Object.keys((await h.read<TableData>(id))!.rows);
   const beforeRowInsert = writes().length;

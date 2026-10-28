@@ -72,7 +72,6 @@ const unavailableCadence = 4;
 const ratingBase = 4.2;
 const ratingCycle = 8;
 const seasonalAccessCadence = 3;
-const extraRowNumberWidth = 7;
 const scheduleColumnCount = 3;
 
 const scheduleRows: Row[] = [
@@ -90,7 +89,7 @@ const resizedColumns: Column[] = [
 ];
 
 const resizedRows: Row[] = [
-  ...parkRows.map((row, index) => index === 0 ? { ...row, height: 52 } : row),
+  ...parkRows.map((row, index) => index === 0 ? { ...row, height: 28 } : index === 1 ? { ...row, height: 52 } : row),
   { key: "r8", cells: { c1: "Grand Canyon", c2: "Arizona", c3: "Yes", c4: "4.9" } },
   { key: "r9", cells: { c1: "Joshua Tree", c2: "California", c3: "Yes", c4: "4.7" } },
   { key: "r10", height: 28, cells: { c1: "Redwood", c2: "California", c3: "Yes", c4: "4.8" } },
@@ -171,8 +170,6 @@ function columnMenu(selection: Selection, triggerColumn: number) {
 
 const defaultColumnWidth = 160;
 const defaultRowHeight = 38;
-const referenceSize = 26;
-
 const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, selection, menu, editable, status, loading, unreadable }: Args) => {
   document.documentElement.dataset.theme = theme;
 
@@ -199,7 +196,6 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
   const columnWidths = columns.map((column) => column.width ?? defaultColumnWidth);
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(rows.length).length;
-  const rowReferenceWidth = referenceSize + Math.max(0, rowNumberDigits - 1) * extraRowNumberWidth;
   const menuTrigger = menu === "row"
     ? selection?.kind === "row" ? selection.start : 0
     : selection?.kind === "column" ? selection.start : 0;
@@ -210,10 +206,10 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
         <div class="table-scroll">
           <div
             class="table-sheet"
-            style="--table-grid-width: ${gridWidth}px; --table-row-reference-width: ${rowReferenceWidth}px"
+            style="--table-grid-width: ${gridWidth}px; --table-row-reference-digits: ${rowNumberDigits}"
           >
             <div class="table-reference-corner" aria-hidden="true"></div>
-            <div class="table-column-strip table-reference-strip" aria-label="Column references">
+            <div class="table-column-strip table-reference-strip" role="group" aria-label="Column references">
               ${columns.map((_, columnIndex) => html`
                 <div class="table-column-reference-item" style="width: ${columnWidths[columnIndex]}px">
                   <button
@@ -223,7 +219,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
                     aria-label="Select column ${columnLetter(columnIndex)}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    ${menu === "column" && columnIndex === menuTrigger ? html`aria-expanded="true"` : ""}
+                    aria-expanded="${String(menu === "column" && columnIndex === menuTrigger)}"
                     aria-pressed="${String(columnSelected(selection, columnIndex))}"
                     aria-description="${columnWidths[columnIndex]} pixels wide.${editable ? " Select this column, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
@@ -234,7 +230,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                 <button type="button" class="table-reference-item table-add-item" aria-label="Add column at end" title="Add column at end" tabindex="-1">+</button>
               </div>` : ""}
             </div>
-            <div class="table-row-strip table-reference-strip" aria-label="Row references">
+            <div class="table-row-strip table-reference-strip" role="group" aria-label="Row references">
               ${rows.map((row, rowIndex) => html`
                 <div class="table-row-reference-item" style="--table-current-row-height: ${row.height ?? defaultRowHeight}px">
                   <button
@@ -244,7 +240,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
                     aria-label="Select row ${rowIndex + 1}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    ${menu === "row" && rowIndex === menuTrigger ? html`aria-expanded="true"` : ""}
+                    aria-expanded="${String(menu === "row" && rowIndex === menuTrigger)}"
                     aria-pressed="${String(rowSelected(selection, rowIndex))}"
                     aria-description="${row.height ?? defaultRowHeight} pixels tall.${editable ? " Select this row, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"

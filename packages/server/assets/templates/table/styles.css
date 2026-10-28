@@ -56,6 +56,10 @@ textarea {
 
 .table-sheet {
   --table-grid-outer-width: calc(var(--table-grid-width) + 2px);
+  --table-row-reference-width: calc(
+    var(--reference-size)
+    + (var(--table-row-reference-digits, 1) - 1) * var(--row-reference-extra-digit-width)
+  );
 
   display: grid;
   width: max-content;
@@ -304,7 +308,7 @@ textarea {
 .table-add-item:focus-visible { opacity: 1; }
 
 .table-grid {
-  width: var(--table-grid-width);
+  width: var(--table-grid-outer-width);
   align-self: start;
   grid-column: 2;
   grid-row: 2;
@@ -319,7 +323,10 @@ textarea {
 .table-grid td { padding: 0; }
 
 .table-grid tbody td + td { border-left: 1px solid var(--color-border); }
-.table-grid tbody tr:first-child .table-cell { border-top: 1px solid var(--color-border); }
+.table-grid tbody tr:first-child .table-cell {
+  padding-top: 8px !important;
+  border-top: 1px solid var(--color-border);
+}
 
 .table-cell {
   position: relative;
@@ -384,13 +391,17 @@ textarea {
 }
 
 .table-cell-input {
-  width: calc(100% + 2 * var(--space-12));
-  height: var(--table-current-row-height);
-  margin: -9px calc(-1 * var(--space-12)) 0;
+  position: absolute;
+  inset: 0 0 1px;
+  width: auto;
+  height: auto;
+  margin: 0;
   padding: 9px var(--space-12) 0;
   line-height: 18px;
   white-space: pre;
 }
+
+.table-grid tbody tr:first-child .table-cell-input { padding-top: 8px; }
 
 .table-cell[data-header="true"] .table-input { background: var(--color-surface-muted); }
 
