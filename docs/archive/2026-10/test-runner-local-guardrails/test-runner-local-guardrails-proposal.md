@@ -1,4 +1,4 @@
-> **Archived 2026-10 from branch `thopter/test-runner-local-guardrails`.** This proposal set the host-health priority, independent overrides and instruction-layer scope carried into the runner specs and implementation. It preserves the single coherent statement of intent and the rationale for the boundaries between local iteration, remote validation and deliberate departures from guidance. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+> **Archived 2026-10 from PR #53, which carries PR #49's change.** This proposal set the host-health priority, independent overrides and instruction-layer scope carried into the runner specs and implementation. It preserves the single coherent statement of intent and the rationale for the boundaries between local iteration, remote validation and deliberate departures from guidance. The body below is unchanged from its working state and is a clue to the change, not a record of it.
 
 # Local test-runner guardrails
 

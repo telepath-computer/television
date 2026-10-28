@@ -1,4 +1,4 @@
-> **Archived 2026-10 from PR #12.** This proposal shaped the implemented test-harness cleanup and recovery requirements. It preserves the resource investigation's quantitative context, the reasons for limiting built-application conversion to five cases, and the tradeoffs behind one renewable recovery deadline. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+> **Archived 2026-10 from PR #53, which carries PR #12's change.** This proposal shaped the implemented test-harness cleanup and recovery requirements. It preserves the resource investigation's quantitative context, the reasons for limiting built-application conversion to five cases, and the tradeoffs behind one renewable recovery deadline. The body below is unchanged from its working state and is a clue to the change, not a record of it.
 
 # Test-harness resource cleanup
 

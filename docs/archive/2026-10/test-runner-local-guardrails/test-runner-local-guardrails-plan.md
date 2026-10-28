@@ -1,4 +1,4 @@
-> **Archived 2026-10 from branch `thopter/test-runner-local-guardrails`.** This plan organized the implementation into file/retry admission, mutex ownership and native-entrypoint guidance, with isolated crash validation and a final full gate. It preserves the complete view of the work’s dependencies, fixture-safety constraints and validation responsibilities across those parts. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+> **Archived 2026-10 from PR #53, which carries PR #49's change.** This plan organized the implementation into file/retry admission, mutex ownership and native-entrypoint guidance, with isolated crash validation and a final full gate. It preserves the complete view of the work’s dependencies, fixture-safety constraints and validation responsibilities across those parts. The body below is unchanged from its working state and is a clue to the change, not a record of it.
 
 # Local test-runner guardrails — implementation plan
 

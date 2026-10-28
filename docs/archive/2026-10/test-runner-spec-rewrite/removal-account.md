@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #53.** This was the removal account of the test-runner spec rewrite, corrected after the per-file reviews, and the merged specs follow it. For each passage of the nine earlier test-runner specs it says whether the passage was kept, reworded, moved, judged derivable or dropped, and why, which the squash diff shows only as deletions. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Removal account: test-runner specs
 
 This account compares the nine old specs in `specs/arch/test-runner/` at `d2837551` with the six new ones at `92574976`, and says what became of each passage of the old specs, in order. Entries marked "per-file review round 1" were corrected after the per-file reviews of `ee599ee8`, and describe the specs as revised in that round. It is step 5 of the spec-rewrite method. The ledger (`ledger.md`) justifies what the new specs say; this account justifies what they no longer say.

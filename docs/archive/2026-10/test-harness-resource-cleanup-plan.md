@@ -1,4 +1,4 @@
-> **Archived 2026-10 from PR #12.** This plan's three slices and private qualification followed by standard shared-pool validation were completed. It preserves one coherent view of the derivation boundaries and why the two-worker full gate was rejected in favor of the standard partition. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+> **Archived 2026-10 from PR #53, which carries PR #12's change.** This plan's three slices and private qualification followed by standard shared-pool validation were completed. It preserves one coherent view of the derivation boundaries and why the two-worker full gate was rejected in favor of the standard partition. The body below is unchanged from its working state and is a clue to the change, not a record of it.
 
 # Test-harness resource cleanup: implementation plan
 

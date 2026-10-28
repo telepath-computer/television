@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #53.** This was the ledger of the test-runner spec rewrite; the specs merged as revised by the review responses at its end, and the proofs as described in its repair-phase section. It records why each statement in the rewritten specs is there and how each review finding was answered, including the alternatives rejected, which is found nowhere else. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Test-runner spec rewrite: ledger
 
 This ledger records why each statement in the rewritten `specs/arch/test-runner/` specs is there. The specs were rewritten from an empty page under `specs/spec-policy.md`, following the spec-rewrite method's steps 1 and 3. The old specs are those at `bcc65d97`, the merge of #49 and #12. Later commits on this branch change no spec text.
