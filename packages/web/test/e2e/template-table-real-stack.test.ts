@@ -241,6 +241,11 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(cell(page, 0, 0)).toHaveAccessibleName("Park");
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
   await expect(cell(page, 1, 0)).toHaveAttribute("role", "gridcell");
+  const [headerCellBox, headerTextBox] = await Promise.all([
+    cell(page, 0, 0).boundingBox(),
+    cell(page, 0, 0).locator("span").boundingBox(),
+  ]);
+  expect(headerTextBox!.y - headerCellBox!.y).toBe(9);
   await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /230 pixels wide/);
   await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /52 pixels tall/);
   await expect(page.getByRole("group", { name: "Column references" })).toBeVisible();
@@ -460,7 +465,6 @@ test("Tab enters from the artifact and Television shell without leaving A1 hidde
 });
 
 // proofs/ui/templates/table.md#^table-ac-rows
-// proofs/ui/templates/table.md#^table-ac-keyboard
 test("a selected frozen header keeps its solid surface and top border", async ({ page }) => {
   const value = fixture();
   for (let index = 8; index <= 24; index += 1) {
@@ -681,7 +685,6 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
     .toBeCloseTo(rowOneAtOrigin!.y - headerOffScrollTop, 0);
 });
 
-// proofs/ui/templates/table.md#^table-ac-rows
 // proofs/ui/templates/table.md#^table-ac-editing
 test("clicks in all frozen strip gaps preserve the active editor", async ({ page }) => {
   const columns = Object.fromEntries(Array.from({ length: 4 }, (_, index) => [`c${index + 1}`, { order: index + 1 }]));
@@ -765,6 +768,8 @@ test("strip gap pixels stay solid during one-axis scrolling and in read-only tab
   const share = await h.client.resources.share({ artifactID: readOnlyID, access: "read" });
   await h.open(page, readOnlyID, share.shareID);
   await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "false");
+  await expect(columnButton(page, "A")).not.toHaveAttribute("aria-expanded");
+  await expect(rowButton(page, 0)).not.toHaveAttribute("aria-expanded");
   const readOnlyScroll = page.locator(".table-scroll");
   await readOnlyScroll.evaluate(element => element.scrollTo(0, 180));
   const readOnlyTopStrip = (await page.locator(".table-column-strip").boundingBox())!;
@@ -783,23 +788,32 @@ test("strip gap pixels stay solid during one-axis scrolling and in read-only tab
 // proofs/ui/templates/table.md#^table-ac-keyboard
 test("editing covers reverse movement, edges, cancellation and editor keys", async ({ page }) => {
   const id = await open(page);
-  const expectEditorKeepsRowHeight = async (rowIndex: number) => {
-    const [cellBox, rowBox, referenceBox, editorBox] = await Promise.all([
-      cell(page, rowIndex, 0).boundingBox(),
-      cell(page, rowIndex, 0).locator("xpath=..").boundingBox(),
+  const expectEditorFillsCellWithoutChangingRowHeight = async (rowIndex: number, columnIndex: number) => {
+    const editedCell = cell(page, rowIndex, columnIndex);
+    const [cellBox, cellPaddingBox, rowBox, referenceBox, editorBox] = await Promise.all([
+      editedCell.boundingBox(),
+      editedCell.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          x: bounds.x + element.clientLeft,
+          y: bounds.y + element.clientTop,
+          width: element.clientWidth,
+          height: element.clientHeight,
+        };
+      }),
+      editedCell.locator("xpath=..").boundingBox(),
       rowButton(page, rowIndex).locator("..").boundingBox(),
       editor(page).boundingBox(),
     ]);
     expect(cellBox!.height).toBe(referenceBox!.height);
     expect(rowBox!.height).toBe(referenceBox!.height);
-    expect(editorBox!.y).toBeGreaterThanOrEqual(cellBox!.y);
-    expect(editorBox!.y + editorBox!.height).toBeLessThanOrEqual(cellBox!.y + cellBox!.height);
+    expect(editorBox).toEqual(cellPaddingBox);
   };
 
   await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
   await expect(editor(page)).toHaveValue("Maine");
-  await expectEditorKeepsRowHeight(1);
+  await expectEditorFillsCellWithoutChangingRowHeight(1, 1);
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe("Maine".length);
   await editor(page).press("Shift+Space");
   await editor(page).press("Control+Shift+Space");
@@ -835,7 +849,7 @@ test("editing covers reverse movement, edges, cancellation and editor keys", asy
 
   await cell(page, 0, 1).click();
   await page.keyboard.press("Enter");
-  await expectEditorKeepsRowHeight(0);
+  await expectEditorFillsCellWithoutChangingRowHeight(0, 1);
   await editor(page).fill("Region");
   await editor(page).press("Enter");
   await expect.poll(() => h.read(id, "rows/r1/cells/c2")).toBe("Region");

@@ -21,7 +21,7 @@ The first editable design and implementation passed review. Rupert's hands-on re
 15. **Should a static story show sticky scrolling?** `Scrolled` starts partway down and across a large table. It keeps the top strip, side strip, 52-pixel header row, and row number 1 aligned, with surface-coloured bands covering both gaps beside the frozen strips. Recommendation: keep this reference state alongside later browser interaction proofs.
 16. **What interrupts a resize?** The draft ends its preview without writing if the target disappears, a drawn target changes identity, or write access or connection is lost before release. Plus and minus also do nothing without write access or a connection. Recommendation: accept the unfinished resize as lost rather than retain another detached draft.
 17. **How should the header row behave for menus and assistive technology?** Its cells expose column-header roles but otherwise remain ordinary cells: their editor is named by row and column, and the context-menu key selects row 1 and opens its row menu. Recommendation: keep one interaction model while preserving useful table semantics.
-18. **How should text align in resized rows?** Rupert decided that all cell text stays top-aligned and extra height falls below it. Because 28 pixels already holds the normal padding and one 18-pixel line, the spec now says that a row at the minimum keeps that line whole; it drops the unreachable padding-trimming clause without changing Rupert's top-alignment decision. `Resized` shows a 28-pixel header row and a 52-pixel data row. This is decided rather than open.
+18. **How should text align in resized rows?** Rupert decided that all cell text stays top-aligned and extra height falls below it. Because 28 pixels already holds the normal padding and one 18-pixel line, the spec now says that a row at the minimum keeps that line whole; it drops the unreachable padding-trimming clause without changing Rupert's top-alignment decision. `Resized` shows both a 52-pixel header row and a 28-pixel row. This is decided rather than open.
 19. **What happens if an agent changes a size during a drag on the same row or column?** The draft keeps the person's live preview in place and commits it on release through ordinary last-write-wins ordering. Recommendation: keep this parallel with cell editing rather than move the pointer preview underneath the person.
 20. **What does releasing an unchanged resize do?** A changed size saves through ordinary last-write-wins ordering. An unchanged size writes nothing and shows the current saved size, including an agent's concurrent change. Recommendation: keep the same changed-versus-unchanged boundary as cell editing.
 21. **What if an axis changes shape while a renumbering transaction retries?** Every retry treats an absent axis as empty and aborts if a present axis is not a JSON object, whether the action inserts, adds at the end or stores drawn positions. Recommendation: keep one validation rule for every renumbering mode.
@@ -35,10 +35,11 @@ The first editable design and implementation passed review. Rupert's hands-on re
     - row-number dividers aligned with grid lines through the same first-row top border whether the header row is on or off;
     - a grid and column strip both declared at the outer width that includes the grid's two borders, including in read-only and disconnected states;
     - row-strip width calculated in CSS from the displayed digit count;
-    - a frozen header row with its own top border; and
-    - a 28-pixel row 1 whose one-pixel top border replaces one pixel of padding, plus an editor positioned over its cell so editing never changes row height;
+    - a frozen header row with its own top border;
+    - a 28-pixel row 1 whose one-pixel top border replaces one pixel of padding, plus an editor that fills its cell's padding box without changing row height;
+    - a `Resized` story with a 28-pixel header row and 52-pixel ordinary row, reversing the earlier fixture so both row-1 minimum geometry and later-row extra space are visible;
     - the empty corner and all four frozen gaps as inert parts of the table control, so clicking them changes no selection, editor or focus; and
-    - named row and column strip groups whose closed buttons expose `aria-expanded="false"`.
+    - named row and column strip groups whose closed buttons expose `aria-expanded="false"` only when their menu is available.
     Recommendation: accept these as one visual correction. They preserve the approved geometry while closing the seams that appear only during scrolling.
 
 ## Earlier open decisions

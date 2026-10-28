@@ -219,7 +219,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "column", columnIndex)}"
                     aria-label="Select column ${columnLetter(columnIndex)}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    aria-expanded="${String(menu === "column" && columnIndex === menuTrigger)}"
+                    ${editable ? html`aria-expanded="${String(menu === "column" && columnIndex === menuTrigger)}"` : null}
                     aria-pressed="${String(columnSelected(selection, columnIndex))}"
                     aria-description="${columnWidths[columnIndex]} pixels wide.${editable ? " Select this column, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "column" && selection.start === columnIndex ? 0 : -1}"
@@ -240,7 +240,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
                     data-emphasis="${referenceEmphasis(selection, "row", rowIndex)}"
                     aria-label="Select row ${rowIndex + 1}"
                     aria-haspopup="${editable ? "menu" : "false"}"
-                    aria-expanded="${String(menu === "row" && rowIndex === menuTrigger)}"
+                    ${editable ? html`aria-expanded="${String(menu === "row" && rowIndex === menuTrigger)}"` : null}
                     aria-pressed="${String(rowSelected(selection, rowIndex))}"
                     aria-description="${row.height ?? defaultRowHeight} pixels tall.${editable ? " Select this row, then use plus or minus to resize." : ""}"
                     tabindex="${selection?.kind === "row" && selection.start === rowIndex ? 0 : -1}"
@@ -303,7 +303,6 @@ const beginEditing = ({ canvasElement }: Play) => {
   input.spellcheck = false;
   text.replaceWith(input);
   cell.tabIndex = -1;
-  cell.dataset.editing = "true";
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 };

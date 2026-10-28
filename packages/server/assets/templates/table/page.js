@@ -147,9 +147,9 @@ function referenceButton(kind, index) {
   return `<div class="table-${axisName}-reference-item" style="${style}">
     <button type="button" class="table-reference-item" id="table-${axisName}-reference-${index + 1}"
       data-${isRows ? "row" : "column"}-select data-${isRows ? "row" : "column"}-index="${index}"
-      data-emphasis="${referenceEmphasis(kind, index)}" data-menu-trigger="${menuTrigger(kind, index)}"
+      data-emphasis="${referenceEmphasis(kind, index)}"
       aria-label="${label}" aria-haspopup="${canWrite() ? "menu" : "false"}" aria-pressed="${selected}"
-      aria-description="${description}" aria-expanded="${menuTrigger(kind, index)}"
+      aria-description="${description}" ${canWrite() ? `aria-expanded="${menuTrigger(kind, index)}"` : ""}
       tabindex="${anchorId === item?.id ? 0 : -1}">${isRows ? index + 1 : columnLetter(index)}</button>
     ${canWrite() ? `<span class="table-${axisName}-resize-handle" aria-hidden="true"></span>` : ""}
   </div>`;
@@ -630,6 +630,8 @@ main.addEventListener("contextmenu", event => {
   openMenu(rowButton ? "rows" : "columns", Number((rowButton ?? columnButton).dataset[rowButton ? "rowIndex" : "columnIndex"]));
 });
 
+// Record the scroll position before an in-frame Tab can make Chromium scroll
+// the grid natively; focusin restores it before choosing the entry cell.
 document.addEventListener("keydown", event => {
   const grid = main.querySelector(".table-grid");
   if (event.defaultPrevented || event.key !== "Tab" || selection !== null || document.activeElement === grid) return;
@@ -640,12 +642,7 @@ document.addEventListener("keydown", event => {
 }, { capture: true });
 
 main.addEventListener("scroll", event => {
-  const grid = main.querySelector(".table-grid");
-  // Chromium scrolls a focused grid into view before focusin. Ignore that one
-  // native entry scroll so both in-frame Tab and shell-to-artifact Tab can
-  // restore the person's position before selecting A1.
-  if (!(event.target instanceof HTMLElement) || !event.target.matches(".table-scroll")
-      || selection === null && document.activeElement === grid) return;
+  if (!(event.target instanceof HTMLElement) || !event.target.matches(".table-scroll")) return;
   gridEntryScrollPosition = { left: event.target.scrollLeft, top: event.target.scrollTop };
 }, { capture: true });
 
