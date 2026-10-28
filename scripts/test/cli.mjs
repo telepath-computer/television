@@ -424,6 +424,7 @@ function allowsUncommitted(selectionOptions) {
 }
 
 async function runWithSelection(provider, selectionOptions) {
+  validateRunDirOutput(selectionOptions);
   if (provider === "local") assertRegistryValid();
   const selectionConfig = provider === "blaxel" ? await loadRegistrySnapshotAtCommit({ commit: selectionOptions.commit ?? "HEAD" }) : config;
   if (provider === "blaxel") selectionOptions = { ...selectionOptions, commit: selectionConfig.commit };
@@ -515,6 +516,8 @@ function stopForStaleOwners({ startupOwners, surfaces, runContext, selection, se
 }
 
 async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
+  // Selection refusals precede remote preflight and the run directory, so they leave no directory.
+  const selectionArgs = blaxelSelectionArgs(selectionOptions, surfaces, testRetries);
   const remote = runRemotePreflightAndPrint("blaxel", selectionOptions);
   assertPreflightsPassed(remote.results);
   const git = remote.git;
@@ -532,34 +535,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
   if (selectionOptions["retry-infra"]) args.push("--retry-infra", selectionOptions["retry-infra"]);
   else args.push("--retry-infra", "2");
   if (allowsUncommitted(selectionOptions)) args.push("--allow-dirty");
-  args.push("--test-retries", String(testRetries));
-
-  if (selectionOptions.file || selectionOptions.grep || selectionOptions.surface) {
-    if (surfaces.length !== 1) fail("Blaxel targeted runs require a selection that resolves to exactly one surface.");
-    const surface = surfaces[0];
-    if (!["vitest", "playwright"].includes(surface.runner)) fail(`Blaxel targeted runs do not support runner ${surface.runner}.`);
-    args.push(
-      "--suite", "target",
-      "--shards", "1",
-      "--target-surface-id", surface.id,
-      "--target-runner", surface.runner,
-      "--target-config", relativeToCwd(surface, surface.config),
-      "--target-cwd", surface.command ? "." : surface.cwd || ".",
-      "--target-retries", String(testRetries),
-    );
-    if (surface.command) args.push("--target-command-json", JSON.stringify(surface.command));
-    if (surface.preCommand) args.push("--target-pre-command-json", JSON.stringify(surface.preCommand));
-    if (surface.services.length > 0) args.push("--target-services-json", JSON.stringify(surface.services));
-    if (selectionOptions.resolvedFiles) args.push("--target-files-json", JSON.stringify(selectionOptions.resolvedFiles.map((file) => file.path)));
-    if (selectionOptions.file) args.push("--target-file", surface.command ? selectionOptions.file : relativeToCwd(surface, selectionOptions.file));
-    if (selectionOptions.grep) args.push("--target-grep", selectionOptions.grep);
-  } else if (selectionOptions.package || selectionOptions.runner || selectionOptions.tag) {
-    args.push("--suite", "selection", "--surfaces", surfaces.map((surface) => surface.id).join(","));
-  } else {
-    const suite = selectionOptions.suite ?? (selectionOptions.all ? "all" : null);
-    if (!["all", "unit", "e2e"].includes(suite)) fail("Blaxel suite runs require --suite all|unit|e2e or --all. The telemetry PostHog roundtrip suite is local-only because it requires the PostHog test read key.");
-    args.push("--suite", suite);
-  }
+  args.push("--test-retries", String(testRetries), ...selectionArgs);
 
   fs.writeFileSync(path.join(runContext.runDir, "request.json"), `${JSON.stringify({ provider: "blaxel", git, selection: selectionSummary(selectionOptions, surfaces), delegatedCommand: [process.execPath, ...args] }, null, 2)}\n`);
   console.log(`[blaxel] ${[process.execPath, ...args].map(shellDisplay).join(" ")}`);
@@ -976,15 +952,51 @@ function readJson(file) {
   try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; }
 }
 
+function blaxelSelectionArgs(selectionOptions, surfaces, testRetries) {
+  const args = [];
+  if (selectionOptions.file || selectionOptions.grep || selectionOptions.surface) {
+    if (surfaces.length !== 1) fail("Blaxel targeted runs require a selection that resolves to exactly one surface.");
+    const surface = surfaces[0];
+    if (!["vitest", "playwright"].includes(surface.runner)) fail(`Blaxel targeted runs do not support runner ${surface.runner}.`);
+    args.push(
+      "--suite", "target",
+      "--shards", "1",
+      "--target-surface-id", surface.id,
+      "--target-runner", surface.runner,
+      "--target-config", relativeToCwd(surface, surface.config),
+      "--target-cwd", surface.command ? "." : surface.cwd || ".",
+      "--target-retries", String(testRetries),
+    );
+    if (surface.command) args.push("--target-command-json", JSON.stringify(surface.command));
+    if (surface.preCommand) args.push("--target-pre-command-json", JSON.stringify(surface.preCommand));
+    if (surface.services.length > 0) args.push("--target-services-json", JSON.stringify(surface.services));
+    if (selectionOptions.resolvedFiles) args.push("--target-files-json", JSON.stringify(selectionOptions.resolvedFiles.map((file) => file.path)));
+    if (selectionOptions.file) args.push("--target-file", surface.command ? selectionOptions.file : relativeToCwd(surface, selectionOptions.file));
+    if (selectionOptions.grep) args.push("--target-grep", selectionOptions.grep);
+  } else if (selectionOptions.package || selectionOptions.runner || selectionOptions.tag) {
+    args.push("--suite", "selection", "--surfaces", surfaces.map((surface) => surface.id).join(","));
+  } else {
+    const suite = selectionOptions.suite ?? (selectionOptions.all ? "all" : null);
+    if (!["all", "unit", "e2e"].includes(suite)) fail("Blaxel suite runs require --suite all|unit|e2e or --all. The telemetry PostHog roundtrip suite is local-only because it requires the PostHog test read key.");
+    args.push("--suite", suite);
+  }
+  return args;
+}
+
 function createProviderRunContext(provider) {
   if (provider === "blaxel") return createRunContext("blaxel", { timingProvider: "blaxel-playwright-x64-4vcpu" });
   return createRunContext("local");
 }
 
+function validateRunDirOutput(options) {
+  const output = options["run-dir-output"];
+  if (output != null && (typeof output !== "string" || output === "1" || output.trim() === "")) fail("--run-dir-output requires a file path");
+}
+
 function writeRunDirOutput(options, runContext) {
   const output = options["run-dir-output"];
   if (output == null) return;
-  if (typeof output !== "string" || output === "1" || output.trim() === "") fail("--run-dir-output requires a file path");
+  validateRunDirOutput(options);
   atomicWriteFile(path.resolve(output), `${runContext.absoluteRunDir}\n`);
 }
 

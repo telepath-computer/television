@@ -219,7 +219,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 2. **Ownership paragraph.** **Reworded**: the introduction links duration planning to sharded-execution.md. The list of what reporting owns is derivable from the sections.
 3. **Run-directory location and the exact run-ID format, with its reason.** **Reworded** in part: reporting.md#run-directory keeps uniqueness across processes and hosts. The exact format is dropped: nothing parses it.
 4. **Directory tree.** **Reworded**: the list in #run-directory.
-5. **The `outputs` block; atomic writes; early exits still write the top-level files.** **Reworded**: #run-directory, scoped after review round 1. The promise holds once a directory exists, and refusals leave none. A Blaxel run creates its directory once its remote preflight and selection checks have passed; two selection checks in `runBlaxel` currently run after the directory exists, a gap left for the code (per-file review round 1). The `outputs` block is dropped as internal.
+5. **The `outputs` block; atomic writes; early exits still write the top-level files.** **Reworded**: #run-directory, scoped after review round 1. The promise holds once a directory exists, and refusals leave none. A Blaxel run creates its directory once its remote preflight and selection checks have passed (per-file review round 1); two selection checks that ran after the directory existed were moved ahead of it (per-file review round 2). The `outputs` block is dropped as internal.
 6. **Which process owns the directory (local CLI; the shard worker for CI shards; the Blaxel finalizer).** **Reworded**: #run-directory.
 7. **CI matrix jobs keep distinct runs, and the join validates without rewriting them.** **Derivable**: from "Each GitHub CI test job writes its own" (#run-directory) and github-ci.md#required-checks.
 8. **`--run-dir-output` and why `.test-runs/` is not enumerated.** **Reworded**: #run-directory. Its write is now tied to the directory's creation, not to "before preflight" (review round 1).
@@ -268,7 +268,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 1. **Opening paragraph.** **Reworded**: sharded-execution.md's introduction.
 2. **Ownership paragraph.** **Reworded**: the introduction.
 3. **One committed rollup at `test/timing-baseline.json`; a planning input measured only on Blaxel; every plan uses it.** **Reworded**: sharded-execution.md#duration-baseline.
-4. **`TimingProvider` union and the baseline types.** **Dropped**: the baseline's format is left to code. A `--commit` run reads the tested commit's baseline with the checkout's planner, so the file crosses revisions; blaxel-testshards.md#runs states that boundary and its rule, and the shape stays in code (review round 1, finding 1; per-file review round 1). The Blaxel identity is pinned in reporting.md#timing-records.
+4. **`TimingProvider` union and the baseline types.** **Dropped**: the baseline's format is left to code. A `--commit` run reads the tested commit's baseline with the checkout's planner, so the file crosses revisions; blaxel-testshards.md#runs states that boundary, its rule, and the exception that leaves the shape to code (review round 1, finding 1; per-file review rounds 1 and 2). The Blaxel identity is pinned in reporting.md#timing-records.
 5. **The `providers` map holds only the Blaxel entry.** **Dropped**: format detail, as above.
 6. **The canonical empty baseline; the planner requires the file; the 60-second no-history weight.** **Dropped**: format and a constant. Unknown files being weighted as expensive is kept in #plans.
 7. **Timing-provider identities (local, Blaxel, GitHub, a reserved container ID).** **Dropped**: an internal identity scheme, except the Blaxel identity pinned in reporting.md.
@@ -282,7 +282,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 15. **Aborts on unreadable runs; fails with none; never commits; never automatic; a person reviews.** **Reworded**: #duration-baseline.
 16. **Nothing is carried forward.** **Reworded**: same paragraph, with the reason.
 17. **Shard plan definition; atomic files; every surface present.** **Reworded**: sharded-execution.md#plans.
-18. **Plan types.** **Dropped**: the shape is left to code. The plan crosses revisions when the coordinator and workers differ, under the rule in blaxel-testshards.md#runs (per-file review round 1).
+18. **Plan types.** **Dropped**: the shape is left to code. The plan crosses revisions when the coordinator and workers differ, under the rule and the stated exception in blaxel-testshards.md#runs (per-file review rounds 1 and 2).
 19. **A valid plan has at least one file; idle per-shard surfaces.** **Reworded** in part: a shard with no files for a surface skips it (#plans). The at-least-one-file rule is dropped as code.
 20. **Ordering, canonical JSON, the `planId` digest, the baseline digest, no time or randomness; retained.** **Reworded** in part: "Plans are deterministic … identified by a digest of its content". The formulas are dropped.
 21. **Inventory from `git ls-files`; a temporary index for another commit; untracked files cannot matter.** **Reworded**: first bullet of #plans. The Git mechanics are dropped.
@@ -320,7 +320,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 53. **The worker writes `shard-<index>.json` and exits nonzero on failure.** **Dropped**: internal.
 54. **On Blaxel the worker preserves the outer token and `TMPDIR`; sidecars travel with artifacts.** **Moved**: blaxel-testshards.md#leases (the token), #temporary-files (`TMPDIR`) and reporting.md#resource-diagnostics.
 55. **Blaxel provider report collection; GitHub retains summaries.** **Derivable**: from reporting.md#run-directory and github-ci.md#run-artifacts.
-56. **Provider report types (`ProviderTask`, `ProviderShard`, `AttemptReport`, `CombinedReport`).** **Dropped**: the attempt and combined reports are produced and read by the coordinator. The shard summary a worker returns crosses revisions under blaxel-testshards.md#runs, with its shape left to code (per-file review round 1). Cited by proofs (`#Blaxel provider report shape`).
+56. **Provider report types (`ProviderTask`, `ProviderShard`, `AttemptReport`, `CombinedReport`).** **Dropped**: the attempt and combined reports are produced and read by the coordinator. The shard summary a worker returns crosses revisions under blaxel-testshards.md#runs, with its shape left to code by the exception stated there (per-file review rounds 1 and 2). Cited by proofs (`#Blaxel provider report shape`).
 57. **`NormalizedProcessLeak` is reporting's; generated declarations keep the unions.** **Dropped**: internal.
 58. **Shard status values; completion decides first.** **Reworded**: sharded-execution.md#shard-outcomes.
 59. **`infra-failed` meaning.** **Reworded**: first outcome bullet.

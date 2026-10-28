@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
@@ -795,6 +795,36 @@ describe("test runner guardrails", () => {
     expect(result.stderr).toContain("isolated-github-only");
     expect(result.stderr).toContain("never eligible for Blaxel");
     expect(result.stderr).not.toContain("placement guard failed");
+  });
+
+  test.each([
+    [["--surface", "unit:root,unit:artifact"], "resolves to exactly one surface"],
+    [["--suite", "e2e-ci"], "Blaxel suite runs require --suite all|unit|e2e"],
+  ])("refuses unsupported Blaxel selections before remote preflight and any run directory: %j", (args, message) => {
+    const outputDir = mkdtempSync(path.join(os.tmpdir(), "tv-runner-run-dir-output-"));
+    const output = path.join(outputDir, "run-dir");
+    try {
+      const result = runCli(["blaxel", ...args, "--run-dir-output", output], selftestEnv({
+        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:selection guard failed",
+      }));
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(message);
+      expect(result.stderr).not.toContain("selection guard failed");
+      expect(existsSync(output)).toBe(false);
+    } finally {
+      rmSync(outputDir, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses an empty --run-dir-output before remote preflight and any run directory", () => {
+    const result = runCli(["blaxel", "--suite", "unit", "--run-dir-output="], selftestEnv({
+      TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:option guard failed",
+    }));
+
+    expect(result.status, result.stderr).toBe(2);
+    expect(result.stderr).toContain("--run-dir-output requires a file path");
+    expect(result.stderr).not.toContain("option guard failed");
   });
 
   // The architect accepted this deviation as closed pending TV-597's cause investigation and restoration.
