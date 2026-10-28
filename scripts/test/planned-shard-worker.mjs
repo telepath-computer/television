@@ -14,6 +14,7 @@ import { runnerEnv } from "./runner-env.mjs";
 import { createSurfaceSupervisor } from "./surface-supervisor.mjs";
 import { startSurfaceServices } from "./surface-services.mjs";
 import { reapStaleOwnerProcesses } from "./stale-owner-reaper.mjs";
+import { surfaceResourceDiagnostics } from "./resource-diagnostics.mjs";
 
 export async function runPlannedShard(rawOptions = {}, env = process.env) {
   const planPath = path.resolve(rawOptions.plan ?? env.TEST_SHARD_PLAN ?? "");
@@ -179,6 +180,7 @@ function relocateTaskArtifacts(summary, resultsDir, providerOutputDir, nativeOut
       workspaceNativeResultPath: relocateNative(task.workspaceNativeResultPath),
       lifecycleResultPath: relocateProvider(task.lifecycleResultPath),
       processLeakResultPath: relocateProvider(task.processLeakResultPath),
+      resourceDiagnosticsPaths: (task.resourceDiagnosticsPaths ?? []).map(relocateProvider),
       generatedInputPaths: (task.generatedInputPaths ?? []).map(relocateProvider),
     })),
   };
@@ -208,10 +210,12 @@ async function runVitestWorkspace(tasks, { resultsDir, shardIndex, skipPreComman
   const nativeResultPath = path.join(resultsDir, `native-unit-workspaces-shard-${shardIndex}.json`);
   const attemptResultPath = path.join(resultsDir, `native-unit-workspaces-shard-${shardIndex}.attempts.ndjson`);
   const supervisor = createSurfaceSupervisor({ runId: lifecycleRunId, surfaceIds: tasks.map((task) => task.surfaceId) });
+  const diagnostics = tasks.map((task) => surfaceResourceDiagnostics({ resultsDir, surfaceId: task.surfaceId, env, runId: lifecycleRunId }));
   let pre;
   let exitCode = 0;
   let processLeaks = [];
   let commandStarted = null;
+  let splitStatuses = new Map();
   fs.rmSync(attemptResultPath, { force: true });
   const commandArgs = vitestProjectsArgs({ configPath: workspacePath, configPaths: tasks.map((task) => path.resolve(task.config)) });
   try {
@@ -225,10 +229,16 @@ async function runVitestWorkspace(tasks, { resultsDir, shardIndex, skipPreComman
       exitCode = pre.exitCode;
     }
   } finally {
-    processLeaks = await supervisor.finish();
+    let cleanupConfirmed = false;
+    try { processLeaks = await supervisor.finish(); cleanupConfirmed = true; }
+    finally {
+      try { splitStatuses = splitVitestWorkspaceResult({ nativeResultPath, tasks }); }
+      finally {
+        for (const [index, task] of tasks.entries()) task.resourceDiagnosticsPaths = diagnostics[index].finish({ runner: "vitest", nativeResultPath: task.nativeResultPath, attemptResultPath, exitCode, incomplete: !cleanupConfirmed || !pre || pre.failed || processLeaks.length > 0 });
+      }
+    }
   }
   if (pre.failed) return tasks.map((task) => failedTask(task, pre.exitCode, started, { preCommandsSkipped: skipPreCommands, failureKind: pre.failureKind, failureStep: "pre-command", failureMessage: pre.failureMessage, phases: pre.phases, generatedInputPaths: [workspacePath], processLeaks }));
-  const splitStatuses = splitVitestWorkspaceResult({ nativeResultPath, tasks });
   return tasks.map((task) => {
     const status = exitCode === 0 ? 0 : (splitStatuses.get(task.surfaceId) ?? exitCode);
     const collected = collectedVitestFiles(task.nativeResultPath, task);
@@ -239,6 +249,7 @@ async function runVitestWorkspace(tasks, { resultsDir, shardIndex, skipPreComman
 async function runStandalone(task, { resultsDir, shardIndex, skipPreCommands, env, lifecycleRunId }) {
   const started = Date.now();
   const supervisor = createSurfaceSupervisor({ runId: lifecycleRunId, surfaceIds: [task.surfaceId] });
+  const diagnostics = surfaceResourceDiagnostics({ resultsDir, surfaceId: task.surfaceId, env, runId: lifecycleRunId });
   let pre;
   let command;
   let args;
@@ -300,7 +311,9 @@ async function runStandalone(task, { resultsDir, shardIndex, skipPreCommands, en
         pre?.phases.push(phase("surface-services-stop", serviceStopped, 1));
       }
     }
-    processLeaks = await supervisor.finish();
+    let cleanupConfirmed = false;
+    try { processLeaks = await supervisor.finish(); cleanupConfirmed = true; }
+    finally { task.resourceDiagnosticsPaths = diagnostics.finish({ runner: task.runner, nativeResultPath: task.nativeResultPath, attemptResultPath, exitCode, incomplete: !cleanupConfirmed || !pre || pre.failed || Boolean(serviceFailure) || processLeaks.length > 0 }); }
   }
   if (pre.failed) return failedTask(task, pre.exitCode, started, { preCommandsSkipped: skipPreCommands, failureKind: pre.failureKind, failureStep: "pre-command", failureMessage: pre.failureMessage, phases: pre.phases, processLeaks });
   const collected = task.runner === "vitest" ? collectedVitestFiles(task.nativeResultPath, task) : collectedPlaywrightFiles(task.nativeResultPath, task);
@@ -366,6 +379,7 @@ function resultForTask(task, exitCode, started, extras) {
     attemptResultPath: extras.attemptResultPath && fs.existsSync(extras.attemptResultPath) ? extras.attemptResultPath : null,
     workspaceNativeResultPath: extras.workspaceNativeResultPath ?? null,
     generatedInputPaths: extras.generatedInputPaths ?? [],
+    resourceDiagnosticsPaths: task.resourceDiagnosticsPaths ?? [],
     preCommandsSkipped: extras.preCommandsSkipped,
     phases: extras.phases ?? [], processLeaks,
     ...(mismatch

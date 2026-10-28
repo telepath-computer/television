@@ -225,6 +225,8 @@ Blaxel workers and regular GitHub CI matrix jobs run `scripts/run-test-shard.mjs
 - `--fail-fast` stops the shard after the first failed group or task. Every later task that had files assigned by the plan remains in the shard summary with `status: "skipped"`, `skipReason: "fail-fast"`, its assigned files, and no collected files or runner artifacts.
 - The worker writes `shard-<index>.json` into its results directory, default `.testshards/results`, and exits non-zero if any task failed or plan validation failed.
 
+On Blaxel, the shared worker preserves the outer shard attempt's ownership and temporary-directory environment; [the Blaxel lifecycle](./blaxel-testshards.md#Locking) owns these, including teardown and download before release. Resource sidecars travel with the task artifacts under [reporting's resource-diagnostics contract](./reporting.md#Resource diagnostics), including evidence from superseded infrastructure attempts. GitHub workers retain their existing host lifecycle.
+
 ## Blaxel provider report shape
 
 The Blaxel coordinator collects the plan and per-shard summaries into a provider report. Regular GitHub CI retains each direct worker's shard summary and timing stream as job artifacts; the required agreement join is owned by [github-ci.md](./github-ci.md) under the invariants above.
@@ -250,6 +252,7 @@ interface ProviderTask {
   failureStep?: string | null;
   processLeaks?: NormalizedProcessLeak[];
   nativeResultPath?: string | null;
+  resourceDiagnosticsPaths?: string[];
   [key: string]: unknown;
 }
 
@@ -338,4 +341,3 @@ A seam must also pass the generated `--test-list` file through the real Electron
 Under the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#integration-against-paid-services-or-complex-host-dependencies-is-important), a live planned Blaxel suite run must cross the real Blaxel API and the real transport to the remote process. The run must show that the worker validates and executes the `ShardPlan` it receives. A `--suite target` run carries no provider plan, so it cannot prove this handoff.
 
 Live GitHub evidence follows the [isolated CI requirements in github-ci.md](./github-ci.md#Testing). The evidence must show that independently started matrix jobs derive the same valid plan from their shared inputs. The strict join must validate the jobs' summaries and exact file assignments.
-

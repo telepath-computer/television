@@ -5,15 +5,20 @@ import process from "node:process";
 import { createSurfaceSupervisor } from "./surface-supervisor.mjs";
 import { startSurfaceServices } from "./surface-services.mjs";
 import { runnerEnv } from "./runner-env.mjs";
+import { surfaceResourceDiagnostics } from "./resource-diagnostics.mjs";
 
 const { runId, surfaceIds, resultPath, preCommand, services, command, args } = parseArgs(process.argv.slice(2));
 const supervisor = createSurfaceSupervisor({ runId, surfaceIds });
+const diagnostics = surfaceResourceDiagnostics({ resultsDir: path.dirname(resultPath), surfaceId: surfaceIds.join(","), runId });
+// The targeted Vitest adapter writes per-attempt rows beside its native result.
+const attemptResultPath = process.env.TV_TARGET_RUNNER === "vitest" && process.env.TV_TARGET_NATIVE_RESULT ? `${process.env.TV_TARGET_NATIVE_RESULT}.attempts.ndjson` : null;
 let commandResult = { exitCode: 127, signal: null, error: null };
 let cleanupError = null;
 let executionFailure = null;
 let processLeaks = [];
 let serviceScope = null;
 try {
+  if (attemptResultPath) fs.rmSync(attemptResultPath, { force: true });
   if (preCommand) {
     const preResult = await supervisor.run(preCommand[0], preCommand.slice(1), { cwd: process.cwd(), env: process.env, stdio: "inherit" });
     const preLeaks = await supervisor.checkForLeaks();
@@ -51,6 +56,7 @@ try {
 }
 
 const failedForLifecycle = processLeaks.length > 0 || cleanupError !== null;
+const resourceDiagnosticsPaths = diagnostics.finish({ runner: process.env.TV_TARGET_RUNNER, nativeResultPath: process.env.TV_TARGET_NATIVE_RESULT, attemptResultPath, exitCode: commandResult.exitCode, incomplete: failedForLifecycle || Boolean(executionFailure) });
 const publishedServices = serviceScope?.services ?? [];
 const result = {
   schemaVersion: 1,
@@ -63,6 +69,8 @@ const result = {
   exitCode: commandResult.exitCode,
   signal: commandResult.signal,
   processLeaks,
+  resourceDiagnosticsPaths,
+  attemptResultPath: attemptResultPath && fs.existsSync(attemptResultPath) ? attemptResultPath : null,
   failureKind: cleanupError?.name === "UnconfirmedSurfaceCleanupError" ? "unconfirmed-process-cleanup" : executionFailure?.kind ?? (failedForLifecycle ? "process-leak" : null),
   failureStep: executionFailure?.step ?? null,
   failureMessage: cleanupError?.message ?? executionFailure?.message ?? (processLeaks.length > 0 ? `${processLeaks.length} owned process leak(s) were reaped` : null),

@@ -35,8 +35,10 @@ export function spawnOwnedProcess(command: string, args: readonly string[] = [],
   const { termGraceMs = TEST_PROCESS_TERM_GRACE_MS, env: requestedEnv, ...spawnOptions } = options;
   if (!Number.isFinite(termGraceMs) || termGraceMs < 0) throw new Error("termGraceMs must be a non-negative finite number");
   const env: NodeJS.ProcessEnv = { ...(requestedEnv ?? process.env) };
-  const ownerToken = process.env[OWNER_TOKEN_ENV];
-  if (ownerToken !== undefined) env[OWNER_TOKEN_ENV] = ownerToken;
+  for (const key of [OWNER_TOKEN_ENV, "TV_TEST_SHARD_OWNER"]) {
+    if (process.env[key] !== undefined) env[key] = process.env[key];
+  }
+  env.TMPDIR ??= process.env.TMPDIR;
   const detached = process.platform !== "win32";
   const child = spawn(command, [...args], { ...spawnOptions, env, detached });
   if (!child.pid) {

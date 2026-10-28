@@ -217,6 +217,10 @@ In order to liberally cover boundary seams across the codebase, complex harness 
 
 Prefer real, committed fixtures over invented data. Better yet, generate fixtures dynamically from current code paths, driven by simpler inputs with fewer assumptions, whenever possible.
 
+A reusable build created by a test helper belongs to its worker: it is shared within that worker, published only after preparation succeeds, and removed at worker teardown rather than per test case. The [Blaxel shard attempt lifecycle](test-runner/blaxel-testshards.md#Temporary files) supplies the backstop when a killed worker cannot run its teardown. ^worker-build-lifetime
+
+For new or substantially changed browser acceptances that use the `ProductServer` helper, the default is its built application unless the assertion needs development-module behavior. This exercises shipped assets and avoids loading hundreds of development modules for a product assertion. This default does not require retroactive conversion of other tests or apply to in-process `Server` walks using `appURLForServer()`, component fixtures, or Electron module/dispatcher seams. ^product-acceptance-built-app
+
 ## Timing, observable status, cleanup, and flakiness
 
 Prefer real readiness and state observation over sleeps. Take the time to make complex tasks reliably observable for testing purposes. ^flake-avoidance
