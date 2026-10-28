@@ -6,9 +6,9 @@ Proves [specs/arch/templates/bundled-templates.md](../../../specs/arch/templates
 
 ## Coverage model
 
-Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist](./checklist.md), [Calendar](./calendar.md), and [Sticky note](./sticky-note.md) package proofs own display options, starting data, page delivery, and guidance; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
+Contract checks read the real bundled manifests and exported inventory without mocks. [Checklist](./checklist.md), [Calendar](./calendar.md), [Sticky note](./sticky-note.md), and [Weather](./weather.md) package proofs own display options, starting data, page delivery, and guidance; [bundled installation](./bundled-installation.md) owns build membership and boot replacement. [Telemetry derivation](../telemetry/derivation.md#^t-template-classify) proves classification against the closed ID vocabulary.
 
-The inventory assertion covers all three bundled templates and retains the Checklist package checks.
+The inventory assertion covers all four bundled templates and retains the Checklist package checks.
 
 ## Test hooks
 
@@ -16,4 +16,4 @@ The inventory contract reads the actual bundled files and exported IDs; it repla
 
 ## Inventory
 
-- **Contract** (real source folders, manifests, and exported inventory; no mocks): Under [the inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the bundled folder IDs are exactly `checklist`, `calendar`, and `sticky-note`, and `BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['checklist', 'calendar', 'sticky-note']`. All initial manifest versions and minimum installed versions are `1.0.0`. Checklist declares `Checklist` and `A list of items to tick off and edit.`; Calendar declares `Calendar` and `Show one to seven days of live events, including all-day events and highlighted moments.`; Sticky note declares `Sticky note` and `A yellow note to type into; an agent can write on it too.` *(policy-grade test: `packages/server/test/checklist-template.test.ts`, “ships Checklist, Calendar and Sticky note with their exact inventory identities and minimum versions”)*. ^templates-bundled-t-inventory
+- **Contract** (real source folders, manifests, and exported inventory; no mocks): Under [the inventory](../../../specs/arch/templates/bundled-templates.md#^bundled-artifact-template-inventory), the bundled folder IDs are exactly `checklist`, `calendar`, `sticky-note`, and `weather`, and `BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['checklist', 'calendar', 'sticky-note', 'weather']`. All initial manifest versions and minimum installed versions are `1.0.0`. The manifests declare every name and description in the inventory, including `Weather` and `A sky-tinted forecast for one place, from current conditions through the week.` *(policy-grade test: `packages/server/test/checklist-template.test.ts`, “ships the four bundled templates with their exact inventory identities and minimum versions”)* ^templates-bundled-t-inventory

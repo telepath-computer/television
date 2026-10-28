@@ -10,6 +10,7 @@ import { configureTestMotion } from "./helpers.ts";
 
 export const TEST_HOST = "tv-sdk.test";
 export const TEMPLATES_BUNDLE = path.resolve(import.meta.dirname, "../../../server/assets/templates");
+export const THEMES_BUNDLE = path.resolve(import.meta.dirname, "../../../server/assets/themes");
 
 /** Browser launch options mapping the test host name to the loopback server. */
 export const TEST_HOST_LAUNCH = { args:[`--host-resolver-rules=MAP ${TEST_HOST} 127.0.0.1`] };
@@ -30,8 +31,16 @@ export class TemplateHarness {
     this.template = template;
   }
 
-  static async start(template: { id: string; name: string }): Promise<TemplateHarness> {
-    const product = await launchProductServer({ auth: true, cleanupHome: false, bundledTemplatesBundle: TEMPLATES_BUNDLE });
+  static async start(
+    template: { id: string; name: string },
+    options: { bundledThemes?: boolean } = {},
+  ): Promise<TemplateHarness> {
+    const product = await launchProductServer({
+      auth: true,
+      cleanupHome: false,
+      bundledTemplatesBundle: TEMPLATES_BUNDLE,
+      ...(options.bundledThemes ? { bundledThemesBundle: THEMES_BUNDLE } : {}),
+    });
     let proxy: NetworkProxy | undefined;
     try {
       proxy = await NetworkProxy.start(Number(new URL(product.serverURL).port));
@@ -52,12 +61,16 @@ export class TemplateHarness {
     return new TelevisionClient(this.product.serverURL, { token: this.product.token });
   }
 
-  url(artifactID: string, shareID?: string): string {
-    return `${this.origin}/artifact/${encodeURIComponent(shareID ?? artifactID)}/index.html`;
+  url(artifactID: string, shareID?: string, host = TEST_HOST): string {
+    return `${this.originFor(host)}/artifact/${encodeURIComponent(shareID ?? artifactID)}/index.html`;
   }
 
   private get origin(): string {
-    return `http://${TEST_HOST}:${this.proxy.port}`;
+    return this.originFor(TEST_HOST);
+  }
+
+  private originFor(host: string): string {
+    return `http://${host}:${this.proxy.port}`;
   }
 
   async openApp(page: Page): Promise<void> {
@@ -104,16 +117,16 @@ export class TemplateHarness {
     return frame;
   }
 
-  async open(page: Page, artifactID: string, shareID?: string): Promise<Frame> {
-    await page.goto(this.url(artifactID, shareID), { waitUntil: "domcontentloaded" });
+  async open(page: Page, artifactID: string, shareID?: string, host = TEST_HOST): Promise<Frame> {
+    await page.goto(this.url(artifactID, shareID, host), { waitUntil: "domcontentloaded" });
     await configureTestMotion(page);
-    await this.checkSandbox(page.mainFrame());
+    await this.checkSandbox(page.mainFrame(), host === TEST_HOST);
     return page.mainFrame();
   }
 
-  private async checkSandbox(frame: Frame): Promise<void> {
+  private async checkSandbox(frame: Frame, expectInsecure = true): Promise<void> {
     expect(await frame.evaluate(() => window.origin)).toBe("null");
-    expect(await frame.evaluate(() => window.isSecureContext)).toBe(false);
+    if (expectInsecure) expect(await frame.evaluate(() => window.isSecureContext)).toBe(false);
   }
 
   async read<T = JSONValue>(artifactID: string, jsonPath = ""): Promise<T | undefined> {

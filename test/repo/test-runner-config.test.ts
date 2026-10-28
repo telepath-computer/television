@@ -25,6 +25,31 @@ describe("test runner registry", () => {
     expect(selectSurfaces(config, { surface: "e2e:browser-app" }).map((surface) => surface.id)).toEqual(["e2e:browser-app"]);
   });
 
+  // proofs/arch/test-runner/test-registry.md#^test-registry-t-live-providers
+  test("registers the local live-provider suite outside default verification", () => {
+    const selected = selectSurfaces(config, { suite: "live-providers" });
+    expect(selected.map((surface) => surface.id)).toEqual(["live-providers:browser"]);
+    expect(selected[0]).toMatchObject({
+      runner: "playwright",
+      config: "test/live-providers/playwright.config.ts",
+      kind: "live-provider",
+      roots: ["test/live-providers/weather.test.ts"],
+      preflight: ["node", "playwright-chromium"],
+      tags: ["live-provider"],
+      preCommand: ["npm", "run", "build:web-and-artifact-documents"],
+      services: [],
+    });
+    expect(owningSurfaces(config.surfaces, "test/live-providers/weather.test.ts").map((surface) => surface.id))
+      .toEqual(["live-providers:browser"]);
+    for (const suite of ["all", "e2e", "e2e-ci"]) {
+      expect(selectSurfaces(config, { suite }).map((surface) => surface.id)).not.toContain("live-providers:browser");
+    }
+    expect(selectSurfaces(config, { runner: "playwright" }).map((surface) => surface.id))
+      .not.toContain("live-providers:browser");
+    expect(selectSurfaces(config, { runner: "playwright", tag: "live-provider" }).map((surface) => surface.id))
+      .toEqual(["live-providers:browser"]);
+  });
+
   test("restricts lifecycle fault surfaces to isolated GitHub runners", () => {
     const lifecycle = selectSurfaces(config, { tag: "isolated-github-only" });
     const ids = [
@@ -47,6 +72,7 @@ describe("test runner registry", () => {
     const allSurfaces = selectSurfaces(config, { suite: "all" });
     expect(allSurfaces.map((surface) => surface.id)).not.toContain("telemetry-posthog-roundtrip:integration");
     expect(allSurfaces.map((surface) => surface.id)).not.toContain("daemon-acceptance:cli");
+    expect(allSurfaces.map((surface) => surface.id)).not.toContain("live-providers:browser");
     expect(selectSurfaces(config, { suite: "e2e-ci" }).map((surface) => surface.id)).not.toContain("daemon-acceptance:cli");
     expect(allSurfaces.map((surface) => surface.id)).toContain("unit:build-config");
     const groups = new Map(allSurfaces.map((surface) => [surface.executionGroup?.id ?? surface.id, surface.executionGroup]));
@@ -95,6 +121,7 @@ describe("test runner registry", () => {
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-checklist-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-calendar-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-sticky-note-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
+    expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/template-weather-real-stack.test.ts").map((surface) => surface.id)).toEqual(["e2e:browser-app-real-stack"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/e2e/toolbox-conformance.test.ts").map((surface) => surface.id)).toEqual(["e2e:conformance"]);
     expect(owningSurfaces(config.surfaces, "packages/web/test/swipe-gesture.test.ts").map((surface) => surface.id)).toEqual(["unit:browser-app"]);
     expect(owningSurfaces(config.surfaces, "packages/canonical/test/build-canonical.test.ts").map((surface) => surface.id)).toEqual(["unit:canonical"]);

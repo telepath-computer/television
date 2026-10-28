@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weather</title>
+  <link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="/canonical/v2/components.js"></script>
+</head>
+<body>
+  <main class="weather-page">
+    <article class="weather-card weather-card-loading" data-condition="clear" data-day="true">
+      <div class="weather-placeholder-content" role="status" aria-label="Loading weather">
+        <span class="weather-placeholder-icon weather-loading-icon">
+          <!-- Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt for the upstream terms. -->
+          <tv-icon name="spinner" size="xl" spinning><template shadowrootmode="open" shadowrootserializable="" shadowrootclonable=""><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path></svg></template></tv-icon>
+        </span>
+        <h1>Loading weather</h1>
+      </div>
+    </article>
+  </main>
+  <template id="weather-warning">
+    <tv-icon name="warning" size="xl"></tv-icon>
+  </template>
+  <template id="weather-spinner">
+    <tv-icon name="spinner" size="xl" spinning></tv-icon>
+  </template>
+  <template id="weather-artwork">
+    <!-- Original first-party drawings, cloned inline so every browser paints them in an opaque-origin frame. -->
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 224" aria-hidden="true">
+      <defs>
+        <g id="sun" class="weather-orb weather-sun"><circle cx="78" cy="70" r="25"/><path d="M78 24v14M78 102v14M32 70h14M110 70h14M45 37l10 10M101 93l10 10M111 37l-10 10M55 93l-10 10"/></g>
+        <g id="moon" class="weather-orb weather-moon"><path d="M99 35c-28 5-42 38-25 60 9 12 25 17 40 12-10 13-28 19-45 12-25-10-36-39-24-63 10-20 33-30 54-21Z"/></g>
+        <g id="cloud"><path class="weather-cloud-shadow" d="M58 147c-21 0-38-15-38-35 0-19 15-34 34-35 7-25 30-42 57-42 31 0 57 23 60 53 18 3 31 17 31 35 0 20-17 36-38 36H58Z"/><path class="weather-cloud" d="M55 140c-18 0-32-13-32-29 0-17 14-29 31-29h6c6-24 27-40 52-40 29 0 52 21 55 48h2c17 0 30 12 30 28 0 17-14 30-32 30H55Z"/></g>
+      </defs>
+      <g id="clear-day" class="weather-condition weather-clear-orb weather-sun"><circle cx="112" cy="100" r="42"/><path d="M112 26v22M112 152v22M38 100h22M164 100h22M60 48l16 16M148 136l16 16M164 48l-16 16M76 136l-16 16"/></g>
+      <g id="clear-night" class="weather-condition weather-clear-orb weather-moon"><path d="M150 45c-40 8-59 54-35 85 14 19 38 25 59 17-15 21-43 29-68 18-35-15-49-55-31-88 14-27 46-41 75-32Z"/><circle class="weather-star" cx="56" cy="58" r="3"/><circle class="weather-star" cx="164" cy="72" r="2.5"/></g>
+      <g id="partly-cloudy-day" class="weather-condition"><use href="#sun"/><use href="#cloud"/></g>
+      <g id="partly-cloudy-night" class="weather-condition"><use href="#moon"/><use href="#cloud"/></g>
+      <g id="cloudy" class="weather-condition"><g class="weather-cloud-overcast-back" transform="translate(-20 -12) scale(.9)"><use href="#cloud"/></g><g class="weather-cloud-overcast-front"><use href="#cloud"/></g></g>
+      <g id="rain" class="weather-condition"><use href="#cloud"/><g class="weather-precip weather-rain"><path d="M65 165l-8 18M105 165l-8 18M145 165l-8 18M181 163l-7 16"/></g></g>
+      <g id="snow" class="weather-condition"><use href="#cloud"/><g class="weather-precip weather-snow"><path d="M62 166v22M51 177h22M54 169l16 16M70 169l-16 16M115 166v22M104 177h22M107 169l16 16M123 169l-16 16M168 166v22M157 177h22M160 169l16 16M176 169l-16 16"/></g></g>
+      <g id="thunderstorm" class="weather-condition"><use href="#cloud"/><path class="weather-lightning" d="M112 151h29l-22 28h18l-40 39 12-30H91l21-37Z"/><path class="weather-rain weather-rain-side" d="M64 167l-7 16M174 165l-7 16"/></g>
+      <g id="fog" class="weather-condition"><use href="#cloud"/><g class="weather-fog-lines"><path d="M31 154h150M48 174h143M27 194h118"/></g></g>
+    </svg>
+  </template>
+  <script type="module" src="./page.js"></script>
+</body>
+</html>

@@ -128,6 +128,7 @@ describe("licensing configuration", () => {
       "caveat-story-font",
       "caveat-template-font",
       "sticky-note-icons",
+      "weather-icons",
     ]);
 
     const hind = assets[0];
@@ -176,6 +177,22 @@ describe("licensing configuration", () => {
     for (const file of calendarIcons.paths) {
       expect(readFileSync(path.join(repoRoot, file), "utf8")).toContain("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt");
     }
+
+    // proofs/arch/licensing.md#^licensing-t-weather-icons
+    const weatherIcons = assets.find((asset) => asset.id === "weather-icons")!;
+    const weatherProductionFiles = ["index.html", "page.js", "model.js", "provider.js", "styles.css"]
+      .map((file) => `packages/server/assets/templates/weather/${file}`);
+    const productionFilesWithPhosphor = weatherProductionFiles.filter((file) =>
+      readFileSync(path.join(repoRoot, file), "utf8").includes("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt"));
+    expect(weatherIcons.paths).toEqual(productionFilesWithPhosphor);
+    expect(weatherIcons.paths).toEqual(["packages/server/assets/templates/weather/index.html"]);
+    expect(weatherIcons.components).toEqual(phosphor.components);
+    expect(weatherIcons.surfaces).toEqual(["cli", "source"]);
+    expect(weatherIcons.noticesFolder).toBe("packages/server/assets/templates/weather");
+    for (const file of weatherIcons.paths) {
+      expect(readFileSync(path.join(repoRoot, file), "utf8")).toContain("Phosphor Icons, MIT. See THIRD-PARTY-NOTICES.txt");
+    }
+    expect(assets.flatMap((asset) => asset.paths)).not.toContain("packages/server/assets/templates/weather/icon.svg");
 
     // proofs/arch/licensing.md#^licensing-t-real-assets-seam
     const nord = assets[2];

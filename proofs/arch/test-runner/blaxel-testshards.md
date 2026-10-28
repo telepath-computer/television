@@ -48,6 +48,8 @@ The repository-selection assertions:
 
 The remaining coverage lives in `test/repo/test-runner-provider.test.ts`.
 
+- **Acceptance — live-provider exclusion before Blaxel.** The real canonical CLI process resolves suite, surface, file, runner and tag selector forms against the real registry. The test declares the self-test-gated `TV_TEST_RUNNER_DRY_RUN=1` seam, but each form that reaches `live-providers:browser` exits `2` with the local-only diagnostic before dry-run execution, preflight or dispatch. This proves the exclusion decision but does not call Blaxel. Proves [the live-provider exclusion](../../../specs/arch/test-runner/blaxel-testshards.md#^blaxel-live-provider-exclusion). (policy-grade test: `test/repo/test-runner-guardrails.test.ts` “selects live providers locally and refuses every Blaxel path before preflight”) ^blaxel-t-live-provider-exclusion
+
 - The canonical recommended shard count is 36, and the pool default remains 72 workers using `blaxel/playwright-chromium:latest`, 8192 MB, and the existing labels and naming scheme.
 - Pool-manager source assertions require pinned nvm `v0.40.3`, `.nvmrc` selection, fresh-worker provisioning before architecture verification, and no alternate image or size defaults.
 - Coordinator source assertions require nvm activation after checkout and before dependency/test work, and the generated `deps` script includes `.nvmrc` and the root manifest in its dependency cache identity.

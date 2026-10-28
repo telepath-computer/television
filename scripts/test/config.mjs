@@ -58,7 +58,11 @@ export function selectSurfaces(config, options) {
     const wanted = splitList(options.package);
     selected = selected.filter((surface) => wanted.includes(surface.package));
   }
-  if (options.runner) selected = selected.filter((surface) => surface.runner === options.runner);
+  if (options.runner) {
+    selected = selected.filter((surface) => surface.runner === options.runner);
+    const runnerOnly = !options.suite && !options.surface && !options.file && !options.package && !options.tag;
+    if (runnerOnly) selected = selected.filter((surface) => surface.kind !== "live-provider");
+  }
   if (options.tag) {
     const wanted = splitList(options.tag);
     selected = selected.filter((surface) => wanted.every((tag) => surface.tags.includes(tag)));

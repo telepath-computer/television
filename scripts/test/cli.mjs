@@ -510,7 +510,7 @@ async function runBlaxel(selectionOptions, surfaces, testRetries = 0) {
     args.push("--suite", "selection", "--surfaces", surfaces.map((surface) => surface.id).join(","));
   } else {
     const suite = selectionOptions.suite ?? (selectionOptions.all ? "all" : null);
-    if (!["all", "unit", "e2e"].includes(suite)) fail("Blaxel suite runs require --suite all|unit|e2e or --all. The telemetry PostHog roundtrip suite is local-only because it requires the PostHog test read key.");
+    if (!["all", "unit", "e2e"].includes(suite)) fail("Blaxel suite runs require --suite all|unit|e2e or --all. The telemetry PostHog roundtrip and live-provider suites are local-only.");
     args.push("--suite", suite);
   }
 
@@ -866,6 +866,11 @@ function assertRegistryValid() {
 }
 
 function enforceExecutionPlacement(provider, surfaces) {
+  const liveProviders = surfaces.filter((surface) => surface.kind === "live-provider");
+  if (provider === "blaxel" && liveProviders.length > 0) {
+    const ids = liveProviders.map((surface) => surface.id).join(", ");
+    fail(`Surface(s) ${ids} have kind live-provider and are local-only; Blaxel execution is not permitted.`);
+  }
   const isolated = surfaces.filter((surface) => surface.tags.includes("isolated-github-only"));
   if (isolated.length === 0) return;
   const ids = isolated.map((surface) => surface.id).join(", ");
@@ -1024,7 +1029,7 @@ function help() {
   npm test -- baseline update [--dry-run]    # recompute the timing baseline from this checkout's Blaxel runs
 
 Selectors (choose which tests to run):
-  --suite <unit|e2e|e2e-ci|agent|experiment|telemetry-posthog-roundtrip|daemon-acceptance|all>  Named suite. Provider shortcuts refuse --suite all unless --force is passed.
+  --suite <unit|e2e|e2e-ci|agent|experiment|telemetry-posthog-roundtrip|live-providers|daemon-acceptance|all>  Named suite. Provider shortcuts refuse --suite all unless --force is passed.
   --surface <id>                One registered surface, e.g. e2e:desktop.
   --package <workspace-name>    Surfaces owned by a workspace package.
   --file <path>                 Surface that owns a test file.
@@ -1060,6 +1065,7 @@ Examples:
   npm run verify
   npm run verify -- blaxel
   npm test -- local --suite telemetry-posthog-roundtrip
+  npm test -- local --suite live-providers
   TV_DAEMON_TEST_HOST=1 npm test -- local --suite daemon-acceptance
   npm test -- blaxel --suite e2e
   npm test -- blaxel --shard-indices 5 --force

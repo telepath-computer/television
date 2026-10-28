@@ -41,7 +41,7 @@ interface TestSurface {
 - `id` — stable surface identity, e.g. `unit:root`, `e2e:desktop`.
 - `runner` — `vitest` or `playwright`. The runner builds a Vitest or Playwright invocation from this; any other value is unsupported.
 - `config` — repo-relative path to the runner config file for this surface.
-- `kind` — classification label. The kinds in use are `unit`, `e2e`, `agent`, `experiment`, `telemetry-posthog-roundtrip`, and `daemon-acceptance`; suites select on it.
+- `kind` — classification label. The kinds in use are `unit`, `e2e`, `agent`, `experiment`, `telemetry-posthog-roundtrip`, `live-provider`, and `daemon-acceptance`; suites select on it.
 - `package` — associated workspace package name, or `null` for root-level surfaces.
 - `roots` — repo-relative directories (or files) this surface owns for file-ownership resolution.
 - `excludeRoots` — sub-paths carved out of `roots`, so a sibling surface can own them (e.g. a package's `test/e2e` tree excluded from its unit surface).
@@ -89,10 +89,13 @@ The registered suites:
 - `agent` → `kind:agent`
 - `experiment` → `kind:experiment`
 - `telemetry-posthog-roundtrip` → `kind:telemetry-posthog-roundtrip`
+- `live-providers` → `kind:live-provider`
 - `daemon-acceptance` → `kind:daemon-acceptance`
 - `all` → `kind:unit`, `kind:e2e`
 
-`all` is the broad suite and is deliberately unit + non-agent e2e: agent, experiment, live PostHog roundtrip, and production-identity daemon acceptance surfaces are not part of `all`. Agent, telemetry, and daemon acceptance surfaces must be selected explicitly with their named suites. The experiment suite contains two placement classes. Lifecycle-fault experiments carry `isolated-github-only`, so selection alone cannot bypass their execution-placement guard. `experiment:dynamic-services` is a normal runnable service fixture without that tag; its protection is exclusion from `all`, so it runs only when selected explicitly. `telemetry-posthog-roundtrip` owns the live telemetry ↔ PostHog integration surface that requires secrets. `daemon-acceptance` owns the host-mutating packed-CLI and production-service lifecycle surface. Both are excluded from CI and broad verification. Build-config-integrity coverage is a normal unit surface, `unit:build-config`, so it runs in `all` and CI without secrets.
+`live-providers` selects the provider-backed browser surface `live-providers:browser`, whose kind is `live-provider`. It is an explicitly selected local suite outside `all`, `e2e`, and `e2e-ci`; a runner-only selection also excludes it. ^test-registry-live-providers
+
+`all` is the broad suite and is deliberately unit + non-agent e2e: agent, experiment, live PostHog roundtrip, live provider, and production-identity daemon acceptance surfaces are not part of `all`. Agent, telemetry, live-provider, and daemon acceptance surfaces must be selected explicitly with their named suites. The experiment suite contains two placement classes. Lifecycle-fault experiments carry `isolated-github-only`, so selection alone cannot bypass their execution-placement guard. `experiment:dynamic-services` is a normal runnable service fixture without that tag; its protection is exclusion from `all`, so it runs only when selected explicitly. `telemetry-posthog-roundtrip` owns the live telemetry ↔ PostHog integration surface that requires secrets. `live-providers` owns local browser seams that intentionally contact external providers. `daemon-acceptance` owns the host-mutating packed-CLI and production-service lifecycle surface. These specialized suites are excluded from CI and broad verification. Build-config-integrity coverage is a normal unit surface, `unit:build-config`, so it runs in `all` and CI without secrets.
 
 ## Execution groups
 
@@ -178,4 +181,3 @@ Registry discovery and validation scan only the *canonical include roots* `packa
 - a surface whose `roots` or `excludeRoots` entry does not exist,
 - a service with a duplicate `id`, a missing Vite config, an unsupported `kind`, an invalid `publishUrlEnv` name, or a `publishUrlEnv` duplicated within its surface,
 - an unregistered runner config file found under the include roots — any file matching `vitest.config.ts`, `vitest.e2e.config.ts`, or `playwright.config.ts` that no surface declares.
-
