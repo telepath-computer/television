@@ -91,7 +91,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `blaxel-testshards.md` (66 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `flaky-tests.md` (16 lines) — *How the promises in Flaky Tests are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
-    - `preflight.md` (41 lines) — *How the promises in Preflight are proven.*
+    - `preflight.md` (42 lines) — *How the promises in Preflight are proven.*
     - `reporting.md` (42 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (52 lines) — *How the promises in Sharded Execution are proven.*
     - `test-registry.md` (38 lines) — *How the promises in Test Registry are proven.*

@@ -89,3 +89,4 @@ Injected `ElectronE2EPlan` values may cover how the Electron check handles each 
 A seam must invoke the real Git process to run the production git-safety sequence in an actual repository with an `origin` remote. Once that seam exists, the failing case for each git-safety check may use contract coverage under the testing policy's [compositional coverage rule](../testing-policy.md#Compositional coverage across clean seams).
 
 A change that could affect the Blaxel provider capability checks requires live evidence. That evidence is governed by the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#Integration against paid services or complex host dependencies is important) and the [Blaxel test-shard testing directive](./blaxel-testshards.md#Testing).
+
