@@ -175,21 +175,21 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
 
   if (unreadable) return html`
     <main class="table-page">
+      <div class="table-resize-announcement" role="status"></div>
       <section class="table-unreadable" role="alert">
         <span class="table-unreadable-icon">${icon({ name: "warning", size: "xl" })}</span>
         <h1 class="table-unreadable-title">This table can't be shown</h1>
         <p class="table-unreadable-text">Television can't read the saved table data. Ask your agent to check the data and access.</p>
       </section>
-      <div class="table-resize-announcement" role="status"></div>
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : ""}</div>
     </main>`;
 
   if (loading) return html`
     <main class="table-page" data-editable="${String(editable)}" data-header-row="${String(headerRow)}">
+      <div class="table-resize-announcement" role="status"></div>
       <div class="table-loading" role="status" aria-label="Loading table">
         ${icon({ name: "spinner", size: "md", spinning: true })}
       </div>
-      <div class="table-resize-announcement" role="status"></div>
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : ""}</div>
     </main>`;
 
@@ -204,6 +204,7 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
 
   return html`
     <main class="table-page" data-editable="${String(editable)}" data-header-row="${String(headerRow)}">
+      <div class="table-resize-announcement" role="status"></div>
       <div class="table-frame">
         <div class="table-scroll">
           <div
@@ -275,7 +276,6 @@ const render = ({ theme, columns: storedColumns, rows: storedRows, headerRow, se
       </div>
       ${menu === "row" && editable ? rowMenu(headerRow, selection, menuTrigger) : ""}
       ${menu === "column" && editable ? columnMenu(selection, menuTrigger) : ""}
-      <div class="table-resize-announcement" role="status"></div>
       <div class="table-status" role="status">${status === "reconnecting" ? "Reconnecting…" : status === "save-failed" ? "Couldn't save that change." : ""}</div>
     </main>`;
 };

@@ -432,12 +432,30 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(cell(page, 0, 1)).toBeFocused();
   await page.keyboard.press("Shift+Space");
   await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
+  await rowButton(page, 2).click({ modifiers: ["Shift"] });
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
+  await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
   for (const key of ["Enter", "F2", "x", "Space"]) {
     await page.keyboard.press(key);
     await expect(editor(page)).toHaveCount(0);
     await expect(page.getByRole("menu")).toHaveCount(0);
     await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
+    await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
   }
+  for (const key of ["Control+Enter", "Alt+F2", "Control+Space"]) {
+    await page.keyboard.press(key);
+    await expect(editor(page)).toHaveCount(0);
+    await expect(page.getByRole("menu")).toHaveCount(0);
+    await expect(rowButton(page, 0)).toHaveAttribute("aria-pressed", "true");
+    await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
+  }
+  expect(await rowButton(page, 2).evaluate((element) => {
+    const event = new KeyboardEvent("keydown", {
+      key: "x", ctrlKey: true, bubbles: true, cancelable: true,
+    });
+    element.dispatchEvent(event);
+    return event.defaultPrevented;
+  })).toBe(false);
   await cell(page, 1, 1).click();
   await page.keyboard.press("Control+Shift+Space");
   await expect(columnButton(page, "B")).toHaveAttribute("aria-pressed", "true");
@@ -1351,13 +1369,13 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   const firstRowBeforeInsert = Object.keys((await h.read<TableData>(id))!.rows);
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Insert row above", { exact: true }).click();
-  const insertedFirstRow = Object.keys((await h.read<TableData>(id))!.rows).find(key => !firstRowBeforeInsert.includes(key));
-  expect(insertedFirstRow).toBeDefined();
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
   await expect(cell(page, 0, 0)).toHaveText("");
   await expect(rowButton(page, 1)).toHaveText("2");
   await expect(page.locator('[data-row-key="r1"][data-column-key="c3"]')).toHaveAttribute("role", "gridcell");
   await expect(page.locator('[data-row-key="r1"][data-column-key="c3"]')).toHaveText("Open");
+  const insertedFirstRow = Object.keys((await h.read<TableData>(id))!.rows).find(key => !firstRowBeforeInsert.includes(key));
+  expect(insertedFirstRow).toBeDefined();
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Delete row", { exact: true }).click();
   await expect.poll(() => h.read(id, `rows/${insertedFirstRow}`)).toBeUndefined();
@@ -1515,9 +1533,9 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
   const beforeStoredColumnResize = writes().length;
   await page.mouse.up();
   await expect.poll(() => h.read(id, "columns/c1/width")).toBe(230);
-  expect(writes().slice(beforeStoredColumnResize)).toContainEqual(expect.objectContaining({
-    kind: "set", path: "columns/c1/width",
-  }));
+  expect(writes().slice(beforeStoredColumnResize)).toEqual([
+    expect.objectContaining({ kind: "set", path: "columns/c1/width" }),
+  ]);
 
   const beforeUnchangedRelease = writes().length;
   await startResize(page, "column", 0);
@@ -1546,11 +1564,25 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
     "aria-description",
     "238 pixels wide. Select this column, then use plus or minus to resize.",
   );
-  const announcement = page.locator(".table-resize-announcement");
+  const announcement = page.getByRole("status").filter({ hasText: "Column A, 238 pixels wide" });
   await expect(announcement).toHaveText("Column A, 238 pixels wide");
-  await expect(announcement).toBeHidden();
+  const announcementGeometry = await announcement.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return { width: rect.width, height: rect.height, clip: style.clip, clipPath: style.clipPath };
+  });
+  expect(announcementGeometry.width).toBeGreaterThan(0);
+  expect(announcementGeometry.width).toBeLessThanOrEqual(1);
+  expect(announcementGeometry.height).toBeGreaterThan(0);
+  expect(announcementGeometry.height).toBeLessThanOrEqual(1);
+  expect(announcementGeometry.clip).not.toBe("auto");
+  expect(announcementGeometry.clipPath).toBe("inset(50%)");
+  const beforeColumnMinus = writes().length;
   await page.keyboard.press("-");
   await expect.poll(() => h.read(id, "columns/c1/width")).toBe(230);
+  expect(writes().slice(beforeColumnMinus)).toEqual([
+    expect.objectContaining({ kind: "set", path: "columns/c1/width" }),
+  ]);
   const beforeBrowserZoom = writes().length;
   await page.keyboard.press("Control+-");
   await page.waitForTimeout(100);
@@ -1596,6 +1628,7 @@ test("pointer and keyboard resizing save scoped clamped sizes", async ({ page })
   const firstHeight = await h.read<number>(id, `rows/${storedRowKey}/height`);
   await page.keyboard.press("+");
   await expect.poll(() => h.read<number>(id, `rows/${storedRowKey}/height`)).toBeGreaterThan(firstHeight!);
+  await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
 });
 
 // proofs/ui/templates/table.md#^table-ac-disconnection
@@ -1658,8 +1691,8 @@ test("resizing reconciles concurrent, access and disconnected changes", async ({
   expect(writes()).toHaveLength(beforeDisconnected);
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
-  await dragResize(page, "column", 0, 30);
-  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(190);
+  await dragResize(page, "column", 0, 24);
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(184);
 });
 
 // proofs/arch/templates/table.md#^templates-table-t-invalid-guard
@@ -2026,6 +2059,7 @@ test("real share access changes preserve a navigable read-only table and close w
   await page.mouse.move(accessResize.x + 32, accessResize.y);
   await h.client.resources.share({ artifactID: id, access: "read" });
   await expect(page.locator(".table-column-resize-handle")).toHaveCount(0);
+  await expect.poll(async () => (await cell(page, 1, 0).boundingBox())!.width).toBeCloseTo(160, 0);
   await page.mouse.up();
   await page.waitForTimeout(100);
   expect(writes()).toHaveLength(beforeLostAccessResize);
@@ -2065,6 +2099,7 @@ test("real share access changes preserve a navigable read-only table and close w
   await h.client.resources.unshare({ artifactID: id });
   await expect(editor(page)).toHaveCount(0);
   await expect(grid(page)).toBeVisible();
+  await expect(cell(page, 0, 0)).toHaveText("Park");
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
 
   const unreadID = await h.createStored(fixture());
@@ -2319,7 +2354,6 @@ test("a refused save and aborted renumbering use the established failure status"
 });
 
 // proofs/arch/templates/table.md#^templates-table-t-invalid-guard
-// proofs/ui/templates/table.md#^table-ac-disconnection
 // proofs/ui/templates/table.md#^table-ac-unreadable
 test("unreadable data closes active UI, guards actions and recovers without replay", async ({ page }) => {
   const id = await open(page);
@@ -2339,6 +2373,10 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   await expect(grid(page)).toBeVisible();
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
 
+  await h.set(id, 212, "columns/c1/width");
+  await h.set(id, 52, "rows/r1/height");
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /212 pixels wide/);
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /52 pixels tall/);
   await h.set(id, 0, "columns/c1/width");
   await h.set(id, -1, "rows/r1/height");
   await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /160 pixels wide/);

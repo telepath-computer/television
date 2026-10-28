@@ -857,7 +857,9 @@ main.addEventListener("keydown", event => {
       void resizeSelection(event.key === "+" || event.key === "Add" ? 1 : -1);
       return;
     }
-    if (!commandModified && (["Enter", "F2", " "].includes(event.key) || event.key.length === 1)) {
+    const selectionControlKey = ["Enter", "F2", " "].includes(event.key);
+    const unmodifiedPrintableKey = event.key.length === 1 && !commandModified;
+    if (selectionControlKey || unmodifiedPrintableKey) {
       event.preventDefault();
     }
   } else if (event.key === "Process" || event.isComposing) {

@@ -40,7 +40,9 @@ The first editable design and implementation passed review. Rupert's hands-on re
     - a 28-pixel row 1 whose one-pixel top border replaces one pixel of padding, plus an editor that fills its cell's padding box without changing row height;
     - a `Resized` story with a 28-pixel header row and 52-pixel ordinary row, reversing the earlier fixture so both row-1 minimum geometry and later-row extra space are visible;
     - the empty corner and all four frozen gaps as inert parts of the table control, so clicking them changes no selection, editor or focus; and
-    - named row and column strip groups whose closed buttons expose `aria-expanded="false"` only when their menu is available.
+    - named row and column strip groups whose closed buttons expose `aria-expanded="false"` only when their menu is available;
+    - a one-pixel clipped live region in every story that announces keyboard resize results without becoming visible; and
+    - `touch-action: none` on pointer resize handles so touch resizing does not scroll the table.
     Recommendation: accept these as one visual correction. They preserve the approved geometry while closing the seams that appear only during scrolling.
 26. **Should the superseded Table editing experiment remain?** The implementation removes `storybook/experiments/table-editing/`. It uses the replaced store shape, separate header behavior and earlier strip behavior, while the spec stories now carry the approved design. Recommendation: keep it removed so future work has one current design reference.
 
