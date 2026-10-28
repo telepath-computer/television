@@ -774,6 +774,11 @@ describe("test runner guardrails", () => {
     expect(local.stdout).toContain(
       "[dry-run] provider=local suite=live-providers surfaces=live-providers:browser",
     );
+    const broadPlaywright = runCli(["local", "--runner", "playwright"], selftestEnv({
+      TV_TEST_RUNNER_DRY_RUN: "1",
+    }));
+    expect(broadPlaywright.status, broadPlaywright.stderr).toBe(0);
+    expect(broadPlaywright.stdout).not.toContain("live-providers:browser");
 
     const help = runCli(["help"]);
     expect(help.status, help.stderr).toBe(0);

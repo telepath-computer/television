@@ -37,18 +37,17 @@ describe("test runner registry", () => {
       preflight: ["node", "playwright-chromium"],
       tags: ["live-provider"],
       preCommand: ["npm", "run", "build:web-and-artifact-documents"],
-      services: [{
-        id: "live-provider-browser",
-        kind: "vite",
-        config: "config/vite.e2e.ts",
-        publishUrlEnv: "TV_WEB_E2E_URL",
-      }],
+      services: [],
     });
     expect(owningSurfaces(config.surfaces, "test/live-providers/weather.test.ts").map((surface) => surface.id))
       .toEqual(["live-providers:browser"]);
     for (const suite of ["all", "e2e", "e2e-ci"]) {
       expect(selectSurfaces(config, { suite }).map((surface) => surface.id)).not.toContain("live-providers:browser");
     }
+    expect(selectSurfaces(config, { runner: "playwright" }).map((surface) => surface.id))
+      .not.toContain("live-providers:browser");
+    expect(selectSurfaces(config, { runner: "playwright", tag: "live-provider" }).map((surface) => surface.id))
+      .toEqual(["live-providers:browser"]);
   });
 
   test("restricts lifecycle fault surfaces to isolated GitHub runners", () => {

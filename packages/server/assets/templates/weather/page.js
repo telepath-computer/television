@@ -412,9 +412,9 @@ async function requestForecast(configuration) {
   }
 
   const settled = settleRequestAttempt(requestState, attemptId, normalized);
+  if (activeAttempt?.id === attemptId) activeAttempt = null;
   if (!settled) return;
   requestState = settled;
-  if (activeAttempt?.id === attemptId) activeAttempt = null;
   render();
   if (normalized) await saveForecast(identity, normalized);
 }

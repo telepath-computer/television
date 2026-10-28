@@ -93,7 +93,7 @@ The registered suites:
 - `daemon-acceptance` → `kind:daemon-acceptance`
 - `all` → `kind:unit`, `kind:e2e`
 
-`live-providers` selects the provider-backed browser surface `live-providers:browser`, whose kind is `live-provider`. It is an explicitly selected local suite outside `all`, `e2e`, and `e2e-ci`. ^test-registry-live-providers
+`live-providers` selects the provider-backed browser surface `live-providers:browser`, whose kind is `live-provider`. It is an explicitly selected local suite outside `all`, `e2e`, and `e2e-ci`; a runner-only selection also excludes it. ^test-registry-live-providers
 
 `all` is the broad suite and is deliberately unit + non-agent e2e: agent, experiment, live PostHog roundtrip, live provider, and production-identity daemon acceptance surfaces are not part of `all`. Agent, telemetry, live-provider, and daemon acceptance surfaces must be selected explicitly with their named suites. The experiment suite contains two placement classes. Lifecycle-fault experiments carry `isolated-github-only`, so selection alone cannot bypass their execution-placement guard. `experiment:dynamic-services` is a normal runnable service fixture without that tag; its protection is exclusion from `all`, so it runs only when selected explicitly. `telemetry-posthog-roundtrip` owns the live telemetry ↔ PostHog integration surface that requires secrets. `live-providers` owns local browser seams that intentionally contact external providers. `daemon-acceptance` owns the host-mutating packed-CLI and production-service lifecycle surface. These specialized suites are excluded from CI and broad verification. Build-config-integrity coverage is a normal unit surface, `unit:build-config`, so it runs in `all` and CI without secrets.
 

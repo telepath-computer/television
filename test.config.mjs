@@ -68,9 +68,6 @@ export default {
         preflight: ["node", "playwright-chromium"],
         tags: ["live-provider"],
         preCommand: ["npm", "run", "build:web-and-artifact-documents"],
-        services: [
-          { id: "live-provider-browser", kind: "vite", config: "config/vite.e2e.ts", publishUrlEnv: "TV_WEB_E2E_URL" },
-        ],
       }),
     ]),
     executionGroup("e2e:artifact", "e2e: artifact", 6, [

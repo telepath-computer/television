@@ -24,7 +24,8 @@ test("refreshes the Weather provider captures through a copied sandboxed page", 
     });
 
     const artifactID = await harness.createStored(celsius as unknown as JSONValue);
-    const frame = await harness.open(page, artifactID);
+    await harness.openApp(page);
+    const frame = await harness.frame(page, artifactID);
     expect(await frame.evaluate(() => window.origin)).toBe("null");
     await expect(frame.locator(".weather-header h1")).toHaveText("San Francisco", { timeout: 30_000 });
     await expect(frame.locator(".weather-credit")).toContainText("Open-Meteo data · adapted · CC BY 4.0");

@@ -64,7 +64,7 @@ A *selector* chooses which tests run; the runner resolves selectors against [tes
 | `--package <name>` | Surfaces associated with a workspace package. |
 | `--file <path>` | The surface that owns a test file, running that file. |
 | `--grep <pattern>` | Test-title filter, translated to `-t` for Vitest and `-g` for Playwright. |
-| `--runner <vitest\|playwright>` | Surfaces using a runner. |
+| `--runner <vitest\|playwright>` | Surfaces using a runner. A runner-only selection excludes opt-in live-provider surfaces; select those with their suite or another explicit selector. |
 | `--tag <tag>` | Surfaces carrying a registry tag, such as `browser` or `electron`. |
 
 The local provider accepts every registered suite. A Blaxel suite selection accepts only `all`, `unit`, or `e2e`; narrower remote work uses surface, file, or grep selection through the target path. A selection that resolves to a `live-provider` surface is local-only and is refused on every Blaxel path before remote preflight or dispatch.
@@ -138,7 +138,7 @@ The suite is excluded from `all`, so `npm run verify`, CI, and Blaxel `--suite a
 npm test -- local --suite live-providers
 ```
 
-The surface runs Chromium with its dedicated Playwright config, after the Chromium preflight and the web-and-artifact-documents build, against a runner-owned local Vite service. Its test harness owns the temporary Television home. It is excluded from `all`, `e2e`, and `e2e-ci`, so default tests, `npm run verify`, and CI never contact those providers. The suite is local-only: Blaxel refuses a suite, surface, file, runner, or tag selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's relevant spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
+The surface runs Chromium with its dedicated Playwright config after the Chromium preflight and the web-and-artifact-documents build. Its test harness starts Television with a temporary home and opens the copied page through the real application iframe; the surface needs no separate Vite service. It is excluded from `all`, `e2e`, and `e2e-ci`, and a bare `--runner playwright` also excludes it, so default tests, `npm run verify`, and CI never contact those providers. An explicit suite, surface, file, or live-provider tag can select it locally. The suite is local-only: Blaxel refuses a suite, surface, file, runner plus live-provider tag, or other selection that resolves to a `live-provider` surface before remote preflight or dispatch. Each provider's relevant spec and proof own the exact requests, permitted fixture refreshes, and remaining forfeits. ^test-runner-live-providers
 
 ## Production daemon acceptance suite
 
