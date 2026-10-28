@@ -662,7 +662,10 @@ function execFileSyncResult(command: string, args: string[], env: Record<string,
   const inheritedEnv = { ...process.env };
   delete inheritedEnv.GITHUB_ACTIONS;
   delete inheritedEnv.TV_TEST_TIMING_PROVIDER;
-  return spawnSync(command, args, { cwd: process.cwd(), encoding: "utf8", env: { ...inheritedEnv, FORCE_COLOR: "0", NO_COLOR: "1", ...env }, timeout: 20_000 });
+  const locks = mkdtempSync(path.join(os.tmpdir(), "tv-reporting-lock-"));
+  try {
+    return spawnSync(command, args, { cwd: process.cwd(), encoding: "utf8", env: { ...inheritedEnv, TV_TEST_RUNNER_SELFTEST: "1", TV_TEST_RUNNER_LOCK_PATH: path.join(locks, "mutex.sqlite3"), FORCE_COLOR: "0", NO_COLOR: "1", ...env }, timeout: 20_000 });
+  } finally { rmSync(locks, { recursive: true, force: true }); }
 }
 
 function fixtureRun() {

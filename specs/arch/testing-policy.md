@@ -1,8 +1,8 @@
-*How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+*How Television is tested: test authoring and coverage, focused iteration, verification, and agent permissions.*
 
 # Testing policy
 
-This spec is authoritative for the project's testing authoring discipline. How tests are *executed* at runtime is governed by the test-runner specs under [test-runner.md](./test-runner/test-runner.md) and its companions.
+This spec is authoritative for the project's test authoring, iteration, and verification discipline, including agent permissions. How tests are *executed* at runtime is governed by the test-runner specs under [test-runner.md](./test-runner/test-runner.md) and its companions.
 
 ## Scope during the spec migration
 
@@ -39,7 +39,13 @@ If full test coverage would require extremely complex or numerous tests, that is
 
 Test the narrowest thing that proves the change, then widen — never the other way around.
 
-While implementing, run only the tests directly exercising the behavior under change (a file, a `--grep`, a surface). They are fast, focused, and tell you whether the thing you are working on is working. As that signal turns green and the behavior matures, widen the surface: the owning suite, then the full broad verification (`npm run verify`).
+Use the canonical runner for local feedback on the behavior under change: start with one file, optionally narrowed with `--grep`. Repeated focused runs while investigating or editing that behavior are normal iteration. As the focused check passes and the behavior matures, widen validation to the owning surface or suite and then full verification (`npm run verify`), using the provider discipline below.
+
+Keeping the shared host usable comes first. Concurrent test runs compete for CPU and memory, drive the host into swap, and can get processes OOM-killed, affecting every agent on the host. The runner's [local mutex](test-runner/test-runner.md#^local-test-mutex) coordinates runs by the same operating-system user across checkouts. Pass `--wait-for-local-test-mutex` to wait for another local run to finish; the default is immediate refusal. Use the canonical entrypoint and follow its refusals; the [native-entrypoint contract](test-runner/test-runner.md#native-test-entrypoints) covers direct Vitest and Playwright invocations.
+
+On hosts with `~/.tvdev-use-blaxel`, local iteration selects one file with optional grep; anything broader goes to Blaxel after the intended revision is committed and pushed. For a known multi-file check, use that remote selection instead of splitting it into serial local commands to evade the file limit. Even a Blaxel selection running on one worker removes its test load from the shared host. Distribution across files improves speed where available; lack of fan-out for a targeted surface is never a reason for broader local work. Unmarked public-contributor and fork hosts retain local selections and need no Blaxel access.
+
+Running a new or changed test once is normal focused iteration: plain `--retries 0` is within the guidance for one explicitly selected file, optionally narrowed with `--grep`. Broader validation uses the default retry budget; disabling it turns recoverable flakes into failures across unrelated tests. Broader zero-retry runs require `--against-test-guidance-turn-flakes-into-failures-on-broad-runs`. Using that override is the caller's judgment, including for agents, without human permission. Recovered flakes remain reported, and flaky new tests still require investigation and repair under [Timing, observable status, cleanup, and flakiness](#timing-observable-status-cleanup-and-flakiness). The runner owns [selection and budget mechanics](test-runner/test-runner.md#retries), including the separate per-test and infrastructure layers.
 
 Broad runs are a **discovery tool, not your inner loop.** Use them to find what is failing somewhere else as a result of the change. The moment a broad run surfaces a failure, scope back down to a narrow test that reproduces it, get it green there, and only then re-run the broad verification. Don't iterate against the broad gate to chase a single failing test — each cycle is many minutes long, you stop seeing cause from effect, and you waste time the narrow test would have saved.
 
@@ -47,9 +53,13 @@ The work is not done until **broad verification passes fully green** on its own.
 
 ### Verification provider and completion
 
-Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification runs locally without Blaxel checks or warnings, a bypass flag, or a separate permission requirement. The [runner’s provider selection](test-runner/test-runner.md#Verify orchestration) owns provider resolution.
+Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification defaults to local without Blaxel checks, Blaxel warnings, or a separate permission requirement; the local mutex still applies. The [runner’s provider selection](test-runner/test-runner.md#Verify orchestration) owns provider resolution.
 
-On hosts with `~/.tvdev-use-blaxel`, Blaxel is the default and local full verification requires `--allow-extreme-inefficiency`. Agents must obtain explicit human permission before using that bypass on a marked host; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify a local run. Fix a reported remote preflight problem unless local verification is authorized. GitHub CI retains its specified execution path.
+On hosts with `~/.tvdev-use-blaxel`, Blaxel is the verification default. Agents must obtain explicit human permission before using `--against-test-guidance-broad-local-run` to lift the [one-file local limit](test-runner/test-runner.md#^local-one-file), including for local verify; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify broader local execution. Fix a reported remote preflight problem unless the broader local run is authorized. Local-only suites follow their runner-owned placement and invocation guidance. GitHub CI retains its specified execution path.
+
+The independent `--against-test-guidance-major-host-contention-and-oom-killed-processes` bypass is the caller's judgment, including for agents, and requires no human permission. It lifts only the mutex, as defined by the [runner](test-runner/test-runner.md#^local-test-mutex).
+
+Deliberate lower-level tool use through the [native-entrypoint override](test-runner/test-runner.md#native-test-entrypoints) is also the caller's judgment, without human permission. It enables native capabilities needed for the task outside the runner's protections; the default workflow remains canonical local iteration and broader remote validation on marked hosts.
 
 The `tvdev-setup`, `tvdev-contribute`, and `tvdev-review` skills apply the repository’s development workflow for all contributors, including forks. Normal setup and contribution work must not create the Blaxel marker or require Blaxel access. [Blaxel access setup](test-runner/blaxel-testshards.md#Local setup) is needed only for contributors choosing Blaxel, whether through an existing host marker or an explicit command.
 

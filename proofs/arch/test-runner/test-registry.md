@@ -6,13 +6,13 @@ Proves [specs/arch/test-runner/test-registry.md](../../../specs/arch/test-runner
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Coverage declarations are carried inside the migrated assertion blocks below. Explicit suite or owned-file selection uses the standing ownership and exclusion cases. The registry identifies candidate surfaces; it does not establish that a native file filter will execute exactly one file. The runner owns that [file-boundary proof](test-runner.md#^t-runner-file-boundary), [marked-host admission](test-runner.md#^t-runner-file-admission), and [local-only refusal guidance](test-runner.md#^t-runner-local-redirection). The registry’s invocation guidance adds no separate execution requirement.
 
 ## Assertions
 
 ### Test assertions
 
-These run in-process as pure functions over the loaded registry, plus real filesystem reads (discovery walks the real repository tree, and validation cases write throwaway configs into real temp directories). There is no subprocess, network, or remote boundary in the registry, so no boundary is left unproven by mocking — the gap class that `testing-policy.md` warns about does not arise here. Current coverage lives in `test/repo/test-runner-config.test.ts`.
+These run in-process as pure functions over the loaded registry, plus real filesystem reads (discovery walks the real repository tree, and validation cases write throwaway configs into real temp directories). The committed-snapshot assertion additionally reads real Git objects; none of these tests uses a network or remote runner. Current coverage lives in `test/repo/test-runner-config.test.ts`.
 
 - `validateRegistry` returns no errors for the repository's own registry.
 - `selectSurfaces` with `suite: "e2e"` returns only `kind === "e2e"` surfaces.
@@ -27,6 +27,7 @@ These run in-process as pure functions over the loaded registry, plus real files
 - `validateRegistry` reports an unregistered runner config placed under a canonical include root.
 - **Contract:** `validateRegistry` accepts a surface with two valid Vite service declarations and reports each invalid service declaration listed under [#Discovery and validation](../../../specs/arch/test-runner/test-registry.md#Discovery and validation). The test uses temporary config-file fixtures and no mocked mechanism.
 - **Contract:** loading the repository registry preserves the dynamic-service fixture's ordered declarations unchanged.
+- **Contract — committed normalization.** The working-tree and committed loaders produce identical normalized surfaces for the same registry and package manifests, including a config nested below its package directory. A real Git fixture moves a package after a commit and proves that the snapshot still derives its working directory from the selected commit's manifests. This proves [loading and derived fields](../../../specs/arch/test-runner/test-registry.md#source-of-truth), with real filesystem and Git reads, not native execution. Covered by `test/repo/test-runner-file-selection.test.ts`, “normalizes committed and local registry surfaces identically” and “derives package directories from the selected commit's manifests”. ^registry-committed-normalization
 - The artifact e2e surface declares two independently published services for its view and host origins, with no deterministic port-window helper.
 - The desktop e2e surface declares its fixture Vite service through `TV_DESKTOP_E2E_URL`, and the desktop config and tests contain no fixed fixture port.
 - `validateRegistry` ignores a runner config placed outside the canonical include roots (e.g. under `prototypes/` or `experiments/`).
@@ -35,4 +36,3 @@ These run in-process as pure functions over the loaded registry, plus real files
 - The `unit:build-config` surface owns `test/repo/build-config-integrity.test.ts`; `unit:root` excludes that file.
 - The `telemetry-posthog-roundtrip` suite resolves to the `telemetry-posthog-roundtrip:integration` surface, and that surface owns `packages/server/test/telemetry-posthog.integration.test.ts`; `unit:server` excludes that file.
 - The `daemon-acceptance` suite resolves to `daemon-acceptance:cli`, and that surface exclusively owns `test/node/daemon-acceptance.test.ts`; `e2e:node` excludes that file. The surface declares the `daemon-test-host` preflight and is absent from `all`.
-

@@ -6,7 +6,7 @@ Proves [specs/arch/test-runner/reporting.md](../../../specs/arch/test-runner/rep
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Coverage declarations are carried inside the migrated assertion blocks below. Real nested canonical CLI cases use the runner’s [gated private lock-location hook](test-runner.md#test-hooks), with a fresh path per independent scenario. This keeps them separate from the outer run and parallel workers while retaining real acquisition and cleanup; it forfeits production-location coverage to [the runner’s location seam](test-runner.md#^t-runner-lock-location). Their native success/failure cases also establish [canonical exit propagation](test-runner.md#^t-runner-native-exit).
 
 ## Test hooks
 

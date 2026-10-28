@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import fs from "node:fs";
 import { defineConfig, firefox } from "@playwright/test";
 

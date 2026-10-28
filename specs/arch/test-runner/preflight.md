@@ -80,7 +80,7 @@ interface RemotePreflightResult {
 }
 ```
 
-## Testing
+## Testing guidance
 
 Under the testing policy's [rule for platform-dependent behavior](../testing-policy.md#^platform-breadth), cases where a required host capability is missing or the platform is unsupported use contract coverage. A seam on the CI host must prove that `process-lifecycle` uses the host's real process-inspection backend. On Linux, that seam must use `/proc` and `ss` to attribute a real, disposable child process and its listener, then clean up both. This Linux evidence does not prove the macOS backend, which uses `ps` and `lsof`. Proving the macOS backend requires the same seam on a macOS host.
 
@@ -88,5 +88,5 @@ Injected `ElectronE2EPlan` values may cover how the Electron check handles each 
 
 A seam must invoke the real Git process to run the production git-safety sequence in an actual repository with an `origin` remote. Once that seam exists, the failing case for each git-safety check may use contract coverage under the testing policy's [compositional coverage rule](../testing-policy.md#Compositional coverage across clean seams).
 
-A change that could affect the Blaxel provider capability checks requires live evidence. That evidence is governed by the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#Integration against paid services or complex host dependencies is important) and the [Blaxel test-shard testing directive](./blaxel-testshards.md#Testing).
+A change that could affect the Blaxel provider capability checks requires live evidence. That evidence is governed by the testing policy's [rule for integration against paid services or complex host dependencies](../testing-policy.md#Integration against paid services or complex host dependencies is important) and the [Blaxel test-shard testing guidance](./blaxel-testshards.md#testing-guidance).
 
