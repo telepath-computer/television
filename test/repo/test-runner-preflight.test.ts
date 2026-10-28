@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -62,6 +63,19 @@ describe("test runner preflight selection", () => {
       if (previous === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH;
       else process.env.PLAYWRIGHT_BROWSERS_PATH = previous;
     }
+  });
+
+  test("fails the Weather artwork configuration under CI when Firefox or WebKit is absent", () => {
+    for (const available of [[], ["firefox"], ["webkit"]] as const) {
+      const result = loadWeatherArtworkConfig(available);
+      expect(result.status).not.toBe(0);
+      expect(`${result.stdout}${result.stderr}`).toContain(
+        "Weather artwork requires Playwright Firefox and WebKit in CI.",
+      );
+    }
+
+    const complete = loadWeatherArtworkConfig(["firefox", "webkit"]);
+    expect(complete.status, `${complete.stdout}${complete.stderr}`).toBe(0);
   });
 
   test("checks Electron package presence and consumes every planner state without installing", () => {
@@ -192,6 +206,33 @@ describe("test runner preflight selection", () => {
     expect(readPostHogTestReadKey({ env: {}, root })).toBeNull();
   });
 });
+
+function loadWeatherArtworkConfig(available: readonly ("firefox" | "webkit")[]) {
+  const browserRoot = mkdtempSync(path.join(os.tmpdir(), "tv-weather-artwork-browsers-"));
+  const env = { ...process.env, CI: "1", PLAYWRIGHT_BROWSERS_PATH: browserRoot };
+  const paths = spawnSync(process.execPath, [
+    "-e",
+    "const { firefox, webkit } = require('@playwright/test'); process.stdout.write(JSON.stringify({ firefox: firefox.executablePath(), webkit: webkit.executablePath() }));",
+  ], { cwd: process.cwd(), encoding: "utf8", env });
+  expect(paths.status, paths.stderr).toBe(0);
+  const executables = JSON.parse(paths.stdout) as Record<"firefox" | "webkit", string>;
+  for (const name of available) {
+    mkdirSync(path.dirname(executables[name]), { recursive: true });
+    writeFileSync(executables[name], "fixture browser\n");
+  }
+
+  return spawnSync(process.execPath, [
+    createRequire(import.meta.url).resolve("@playwright/test/cli"),
+    "test",
+    "--config",
+    "packages/web/playwright.weather-artwork.config.ts",
+    "--list",
+  ], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env,
+  });
+}
 
 function electronPlan(runtime: { state: "absent" } | { state: "valid"; executablePath: string } | { state: "invalid"; reason: string }) {
   return {

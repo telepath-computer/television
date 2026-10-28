@@ -136,7 +136,7 @@ describe("test runner guardrails", () => {
     expect(action).toContain("ImageVersion");
     expect(action).toContain("node${node_major}");
     expect(action).not.toContain("fail-on-cache-miss");
-    expect(action).toContain("default: shard-readiness-v4");
+    expect(action).toContain("default: shard-readiness-v2");
     expect(action).toContain("cache-key-suffix");
     expect(action).toContain('if [ -n "$CACHE_KEY_SUFFIX" ]');
     for (const input of ["package-lock.json", "packages/skills/package.json"]) {
@@ -178,6 +178,17 @@ describe("test runner guardrails", () => {
     expect(action).not.toContain("node-version");
     expect(action).toContain("npx playwright install --with-deps chromium firefox");
     expect(action).toContain("npx playwright install-deps chromium firefox");
+    expect(action).not.toMatch(/^\s*path: ~\/\.cache\/ms-playwright\s*$/m);
+    for (const cached of [
+      "~/.cache/ms-playwright/.links",
+      "~/.cache/ms-playwright/chromium-*",
+      "~/.cache/ms-playwright/chromium_headless_shell-*",
+      "~/.cache/ms-playwright/ffmpeg-*",
+      "~/.cache/ms-playwright/firefox-*",
+    ]) {
+      expect(action).toContain(cached);
+    }
+    expect(action).not.toContain("~/.cache/ms-playwright/webkit-*");
     expect(action).not.toContain("webkit");
     expect(webkitAction).not.toContain("actions/setup-node");
     expect(webkitAction).not.toContain("node-version");

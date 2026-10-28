@@ -25,7 +25,12 @@ runs:
       id: pw-cache
       uses: actions/cache@v4
       with:
-        path: ~/.cache/ms-playwright
+        path: |
+          ~/.cache/ms-playwright/.links
+          ~/.cache/ms-playwright/chromium-*
+          ~/.cache/ms-playwright/chromium_headless_shell-*
+          ~/.cache/ms-playwright/ffmpeg-*
+          ~/.cache/ms-playwright/firefox-*
         key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}-chromium-firefox
 
     - name: Install Chromium, Firefox, and system deps (cache miss)

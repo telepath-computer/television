@@ -108,6 +108,7 @@ describe("bundled Weather package", () => {
     }
     const index = readFileSync(path.join(folder, "index.html"), "utf8");
     expect(index).toContain('/canonical/v2/components.js');
+    expect(index).toContain('<template id="weather-artwork">');
     expect(index).not.toContain("weather-credit");
   });
 

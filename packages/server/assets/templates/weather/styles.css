@@ -684,7 +684,3 @@ body {
   .weather-card[data-has-daily="true"] .weather-hourly { height: 136px; }
   .weather-card[data-has-daily="true"] .weather-daily { display: flex; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .weather-hourly-strip { scroll-behavior: auto; }
-}

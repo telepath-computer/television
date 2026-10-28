@@ -3,7 +3,6 @@ import { conform } from "@telepath-computer/conform";
 import type { JSONValue } from "@telepath-computer/television-shared/resources";
 import type { Condition, WeatherConfiguration, WeatherForecast } from "../../../server/assets/templates/weather/model.js";
 import { artifactURL, createArtifact, specStories, storybook, useConformance } from "./conformance-harness.ts";
-import { TemplateHarness } from "./template-harness.ts";
 
 const run = useConformance();
 // Each comparison owns two Chromium pages and can capture a 900×780 root.
@@ -36,21 +35,6 @@ interface State {
   now?: string;
   provider?: "none" | "fail";
   loading?: boolean;
-}
-
-interface CardPresentation {
-  theme: string | undefined;
-  themeSurface: string;
-  background: string;
-  color: string;
-  scheme: string;
-  overflow: string;
-  className: string;
-  condition: string | undefined;
-  day: string | undefined;
-  text: string | null;
-  creditCount: number;
-  size: [number, number];
 }
 
 function forecast(input: ForecastInput): WeatherConfiguration {
@@ -239,102 +223,3 @@ for (const storyID of stories) {
     }, { browser: run.browser, root: ".weather-page", ...state!.viewport });
   });
 }
-
-// proofs/ui/templates/weather.md#^weather-ui-ac-appearance
-test("Weather keeps its sky composition and legibility in dark appearance with the bundled Nord theme", async () => {
-  test.setTimeout(120_000);
-  const harness = await TemplateHarness.start({ id: "weather", name: "Weather" }, { bundledThemes: true });
-  try {
-    const cases = [
-      { value: sanFrancisco as unknown as JSONValue, provider: "none", state: "populated" },
-      { value: empty, provider: "none", state: "empty" },
-      { value: unavailable, provider: "hold", state: "loading" },
-      { value: unavailable, provider: "fail", state: "unavailable" },
-      { value: unreadable, provider: "none", state: "unreadable" },
-    ] as const;
-    const artifacts = await Promise.all(cases.map(({ value }) => harness.createStored(value)));
-    const presentations = async (colorScheme: "light" | "dark") => {
-      const results: CardPresentation[] = [];
-      const context = await run.browser.newContext({ colorScheme });
-      try {
-        await context.clock.setFixedTime(new Date(DAY_NOW));
-        for (const [{ provider, state }, index] of cases.map((entry, index) => [entry, index] as const)) {
-          await test.step(`${colorScheme} ${state}`, async () => {
-            const page = await context.newPage();
-            try {
-              await page.route("https://api.open-meteo.com/**", async (route) => {
-                if (provider !== "hold") await route.abort("failed");
-              });
-              await page.setViewportSize(small);
-              await harness.client.display.focus({ artifactID: artifacts[index]! });
-              await harness.openApp(page);
-              const frame = await harness.frame(page, artifacts[index]!);
-              const marker = { state: "attached" as const, timeout: 10_000 };
-              if (state === "populated") await frame.locator(".weather-temperature").waitFor(marker);
-              if (state === "empty") await frame.getByRole("heading", { name: "No location yet" }).waitFor(marker);
-              if (state === "loading") await frame.getByRole("status", { name: "Loading weather" }).waitFor(marker);
-              if (state === "unavailable") await frame.getByRole("status", { name: "Forecast unavailable" }).waitFor(marker);
-              if (state === "unreadable") await frame.getByRole("alert").waitFor(marker);
-              const card = frame.locator(".weather-card");
-              const actualState = await card.evaluate((node) => {
-                const stateClass = [...node.classList].find((name) => name.startsWith("weather-card-") && name !== "weather-card-loading");
-                return stateClass?.slice("weather-card-".length) ?? (node.classList.contains("weather-card-loading") ? "loading" : "populated");
-              });
-              expect(actualState).toBe(state);
-              results.push(await card.evaluate((card) => {
-                const box = card.getBoundingClientRect();
-                return {
-                  theme: document.documentElement.dataset.theme,
-                  themeSurface: getComputedStyle(document.documentElement).getPropertyValue("--color-surface").trim(),
-                  background: getComputedStyle(card).backgroundImage,
-                  color: getComputedStyle(card).color,
-                  scheme: getComputedStyle(card).colorScheme,
-                  overflow: getComputedStyle(card).overflow,
-                  className: card.className,
-                  condition: (card as HTMLElement).dataset.condition,
-                  day: (card as HTMLElement).dataset.day,
-                  text: card.textContent,
-                  creditCount: card.querySelectorAll(".weather-credit").length,
-                  size: [box.width, box.height],
-                };
-              }));
-            } finally {
-              await page.close();
-            }
-          });
-        }
-      } finally {
-        await context.close();
-      }
-      return results;
-    };
-
-    await harness.client.display.patch({ activeThemeName: null, appearanceMode: "light" });
-    await expect.poll(async () => harness.client.display.get()).toMatchObject({
-      activeThemeName: null,
-      appearanceMode: "light",
-    });
-    const light = await presentations("light");
-    await harness.client.display.patch({ activeThemeName: "nord", appearanceMode: "dark" });
-    await expect.poll(async () => harness.client.display.get()).toMatchObject({
-      activeThemeName: "nord",
-      appearanceMode: "dark",
-    });
-    const dark = await presentations("dark");
-    for (let index = 0; index < light.length; index += 1) {
-      const { theme: lightTheme, themeSurface: lightSurface, scheme: lightScheme, ...lightCard } = light[index]!;
-      const { theme: darkTheme, themeSurface: darkSurface, scheme: darkScheme, ...darkCard } = dark[index]!;
-      expect(lightTheme).toBe("light");
-      expect(lightScheme).toBe("dark");
-      expect(lightSurface).not.toBe("#2e3440");
-      expect(darkTheme).toBe("dark");
-      expect(darkScheme).toBe("dark");
-      expect(darkSurface).toBe("#2e3440");
-      expect(darkCard).toEqual(lightCard);
-      expect(darkCard.background).toContain("linear-gradient");
-      expect(darkCard.color).toBe("rgb(255, 255, 255)");
-    }
-  } finally {
-    await harness.cleanup();
-  }
-});

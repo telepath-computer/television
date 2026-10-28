@@ -8,7 +8,7 @@ description: >-
 inputs:
   cache-namespace:
     description: Cache namespace; isolated validation workflows must use a scratch value.
-    default: shard-readiness-v4
+    default: shard-readiness-v2
   cache-key-suffix:
     description: Optional suffix used by isolated validation runs to force an exact-key miss.
     default: ""

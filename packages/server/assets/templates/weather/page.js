@@ -352,6 +352,7 @@ function render() {
   const previous = main.firstElementChild;
   const previousUpdated = previous?.querySelector(".weather-updated");
   const nextUpdated = card.querySelector(".weather-updated");
+  // Patch an age-only tick before comparing the trees so it does not rebuild the card.
   if (previousUpdated && nextUpdated) previousUpdated.textContent = nextUpdated.textContent;
   if (previous?.outerHTML === card.outerHTML) return;
   const previousStrip = previous?.querySelector(".weather-hourly-strip");
