@@ -33,4 +33,4 @@ npm test -- local --file packages/artifact/test/unit/artifact-view-protocol.test
 npm test -- local --file packages/artifact/test/e2e/scroll-bridge.spec.ts
 ```
 
-For broader validation on a host with `~/.tvdev-use-blaxel`, commit and push first, then run `npm test -- blaxel --surface e2e:artifact` or `npm test -- blaxel --package @telepath-computer/television-artifact`. Keep default retries for validation. Unmarked hosts can use these broader selectors with `local` without Blaxel access. Local runs share the [canonical runner's mutex](../../specs/arch/test-runner/test-runner.md#local-guardrails).
+For broader validation on a host with `~/.tvdev-use-blaxel`, commit and push first, then run `npm test -- blaxel --surface e2e:artifact` or `npm test -- blaxel --package @telepath-computer/television-artifact`. Keep default retries for validation. Unmarked hosts can use these broader selectors with `local` without Blaxel access. Local runs share the [canonical runner's mutex](../../specs/arch/test-runner/test-runner.md#^local-test-mutex).

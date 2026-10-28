@@ -18,7 +18,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # Tree-hash attestation decision (specs/arch/test-runner/attestation.md#skip-semantics-in-ci):
+  # Tree-hash attestation decision (specs/arch/test-runner/attestation.md#skipping-in-ci):
   # cheap, no install, always runs. Expected negative outcomes (no ref,
   # unreachable origin, disabled policy, malformed ref) complete successfully
   # with skip=false; continue-on-error keeps even an unexpected crash
@@ -111,7 +111,7 @@ jobs:
     # !cancelled(): a crashed attest-check must never suppress validation —
     # the implicit success() gate would skip the heavy tier and let the join
     # green a run with zero heavy validation
-    # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+    # (specs/arch/test-runner/attestation.md#skipping-in-ci).
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     name: ${{ matrix.suite.name }}
     runs-on: ubuntu-latest
@@ -131,7 +131,7 @@ jobs:
       # the concrete required check contexts (unit, e2e:desktop) are emitted,
       # and under a skip every real step below is guarded and the job
       # fast-succeeds as an explicit no-op
-      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      # (specs/arch/test-runner/attestation.md#skipping-in-ci).
       - name: Attested skip no-op
         if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
         run: 'echo "attested skip: ${{ matrix.suite.name }} already proven for this tree"'
@@ -176,7 +176,7 @@ jobs:
 
       # Never assume a tool: jobs that reach the runner's cleanup paths need
       # ss and a readable /proc
-      # (specs/arch/test-runner/github-ci.md#tool-prerequisites-on-ci-workers).
+      # (specs/arch/test-runner/test-runner.md#processes-started-by-tests).
       - if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') && matrix.suite.cleanup }}
         name: Assert or install cleanup tools
         run: |
@@ -253,7 +253,7 @@ jobs:
   # One deduplicated round of the surfaces' preCommand builds
   # (test.prebuilt.mjs recipes), fanned out to the e2e shard jobs as a run
   # artifact so no shard rebuilds them
-  # (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+  # (specs/arch/test-runner/github-ci.md#build-once).
   build:
     needs: [attest-check]
     # !cancelled(): run even when attest-check crashes (see the test job).
@@ -265,7 +265,7 @@ jobs:
     steps:
       # Step-level attested skip: the job still runs (the e2e shards' needs
       # require its success) and no-ops fast under a skip
-      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      # (specs/arch/test-runner/attestation.md#skipping-in-ci).
       - name: Attested skip no-op
         if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
         run: 'echo "attested skip: prebuilt dists not needed for this tree"'
@@ -316,7 +316,7 @@ jobs:
       # The helper packs every untracked file and symlink except dependency
       # state under node_modules and run scratch under .test-runs. Tar preserves
       # the built CLI's executable mode.
-      # (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+      # (specs/arch/test-runner/github-ci.md#build-once).
       - name: Resolve artifact name and pack all untracked build output
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         id: prebuilt
@@ -338,7 +338,7 @@ jobs:
   # preCommand builds — the stated desktop exception). Non-unit planned
   # surfaces keep the documented 2-retry runner budget.
   # Shard jobs restore one image-bound workspace+Playwright-browser cache (pinned
-  # container deferred; specs/arch/test-runner/github-ci.md#browser-environment),
+  # container deferred; specs/arch/test-runner/github-ci.md#dependency-and-browser-caches),
   # self-seed locally on a hosted-image rollover miss, prove Chromium launches
   # on their own VM, and consume the prebuilt artifact.
   e2e:
@@ -365,7 +365,7 @@ jobs:
       # Step-level attested skip: the matrix always expands so every concrete
       # `e2e shard n/16` required context is emitted; under a skip the shard
       # fast-succeeds as an explicit no-op
-      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      # (specs/arch/test-runner/attestation.md#skipping-in-ci).
       - name: Attested skip no-op
         if: ${{ needs.attest-check.outputs.skip == 'true' && needs.attest-check.outputs.authorized == 'true' }}
         run: 'echo "attested skip: e2e shard ${{ matrix.shard }}/16 already proven for this tree"'
@@ -429,7 +429,7 @@ jobs:
             --cache-status miss
 
       # Never assume a tool: the cleanup/leak-detection path needs ss and a
-      # readable /proc (specs/arch/test-runner/github-ci.md#tool-prerequisites-on-ci-workers).
+      # readable /proc (specs/arch/test-runner/test-runner.md#processes-started-by-tests).
       - name: Assert or install cleanup tools
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         run: |
@@ -561,7 +561,7 @@ jobs:
   # check not applicable by skipping the job. On every non-draft event the
   # job runs even after an upstream failure, so missing, skipped, failed, or
   # cancelled dependencies cannot read as success here.
-  # (specs/arch/test-runner/github-ci.md#build-once-fan-out, Join integrity).
+  # (specs/arch/test-runner/github-ci.md#required-checks).
   e2e-required:
     if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: [attest-check, build, e2e, vibe-mode]
@@ -571,7 +571,7 @@ jobs:
       # attestation reaches success through step-level no-ops, so concrete
       # required contexts still emit. Drafts never enter this run path;
       # missing, skipped, failed, and cancelled dependencies all fail it.
-      # (specs/arch/test-runner/attestation.md#skip-semantics-in-ci).
+      # (specs/arch/test-runner/attestation.md#skipping-in-ci).
       - name: Require the build and all e2e shards to pass
         run: |
           vibe_result="${{ needs.vibe-mode.result }}"
@@ -642,7 +642,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-  # Attestation writer (specs/arch/test-runner/attestation.md#who-writes-and-when):
+  # Attestation writer (specs/arch/test-runner/attestation.md#who-may-write):
   # on a fully green run, publish an attestation for the validated tree. The
   # CLI re-reads the trusted origin/main policy at completion and refuses
   # (a logged no-op) on missing attest-check outputs, a disabled policy, an

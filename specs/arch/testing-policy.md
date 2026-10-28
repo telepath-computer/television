@@ -53,7 +53,7 @@ The work is not done until **broad verification passes fully green** on its own.
 
 ### Verification provider and completion
 
-Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification defaults to local without Blaxel checks, Blaxel warnings, or a separate permission requirement; the local mutex still applies. The [runner’s provider selection](test-runner/test-runner.md#Verify orchestration) owns provider resolution.
+Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification defaults to local without Blaxel checks, Blaxel warnings, or a separate permission requirement; the local mutex still applies. The [runner’s provider selection](test-runner/test-runner.md#verify) owns provider resolution.
 
 On hosts with `~/.tvdev-use-blaxel`, Blaxel is the verification default. Agents must obtain explicit human permission before using `--against-test-guidance-broad-local-run` to lift the [one-file local limit](test-runner/test-runner.md#^local-one-file), including for local verify; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify broader local execution. Fix a reported remote preflight problem unless the broader local run is authorized. Local-only suites follow their runner-owned placement and invocation guidance. GitHub CI retains its specified execution path.
 
@@ -61,13 +61,13 @@ The independent `--against-test-guidance-major-host-contention-and-oom-killed-pr
 
 Deliberate lower-level tool use through the [native-entrypoint override](test-runner/test-runner.md#native-test-entrypoints) is also the caller's judgment, without human permission. It enables native capabilities needed for the task outside the runner's protections; the default workflow remains canonical local iteration and broader remote validation on marked hosts.
 
-The `tvdev-setup`, `tvdev-contribute`, and `tvdev-review` skills apply the repository’s development workflow for all contributors, including forks. Normal setup and contribution work must not create the Blaxel marker or require Blaxel access. [Blaxel access setup](test-runner/blaxel-testshards.md#Local setup) is needed only for contributors choosing Blaxel, whether through an existing host marker or an explicit command.
+The `tvdev-setup`, `tvdev-contribute`, and `tvdev-review` skills apply the repository’s development workflow for all contributors, including forks. Normal setup and contribution work must not create the Blaxel marker or require Blaxel access. [Blaxel access setup](test-runner/blaxel-testshards.md#setup) is needed only for contributors choosing Blaxel, whether through an existing host marker or an explicit command.
 
 The [contribution workflow](../spec-workflow.md#^shared-branch-workflow) owns full-verification timing for pull requests and merges.
 
 Report the revision actually tested, the result, recovered flakes, and relevant limits; do not describe targeted checks as a full gate or claim unperformed validation. Run verification synchronously and wait for its result. Required specialized checks still apply where the full gate excludes them.
 
-The [canonical runner](test-runner/test-runner.md) owns commands and selectors. Its [remote preflight](test-runner/preflight.md#Contributor branches and remote revisions) owns the committed, pushed revision requirement. Local targeted checks remain available for iteration.
+The [canonical runner](test-runner/test-runner.md) owns commands and selectors. It also owns the [committed, pushed revision requirement](test-runner/test-runner.md#^remote-revision). Local targeted checks remain available for iteration.
 
 ## Mocking policy
 
@@ -243,6 +243,6 @@ Treat cleanup behaviors of long-running modules (with servers, listeners, networ
 
 The test development proxy installs `error` handlers on both inbound streams and their outbound peers before piping begins. For an HTTP proxy this includes the inbound request; for an upgraded connection it includes the accepted socket. A peer reset closes both sides idempotently and is never allowed to escape as an uncaught process error. Its seam tests drive abrupt HTTP and upgraded-socket resets through the real bridge and assert that neither side remains tracked. The separate stable-front proxy has no equivalent reset seam test.
 
-Flakiness is sometimes inevitable in browser and Electron e2e tests, so the test runner provides a two-layer flaky-test retry mechanism — see [flaky-tests.md](./test-runner/flaky-tests.md) for the mechanism and annotation patterns.
+Flakiness is sometimes inevitable in browser and Electron e2e tests, so the test runner provides a two-layer flaky-test retry mechanism — see [the runner's retries](./test-runner/test-runner.md#retries) for the mechanism and annotation patterns.
 
 However, the existence of a mechanism for handling flakes does not make it acceptable to write them. When writing a test, if it turns out to be flaky, stop and apply aggressive, disciplined refactoring to the code or test or both. It is worth it: a one-time effort up front beats permanent pain over the long run.

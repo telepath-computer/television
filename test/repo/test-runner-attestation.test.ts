@@ -11,7 +11,7 @@ import {
   type TestpassPolicy,
 } from "../../scripts/test/attestation.mjs";
 
-// specs/arch/test-runner/attestation.md#test-assertions — decision logic.
+// specs/arch/test-runner/attestation.md#skipping-in-ci — decision logic.
 
 const TREE = "6ffb98fb8f5a062c6975441131ceddaaedfebd0a";
 const NOW = 1_800_000_000;
@@ -106,7 +106,7 @@ describe("policy and version domain", () => {
   });
 });
 
-// specs/arch/test-runner/attestation.md#activation-policy — the trusted read
+// specs/arch/test-runner/attestation.md#policy — the trusted read
 // crosses real Git against a temporary bare origin.
 describe("trusted policy read", async () => {
   const { execFileSync } = await import("node:child_process");
@@ -483,7 +483,7 @@ describe("verify handoff facts", async () => {
   });
 });
 
-// specs/arch/test-runner/attestation.md#prune-and-retention — the full safety
+// specs/arch/test-runner/attestation.md#revoking-and-pruning — the full safety
 // matrix against local bare remotes with the trusted policy on the fixture
 // remote's main. Every refusal is asserted with --apply set, and every
 // deletion assertion re-reads the remote namespace.
@@ -706,7 +706,7 @@ describe("testpass prune", async () => {
   });
 });
 
-// specs/arch/test-runner/attestation.md#skip-semantics-in-ci — the CI face:
+// specs/arch/test-runner/attestation.md#skipping-in-ci — the CI face:
 // `decide` (attest-check) and `write` (attest-write) as real processes against
 // a local bare remote whose main carries a trusted policy fixture. Production
 // mode here crosses the actual boundary — no self-test seam involved.

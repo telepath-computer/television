@@ -96,7 +96,7 @@ describe("test runner guardrails", () => {
     expect(triggers).toContain("pull_request:\n    branches: [main, 'integration/**']");
   });
 
-  // specs/arch/test-runner/github-ci.md#dependency-install — the
+  // specs/arch/test-runner/github-ci.md#dependency-and-browser-caches — the
   // committed workflow encodes the exact-key cache contract.
   test("setup-workspace composite encodes the exact-key cache contract", () => {
     const action = readFileSync(setupWorkspacePath, "utf8");
@@ -116,7 +116,7 @@ describe("test runner guardrails", () => {
     expect(action).toMatch(/key: \$\{\{ inputs\.cache-namespace \}\}-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-node\$\{\{ steps\.node-runtime\.outputs\.major \}\}-\$\{\{ inputs\.image-identity \}\}/);
   });
 
-  // specs/arch/test-runner/github-ci.md#test-assertions — the shard
+  // specs/arch/test-runner/github-ci.md#dependency-and-browser-caches — the shard
   // readiness action binds one exact workspace+browser archive to the actual
   // Node and hosted-runner image selected for the job.
   test("setup-shard-readiness encodes the image-bound composite-cache contract", () => {
@@ -177,7 +177,7 @@ describe("test runner guardrails", () => {
     expect(e2eJob.indexOf("setup-shard-readiness")).toBeLessThan(e2eJob.indexOf("setup-playwright"));
   });
 
-  // specs/arch/test-runner/github-ci.md#test-assertions — the committed
+  // specs/arch/test-runner/github-ci.md — the committed
   // workflow encodes the browser-environment, fan-out, tool, and join contracts.
   test("ci.yml encodes the browser-environment, fan-out, tool-prerequisite, and join contracts", () => {
     const workflow = readFileSync(ciWorkflowPath, "utf8");
@@ -254,7 +254,8 @@ describe("test runner guardrails", () => {
     expect(joinJob).toContain("node scripts/record-test-phase.mjs");
   });
 
-  // [[arch/test-runner/github-ci.md#^gha-prebuilt-consumer|prebuilt consumer]]
+  // specs/arch/test-runner/github-ci.md#^gha-prebuilt-partition — a missing or
+  // broken archive fails the shard, with no fallback build.
   test("e2e shards fail loudly when the prebuilt archive is missing or extraction fails", () => {
     const workflow = readFileSync(ciWorkflowPath, "utf8");
     const e2eJob = workflow.slice(workflow.indexOf("\n  e2e:"), workflow.indexOf("\n  e2e-required:"));
@@ -281,7 +282,7 @@ describe("test runner guardrails", () => {
     expect(testJob).not.toContain("TEST_SHARD_SKIP_PRECOMMANDS");
   });
 
-  // specs/arch/test-runner/attestation.md#test-assertions — the committed
+  // specs/arch/test-runner/attestation.md#skipping-in-ci — the committed
   // workflow encodes the attestation wiring: a no-install decision job,
   // draft cost guards, heavy jobs that skip only on the literal 'true'
   // attestation output, a strict non-draft join, and a completion-bracketed
@@ -383,9 +384,9 @@ describe("test runner guardrails", () => {
     expect(attestWrite).toContain('--captured-version "${{ needs.attest-check.outputs.version }}"');
   });
 
-  // specs/arch/test-runner/github-ci.md#ci-worker-counts — e2e:browser-app
-  // keeps its conservative CI worker pin at 2 (TV_PW_WORKERS is the
-  // measurement knob for the deferred continuous A/B).
+  // e2e:browser-app keeps its conservative CI worker pin at 2, a setting the
+  // code owns (TV_PW_WORKERS is the measurement knob for the deferred
+  // continuous A/B).
   test("e2e:browser-app pins CI Playwright workers to 2 by default", () => {
     const config = readFileSync("packages/web/playwright.config.ts", "utf8");
     expect(config).toContain('Number(process.env.TV_PW_WORKERS ?? "2")');
@@ -429,7 +430,7 @@ describe("test runner guardrails", () => {
     expect(Object.keys(baseline.files).length).toBeGreaterThan(0);
   });
 
-  // specs/arch/test-runner/attestation.md#prune-and-retention — argument
+  // specs/arch/test-runner/attestation.md#revoking-and-pruning — argument
   // errors are rejected before any remote operation.
   test("rejects malformed testpass prune arguments before any remote operation", () => {
     const badAge = runCli(["testpass", "prune", "--older-than", "soon"]);
@@ -448,12 +449,11 @@ describe("test runner guardrails", () => {
 
   test("keeps CI-planned e2e surfaces registry-owned while desktop stays in its own job", () => {
     const config = loadTestConfig();
-    const registrySpec = readFileSync("specs/arch/test-runner/test-registry.md", "utf8");
+    const ciSpec = readFileSync("specs/arch/test-runner/github-ci.md", "utf8");
     const allE2e = selectSurfaces(config, { suite: "e2e" });
     const planned = selectSurfaces(config, { suite: "e2e-ci" });
     expect(planned.map((surface) => surface.id)).toEqual(allE2e.filter((surface) => !surface.tags.includes("electron")).map((surface) => surface.id));
-    expect(registrySpec).toContain("`e2e-ci` → `kind:e2e`, excluding `tag:electron`");
-    expect(registrySpec).toContain("dedicated `e2e:desktop` job");
+    expect(ciSpec).toContain("The end-to-end shards cover the `e2e-ci` suite: every end-to-end surface except Electron, which the desktop job covers.");
     expect(planned.some((surface) => surface.id === "e2e:desktop" || surface.tags.includes("electron"))).toBe(false);
     const workflow = readFileSync(ciWorkflowPath, "utf8");
     expect(workflow).toContain('npm test -- local --surface e2e:desktop --run-dir-output');
@@ -709,8 +709,8 @@ describe("test runner guardrails", () => {
     expect(result.stdout).not.toContain("verify passed");
   });
 
-  // specs/arch/test-runner/github-ci.md#retirement-record — the retired
-  // gha dispatch provider is rejected everywhere a provider is named.
+  // specs/arch/test-runner/test-runner.md#providers — GitHub CI is not a
+  // provider, so `gha` is rejected everywhere a provider is named.
   // Acceptance-shaped: the real scripts/test/cli.mjs process, real argv,
   // asserted exit codes and stderr.
   test("rejects the retired gha provider shortcut", () => {

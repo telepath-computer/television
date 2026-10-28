@@ -921,10 +921,9 @@ describe("provider result normalization", () => {
   });
 
   test("keeps canonical stale-owner retry authority aligned with sandbox quarantine", () => {
-    const authority = readFileSync(path.join(process.cwd(), "specs/arch/test-runner/test-runner.md"), "utf8");
-    expect(authority).not.toContain("`stale-owner` is the safety exception defined by [[blaxel-testshards.md]] and is not retried.");
-    expect(authority).toContain("the contaminated sandbox runs no selected test and is excluded from later attempts");
-    expect(authority).toContain("a configured retry may run the unchanged shard assignment on a distinct sandbox only after that sandbox acquires its own lease and passes its owner audit");
+    const authority = readFileSync(path.join(process.cwd(), "specs/arch/test-runner/blaxel-testshards.md"), "utf8");
+    expect(authority).toContain("A worker that finds them runs no tests for that attempt, and the coordinator excludes it from the run's later attempts.");
+    expect(authority).toContain("An infrastructure retry may use a different worker once that worker has its own lease and a clean audit.");
   });
 
   test("excludes every named contaminated sandbox from retry candidates", () => {

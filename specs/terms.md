@@ -114,18 +114,16 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *marked host* / *unmarked host* — a host with / without the invoking user's `.tvdev-use-blaxel` marker. Owned by [the runner's host-marker contract](arch/test-runner/test-runner.md#^blaxel-host-marker).
 - *attestation* — a bare `refs/testpass/<version>/<tree-hash>` ref recording that an exact tree passed full validation under an attestation version. Owned by `arch/test-runner/attestation.md`.
 - *selector* — a flag that narrows which tests run (suite, surface, package, file, grep, runner, tag). Owned by `arch/test-runner/test-runner.md`.
-- *broad run* — an unnarrowed run of everything, gated by the broad-run guardrail. Owned by `arch/test-runner/test-runner.md`.
-- *test surface* — an independently runnable test area declared in `test.config.mjs`. Owned by `arch/test-runner/test-registry.md`.
-- *suite* — a named selection of surfaces (`unit`, `e2e`, `agent`, `all`). Owned by `arch/test-runner/test-registry.md`.
-- *execution group* — an ordered band of surfaces declared in the registry. Owned by `arch/test-runner/test-registry.md`.
-- *preflight* — checks run before a test run: local capability, and remote git-safety and auth. Owned by `arch/test-runner/preflight.md`.
+- *broad run* — a run that selects more than one test file; on marked hosts it goes to Blaxel. Owned by [the one-file limit](arch/test-runner/test-runner.md#^local-one-file).
+- *test surface* — an independently runnable test area declared in `test.config.mjs`. Owned by [the test registry](arch/test-runner/test-runner.md#the-test-registry).
+- *suite* — a named selection of surfaces (`unit`, `e2e`, `agent`, `all`). Owned by [the test registry](arch/test-runner/test-runner.md#the-test-registry).
+- *preflight* — the checks that run before a selection's tests, such as a surface's declared checks and Blaxel's credential and revision checks. Owned by `arch/test-runner/test-runner.md`.
 - *run directory* — the `.test-runs/<run-id>/` tree holding a run's normalized output. Owned by `arch/test-runner/reporting.md`.
-- *normalized surface result* — the per-surface result shape every runner and provider is normalized into. Owned by `arch/test-runner/reporting.md`.
-- *shard* — one slice of a remote provider run. Owned by `arch/test-runner/sharded-execution.md`.
-- *attempt* — one execution of a shard set, combined across retries. Owned by `arch/test-runner/sharded-execution.md`.
-- *infrastructure failure* — a shard failure in setup or around the run, distinct from a test failure. Owned by `arch/test-runner/sharded-execution.md`.
-- *test failure* — a shard failure caused by a failing test, distinct from an infrastructure failure. Owned by `arch/test-runner/sharded-execution.md`.
-- *flaky test* — a test that passes on retry; governed by the retry budget. Owned by `arch/test-runner/flaky-tests.md`.
+- *shard* — one of the parallel machines among which a Blaxel suite run or GitHub CI's end-to-end matrix divides the selected test files. Owned by `arch/test-runner/sharded-execution.md`.
+- *attempt* — one execution of a shard's assignment; an infrastructure retry makes another attempt with the same assignment. Owned by [shard outcomes](arch/test-runner/sharded-execution.md#shard-outcomes).
+- *infrastructure failure* — a shard whose execution or evidence is incomplete (`infra-failed`), distinct from a test failure. Owned by [shard outcomes](arch/test-runner/sharded-execution.md#shard-outcomes).
+- *test failure* — a completed shard that reported a failed test or a process leak (`failed`), distinct from an infrastructure failure. Owned by [shard outcomes](arch/test-runner/sharded-execution.md#shard-outcomes).
+- *recovered flake* — a test that fails and then passes on retry; it counts as passed and is reported. Owned by [the runner's retries](arch/test-runner/test-runner.md#retries).
 
 ## Product versioning
 

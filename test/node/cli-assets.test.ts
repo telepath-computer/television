@@ -18,7 +18,7 @@ import {
 // run the e2e:node production-build preCommand. GitHub shards deliberately
 // skip repeated preCommands and instead restore every packaged and
 // producer-side tree below from the same CLI build recipe through
-// [[arch/test-runner/github-ci.md#^gha-prebuilt-cli-outputs]]. No provider
+// proofs/arch/test-runner/github-ci.md#^gha-prebuilt-cli-outputs. No provider
 // skips a completeness assertion when one of those trees is absent.
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../..");

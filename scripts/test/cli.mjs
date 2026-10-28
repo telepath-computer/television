@@ -171,7 +171,7 @@ async function verify() {
   }
 }
 
-// Tree-hash attestation handoff (specs/arch/test-runner/attestation.md#who-writes-and-when).
+// Tree-hash attestation handoff (specs/arch/test-runner/attestation.md#who-may-write).
 // Eligibility-qualified publication: verify captures its facts around the
 // phases and publishes only when every clause holds; every other outcome is
 // a logged no-op, and no failure here can fail the verify.
@@ -337,7 +337,7 @@ async function pool() {
   process.exit(result.status ?? 1);
 }
 
-// Attestation prune (specs/arch/test-runner/attestation.md#prune-and-retention).
+// Attestation prune (specs/arch/test-runner/attestation.md#revoking-and-pruning).
 // Dry-run by default; every refusal and any partial deletion failure exits
 // non-zero. TV_TESTPASS_LAB=1 selects lab mode, as on every attestation path.
 async function testpass() {
@@ -381,7 +381,7 @@ async function baseline() {
 }
 
 // Only Blaxel's shard count is recommended: the baseline holds Blaxel time
-// (specs/arch/test-runner/sharded-execution.md#Shard-count scaling).
+// (specs/arch/test-runner/sharded-execution.md#duration-baseline).
 function blaxelShardRecommendation({ baseline, baselineBytes }) {
   if (Object.keys(baseline.files).length === 0) return null;
   const selected = selectSurfaces(config, { suite: "all" });

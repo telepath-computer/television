@@ -103,7 +103,7 @@ Install Playwright’s browser and system dependencies:
 npx playwright install --with-deps chromium
 ```
 
-Linux system dependencies may require privileges. The preflight spec (`specs/arch/test-runner/preflight.md`, “Execution-host capability checks”) governs process-inspection capabilities; the Electron harness (`specs/arch/desktop/e2e-harness.md`) handles headless testing. Resolve harness permission failures for required processes or sockets through its permission controls.
+Linux system dependencies may require privileges. The test runner (`specs/arch/test-runner/test-runner.md`, “Processes started by tests”) governs process-inspection capabilities; the Electron harness (`specs/arch/desktop/e2e-harness.md`) handles headless testing. Resolve harness permission failures for required processes or sockets through its permission controls.
 
 ## Isolation
 

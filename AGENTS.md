@@ -54,7 +54,7 @@ Supervisors and coordinators must not casually tell workers to withhold developm
 
 ## Testing
 
-Use the [testing policy](specs/arch/testing-policy.md) for test authoring, iteration, and verification permissions. Use the [canonical test runner](specs/arch/test-runner/test-runner.md) for commands, the [remote preflight spec](specs/arch/test-runner/preflight.md) for committed revisions, and [Blaxel setup](specs/arch/test-runner/blaxel-testshards.md) for credentials and infrastructure.
+Use the [testing policy](specs/arch/testing-policy.md) for test authoring, iteration, and verification permissions. Use the [canonical test runner](specs/arch/test-runner/test-runner.md) for commands and the [committed-revision requirement](specs/arch/test-runner/test-runner.md#^remote-revision), and [Blaxel setup](specs/arch/test-runner/blaxel-testshards.md#setup) for credentials and infrastructure.
 
 Local runs give focused feedback on the behavior being changed: `npm test -- local --file <path>`, optionally with `--grep <pattern>`. Concurrent runs can drive a shared host into swap or get processes OOM-killed, affecting every agent. Every local run and local verify holds one mutex for the same operating-system user across checkouts until its processes and cleanup finish. Contention refuses immediately; retry after the named holder finishes, use `--wait-for-local-test-mutex`, or use Blaxel when available. Do not stop another agent's run to free the mutex. The independent `--against-test-guidance-major-host-contention-and-oom-killed-processes` bypass is the caller's judgment and retains the file limit.
 
