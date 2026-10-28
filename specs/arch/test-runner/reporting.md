@@ -13,9 +13,9 @@ Each run writes a *run directory*, `.test-runs/<run-id>/`, in the checkout. Run 
 - `events.ndjson`, the timing records;
 - `logs/`, `native/` (the Vitest and Playwright reports) and, for Blaxel, `provider/`.
 
-Files are written atomically. Once a run directory exists, a run that fails still writes its summary with the failure it reached, even when no test ran. The local runner owns the directory of a local run and creates it before local preflight. For a Blaxel run, the canonical runner creates the directory once the dispatch checks have passed, and writes one combined report after downloading each shard's parts. Each GitHub CI test job writes its own. A guardrail refusal, or a Blaxel run refused by its dispatch checks, leaves no run directory.
+Files are written atomically. Once a run directory exists, a run that fails still writes its summary with the failure it reached, even when no test ran. The local runner owns the directory of a local run and creates it before local preflight. For a Blaxel run, the canonical runner creates the directory once its remote preflight and selection checks have passed, and writes one combined report after downloading each shard's parts. Each GitHub CI test job writes its own. A guardrail refusal, or a Blaxel run refused before dispatch, leaves no run directory.
 
-`--run-dir-output <file>` makes a run write the absolute path of its own run directory into the caller's file as soon as the directory exists. Orchestration such as CI reads that file instead of searching `.test-runs/`, where tests themselves create other run directories.
+`--run-dir-output <file>` makes a run write the absolute path of its own run directory into the caller's file as soon as the directory exists. A caller of `npm test`, such as a CI test job, reads that file instead of searching `.test-runs/`, where tests themselves create other run directories.
 
 ## Honest status
 
@@ -31,7 +31,7 @@ A process leak fails each surface it belongs to and marks it incomplete, because
 
 ## The compact summary
 
-`summary.json` is written so that an agent can read it without flooding its context. It lists failed tests, recovered flakes and process leaks, and gives passing tests only as counts. Each listed test has a short error excerpt alongside the fields below. Each leak keeps its PID, command, owning surfaces and listening sockets, since those identify the harness that leaked. Detailed evidence stays in the other files.
+`summary.json` is written so that an agent can read it without flooding its context. It lists failed tests, recovered flakes and process leaks, and does not list passing tests. Each listed test has the fields below and a short error excerpt when one is available. Each leak keeps its PID, command, owning surfaces and listening sockets, since those identify the harness that leaked. Detailed evidence stays in the other files.
 
 People, agents and scripts read these fields, including from earlier runs:
 
@@ -90,7 +90,7 @@ type TimingEvent = EventEnvelope & (
       commandProvider: "local" | "blaxel" | null;
       timingProvider: string; // "blaxel-playwright-x64-4vcpu" for Blaxel runs
       completedAt: string;
-      selection: { suite?: string; surfaces?: string[]; files?: string[]; grep?: string | null };
+      selection: { suite?: string | null; surfaces?: string[]; files?: string[]; grep?: string | null };
     }
   | { kind: "shard"; status: EventStatus; index: number; total: number }
   | { kind: "surface"; status: EventStatus; surfaceEventId: string; surfaceId: string }

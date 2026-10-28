@@ -2,7 +2,7 @@
 
 # Sharded execution
 
-Blaxel suite runs and GitHub CI's end-to-end matrix divide the selected test files among parallel machines, called *shards*, and combine what each shard reports. Both use the shared shard worker, `scripts/run-test-shard.mjs`. The rules here make that division complete and reproducible, so that a passing result means every selected file ran exactly once. Blaxel's own coordination is owned by [blaxel-testshards.md](./blaxel-testshards.md), and the CI workflow by [github-ci.md](./github-ci.md).
+Blaxel suite runs and GitHub CI's end-to-end matrix divide the selected test files among parallel machines, called *shards*, and combine what each shard reports. Both use the shared shard worker, `scripts/run-test-shard.mjs`. The rules here make that division complete and reproducible, so that a passing result accounts for every selected file. Blaxel's own coordination is owned by [blaxel-testshards.md](./blaxel-testshards.md), and the CI workflow by [github-ci.md](./github-ci.md).
 
 ## Plans
 
@@ -10,7 +10,7 @@ Before any shard runs, a *shard plan* assigns every selected test file to exactl
 
 - The file inventory comes from the files tracked in the tested commit and the registry's ownership rules. Planning never imports runner configs or test modules, and never looks at the coordinator's own working tree.
 - Each shard runs exactly its assigned files. After the native runner has collected tests, the shard checks that it collected exactly those files and no others; any difference fails that surface as an infrastructure problem. A shard with no files for a surface skips that surface entirely: no build step, services or runner start.
-- Plans are deterministic. The same commit, selection, shard count, timing provider and baseline give the same plan, identified by a digest of its content. This matters because each GitHub CI matrix job computes the plan for itself, and CI's required join then checks that every shard ran the same plan and collected exactly its files ([github-ci.md](./github-ci.md#required-checks)). The Blaxel coordinator computes the plan once and sends it with each shard; the worker checks it before running anything.
+- Plans are deterministic. The same commit, selection, shard count, timing provider and baseline give the same plan, identified by a digest of its content. This matters because each GitHub CI matrix job computes the plan for itself, and CI's required join then checks that every shard ran the same plan and collected exactly its files ([github-ci.md](./github-ci.md#required-checks)). The Blaxel coordinator computes the plan once and sends it with each shard; the worker checks it before running anything. The coordinator and the workers can run different revisions of the runner, so the plan, the baseline and the shard summary cross revisions ([blaxel-testshards.md](./blaxel-testshards.md#runs)).
 - Shards are balanced by expected duration from the baseline below. A file with no recorded duration is weighted as expensive, so that new files spread across shards instead of collecting on one that looks cheap. Predictions add up per-file durations and leave out per-surface startup and runner parallelism, so they guide the balance but do not predict wall time.
 - The plan is fixed for the whole run. Shards do not pull work from a queue, and an infrastructure retry reruns the same assignment.
 
@@ -20,7 +20,7 @@ Before any shard runs, a *shard plan* assigns every selected test file to exactl
 
 The baseline changes only when a person runs `npm test -- baseline update` in a checkout that holds recent Blaxel run directories, reviews the diff and commits it. Test runs and CI never edit it. The update recomputes every entry from the runs it reads and carries nothing forward, so it reads only complete Blaxel runs of the full suite: a partial run would erase the measurements of every file it did not run. With no such run available, the command fails without touching the file. `--dry-run` shows the change without writing it.
 
-The update also prints a recommended Blaxel shard count: the smallest count whose busiest shard has at most two minutes of predicted test work. A person changes the configured shard counts after reviewing the recommendation; no run changes its own shard count or pool demand.
+The update also prints a recommended Blaxel shard count: the smallest count, up to the pool's size, whose busiest shard has at most two minutes of predicted test work, or the pool's size when no count meets that target. A person changes the configured shard counts after reviewing the recommendation; no run changes its own shard count or pool demand.
 
 ## Shard outcomes
 

@@ -25,11 +25,11 @@ Exactly two sources write attestations:
 
 Either source writes only when all of these hold:
 
-- Every phase checked one tree. The checkout was clean when the run started and is still clean, at the same `HEAD`, when it ends. A verify whose tests target a different commit from its checkout cannot write, and neither can a run with `--ignore-uncommitted`.
+- Every phase checked one tree. The checkout was clean when the run started and is still clean, with the same tree, when it ends. A verify whose tests target a commit with a different tree from its checkout cannot write, and neither can a run with `--ignore-uncommitted`.
 - Every surface of the gate passed, and none was skipped, for example by `SKIP_ELECTRON_E2E=1`.
 - The standard retry budget applied.
 - The run did not itself skip heavy jobs because of an attestation.
-- The policy permitted writing both when the run started and when it finished, under the same version.
+- The policy permitted writing, under the same version, both when the run first read it, before any of its tests, and when the run finished.
 
 A local run never writes, whatever it ran, because a development host is not a controlled environment. A run that misses a condition simply does not write; that is not an error. A failed write is logged and leaves the run's result unchanged.
 

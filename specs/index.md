@@ -90,7 +90,7 @@ Generated from the first-line description of every spec by `scripts/specs-index.
     - `sink.md` (63 lines) — *The telemetry sink: the PostHog transport, its bounded in-memory buffer, fire-and-forget delivery that never blocks or crashes the server, and the platform operations (region, key, agent access).*
   - **test-runner/**
     - `attestation.md` (98 lines) — *Tree attestations: recording that an exact tree passed the full gate, so that GitHub CI can skip its heavy test jobs for that tree, without ever skipping on doubt.*
-    - `blaxel-testshards.md` (123 lines) — *Blaxel: the pool of persistent remote workers that runs broad validation, how runs from many branches and repositories share it safely, and how to set it up.*
+    - `blaxel-testshards.md` (132 lines) — *Blaxel: the pool of persistent remote workers that runs broad validation, how runs from many branches and repositories share it safely, and how to set it up.*
     - `github-ci.md` (55 lines) — *The GitHub Actions workflow that validates pull requests and shared branches: when it runs, the checks branch protection requires, how its jobs share setup, and how failures stay visible.*
     - `reporting.md` (129 lines) — *What every test run leaves behind: the run directory, a compact summary for people and agents, honest status, timing records, and resource diagnostics from Blaxel workers.*
     - `sharded-execution.md` (37 lines) — *How suite runs divide test files among parallel machines, the committed durations that balance them, and how shard outcomes combine into one honest result.*

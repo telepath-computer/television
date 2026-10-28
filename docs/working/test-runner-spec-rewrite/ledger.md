@@ -38,7 +38,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R6. Commands table.** These commands are the contract with people, agents, CI and the docs that name them. Each entry gives only its purpose and its owner.
 
-**R7. Selectors, including how `--file` matches and that `--grep` alone does not narrow.** These are command-line contract. That `--file` is a substring filter unless exact is non-obvious, and people rely on it.
+**R7. Selectors, including how `--file` matches, that its matches must belong to one selected surface, that `--grep` alone does not narrow, and which commands default to `all`.** These are command-line contract. That `--file` is a substring filter unless exact is non-obvious, and people rely on it. Without the default sentence a reader would assume that `list` and `preflight` also start from `all` (per-file review round 1).
 
 **R8. The runner resolves files itself, because Vitest and Playwright filters are not exact.** This is knowledge that would otherwise be lost. A derivation that passes the user's string through would silently run sibling files, breaking both the one-file limit and plan assignment.
 
@@ -48,7 +48,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R11. The registry is the single declaration of surfaces; classification is never inferred from names.** This architectural decision makes everything else selectable. A derivation could plausibly infer kinds from paths.
 
-**R12. Every test file under `packages/` and `test/` has exactly one owner, and undeclared configs are errors.** This invariant guarantees that no test silently drops out of every run.
+**R12. Every test file under `packages/` and `test/` has exactly one owner, and an undeclared `vitest.config.ts`, `vitest.e2e.config.ts` or `playwright.config.ts` is an error.** This invariant guarantees that no test silently drops out of every run. The names matter because fixture configs with other names are deliberately unregistered (per-file review round 1).
 
 **R13. `all` is unit plus end-to-end and means "the full suite" for verify, CI and attestation; agent, PostHog, daemon and experiment surfaces are outside it.** This defines the gate other specs depend on, and it records why each excluded class is excluded.
 
@@ -92,7 +92,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R32. Ordinary runs impose no automatic failure cap.** This answers an objection an implementer can be expected to raise (a `maxFailures` cap), and it keeps evidence complete. It is scoped to ordinary runs, so it does not forbid the shard worker's deliberate opt-in early stop (review round 1, finding 8).
 
-**R33. Verify's phases for each provider (Blaxel tests the selected committed revision, `HEAD` by default), its success line, publication, and `--plan`.** The contribution workflow, people and agents rely on the gate's composition and output. Publication rules live in `attestation.md`.
+**R33. Verify's phases for each provider (Blaxel tests the selected committed revision, `HEAD` by default), its success line, publication, and `--plan`, which runs no phases but still selects a provider.** The contribution workflow, people and agents rely on the gate's composition and output. That `--plan` can contact Blaxel on a marked host is what a caller would not expect (per-file review round 1). Publication rules live in `attestation.md`.
 
 **R34. Verify's provider choice: unmarked means local; marked means Blaxel if its checks pass, and refusal otherwise, never a silent fallback.** This decision's behavior people depend on, and silent fallback is the plausible wrong derivation.
 
@@ -102,7 +102,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **R37. Token inheritance, and that helpers must preserve the token.** Test authors would not derive the helper obligation. Breaking it makes processes undiscoverable.
 
-**R38. Teardown, leak detection, start-time revalidation, and that leaks fail the surface.** This strict decision has visible consequences. Warning instead of failing is a plausible derivation. Anchored `^test-process-leak`.
+**R38. Teardown in its implemented order, leak detection, start-time revalidation, and that leaks fail the surface.** This strict decision has visible consequences. Warning instead of failing is a plausible derivation. Anchored `^test-process-leak`.
 
 **R39. Discovery only by token through `/proc`/`ss` or `ps`/`lsof`, never by port or name; local runs and planned workers check the backend, and other paths such as targeted Blaxel runs do not.** This prohibition is stated on purpose: `pkill`-style cleanup is the obvious derivation and would kill concurrent runs on shared hosts. The preflight clause prevents silently running without cleanup where it applies. Its scope is stated so that it does not promise a check targeted runs lack (review round 1, finding 7).
 
@@ -138,7 +138,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **B7. Workers install nvm and the Node version from `.nvmrc`.** This is how the node-versions decision reaches workers. That spec links here for it.
 
-**B8. Repository selection from `origin` or `--repo-url`, normalized without credentials; non-GitHub URLs fail.** People rely on public and private checkouts working without options. Stripping credentials is a security decision.
+**B8. Repository selection from `origin`, normalized without credentials; non-GitHub URLs fail.** People rely on public and private checkouts working without options. Stripping credentials is a security decision. The coordinator script's `--repo-url` is left to the code, because `npm test -- blaxel` does not pass it (per-file review round 1).
 
 **B9. One pool, several repositories; one checkout switched per run; the shared trust boundary.** This is an accepted limitation with security weight, stated so that it reads as a decision.
 
@@ -156,17 +156,17 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **B16. Interrupt handling and exit `130`.** This is command contract, and the guarantee that interruption keeps retrieved evidence.
 
-**B17. The pinned `WorkerLease` fields that decide ownership.** Other revisions read these fields to decide ownership. It is pinned only as far as they rely on it.
+**B17. The pinned `WorkerLeaseRecord`: the `WorkerLease` fields that decide ownership, and the `DeletionReservation` that every acquisition refuses.** Other revisions read these fields to decide ownership. A revision that did not know the reservation could treat it as an incomplete record, reclaim it after a clean audit and start work on a worker being deleted (per-file review round 1). It is pinned only as far as they rely on it.
 
 **B18. The abandoned-run recovery sequence, the receipt, and holding when unsure.** This decision is the automatic recovery. Its ordering (stop, confirm, clean, discard, take) is what makes it safe beside live processes.
 
 **B19. Older runners and `expiresAt: 0`, marked transitional.** This cross-version compatibility with branches still on an older lock exists only while such branches exist, and the policy says to mark transitional code.
 
-**B20. Deletion follows the lease rules and removes dispatch eligibility first; never-published workers need no lease.** This decision about safety alongside concurrent revisions of the runner would not be derived.
+**B20. Deletion follows the lease rules, reserves the worker with a `DeletionReservation` and removes dispatch eligibility first; never-published workers need no lease.** This decision about safety alongside concurrent revisions of the runner would not be derived.
 
 **B21. Memory-backed `/tmp`; private attempt directories; `TMPDIR`; short paths; persistent caches untouched.** These decisions rest on knowledge (memory cost, socket path limits). Anchored `^blaxel-scratch`; the testing policy cites the backstop.
 
-**B22. Removing only the named leftovers and earlier attempt directories, with no link following and everything else kept.** This decision is a deliberate allowlist. The prefixes are what helpers on older branches leave behind, so they are a cross-version fact.
+**B22. Removing only the named leftovers and earlier attempt directories, rejecting unexpected mount boundaries, with no link following and everything else kept.** This decision is a deliberate allowlist. The prefixes are what helpers on older branches leave behind, so they are a cross-version fact.
 
 **B23. Teardown removes scratch while holding the lease; deleting files does not free Chromium's memory; uncertain teardown keeps scratch.** This rests on knowledge (unlinked shared memory) and is a fail-safe decision.
 
@@ -178,6 +178,8 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **B27. Stale owners on a worker: no tests, excluded from the run, retry elsewhere.** This decision about safety and retry behavior would not be derived from the generic stale rule.
 
+**B31. What a Blaxel run's coordinator and workers exchange crosses revisions when they differ, as with `--commit`: the registry and baseline read from the tested commit, the plan and worker command sent, the shard summary read back. A change keeps working with revisions in use, or the mismatch fails as infrastructure and is never read as results.** The code presents this exchange as internal: the coordinator plans and validates with the checkout's runner, and workers run the tested commit's shard worker. The shapes are left to the code. Both ends already validate what they receive, so a mismatch fails closed, and the exchange includes the worker command line and environment as well as three data shapes; pinning those three would suggest the rest may change freely (per-file review round 1).
+
 **B28. Setup: the CLI login, the 1Password item, the marker, the provisioning commands, and the `default` pool trap.** Operational procedure, which the policy places in arch specs. The setup skill links here.
 
 **B29. Testing guidance: which live run each kind of change needs; dedicated pools for experiments; observing temporary files live.** These are facts about the environment a proof writer could not derive: what a targeted run does and does not exercise, and the risk to shared workers.
@@ -186,7 +188,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 ## sharded-execution.md
 
-**X1. The purpose: complete, reproducible division, so that passing means every file ran exactly once.** This design intent is the one guarantee everything else in the file serves.
+**X1. The purpose: complete, reproducible division, so that a passing result accounts for every selected file.** This design intent is the one guarantee everything else in the file serves. It is not "ran exactly once": an infrastructure retry can run a file again (per-file review round 1).
 
 **X2. Every selected file is assigned to exactly one shard, and files are never split.** This decision underlies the guarantee.
 
@@ -194,17 +196,17 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **X4. Each shard runs exactly its files and checks what was collected; a shard with no files for a surface skips that surface.** The collection check is the runtime guarantee. Skipping empty surfaces is a decision with real cost impact.
 
-**X5. Plans are deterministic and identified by digest; why (CI jobs plan independently); how Blaxel distributes them.** This is the decision that makes the CI join meaningful.
+**X5. Plans are deterministic and identified by digest; why (CI jobs plan independently); how Blaxel distributes them, and that the plan crosses revisions (B31).** This is the decision that makes the CI join meaningful.
 
 **X6. Balancing by duration; unknown files weighted as expensive; predictions are advisory.** "Unknown means expensive" is a decision a derivation might get wrong. The advisory note is an accepted limitation. The algorithm and constants are left to the code.
 
 **X7. The plan is fixed; no queue; retries reuse the assignment.** This decision is about reproducibility, and a dynamic queue is a plausible alternative.
 
-**X8. The baseline holds Blaxel medians of planning duration from complete, finally passing observations, and all plans use them, CI included.** What is measured is a decision: an ordinary elapsed median would let failures and flake overhead into the weights (review round 1, finding 3). Using Blaxel time for CI would otherwise look like an error to a reader of the CI plan. The baseline file's format is not pinned because it is committed with the code that reads it.
+**X8. The baseline holds Blaxel medians of planning duration from complete, finally passing observations, and all plans use them, CI included.** What is measured is a decision: an ordinary elapsed median would let failures and flake overhead into the weights (review round 1, finding 3). Using Blaxel time for CI would otherwise look like an error to a reader of the CI plan. The baseline file's format is left to the code. It does cross revisions in a `--commit` run, under B31's rule (per-file review round 1).
 
 **X9. The baseline is manual-only, from complete Blaxel full-suite runs, and fails without such runs, with the reason.** This decision guards against erasing measurements, which is non-obvious.
 
-**X10. The shard-count recommendation, and that people change the counts.** This decision is against automatic scaling, with the target that makes the recommendation meaningful.
+**X10. The shard-count recommendation, bounded by the pool's size, and that people change the counts.** This decision is against automatic scaling, with the target that makes the recommendation meaningful. The bound keeps the sentence from promising a count that meets the target when none does (per-file review round 1).
 
 **X11. The three shard outcomes, retry rules, supersession, and how contradictions are treated.** This is the core honesty vocabulary, and the line between retrying and not retrying is a decision.
 
@@ -216,9 +218,9 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **P1. One result shape everywhere, and the uses: the summary, debugging, planning.** This is design intent.
 
-**P2. The run directory's location and files; the summary path printed; atomic writes; a summary on failure once the directory exists; when local and Blaxel runs create it; refusals leave none.** People, agents and CI read these locations. The early-failure rule is a decision for diagnosability, scoped to what the code delivers (review round 1, finding 5).
+**P2. The run directory's location and files; the summary path printed; atomic writes; a summary on failure once the directory exists; when local and Blaxel runs create it; refusals leave none.** People, agents and CI read these locations. The early-failure rule is a decision for diagnosability (review round 1, finding 5). A Blaxel run creates its directory once its remote preflight and selection checks have passed. Two selection checks in `runBlaxel` still run after the directory exists, which is a code gap to fix in the repair phase, not a reason to promise less (per-file review round 1).
 
-**P3. `--run-dir-output`, written when the directory exists, and why `.test-runs/` is not searched.** This is a contract with orchestration, and the trap of enumerating directories is non-obvious.
+**P3. `--run-dir-output`, written when the directory exists, read by callers of `npm test`, and why `.test-runs/` is not searched.** This is a contract with orchestration, and the trap of enumerating directories is non-obvious.
 
 **P4. The three status fields, in the summary's `run` block, and their relations.** This contract with every reader of results is the honesty mechanism the other specs refer to.
 
@@ -228,7 +230,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **P7. Recovered flakes, and the Vitest attempt recorder as the only evidence.** This is knowledge that would otherwise be lost: Vitest's JSON lacks attempts, and reading failure messages is the trap.
 
-**P8. The compact summary for agents: what is listed, what is not, and what each entry keeps.** This design intent is about agents' context budget. The leak fields are what diagnosis needs.
+**P8. The compact summary for agents: what is listed, what is not, and what each entry keeps.** This design intent is about agents' context budget. The leak fields are what diagnosis needs. Passing tests are neither listed nor counted, and a recovered Playwright flake can have no error excerpt (per-file review round 1).
 
 **P8a. The pinned `RunSummary` fields.** People, agents and `scripts/test/failing-set.mjs` read summaries, including from earlier runs, so the status block and the identifying fields of listed tests and leaks are command output to pin. The rest of the summary is left to the writer (review round 1, finding 1).
 
@@ -258,7 +260,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **G6. What the unit and desktop jobs run; shards use `e2e-ci` and the worker directly, so they pass the retry budget; 16 shards and why; the total changes together.** These are decisions with reasons. The retry clause prevents CI from silently dropping retries.
 
-**G7. Build once, ship every untracked file, no output list, a tar archive for modes, no fallback build.** This architectural decision is one the team should discuss if it changed. The mode-stripping fact is knowledge. Anchored `^gha-prebuilt-partition`; `licensing.md` cites it.
+**G7. Build once, recipes covering each build step of the surfaces in `all`, ship every untracked file, no output list, a tar archive for modes, no fallback build.** This architectural decision is one the team should discuss if it changed. The mode-stripping fact is knowledge. Anchored `^gha-prebuilt-partition`; `licensing.md` cites it.
 
 **G8. The build's rules and the transfer's limits: tracked files unchanged; no deletions, empty directories or `node_modules` writes; desktop independent.** These are the obligations the design places on builds, which a builder could not derive.
 
@@ -266,7 +268,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **G10. The combined shard archive keyed on the concrete image; the build as sole writer after launch proof; fallback on image skew; per-shard launches; raising the namespace.** This is knowledge about GitHub's gradual image rollout and why one machine's launch proves nothing for another, plus an obligation (raising the namespace) nothing else would reveal.
 
-**G11. Every test job uploads its run directory, and finds it via `--run-dir-output`.** The upload is a decision for diagnosability, and the identity rule is non-obvious.
+**G11. Every test job uploads its run directory, and finds it from the identity its runner reports: `--run-dir-output` for jobs that run `npm test`, the shard worker's summary for shard jobs.** The upload is a decision for diagnosability, and the identity rule is non-obvious.
 
 **G12. One Playwright worker for real-stack browser tests, with the observed failure.** This regression case says why it exists.
 
@@ -286,7 +288,7 @@ Once the rest was cut, the registry, preflight and flaky-test content was each a
 
 **A6. The two writers and their identities; forks cannot write.** This decision defines trust, and the identity checks are what keep other contexts out.
 
-**A7. The eligibility conditions.** Each condition is a decision that could plausibly be derived differently: dirty trees, mismatched commits, skipped surfaces, or a version changing mid-run.
+**A7. The eligibility conditions.** Each condition is a decision that could plausibly be derived differently: dirty trees, mismatched trees, skipped surfaces, or a version changing mid-run. The writer compares trees, not commits, and the first policy read precedes the run's tests rather than every phase (per-file review round 1).
 
 **A8. Local runs never write; a miss is not an error; a write failure does not change the result.** These decisions keep attestation optional.
 
@@ -347,3 +349,47 @@ The review is `second-opinion-r2.md` in this folder, on `28039415`.
 
 The reviewer agreed that `test/timing-baseline.json` can stay unpinned and confirmed that the Firefox statements are accurate (TV-1011).
 
+
+## Responses to per-file reviews
+
+### Round 1
+
+The reviews are in `file-reviews/`, one per spec, all on `ee599ee8`. Each finding was checked against the code and the neighbouring specs before changing anything.
+
+#### test-runner.md
+
+1. **`--file` must resolve to one surface.** Agreed, and changed. `resolveFileSelection` (`scripts/test/test-guidance.mjs`) refuses matches that span surfaces even when each file has one owner. The `--file` bullet now says that matched files must belong to one selected surface, and that another selector such as `--surface` narrows a match that spans surfaces. R7; removal account test-runner 19.
+2. **The default selection.** Agreed, and changed. Only `npm test -- local` and `npm test -- blaxel` supply `all`; `list` and `preflight` pass their options straight to `selectSurfaces`, which starts from every registered surface. The default sentence now says so, and the preflight row of the commands table takes selectors, with `--suite all` as its example. R7.
+3. **Which configs are registry errors.** Agreed, and changed. Discovery recognizes only `vitest.config.ts`, `vitest.e2e.config.ts` and `playwright.config.ts`, and fixture configs with other names are deliberately unregistered. The sentence now names those three. Discovery is not broadened. R12; removal account test-registry 22.
+4. **The grace period before the leak scan.** Agreed, and changed. After a normal exit there are no running commands left to stop, and `checkForLeaks` scans at once; the wait the code has is between `SIGTERM` and `SIGKILL`. The bullet now says that the owner stops the services and any commands still running, then scans. A wait before the scan is not intended: a process that exits before any signal is sent is not a leak (`isReportableProcessLeakCleanup`), which already covers a helper exiting just after its runner. R38; removal account test-runner 84 and 87.
+5. **`verify --plan` still selects a provider.** Agreed, and changed. `resolveVerifyProvider` runs the Blaxel preflight on a marked host before `--plan` is checked. The sentence now says that `--plan` runs no phases and that choosing the provider on a marked host still runs its Blaxel checks. R33; removal account test-runner 48.
+6. **The reason for dropping package-level zero retries.** Agreed. Grouped `unit:workspaces` runs pass no retry count and rely on the package configs' `retry: 0`. Removal account flaky-tests 4 now gives the runner-budget bullet's requirement, no runner retries for unit surfaces, as the reason, and leaves how it is met to the code. No spec change.
+
+#### blaxel-testshards.md
+
+1. **The deletion reservation is part of the shared lease contract.** Agreed, and changed. Deletion writes `{ lockId, deleting: true }` (`scripts/test/blaxel-worker-lease.mjs`), and acquisition refuses it before any audit. The pinned type is now `WorkerLeaseRecord`, either a `WorkerLease` or a `DeletionReservation`, and Deleting workers says that every acquisition refuses a reserved worker whatever its audit finds. B17, B20; removal account blaxel-testshards 13 and 24.
+2. **`--repo-url` is not an option of the canonical command.** Agreed on the fact, and changed differently. `runBlaxel` (`scripts/test/cli.mjs`) does not pass `--repo-url` to the coordinator, and nothing in the repository uses it. The spec now says that workers use the checkout's `origin` and leaves the coordinator-script option to the code, rather than naming an option that `npm test -- blaxel` cannot reach. B8; removal account blaxel-testshards 4 and 39.
+3. **Mount boundaries.** Agreed, and changed. A recursive removal can cross a mount point without following a link, and the cleaner checks mount points and devices separately. The sentence now reads "Removal rejects unexpected mount boundaries and does not follow links out of these locations." B22; removal account blaxel-testshards 28.
+
+#### sharded-execution.md
+
+1. **Plans, the baseline and shard summaries cross revisions.** Agreed in part. The boundary is real, and the ledger and removal account were wrong to treat these as read only within one revision. With `--commit`, the checkout's runner reads the tested commit's registry and baseline, plans, and validates the summary that the tested commit's shard worker returns. Changed: blaxel-testshards.md#runs now says that what the coordinator and workers exchange crosses revisions when they differ. A change should keep working with revisions still in use, and where it cannot, the mismatch must fail as infrastructure and never be read as test results. sharded-execution.md#plans points there. Not changed: the shapes stay in the code. The exchange is wider than the three types named (the worker's command line and environment cross too), both ends already validate what they receive, so a mismatch fails closed, and pinning three types would suggest the rest may change freely. B31, X5, X8; removal account sharded-execution 4, 18 and 56.
+2. **The recommendation can exceed two minutes.** Agreed, and changed. `recommendShardCount` searches up to the pool's capacity and returns the capacity when no count meets the target. The sentence now says both. X10; removal account sharded-execution 45.
+3. **Unique assignment is not exactly-once execution.** Agreed, and changed. An infrastructure retry can run a file again. The introduction now says that a passing result accounts for every selected file. X1.
+4. **Retention of generated inputs.** Agreed. Removal account sharded-execution 39 is now Dropped, left to the implementation, and 40 says that only the mismatch behavior is kept. This moves one passage from Derivable to Dropped in the counts. No spec change.
+
+#### reporting.md
+
+1. **Some Blaxel refusals leave a directory without a summary.** Agreed on the fact; I kept the promise. In `runBlaxel` the directory is created after remote preflight, and the one-surface check for targeted selections and the suite check then exit through `fail()` with no summary. The spec now says that a Blaxel run creates its directory once its remote preflight and selection checks have passed, and keeps the promises that a refusal before dispatch leaves no directory and that an existing directory always gets a summary. Qualifying the promise would make every reader of `--run-dir-output` handle a directory without a summary, only to describe two checks that run in the wrong order. Moving them before the directory is created is a small code change for the repair phase. Until then the tree has this gap, and the PR description says so. P2; removal account reporting 5.
+2. **The summary has no passing-test count, and not every listed test has an error.** Agreed, and changed. The summary counts surfaces, failed tests and recovered flakes, and a recovered Playwright flake takes its error from the passing attempt. The text now says that passing tests are not listed and that each listed test has a short error excerpt when one is available. P8; removal account reporting 22.
+3. **`selection.suite` can be `null`.** Agreed, and changed. `selectionSummary` writes `suite: null` for selections without `--suite` or `--all`, and the run event copies it. The pinned type is now `suite?: string | null`. P9a.
+
+#### github-ci.md
+
+1. **Recipe coverage is for the `all` suite.** Agreed, and changed. `checkManifestCoversRegistry` checks only surfaces in `all`, and `daemon-acceptance:cli` declares a build step that no recipe covers. The sentence now covers the build steps of surfaces in `all`. G7; removal account github-ci 25.
+2. **Shard jobs do not use `--run-dir-output`.** Agreed, and changed. Shard jobs read `runDir` from the shard worker's summary. The run-artifacts paragraph now says that a job takes its run directory from the identity its runner reports: `--run-dir-output` for jobs that run `npm test`, the shard worker's summary for shard jobs. reporting.md#run-directory now names callers of `npm test` instead of "orchestration such as CI". G11, P3; removal account github-ci 19.
+
+#### attestation.md
+
+1. **CI's first policy read does not precede every phase.** Agreed on the mismatch; I changed the spec rather than CI. The static-check matrix has no dependency on `attest-check`, so the old "before the first gate phase" never held in CI, and the removal account was wrong to call it kept. The condition now says that the first read comes before any of the run's tests. That holds on both paths: CI's test, build and end-to-end jobs all need `attest-check`, and a Blaxel verify reads the policy before its first phase. The remaining exposure is a version change in the seconds between the static checks starting and the decision job's read, on a run that also spans a version change made without the operations procedure's steps of disabling writes and letting in-flight runs finish. Lint and type-check also depend least on the outside conditions a version records. Reordering CI mechanics would need an isolated live CI run under github-ci.md#testing-guidance. The stronger rule remains available as a dependency of the static-check job on `attest-check`. A7; removal account attestation 10 and 24.
+2. **The writer checks trees, not commits.** Agreed, and changed. `beginVerifyAttestationFacts` and the eligibility check compare `HEAD^{tree}` at start and end and the tested commit's tree, and `--commit` is not itself disqualifying. The condition now says "still clean, with the same tree", and that a verify whose tests target a commit with a different tree cannot write. A7; removal account attestation 19 and 20.

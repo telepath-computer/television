@@ -18,7 +18,7 @@ Provisioning is fresh-only: `ensure` creates and provisions every worker of an a
 
 ## Repository and credentials
 
-Workers fetch the commit under test from GitHub. By default they use the repository the invoking checkout calls `origin`; `--repo-url` names another. The URL is normalized to `https://github.com/<owner>/<repository>.git` without embedded credentials, and a URL that is not a GitHub repository fails before dispatch. A checkout of the public repository therefore tests against it, and a checkout of a private development repository tests against that, with no option.
+Workers fetch the commit under test from GitHub, from the repository the invoking checkout calls `origin`. The URL is normalized to `https://github.com/<owner>/<repository>.git` without embedded credentials, and a URL that is not a GitHub repository fails before dispatch. A checkout of the public repository therefore tests against it, and a checkout of a private development repository tests against that, with no option.
 
 One pool serves several repositories. Each worker keeps a single checkout at `/workspace/television`, points its `origin` at the run's repository and fetches what it lacks; dependencies are reinstalled only when the dependency declarations differ. Repositories that share a pool share a trust boundary: a run can read the Git objects and ignored files that earlier runs of other repositories left on the worker.
 
@@ -38,6 +38,8 @@ Other revisions read the lease, so the fields that decide ownership are shared a
 
 ```ts
 // /tmp/tv-testshard.lock/owner.json; other fields belong to the writer
+type WorkerLeaseRecord = WorkerLease | DeletionReservation;
+
 interface WorkerLease {
   lockId: string;       // also the value of TV_TEST_SHARD_OWNER
   runId: string;
@@ -45,6 +47,11 @@ interface WorkerLease {
   lastRenewal: number;  // worker clock, milliseconds since the epoch
   recoverAfter: number; // worker clock, milliseconds since the epoch
   expiresAt: 0;         // see Older runners
+}
+
+interface DeletionReservation {
+  lockId: string;
+  deleting: true;       // see Deleting workers
 }
 ```
 
@@ -67,7 +74,7 @@ It writes a recovery receipt describing the previous run, its deadline, the proc
 
 ### Deleting workers
 
-`npm test -- pool blaxel delete` follows the lease rules. It refuses workers with unexpired leases and reserves an idle worker only after a clean audit. It may destroy a worker whose lease has expired even if process cleanup failed, because deleting the sandbox is the cleanup. Before deleting, it removes the worker's eligibility for test runs, so a slow or failed deletion cannot admit a new run. A worker that cannot answer the ownership check is held for operator repair. A new worker that was never made eligible for test runs may be deleted without a lease.
+`npm test -- pool blaxel delete` follows the lease rules. It refuses workers with unexpired leases and reserves an idle worker only after a clean audit, by replacing the lease with a `DeletionReservation`. Every acquisition refuses a reserved worker, whatever its audit finds. It may destroy a worker whose lease has expired even if process cleanup failed, because deleting the sandbox is the cleanup. Before deleting, it removes the worker's eligibility for test runs, so a slow or failed deletion cannot admit a new run. A worker that cannot answer the ownership check is held for operator repair. A new worker that was never made eligible for test runs may be deleted without a lease.
 
 ## Temporary files
 
@@ -78,7 +85,7 @@ Once it holds the lease and no earlier execution remains, a run removes only:
 - directories directly under `/tmp` named `television-source-cli-e2e-*` or `television-web-bundle-*`: generated runtimes that test helpers on some branches leave behind;
 - earlier attempts' directories under `/tmp/tv-testshards/`.
 
-Removal does not follow links out of these locations. The current attempt, the lease and guard, unrelated temporary files, the checkout and persistent caches are kept. The run reports what it removed and the free space before and after.
+Removal rejects unexpected mount boundaries and does not follow links out of these locations. The current attempt, the lease and guard, unrelated temporary files, the checkout and persistent caches are kept. The run reports what it removed and the free space before and after.
 
 After the attempt, whether it succeeded, failed, timed out or was interrupted, the worker stops the attempt's processes, moves its evidence out of scratch and removes the attempt's directory, still holding the lease until download. Deleting files does not free Chromium's open, unlinked shared memory; only stopping the processes does. If teardown is uncertain, scratch is kept, and if cleanup fails the worker takes no new tests until a later cleanup succeeds. Workers keep only the current attempt's results and diagnostics under `/workspace/television/.testshards/results`; no archive accumulates on them.
 
@@ -87,6 +94,8 @@ After the attempt, whether it succeeded, failed, timed out or was interrupted, t
 A selection made with `--surface`, `--file` or `--grep` must resolve to one surface, and runs as a single targeted shard. The suites `all`, `unit` and `e2e`, and selections by package, runner or tag, are divided across shards ([sharded-execution.md](./sharded-execution.md)). Other suites are refused.
 
 Either way, a Blaxel run uses the same registry declarations as a local run, including build steps, services, wrapper commands and the runner's retry budget. That way a remote result stands for the local one. Each worker activates the Node version in the checked-out `.nvmrc` before installing or running anything.
+
+The coordinator is the invoking checkout's revision of the runner, and each worker runs the tested commit's. When they differ, as they can with `--commit`, everything that passes between them crosses revisions: the registry and duration baseline the coordinator reads from the tested commit, the plan and worker command it sends, and the shard summary it reads back. A change to any of these should keep working with revisions still in use. Where it cannot, the mismatch must fail the shard or the run as an infrastructure problem and never be read as test results.
 
 Before tests, each worker looks for stale owner tokens ([test-runner.md](./test-runner.md#processes-started-by-tests)). A worker that finds them runs no tests for that attempt, and the coordinator excludes it from the run's later attempts. An infrastructure retry may use a different worker once that worker has its own lease and a clean audit. Without a clean worker to use, the shard stays infrastructure-failed.
 

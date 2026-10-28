@@ -1,6 +1,6 @@
 # Removal account: test-runner specs
 
-This account compares the nine old specs in `specs/arch/test-runner/` at `d2837551` with the six new ones at `92574976`, and says what became of each passage of the old specs, in order. It is step 5 of the spec-rewrite method. The ledger (`ledger.md`) justifies what the new specs say; this account justifies what they no longer say.
+This account compares the nine old specs in `specs/arch/test-runner/` at `d2837551` with the six new ones at `92574976`, and says what became of each passage of the old specs, in order. Entries marked "per-file review round 1" were corrected after the per-file reviews of `ee599ee8`, and describe the specs as revised in that round. It is step 5 of the spec-rewrite method. The ledger (`ledger.md`) justifies what the new specs say; this account justifies what they no longer say.
 
 A *passage* here is a paragraph, a list or table that makes one point, a code block, or a list item that makes a separate point of its own. Each passage has one primary outcome:
 
@@ -23,7 +23,7 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 7. **What the tree does not pin, and the two bounds.** **Reworded**: second bullet of #the-claim.
 8. **Attestation version introduction.** **Reworded**: #the-claim (the version in the ref) and #policy (only current-version refs are honored).
 9. **Version domain and encoding; malformed disables both.** **Reworded**: the comment on `testpassVersion` in #policy, and "anything unexpected means disabled".
-10. **Version bound to the validation interval (read before the first phase and at completion).** **Reworded**: the last eligibility condition in #who-may-write, and the closing sentence of #operations.
+10. **Version bound to the validation interval (read before the first phase and at completion).** **Reworded** in part: the last eligibility condition in #who-may-write, and the closing sentence of #operations. "Before the first gate phase" is narrowed to "before any of its tests". In CI the cheap checks start alongside `attest-check`, which makes the first read, so the old wording never held there; the operations procedure, which disables writing and lets in-flight runs finish before a version change, is what keeps a run validated under old conditions from writing (per-file review round 1).
 11. **Safe version-change procedure.** **Reworded**: attestation.md#operations, five steps. The sentence that the disabled flag is re-checked by a run's writer is derivable from the eligibility condition that reads the policy at the end. "Policy history on main is the audit trail" is dropped as derivable from Git.
 12. **Ref shape code block.** **Reworded**: the first sentence of #the-claim names the ref and its target.
 13. **Bare ref, no metadata.** **Reworded**: third bullet of #the-claim.
@@ -32,12 +32,12 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 16. **Lab refs.** **Reworded**: last bullet of #the-claim.
 17. **"Who writes, and when" introduction (every clause; a miss is not an error).** **Reworded**: #who-may-write, "A run that misses a condition simply does not write". Cited by `.github/workflows/ci.yml` and `scripts/test/cli.mjs` (`#who-writes-and-when`).
 18. **Clause 1, eligible source.** **Reworded**: the two source bullets and "A local run never writes" in #who-may-write.
-19. **Clause 2, one tree.** **Reworded**: first condition bullet.
-20. **Clause 3, clean and unchanged, bracketed.** **Reworded**: first condition bullet. The remark that a recorded `workingTreeDirty: false` alone is insufficient is dropped as an implementation note.
+19. **Clause 2, one tree.** **Reworded** in part: first condition bullet. A verify whose tests target a commit with a different tree cannot write. The old exclusion of every `--commit` other than `HEAD` is narrowed to what the writer checks, the tested commit's tree (per-file review round 1).
+20. **Clause 3, clean and unchanged, bracketed.** **Reworded**: first condition bullet, "still clean, with the same tree"; the old "same HEAD" was checked by tree (per-file review round 1). The remark that a recorded `workingTreeDirty: false` alone is insufficient is dropped as an implementation note.
 21. **Clause 4, complete scope, including the `SKIP_ACP_TESTS` example.** **Reworded**: second condition bullet keeps `SKIP_ELECTRON_E2E`. The `SKIP_ACP_TESTS` example is derivable: that knob guards suites outside the gate.
 22. **Clause 5, canonical retry policy.** **Reworded**: third condition bullet.
 23. **Clause 6, not itself attested-skipped.** **Reworded**: fourth condition bullet.
-24. **Clause 7, policy permits at start and end.** **Reworded**: fifth condition bullet.
+24. **Clause 7, policy permits at start and end.** **Reworded**: fifth condition bullet, with the first read "before any of its tests" (see item 10).
 25. **`blaxel-verify` writer.** **Reworded**: first source bullet, which now also holds the definition of a publication-qualifying run that used to live in test-runner.md.
 26. **`github-ci` writer, command-boundary identity, `contents: write`, forks.** **Reworded**: second source bullet. The `contents: write` permission is dropped as workflow wiring the job needs anyway.
 27. **The production writer refuses other sources; GitHub test jobs use `provider=local`.** **Reworded**: the identity requirement in the second source bullet, and "A local run never writes" in #who-may-write.
@@ -72,7 +72,7 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 1. **Opening paragraph (recommended path, speed, hot standby, the principal reason for a single runner).** **Reworded**: first paragraph of blaxel-testshards.md. The claim that Blaxel routing is the principal reason for a single runner is dropped, because test-runner.md's introduction states the runner's purpose.
 2. **Ownership paragraph.** **Reworded**: the third introduction paragraph. Classification moved to sharded-execution.md#shard-outcomes.
 3. **The only remote provider; the coordinator and pool scripts.** **Reworded**: last sentence of the first paragraph.
-4. **Repository selection, normalization, failing before dispatch, public and private checkouts.** **Reworded**: blaxel-testshards.md#repository-and-credentials, first paragraph. The clause that `--repo-url` leaves the checks against `origin` unchanged is derivable from test-runner.md#^remote-revision, which makes no exception for it. Cited by `scripts/test/blaxel-repository.mjs` (`#Repository`).
+4. **Repository selection, normalization, failing before dispatch, public and private checkouts.** **Reworded**: blaxel-testshards.md#repository-and-credentials, first paragraph. `--repo-url` is dropped: it is an option of the coordinator script, which `npm test -- blaxel` does not pass, so the canonical command always uses `origin` (per-file review round 1). Cited by `scripts/test/blaxel-repository.mjs` (`#Repository`).
 5. **One pool for every repository; one checkout switched per run; dependency reuse.** **Reworded**: second paragraph of #repository-and-credentials.
 6. **Shared trust boundary.** **Reworded**: same paragraph.
 7. **GitHub token sources, `GH_TOKEN`, `GIT_ASKPASS`, never written.** **Reworded**: third paragraph of #repository-and-credentials. The variable name `GH_TOKEN` is dropped as worker wiring.
@@ -81,7 +81,7 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 10. **`ensure` naming, default pool, size, image, memory, nvm tag, `.nvmrc` runtime.** **Reworded** in part: #pool keeps nvm and the `.nvmrc` Node. Sandbox names, the image, the memory size and the nvm tag are dropped as provisioning parameters that the pool manager holds.
 11. **Fresh-only provisioning and the `createIfNotExists` reason.** **Reworded**: third paragraph of #pool.
 12. **Labels published only after verification; partial workers reported; a partly deleted pool is not refilled.** **Reworded**: third paragraph of #pool keeps eligibility after verification. The rest is derivable from "refuses a pool that already has workers" and "delete the pool and ensure it again".
-13. **Locking: the lock file, record fields, the guard, rechecks, no guard during downloads (`^blaxel-reservation`).** **Reworded**: first bullet of blaxel-testshards.md#leases, and the `WorkerLease` type, which pins the fields other revisions read. The anchor is gone.
+13. **Locking: the lock file, record fields, the guard, rechecks, no guard during downloads (`^blaxel-reservation`).** **Reworded**: first bullet of blaxel-testshards.md#leases, and the `WorkerLeaseRecord` type, which pins the fields other revisions read, including the deletion reservation (per-file review round 1). The anchor is gone.
 14. **At most 32 concurrent acquisitions; waiting for every lease; one infrastructure result per shard when acquisition fails.** **Dropped**: concurrency and per-shard failure bookkeeping are implementation. "Fails if fewer workers than shards" is kept in #pool, and infrastructure classification is in sharded-execution.md#shard-outcomes.
 15. **Only the coordinator renews; `recoverAfter`; 20 minutes; `--lock-ttl-seconds`; no revival.** **Reworded**: second bullet of #leases. Its independence from the execution timeout is dropped as derivable.
 16. **Outer shard attempt token; dispatch recorded first; the entry point registers before checkout; attempt-specific uploads; unknown dispatch outcomes keep the lease.** **Reworded**: third and fourth bullets of #leases. Attempt-specific upload paths are dropped as implementation.
@@ -92,11 +92,11 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 21. **Recovery under the guard; stopping live abandoned supervisors; the receipt; the exception to download-before-release.** **Reworded**: the numbered steps and the receipt paragraph of #abandoned-runs.
 22. **Interrupted recovery; a returning coordinator; holding on failure; unreadable records; operator action.** **Reworded**: last paragraph of #abandoned-runs. That interrupted recovery leaves the old identity in place is derivable from the guarded sequence.
 23. **Older runners (transitional).** **Reworded**: blaxel-testshards.md#older-runners.
-24. **Pool deletion rules.** **Reworded**: blaxel-testshards.md#deleting-workers.
+24. **Pool deletion rules.** **Reworded**: blaxel-testshards.md#deleting-workers, which now names the `DeletionReservation` that every acquisition refuses (per-file review round 1).
 25. **`--audit-stale-owners`.** **Dropped**: a coordinator diagnostic option not reached through `npm test`; the code governs it.
 26. **Temporary files: private attempt directory, `TMPDIR`, uploads in the attempt directory, sidecars finalized, short paths, caches (`^blaxel-scratch`).** **Reworded**: first paragraph of blaxel-testshards.md#temporary-files, anchor kept. Upload placement is dropped as implementation.
 27. **The two removal targets.** **Reworded**: the removal list.
-28. **Disuse established by lease and audit; link, mount and escape checks; what is preserved; what is reported (`^blaxel-known-leftovers`).** **Reworded**: the paragraph after the list. Mount-boundary and path-escape checks are folded into "does not follow links out of these locations". The anchor is gone.
+28. **Disuse established by lease and audit; link, mount and escape checks; what is preserved; what is reported (`^blaxel-known-leftovers`).** **Reworded**: the paragraph after the list. The mount-boundary and link checks are kept as "rejects unexpected mount boundaries and does not follow links out of these locations" (per-file review round 1). The anchor is gone.
 29. **Teardown after the attempt; uncertain teardown; failed cleanup blocks dispatch; download despite cleanup failure; Chromium's unlinked shared memory.** **Reworded**: last paragraph of #temporary-files. Download despite a cleanup failure is derivable from release requiring retrieved reports (#leases).
 30. **Only the current attempt's evidence on the worker; no archive; contents owned by reporting.** **Reworded**: last sentence of #temporary-files.
 31. **Shard lifecycle: uploads before starting; a rejected upload becomes `transport/worker-dispatch`.** **Dropped**: implementation. That a transport failure is an infrastructure failure is in sharded-execution.md#shard-outcomes. Cited by proofs (`#Shard lifecycle`).
@@ -107,7 +107,7 @@ Where a passage splits, the entry gives the primary outcome first and says what 
 36. **Plan identity validation after download.** **Moved**: sharded-execution.md#plans (the worker checks the plan) and #shard-outcomes (a plan mismatch is `infra-failed`).
 37. **Failure attribution (`worker-execution`, `timeout`, `transport`, `report-download`).** **Dropped**: internal failure-kind vocabulary that nothing outside the runner reads.
 38. **`stale-owner` fails closed at the sandbox.** **Reworded**: second paragraph of blaxel-testshards.md#runs.
-39. **Options table.** **Dropped** in large part: the coordinator script's options are code-governed. The user-facing ones are kept where their meaning matters: `--pool poc` (#pool), `--allow-shard-count-override 1` (#pool), `--lock-ttl-seconds` (#leases), `--repo-url` (#repository-and-credentials), `--commit` and `--ignore-uncommitted` (test-runner.md#^remote-revision), and the two infrastructure retries (test-runner.md#retries). Cited by proofs (`#Options`).
+39. **Options table.** **Dropped** in large part: the coordinator script's options are code-governed. The user-facing ones are kept where their meaning matters: `--pool poc` (#pool), `--allow-shard-count-override 1` (#pool), `--lock-ttl-seconds` (#leases), `--commit` and `--ignore-uncommitted` (test-runner.md#^remote-revision), and the two infrastructure retries (test-runner.md#retries). `--repo-url` is a coordinator-script option only (item 4). Cited by proofs (`#Options`).
 40. **Timeout profiles and the default-profile note.** **Dropped**: tuning values.
 41. **Output directory layout and exit codes.** **Reworded** in part: exit codes are in test-runner.md's exit-code list and the interruption bullet of #leases, and provider output in `provider/` is in reporting.md#run-directory. The layout is dropped as internal.
 42. **Local setup: install and log in.** **Kept**: blaxel-testshards.md#setup.
@@ -127,7 +127,7 @@ The file is removed. Its content now lives in test-runner.md#retries and reporti
 1. **Opening paragraph (a two-layer mechanism).** **Moved**: the introduction and bullets of test-runner.md#retries.
 2. **Ownership paragraph.** **Dropped**: the file no longer exists, and its owners are now named where the content lives.
 3. **Definition of a *flaky test*.** **Moved** in part: test-runner.md#retries defines a *recovered flake*, and the annotation bullet confines annotations to investigated flakiness in the harness or environment. `specs/terms.md` still defines *flaky test* against this file.
-4. **Retry budget (two for non-unit surfaces, none for unit; recoveries reported; package configs at zero).** **Moved**: the runner-budget bullet of test-runner.md#retries. Package-level zero is dropped, because the runner always passes an explicit count.
+4. **Retry budget (two for non-unit surfaces, none for unit; recoveries reported; package configs at zero).** **Moved**: the runner-budget bullet of test-runner.md#retries. Package-level zero is dropped: the bullet requires unit surfaces to get no runner retries, and how that is met is left to the code. Grouped unit runs pass no count and rely on the package configs' `retry: 0` (per-file review round 1).
 5. **Infrastructure retries are separate; may repeat unit work; observations from incomplete attempts stay diagnostic; no flake count.** **Moved**: the infrastructure-retries bullet of test-runner.md#retries and sharded-execution.md#shard-outcomes. The counter detail is derivable from recovered flakes being native retries (reporting.md#honest-status).
 6. **`FLAKY_TEST_RETRIES` type and resolution (parsing, `CI`, defaults).** **Moved** in part: the annotation bullet gives 5 under the runner and CI unless the variable is set. Parsing rules are dropped as code.
 7. **The runner injects 5 unless set; direct runs get 0.** **Moved**: same bullet. The direct-run default is derivable from the code.
@@ -161,13 +161,13 @@ The file is removed. Its content now lives in test-runner.md#retries and reporti
 16. **Desktop runtime preparation (`^gha-electron-runtime-preparation`).** **Dropped**: owned by `desktop/e2e-harness.md`, which the paragraph itself deferred to. Cited by `specs/arch/explainer-desktop-app.md` (`#desktop-runtime-preparation`).
 17. **The matrix plans `e2e-ci`; a registry assertion; desktop covered separately.** **Reworded**: github-ci.md#jobs. The required registry assertion is dropped as the proof's to derive.
 18. **Each shard computes the plan with the VM timing provider and Blaxel weights.** **Reworded**: #jobs, and sharded-execution.md#plans and #duration-baseline. The timing-provider identity is dropped as code.
-19. **Phases recorded; run directory uploaded through `--run-dir-output`; the join's agreement checks.** **Reworded**: github-ci.md#run-artifacts and #required-checks. Phase recording moved to reporting.md#timing-records.
+19. **Phases recorded; run directory uploaded through `--run-dir-output`; the join's agreement checks.** **Reworded**: github-ci.md#run-artifacts and #required-checks. Run artifacts keep the old scope: jobs that run `npm test` use `--run-dir-output`, and shard jobs read the run directory from the shard worker's summary (per-file review round 1). Phase recording moved to reporting.md#timing-records.
 20. **Overlapping builds as the reason to build once.** **Reworded**: the first sentence of #build-once states the arrangement. The CLI build's sub-builds are dropped as derivable.
 21. **The artifact is the build's output, from three sources (`^gha-prebuilt-partition`).** **Reworded**: #build-once, anchor kept.
 22. **The artifact is every untracked file except three paths, with no output list.** **Reworded**: #build-once.
 23. **The promise is bounded; four things out of scope (`^gha-prebuilt-bounds`).** **Reworded**: the second limit bullet in #build-once (adds files only; no deletions, empty directories or `node_modules` writes). Repository metadata differing between checkouts is derivable from taking tracked files from the shard's own checkout. Nothing cited the anchor.
 24. **The one rule on builds (`^gha-prebuilt-tracked-rule`), with the `LICENSE` example.** **Reworded**: the first limit bullet. The `LICENSE` example is dropped. The anchor is gone.
-25. **The manifest declares recipes; the `PrebuiltManifest` type; the coverage check.** **Reworded** in part: #build-once keeps the recipes and the rule that each surface build step is covered exactly once. The type is dropped: it is read only by the same tree's build job.
+25. **The manifest declares recipes; the `PrebuiltManifest` type; the coverage check.** **Reworded** in part: #build-once keeps the recipes and the rule that each build step of a surface in the `all` suite is covered exactly once (per-file review round 1). The type is dropped: it is read only by the same tree's build job.
 26. **One-day artifact retention; a tar archive keeping modes.** **Reworded** in part: the tar archive and its reason. Retention is dropped as a workflow setting.
 27. **Consumers fail loudly, with no fallback (`^gha-prebuilt-consumer`).** **Reworded**: #build-once. The anchor is gone. Cited by a comment in `test/repo/test-runner-guardrails.test.ts`.
 28. **`--skip-pre-commands` and `--plan` worker inputs.** **Reworded** in part: shards "skip their surfaces' build steps". The option names are dropped as internal to the workflow and worker.
@@ -219,7 +219,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 2. **Ownership paragraph.** **Reworded**: the introduction links duration planning to sharded-execution.md. The list of what reporting owns is derivable from the sections.
 3. **Run-directory location and the exact run-ID format, with its reason.** **Reworded** in part: reporting.md#run-directory keeps uniqueness across processes and hosts. The exact format is dropped: nothing parses it.
 4. **Directory tree.** **Reworded**: the list in #run-directory.
-5. **The `outputs` block; atomic writes; early exits still write the top-level files.** **Reworded**: #run-directory, scoped after review round 1. The promise holds once a directory exists, and refusals leave none. The `outputs` block is dropped as internal.
+5. **The `outputs` block; atomic writes; early exits still write the top-level files.** **Reworded**: #run-directory, scoped after review round 1. The promise holds once a directory exists, and refusals leave none. A Blaxel run creates its directory once its remote preflight and selection checks have passed; two selection checks in `runBlaxel` currently run after the directory exists, a gap left for the code (per-file review round 1). The `outputs` block is dropped as internal.
 6. **Which process owns the directory (local CLI; the shard worker for CI shards; the Blaxel finalizer).** **Reworded**: #run-directory.
 7. **CI matrix jobs keep distinct runs, and the join validates without rewriting them.** **Derivable**: from "Each GitHub CI test job writes its own" (#run-directory) and github-ci.md#required-checks.
 8. **`--run-dir-output` and why `.test-runs/` is not enumerated.** **Reworded**: #run-directory. Its write is now tied to the directory's creation, not to "before preflight" (review round 1).
@@ -236,7 +236,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 19. **An interrupted provider run is incomplete and keeps its evidence.** **Derivable**: interruption is an infrastructure failure (sharded-execution.md#shard-outcomes), so the run is incomplete (#honest-status). The coordinator keeps what it retrieved (blaxel-testshards.md#leases).
 20. **A passed summary with a nonzero exit.** **Moved**: sharded-execution.md#shard-outcomes.
 21. **Process-leak status fields; stale owners as synthetic lifecycle surfaces; counting unique leaks.** **Reworded** in part: #honest-status (a leak fails its surfaces and marks them incomplete). Failure-kind names and the synthetic-surface representation are dropped as internal.
-22. **Compact discipline: no passed tests; the compact fields; 800-character errors; leaks in full; `results.json`.** **Reworded**: reporting.md#the-compact-summary and its pinned type. The 800-character limit is dropped as a tuning value.
+22. **Compact discipline: no passed tests; the compact fields; 800-character errors; leaks in full; `results.json`.** **Reworded**: reporting.md#the-compact-summary and its pinned type. Passing tests are not listed, and the error excerpt is there when one is available (per-file review round 1). The 800-character limit is dropped as a tuning value.
 23. **`events.ndjson` as the exception to compact discipline.** **Reworded**: #the-compact-summary.
 24. **Resource diagnostics: what is observed, when, and as unavailable rather than zero (`^resource-diagnostics`).** **Reworded**: reporting.md#resource-diagnostics, anchor kept.
 25. **The sidecar's identity, retention, links, attempt history; no invented outcomes.** **Reworded**: the second paragraph of #resource-diagnostics.
@@ -268,7 +268,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 1. **Opening paragraph.** **Reworded**: sharded-execution.md's introduction.
 2. **Ownership paragraph.** **Reworded**: the introduction.
 3. **One committed rollup at `test/timing-baseline.json`; a planning input measured only on Blaxel; every plan uses it.** **Reworded**: sharded-execution.md#duration-baseline.
-4. **`TimingProvider` union and the baseline types.** **Dropped**: the baseline's format is left to code, because the file is committed with the code that reads it (review round 1, finding 1). The Blaxel identity is pinned in reporting.md#timing-records.
+4. **`TimingProvider` union and the baseline types.** **Dropped**: the baseline's format is left to code. A `--commit` run reads the tested commit's baseline with the checkout's planner, so the file crosses revisions; blaxel-testshards.md#runs states that boundary and its rule, and the shape stays in code (review round 1, finding 1; per-file review round 1). The Blaxel identity is pinned in reporting.md#timing-records.
 5. **The `providers` map holds only the Blaxel entry.** **Dropped**: format detail, as above.
 6. **The canonical empty baseline; the planner requires the file; the 60-second no-history weight.** **Dropped**: format and a constant. Unknown files being weighted as expensive is kept in #plans.
 7. **Timing-provider identities (local, Blaxel, GitHub, a reserved container ID).** **Dropped**: an internal identity scheme, except the Blaxel identity pinned in reporting.md.
@@ -282,7 +282,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 15. **Aborts on unreadable runs; fails with none; never commits; never automatic; a person reviews.** **Reworded**: #duration-baseline.
 16. **Nothing is carried forward.** **Reworded**: same paragraph, with the reason.
 17. **Shard plan definition; atomic files; every surface present.** **Reworded**: sharded-execution.md#plans.
-18. **Plan types.** **Dropped**: plans are produced and consumed within one run.
+18. **Plan types.** **Dropped**: the shape is left to code. The plan crosses revisions when the coordinator and workers differ, under the rule in blaxel-testshards.md#runs (per-file review round 1).
 19. **A valid plan has at least one file; idle per-shard surfaces.** **Reworded** in part: a shard with no files for a surface skips it (#plans). The at-least-one-file rule is dropped as code.
 20. **Ordering, canonical JSON, the `planId` digest, the baseline digest, no time or randomness; retained.** **Reworded** in part: "Plans are deterministic … identified by a digest of its content". The formulas are dropped.
 21. **Inventory from `git ls-files`; a temporary index for another commit; untracked files cannot matter.** **Reworded**: first bullet of #plans. The Git mechanics are dropped.
@@ -303,13 +303,13 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 36. **No native `--shard` in planned runs.** **Derivable**: from "Each shard runs exactly its assigned files" (#plans).
 37. **Vitest absolute paths and substring ambiguity; the collection check; the combined `unit:workspaces` process.** **Reworded** in part: the substring trap is stated once, in test-runner.md#commands, and the collection check in #plans. The combined process is dropped as internal.
 38. **Playwright `--test-list`; custom commands forward it.** **Dropped**: mechanism. Wrapper commands applying remotely is in blaxel-testshards.md#runs.
-39. **Generated lists and configs retained.** **Derivable**: from the run directory's `provider/` output (reporting.md#run-directory).
-40. **A collection mismatch fails the surface as incomplete, with lists kept.** **Reworded**: second bullet of #plans.
+39. **Generated lists and configs retained.** **Dropped**: retention of generated inputs is left to the implementation. reporting.md#run-directory names `provider/` but does not require these files (per-file review round 1).
+40. **A collection mismatch fails the surface as incomplete, with lists kept.** **Reworded** in part: the second bullet of #plans keeps the mismatch failing the surface as an infrastructure problem. Keeping the lists is dropped and left to the implementation (per-file review round 1).
 41. **`not-assigned` surfaces skip everything; empty groups skipped; aggregates not skipped.** **Reworded** in part: second bullet of #plans. The aggregation rule is dropped as internal.
 42. **`--skip-pre-commands`: caller-supplied artifacts, no fallback build.** **Moved** in part: github-ci.md#build-once (shards skip build steps; a missing archive fails, with no fallback). The option names are dropped.
 43. **Planned execution is an exception to native sharding; native `--shard` remains for diagnostics.** **Dropped**: describes mechanisms outside any contract.
 44. **Explicit shard counts; reviewed settings; a run never changes its own demand.** **Reworded**: last paragraph of #duration-baseline. Cited by `scripts/test/cli.mjs` (`#Shard-count scaling`).
-45. **The recommendation algorithm, its 120-second target and its printed report.** **Reworded** in part: the two-minute target. The report's contents are dropped.
+45. **The recommendation algorithm, its 120-second target and its printed report.** **Reworded** in part: the two-minute target, the search up to the pool's size, and the pool's size when no count meets the target (per-file review round 1). The report's contents are dropped.
 46. **Capacity owned by Blaxel; recommendations never override; GitHub's count is owned by github-ci.md.** **Reworded** in part: "A person changes the configured shard counts". The rest is derivable from blaxel-testshards.md#pool and github-ci.md#jobs.
 47. **Blaxel and CI both run `scripts/run-test-shard.mjs`.** **Reworded**: the introduction.
 48. **`--plan` input; grouping; the combined process.** **Dropped**: internal options. Cited by proofs (`#Shared shard worker`).
@@ -320,7 +320,7 @@ The file is removed. Cited by `AGENTS.md`, `developer-skills/tvdev-setup/SKILL.m
 53. **The worker writes `shard-<index>.json` and exits nonzero on failure.** **Dropped**: internal.
 54. **On Blaxel the worker preserves the outer token and `TMPDIR`; sidecars travel with artifacts.** **Moved**: blaxel-testshards.md#leases (the token), #temporary-files (`TMPDIR`) and reporting.md#resource-diagnostics.
 55. **Blaxel provider report collection; GitHub retains summaries.** **Derivable**: from reporting.md#run-directory and github-ci.md#run-artifacts.
-56. **Provider report types (`ProviderTask`, `ProviderShard`, `AttemptReport`, `CombinedReport`).** **Dropped**: produced and consumed within one coordinator run. Cited by proofs (`#Blaxel provider report shape`).
+56. **Provider report types (`ProviderTask`, `ProviderShard`, `AttemptReport`, `CombinedReport`).** **Dropped**: the attempt and combined reports are produced and read by the coordinator. The shard summary a worker returns crosses revisions under blaxel-testshards.md#runs, with its shape left to code (per-file review round 1). Cited by proofs (`#Blaxel provider report shape`).
 57. **`NormalizedProcessLeak` is reporting's; generated declarations keep the unions.** **Dropped**: internal.
 58. **Shard status values; completion decides first.** **Reworded**: sharded-execution.md#shard-outcomes.
 59. **`infra-failed` meaning.** **Reworded**: first outcome bullet.
@@ -368,7 +368,7 @@ The file is removed. Its rules now live in test-runner.md#the-test-registry. Cit
 19. **Every test file has exactly one owner; `excludeRoots`.** **Moved**: test-runner.md#the-test-registry.
 20. **`CANONICAL_TEST_INCLUDE_ROOTS`; `loadTestConfig` and `validateRegistry` signatures.** **Dropped**: internal. Cited by proofs (`#Discovery and validation`).
 21. **Only `packages/` and `test/` are scanned.** **Moved**: test-runner.md#the-test-registry ("under `packages/` and `test/`").
-22. **Validation errors.** **Moved** in part: an undeclared runner config is a registry error. The other errors are derivable from the code.
+22. **Validation errors.** **Moved** in part: an undeclared `vitest.config.ts`, `vitest.e2e.config.ts` or `playwright.config.ts` is a registry error. The recognized names are kept, because other configs are deliberately unregistered (per-file review round 1). The other errors are derivable from the code.
 
 ## test-runner.md
 
@@ -390,7 +390,7 @@ The file is removed. Its rules now live in test-runner.md#the-test-registry. Cit
 16. **The direct-run override, exactly `1`; what it bypasses; help; testing-policy permission.** **Reworded**: #native-test-entrypoints and the policy pointer in #shared-development-hosts.
 17. **Selector definition and table.** **Reworded**: the selector bullets in #commands. Cited by proofs (`#selectors`).
 18. **The local provider accepts every suite subject to guardrails; Blaxel accepts only `all`, `unit` and `e2e`, with targeted and planned paths.** **Moved**: blaxel-testshards.md#runs.
-19. **`--file` resolves to one owning surface; the local `supports` check; unknown positional arguments; unknown `--against-test-guidance` options.** **Reworded** in part: the `--file` bullet in #commands. The `supports` asymmetry and option-parsing rules are dropped as code.
+19. **`--file` resolves to one owning surface; the local `supports` check; unknown positional arguments; unknown `--against-test-guidance` options.** **Reworded** in part: the `--file` bullet in #commands, which keeps the rule that matched files belong to one selected surface (per-file review round 1). The `supports` asymmetry and option-parsing rules are dropped as code.
 20. **Publication-qualifying test execution (`^test-publication-qualifying`).** **Moved**: the Blaxel source bullet in attestation.md#who-may-write. Nothing outside the area cited the anchor.
 21. **A publication-qualifying verify; selection options count.** **Moved**: attestation.md#who-may-write ("no narrowing selector").
 22. **No opt-in; `--no-publish`; `--publish` is a usage error.** **Moved** in part: attestation.md#who-may-write and test-runner.md#verify. The `--publish` usage error is dropped as code.
@@ -419,7 +419,7 @@ The file is removed. Its rules now live in test-runner.md#the-test-registry. Cit
 45. **Provider resolution rules; positional and `--provider` errors.** **Reworded**: #verify. The argument errors are dropped as code.
 46. **Phases for each provider; where remote preflight runs; the double preflight under `auto`; retry validation; the success line; attestation.** **Reworded**: #verify. The double-preflight explanation is derivable, and the tested revision is now "selected, `HEAD` by default" (review round 1).
 47. **The vibe-mode check (`^verify-vibe-mode`).** **Reworded**: #verify, anchor kept. It now says what vibe mode is, because no other spec defines it.
-48. **`--plan`.** **Reworded**: #verify and the exit-code list.
+48. **`--plan`.** **Reworded**: #verify and the exit-code list. It runs no phases; choosing the provider on a marked host still runs the Blaxel checks (per-file review round 1).
 49. **The build-config integrity surface.** **Dropped**: an ordinary unit surface in `all`. The build configuration it checks is owned by `telemetry/sink.md`, which cites it.
 50. **PostHog roundtrip suite selection and command.** **Dropped**: owned by `telemetry/sink.md#real-posthog-integration-test-surface`, which has the command. test-runner.md keeps its exclusion from `all` and links there.
 51. **PostHog suite exclusion, local-only placement, the key and the preflight.** **Moved**: the PostHog bullet in test-runner.md#the-test-registry. The key details are owned by the sink spec.
@@ -455,10 +455,10 @@ The file is removed. Its rules now live in test-runner.md#the-test-registry. Cit
 81. **Vite services never answer `304` (`^test-service-full-responses`).** **Reworded**: anchor kept.
 82. **The Chromium shared-memory reason.** **Reworded**: same paragraph.
 83. **Destructive fixture placement (`isolated-github-only`).** **Moved**: test-runner.md#the-test-registry. "This restriction is permanent" is dropped as emphasis without content.
-84. **Lifecycle constants (`TEST_SURFACE_OWNER_ENV`, a two-second grace).** **Reworded** in part: the variable name is kept. The grace value is dropped as tuning (written as "a short grace period"). Cited by proofs (`#Surface process lifecycle`).
+84. **Lifecycle constants (`TEST_SURFACE_OWNER_ENV`, a two-second grace).** **Reworded** in part: the variable name is kept. The two-second value is dropped as tuning; the teardown bullet calls the wait between `SIGTERM` and `SIGKILL` "a short interval" (per-file review round 1). Cited by proofs (`#Surface process lifecycle`).
 85. **Surface process scope and its owner (`^test-surface-owner`).** **Reworded**: #processes-started-by-tests, anchor kept.
 86. **Token contents; opaque to tests; process groups; helpers preserve it; detached children.** **Reworded**: the token bullet and the pinned `SurfaceOwner`, which is now specified as a cross-revision format. Process-group mechanics are dropped.
-87. **The scope's five-step order.** **Reworded** in part: the teardown bullet. The rule that a build step must exit without live descendants is dropped as detail.
+87. **The scope's five-step order.** **Reworded** in part: the teardown bullet. The graceful interval after stopping services is not a separate step before the scan: the owner scans as soon as services and remaining commands stop, and a process that exits before any signal is not a leak (per-file review round 1). The rule that a build step must exit without live descendants is dropped as detail.
 88. **Teardown after any exit; `SIGTERM` then `SIGKILL`; the two-second reason; idempotence; no process outlives the scope.** **Reworded**: the teardown bullet.
 89. **A killed owner cannot clean up; ephemeral hosts; persistent hosts reap later.** **Reworded**: the stale-owner bullet.
 90. **The combined Vitest projects; one scope; a leak fails every member.** **Dropped**: internal. A comma-separated `surfaceId` for multi-surface scopes is noted in the pinned type.
@@ -479,7 +479,8 @@ The file is removed. Its rules now live in test-runner.md#the-test-registry. Cit
 
 These new statements have no predecessor. The ledger gives each one's reason.
 
-- The pinned `LocalTestMutexRecord`, `SurfaceOwner` and `WorkerLease` shapes (test-runner.md, blaxel-testshards.md). The old specs called these contracts without giving their shape.
+- The pinned `LocalTestMutexRecord`, `SurfaceOwner` and `WorkerLeaseRecord` shapes (test-runner.md, blaxel-testshards.md). The old specs called these contracts without giving their shape.
+- The rule that what a Blaxel run's coordinator and workers exchange crosses revisions when they differ, as with `--commit` (blaxel-testshards.md#runs, per-file review round 1).
 - The pinned `RunSummary` and `TimingEvent` fields, and the rule for changing the event stream (reporting.md, review rounds 1 and 2).
 - That Blaxel runs, and so Blaxel attestations, cover Chromium only (test-runner.md, attestation.md).
 - The marker being found through `HOME` while the mutex ignores it (test-runner.md).
@@ -488,7 +489,7 @@ These new statements have no predecessor. The ledger gives each one's reason.
 
 ## Counts
 
-Each passage is counted once, under its primary outcome. 75 of the reworded or moved passages also drop a detail, which the entry names, so "Reworded" and "Moved" overstate how much survived word for word.
+Each passage is counted once, under its primary outcome. 77 of the reworded or moved passages also drop a detail, which the entry names, so "Reworded" and "Moved" overstate how much survived word for word.
 
 | Old spec | Passages | Kept | Reworded | Moved | Derivable | Dropped |
 |---|---|---|---|---|---|---|
@@ -498,17 +499,17 @@ Each passage is counted once, under its primary outcome. 75 of the reworded or m
 | `github-ci.md` | 39 | 0 | 27 | 2 | 2 | 8 |
 | `preflight.md` | 25 | 0 | 0 | 12 | 6 | 7 |
 | `reporting.md` | 47 | 0 | 34 | 2 | 4 | 7 |
-| `sharded-execution.md` | 77 | 0 | 43 | 4 | 8 | 22 |
+| `sharded-execution.md` | 77 | 0 | 43 | 4 | 7 | 23 |
 | `test-registry.md` | 22 | 0 | 1 | 11 | 1 | 9 |
 | `test-runner.md` | 102 | 0 | 66 | 15 | 11 | 10 |
-| **All** | **430** | **2** | **257** | **60** | **36** | **75** |
+| **All** | **430** | **2** | **257** | **60** | **35** | **76** |
 
 ## Where a reviewer might start
 
 These are the judgment calls a human is most likely to disagree with, in rough order of consequence:
 
 - **Contracts the old specs named but did not shape, now pinned.** The mutex record and owner token (test-runner.md), the worker lease (blaxel-testshards.md) and the summary and event fields (reporting.md) are new authority. Each is pinned only as far as another revision or reader relies on it.
-- **Internal types and algorithms left to code.** The normalized result and provider report types (reporting 9, 13; sharded-execution 56), the baseline file's format (sharded-execution 4–6), the planning arithmetic and LPT steps (sharded-execution 25–27) and the coordinator's option table (blaxel-testshards 39).
+- **Internal types and algorithms left to code.** The normalized result and provider report types (reporting 9, 13; sharded-execution 56), the baseline file's format (sharded-execution 4–6), the planning arithmetic and LPT steps (sharded-execution 25–27) and the coordinator's option table (blaxel-testshards 39). The baseline, plan and shard summary cross revisions when a run's coordinator and workers differ; blaxel-testshards.md#runs states the rule for changing them, and their shapes stay in code.
 - **Measured settings dropped with their measurements.** The 36-shard figures (blaxel-testshards 9), timeout profiles (blaxel-testshards 40), the `e2e:browser-app` two-worker pin (github-ci 34) and the cost-model revision triggers (sharded-execution 31–32). The settings themselves remain in code.
 - **Content left to other owners.** Electron preflight and runtime preparation (`desktop/e2e-harness.md`: preflight 10, github-ci 16), the PostHog key (`telemetry/sink.md`: preflight 12, test-runner 50), flake discipline and network resets (testing policy: flaky-tests 15), and the `tv serve` test recipe (CLI specs: test-runner 75).
 - **Testing guidance removed as derivable from the testing policy.** These are the derivable entries under each Testing heading (for example test-runner 99–102 and sharded-execution 73–75). The method's test is whether removal changes a correct proof derivation; the proofs, once re-derived, will show it.

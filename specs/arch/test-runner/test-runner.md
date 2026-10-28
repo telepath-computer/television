@@ -28,7 +28,7 @@ Because workers fetch the revision from GitHub, a Blaxel run first checks that t
 | `npm test -- local [selectors]`, `npm test -- blaxel [selectors]` | Run a selection on that provider. |
 | `npm run verify [-- local\|blaxel]` | The full gate, described under [Verify](#verify). |
 | `npm test -- list [selectors]` | Print the surfaces a selection resolves to. |
-| `npm test -- preflight --provider <local\|blaxel>` | Run only the checks that precede tests. |
+| `npm test -- preflight --provider <local\|blaxel> [selectors]` | Run only the checks that precede tests for a selection, such as `--suite all`. |
 | `npm test -- pool blaxel <list\|ensure\|delete>` | Manage the Blaxel pool ([blaxel-testshards.md](./blaxel-testshards.md)). |
 | `npm test -- baseline update` | Refresh the durations used to plan shards ([sharded-execution.md](./sharded-execution.md)). |
 | `npm test -- testpass prune` | Remove attestations ([attestation.md](./attestation.md)). |
@@ -38,10 +38,10 @@ Selectors choose what runs:
 
 - `--suite <name>`, or `--all` for `--suite all`;
 - `--surface <id>[,<id>…]`, `--package <workspace>`, `--runner <vitest|playwright>`, `--tag <tag>`;
-- `--file <path>`: an exact path selects that test file; any other value selects every test file whose path contains it. A file owned by more than one selected surface needs `--surface` to choose;
+- `--file <path>`: an exact path selects that test file; any other value selects every test file whose path contains it. The matched files must belong to one selected surface; `--surface` or another selector narrows a match that spans surfaces or a file that several surfaces own;
 - `--grep <pattern>`: a test-title filter within the rest of the selection. On its own it narrows nothing.
 
-With no selector, the selection is the `all` suite.
+With no selector, `npm test -- local` and `npm test -- blaxel` select the `all` suite, while `list` and `preflight` start from every registered surface, including those outside `all`.
 
 The runner resolves `--file` to actual files itself and hands the native tool exactly those files. Vitest treats a file argument as a substring and Playwright as a regular expression, so passing the user's string through would also run sibling files.
 
@@ -59,7 +59,7 @@ A Blaxel command exits `0` only when its coordinator succeeded and the normalize
 
 `test.config.mjs` declares every *test surface*: an independently runnable test area, usually one Vitest or Playwright config and the files it covers. A surface declares its id, runner, config, the paths it owns, its kind and tags, and anything it needs: a build step, Vite services, a wrapper command, or checks that must pass before it runs. Facts such as unit or end-to-end, browser or Electron, are declared there and never inferred from file or package names.
 
-Every test file under `packages/` and `test/` belongs to exactly one surface, and a runner config there that no surface declares is a registry error. A test therefore cannot silently drop out of every run.
+Every test file under `packages/` and `test/` belongs to exactly one surface, and a `vitest.config.ts`, `vitest.e2e.config.ts` or `playwright.config.ts` there that no surface declares is a registry error. A test therefore cannot silently drop out of every run.
 
 A *suite* is a named selection over kinds, tags and runners. `all` is the unit and end-to-end surfaces; it is what verification, CI and attestation mean by the full suite. Some surfaces stay out of `all` and run only when selected:
 
@@ -149,7 +149,7 @@ Ordinary runs impose no automatic cap on failures, so independent work continues
 - locally: preflight for the `all` suite, lint, type-check, package manifest checks, the `all` suite, then the vibe-mode check;
 - on Blaxel: lint, type-check and package manifest checks in the checkout, the `all` suite on Blaxel at the selected committed revision (`HEAD` by default), then the vibe-mode check.
 
-On success it prints `verify passed (<provider>)`. A passing complete Blaxel verify publishes an attestation for its tree unless `--no-publish` is passed ([attestation.md](./attestation.md)). A local verify never publishes. `--plan` prints the chosen provider and the phase commands without running anything.
+On success it prints `verify passed (<provider>)`. A passing complete Blaxel verify publishes an attestation for its tree unless `--no-publish` is passed ([attestation.md](./attestation.md)). A local verify never publishes. `--plan` prints the chosen provider and the phase commands without running the phases; choosing the provider on a marked host still runs its Blaxel checks.
 
 `npm run verify -- local` or `npm run verify -- blaxel` chooses the provider explicitly. Otherwise an unmarked host verifies locally without contacting Blaxel. A marked host runs the Blaxel checks first: credentials, a clean tree and a pushed commit. When they pass it uses Blaxel; when they fail it refuses with exit `2` and the remediation, and never silently falls back to local. An explicit local verify on a marked host also needs `--against-test-guidance-broad-local-run`.
 
@@ -162,7 +162,7 @@ Developer machines and Blaxel workers run many test runs over time, often concur
 A *surface process scope* is everything started for one surface run: its build step, services, the test runner and its workers, browsers, Electron, and anything tests spawn. Its owner is the local runner, or the shard worker on Blaxel and in CI. The owner stays alive when a test worker crashes, so it is the final reaper. ^test-surface-owner
 
 - The owner puts a token in `TV_TEST_SURFACE_OWNER`, and every child inherits it. Test helpers that build child environments must preserve it.
-- After the tests exit, whether normally, by failure, timeout or interruption, the owner stops the scope's services, allows a short grace period, then finds every live process still carrying the token. It sends each `SIGTERM`, then `SIGKILL` after a short interval, and confirms none survived. Before each signal it rechecks the process's start time and token, so a reused PID is never hit. A process that needed a signal is a *process leak*. It fails the surface even when every test passed, and the report identifies it by PID, command and listening sockets ([reporting.md](./reporting.md)). ^test-process-leak
+- After the tests exit, whether normally, by failure, timeout or interruption, the owner stops the scope's services and any of its commands still running, then finds every live process still carrying the token. It sends each `SIGTERM`, then `SIGKILL` after a short interval, and confirms none survived. Before each signal it rechecks the process's start time and token, so a reused PID is never hit. A process that needed a signal is a *process leak*. It fails the surface even when every test passed, and the report identifies it by PID, command and listening sockets ([reporting.md](./reporting.md)). ^test-process-leak
 - Processes are found only through the inherited token, using `/proc` and `ss` on Linux, or `ps` and `lsof` on macOS. Killing by port or process name is not used: on a shared host it can kill another run's processes. Canonical local runs and planned shard workers check that the host's process backend works before tests, and fail rather than run without cleanup. Other paths, such as targeted Blaxel runs, skip that check; on Blaxel, worker setup installs the tools.
 - When an owner is itself killed, nothing can clean up at that moment. Before running tests, the runner and each shard worker look for tokens whose supervisor is gone. They reap those processes and fail that run as an infrastructure problem instead of running beside them. Tokens whose supervisor is alive belong to a concurrent run and are left alone.
 

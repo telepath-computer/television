@@ -28,7 +28,7 @@ The `unit` and `e2e:desktop` jobs run `npm test -- local` with `--suite unit` an
 
 ### Build once
 
-One build job runs the deduplicated build recipes declared in `test.prebuilt.mjs`. Every surface's build step is covered by exactly one recipe, and the build job fails otherwise. The job then uploads every untracked file and symlink in its workspace, except `node_modules`, `.git` and `.test-runs`, as a tar archive that keeps file modes; the artifact service drops modes, and tests run the built CLI directly. Each end-to-end shard takes tracked files from its own checkout, dependencies from its cache and build output from the archive, and skips its surfaces' build steps. A missing or broken archive fails the shard, with no fallback build. No list of build outputs is kept anywhere, so a new output ships because it exists. ^gha-prebuilt-partition
+One build job runs the deduplicated build recipes declared in `test.prebuilt.mjs`. Every build step declared by a surface in the `all` suite is covered by exactly one recipe, and the build job fails otherwise. The job then uploads every untracked file and symlink in its workspace, except `node_modules`, `.git` and `.test-runs`, as a tar archive that keeps file modes; the artifact service drops modes, and tests run the built CLI directly. Each end-to-end shard takes tracked files from its own checkout, dependencies from its cache and build output from the archive, and skips its surfaces' build steps. A missing or broken archive fails the shard, with no fallback build. No list of build outputs is kept anywhere, so a new output ships because it exists. ^gha-prebuilt-partition
 
 That arrangement places limits on builds and on what shards may assume:
 
@@ -44,7 +44,7 @@ End-to-end shards restore one archive holding dependencies and Playwright's Chro
 
 ### Run artifacts
 
-Every test job uploads its complete run directory as `test-run-<run-id>`, including hidden files, even when tests fail, and keeps it for 30 days. A job finds its run directory through `--run-dir-output` ([reporting.md](./reporting.md#run-directory)), never by listing `.test-runs/`.
+Every test job uploads its complete run directory as `test-run-<run-id>`, including hidden files, even when tests fail, and keeps it for 30 days. A job finds its run directory from the identity its runner reports, never by listing `.test-runs/`: jobs that run `npm test` pass `--run-dir-output` ([reporting.md](./reporting.md#run-directory)), and shard jobs read it from the shard worker's summary.
 
 ### Browser worker counts
 
