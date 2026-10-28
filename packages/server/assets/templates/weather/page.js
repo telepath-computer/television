@@ -142,7 +142,7 @@ function degree(value) {
 function ageLabel(updatedAt, now) {
   const age = forecastAge(updatedAt, now);
   if (age.unit === "now") return "now";
-  if (age.unit === "minute") return `${age.value} min${age.value === 1 ? "" : "s"} ago`;
+  if (age.unit === "minute") return `${age.value} min ago`;
   if (age.unit === "hour") return `${age.value} hr${age.value === 1 ? "" : "s"} ago`;
   return `${age.value} day${age.value === 1 ? "" : "s"} ago`;
 }

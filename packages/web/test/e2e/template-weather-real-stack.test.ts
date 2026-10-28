@@ -75,6 +75,12 @@ class ScriptedProvider {
     return { ...this.enqueue(configuration, typeof capture === "string" ? fixture(capture) : capture, "success", gate), release };
   }
 
+  holdAbort(configuration: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">): HeldResponse {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    return { ...this.enqueue(configuration, fixture(captureName(configuration.units)), "abort", gate), release };
+  }
+
   abort(configuration: Pick<WeatherConfiguration, "latitude" | "longitude" | "units">): ScriptedResponse {
     return this.enqueue(configuration, fixture(captureName(configuration.units)), "abort");
   }
@@ -259,6 +265,12 @@ async function revokeAfterDelivery(
   artifactID: string,
   frame: Frame,
 ): Promise<void> {
+  await observeRevocation(frame);
+  await harness.client.resources.unshare({ artifactID });
+  await waitForRevocation(frame);
+}
+
+async function observeRevocation(frame: Frame): Promise<void> {
   await frame.evaluate(async () => {
     // @ts-expect-error The built SDK route exists only inside the artifact server.
     const { onAccessChanged } = await import("/sdk/v1/resources.js") as {
@@ -270,7 +282,9 @@ async function revokeAfterDelivery(
       if (access === null) observed.__weatherRevoked = true;
     });
   });
-  await harness.client.resources.unshare({ artifactID });
+}
+
+async function waitForRevocation(frame: Frame): Promise<void> {
   await expect.poll(() => frame.evaluate(() =>
     (window as unknown as { __weatherRevoked?: boolean }).__weatherRevoked)).toBe(true);
 }
@@ -342,7 +356,7 @@ test.afterAll(async () => {
 
 // proofs/arch/templates/weather.md#^templates-weather-ac-live
 // proofs/ui/templates/weather.md#^weather-ui-ac-new
-// specs/product/templates.md#^artifact-template-bundled
+// proofs/product/templates.md#^templates-ac-ui-create
 test("creates Weather, follows the README changes, and saves the newest whole root", async ({ page, context }) => {
   const provider = await ScriptedProvider.install(context);
   await installClock(page);
@@ -432,7 +446,8 @@ test("creates Weather, follows the README changes, and saves the newest whole ro
 // proofs/arch/templates/weather.md#^templates-weather-ac-request-cycle
 test("keeps checking an unselected Television page whose document is visible", async ({ page, context }) => {
   const provider = await ScriptedProvider.install(context);
-  await page.clock.install({ time: new Date(captureClock().getTime() + 60_000) });
+  const savedAt = Date.parse((toolboxWeatherConfiguration.forecast as WeatherForecast).updatedAt);
+  await page.clock.install({ time: new Date(savedAt + 60_000) });
   const selectedID = await harness.createStored();
   await harness.openApp(page);
   const selectedFrame = await harness.frame(page, selectedID);
@@ -483,6 +498,8 @@ test("the copied page keeps every packaged dependency after the installed source
     await expect.poll(() => [...responseBodies.keys()]).toEqual(expect.arrayContaining([
       "index.html", "page.js", "model.js", "provider.js", "styles.css", "artwork.svg", "THIRD-PARTY-NOTICES.txt",
     ]));
+    expect(await frame.evaluate(() => [...document.styleSheets].some((sheet) =>
+      sheet.href !== null && new URL(sheet.href).pathname === "/canonical/v2/styles.css"))).toBe(true);
     expect(responseBodies.get("styles.css")).toBe(readFileSync(path.join(WEATHER_SOURCE, "styles.css"), "utf8"));
     await page.reload({ waitUntil: "domcontentloaded" });
     await expectReady(page.mainFrame(), "San Francisco");
@@ -559,6 +576,7 @@ test("changes request identity, discards late responses, and swaps a held refres
   const frame = await harness.open(page, artifactID);
   await expect(frame.getByText("Old conditions", { exact: true })).toBeVisible();
   await pauseClock(page);
+  const pageNow = new Date(await frame.evaluate(() => Date.now()));
   await expect(frame.getByRole("status", { name: "Loading weather" })).toHaveCount(0);
   const before = await cardState(frame);
   await frame.evaluate(() => {
@@ -592,12 +610,12 @@ test("changes request identity, discards late responses, and swaps a held refres
   });
   expect(after.background).not.toBe(before.background);
   expect(after.artwork).not.toEqual(before.artwork);
-  const expectedHours = [expected.current, ...getHourlyWindow(expected, captureClock())];
+  const expectedHours = [expected.current, ...getHourlyWindow(expected, pageNow)];
   expect((after.hourly as string[])).toHaveLength(expectedHours.length);
   for (const [index, hour] of expectedHours.entries()) {
     expect((after.hourly as string[])[index]).toContain(degree(hour.temperature));
   }
-  const expectedDays = getDailyWindow(expected, captureClock());
+  const expectedDays = getDailyWindow(expected, pageNow);
   expect((after.daily as string[])).toHaveLength(expectedDays.length);
   for (const [index, day] of expectedDays.entries()) {
     expect((after.daily as string[])[index]).toContain(degree(day.low));
@@ -612,7 +630,7 @@ test("changes request identity, discards late responses, and swaps a held refres
       summary: expected.current.summary,
       temperature: degree(expected.current.temperature),
       age: expect.stringContaining("Updated now"),
-      hourlyCount: getHourlyWindow(expected, captureClock()).length + 1,
+      hourlyCount: getHourlyWindow(expected, pageNow).length + 1,
       dailyCount: expectedDays.length,
     });
   }
@@ -662,7 +680,8 @@ test("keeps each owner result in memory, commits the last transaction, and selec
 
   const futureSaved = structuredClone(laterSaved);
   futureSaved.updatedAt = captureTime(60 * 60_000);
-  futureSaved.current = { temperature: -2, condition: "snow", summary: "Snow", isDay: true };
+  futureSaved.current = differentCurrent(firstSaved, -2);
+  expect(futureSaved.current.summary).not.toBe(firstSaved.current.summary);
   await harness.set(artifactID, storeJSON({ ...config, forecast: futureSaved }));
   await expect(firstFrame.getByText(firstSaved.current.summary, { exact: true })).toBeVisible();
   provider.done();
@@ -794,13 +813,16 @@ test("renders loading, empty and all uncached provider failures, then retries", 
     const config = configuration({ place: `Failure ${mode}` });
     const requestURL = buildOpenMeteoRequest(config).url;
     const requestsBefore = provider.requests.filter((url) => url === requestURL).length;
+    const artifactID = await harness.createStored();
+    const frame = await harness.open(page, artifactID);
+    await expectEmpty(frame);
+    await pauseClock(page);
     const failed = mode === "http"
       ? provider.httpError(config)
       : mode === "malformed"
         ? provider.malformed(config)
         : provider.abort(config);
-    const artifactID = await harness.createStored(config);
-    const frame = await harness.open(page, artifactID);
+    await harness.set(artifactID, config);
     await failed.finished;
     await expect(frame.getByRole("status", { name: "Forecast unavailable" })).toBeVisible();
     await expect(frame.getByText("Weather couldn't be updated. It will try again in about 15 minutes.")).toBeVisible();
@@ -810,6 +832,7 @@ test("renders loading, empty and all uncached provider failures, then retries", 
     if (mode === "http") {
       const retry = provider.hold(config);
       await page.clock.fastForward(14 * 60_000 + 59_000);
+      await frame.evaluate(() => Promise.resolve());
       expect(provider.requests.filter((url) => url === requestURL)).toHaveLength(requestsBefore + 1);
       await page.clock.fastForward(62_000);
       await expectLoading(frame);
@@ -820,6 +843,7 @@ test("renders loading, empty and all uncached provider failures, then retries", 
         forecast: { units: config.units, current: expect.any(Object) },
       });
     }
+    await page.clock.resume();
     await page.close();
   }
 
@@ -827,10 +851,14 @@ test("renders loading, empty and all uncached provider failures, then retries", 
   await installClock(page);
   const saved = capturedForecast(configuration(), captureTime(-3 * 60 * 60_000));
   const withSaved = configuration({ place: "Saved after failure", forecast: saved });
-  const failed = provider.abort(withSaved);
+  const failed = provider.holdAbort(withSaved);
   const savedID = await harness.createStored(withSaved);
   const savedFrame = await harness.open(page, savedID);
+  await expectReady(savedFrame, withSaved.place);
+  const oldCard = await savedFrame.locator(".weather-card").elementHandle();
+  failed.release();
   await failed.finished;
+  await expect.poll(async () => oldCard ? oldCard.evaluate((node) => node.isConnected) : false).toBe(false);
   await expectReady(savedFrame, withSaved.place);
   await expect(savedFrame.locator(".weather-header p")).toContainText("Updated 3 hrs ago");
   await expect(savedFrame.getByText("Forecast unavailable", { exact: true })).toHaveCount(0);
@@ -847,21 +875,28 @@ test("keeps read-only, disconnected and revoked forecasts in memory without savi
   const readPage = await context.newPage();
   await installClock(readPage);
   const readConfig = configuration({ place: "Read only" });
-  const readID = await harness.createStored(readConfig);
+  const readID = await harness.createStored();
   const readShare = await harness.client.resources.share({ artifactID: readID, access: "read" });
   const readRequestCount = provider.requests.length;
-  provider.success(readConfig);
   const readFrame = await harness.open(readPage, readID, readShare.shareID);
+  await expectEmpty(readFrame);
+  await pauseClock(readPage);
+  const initialRead = provider.success(readConfig);
+  await harness.set(readID, readConfig);
   await expectReady(readFrame, readConfig.place);
+  await initialRead.finished;
   expect((await harness.read<WeatherConfiguration>(readID))?.forecast).toBeUndefined();
   provider.success(readConfig);
   await readPage.clock.fastForward(5 * 60_000);
+  await readFrame.evaluate(() => Promise.resolve());
   expect(provider.requests).toHaveLength(readRequestCount + 1);
   await readPage.clock.fastForward(9 * 60_000 + 59_000);
+  await readFrame.evaluate(() => Promise.resolve());
   expect(provider.requests).toHaveLength(readRequestCount + 1);
   await readPage.clock.fastForward(62_000);
   await provider.saw(readRequestCount + 2);
   expect((await harness.read<WeatherConfiguration>(readID))?.forecast).toBeUndefined();
+  await readPage.clock.resume();
   await readPage.close();
 
   const revokedPage = await context.newPage();
@@ -963,9 +998,10 @@ test("keeps loading before the first result and preserves empty or unreadable st
   const revokedShare = await harness.client.resources.share({ artifactID: revokedID, access: "read" });
   harness.proxy.hold("to-server");
   const revokedFrame = await harness.open(revokedPage, revokedID, revokedShare.shareID);
+  await observeRevocation(revokedFrame);
   await harness.client.resources.unshare({ artifactID: revokedID });
   harness.proxy.release("to-server");
-  await revokedFrame.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+  await waitForRevocation(revokedFrame);
   await expectLoading(revokedFrame);
   await revokedPage.close();
 
@@ -1037,14 +1073,29 @@ test("retries an uncached failure after revocation for the retained configured l
   const provider = await ScriptedProvider.install(context);
   await installClock(page);
   const config = configuration({ place: "Revoked failure" });
-  const artifactID = await harness.createStored(config);
+  const artifactID = await harness.createStored();
   const share = await harness.client.resources.share({ artifactID, access: "read-write" });
-  provider.abort(config);
   const frame = await harness.open(page, artifactID, share.shareID);
+  await expectEmpty(frame);
+  await pauseClock(page);
+  const attemptStartedAt = await frame.evaluate(() => Date.now());
+  provider.abort(config);
+  await harness.set(artifactID, config);
   await expect(frame.getByRole("status", { name: "Forecast unavailable" })).toBeVisible();
+  await page.clock.resume();
   await revokeAfterDelivery(artifactID, frame);
-  const recovered = provider.success(config);
-  await page.clock.fastForward(16 * 60_000);
+  await pauseClock(page);
+  const elapsed = await frame.evaluate((startedAt) => Date.now() - startedAt, attemptStartedAt);
+  expect(elapsed).toBeLessThan(14 * 60_000 + 59_000);
+  const recovered = provider.hold(config);
+  await page.clock.fastForward(14 * 60_000 + 59_000 - elapsed);
+  await frame.evaluate(() => Promise.resolve());
+  await expect(frame.getByRole("status", { name: "Forecast unavailable" })).toBeVisible();
+  expect(provider.requests).toHaveLength(1);
+  await page.clock.fastForward(62_000);
+  await provider.saw(2);
+  await expectLoading(frame);
+  recovered.release();
   await expectReady(frame, config.place);
   await recovered.finished;
   expect((await harness.read<WeatherConfiguration>(artifactID))?.forecast).toBeUndefined();
@@ -1148,7 +1199,7 @@ test("renders current values from forecasts aligned to the actual browser clock"
   await expect(frame.locator(".weather-high-low")).toHaveText("H:4°L:−2°");
   await expect(frame.locator(".weather-day").first().locator(".weather-day-low")).toHaveText("−2°");
   await expect(frame.locator(".weather-day").first().locator(".weather-day-high")).toHaveText("4°");
-  await expect(frame.locator(".weather-header p")).toContainText("Updated 5 mins ago");
+  await expect(frame.locator(".weather-header p")).toContainText("Updated 5 min ago");
 
   const noToday = structuredClone(base);
   noToday.daily = noToday.daily.filter((day) => day.date !== currentDay.date);
@@ -1205,10 +1256,9 @@ test("takes partly-cloudy artwork from isDay and keeps invariant condition artwo
     await expect(frame.locator(".weather-current-glyph img")).toHaveAttribute("src", `./artwork.svg#${condition}`);
     await expect(frame.locator(".weather-hour").nth(1).locator("img")).toHaveAttribute("src", `./artwork.svg#${condition}`);
 
-    const night = structuredClone(day);
-    night.current.isDay = false;
-    night.hourly = night.hourly.map((hour) => ({ ...hour, isDay: false }));
-    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: condition, forecast: night })));
+    const currentNight = structuredClone(day);
+    currentNight.current.isDay = false;
+    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: condition, forecast: currentNight })));
     await expectReady(frame, condition);
     expect(await frame.locator(".weather-card").evaluate((card) => ({
       background: getComputedStyle(card).backgroundImage,
@@ -1217,6 +1267,13 @@ test("takes partly-cloudy artwork from isDay and keeps invariant condition artwo
     }))).toEqual(daySignature);
     expect(await frame.locator(".weather-page").screenshot({ animations: "disabled" })).toEqual(dayPixels);
     await expect(frame.locator(".weather-current-glyph img")).toHaveAttribute("src", `./artwork.svg#${condition}`);
+    await expect(frame.locator(".weather-hour").nth(1).locator("img")).toHaveAttribute("src", `./artwork.svg#${condition}`);
+
+    const allNight = structuredClone(currentNight);
+    allNight.hourly = allNight.hourly.map((hour) => ({ ...hour, isDay: false }));
+    await replaceStoreAndWait(frame, () => harness.set(artifactID, configuration({ place: condition, forecast: allNight })));
+    await expectReady(frame, condition);
+    expect(await frame.locator(".weather-page").screenshot({ animations: "disabled" })).toEqual(dayPixels);
     await expect(frame.locator(".weather-hour").nth(1).locator("img")).toHaveAttribute("src", `./artwork.svg#${condition}`);
   }
 
@@ -1229,7 +1286,7 @@ test("renders completed English age units and treats future clock skew as now", 
   const provider = await ScriptedProvider.install(context);
   const cases = [
     [90_000, "Updated 1 min ago", false],
-    [150_000, "Updated 2 mins ago", false],
+    [150_000, "Updated 2 min ago", false],
     [90 * 60_000, "Updated 1 hr ago", true],
     [150 * 60_000, "Updated 2 hrs ago", true],
     [36 * 60 * 60_000, "Updated 1 day ago", true],

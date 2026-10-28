@@ -123,6 +123,14 @@ As with Map's Esri gate, implementation review cannot substitute for this produc
 
 A device can wake from sleep before its network connection is ready. If the minute check runs in that interval, the attempt fails and the ordinary 15-minute retry rule applies, so the card may keep showing an older forecast until then. Its unchanged “Updated” age remains honest. This is recorded for implementation and field review; the specs deliberately add no special wake-up retry.
 
+## Slice 2 review refinements for Rupert
+
+- The browser acceptances now freeze the page clock before each 14-minute-59-second boundary and wait for the actual redraw, access result or request transition they claim. The saved-forecast failure waits for the pre-failure card to be replaced; revocation-before-first-value waits for `onAccessChanged(null)`; and retry-after-revocation proves the unavailable card remains until the eligible attempt returns it to loading.
+- Refresh expectations take their hourly and daily windows from the paused page clock. The future-candidate condition is selected to differ from the current capture, invariant-condition checks change current and hourly `isDay` separately, and copied-package delivery now observes the loaded canonical stylesheet.
+- The provider-neutral runner spec says every live-provider test isolates mutable state in a temporary home, while the Weather proof owns its application-iframe detail. The Blaxel exclusion anchor now covers only live providers, and its proof relies on exit `2` plus the local-only diagnostic rather than calling an unreachable dry-run preflight seam a tripwire. These runner spec edits, decision 22, and open question 10 still require Rupert's acceptance before merge.
+- The Toolbox creation test now cites the product proof that owns the shared creation evidence. The current slice 2 page also rebuilds its card on a minute check while hidden. That is harmless because hidden cards are not interactive; slice 3 still proves that a visible no-change minute check preserves hourly focus, scroll position and an existing alert node.
+- Slice 3 owns a permanent cross-browser painting acceptance, not only a working-plan note. It will rewrite the slice 2 `complete`/`naturalWidth` check, fragment-valued `src` checks and blank-equal screenshot comparisons so they identify the intended drawing and require painted pixels. If the delivery changes, it will also update the copied-artwork expectation and the package and licence file lists.
+
 ## Implementation slices
 
 Use three slices. The Open-Meteo design adds a deterministic forecast core whose parsing, WMO mapping, fixed-offset daily dates, display windows, request eligibility, selection and transaction behavior need focused review against captured provider responses. The copied page then separates at an observable boundary. Slice 2 proves delivery, provider requests, saves, access changes and basic rendering through the real stack. Slice 3 proves time-sensitive labels, responsive composition, accessibility, appearance and all 25 story comparisons after the live behavior is stable. Combining these would make one review span the provider model, repository packaging, installation, licensing, request races, runner registration and the complete visual surface.
@@ -173,7 +181,7 @@ Validation criteria:
 - Targeted `e2e:browser-app-real-stack` runs pass alongside all slice 1 surfaces. The real-stack configuration already uses one worker. Proof citations name the passing tests.
 - The vendored-asset record and generated folder notice still name every production file that copies the Phosphor warning and spinner icons.
 
-Temporary baseline: after the runner specs and proofs pass review, the red phase may leave only the new registry, Weather real-stack and live-seam tests failing while their production behavior is absent. No failure is accepted at slice review. Slice 2 leaves the six assertions assigned to slice 3 as `test to be written`; it does not add failing tests for them.
+Temporary baseline: after the runner specs and proofs pass review, the red phase may leave only the new registry, Weather real-stack and live-seam tests failing while their production behavior is absent. No failure is accepted at slice review. Slice 2 leaves the seven assertions assigned to slice 3 as `test to be written`; it does not add failing tests for them.
 
 ### Slice 3 — time, responsive behavior and visual conformance
 
@@ -183,13 +191,14 @@ This slice makes these proof assertions pass:
 
 - Time and layout behavior: `^weather-ui-ac-time-zones`, `^weather-ui-ac-clock`, `^weather-ui-ac-size` and `^weather-ui-ac-accessibility`.
 - Appearance: `^weather-ui-ac-appearance`.
+- Cross-browser artwork delivery: `^weather-ui-ac-cross-browser-artwork`.
 - Weather visual output: `^weather-ui-ac-conformance` for all 25 stories.
 
 Validation criteria:
 
 - Time-zone browser cases use literal expected `en-US` labels in browser zones different from the forecast zone. They cover Kolkata from a `de-DE` browser, the `2 AM` whole-hour label, the repeated New York `1 AM`, both sides of UTC, provider fixed-offset daily dates, forecast-zone hour and midnight rollovers, and current and hourly `isDay` values.
 - Responsive and accessibility checks cover all specified one- and two-dimensional boundaries, minimum-size and wide-short cards, absent hourly or daily panels, scrollable hourly semantics, daily row semantics, visible keyboard focus, credit links and non-intersection at 230 and 340 pixels.
-- The condition-artwork delivery used by production paints non-empty clear-day, partly-cloudy-night and invariant-condition samples in Chromium, Firefox and WebKit. This replaces the slice 2 fragment-and-`:target` delivery, which a real probe found blank in WebKit.
+- Every condition drawing—clear day and night, partly cloudy day and night, cloudy, rain, snow, thunderstorm and fog—and every placeholder drawing—the empty glyph, loading spinner and warning—paints non-empty pixels in Chromium, Firefox and WebKit. This replaces the slice 2 fragment-and-`:target` delivery, which a real probe found blank in WebKit. The slice rewrites the earlier source-attribute, image-completion and blank-equal screenshot checks to identify and raster-check the replacement; it also updates delivery, package and licence inventories if the file shape changes.
 - An accessibility regression pass focuses and scrolls the hourly strip, then crosses a visible one-minute request check without a data change. Focus and scroll position remain, and an existing alert is not removed and reinserted merely because the clock check ran. This catches whole-card rebuilding by the slice 2 render loop without moving the accessibility assertion out of slice 3.
 - Conformance compares the complete `.weather-page` for all 25 exported stories at their declared CSS viewports and appearances. It binds the gradient-only skies, first-party artwork, white text, typography, spacing, panels, shadows, placeholders, attribution and non-default-theme appearance.
 - Targeted `e2e:browser-app-real-stack` and `e2e:conformance` runs pass alongside all earlier surfaces. Local conformance runs set `TV_PW_WORKERS=1` because the shared development host is short of memory. Proof citations name the passing tests. The integrated tree passes lint, type checking, package-manifest checks and the full canonical suite, leaving `npm run verify` passable.

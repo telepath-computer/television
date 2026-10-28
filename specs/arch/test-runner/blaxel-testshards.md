@@ -119,7 +119,11 @@ The canonical runner uses pool `poc`. Provision it by deleting the complete pool
 
 ### Opt-in local suite exclusions
 
-The `telemetry-posthog-roundtrip`, `live-providers`, and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs none of them. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface). Live-provider surfaces deliberately contact public providers from the developer's checkout, so every Blaxel selection that resolves to one is refused before preflight or dispatch. The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification. ^blaxel-live-provider-exclusion
+The `telemetry-posthog-roundtrip`, `live-providers`, and `daemon-acceptance` suites are excluded from `all`, so Blaxel broad verification (`npm run verify -- blaxel`, which delegates `--suite all`) runs none of them. Blaxel workers do not receive the PostHog test read key; run the local telemetry PostHog roundtrip suite when validating telemetry delivery changes, using [its authoritative setup](../telemetry/sink.md#real-posthog-integration-test-surface).
+
+Live-provider surfaces deliberately contact public providers from the developer's checkout, so every Blaxel selection that resolves to one is refused before preflight or dispatch. ^blaxel-live-provider-exclusion
+
+The daemon acceptance suite deliberately replaces a host's active global `tv` package and literal production user service, so it runs only on an explicitly acknowledged designated developer host under [its local-suite contract](./test-runner.md#production-daemon-acceptance-suite), never as remote broad verification.
 
 ## Testing
 
