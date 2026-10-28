@@ -107,6 +107,36 @@ async function blankAreaBelowGrid(page: Page): Promise<{ x: number; y: number }>
   return { x: frameBox.x + frameBox.width - 24, y };
 }
 
+async function startResize(page: Page, axis: "column" | "row", index: number): Promise<{ x: number; y: number }> {
+  const handle = page.locator(`.table-${axis}-resize-handle`).nth(index);
+  await expect(handle).toBeVisible();
+  await expect.poll(async () => {
+    try {
+      await handle.scrollIntoViewIfNeeded();
+      return true;
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes("not attached")) throw error;
+      return false;
+    }
+  }).toBe(true);
+  const box = await handle.boundingBox();
+  if (!box) throw new Error(`Table ${axis} resize handle ${index} has no bounds`);
+  const point = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  return point;
+}
+
+async function dragResize(page: Page, axis: "column" | "row", index: number, delta: number): Promise<void> {
+  const point = await startResize(page, axis, index);
+  await page.mouse.move(
+    point.x + (axis === "column" ? delta : 0),
+    point.y + (axis === "row" ? delta : 0),
+    { steps: 2 },
+  );
+  await page.mouse.up();
+}
+
 // proofs/ui/templates/table.md#^table-ac-new
 // proofs/ui/templates/table.md#^table-ac-selection
 // proofs/ui/templates/table.md#^table-ac-keyboard
@@ -274,16 +304,25 @@ test("stored values and header row render in order", async ({ page }) => {
   await expect(cell(page, 0, 0)).toHaveAttribute("aria-colindex", "1");
   await expect.poll(() => scroll.evaluate(element => element.scrollWidth > element.clientWidth && element.scrollHeight > element.clientHeight)).toBe(true);
   await scroll.evaluate(element => element.scrollTo(0, 0));
-  const headerBefore = await page.getByRole("columnheader").first().boundingBox();
+  const [headerBefore, rowOneBefore] = await Promise.all([
+    page.getByRole("columnheader").first().boundingBox(),
+    rowButton(page, 0).locator("..").boundingBox(),
+  ]);
   const gridBefore = await grid(page).boundingBox();
   await scroll.evaluate(element => element.scrollTo(200, 300));
   await expect.poll(() => scroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
     .toEqual({ left: 200, top: 300 });
-  const headerAfter = await page.getByRole("columnheader").first().boundingBox();
+  const [headerAfter, rowOneAfter] = await Promise.all([
+    page.getByRole("columnheader").first().boundingBox(),
+    rowButton(page, 0).locator("..").boundingBox(),
+  ]);
   const stripAfter = await page.locator(".table-column-strip").boundingBox();
   expect(headerBefore!.y).toBeCloseTo(gridBefore!.y, 0);
   expect(stripAfter!.y).toBeCloseTo((await scroll.boundingBox())!.y, 0);
   expect(headerAfter!.y).toBeCloseTo(stripAfter!.y + stripAfter!.height + 8, 0);
+  expect(rowOneBefore!.y).toBeCloseTo(headerBefore!.y, 0);
+  expect(rowOneAfter!.y).toBeCloseTo(headerAfter!.y, 0);
+  expect(rowOneAfter!.height).toBeCloseTo(headerAfter!.height, 0);
   await scroll.evaluate(element => element.scrollTo(0, 0));
 
   await cell(page, 0, 0).click();
@@ -516,6 +555,20 @@ test("strip outlines remain rounded above their solid gap backing", async ({ pag
   expect(pixels.rowBottom).toEqual(pixels.rowDivider);
   expect(pixels.rowTopRound).toEqual(pixels.surface);
   expect(pixels.rowBottomRound).toEqual(pixels.surface);
+
+  await rowButton(page, 0).click({ button: "right" });
+  const selectedFirstRow = (await rowButton(page, 0).locator("..").boundingBox())!;
+  const selectedEndPixels = await screenshotPixels(page, {
+    surface: { x: 1, y: 1 },
+    topLeft: { x: selectedFirstRow.x + 1, y: selectedFirstRow.y + 1 },
+    topRight: { x: selectedFirstRow.x + selectedFirstRow.width - 2, y: selectedFirstRow.y + 1 },
+  });
+  for (const pixel of [selectedEndPixels.topLeft, selectedEndPixels.topRight]) {
+    const greatestDifference = Math.max(...pixel.slice(0, 3).map((channel, index) => (
+      Math.abs(channel - selectedEndPixels.surface[index])
+    )));
+    expect(greatestDifference).toBeLessThan(8);
+  }
 });
 
 // proofs/ui/templates/table.md#^table-ac-rows
@@ -601,6 +654,13 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   expect(after.side!.x).toBeCloseTo(scrollBox!.x, 0);
   expect(after.header!.y).toBeCloseTo(after.top!.y + after.top!.height + 8, 0);
   expect(after.rowOne!.y).toBeCloseTo(after.header!.y, 0);
+  const scrolledOutlinePixels = await screenshotPixels(page, {
+    surface: { x: scrollBox!.x + scrollBox!.width - 2, y: scrollBox!.y + scrollBox!.height - 2 },
+    top: { x: scrollBox!.x + scrollBox!.width / 2, y: after.top!.y },
+    side: { x: after.side!.x, y: scrollBox!.y + scrollBox!.height / 2 },
+  });
+  expect(scrolledOutlinePixels.top).not.toEqual(scrolledOutlinePixels.surface);
+  expect(scrolledOutlinePixels.side).not.toEqual(scrolledOutlinePixels.surface);
   const coveringBands = await page.evaluate(() => {
     const band = (selector: string, pseudo: "::before" | "::after", axis: "x" | "y") => {
       const element = document.querySelector<HTMLElement>(selector);
@@ -678,11 +738,16 @@ test("the full-edge table scroll keeps strips, header row and selection visible"
   }
   expect((await cell(page, 0, 0).locator("span").boundingBox())!.y
     - (await cell(page, 0, 0).boundingBox())!.y).toBe(9);
-  const rowOneAtOrigin = await cell(page, 0, 0).boundingBox();
+  const [rowOneAtOrigin, rowOneNumberAtOrigin] = await Promise.all([
+    cell(page, 0, 0).boundingBox(), rowButton(page, 0).locator("..").boundingBox(),
+  ]);
   await scroll.evaluate(element => element.scrollTo(0, 180));
   const headerOffScrollTop = await scroll.evaluate(element => element.scrollTop);
   await expect.poll(async () => (await cell(page, 0, 0).boundingBox())!.y)
     .toBeCloseTo(rowOneAtOrigin!.y - headerOffScrollTop, 0);
+  const rowOneNumberAfterScroll = await rowButton(page, 0).locator("..").boundingBox();
+  expect(rowOneNumberAfterScroll!.y).toBeCloseTo(rowOneNumberAtOrigin!.y - headerOffScrollTop, 0);
+  expect(rowOneNumberAfterScroll!.y).toBeCloseTo((await cell(page, 0, 0).boundingBox())!.y, 0);
 });
 
 // proofs/ui/templates/table.md#^table-ac-editing
@@ -693,6 +758,27 @@ test("clicks in all frozen strip gaps preserve the active editor", async ({ page
     cells: { c1: index === 0 ? "Heading" : `Row ${index + 1}` },
   }]));
   await open(page, { headerRow: true, columns, rows });
+  await cell(page, 0, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Origin gap draft");
+  const originWrites = writes().length;
+  const [originCorner, originTopStrip, originSideStrip] = await Promise.all([
+    page.locator(".table-reference-corner").boundingBox(),
+    page.locator(".table-column-strip").boundingBox(),
+    page.locator(".table-row-strip").boundingBox(),
+  ]);
+  const originCornerGap = {
+    x: (originCorner!.x + originCorner!.width + originTopStrip!.x) / 2,
+    y: (originCorner!.y + originCorner!.height + originSideStrip!.y) / 2,
+  };
+  expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.className ?? null, originCornerGap))
+    .toBe("table-reference-corner");
+  await page.mouse.click(originCornerGap.x, originCornerGap.y);
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Origin gap draft");
+  expect(writes()).toHaveLength(originWrites);
+  await editor(page).press("Escape");
+
   await page.locator(".table-scroll").evaluate(element => element.scrollTo(0, 180));
   await cell(page, 6, 1).click();
   await page.keyboard.press("Enter");
@@ -1229,15 +1315,18 @@ test("row and column selections clear, insert, add, delete and toggle through ca
   await expect(page.getByRole("menu", { name: "Row actions" }).getByText(/header row/i)).toHaveCount(0);
   await page.keyboard.press("Escape");
   await rowButton(page, 0).click({ button: "right" });
+  const mutedHeaderSurface = await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor);
   await page.getByRole("menu", { name: "Row actions" }).getByText("Remove header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(false);
   await expect(page.getByRole("columnheader")).toHaveCount(0);
+  expect(await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor)).not.toBe(mutedHeaderSurface);
   await expect(rowButton(page, 0)).toHaveText("1");
   const firstRowCells = await h.read(id, "rows/r1/cells");
   await rowButton(page, 0).click({ button: "right" });
   await page.getByRole("menu", { name: "Row actions" }).getByText("Make header row", { exact: true }).click();
   await expect.poll(() => h.read(id, "headerRow")).toBe(true);
   await expect(cell(page, 0, 0)).toHaveAttribute("role", "columnheader");
+  expect(await cell(page, 0, 0).evaluate(element => getComputedStyle(element).backgroundColor)).toBe(mutedHeaderSurface);
   await expect(rowButton(page, 0)).toHaveText("1");
   expect(await h.read(id, "rows/r1/cells")).toEqual(firstRowCells);
 
@@ -1401,6 +1490,137 @@ test("a grid key returns focus to an editor stranded by another button press", a
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
 });
 
+// proofs/ui/templates/table.md#^table-ac-resizing
+// proofs/arch/templates/table.md#^templates-table-t-write-scope
+test("pointer and keyboard resizing save scoped clamped sizes", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 1, 1).click();
+  await page.keyboard.press("Enter");
+  await editor(page).fill("Committed before resize");
+  const columnStart = await startResize(page, "column", 0);
+  await expect(editor(page)).toHaveCount(0);
+  await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Committed before resize");
+  await page.mouse.move(columnStart.x + 70, columnStart.y, { steps: 2 });
+  expect((await cell(page, 1, 0).boundingBox())!.width).toBeCloseTo(230, 0);
+  await expect(cell(page, 1, 1)).toHaveAttribute("data-selection", "cell");
+  await page.mouse.up();
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(230);
+
+  const beforeUnchangedRelease = writes().length;
+  await startResize(page, "column", 0);
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeUnchangedRelease);
+
+  await dragResize(page, "column", 3, -120);
+  await expect.poll(() => h.read(id, "columns/c4/width")).toBe(64);
+  await dragResize(page, "row", 0, 14);
+  await expect.poll(() => h.read(id, "rows/r1/height")).toBe(52);
+  await dragResize(page, "row", 6, 300);
+  await expect.poll(() => h.read(id, "rows/r7/height")).toBe(240);
+
+  await columnButton(page, "A").click();
+  const beforeColumnKey = writes().length;
+  await page.keyboard.press("+");
+  await expect.poll(() => h.read<number>(id, "columns/c1/width")).toBeGreaterThan(230);
+  expect(writes()).toHaveLength(beforeColumnKey + 1);
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /pixels wide/);
+  await expect(page.locator(".table-resize-announcement")).toContainText(/Column A, \d+ pixels wide/);
+  await page.keyboard.press("-");
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(230);
+
+  await h.set(id, 28, "rows/r1/height");
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /28 pixels tall/);
+  await rowButton(page, 0).click();
+  const beforeMinimumKey = writes().length;
+  await page.keyboard.press("-");
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeMinimumKey);
+
+  await rowButton(page, 1).click();
+  await rowButton(page, 2).click({ modifiers: ["Shift"] });
+  const beforeRangeKey = writes().length;
+  await page.keyboard.press("+");
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeRangeKey);
+
+  await h.set(id, { columns: {}, rows: {} });
+  await expect(cell(page, 2, 2)).toBeVisible();
+  await columnButton(page, "C").click();
+  const beforeDrawnColumn = writes().length;
+  await dragResize(page, "column", 2, 60);
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.columns).length).toBe(3);
+  const drawnColumns = (await h.read<TableData>(id))!.columns;
+  const resizedColumn = Object.entries(drawnColumns).find(([, column]) => column.width === 220);
+  expect(resizedColumn).toBeDefined();
+  await expect(columnButton(page, "C")).toHaveAttribute("aria-pressed", "true");
+  const drawnColumnWrites = writes().slice(beforeDrawnColumn);
+  expect(drawnColumnWrites).toHaveLength(1);
+  expect(updateKeys(drawnColumnWrites[0]!)).toEqual(Object.keys(drawnColumns).map(key => `columns/${key}`).sort());
+
+  await rowButton(page, 2).click();
+  await page.keyboard.press("+");
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.rows).length).toBe(3);
+  await expect(rowButton(page, 2)).toHaveAttribute("aria-pressed", "true");
+  const storedRowKey = Object.entries((await h.read<TableData>(id))!.rows)
+    .find(([, row]) => row.height !== undefined)?.[0];
+  expect(storedRowKey).toBeDefined();
+  const firstHeight = await h.read<number>(id, `rows/${storedRowKey}/height`);
+  await page.keyboard.press("+");
+  await expect.poll(() => h.read<number>(id, `rows/${storedRowKey}/height`)).toBeGreaterThan(firstHeight!);
+});
+
+// proofs/ui/templates/table.md#^table-ac-resizing
+// proofs/ui/templates/table.md#^table-ac-live
+test("resizing reconciles concurrent, access and disconnected changes", async ({ page }) => {
+  const id = await open(page);
+  await cell(page, 1, 1).click();
+  const sameField = await startResize(page, "column", 0);
+  await page.mouse.move(sameField.x + 40, sameField.y, { steps: 2 });
+  await h.set(id, 300, "columns/c1/width");
+  expect((await cell(page, 1, 0).boundingBox())!.width).toBeCloseTo(200, 0);
+  await page.mouse.up();
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(200);
+  await expect(cell(page, 1, 1)).toHaveAttribute("data-selection", "cell");
+
+  const unrelated = await startResize(page, "column", 0);
+  await page.mouse.move(unrelated.x + 24, unrelated.y, { steps: 2 });
+  await h.set(id, 280, "columns/c2/width");
+  await page.mouse.up();
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(224);
+  expect(await h.read(id, "columns/c2/width")).toBe(280);
+
+  const beforeRemovedTarget = writes().length;
+  const removed = await startResize(page, "row", 1);
+  await page.mouse.move(removed.x, removed.y + 20);
+  await h.remove(id, "rows/r2");
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeRemovedTarget);
+
+  await h.set(id, { columns: { c1: { order: 1 } }, rows: { r1: { order: 1, cells: {} } } });
+  const beforeDrawnIdentity = writes().length;
+  const drawn = await startResize(page, "row", 2);
+  await page.mouse.move(drawn.x, drawn.y + 20);
+  await h.set(id, { order: 2, cells: {} }, "rows/agent-row");
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeDrawnIdentity);
+
+  const beforeDisconnected = writes().length;
+  const disconnected = await startResize(page, "column", 0);
+  await page.mouse.move(disconnected.x + 30, disconnected.y);
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await page.mouse.up();
+  expect(writes()).toHaveLength(beforeDisconnected);
+  h.proxy.refuse(false);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await dragResize(page, "column", 0, 30);
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(190);
+});
+
 // proofs/arch/templates/table.md#^templates-table-t-write-scope
 // proofs/arch/templates/table.md#^templates-table-t-transaction
 test("late descendant writes stay ignored and renumbering retries before deferred writes", async ({ page }) => {
@@ -1416,10 +1636,10 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await expect(page.locator('[data-row-key="r1"]')).toHaveCount(0);
   await expect(grid(page)).toBeVisible();
   await expect(page.locator('[data-row-key="r2"]')).toHaveCount(4);
-  await expect(cell(page, 0, 0)).toHaveText("Arches");
+  await expect(cell(page, 0, 0)).toHaveText("Acadia");
 
   const renumbered = {
-    columns: { c1: { order: 0, name: "A" } },
+    columns: { c1: { order: 0, retained: "column" } },
     rows: {
       a: { order: 0, cells: {}, retained: "first" },
       b: { order: Number.MAX_VALUE, cells: {}, retained: "last" },
@@ -1466,6 +1686,28 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   expect(writes().filter(write => write.kind === "compare-and-set" && write.path === "rows").length)
     .toBeGreaterThan(transactionsBeforeAppend);
 
+  const resizeRenumber: TableData = {
+    columns: { c1: { order: Number.MAX_VALUE, retained: "column" } },
+    rows: { r1: { order: 0, cells: {} } },
+  };
+  await h.set(id, resizeRenumber);
+  await expect(cell(page, 0, 1)).toBeVisible();
+  const beforeResizeTransaction = writes().length;
+  h.proxy.holdWrites();
+  await dragResize(page, "column", 1, 40);
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.set(id, { order: 7, width: 111, agent: true }, "columns/agent");
+  h.proxy.releaseWrites();
+  await expect.poll(async () => Object.values((await h.read<TableData>(id))!.columns)
+    .some(column => column.width === 200)).toBe(true);
+  const resizeColumns = (await h.read<TableData>(id))!.columns;
+  expect(resizeColumns.c1).toMatchObject({ order: 1, retained: "column" });
+  expect(resizeColumns.agent).toMatchObject({ order: 0, width: 111, agent: true });
+  expect(Object.values(resizeColumns).find(column => column.width === 200)).toMatchObject({ order: 2, width: 200 });
+  const resizeWrites = writes().slice(beforeResizeTransaction);
+  expect(resizeWrites.length).toBeGreaterThanOrEqual(2);
+  expect(resizeWrites.every(write => write.kind === "compare-and-set" && write.path === "columns")).toBe(true);
+
   const drawn: TableData = {
     columns: { c1: { order: Number.MAX_VALUE } },
     rows: { r1: { order: 0, cells: {} } },
@@ -1504,12 +1746,14 @@ test("late descendant writes stay ignored and renumbering retries before deferre
   await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
   await expect.poll(async () => Object.values((await h.read<TableData>(id))!.columns)
     .map(column => column.order).sort((left, right) => left - right)).toEqual([0, 1]);
+  await expect(status(page)).toHaveText("Couldn't save that change.");
   await h.set(id, drawn);
   await expect(grid(page)).toBeVisible();
   const guardedWrites = writes().slice(beforeUnreadableAxis);
   expect(guardedWrites).toHaveLength(1);
   expect(guardedWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
 
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
   await h.set(id, drawn);
   await expect(cell(page, 0, 1)).toBeVisible();
   const beforeAbort = writes().length;
@@ -1552,6 +1796,12 @@ test("agent commands and a second viewer update live while stored-key edits stay
   await h.set(id, "Agent same field", "rows/r2/cells/c2");
   await expect(editor(page)).toHaveValue("Local draft");
   expect(await editor(page).evaluate((element: HTMLTextAreaElement) => element.selectionStart)).toBe(5);
+  await h.set(id, 210, "columns/c1/width");
+  await h.set(id, 60, "rows/r1/height");
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /210 pixels wide/);
+  await expect(rowButton(page, 1)).toHaveAttribute("aria-description", /60 pixels tall/);
+  await expect(editor(page)).toBeFocused();
+  await expect(editor(page)).toHaveValue("Local draft");
   await editor(page).press("Enter");
   await expect.poll(() => h.read(id, "rows/r2/cells/c2")).toBe("Local draft");
 
@@ -1654,9 +1904,9 @@ test("live selection follows stored keys and closes with its menu when the key i
   await rowButton(page, 0).click();
   await rowButton(page, 2).click({ modifiers: ["Shift"] });
   await rowButton(page, 2).click({ button: "right" });
-  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-rows-reference-3");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-row-reference-3");
   await h.set(id, -1, "rows/r3/order");
-  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-rows-reference-1");
+  await expect(page.getByRole("menu", { name: "Row actions" })).toHaveAttribute("trigger", "table-row-reference-1");
   await page.keyboard.press("Escape");
 
   await h.set(id, fixture());
@@ -1667,7 +1917,7 @@ test("live selection follows stored keys and closes with its menu when the key i
   await page.keyboard.press("Shift+F10");
   await expect(page.getByRole("menu", { name: "Row actions" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Insert row above" })).toBeFocused();
-  await h.set(id, "Destination", "columns/c1/name");
+  await h.set(id, 181, "columns/c1/width");
   await expect(page.getByRole("menuitem", { name: "Insert row above" })).toBeFocused();
   await h.remove(id, "rows/r2");
   await expect(page.getByRole("menu", { name: "Row actions" })).toHaveCount(0);
@@ -1691,6 +1941,12 @@ test("real share access changes preserve a navigable read-only table and close w
   await expect(editor(page)).toHaveCount(0);
   await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Add row at end" })).toHaveCount(0);
+  await expect(page.locator(".table-column-resize-handle, .table-row-resize-handle")).toHaveCount(0);
+  const beforeReadOnlyResize = writes().length;
+  await columnButton(page, "A").click();
+  await page.keyboard.press("+");
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeReadOnlyResize);
   expect(await h.read(id, "rows/r2/cells/c3")).toBe(true);
   await h.set(id, "Agent update", "rows/r2/cells/c3");
   await expect(cell(page, 1, 2)).toHaveText("Agent update");
@@ -1719,13 +1975,28 @@ test("real share access changes preserve a navigable read-only table and close w
   await editor(page).press("Enter");
   await expect.poll(() => h.read(id, "rows/r2/cells/c3")).toBe("Shared edit");
 
+  const beforeLostAccessResize = writes().length;
+  const accessResize = await startResize(page, "column", 0);
+  await page.mouse.move(accessResize.x + 32, accessResize.y);
+  await h.client.resources.share({ artifactID: id, access: "read" });
+  await expect(page.locator(".table-column-resize-handle")).toHaveCount(0);
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeLostAccessResize);
+  expect(await h.read(id, "columns/c1/width")).toBeUndefined();
+
+  await h.client.resources.share({ artifactID: id, access: "read-write" });
+  await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
+  await dragResize(page, "column", 0, 24);
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(184);
+
   await cell(page, 1, 1).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Discarded draft");
   await h.client.resources.share({ artifactID: id, access: "read" });
   await expect(editor(page)).toHaveCount(0);
   await expect(cell(page, 1, 1)).toBeFocused();
-  expect(await h.read(id, "rows/r2/cells/c2")).toBe("Utah");
+  expect(await h.read(id, "rows/r2/cells/c2")).toBe("Maine");
 
   await h.client.resources.share({ artifactID: id, access: "read-write" });
   await expect(page.locator(".table-page")).toHaveAttribute("data-editable", "true");
@@ -1765,11 +2036,23 @@ test("real share access changes preserve a navigable read-only table and close w
 });
 
 // proofs/ui/templates/table.md#^table-ac-loading
-test("first load keeps one status region through disconnection and recovery", async ({ page }) => {
+test("first load keeps one status region through disconnection and recovery", async ({ page, context }) => {
   const id = await h.createStored(fixture());
+  const blankID = await h.createStored({ columns: {}, rows: {} });
+  const reference = await context.newPage();
+  await h.open(reference, id);
+  await expect(grid(reference)).toBeVisible();
+  const populatedGridBox = (await grid(reference).boundingBox())!;
+  await h.open(reference, blankID);
+  await expect(grid(reference)).toBeVisible();
+  const blankGridBox = (await grid(reference).boundingBox())!;
+  expect({ x: populatedGridBox.x, y: populatedGridBox.y }).toEqual({ x: blankGridBox.x, y: blankGridBox.y });
+  await reference.close();
   h.proxy.hold("to-browser");
   await h.open(page, id);
   await expect(page.locator(".table-loading")).toBeVisible();
+  const loadingBox = (await page.locator(".table-loading").boundingBox())!;
+  expect({ x: loadingBox.x, y: loadingBox.y }).toEqual({ x: populatedGridBox.x, y: populatedGridBox.y });
   await page.evaluate(() => Object.assign(window, { tableStatusRegion: document.querySelector(".table-status") }));
   await h.proxy.waitFor(() => h.proxy.openWebSockets > 0);
   h.proxy.refuse(true);
@@ -1799,6 +2082,24 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
 
+  const beforeInterruptedResize = writes().length;
+  const interruptedResize = await startResize(page, "column", 0);
+  await page.mouse.move(interruptedResize.x + 30, interruptedResize.y);
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  await expect(page.locator(".table-column-resize-handle")).toHaveCount(0);
+  await page.mouse.up();
+  await columnButton(page, "A").click();
+  await page.keyboard.press("+");
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeInterruptedResize);
+  expect(await h.read(id, "columns/c1/width")).toBeUndefined();
+  h.proxy.refuse(false);
+  await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
+  await dragResize(page, "column", 0, 24);
+  await expect.poll(() => h.read(id, "columns/c1/width")).toBe(184);
+
   await cell(page, 0, 0).click();
   await page.keyboard.press("Enter");
   await editor(page).fill("Offline draft");
@@ -1812,7 +2113,7 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await cell(page, 1, 1).click();
   await expect(editor(page)).toHaveValue("Offline draft");
   await expect(editor(page)).toBeFocused();
-  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
   await editor(page).press("Escape");
   await expect(cell(page, 0, 0)).toHaveAttribute("data-selection", "cell");
   await page.keyboard.press("Enter");
@@ -1838,10 +2139,31 @@ test("disconnection keeps an open editor, blocks commits and rolls back an unack
   await expect(status(page)).toHaveText("Reconnecting…");
   await expect(cell(page, 0, 0)).toHaveText("Confirmed online");
   await expect(editor(page)).toHaveCount(0);
+  h.proxy.releaseWrites();
   h.proxy.refuse(false);
   await expect(page.getByRole("button", { name: "Add row at end" })).toBeVisible();
   expect(await status(page).textContent()).toBe("");
   expect(await h.read(id, "rows/r1/cells/c1")).toBe("Confirmed online");
+
+  await h.set(id, {
+    columns: { c1: { order: Number.MAX_VALUE } },
+    rows: { r1: { order: 0, cells: {} } },
+  });
+  await expect(cell(page, 0, 1)).toBeVisible();
+  const connection = h.proxy.messages.filter(({ message }) => message.type === "subscribe").at(-1)!.connection;
+  h.proxy.holdServerMessages(connection, message => message.type === "applied");
+  await cell(page, 0, 1).click();
+  await page.keyboard.type("Held follow-up");
+  await editor(page).press("Enter");
+  await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) === 1);
+  await expect.poll(async () => Object.keys((await h.read<TableData>(id))!.columns).length).toBe(2);
+  h.proxy.refuse(true);
+  h.proxy.sever();
+  await expect(status(page)).toHaveText("Reconnecting…");
+  h.proxy.releaseServerMessages(connection);
+  expect(await h.read(id, "rows/r1/cells")).toEqual({});
+  h.proxy.refuse(false);
+  await expect(status(page)).toHaveText("Couldn't save that change.");
 });
 
 // proofs/ui/templates/table.md#^table-ac-save-failure
@@ -1862,7 +2184,7 @@ test("a refused save and aborted renumbering use the established failure status"
   await h.proxy.waitFor(() => h.proxy.heldServerMessageCount(connection) > 0);
   h.proxy.releaseWrites();
   await expect(status(page)).toHaveText("Couldn't save that change.");
-  await expect(cell(page, 3, 1)).toHaveText("Washington");
+  await expect(cell(page, 3, 1)).toHaveText("Florida");
   expect(await page.evaluate(() => document.querySelector(".table-status") === (window as unknown as { tableStatusRegion: Element }).tableStatusRegion)).toBe(true);
   h.proxy.releaseServerMessages(connection);
   await h.client.resources.share({ artifactID: id, access: "read-write" });
@@ -1916,6 +2238,23 @@ test("a refused save and aborted renumbering use the established failure status"
   await expect(status(page)).toHaveText("", { timeout: 10_000 });
   await h.set(id, {
     columns: { c1: { order: Number.MAX_VALUE } },
+    rows: { r1: { order: 0, cells: {} } },
+  });
+  const beforeAbortedResize = writes().length;
+  h.proxy.holdWrites();
+  await dragResize(page, "column", 1, 40);
+  await h.proxy.waitFor(() => h.proxy.heldWriteCount === 1);
+  await h.set(id, "not an axis", "columns");
+  h.proxy.releaseWrites();
+  await expect.poll(() => h.proxy.heldWriteCount).toBe(0);
+  await expect(status(page)).toHaveText("Couldn't save that change.");
+  const abortedResizeWrites = writes().slice(beforeAbortedResize);
+  expect(abortedResizeWrites).toHaveLength(1);
+  expect(abortedResizeWrites[0]).toMatchObject({ kind: "compare-and-set", path: "columns" });
+
+  await expect(status(page)).toHaveText("", { timeout: 10_000 });
+  await h.set(id, {
+    columns: { c1: { order: Number.MAX_VALUE } },
     rows: { r1: { order: Number.MAX_VALUE, cells: {} } },
   });
   await cell(page, 1, 1).click();
@@ -1945,7 +2284,22 @@ test("unreadable data closes active UI, guards actions and recovers without repl
   expect(writes()).toHaveLength(beforeUnreadableDraft);
   await h.set(id, fixture());
   await expect(grid(page)).toBeVisible();
-  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Acadia");
+  expect(await h.read(id, "rows/r1/cells/c1")).toBe("Park");
+
+  await h.set(id, 0, "columns/c1/width");
+  await h.set(id, -1, "rows/r1/height");
+  await expect(columnButton(page, "A")).toHaveAttribute("aria-description", /160 pixels wide/);
+  await expect(rowButton(page, 0)).toHaveAttribute("aria-description", /38 pixels tall/);
+  const beforeUnreadableResize = writes().length;
+  const unreadableResize = await startResize(page, "row", 0);
+  await page.mouse.move(unreadableResize.x, unreadableResize.y + 30);
+  await h.set(id, "not rows", "rows");
+  await expect(page.getByRole("alert")).toBeVisible();
+  await page.mouse.up();
+  await page.waitForTimeout(100);
+  expect(writes()).toHaveLength(beforeUnreadableResize);
+  await h.set(id, fixture().rows, "rows");
+  await expect(grid(page)).toBeVisible();
 
   h.proxy.holdWrites();
   await cell(page, 0, 0).click();
@@ -1983,7 +2337,7 @@ test("unreadable data closes active UI, guards actions and recovers without repl
 // proofs/ui/templates/table.md#^table-ac-unreadable
 test("unreadable and unavailable states survive disconnection and recover", async ({ page }) => {
   const id = await open(page);
-  await h.set(id, { columns: { broken: { name: "Ignored" } }, rows: { r1: { order: 1, cells: { missing: "Ignored" } } } });
+  await h.set(id, { columns: { broken: { ignored: "value" } }, rows: { r1: { order: 1, cells: { missing: "Ignored" } } } });
   await expect(grid(page)).toBeVisible();
   await expect(page.locator('[data-row-key="r1"]')).toHaveCount(4);
 

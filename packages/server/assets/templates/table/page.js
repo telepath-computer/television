@@ -5,7 +5,7 @@ import {
 } from "/sdk/v1/resources.js";
 import {
   AXIS_SIZES, MINIMUM_AXIS_SIZE, createAxisRenumberUpdate, displayAxis, planAdd,
-  planCellCommit, planClear, planDelete, planInsert, planSetHeader, readTable,
+  planCellCommit, planClear, planDelete, planInsert, planResize, planSetHeader, readTable,
 } from "./model.js";
 import {
   cellSelectionAt, enterTable, moveSelection, reconcileSelection,
@@ -14,6 +14,7 @@ import {
 
 const main = document.querySelector(".table-page");
 const statusRegion = main.querySelector(".table-status");
+const resizeAnnouncement = main.querySelector(".table-resize-announcement");
 const store = getStore();
 const root = ref(store);
 
@@ -28,7 +29,9 @@ let unsubscribe = null;
 let selection = null;
 let editing = null;
 let menu = null;
+let resizing = null;
 let failure = false;
+let failureAfterReconnect = false;
 let failureTimer;
 let suppressGridEntry = false;
 // A pointer press outside the editor lets the click handler choose what follows
@@ -45,12 +48,6 @@ const rejectedNoWriteReasons = new Set([
   "unreadable", "invalid-target", "invalid-selection", "missing-keys", "invalid-keys",
   "multiple-renumbering-required",
 ]);
-
-function cssPixels(property) {
-  const value = Number.parseFloat(getComputedStyle(main).getPropertyValue(property));
-  if (!Number.isFinite(value)) throw new Error(`Table CSS property ${property} is not a pixel length`);
-  return value;
-}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -139,7 +136,7 @@ function referenceButton(kind, index) {
   const label = isRows ? `Select row ${index + 1}` : `Select column ${columnLetter(index)}`;
   const anchorId = selection?.kind === kind ? selection.anchorId : null;
   const item = axes()[kind][index];
-  const size = isRows ? item.height ?? AXIS_SIZES.rows.defaultValue : item.width ?? AXIS_SIZES.columns.defaultValue;
+  const size = displayedSize(kind, index);
   const axisName = isRows ? "row" : "column";
   const dimension = isRows ? "tall" : "wide";
   const description = `${size} pixels ${dimension}.${canWrite() ? " Select this " + axisName + ", then use plus or minus to resize." : ""}`;
@@ -153,6 +150,13 @@ function referenceButton(kind, index) {
       tabindex="${anchorId === item?.id ? 0 : -1}">${isRows ? index + 1 : columnLetter(index)}</button>
     ${canWrite() ? `<span class="table-${axisName}-resize-handle" aria-hidden="true"></span>` : ""}
   </div>`;
+}
+
+function displayedSize(kind, index) {
+  const item = axes()[kind][index];
+  if (resizing?.axis === kind && resizing.targetId === item?.id) return resizing.previewSize;
+  const rules = AXIS_SIZES[kind];
+  return item?.[rules.field] ?? rules.defaultValue;
 }
 
 function bodyCellText(rowIndex, columnKey) {
@@ -213,6 +217,14 @@ function selectionAtSamePosition(selected, sourceAxes, targetAxes) {
   if (selected?.kind === "cell") {
     return cellSelectionAt(targetAxes, indexOf(sourceAxes.rows, selected.rowId), indexOf(sourceAxes.columns, selected.columnId));
   }
+  if (selected?.kind === "rows" || selected?.kind === "columns") {
+    const sourceItems = sourceAxes[selected.kind];
+    const anchorIndex = indexOf(sourceItems, selected.anchorId);
+    const activeIndex = indexOf(sourceItems, selected.activeId);
+    if (anchorIndex < 0 || activeIndex < 0) return null;
+    const anchor = selectAxis(null, selected.kind, anchorIndex, false, targetAxes);
+    return anchor && selectAxis(anchor, selected.kind, activeIndex, true, targetAxes);
+  }
   return null;
 }
 
@@ -220,7 +232,9 @@ function replaceContents(markup) {
   menuObserver?.disconnect();
   menuObserver = null;
   rendering = true;
-  for (const child of [...main.children]) if (child !== statusRegion) child.remove();
+  for (const child of [...main.children]) {
+    if (child !== statusRegion && child !== resizeAnnouncement) child.remove();
+  }
   statusRegion.insertAdjacentHTML("beforebegin", markup);
   rendering = false;
   const menuElement = main.querySelector("tv-menu");
@@ -243,12 +257,15 @@ function keepClearOfFrozenAreas(target) {
   const targetBox = target.getBoundingClientRect();
   const columnStripBox = main.querySelector(".table-column-strip")?.getBoundingClientRect();
   const rowStripBox = main.querySelector(".table-row-strip")?.getBoundingClientRect();
+  const sheet = main.querySelector(".table-sheet");
+  const sheetStyle = sheet instanceof HTMLElement ? getComputedStyle(sheet) : null;
+  const columnGap = Number.parseFloat(sheetStyle?.columnGap ?? "0");
+  const rowGap = Number.parseFloat(sheetStyle?.rowGap ?? "0");
   const headerBox = model?.headerRow && !target.closest('[data-row-index="0"]')
     ? main.querySelector('[data-cell][data-row-index="0"]')?.getBoundingClientRect() : null;
-  const referenceGap = cssPixels("--reference-gap");
-  const minimumX = (rowStripBox?.right ?? scrollBox.left) + referenceGap;
+  const minimumX = (rowStripBox?.right ?? scrollBox.left) + columnGap;
   const minimumY = Math.max(
-    (columnStripBox?.bottom ?? scrollBox.top) + referenceGap,
+    (columnStripBox?.bottom ?? scrollBox.top) + rowGap,
     headerBox?.bottom ?? scrollBox.top,
   );
   let left = 0;
@@ -301,10 +318,10 @@ function render(focus = "none", nextAxes = buildAxes()) {
   const editable = canWrite();
   main.dataset.editable = String(editable);
   main.dataset.headerRow = String(model.headerRow);
-  const columnWidths = displayed.columns.map(column => column.width ?? AXIS_SIZES.columns.defaultValue);
+  const columnWidths = displayed.columns.map((_, index) => displayedSize("columns", index));
   const gridWidth = columnWidths.reduce((sum, width) => sum + width, 0);
   const rowNumberDigits = String(displayed.rows.length).length;
-  const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${row.height ?? AXIS_SIZES.rows.defaultValue}px">
+  const body = displayed.rows.map((row, rowIndex) => `<tr aria-rowindex="${rowIndex + 1}" style="--table-current-row-height: ${displayedSize("rows", rowIndex)}px">
     ${displayed.columns.map((column, columnIndex) => bodyCell(row, column, rowIndex, columnIndex)).join("")}</tr>`).join("");
   replaceContents(`<div class="table-frame">
     <div class="table-scroll"><div class="table-sheet" style="--table-grid-width: ${gridWidth}px; --table-row-reference-digits: ${rowNumberDigits}">
@@ -394,6 +411,13 @@ function renderStatus() {
   if (statusRegion.textContent !== message) statusRegion.textContent = message;
 }
 
+function announceResize(axis, index, size) {
+  if (!(resizeAnnouncement instanceof HTMLElement)) return;
+  const label = axis === "rows" ? `Row ${index + 1}` : `Column ${columnLetter(index)}`;
+  const dimension = axis === "rows" ? "tall" : "wide";
+  resizeAnnouncement.textContent = `${label}, ${size} pixels ${dimension}`;
+}
+
 function startWithActionEcho(start, actionEcho) {
   pageActionSelection = actionEcho;
   try {
@@ -405,6 +429,7 @@ function startWithActionEcho(start, actionEcho) {
 
 async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalApply = null) {
   if (!canWrite()) return false;
+  let followUpStarted = false;
   const actionVersion = interactionVersion;
   const currentPageActionSelection = echoSelection
     ? nextAxes => {
@@ -429,18 +454,85 @@ async function applyPlan(plan, echoSelection = null, focusEcho = true, onLocalAp
       onLocalApply?.();
       const outcome = await pending;
       if (!outcome.committed) { showFailure(); return false; }
-      if (unavailable || model === null) return false;
+      if (!canWrite()) {
+        if (connection === "disconnected") failureAfterReconnect = true;
+        else showFailure();
+        return false;
+      }
+      if (plan.operations.length > 0) {
+        // Let access, connection and value notifications queued with the
+        // transaction acknowledgement reach the write guard first.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (!canWrite()) {
+          if (connection === "disconnected") failureAfterReconnect = true;
+          else showFailure();
+          return false;
+        }
+      }
     }
     if (plan.operations.length > 0) {
+      followUpStarted = plan.kind === "renumber";
       const pending = startWithActionEcho(() => applyOperations(plan.operations), currentPageActionSelection);
       if (plan.kind !== "renumber") onLocalApply?.();
       await pending;
     }
     return true;
   } catch (error) {
-    if (error?.code !== "disconnected") showFailure();
+    if (error?.code === "disconnected") {
+      if (plan.kind === "renumber" && plan.operations.length > 0 && !followUpStarted) {
+        if (connection === "disconnected") failureAfterReconnect = true;
+        else showFailure();
+      }
+    } else showFailure();
     return false;
   }
+}
+
+function beginResize(axis, index, pointerPosition, pointerId) {
+  if (!canWrite()) return;
+  const item = axes()[axis][index];
+  if (!item) return;
+  const openedSize = displayedSize(axis, index);
+  resizing = {
+    axis, targetId: item.id, index, openedSize, previewSize: openedSize,
+    pointerPosition, pointerId,
+  };
+}
+
+function reconcileResizing(displayed) {
+  if (!resizing) return;
+  const index = indexOf(displayed[resizing.axis], resizing.targetId);
+  if (index < 0) resizing = null;
+  else resizing.index = index;
+}
+
+async function finishResize() {
+  if (!resizing) return;
+  const active = resizing;
+  resizing = null;
+  const currentIndex = indexOf(axes()[active.axis], active.targetId);
+  if (!canWrite() || currentIndex < 0) { render(); return; }
+  const beforeSave = axes();
+  const selected = selection;
+  const plan = planResize(value, active.axis, currentIndex, active.openedSize, active.previewSize, reserveKeys(active.axis));
+  const saved = await applyPlan(plan, nextAxes => selectionAtSamePosition(selected, beforeSave, nextAxes));
+  render();
+  if (!saved) return;
+  const currentSize = displayedSize(active.axis, Math.min(currentIndex, axes()[active.axis].length - 1));
+  announceResize(active.axis, currentIndex, currentSize);
+}
+
+async function resizeSelection(direction) {
+  if (!canWrite() || (selection?.kind !== "rows" && selection?.kind !== "columns") || selection.ids.length !== 1) return;
+  const index = indexOf(axes()[selection.kind], selection.anchorId);
+  if (index < 0) return;
+  const openedSize = displayedSize(selection.kind, index);
+  const selected = selection;
+  const beforeSave = axes();
+  const plan = planResize(value, selection.kind, index, openedSize, openedSize + direction * 8, reserveKeys(selection.kind));
+  const saved = await applyPlan(plan, nextAxes => selectionAtSamePosition(selected, beforeSave, nextAxes));
+  if (!saved) return;
+  announceResize(selected.kind, index, displayedSize(selected.kind, index));
 }
 
 function beginEditing(rowIndex, columnIndex, replacement) {
@@ -568,6 +660,23 @@ main.addEventListener("input", event => {
 });
 
 main.addEventListener("click", event => { void handleClick(event); });
+
+main.addEventListener("pointerdown", event => {
+  if (!(event.target instanceof Element) || event.button !== 0) return;
+  const columnHandle = event.target.closest(".table-column-resize-handle");
+  const rowHandle = event.target.closest(".table-row-resize-handle");
+  const handle = columnHandle ?? rowHandle;
+  if (!handle) return;
+  event.preventDefault();
+  const axis = columnHandle ? "columns" : "rows";
+  const item = handle.parentElement;
+  const index = item ? [...item.parentElement.children].indexOf(item) : -1;
+  if (index < 0) return;
+  const pointerPosition = axis === "columns" ? event.clientX : event.clientY;
+  const start = () => beginResize(axis, index, pointerPosition, event.pointerId);
+  if (editing) void commitEditing(null, false, start);
+  else start();
+});
 
 async function handleClick(event) {
   if (!(event.target instanceof Element) || event.target instanceof HTMLTextAreaElement) return;
@@ -732,6 +841,12 @@ main.addEventListener("keydown", event => {
     return;
   }
   if (selection.kind === "rows" || selection.kind === "columns") {
+    if ((event.key === "+" || event.key === "Add" || event.key === "-" || event.key === "Subtract")
+        && selection.ids.length === 1) {
+      event.preventDefault();
+      void resizeSelection(event.key === "+" || event.key === "Add" ? 1 : -1);
+      return;
+    }
     if (["Enter", "F2", " "].includes(event.key) || event.key.length === 1) event.preventDefault();
   } else if (event.key === "Process" || event.isComposing) {
     const position = selectedCellPosition();
@@ -795,7 +910,24 @@ document.addEventListener("pointerdown", event => {
 }, { capture: true });
 
 document.addEventListener("pointerup", () => { pointerMovedFocus = false; }, { capture: true });
-document.addEventListener("pointercancel", () => { pointerMovedFocus = false; }, { capture: true });
+document.addEventListener("pointermove", event => {
+  if (!resizing || event.pointerId !== resizing.pointerId) return;
+  const rules = AXIS_SIZES[resizing.axis];
+  const position = resizing.axis === "columns" ? event.clientX : event.clientY;
+  resizing.previewSize = Math.max(rules.minimum, Math.min(rules.maximum,
+    resizing.openedSize + position - resizing.pointerPosition));
+  render();
+}, { capture: true });
+document.addEventListener("pointerup", event => {
+  if (resizing && event.pointerId === resizing.pointerId) void finishResize();
+}, { capture: true });
+document.addEventListener("pointercancel", event => {
+  pointerMovedFocus = false;
+  if (resizing && event.pointerId === resizing.pointerId) {
+    resizing = null;
+    render();
+  }
+}, { capture: true });
 
 document.addEventListener("click", event => {
   if (!(event.target instanceof Element)
@@ -819,6 +951,7 @@ function acceptValue(next) {
   unavailable = false;
   model = readTable(value);
   const nextAxes = buildAxes();
+  reconcileResizing(nextAxes);
   let focus = "none";
   if (model !== null) {
     editing = reconcileEditing(editing, nextAxes);
@@ -842,6 +975,7 @@ function acceptValue(next) {
     selection = null;
     editing = null;
     menu = null;
+    resizing = null;
   }
   render(focus, nextAxes);
 }
@@ -854,6 +988,7 @@ function subscribe() {
     selection = null;
     editing = null;
     menu = null;
+    resizing = null;
     render();
   });
 }
@@ -865,6 +1000,7 @@ function updateAccess(level) {
   if (level !== "read-write") {
     editing = null;
     menu = null;
+    resizing = null;
   }
   if (level !== null && connection === "connected") subscribe();
   render();
@@ -877,7 +1013,12 @@ onConnectionStatusChanged(status => {
   if (status !== "connected") {
     access = null;
     menu = null;
+    resizing = null;
   } else {
+    if (failureAfterReconnect) {
+      failureAfterReconnect = false;
+      showFailure();
+    }
     if (accessKnown) getAccess().then(updateAccess, () => {});
     subscribe();
   }

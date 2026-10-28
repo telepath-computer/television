@@ -97,7 +97,7 @@ textarea {
 .table-reference-corner::after {
   position: absolute;
   top: 100%;
-  right: 0;
+  right: calc(-1 * var(--reference-gap));
   left: 0;
   height: var(--reference-gap);
   background: var(--color-surface);
@@ -298,6 +298,22 @@ textarea {
   color: var(--color-primary-text);
 }
 
+.table-column-strip > :first-child .table-reference-item {
+  border-radius: var(--control-radius) 0 0 var(--control-radius);
+}
+
+.table-column-strip > :last-child .table-reference-item {
+  border-radius: 0 var(--control-radius) var(--control-radius) 0;
+}
+
+.table-row-strip > :first-child .table-reference-item {
+  border-radius: var(--control-radius) var(--control-radius) 0 0;
+}
+
+.table-row-strip > :last-child .table-reference-item {
+  border-radius: 0 0 var(--control-radius) var(--control-radius);
+}
+
 .table-add-item {
   color: var(--color-text-muted);
   font-size: var(--text-lg);
@@ -319,19 +335,16 @@ textarea {
   table-layout: fixed;
 }
 
-.table-grid th,
-.table-grid td { padding: 0; }
-
 .table-grid tbody td + td { border-left: 1px solid var(--color-border); }
 .table-grid tbody tr:first-child .table-cell {
-  padding-top: 8px !important;
+  padding-top: 8px;
   border-top: 1px solid var(--color-border);
 }
 
 .table-cell {
   position: relative;
   height: var(--table-current-row-height);
-  padding: 9px var(--space-12) 0 !important;
+  padding: 9px var(--space-12) 0;
   overflow: hidden;
   border-bottom: 1px solid var(--color-border);
   line-height: 18px;
@@ -428,6 +441,16 @@ textarea {
   border-top: 1px solid var(--color-border);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.table-resize-announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .table-status:empty {
