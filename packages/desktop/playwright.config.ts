@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import { defineConfig } from "@playwright/test";
 
 requiredURL("TV_DESKTOP_E2E_URL");

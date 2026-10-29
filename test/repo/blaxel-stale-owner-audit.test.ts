@@ -82,7 +82,9 @@ describe("Blaxel stale-owner audit", () => {
       expect(source.indexOf(later), `${later} must follow the audit branch`).toBeGreaterThan(auditBranch);
     }
     expect(source).toContain("acquireAny(sandboxes, { shardIndex: 1, slot: 0, requestedWorkers: 1, verifyArchitecture: false })");
-    expect(source).toContain("const setup = await runSystemDependencySetup(lease)");
+    const auditScript = source.slice(source.indexOf("const remoteScript = `${lease.input.scratch}/audit.sh`"), source.indexOf("const rawLogs =", source.indexOf("async function runStaleOwnerAudit")));
+    expect(auditScript.indexOf("systemDependenciesCommand()")).toBeLessThan(auditScript.indexOf("[command, ...args]"));
+    expect(auditScript).toContain('workerEntryCommand({ ...lease.input, processName }, remoteScript)');
     expect(source).toContain("run_step system-deps bash -lc ${shellQuote(systemDependenciesCommand())}");
     expect(source).toContain("apt-get install -y --no-install-recommends python3 xauth libgtk-3-0 libxtst6 iproute2");
     expect(source).not.toContain("psmisc");

@@ -9,7 +9,7 @@ import { createShardPlan } from "../../scripts/test/shard-plan.mjs";
 import { serializeTimingBaseline } from "../../scripts/test/timing-baseline.mjs";
 import fixtureConfig from "./fixtures/test-runner/shard-worker/config.mjs";
 
-// [[arch/test-runner/github-ci.md#^gha-prebuilt-cli-outputs|prebuilt output contract]]
+// Prebuilt output contract: proofs/arch/test-runner/github-ci.md#^gha-prebuilt-cli-outputs
 
 function runPrebuiltCli(args: string[]) {
   return spawnSync(process.execPath, ["scripts/test/prebuilt.mjs", ...args], { encoding: "utf8" });

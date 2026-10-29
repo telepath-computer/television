@@ -9,11 +9,13 @@ import { fileURLToPath } from "node:url";
 import { parseConnectURL } from "@telepath-computer/television-shared";
 import { spawnOwnedProcess, type OwnedProcess } from "./owned-process.ts";
 import { writeHomeConfig } from "./television-home.ts";
+import { WorkerBuilds } from "./worker-builds.ts";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(HERE, "../..");
 const CLI_BUILD_SCRIPT = path.join(REPO_ROOT, "packages/cli/build.mjs");
-let sourceCLIEntry: string | null = null;
+const sourceCLIBuilds = new WorkerBuilds("television-source-cli-e2e-");
+export const disposeSourceCLIBuilds = (): Promise<void> => sourceCLIBuilds.dispose();
 const serverStartupTimeoutMs = 30_000;
 
 export interface ProductServer {
@@ -64,16 +66,15 @@ export interface LaunchProductServerOptions {
   env?: Record<string, string>;
 }
 
-function getSourceCLIEntry(): string {
-  if (sourceCLIEntry) return sourceCLIEntry;
-  const buildDir = mkdtempSync(path.join(os.tmpdir(), "television-source-cli-e2e-"));
-  sourceCLIEntry = path.join(buildDir, "tv.cjs");
-  execFileSync(process.execPath, [CLI_BUILD_SCRIPT, "--outfile", sourceCLIEntry], {
-    cwd: REPO_ROOT,
-    stdio: "pipe",
+async function getSourceCLIEntry(): Promise<string> {
+  const buildDir = await sourceCLIBuilds.get("source", (directory) => {
+    execFileSync(process.execPath, [CLI_BUILD_SCRIPT, "--outfile", path.join(directory, "tv.cjs")], {
+      cwd: REPO_ROOT,
+      stdio: "pipe",
+    });
+    installProductRuntimeAssets(directory);
   });
-  installProductRuntimeAssets(buildDir);
-  return sourceCLIEntry;
+  return path.join(buildDir, "tv.cjs");
 }
 
 /**
@@ -81,28 +82,33 @@ function getSourceCLIEntry(): string {
  * The shared cached layout stays bundle-free so ordinary launches keep the
  * missing-bundle behavior.
  */
-function getCLIEntryWithBundles(options: {
+function getCLIEntryWithBundles(sharedEntry: string, options: {
   onboardingBundle?: string;
   bundledThemesBundle?: string;
 }): { cliEntry: string; dispose: () => void } {
-  const sharedEntry = getSourceCLIEntry();
   const runDir = mkdtempSync(path.join(os.tmpdir(), "television-product-e2e-bundle-"));
-  cpSync(path.dirname(sharedEntry), runDir, { recursive: true });
-  if (options.onboardingBundle !== undefined) {
-    cpSync(options.onboardingBundle, path.join(runDir, "onboarding"), { recursive: true });
+  try {
+    cpSync(path.dirname(sharedEntry), runDir, { recursive: true });
+    if (options.onboardingBundle !== undefined) {
+      cpSync(options.onboardingBundle, path.join(runDir, "onboarding"), { recursive: true });
+    }
+    if (options.bundledThemesBundle !== undefined) {
+      cpSync(options.bundledThemesBundle, path.join(runDir, "themes"), { recursive: true });
+    }
+    return {
+      cliEntry: path.join(runDir, path.basename(sharedEntry)),
+      dispose: () => rmSync(runDir, { recursive: true, force: true }),
+    };
+  } catch (error) {
+    rmSync(runDir, { recursive: true, force: true });
+    throw error;
   }
-  if (options.bundledThemesBundle !== undefined) {
-    cpSync(options.bundledThemesBundle, path.join(runDir, "themes"), { recursive: true });
-  }
-  return {
-    cliEntry: path.join(runDir, path.basename(sharedEntry)),
-    dispose: () => rmSync(runDir, { recursive: true, force: true }),
-  };
 }
 
 function installProductRuntimeAssets(buildDir: string): void {
   const webDist = path.join(REPO_ROOT, "packages/web/dist");
   const artifactMissingView = path.join(webDist, "views/artifact-missing");
+  const urlUnsupportedView = path.join(webDist, "views/url-unsupported");
   const markdownView = path.join(REPO_ROOT, "packages/view-markdown/dist");
   const canonical = path.join(REPO_ROOT, "packages/canonical/dist/canonical");
   const sdk = path.join(REPO_ROOT, "packages/server/dist/sdk");
@@ -110,6 +116,9 @@ function installProductRuntimeAssets(buildDir: string): void {
   const webAssets = path.join(webDist, "assets");
   if (!existsSync(path.join(artifactMissingView, "index.html"))) {
     throw new Error(`Web build produced no artifact-missing view at ${artifactMissingView}`);
+  }
+  if (!existsSync(path.join(urlUnsupportedView, "index.html"))) {
+    throw new Error(`Web build produced no url-unsupported view at ${urlUnsupportedView}`);
   }
   if (!existsSync(path.join(markdownView, "index.html"))) {
     throw new Error(`View build produced no markdown view at ${markdownView}`);
@@ -133,6 +142,7 @@ function installProductRuntimeAssets(buildDir: string): void {
   cpSync(sdk, path.join(buildDir, "sdk"), { recursive: true });
   const staticDir = path.join(buildDir, "web");
   mkdirSync(staticDir, { recursive: true });
+  cpSync(urlUnsupportedView, path.join(staticDir, "views/url-unsupported"), { recursive: true });
   cpSync(webIndex, path.join(staticDir, "index.html"));
   cpSync(webAssets, path.join(staticDir, "assets"), { recursive: true });
 }
@@ -157,22 +167,12 @@ export async function disposeAllProductServers(): Promise<void> {
 export async function launchProductServer(options: LaunchProductServerOptions = {}): Promise<ProductServer> {
   const createdHome = options.home === undefined;
   const home = options.home ?? mkdtempSync(path.join(os.tmpdir(), "television-product-e2e-"));
-  // The test-runner recipe for spawned `tv serve`: config port 0, with the
-  // acquired port read from startup output and passed to client commands.
-  writeHomeConfig(home, options.auth ? { port: 0 } : { port: 0, auth: false });
   const { TELEVISION_ACP_AGENT: _ignoredAgent, ...inheritedEnv } = process.env;
   const env = { ...inheritedEnv, ...options.env };
-  let bundledRuntime = options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined
-    ? getCLIEntryWithBundles({
-        ...(options.onboardingBundle !== undefined
-          ? { onboardingBundle: options.onboardingBundle }
-          : {}),
-        ...(options.bundledThemesBundle !== undefined
-          ? { bundledThemesBundle: options.bundledThemesBundle }
-          : {}),
-      })
-    : undefined;
-  const cliEntry = (): string => bundledRuntime?.cliEntry ?? getSourceCLIEntry();
+  let sharedEntry: string;
+  let preparation: Promise<string> | undefined;
+  let bundledRuntime: ReturnType<typeof getCLIEntryWithBundles> | undefined;
+  const cliEntry = (): string => bundledRuntime?.cliEntry ?? sharedEntry;
   const proxies = new Map<string, DevelopmentProxy>();
   let current: { process: ProductServerProcess; serverURL: string } | null = null;
   let pendingProcess: ProductServerProcess | null = null;
@@ -201,23 +201,32 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
   const dispose: ProductServerDisposer = () => {
     disposalRequested = true;
     disposalPromise ??= (async () => {
-      try {
-        await Promise.all([...proxies.values()].map((proxy) => proxy.dispose()));
-        const processes = new Set([current?.process, pendingProcess].filter((process): process is ProductServerProcess => process != null));
-        await Promise.all([...processes].map(stopProcess));
-        bundledRuntime?.dispose();
-        if (options.cleanupHome ?? createdHome) {
-          rmSync(home, { recursive: true, force: true });
-        }
-      } finally {
-        activeProductServerDisposers.delete(dispose);
+      // A disposal requested during preparation must not race removal of its home.
+      await preparation?.catch(() => undefined);
+      await Promise.all([...proxies.values()].map((proxy) => proxy.dispose()));
+      const processes = new Set([current?.process, pendingProcess].filter((process): process is ProductServerProcess => process != null));
+      await Promise.all([...processes].map(stopProcess));
+      bundledRuntime?.dispose();
+      if (options.cleanupHome ?? createdHome) {
+        rmSync(home, { recursive: true, force: true });
       }
+      // Failed cleanup remains visible to worker teardown, which preserves builds.
+      activeProductServerDisposers.delete(dispose);
     })();
     return disposalPromise;
   };
   activeProductServerDisposers.add(dispose);
 
   try {
+    // Register cleanup before configuration, shared preparation or copying can fail.
+    // Port 0 remains the recipe for every real backend, including restarts.
+    writeHomeConfig(home, options.auth ? { port: 0 } : { port: 0, auth: false });
+    preparation = getSourceCLIEntry();
+    sharedEntry = await preparation;
+    if (disposalRequested) throw new Error("Product server was disposed during preparation");
+    if (options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined) {
+      bundledRuntime = getCLIEntryWithBundles(sharedEntry, options);
+    }
     current = await startServe();
     pendingProcess = null;
     if (disposalRequested) {
@@ -246,7 +255,7 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
             rmSync(sibling, { recursive: true, force: true });
             cpSync(restartOptions.onboardingBundle, sibling, { recursive: true });
           } else {
-            bundledRuntime = getCLIEntryWithBundles({
+            bundledRuntime = getCLIEntryWithBundles(sharedEntry, {
               onboardingBundle: restartOptions.onboardingBundle,
               ...(options.bundledThemesBundle !== undefined
                 ? { bundledThemesBundle: options.bundledThemesBundle }

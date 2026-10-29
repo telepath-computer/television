@@ -253,7 +253,7 @@ function taskFromSurface(surface) {
     cwd,
     nativeResultPath,
     // --skip-pre-commands / TEST_SHARD_SKIP_PRECOMMANDS=1: the caller supplies
-    // prebuilt outputs (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+    // prebuilt outputs (specs/arch/test-runner/github-ci.md#build-once).
     preCommand: surface.preCommand && !shouldSkipPreCommands(options) ? { command: surface.preCommand[0], args: surface.preCommand.slice(1), cwd: process.cwd() } : null,
     env: {},
     executionGroup: surface.executionGroup ?? null,
@@ -290,9 +290,9 @@ function taskFromSurface(surface) {
 }
 
 function testRetryArgs(surface) {
-  if (testRetries <= 0 || surface.kind === "unit") return [];
-  if (surface.runner === "playwright") return [`--retries=${testRetries}`];
-  if (surface.runner === "vitest") return [`--retry=${testRetries}`];
+  const retries = surface.kind === "unit" ? 0 : testRetries;
+  if (surface.runner === "playwright") return [`--retries=${retries}`];
+  if (surface.runner === "vitest") return [`--retry=${retries}`];
   return [];
 }
 

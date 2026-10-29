@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
 import { loadTestConfig, selectSurfaces } from "../../scripts/test/config.mjs";
+import { guidanceCheckout } from "./fixtures/test-runner/guidance-checkout.ts";
 
 const cli = ["scripts/test/cli.mjs"];
 // Real child-process homes isolate host configuration without mocking marker lookup.
@@ -43,7 +44,7 @@ function selftestEnv(env: Record<string, string | undefined> = {}) {
 
 const broadShortcutMessage = "Do not use this command for broad verification. Use npm run verify which also includes other critical verifications.";
 const blaxelGuardrailPrefix = "The default broad verification strategy should be blaxel, which requires a clean working tree and all code pushed to origin.";
-const localVerifyGuardrailMessage = "~/.tvdev-use-blaxel is present. Use Blaxel for full verification: npm run verify -- blaxel. With explicit human permission under testing policy, allow local verification using npm run verify -- local --allow-extreme-inefficiency.";
+const localVerifyGuardrailMessage = "~/.tvdev-use-blaxel is present. Use Blaxel for full verification: npm run verify -- blaxel. Commit and push to origin first; do not replace broader validation with serial file loops. With explicit human permission under testing policy, allow local verification using npm run verify -- local --against-test-guidance-broad-local-run.";
 const ciWorkflowPath = ".github/workflows/ci.yml";
 
 function ciEndToEndShardRunCommand(workflowText: string): string {
@@ -96,7 +97,7 @@ describe("test runner guardrails", () => {
     expect(triggers).toContain("pull_request:\n    branches: [main, 'integration/**']");
   });
 
-  // specs/arch/test-runner/github-ci.md#dependency-install — the
+  // specs/arch/test-runner/github-ci.md#dependency-and-browser-caches — the
   // committed workflow encodes the exact-key cache contract.
   test("setup-workspace composite encodes the exact-key cache contract", () => {
     const action = readFileSync(setupWorkspacePath, "utf8");
@@ -116,7 +117,7 @@ describe("test runner guardrails", () => {
     expect(action).toMatch(/key: \$\{\{ inputs\.cache-namespace \}\}-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-node\$\{\{ steps\.node-runtime\.outputs\.major \}\}-\$\{\{ inputs\.image-identity \}\}/);
   });
 
-  // specs/arch/test-runner/github-ci.md#test-assertions — the shard
+  // specs/arch/test-runner/github-ci.md#dependency-and-browser-caches — the shard
   // readiness action binds one exact workspace+browser archive to the actual
   // Node and hosted-runner image selected for the job.
   test("setup-shard-readiness encodes the image-bound composite-cache contract", () => {
@@ -177,7 +178,7 @@ describe("test runner guardrails", () => {
     expect(e2eJob.indexOf("setup-shard-readiness")).toBeLessThan(e2eJob.indexOf("setup-playwright"));
   });
 
-  // specs/arch/test-runner/github-ci.md#test-assertions — the committed
+  // specs/arch/test-runner/github-ci.md — the committed
   // workflow encodes the browser-environment, fan-out, tool, and join contracts.
   test("ci.yml encodes the browser-environment, fan-out, tool-prerequisite, and join contracts", () => {
     const workflow = readFileSync(ciWorkflowPath, "utf8");
@@ -254,7 +255,8 @@ describe("test runner guardrails", () => {
     expect(joinJob).toContain("node scripts/record-test-phase.mjs");
   });
 
-  // [[arch/test-runner/github-ci.md#^gha-prebuilt-consumer|prebuilt consumer]]
+  // specs/arch/test-runner/github-ci.md#^gha-prebuilt-partition — a missing or
+  // broken archive fails the shard, with no fallback build.
   test("e2e shards fail loudly when the prebuilt archive is missing or extraction fails", () => {
     const workflow = readFileSync(ciWorkflowPath, "utf8");
     const e2eJob = workflow.slice(workflow.indexOf("\n  e2e:"), workflow.indexOf("\n  e2e-required:"));
@@ -281,7 +283,7 @@ describe("test runner guardrails", () => {
     expect(testJob).not.toContain("TEST_SHARD_SKIP_PRECOMMANDS");
   });
 
-  // specs/arch/test-runner/attestation.md#test-assertions — the committed
+  // specs/arch/test-runner/attestation.md#skipping-in-ci — the committed
   // workflow encodes the attestation wiring: a no-install decision job,
   // draft cost guards, heavy jobs that skip only on the literal 'true'
   // attestation output, a strict non-draft join, and a completion-bracketed
@@ -383,9 +385,9 @@ describe("test runner guardrails", () => {
     expect(attestWrite).toContain('--captured-version "${{ needs.attest-check.outputs.version }}"');
   });
 
-  // specs/arch/test-runner/github-ci.md#ci-worker-counts — e2e:browser-app
-  // keeps its conservative CI worker pin at 2 (TV_PW_WORKERS is the
-  // measurement knob for the deferred continuous A/B).
+  // e2e:browser-app keeps its conservative CI worker pin at 2, a setting the
+  // code owns (TV_PW_WORKERS is the measurement knob for the deferred
+  // continuous A/B).
   test("e2e:browser-app pins CI Playwright workers to 2 by default", () => {
     const config = readFileSync("packages/web/playwright.config.ts", "utf8");
     expect(config).toContain('Number(process.env.TV_PW_WORKERS ?? "2")');
@@ -429,7 +431,7 @@ describe("test runner guardrails", () => {
     expect(Object.keys(baseline.files).length).toBeGreaterThan(0);
   });
 
-  // specs/arch/test-runner/attestation.md#prune-and-retention — argument
+  // specs/arch/test-runner/attestation.md#revoking-and-pruning — argument
   // errors are rejected before any remote operation.
   test("rejects malformed testpass prune arguments before any remote operation", () => {
     const badAge = runCli(["testpass", "prune", "--older-than", "soon"]);
@@ -448,12 +450,11 @@ describe("test runner guardrails", () => {
 
   test("keeps CI-planned e2e surfaces registry-owned while desktop stays in its own job", () => {
     const config = loadTestConfig();
-    const registrySpec = readFileSync("specs/arch/test-runner/test-registry.md", "utf8");
+    const ciSpec = readFileSync("specs/arch/test-runner/github-ci.md", "utf8");
     const allE2e = selectSurfaces(config, { suite: "e2e" });
     const planned = selectSurfaces(config, { suite: "e2e-ci" });
     expect(planned.map((surface) => surface.id)).toEqual(allE2e.filter((surface) => !surface.tags.includes("electron")).map((surface) => surface.id));
-    expect(registrySpec).toContain("`e2e-ci` → `kind:e2e`, excluding `tag:electron`");
-    expect(registrySpec).toContain("dedicated `e2e:desktop` job");
+    expect(ciSpec).toContain("The end-to-end shards cover the `e2e-ci` suite: every end-to-end surface except Electron, which the desktop job covers.");
     expect(planned.some((surface) => surface.id === "e2e:desktop" || surface.tags.includes("electron"))).toBe(false);
     const workflow = readFileSync(ciWorkflowPath, "utf8");
     expect(workflow).toContain('npm test -- local --surface e2e:desktop --run-dir-output');
@@ -505,7 +506,7 @@ describe("test runner guardrails", () => {
   });
 
   test("verify plans the vibe-mode check as its last phase for both providers", () => {
-    for (const args of [["verify", "local", "--allow-extreme-inefficiency", "--plan"], ["verify", "blaxel", "--plan"]]) {
+    for (const args of [["verify", "local", "--against-test-guidance-broad-local-run", "--plan"], ["verify", "blaxel", "--plan"]]) {
       const result = runCli(args);
       expect(result.status, result.stderr).toBe(0);
       const phases = result.stdout.split("\n").filter((line) => line.startsWith("[verify:"));
@@ -515,7 +516,7 @@ describe("test runner guardrails", () => {
   });
 
   // proofs/arch/test-runner/test-runner.md#^t-marked-verify-refusal
-  test.each([{ args: [] }, { args: ["--allow-extreme-inefficiency"] }])("refuses failed marked-host verify preflight with extra args $args", ({ args: extraArgs }) => {
+  test.each([{ args: [] }, { args: ["--against-test-guidance-broad-local-run"] }])("refuses failed marked-host verify preflight with extra args $args", ({ args: extraArgs }) => {
     const result = runCli(["verify", "--plan", ...extraArgs], selftestEnv({
       HOME: markedHome,
       TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:working-tree:Working tree has uncommitted local changes. Commit or stash changes.",
@@ -525,7 +526,7 @@ describe("test runner guardrails", () => {
     expect(result.stderr).toContain(blaxelGuardrailPrefix);
     expect(result.stderr).toContain("working-tree");
     expect(result.stderr).toContain("Commit or stash changes.");
-    expect(result.stderr).toContain("npm run verify -- local --allow-extreme-inefficiency");
+    expect(result.stderr).toContain("npm run verify -- local --against-test-guidance-broad-local-run");
     expect(result.stdout).not.toContain("verify passed");
   });
 
@@ -596,8 +597,8 @@ describe("test runner guardrails", () => {
     expect(result.stdout).not.toContain("verify passed");
   });
 
-  test("allows positional local verify provider with explicit extreme inefficiency acknowledgement", () => {
-    const result = runCli(["verify", "local", "--allow-extreme-inefficiency", "--plan"], selftestEnv({
+  test("allows positional local verify provider with explicit broad-local acknowledgement", () => {
+    const result = runCli(["verify", "local", "--against-test-guidance-broad-local-run", "--plan"], selftestEnv({
       HOME: markedHome,
       TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:working-tree:Working tree has uncommitted local changes. Commit or stash changes.",
     }));
@@ -655,7 +656,7 @@ describe("test runner guardrails", () => {
   test("verify plan includes --force for each provider's internal broad shortcut child", () => {
     for (const provider of ["local", "blaxel"] as const) {
       const args = provider === "local"
-        ? ["verify", provider, "--allow-extreme-inefficiency", "--plan"]
+        ? ["verify", provider, "--against-test-guidance-broad-local-run", "--plan"]
         : ["verify", provider, "--plan"];
       const result = runCli(args);
 
@@ -709,8 +710,8 @@ describe("test runner guardrails", () => {
     expect(result.stdout).not.toContain("verify passed");
   });
 
-  // specs/arch/test-runner/github-ci.md#retirement-record — the retired
-  // gha dispatch provider is rejected everywhere a provider is named.
+  // specs/arch/test-runner/test-runner.md#providers — GitHub CI is not a
+  // provider, so `gha` is rejected everywhere a provider is named.
   // Acceptance-shaped: the real scripts/test/cli.mjs process, real argv,
   // asserted exit codes and stderr.
   test("rejects the retired gha provider shortcut", () => {
@@ -735,6 +736,39 @@ describe("test runner guardrails", () => {
     const result = runCli(["preflight", "--provider", "gha"]);
     expect(result.status, result.stderr).toBe(2);
     expect(result.stderr).toContain("--provider must be one of: local, blaxel");
+  });
+
+  // These two placement cases clear the outer shard token only for an immediate
+  // CLI dry run; the child retains ordinary surface ownership and starts no work.
+  test("accepts a configured Blaxel harness coordinator and private pool without fixed names", () => {
+    const result = runCli(["local", "--surface", "experiment:blaxel-harness"], selftestEnv({
+      TV_TEST_RUNNER_DRY_RUN: "1",
+      TV_TEST_SHARD_OWNER: undefined,
+      TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator",
+      TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool",
+    }));
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain("surfaces=experiment:blaxel-harness");
+  });
+
+  test("refuses missing Blaxel harness configuration and leased or remote placement before preflight", () => {
+    const configured = {
+      TV_TEST_RUNNER_DRY_RUN: "1",
+      TV_TEST_SHARD_OWNER: undefined,
+      TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator",
+      TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool",
+    };
+    for (const [provider, env] of [
+      ["local", { ...configured, TV_BLAXEL_HARNESS_COORDINATOR: " " }],
+      ["local", { ...configured, TV_BLAXEL_HARNESS_POOL: undefined }],
+      ["local", { ...configured, TV_TEST_SHARD_OWNER: "fixture-owner" }],
+      ["blaxel", configured],
+    ] as const) {
+      const result = runCli([provider, "--surface", "experiment:blaxel-harness"], selftestEnv(env));
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain("dedicated coordinator outside the worker pool");
+      expect(result.stdout).not.toContain("[dry-run]");
+    }
   });
 
   test("rejects isolated lifecycle fixtures on developer-host local execution before preflight", () => {
@@ -762,6 +796,62 @@ describe("test runner guardrails", () => {
     expect(result.stderr).toContain("isolated-github-only");
     expect(result.stderr).toContain("never eligible for Blaxel");
     expect(result.stderr).not.toContain("placement guard failed");
+  });
+
+  // Each refusal runs in a disposable checkout, so its own .test-runs/ shows
+  // whether the command made a run directory.
+  function refusalCheckout() {
+    const f = guidanceCheckout();
+    const playwrightRoot = "test/runner-fixtures/guidance/playwright";
+    cpSync(playwrightRoot, path.join(f.root, playwrightRoot), { recursive: true });
+    f.registry.executionGroups[0]!.surfaces.push({
+      ...f.surface, id: "fixture:playwright", runner: "playwright", config: `${playwrightRoot}/playwright.config.ts`,
+      roots: [playwrightRoot], absoluteConfig: path.join(f.root, playwrightRoot, "playwright.config.ts"),
+    });
+    Object.assign(f.registry.suites, { all: { include: ["kind:experiment"] }, experiment: { include: ["kind:experiment"] } });
+    f.writeRegistry();
+    // Blaxel selection reads the registry from the tested commit.
+    f.git("add", ".");
+    f.git("commit", "-qm", "Second fixture surface");
+    return f;
+  }
+
+  test.each([
+    [["local"], broadShortcutMessage],
+    [["blaxel", "--surface", "fixture:vitest,fixture:playwright"], "resolves to exactly one surface"],
+    [["blaxel", "--suite", "experiment"], "Blaxel suite runs require --suite all|unit|e2e"],
+  ])("refuses %j before remote preflight and creates no run directory", (args, message) => {
+    const f = refusalCheckout();
+    try {
+      const output = path.join(f.root, "run-dir");
+      const result = f.run([...args, "--run-dir-output", output], {
+        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:selection guard failed",
+      });
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(message);
+      expect(result.stderr).not.toContain("selection guard failed");
+      expect(existsSync(output)).toBe(false);
+      expect(existsSync(path.join(f.root, ".test-runs"))).toBe(false);
+    } finally {
+      f.cleanup();
+    }
+  });
+
+  test("refuses an empty --run-dir-output before remote preflight and creates no run directory", () => {
+    const f = refusalCheckout();
+    try {
+      const result = f.run(["blaxel", "--suite", "experiment", "--run-dir-output="], {
+        TV_TEST_RUNNER_FAKE_REMOTE_PREFLIGHT: "blaxel:must-not-run:option guard failed",
+      });
+
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain("--run-dir-output requires a file path");
+      expect(result.stderr).not.toContain("option guard failed");
+      expect(existsSync(path.join(f.root, ".test-runs"))).toBe(false);
+    } finally {
+      f.cleanup();
+    }
   });
 
   // The architect accepted this deviation as closed pending TV-597's cause investigation and restoration.
@@ -872,4 +962,177 @@ describe("test runner guardrails", () => {
       expect(result.stdout).toContain(expected);
     }
   });
+});
+
+// proofs/arch/test-runner/test-runner.md#^t-runner-file-admission
+// proofs/arch/test-runner/test-runner.md#^t-runner-local-redirection
+// proofs/arch/test-runner/test-runner.md#^t-runner-retry-admission
+// Downstream execution is always stopped by dry-run or verify --plan.
+describe("local file and retry admission", () => {
+  const file = "test/repo/test-runner-guardrails.test.ts";
+  const broadLocal = "--against-test-guidance-broad-local-run";
+  const broadZero = "--against-test-guidance-turn-flakes-into-failures-on-broad-runs";
+  const dry = (args: string[], marked = false) => runCli(args, selftestEnv({ HOME: marked ? markedHome : unmarkedHome, TV_TEST_RUNNER_DRY_RUN: "1" }));
+
+  test.each([
+    ["--surface", "unit:root"], ["--suite", "unit"],
+    ["--package", "@telepath-computer/television-web"],
+    ["--runner", "playwright"], ["--tag", "browser"], ["--file", "test/repo/test-runner"],
+  ])("refuses broader marked selection %s %s before execution", (flag, value) => {
+    const result = dry(["local", flag, value], true);
+    expect(result.status, result.stderr).toBe(2);
+    expect(result.stderr).toContain("one test file");
+    expect(result.stderr).toContain("npm test -- blaxel");
+    expect(result.stderr).toMatch(/commit.*push/is);
+    expect(result.stderr).toContain("serial");
+    expect(result.stdout).not.toContain("[dry-run]");
+    expect(dry(["local", flag, value]).status).toBe(0);
+    expect(dry(["local", flag, value, broadLocal], true).status).toBe(0);
+  });
+
+  test("marked one-file admission honors grep and co-selectors", () => {
+    const result = dry(["local", "--surface", "unit:root", "--file", file, "--grep", "one-file"], true);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain(`files=${file}`);
+    const conflict = dry(["local", "--surface", "unit:frames", "--file", file], true);
+    expect(conflict.status).toBe(2);
+    expect(conflict.stderr).toContain("not part of the selected surfaces");
+  });
+
+  test.each([
+    ["--suite", "telemetry-posthog-roundtrip"], ["--suite", "daemon-acceptance"], ["--suite", "agent"],
+    ["--surface", "telemetry-posthog-roundtrip:integration"], ["--surface", "daemon-acceptance:cli"], ["--surface", "agent:root"],
+    ["--package", "@telepath-computer/television-server"],
+  ])("gives a local route for %s %s", (flag, value) => {
+    const result = dry(["local", flag, value], true);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("local");
+    expect(result.stderr).toContain("--file");
+    expect(result.stderr).not.toContain(`blaxel ${flag} ${value}`);
+  });
+
+  test("broad-local permission does not lift the full-all shortcut guardrail", () => {
+    expect(dry(["local", broadLocal], true).status).toBe(2);
+    expect(dry(["local", broadLocal, "--force"], true).status).toBe(0);
+  });
+
+  test.each([broadLocal, broadZero])("rejects values attached to deliberate guidance flag %s", (flag) => {
+    for (const suffix of ["=false", "=0", "=1", "=", " false"]) {
+      const result = dry(["local", "--surface", "unit:root", ...`${flag}${suffix}`.split(" ")], flag === broadLocal);
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(`${flag} does not take a value`);
+    }
+  });
+
+  test.each([
+    ["telemetry-posthog-roundtrip", "packages/server/test/telemetry-posthog.integration.test.ts"],
+    ["daemon-acceptance", "test/node/daemon-acceptance.test.ts"],
+  ])("prints an executable one-file route for %s", (suite, selectedFile) => {
+    const result = dry(["local", "--suite", suite], true);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`npm test -- local --file ${selectedFile}`);
+    expect(dry(["local", "--file", selectedFile], true).status).toBe(0);
+  });
+
+  test.each([["--surface", "experiment:blaxel-harness"], ["--tag", "blaxel-harness-driver"]])("routes the configured harness driver %s %s to its local one-file form", (flag, value) => {
+    const coordinator = selftestEnv({ HOME: markedHome, TV_TEST_RUNNER_DRY_RUN: "1", TV_TEST_SHARD_OWNER: undefined, TV_BLAXEL_HARNESS_COORDINATOR: "dedicated-harness-coordinator", TV_BLAXEL_HARNESS_POOL: "disposable-harness-pool" });
+    const driver = "test/runner-fixtures/blaxel-harness/driver/harness.test.ts";
+    const result = runCli(["local", flag, value], coordinator);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain(`npm test -- local --file ${driver}`);
+    expect(result.stderr).not.toContain("npm test -- blaxel");
+    expect(runCli(["local", "--file", driver], coordinator).status).toBe(0);
+  });
+
+  test("list and standalone preflight use the execution file resolver", () => {
+    const listed = runCli(["list", "--file", "runner-guardrails"], { HOME: markedHome });
+    expect(listed.status, listed.stderr).toBe(0);
+    expect(listed.stdout).toMatch(/^unit:root\t/);
+    const checked = runCli(["preflight", "--provider", "local", "--file", "runner-guardrails"], selftestEnv({ HOME: markedHome, TV_TEST_RUNNER_FAKE_LOCAL_PREFLIGHT: "fixture:file-resolution-reached-preflight" }));
+    expect(checked.status, checked.stderr).toBe(1);
+    expect(checked.stdout + checked.stderr).toContain("file-resolution-reached-preflight");
+    expect(runCli(["list", "--file", "no-such-runner-file"]).status).toBe(2);
+  });
+
+  test("rejects the renamed option and misspelled guidance suffix", () => {
+    const renamed = dry(["local", "--file", file, "--allow-extreme-inefficiency"]);
+    expect(renamed.status).toBe(2);
+    expect(renamed.stderr).toContain(broadLocal);
+    const typo = dry(["local", "--file", file, "--against-test-guidance-turn-flakes-into-failure"]);
+    expect(typo.status).toBe(2);
+    expect(typo.stderr).toContain("Unknown");
+  });
+
+  test.each(["local", "blaxel"])("allows focused zero but requires deliberate broader zero on %s", (provider) => {
+    for (const marked of [false, true]) {
+      const focused = dry([provider, "--file", file, "--grep", "admission", "--retries", "0"], marked);
+      expect(focused.status, focused.stderr).toBe(0);
+      const extras = provider === "local" && marked ? [broadLocal] : [];
+      const broad = dry([provider, "--surface", "unit:root", "--retries", "0", ...extras], marked);
+      expect(broad.status, broad.stderr).toBe(2);
+      expect(broad.stderr).toContain("default");
+      expect(broad.stderr).toContain("--file");
+      expect(broad.stderr).toContain(broadZero);
+      for (const zeroArgs of [[broadZero], [broadZero, "--retries", "0"]]) {
+        const admitted = dry([provider, "--surface", "unit:root", ...zeroArgs, ...extras], marked);
+        expect(admitted.status, admitted.stderr).toBe(0);
+      }
+    }
+  });
+
+  test.each(["local", "blaxel"])("rejects multi-file and bare-grep zero budgets on %s", (provider) => {
+    for (const selection of [["--file", "test/repo/test-runner"], ["--grep", "case", "--force"], ["--suite", "unit"]]) {
+      const result = dry([provider, ...selection, "--retries=0"]);
+      expect(result.status, result.stderr).toBe(2);
+      expect(result.stderr).toContain(broadZero);
+    }
+  });
+
+  test.each(["-1", "1.5", "2junk", "NaN"])("rejects invalid retry count %s", (count) => {
+    expect(dry(["local", "--file", file, "--retries", count]).status).toBe(2);
+  });
+
+  test("rejects conflicting retry options and preserves the unit notice", () => {
+    expect(dry(["local", "--file", file, broadZero, "--retries", "2"]).status).toBe(2);
+    const positive = dry(["local", "--file", file, "--retries", "3"]);
+    expect(positive.status, positive.stderr).toBe(0);
+    expect(positive.stderr).toContain("ignored for unit-only");
+  });
+
+  test.each(["local", "blaxel"])("verify validates and forwards retry policy for %s", (provider) => {
+    const refused = runCli(["verify", provider, "--retries", "0", "--plan"]);
+    expect(refused.status, refused.stderr).toBe(2);
+    expect(refused.stderr).toContain(broadZero);
+    const admitted = runCli(["verify", provider, broadZero, "--plan"]);
+    expect(admitted.status, admitted.stderr).toBe(0);
+    expect(admitted.stdout).toContain("--retries 0");
+    expect(admitted.stdout).toContain(broadZero);
+    expect(runCli(["verify", provider, "--retries", "3", "--plan"]).stdout).toContain("--retries 3");
+    const marked = runCli(["verify", "local", broadLocal, "--plan"], selftestEnv({ HOME: markedHome }));
+    expect(marked.status, marked.stderr).toBe(0);
+    expect(marked.stdout).toContain(`--force ${broadLocal}`);
+  });
+  test("redirection preserves shell arguments and explains unsupported targeting", () => {
+    const pattern = "name 'quoted'; $(false) `false`";
+    const result = dry(["local", "--surface", "unit:root", "--grep", pattern], true);
+    expect(result.status).toBe(2);
+    const command = result.stderr.match(/then run: (.*)\. Do not replace/)?.[1];
+    expect(command).toBeTruthy();
+    const recorded = spawnSync("bash", ["-c", `npm() { printf '%s\\0' "$@"; }; ${command}`], { encoding: "utf8" });
+    expect(recorded.status, recorded.stderr).toBe(0);
+    expect(recorded.stdout.split("\0").filter(Boolean)).toEqual(["test", "--", "blaxel", "--surface", "unit:root", "--grep", pattern]);
+    const unsupported = dry(["local", "--surface", "unit:root,unit:frames"], true);
+    expect(unsupported.stderr).toContain("no equivalent supported Blaxel command");
+  });
+
+  test("help gives focused iteration, pushed remote work, and separate overrides", () => {
+    const result = runCli(["help"]);
+    expect(result.stdout).toContain("--file");
+    expect(result.stdout).toContain("pushing");
+    expect(result.stdout).toContain(broadLocal);
+    expect(result.stdout).toContain(broadZero);
+    expect(result.stdout).toContain("--retries 0");
+    expect(result.stdout).toContain("human permission");
+  });
+
 });

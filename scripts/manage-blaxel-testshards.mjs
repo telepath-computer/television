@@ -2,6 +2,9 @@
 import { SandboxInstance } from "@blaxel/core";
 import { readFileSync } from "node:fs";
 import process from "node:process";
+import { randomUUID } from "node:crypto";
+import { workerLeaseCommand } from "./test/blaxel-worker-lease.mjs";
+import { publishWorker, deleteWorker } from "./test/blaxel-pool-lifecycle.mjs";
 import { listBlaxelPoolSandboxes } from "./test/blaxel-pool.mjs";
 import { DEFAULT_BLAXEL_POOL_SIZE } from "./testshard-constants.mjs";
 
@@ -33,7 +36,7 @@ if (command === "ensure" && !/^\d+$/.test(nodeSelector)) fail(".nvmrc must conta
 if (command === "list") {
   const sandboxes = await listPoolSandboxes();
   for (const sandbox of sandboxes) {
-    console.log(`${sandbox.metadata?.name}\t${sandbox.status}\t${sandbox.spec?.runtime?.memory ?? "?"}MB\t${sandbox.spec?.image ?? "?"}`);
+    console.log(`${sandbox.metadata?.name}\t${sandbox.status}\t${sandbox.metadata?.labels?.purpose}\t${sandbox.spec?.runtime?.memory ?? "?"}MB\t${sandbox.spec?.image ?? "?"}`);
   }
   process.exit(0);
 }
@@ -56,14 +59,12 @@ if (command === "ensure") {
       region,
       labels: {
         project: "television",
-        purpose: "testshards",
+        purpose: "testshards-provisioning",
         pool,
         arch,
       },
     });
-    await sandbox.wait();
-    await provisionSandboxRuntime(sandbox);
-    await verifySandboxArchitecture(sandbox);
+    await publishWorker(sandbox, { provision: provisionSandboxRuntime, verify: verifySandboxArchitecture, update: SandboxInstance.updateMetadata });
     console.log(`  ${sandbox.metadata?.name}: ${sandbox.status}`);
   }
   process.exit(0);
@@ -71,11 +72,20 @@ if (command === "ensure") {
 
 if (command === "delete") {
   const sandboxes = await listPoolSandboxes();
+  let refused = false;
   for (const sandbox of sandboxes) {
-    console.log(`deleting ${sandbox.metadata?.name}`);
-    await SandboxInstance.delete(sandbox.metadata.name);
+    try {
+      await deleteWorker(sandbox, { reserve: reserveDeletion, update: SandboxInstance.updateMetadata, remove: SandboxInstance.delete });
+      console.log(`deleted ${sandbox.metadata.name}`);
+    } catch (error) { refused = true; console.error(`held ${sandbox.metadata.name}: ${error.message}`); }
   }
-  process.exit(0);
+  process.exit(refused ? 1 : 0);
+}
+
+async function reserveDeletion(sandbox) {
+  const script = ["set -eo pipefail", 'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', '. "$NVM_DIR/nvm.sh"', "nvm use --silent default", "set -u", workerLeaseCommand({ operation: "delete", lockId: `delete-${randomUUID()}` })].join("; ");
+  const result = await sandbox.process.exec({ name: `tv-delete-reservation-${randomUUID()}`, command: `bash -lc ${shellQuote(script)}`, waitForCompletion: true, timeout: 30 });
+  if (result.exitCode !== 0) throw new Error(`ownership check refused deletion: ${result.logs ?? result.exitCode}`);
 }
 
 async function provisionSandboxRuntime(sandbox) {

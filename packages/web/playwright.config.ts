@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import fs from "node:fs";
 import { defineConfig, firefox } from "@playwright/test";
 
@@ -33,7 +34,6 @@ export default defineConfig({
   // single worker there, running files serially. Pin to 2 so each sharded job
   // uses both cores. Local runs keep the default (undefined).
   // TV_PW_WORKERS allows controlled CI worker-count measurements.
-  // (specs/arch/test-runner/github-ci.md#ci-worker-counts).
   workers: process.env.CI ? Number(process.env.TV_PW_WORKERS ?? "2") : undefined,
   retries: 0,
   reporter: "list",

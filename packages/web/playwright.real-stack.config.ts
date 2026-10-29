@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import fs from "node:fs";
 import { defineConfig, firefox } from "@playwright/test";
 
@@ -15,7 +16,7 @@ if (!firefoxAvailable) {
 // The e2e:browser-app-real-stack surface serializes browser acceptances that
 // boot product servers; those servers starve when the files share a two-worker
 // invocation on 2-vCPU CI runners
-// (specs/arch/test-runner/github-ci.md#ci-worker-counts).
+// (specs/arch/test-runner/github-ci.md#browser-worker-counts).
 export default defineConfig({
   testDir: "./test/e2e",
   testMatch: [

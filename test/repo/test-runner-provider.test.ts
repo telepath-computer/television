@@ -5,9 +5,10 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { combineAttemptReports, compactProviderSummary, failedTasksFromShards, formatShardLogs, infrastructureRetryShardIndices, providerCommandExitCode, readShardSummaries, runInfrastructureAttempts, summarizeInfrastructureAttempts, writeProviderReports, type AttemptReport } from "../../scripts/test/provider-outputs.mjs";
 import { classifyBlaxelCoordinatorFailure, classifyBlaxelShardStatus, classifyDownloadedShardStatus, validateDownloadedShardSummary } from "../../scripts/test/blaxel-classification.mjs";
-import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards } from "../../scripts/test/blaxel-lease-acquisition.mjs";
+import { acquireShardLeases, excludeSandboxesByName, leaseAcquisitionFailureShards, leaseRecoveryArgs } from "../../scripts/test/blaxel-lease-acquisition.mjs";
 import { normalizeBlaxelSurfaces, normalizeProviderShardSurfaces, normalizeProviderTimingShards, resolveProviderRunGit } from "../../scripts/test/provider-normalization.mjs";
 import { loadTestConfig, selectSurfaces } from "../../scripts/test/config.mjs";
+import { targetCommand } from "../../scripts/test/target-command.mjs";
 import { normalizeProcessLeak } from "../../scripts/test/timing-events.mjs";
 import { transferShardInputs } from "../../scripts/test/blaxel-shard-dispatch.mjs";
 import { buildInterruptedAttemptReport, finishInterruptedRun } from "../../scripts/test/blaxel-interruption.mjs";
@@ -27,6 +28,16 @@ function writeVitestNative(file: string, total: number) {
 }
 
 describe("provider result normalization", () => {
+  test("forwards only an explicitly supplied recovery interval to the coordinator", () => {
+    expect(leaseRecoveryArgs({})).toEqual([]);
+    expect(leaseRecoveryArgs({ "lock-ttl-seconds": "60" })).toEqual(["--lock-ttl-seconds", "60"]);
+    expect(readFileSync("scripts/test/cli.mjs", "utf8")).toContain("args.push(...leaseRecoveryArgs(selectionOptions))");
+    const coordinator = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
+    for (const profile of ["normal", "cold", "repair"]) {
+      expect(coordinator).toMatch(new RegExp(`${profile}: \\{ workerTimeoutSeconds: \\d+, lockTtlSeconds: 1200 \\}`));
+    }
+  });
+
   test("constructs Blaxel restore/wake timing with a typed passed status", () => {
     const source = readFileSync("scripts/run-blaxel-testshards.mjs", "utf8");
     expect(source).toContain('restorePhase = { name: "sandbox-restore-wake", status: "passed"');
@@ -55,16 +66,13 @@ describe("provider result normalization", () => {
     expect(source).toContain("Delete the pool before ensure so every provisioned worker is fresh.");
     expect(source.indexOf("const existing = await listPoolSandboxes()"))
       .toBeLessThan(source.indexOf("SandboxInstance.createIfNotExists"));
-    expect(source.indexOf("await sandbox.wait()"))
-      .toBeLessThan(source.indexOf("await provisionSandboxRuntime(sandbox)"));
-    expect(source.indexOf("await provisionSandboxRuntime(sandbox)"))
-      .toBeLessThan(source.indexOf("await verifySandboxArchitecture(sandbox)"));
+    expect(source).toContain("await publishWorker(sandbox");
 
     expect(source).toContain("options.size ?? String(DEFAULT_BLAXEL_POOL_SIZE)");
     expect(source).toContain('const memory = Number.parseInt(options.memory ?? "8192", 10)');
     expect(source).toContain('const image = options.image ?? "blaxel/playwright-chromium:latest"');
     expect(source).toContain('return `tv-testshard-${arch}-${pool}-${String(index).padStart(2, "0")}`');
-    for (const label of ['project: "television"', 'purpose: "testshards"', "pool,", "arch,"]) {
+    for (const label of ['project: "television"', 'purpose: "testshards-provisioning"', "pool,", "arch,"]) {
       expect(source).toContain(label);
     }
   });
@@ -118,9 +126,9 @@ describe("provider result normalization", () => {
     });
 
     const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
-    expect(source).toContain("const dispatch = await transferShardInputs({");
+    expect(source).toContain("const dispatch = await (lease.pendingWrites = transferShardInputs({");
     expect(source).toContain("return dispatchFailureResult({ lease, outputDir, startedAt, logPath, dispatch });");
-    expect(source.indexOf("const dispatch = await transferShardInputs({")).toBeLessThan(source.indexOf("sandbox.process.exec({", source.indexOf("async function runShard")));
+    expect(source.indexOf("const dispatch = await (lease.pendingWrites = transferShardInputs({")).toBeLessThan(source.indexOf("sandbox.process.exec({", source.indexOf("async function runShard")));
   });
 
   test("preserves completed, running, and pending shard evidence before signal cleanup", async () => {
@@ -234,7 +242,7 @@ describe("provider result normalization", () => {
     const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
     expect(source).toContain("interruptedSnapshot = buildInterruptedReportSnapshot(signal)");
     expect(source).toContain("releaseLeases: async () => {");
-    expect(source).toContain("finalizeReport: () => writeInterruptedReportSnapshot(interruptedSnapshot)");
+    expect(source).toContain("finalizeReport: () => writeInterruptedReportSnapshot(buildInterruptedReportSnapshot(signal) ?? interruptedSnapshot)");
     expect(source).toContain("completedResults: activeAttempt.completedResults");
     expect(source).toContain("partialResults: activeAttempt.partialResults");
     expect(source).toContain("executionRequested: activeAttempt.executionRequested");
@@ -333,30 +341,19 @@ describe("provider result normalization", () => {
     expect(source).toContain("MAX_PARALLEL_LEASE_ACQUISITIONS = 32");
     expect(source).toContain("await acquireShardLeases({");
     expect(source).toContain("acquire: async ({ shardIndex, slot }) => {");
-    expect(source).toContain("const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length });");
-    expect(source).toContain("const lockId = `${runId}-shard-${shardIndex}`");
+    expect(source).toContain("const lease = await acquireAny(sandboxes, { shardIndex, slot, requestedWorkers: shardIndices.length, attempt: attempt + 1 });");
+    expect(source).toContain("const lockId = `${runId}-s${shardIndex}-a${attempt}-");
     expect(source).toContain("activeLeases.set(lockId, lease)");
     expect(source).toContain("lease.executionRequested = true");
     expect(source).toContain("lease.executionCompletionConfirmed = true");
     expect(source).toContain("killProcess: lease.executionRequested === true && lease.executionCompletionConfirmed !== true");
     expect(source).not.toContain("acquired.map((lease) => stopAndReleaseLease(lease, { killProcess: false }))");
     expect(source).toContain("lease.logPath = logPath");
-    const stopIndex = source.indexOf("await lease.sandbox.process.kill(lease.processName)");
-    const ownerCleanupIndex = source.indexOf("await reapUnconfirmedShardOwners(lease)", stopIndex);
-    const releaseIndex = source.indexOf("await releaseLock(lease.sandbox, lease.lockId)", ownerCleanupIndex);
-    expect(stopIndex).toBeGreaterThan(0);
-    expect(ownerCleanupIndex).toBeGreaterThan(stopIndex);
-    expect(releaseIndex).toBeGreaterThan(ownerCleanupIndex);
-    expect(source).toContain("node scripts/test/stale-owner-reaper-cli.mjs --output");
-    const ownerCleanupStart = source.indexOf("async function reapUnconfirmedShardOwners");
-    const ownerCleanupEnd = source.indexOf("function buildInterruptedReportSnapshot", ownerCleanupStart);
-    const ownerCleanupSource = source.slice(ownerCleanupStart, ownerCleanupEnd);
-    expect(ownerCleanupSource).toContain('"set -eo pipefail"');
-    expect(ownerCleanupSource).not.toContain('"set -euo pipefail"');
-    expect(ownerCleanupSource).toContain('"nvm use --silent default"');
-    expect(ownerCleanupSource).not.toContain('    "nvm use --silent",');
+    expect(source).toContain("await finishLease({");
+    expect(source).toContain('teardown: () => confirmTeardown(lease)');
+    expect(source).not.toContain("release_lock()");
+    const ownerCleanupSource = source.slice(source.indexOf("async function leaseOperation"), source.indexOf("function acquireAny"));
     expect(ownerCleanupSource.indexOf('. "$NVM_DIR/nvm.sh"')).toBeLessThan(ownerCleanupSource.indexOf('"set -u"'));
-    expect(ownerCleanupSource.indexOf('"set -u"')).toBeLessThan(ownerCleanupSource.indexOf("node scripts/test/stale-owner-reaper-cli.mjs --output"));
 
     const nvmFixture = mkdtempSync(path.join(os.tmpdir(), "tv-provider-nvm-nounset-"));
     const outsideRepository = path.join(nvmFixture, "outside-repository");
@@ -401,10 +398,7 @@ describe("provider result normalization", () => {
       rmSync(nvmFixture, { recursive: true, force: true });
     }
 
-    expect(source).toContain("report.cleanupConfirmed === true");
-    expect(source).toContain("report.liveOwners.length === 0");
-    expect(source).toContain("report.remainingStaleOwners.length === 0");
-    expect(source).toContain("Owner cleanup was not confirmed; retaining lease");
+
   });
 
   test("plans before Blaxel leases and invokes the production explicit-file worker", () => {
@@ -431,7 +425,7 @@ describe("provider result normalization", () => {
     expect(cliSource).toContain('--target-services-json", JSON.stringify(surface.services)');
     expect(cliSource).toContain('"--target-surface-id", surface.id');
     expect(source).toContain('command: parseTargetCommand(options["target-command-json"])');
-    expect(source).toContain('...target.command.map(shellQuote)');
+    expect(source).toContain("targetCommand(targetOptions())");
     expect(source).toContain('preCommand: parseTargetPreCommand(options["target-pre-command-json"])');
     expect(source).toContain('services: parseTargetServices(options["target-services-json"])');
     expect(source).toContain('--services-json ${shellQuote(JSON.stringify(targetOptions().services))}');
@@ -441,11 +435,30 @@ describe("provider result normalization", () => {
     expect(workerSource).toContain("services: surface.services ?? []");
     expect(workerSource).toContain("startSurfaceServices(task.services");
   });
-  test("writes targeted native reports to the supervisor-declared absolute path", () => {
-    const source = readFileSync(path.join(process.cwd(), "scripts/run-blaxel-testshards.mjs"), "utf8");
-    expect(source).toContain('PLAYWRIGHT_JSON_OUTPUT_NAME="$TV_TARGET_NATIVE_RESULT"');
-    expect(source).toContain('--outputFile "$TV_TARGET_NATIVE_RESULT"');
-    expect(source).not.toContain("nativePathFromCwd");
+  test("forwards the target wrapper, selectors, zero budget and absolute reporter path", () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), "tv-target-wrapper-"));
+    try {
+      const cwd = path.join(root, "wrapper-cwd");
+      mkdirSync(cwd);
+      const output = path.join(root, "native.json");
+      const wrapper = path.join(root, "wrapper.mjs");
+      // A declared downstream wrapper records its invocation. Real native
+      // collection is covered by test-runner-file-selection.test.ts.
+      writeFileSync(wrapper, `import fs from "node:fs";
+        fs.writeFileSync(process.env.PLAYWRIGHT_JSON_OUTPUT_NAME, JSON.stringify({ args: process.argv.slice(2), cwd: process.cwd(), reporter: process.env.PLAYWRIGHT_JSON_OUTPUT_NAME }));`);
+      const grep = "title 'quoted'; $(false)";
+      const command = targetCommand({ runner: "playwright", cwd, retries: "0", command: [process.execPath, wrapper], files: ["test/file[x].test.ts"], grep });
+      const result = spawnSync("bash", ["-c", command], { encoding: "utf8", env: { ...process.env, TV_TARGET_NATIVE_RESULT: output }, timeout: 10_000 });
+      expect(result.status, result.stderr).toBe(0);
+      const recorded = JSON.parse(readFileSync(output, "utf8"));
+      expect(recorded.cwd).toBe(cwd);
+      expect(recorded.reporter).toBe(output);
+      expect(recorded.args.slice(1)).toEqual(["-g", grep, "--retries=0", "--reporter=json"]);
+      expect(recorded.args[0]).toContain(String.raw`file\[x\]\.test\.ts$`);
+      const nativeSource = readFileSync("scripts/test/target-native.mjs", "utf8");
+      expect(nativeSource).toContain('"--outputFile", native');
+      expect(nativeSource).toContain("path.resolve(process.env.TV_TARGET_NATIVE_RESULT)");
+    } finally { rmSync(root, { recursive: true, force: true }); }
   });
 
   test("reports only tasks that actually failed", () => {
@@ -908,10 +921,9 @@ describe("provider result normalization", () => {
   });
 
   test("keeps canonical stale-owner retry authority aligned with sandbox quarantine", () => {
-    const authority = readFileSync(path.join(process.cwd(), "specs/arch/test-runner/test-runner.md"), "utf8");
-    expect(authority).not.toContain("`stale-owner` is the safety exception defined by [[blaxel-testshards.md]] and is not retried.");
-    expect(authority).toContain("the contaminated sandbox runs no selected test and is excluded from later attempts");
-    expect(authority).toContain("a configured retry may run the unchanged shard assignment on a distinct sandbox only after that sandbox acquires its own lease and passes its owner audit");
+    const authority = readFileSync(path.join(process.cwd(), "specs/arch/test-runner/blaxel-testshards.md"), "utf8");
+    expect(authority).toContain("A worker that finds them runs no tests for that attempt, and the coordinator excludes it from the run's later attempts.");
+    expect(authority).toContain("An infrastructure retry may use a different worker once that worker has its own lease and a clean audit.");
   });
 
   test("excludes every named contaminated sandbox from retry candidates", () => {
@@ -1019,6 +1031,13 @@ describe("provider result normalization", () => {
     };
 
     expect(validateDownloadedShardSummary(summary, plan, 1)).toBeNull();
+    for (const missing of ["test execution", "final shard summary"]) {
+      const incomplete = { ...summary, status: "infra-failed", failureKind: "setup", tasks: [], collectedFiles: [], neverProduced: [missing] };
+      expect(validateDownloadedShardSummary(incomplete, plan, 1)).toBeNull();
+      expect(classifyDownloadedShardStatus({ shardSummary: incomplete, exitCode: 1 })).toBe("infra-failed");
+      expect(validateDownloadedShardSummary({ ...incomplete, planId: "other" }, plan, 1)).toContain("planId mismatch");
+      expect(validateDownloadedShardSummary({ ...incomplete, status: "passed" }, plan, 1)).toContain("task assignments disagree");
+    }
     expect(validateDownloadedShardSummary({ ...summary, status: "passed" }, plan, 1)).toContain("reports passed with a skipped assigned task");
     expect(validateDownloadedShardSummary({
       ...summary,

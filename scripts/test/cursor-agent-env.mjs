@@ -1,6 +1,6 @@
 /**
  * When CURSOR_AGENT=1, unset env vars Cursor injects that break local tests.
- * See specs/arch/test-runner/test-runner.md "Cursor-agent environment workaround".
+ * See specs/arch/test-runner/test-runner.md "Cursor agent environment".
  */
 
 /** Set by Cursor on agent shell invocations (observed value: "1"). */
