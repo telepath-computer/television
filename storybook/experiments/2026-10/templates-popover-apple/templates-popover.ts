@@ -1,10 +1,10 @@
 // Experiment: the Templates popover designed the way a macOS library panel
 // would be. The search field is the header, one row is always selected in the
 // accent colour, rows are dense, and a footer holds the folder action and any
-// errors. Not a spec; the spec is storybook/spec/templates-popover/.
+// errors. This dated experiment has no current UI authority.
 
-import { html, Html } from "../../lib/html.ts";
-import iconFrame from "../../../specs/ui/foundation/icons/icon.frame";
+import { html, Html } from "../../../lib/html.ts";
+import iconFrame from "../../../../specs/ui/foundation/icons/icon.frame";
 
 const icon = (params: { name: string; size?: string }): Html =>
   new Html(iconFrame.render(params, { serializableShadowRoots: true }));

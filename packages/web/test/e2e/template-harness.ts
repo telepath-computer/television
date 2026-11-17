@@ -73,12 +73,12 @@ export class TemplateHarness {
     await this.openApp(page);
     await page.getByRole("button", { name: "Toolbox", exact: true }).click();
     await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
-    const option = page.getByRole("option", { name: this.template.name, exact: true });
-    // The row shows the template's own icon rather than the default letter.
-    await expect(option.locator("img.toolbox-icon")).toBeVisible();
+    const tile = page.getByRole("gridcell", { name: this.template.name, exact: true });
+    // The tile shows the template's own icon rather than the default letter.
+    await expect(tile.locator("img.toolbox-icon")).toBeVisible();
     const created = page.waitForResponse((response) =>
       new URL(response.url()).pathname === "/templates/artifacts" && response.request().method() === "POST");
-    await option.click();
+    await tile.click();
     const response = await created;
     expect(response.status()).toBe(201);
     const { artifactID } = await response.json() as { artifactID: string };

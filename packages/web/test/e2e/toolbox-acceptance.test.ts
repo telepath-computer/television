@@ -45,7 +45,7 @@ test("creating an artifact keeps Toolbox icons in place without letter fallbacks
     }
     await openApp(page, product, baseURL);
     await openToolbox(page);
-    const images = page.locator(".toolbox-row img");
+    const images = page.locator(".toolbox-tile img");
     await expect(images).toHaveCount(2);
     await expect.poll(() => images.evaluateAll((nodes: HTMLImageElement[]) => nodes.every(img => img.complete && img.naturalWidth === 20))).toBe(true);
     const initial = await images.evaluateAll((nodes: HTMLImageElement[]) => nodes.map(img => img.src));
@@ -63,7 +63,7 @@ test("creating an artifact keeps Toolbox icons in place without letter fallbacks
       }).observe(document.querySelector(".toolbox-popover")!, { subtree: true, childList: true });
     });
     const created = page.waitForResponse(response => response.url().endsWith("/templates/artifacts") && response.request().method() === "POST");
-    await page.getByRole("option", { name: "Calendar", exact: true }).click();
+    await page.getByRole("gridcell", { name: "Calendar", exact: true }).click();
     expect((await created).ok()).toBe(true);
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
     await openToolbox(page);
@@ -83,7 +83,10 @@ test("creating an artifact keeps Toolbox icons in place without letter fallbacks
 test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {
-    template(product.home, "calendar", "Calendar");
+    const longName = "An item with a much longer name than usual";
+    for (const [id, name] of [["calendar", "Calendar"], ["long-name", longName], ["checklist", "Checklist"], ["code", "Code"]]) {
+      template(product.home, id!, name!);
+    }
     await openApp(page, product, baseURL);
     const trigger = page.getByRole("button", { name: "Toolbox", exact: true });
     await expect(trigger).toHaveAttribute("title", "Toolbox");
@@ -94,14 +97,33 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
     const search = page.getByRole("combobox", { name: "Search toolbox" });
     await expect(search).toHaveAttribute("placeholder", "Search toolbox…");
     await expect(search).not.toHaveAttribute("aria-activedescendant");
-    const list = page.getByRole("listbox", { name: "Toolbox" });
-    await expect(list).not.toHaveAttribute("aria-multiselectable", "true");
-    const option = list.getByRole("option", { name: "Calendar", exact: true });
-    await expect(option).toHaveAccessibleDescription("");
-    await expect(option.locator(".toolbox-letter")).toHaveAttribute("aria-hidden", "true");
+    await expect(search).toHaveAttribute("aria-haspopup", "grid");
+    await expect(search).toHaveAttribute("aria-autocomplete", "list");
+    await expect(search).toHaveAttribute("aria-expanded", "true");
+    const grid = page.getByRole("grid", { name: "Toolbox" });
+    const gridID = await grid.getAttribute("id");
+    expect(gridID).toBeTruthy();
+    await expect(search).toHaveAttribute("aria-controls", gridID!);
+    await expect(page.locator(`[id="${gridID}"]`)).toHaveAttribute("role", "grid");
+    const rows = grid.getByRole("row");
+    await expect(rows).toHaveCount(2);
+    await expect(rows.first().getByRole("gridcell")).toHaveCount(3);
+    await expect(rows.last().getByRole("gridcell")).toHaveCount(1);
+    const tile = grid.getByRole("gridcell", { name: "Calendar", exact: true });
+    await expect(tile).toHaveAccessibleDescription("");
+    await expect(tile.locator(".toolbox-letter")).toHaveAttribute("aria-hidden", "true");
+    await expect(grid.getByRole("gridcell", { name: longName, exact: true })).toBeVisible();
     const triggerBounds = await trigger.boundingBox(), panelBounds = await panel.boundingBox();
     expect(Math.abs(panelBounds!.x + panelBounds!.width - triggerBounds!.x - triggerBounds!.width)).toBeLessThan(1);
     await search.fill("cal");
+    await expect(tile).toHaveAttribute("aria-selected", "true");
+    await expect(grid.locator('[aria-selected="true"]')).toHaveCount(1);
+    await expect(search).toHaveAttribute("aria-activedescendant", await tile.getAttribute("id") ?? "missing-id");
+    await search.fill("missing");
+    await expect(page.getByRole("grid", { name: "Toolbox" })).toHaveCount(0);
+    await expect(search).toHaveAttribute("aria-expanded", "false");
+    await expect(search).not.toHaveAttribute("aria-controls");
+    await expect(search).not.toHaveAttribute("aria-activedescendant");
     await search.press("Escape");
     await expect(panel).not.toBeVisible();
     await expect(trigger).toBeFocused();
@@ -124,14 +146,14 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-ac-directory-error
-test("authenticated fresh directory failure replaces cached Toolbox rows", async ({ page, baseURL }) => {
+test("authenticated fresh directory failure replaces cached Toolbox tiles", async ({ page, baseURL }) => {
   const product = await launchProductServer({ auth: true });
   try {
     template(product.home, "calendar", "Calendar");
     const client = new TelevisionClient(product.serverURL, { token: product.token });
     await openApp(page, product, baseURL);
     await openToolbox(page);
-    await expect(page.getByRole("option", { name: "Calendar" })).toBeVisible();
+    await expect(page.getByRole("gridcell", { name: "Calendar" })).toBeVisible();
     await page.keyboard.press("Escape");
     rmSync(path.join(product.home, "templates"), { recursive: true });
     writeFileSync(path.join(product.home, "templates"), "blocked");
@@ -140,7 +162,7 @@ test("authenticated fresh directory failure replaces cached Toolbox rows", async
     await openToolbox(page);
     await expect(page.locator(".toolbox-folder-error")).toContainText("Could not read the templates folder.");
     await expect(page.locator(".toolbox-folder-error")).toContainText(scan.errors[0]!.error);
-    await expect(page.locator(".toolbox-popover").getByRole("option")).toHaveCount(0);
+    await expect(page.locator(".toolbox-popover").getByRole("gridcell")).toHaveCount(0);
     await expect(page.getByRole("combobox")).not.toHaveAttribute("aria-controls");
   } finally { await product.dispose(); }
 });
@@ -167,7 +189,7 @@ test("click and Return create copied artifacts with starting data after selected
     await openToolbox(page);
     await page.getByRole("combobox", { name: "Search toolbox" }).press("Enter");
     expect(requests).toHaveLength(0);
-    await page.locator(".toolbox-row").click();
+    await page.locator(".toolbox-tile").click();
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
     await expect.poll(async () => (await client.channels.get({ channelID })).channel.layout.map((entry) => entry.artifactIds[0])).toHaveLength(3);
     const created = (await client.channels.get({ channelID })).channel.layout[1]!.artifactIds[0]!;
@@ -221,7 +243,7 @@ test("Toolbox uses manifest display and shared defaults without sending display"
 
     await openApp(page, product, baseURL);
     await openToolbox(page);
-    await page.locator(".toolbox-row").click();
+    await page.locator(".toolbox-tile").click();
     await expect.poll(async () => (await client.channels.get({ channelID })).channel.layout).toHaveLength(1);
     const layout = (await client.channels.get({ channelID })).channel.layout;
     expect(layout[0]).toMatchObject({
@@ -250,7 +272,7 @@ test("Toolbox creates a focused transparent frame from manifest defaults without
     await openApp(page, product, baseURL);
     await openToolbox(page);
     const requested = page.waitForRequest((request) => request.url().endsWith("/templates/artifacts") && request.method() === "POST");
-    await page.getByRole("option", { name: "Overlay" }).click();
+    await page.getByRole("gridcell", { name: "Overlay" }).click();
     const request = (await requested).postDataJSON() as Record<string, unknown>;
     expect(request).toMatchObject({ templateID: "overlay", channelID, source: "ui" });
     expect(request).not.toHaveProperty("display");
@@ -292,7 +314,7 @@ test("failed focus request leaves the prior page selected (^toolbox-ac-activatio
       focusRequests++;
       await route.abort("failed");
     });
-    await page.locator(".toolbox-row").click();
+    await page.locator(".toolbox-tile").click();
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
     await expect.poll(async () => (await client.artifacts.list({ channelID })).artifacts.length).toBe(2);
     expect(focusRequests).toBe(1);
@@ -323,7 +345,7 @@ test("partial creation after channel layout obstruction never takes focus (^tool
       }).observe(document.querySelector(".stage")!, { subtree: true, childList: true, attributes: true });
     });
     const response = page.waitForResponse((value) => value.url().endsWith("/templates/artifacts") && value.request().method() === "POST");
-    await page.locator(".toolbox-row").click();
+    await page.locator(".toolbox-tile").click();
     expect((await response).status()).toBe(500);
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
     await expect.poll(async () => (await client.artifacts.list({ channelID })).artifacts.length).toBe(2);
@@ -347,9 +369,9 @@ test("fresh creation refuses a template removed after list load without changing
     const existing = (await client.artifacts.create({ channelID, kind: "path", title: "Existing", path: createArtifactFile(product.home, "existing", "<title>Existing</title>", "html") })).artifact;
     await openApp(page, product, baseURL);
     await openToolbox(page);
-    const row = page.getByRole("option", { name: "Removed", exact: true });
-    await row.hover();
-    const bounds = (await row.boundingBox())!;
+    const tile = page.getByRole("gridcell", { name: "Removed", exact: true });
+    await tile.hover();
+    const bounds = (await tile.boundingBox())!;
     const refused = page.waitForResponse(response => response.url().endsWith("/templates/artifacts"));
     rmSync(folder, { recursive: true });
     await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
@@ -374,7 +396,7 @@ test("Toolbox creates and focuses an ordinary URL artifact without a store", asy
     await openApp(page, product, baseURL);
     await openToolbox(page);
     const requested = page.waitForRequest(request => request.url().endsWith("/templates/artifacts"));
-    await page.getByRole("option", { name: "Local URL" }).click();
+    await page.getByRole("gridcell", { name: "Local URL" }).click();
     expect((await requested).postDataJSON()).toEqual({ templateID: "url", channelID, source: "ui" });
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
     const artifacts = (await client.artifacts.list({ channelID })).artifacts;
@@ -404,19 +426,19 @@ test("real SVG and PNG icons decode while pending, absent, aborted and broken ic
     await openApp(page, product, baseURL);
     await openToolbox(page);
     for (const name of ["absent", "pending", "aborted", "broken"]) {
-      await expect(page.getByRole("option", { name, exact: true }).locator(".toolbox-letter")).toHaveText(name[0]!.toUpperCase());
+      await expect(page.getByRole("gridcell", { name, exact: true }).locator(".toolbox-letter")).toHaveText(name[0]!.toUpperCase());
     }
     for (const name of ["svg", "png"]) {
-      const img = page.getByRole("option", { name, exact: true }).locator("img");
+      const img = page.getByRole("gridcell", { name, exact: true }).locator("img");
       await expect(img).toHaveAttribute("alt", "");
       await expect(img).toHaveAttribute("draggable", "false");
       await expect.poll(() => img.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBeGreaterThan(0);
     }
     release();
-    await expect(page.getByRole("option", { name: "pending", exact: true }).locator("img")).toBeVisible();
-    const oldSource = await page.getByRole("option", { name: "svg", exact: true }).locator("img").getAttribute("src");
+    await expect(page.getByRole("gridcell", { name: "pending", exact: true }).locator("img")).toBeVisible();
+    const oldSource = await page.getByRole("gridcell", { name: "svg", exact: true }).locator("img").getAttribute("src");
     writeFileSync(path.join(product.home, "templates", "svg", "icon.svg"), svg.replace("red", "blue"));
-    const image = page.getByRole("option", { name: "svg", exact: true }).locator("img");
+    const image = page.getByRole("gridcell", { name: "svg", exact: true }).locator("img");
     await expect(image).not.toHaveAttribute("src", oldSource!);
     await expect.poll(() => image.evaluate(async (element: HTMLImageElement) => (await fetch(element.src)).text())).toContain('fill="blue"');
   } finally { release(); await product.dispose(); }

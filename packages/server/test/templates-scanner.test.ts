@@ -259,22 +259,23 @@ describe("artifact template scanner", () => {
   });
 
   it.each([
-    ["SVG before sized PNG", [{ src: "large.png", sizes: "40x40" }, { src: "vector.svg" }], "vector.svg"],
+    ["SVG before sized PNG", [{ src: "large.png", sizes: "56x56" }, { src: "vector.svg" }], "vector.svg"],
     ["any and SVG tie in manifest order", [{ src: "large.png", sizes: "any" }, { src: "vector.svg" }], "large.png"],
-    ["smallest sufficient shorter dimension", [{ src: "large.png", sizes: "100x60" }, { src: "small.png", sizes: "40x80" }], "small.png"],
-    ["both axes meet target", [{ src: "small.png", sizes: "80x20" }, { src: "large.png", sizes: "45x40" }], "large.png"],
-    ["largest undersized", [{ src: "small.png", sizes: "20x30" }, { src: "large.png", sizes: "39x100" }], "large.png"],
-    ["best of multiple declared sizes", [{ src: "large.png", sizes: "16x16 48x48 128x128" }, { src: "small.png", sizes: "64x64" }], "large.png"],
-    ["read dimensions when hints are absent", [{ src: "large.png" }, { src: "small.png", sizes: "invalid" }], "small.png"],
+    ["smallest sufficient shorter dimension", [{ src: "large.png", sizes: "100x60" }, { src: "small.png", sizes: "56x80" }], "small.png"],
+    ["both axes meet target", [{ src: "small.png", sizes: "80x20" }, { src: "large.png", sizes: "60x56" }], "large.png"],
+    ["largest undersized", [{ src: "small.png", sizes: "20x30" }, { src: "large.png", sizes: "55x100" }], "large.png"],
+    ["32px and 48px are undersized for the 28px slot", [{ src: "tiny.png", sizes: "32x32" }, { src: "small.png", sizes: "48x48" }, { src: "large.png", sizes: "192x192" }], "large.png"],
+    ["best of multiple declared sizes", [{ src: "large.png", sizes: "16x16 48x48 128x128" }, { src: "small.png", sizes: "64x64" }], "small.png"],
+    ["read dimensions when hints are absent", [{ src: "large.png" }, { src: "small.png", sizes: "invalid" }], "large.png"],
     ["unsized after sized", [{ src: "broken.png" }, { src: "small.png", sizes: "16x16" }], "small.png"],
     ["unsized still selects", [{ src: "broken.png" }], "broken.png"],
-    ["ties use manifest order", [{ src: "large.png", sizes: "40x40" }, { src: "small.png", sizes: "40x40" }], "large.png"],
+    ["ties use manifest order", [{ src: "large.png", sizes: "56x56" }, { src: "small.png", sizes: "56x56" }], "large.png"],
     ["supported type hint without extension", [{ src: "untyped", type: "image/svg+xml" }], "untyped"],
   ])("selects icons by %s", (_case, icons, expected) => {
     const root = home();
     const folder = template(root, "icons", { name: "Icons", description: "Page", version: "1.0.0", url: "https://example.com", icons });
     // Only PNG metadata is read here; browser decoding has its own seam.
-    for (const [file, size] of [["small.png", 48], ["large.png", 96]] as const) {
+    for (const [file, size] of [["tiny.png", 32], ["small.png", 48], ["large.png", 96]] as const) {
       const png = Buffer.alloc(24);
       Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(png);
       png.write("IHDR", 12);

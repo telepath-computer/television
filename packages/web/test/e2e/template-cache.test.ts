@@ -47,7 +47,7 @@ async function toggle(page: Page, open: boolean) {
   else await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
 }
 async function iconText(page: Page) {
-  return page.locator(".toolbox-row img").evaluate(async (img: HTMLImageElement) => (await fetch(img.src)).text());
+  return page.locator(".toolbox-tile img").evaluate(async (img: HTMLImageElement) => (await fetch(img.src)).text());
 }
 function recordRequests(page: Page) {
   const requests: { path: string; token: string | undefined }[] = [];
@@ -72,8 +72,8 @@ test("preloads authenticated icons, opens from cache, observes closed edits and 
     expect(requests.every(({ token }) => token === `Bearer ${product.store.authToken}`)).toBe(true);
     expect(requests.filter(({ path }) => path.endsWith("/icon"))).toHaveLength(1);
     await expect(page.locator("#template-svg-content")).toHaveCount(0);
-    await expect(page.locator(".toolbox-row img")).toHaveAttribute("src", /^blob:/);
-    await expect.poll(() => page.locator(".toolbox-row img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(20);
+    await expect(page.locator(".toolbox-tile img")).toHaveAttribute("src", /^blob:/);
+    await expect.poll(() => page.locator(".toolbox-tile img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(20);
     await toggle(page, false);
     const editedIcon = page.waitForResponse((response) => response.url().endsWith("/icon"));
     template(product.home, "Closed edit", "blue");
@@ -136,7 +136,7 @@ test("discards delayed real list and icon responses after newer pushes (^templat
   } finally { releaseList.resolve(); releaseIcon.resolve(); await product.dispose(); }
 });
 
-test("retries initial load and refreshes on watcher failure without clearing prior rows or looping (^templates-ac-cache-fallback)", async ({ page, baseURL }) => {
+test("retries initial load and refreshes on watcher failure without clearing prior items or looping (^templates-ac-cache-fallback)", async ({ page, baseURL }) => {
   let fail = false;
   let failWatcher = () => {};
   const product = await start({ watchContentFile: (file, change, options) => {

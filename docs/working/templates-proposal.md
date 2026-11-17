@@ -40,7 +40,7 @@ Schema errors name the failing field and tell the agent to run `tv templates sho
 
 ## Icons
 
-Manifest `icons` uses [W3C Web App Manifest form](https://www.w3.org/TR/appmanifest/#icons-member): local relative `src`, plus optional `sizes`, `type`, and `purpose`. SVG and PNG are supported. For the 20px slot, selection prefers SVG or `sizes: "any"`, then the smallest PNG at least 40px on both axes, then the largest. Unusable entries, including paths whose real location leaves the folder, are ignored. The authenticated icon route serves the selected local file by template ID.
+Manifest `icons` uses [W3C Web App Manifest form](https://www.w3.org/TR/appmanifest/#icons-member): local relative `src`, plus optional `sizes`, `type`, and `purpose`. SVG and PNG are supported. For the 28px Toolbox slot, selection prefers SVG or `sizes: "any"`, then the smallest PNG at least 56px on both axes, then the largest. Unusable entries, including paths whose real location leaves the folder, are ignored. The authenticated icon route serves the selected local file by template ID.
 
 An agent creating a URL template fetches the best site icon once: SVG or a large PNG declared by the page or its web app manifest, with `/favicon.ico` converted to PNG as fallback. It saves the result locally and declares it in `icons`. The server and app never fetch site favicons.
 

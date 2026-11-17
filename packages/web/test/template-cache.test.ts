@@ -144,7 +144,7 @@ describe("connection template cache (^templates-t-app-cache)", () => {
     expect(client.icon).toHaveBeenCalledTimes(4);
   });
 
-  it("retries failed loads on opening, keeps previous rows, and refreshes once per watcher-failure transition", async () => {
+  it("retries failed loads on opening, keeps previous items, and refreshes once per watcher-failure transition", async () => {
     const { cache, client } = fixture();
     client.list.mockRejectedValueOnce(new Error("offline"));
     await cache.load();

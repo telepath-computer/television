@@ -4,7 +4,7 @@
 // (storybook/spec/templates/calendar/) in their one-day state, and raises the
 // launch rehearsal a moment after load so the lift can be watched.
 
-import spec, { OneDay } from "../../spec/templates/calendar/calendar.stories.ts";
+import spec, { OneDay } from "../../../spec/templates/calendar/calendar.stories.ts";
 
 // How long after loading the highlight is added.
 const LIFT_DELAY_MS = 1700;
@@ -12,7 +12,7 @@ const LIFT_DELAY_MS = 1700;
 type Play = { canvasElement: HTMLElement };
 
 export default {
-  title: "Experiments/Templates/Calendar",
+  title: "Experiments/2026-10/Calendar highlight motion",
   parameters: spec.parameters,
   globals: spec.globals,
   render: spec.render,
