@@ -1,0 +1,70 @@
+{
+  "name": "Table",
+  "description": "An editable table to fill by hand or with an agent.",
+  "version": "1.0.0",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml"
+    }
+  ],
+  "dataSchema": {
+    "type": "object",
+    "required": [
+      "columns",
+      "rows"
+    ],
+    "properties": {
+      "headerRow": {
+        "type": "boolean"
+      },
+      "columns": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "order"
+          ],
+          "properties": {
+            "order": {
+              "type": "number"
+            },
+            "width": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      },
+      "rows": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "order",
+            "cells"
+          ],
+          "properties": {
+            "order": {
+              "type": "number"
+            },
+            "height": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "cells": {
+              "type": "object",
+              "additionalProperties": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

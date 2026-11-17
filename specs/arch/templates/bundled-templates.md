@@ -11,5 +11,6 @@ Television ships these [artifact templates](../../product/templates.md#^artifact
 | `sticky-note` | Sticky note | A yellow note to type into; an agent can write on it too. | `1.0.0` | `1.0.0` | [Sticky note](./sticky-note.md) | [Sticky note page](../../ui/templates/sticky-note.mdx) |
 | `map` | Map | An interactive map with category colours and icons, a floating place list, photos, and detailed place information. | `2.1.0` | `2.1.0` | [Map](./map.md) | [Code-authoritative](./map.md#^bundled-artifact-template-map-ui-boundary) |
 | `document` | Document | A document you and an agent write together, in Markdown. | `1.0.0` | `1.0.0` | [Document](./document.md) | [Markdown editor colours and table interactions only](../../ui/markdown-editor/index.md); the rest is code-authoritative |
+| `table` | Table | An editable table to fill by hand or with an agent. | `1.0.0` | `1.0.0` | [Table](./table.md) | [Table page](../../ui/templates/table.mdx) |
 
-`BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['checklist', 'calendar', 'sticky-note', 'map', 'document']`; [telemetry](../telemetry/derivation.md#^artifact-template-telemetry-derivation) uses this closed vocabulary. ^bundled-artifact-template-inventory
+`BUNDLED_ARTIFACT_TEMPLATE_IDS` is the readonly tuple `['checklist', 'calendar', 'sticky-note', 'map', 'document', 'table']`; [telemetry](../telemetry/derivation.md#^artifact-template-telemetry-derivation) uses this closed vocabulary. ^bundled-artifact-template-inventory

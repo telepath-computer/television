@@ -117,6 +117,13 @@ export class NetworkProxy {
     for (const pipe of this.pipes) this.cut(pipe);
   }
 
+  /** Cuts one open WebSocket connection, dropping only the traffic it holds. */
+  severConnection(connection: number): void {
+    const pipe = [...this.pipes].find((pipe) => pipe.number === connection && pipe.kind === "websocket" && !pipe.closed);
+    if (!pipe) throw new Error(`no open proxy connection ${connection}`);
+    this.cut(pipe);
+  }
+
   /** Holds WebSocket traffic in one direction, on open and later connections, until released. */
   hold(direction: Direction): void {
     this.holding[direction] = true;

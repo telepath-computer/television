@@ -29,6 +29,7 @@ export default defineConfig({
     "**/template-document-real-stack.test.ts",
     "**/template-sticky-note-real-stack.test.ts",
     "**/template-map-real-stack.test.ts",
+    "**/template-table-real-stack.test.ts",
     "**/templates-real-stack.test.ts",
     "**/theme-product-acceptance.test.ts",
   ],
