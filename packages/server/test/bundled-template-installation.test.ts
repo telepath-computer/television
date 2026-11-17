@@ -109,17 +109,17 @@ describe("bundled artifact template serving installation", () => {
   it("installs unhandled templates, preserves handled deletions, and does nothing at token-only construction", () => {
     const home = tempRoot();
     stores.push(new ServerStore({ storagePath: home, bundledTemplatesPath: sourceRoot }));
-    for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
+    for (const id of ["checklist", "calendar", "sticky-note", "map", "document"]) {
       expect(existsSync(path.join(home, "templates", id))).toBe(false);
     }
     servingBoot(home);
-    for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
+    for (const id of ["checklist", "calendar", "sticky-note", "map", "document"]) {
       expect(snapshotRegularFiles(path.join(home, "templates", id))).toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));
       rmSync(path.join(home, "templates", id), { recursive: true });
     }
-    expect(JSON.parse(readFileSync(statePath(home), "utf8"))).toEqual({ version: 1, installedTemplateIDs: ["checklist", "calendar", "sticky-note", "map"].sort() });
+    expect(JSON.parse(readFileSync(statePath(home), "utf8"))).toEqual({ version: 1, installedTemplateIDs: ["checklist", "calendar", "sticky-note", "map", "document"].sort() });
     servingBoot(home);
-    for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
+    for (const id of ["checklist", "calendar", "sticky-note", "map", "document"]) {
       expect(existsSync(path.join(home, "templates", id))).toBe(false);
     }
   });
@@ -155,7 +155,10 @@ describe("bundled artifact template serving installation", () => {
         }
         if (to !== statePath(home)) return;
         const ids = JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs;
-        if (ids.includes("map")) {
+        if (ids.includes("document")) {
+          expect(ids).toEqual(["checklist", "calendar", "document", "map", "other", "sticky-note"].sort());
+          calls.push("Document handled");
+        } else if (ids.includes("map")) {
           expect(ids).toEqual(["checklist", "calendar", "map", "other", "sticky-note"].sort());
           calls.push("Map handled");
         } else if (ids.includes("sticky-note")) {
@@ -175,7 +178,7 @@ describe("bundled artifact template serving installation", () => {
         if (filename === installed) calls.push("destination removed");
       },
     });
-    expect(calls).toEqual(["backup complete", "unhandled", "destination removed", "copy complete", "replacement complete", "handled", "Sticky note handled", "Map handled"]);
+    expect(calls).toEqual(["backup complete", "unhandled", "destination removed", "copy complete", "replacement complete", "handled", "Sticky note handled", "Map handled", "Document handled"]);
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-retry
@@ -194,7 +197,7 @@ describe("bundled artifact template serving installation", () => {
     });
     expect(warning).toHaveBeenCalled();
     expect(existsSync(installed)).toBe(false);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map", "document"].sort());
     const backup = readdirSync(path.dirname(installed)).find((name) => name.startsWith(".checklist.backup."));
     expect(backup).toBeDefined();
     expect(readFileSync(path.join(path.dirname(installed), backup!, "index.html"), "utf8")).toBe("old page");
@@ -202,8 +205,8 @@ describe("bundled artifact template serving installation", () => {
 
     const recovered = servingBoot(home);
     expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(sourceRoot, "checklist")));
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
-    expect(recovered.templateCache!.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
+    expect(recovered.templateCache!.getSnapshot().templates.map(({ id }) => id)).toEqual(["checklist", "sticky-note", "map", "document"].sort());
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-retry
@@ -231,7 +234,7 @@ describe("bundled artifact template serving installation", () => {
     failed.dispose();
     servingBoot(home);
     expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(sourceRoot, "checklist")));
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-boot
@@ -243,7 +246,7 @@ describe("bundled artifact template serving installation", () => {
     const edited = snapshotRegularFiles(installed);
     servingBoot(home);
     expect(snapshotRegularFiles(installed)).toEqual(edited);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
     writeFileSync(path.join(installed, "manifest.json"), JSON.stringify({ name: "Checklist", description: "edited", version: "2.0.0" }));
     const newer = snapshotRegularFiles(installed);
     servingBoot(home);
@@ -320,7 +323,7 @@ describe("bundled artifact template serving installation", () => {
     expect(calls[1]).toBe(`rename:${temporary}:${statePath(home)}`);
     expect(calls.slice(2, 4)).toEqual(calls.slice(0, 2));
     expect(calls.slice(4)).toEqual(calls.slice(0, 2));
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "map", "older-bundle", "sticky-note"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "map", "document", "older-bundle", "sticky-note"].sort());
     expect(JSON.parse(readFileSync(oldLink, "utf8")).installedTemplateIDs).toEqual(["calendar", "older-bundle"]);
   });
 
@@ -346,7 +349,7 @@ describe("bundled artifact template serving installation", () => {
       writeFileSync(filename, bytes) { retryCalls.push(`write:${filename}`); return writeFileSync(filename, bytes); },
       renameSync(from, to) { retryCalls.push(`rename:${from}:${to}`); return renameSync(from, to); },
     });
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
     const temporary = retryCalls[0]?.slice("write:".length);
     expect(temporary).toBeDefined();
     expect(path.dirname(temporary!)).toBe(path.dirname(statePath(home)));
@@ -370,7 +373,7 @@ describe("bundled artifact template serving installation", () => {
       expect(warning).toHaveBeenCalled();
       expect(snapshotRegularFiles(installed)).toEqual(former);
       expect(existsSync(socketPath)).toBe(true);
-      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
       expect(readdirSync(path.dirname(installed)).filter((name) => name.startsWith(".checklist.backup."))).toEqual([]);
       failed.dispose();
     } finally {
@@ -382,7 +385,7 @@ describe("bundled artifact template serving installation", () => {
     const map = path.join(home, "templates/map");
     const mapBeforeRetry = snapshotRegularFiles(map);
     servingBoot(home);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
     expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(sourceRoot, "checklist")));
     expect(snapshotRegularFiles(stickyNote)).toEqual(stickyBeforeRetry);
     expect(snapshotRegularFiles(map)).toEqual(mapBeforeRetry);
@@ -405,7 +408,7 @@ describe("bundled artifact template serving installation", () => {
     try {
       const failed = servingBoot(home, source);
       expect(warning).toHaveBeenCalled();
-      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map"].sort());
+      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map", "document"].sort());
       expect(existsSync(installed)).toBe(false);
       const backup = readdirSync(path.dirname(installed))
         .find((name) => /^\.checklist\.backup\.\d{4}-\d\d-\d\d-\d\d-\d\d-\d\d$/.test(name));
@@ -422,7 +425,7 @@ describe("bundled artifact template serving installation", () => {
     const map = path.join(home, "templates/map");
     const mapBeforeRetry = snapshotRegularFiles(map);
     servingBoot(home, source);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
     expect(snapshotRegularFiles(installed)).toEqual(snapshotRegularFiles(path.join(source, "checklist")));
     expect(snapshotRegularFiles(stickyNote)).toEqual(stickyBeforeRetry);
     expect(snapshotRegularFiles(map)).toEqual(mapBeforeRetry);
@@ -445,7 +448,7 @@ describe("bundled artifact template serving installation", () => {
     servingBoot(home);
 
     expect(snapshotRegularFiles(installed)).toEqual(expected);
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
     expect(existsSync(temporary)).toBe(false);
   });
 
@@ -467,7 +470,7 @@ describe("bundled artifact template serving installation", () => {
       runBundledTemplateInstallation(home, source, {}, inventory);
       expect(warning).toHaveBeenCalledWith(expect.stringContaining('"checklist"'), expect.any(Error));
       expect(readFileSync(path.join(installed, "index.html"), "utf8")).toBe("old page");
-      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "map", "second", "sticky-note"].sort());
+      expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "map", "document", "second", "sticky-note"].sort());
       expect(snapshotRegularFiles(path.join(home, "templates/second"))).toEqual(snapshotRegularFiles(path.join(source, "second")));
     } finally {
       await new Promise<void>((resolve) => socket.close(() => resolve()));
@@ -477,7 +480,7 @@ describe("bundled artifact template serving installation", () => {
     const retained = snapshotRegularFiles(installed);
     runBundledTemplateInstallation(home, source, {}, inventory.filter(({ id }) => id !== "checklist"));
     expect(snapshotRegularFiles(installed)).toEqual(retained);
-    expect(scanTemplatesDirectory(path.join(home, "templates")).templates.map(({ id }) => id).sort()).toEqual(["checklist", "map", "second", "sticky-note"].sort());
+    expect(scanTemplatesDirectory(path.join(home, "templates")).templates.map(({ id }) => id).sort()).toEqual(["checklist", "map", "document", "second", "sticky-note"].sort());
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-copied-artifacts
@@ -532,12 +535,12 @@ describe("bundled artifact template serving installation", () => {
     const deleted = servingBoot(home, source);
     expect(existsSync(installed)).toBe(false);
     expectDependents(deleted);
-    expect(deleted.templateCache!.getSnapshot().templates.map(({ id }) => id)).toEqual(["calendar", "sticky-note", "map"].sort());
-    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(deleted.templateCache!.getSnapshot().templates.map(({ id }) => id)).toEqual(["calendar", "sticky-note", "map", "document"].sort());
+    expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
   });
 
   // proofs/arch/templates/bundled-installation.md#^templates-install-t-independent-ids
-  it("handles all four templates independently across prior state, preservation, replacement and a failed backup", async () => {
+  it("handles every bundled template independently across prior state, preservation, replacement and a failed backup", async () => {
     const handledHome = tempRoot();
     writeState(handledHome, ["checklist"]);
     servingBoot(handledHome);
@@ -546,11 +549,11 @@ describe("bundled artifact template serving installation", () => {
       expect(snapshotRegularFiles(path.join(handledHome, "templates", id)))
         .toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));
     }
-    expect(JSON.parse(readFileSync(statePath(handledHome), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+    expect(JSON.parse(readFileSync(statePath(handledHome), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
 
     const home = tempRoot();
     servingBoot(home);
-    for (const id of ["checklist", "calendar", "sticky-note", "map"]) {
+    for (const id of ["checklist", "calendar", "sticky-note", "map", "document"]) {
       expect(snapshotRegularFiles(path.join(home, "templates", id))).toEqual(snapshotRegularFiles(path.join(sourceRoot, id)));
     }
     for (const { id, minimumVersion } of BUNDLED_ARTIFACT_TEMPLATES.filter(({ id }) => id !== "checklist")) {
@@ -581,7 +584,7 @@ describe("bundled artifact template serving installation", () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       servingBoot(failureHome);
-      expect(JSON.parse(readFileSync(statePath(failureHome), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map"].sort());
+      expect(JSON.parse(readFileSync(statePath(failureHome), "utf8")).installedTemplateIDs).toEqual(["calendar", "sticky-note", "map", "document"].sort());
       expect(snapshotRegularFiles(path.join(failureHome, "templates/calendar"))).toEqual(snapshotRegularFiles(path.join(sourceRoot, "calendar")));
       writeFileSync(path.join(failureHome, "templates/sticky-note/index.html"), "keep my note");
       const preserved = snapshotRegularFiles(path.join(failureHome, "templates/sticky-note"));
@@ -590,7 +593,7 @@ describe("bundled artifact template serving installation", () => {
       await new Promise<void>((resolve) => socket.close(() => resolve()));
       rmSync(socketPath, { force: true });
       servingBoot(failureHome);
-      expect(JSON.parse(readFileSync(statePath(failureHome), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
+      expect(JSON.parse(readFileSync(statePath(failureHome), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
       expect(snapshotRegularFiles(path.join(failureHome, "templates/sticky-note"))).toEqual(preserved);
       expect(snapshotRegularFiles(path.join(failureHome, "templates/map"))).toEqual(preservedMap);
       expect(snapshotRegularFiles(checklist)).toEqual(snapshotRegularFiles(path.join(sourceRoot, "checklist")));

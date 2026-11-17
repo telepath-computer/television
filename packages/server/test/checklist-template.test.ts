@@ -9,14 +9,15 @@ const folder = path.join(sourceRoot, "checklist");
 
 describe("bundled Checklist package", () => {
   // proofs/arch/templates/bundled-templates.md#^templates-bundled-t-inventory
-  it("ships Checklist, Calendar, Sticky note and Map with their exact inventory identities and minimum versions", () => {
-    expect(readdirSync(sourceRoot).sort()).toEqual(["checklist", "calendar", "sticky-note", "map"].sort());
-    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist", "calendar", "sticky-note", "map"]);
+  it("ships Checklist, Calendar, Sticky note, Map and Document with their exact inventory identities and minimum versions", () => {
+    expect(readdirSync(sourceRoot).sort()).toEqual(["checklist", "calendar", "sticky-note", "map", "document"].sort());
+    expect(BUNDLED_ARTIFACT_TEMPLATE_IDS).toEqual(["checklist", "calendar", "sticky-note", "map", "document"]);
     expect(BUNDLED_ARTIFACT_TEMPLATES).toEqual([
       { id: "checklist", minimumVersion: "1.0.0" },
       { id: "calendar", minimumVersion: "1.0.0" },
       { id: "sticky-note", minimumVersion: "1.0.0" },
       { id: "map", minimumVersion: "2.1.0" },
+      { id: "document", minimumVersion: "1.0.0" },
     ]);
     expect(JSON.parse(readFileSync(path.join(folder, "manifest.json"), "utf8"))).toMatchObject({
       name: "Checklist", description: "A list of items to tick off and edit.", version: "1.0.0",
@@ -29,6 +30,9 @@ describe("bundled Checklist package", () => {
     });
     expect(JSON.parse(readFileSync(path.join(sourceRoot, "map/manifest.json"), "utf8"))).toMatchObject({
       name: "Map", description: "An interactive map with category colours and icons, a floating place list, photos, and detailed place information.", version: "2.1.0",
+    });
+    expect(JSON.parse(readFileSync(path.join(sourceRoot, "document/manifest.json"), "utf8"))).toMatchObject({
+      name: "Document", description: "A document you and an agent write together, in Markdown.", version: "1.0.0",
     });
   });
 

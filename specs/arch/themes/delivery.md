@@ -70,7 +70,7 @@ The application theme module dispatches `television-theme-styles-changed` on `do
 
 ## Application theme JavaScript
 
-The same application theme module owns the main script include and both sandboxed frame lifecycles. Canonical wrappers, artifact proxy documents, the markdown editor, and built-in artifact error documents install none of them.
+The same application theme module owns the main script include and both sandboxed frame lifecycles. Canonical wrappers, artifact proxy documents, the Markdown file view, and built-in artifact error documents install none of them.
 
 ### Main script
 
@@ -129,7 +129,7 @@ Artifact authors obtain the current app's exact release version from `version` i
 
 The artifact proxy installs the shared resolver with fixed `system` in an early parser-blocking script after applicable CSP metadata and before styles. When authored markup puts a CSP meta element after content that can apply styles, Television preserves the policy and inserts the resolver after that earlier content. It does not move or bypass the policy. Its complete bridge remains at document end and invokes the same resolver before bridge installation. Authored HTML adds no appearance markup. Proxy-rendered markdown follows the same path. Non-HTML responses receive neither script.
 
-The markdown editor, artifact-missing page, and url-unsupported page include a blocking fixed-`system` resolver before `/canonical/v2/styles.css`; their own styles follow canonical. Markdown inherits canonical v2's live prose defaults, including future refinements allowed by that version's contract. Theme changes reload local HTML and the built-in error documents. A ready markdown editor receives `styles-changed` and cache-busts its canonical link under the [wrapper query rule](#^theme-delivery-wrapper-query) without replacing the editor or document; no notification is queued before readiness. Appearance changes reload nothing and request no stylesheet.
+The Markdown file view, artifact-missing page, and url-unsupported page include a blocking fixed-`system` resolver before `/canonical/v2/styles.css`; their own styles follow canonical. Markdown inherits canonical v2's live prose defaults, including future refinements allowed by that version's contract. Theme changes reload local HTML, including artifacts created from the bundled Document template, and the built-in error documents. A ready Markdown file view receives `styles-changed` and cache-busts its canonical link under the [wrapper query rule](#^theme-delivery-wrapper-query) without replacing the editor or document; no notification is queued before readiness. Appearance changes reload nothing and request no stylesheet.
 
 ## Embedded-document platform behavior
 

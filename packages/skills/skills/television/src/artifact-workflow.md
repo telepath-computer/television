@@ -250,7 +250,7 @@ Choose the line whose host the recipient can actually reach:
 
 The recipient adds the link with `tv create-artifact --url`; Television recognizes the `/artifact/<id>/...` shape, renders it inline, and reloads it from the producer when the producer content changes.
 
-Markdown artifacts shared this way render as read-only HTML. Anyone with the share link can read the artifact's content with no token at all, because the share ID alone authorizes the read.
+Markdown file artifacts shared this way render as read-only HTML. Documents created from the bundled Document template are HTML folder artifacts and follow their store's share level. Anyone with the share link can read the artifact's content with no token at all, because the share ID alone authorizes the read.
 
 A URL artifact has no share link. To "share" one, pass along the underlying URL and let the recipient create their own URL artifact.
 

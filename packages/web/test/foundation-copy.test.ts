@@ -116,6 +116,7 @@ function declaresSidebarWidth(stylesheet: string): boolean {
 }
 
 describe("application foundation production crossing (^ui-t-foundation-copy)", () => {
+  // proofs/ui/markdown-editor/index.md#^md-editor-t-stylesheet-copy
   test("committed copies are byte-identical and aggregate in owner order", () => {
     for (const { specSource, productionAsset } of COPIES) {
       expect(
