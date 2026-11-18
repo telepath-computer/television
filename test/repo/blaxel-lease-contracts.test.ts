@@ -213,8 +213,10 @@ function fakeProcfs(processes: Map<number, FakeProcess>, onList: (pid: number, c
     },
     readdir(dir: string) {
       const { pid, proc } = lookup(`${dir}`);
-      const count = (lists.get(pid) ?? 0) + 1; lists.set(pid, count); onList(pid, count);
-      return Object.keys(proc.threads);
+      const count = (lists.get(pid) ?? 0) + 1; lists.set(pid, count);
+      // The callback changes state after this list is taken, before the next read.
+      const tids = Object.keys(proc.threads); onList(pid, count);
+      return tids;
     },
     readlink(file: string) { const { proc } = lookup(file); if (proc.exe instanceof Error) throw proc.exe; return proc.exe ?? "/usr/bin/node"; },
   };
@@ -243,9 +245,10 @@ test("the owner audit waits for exiting processes and refuses unknown live owner
   // Main thread exited while another runs on; root reads an empty environment.
   await expect(audit(new Map([[105, { threads: { 105: "Z", 106: "S" }, environ: "", exe: procError("ENOENT") }]]))).rejects.toThrow(/PID 105 \(ENODATA\)/);
 
-  // A thread created while the thread list was being checked is not missed.
-  const spawning = new Map<number, FakeProcess>([[107, { threads: { 107: "Z" }, environ: "", exe: procError("ENOENT") }]]);
-  await expect(audit(spawning, (_pid, count) => { if (count === 2) spawning.get(107)!.threads[108] = "S"; })).rejects.toThrow(/PID 107 \(ENODATA\)/);
+  // The main thread creates a thread and then exits between the thread list
+  // and its state read; the new thread is not missed.
+  const spawning = new Map<number, FakeProcess>([[107, { threads: { 107: "S" }, environ: "", exe: procError("ENOENT") }]]);
+  await expect(audit(spawning, (_pid, count) => { if (count === 1) Object.assign(spawning.get(107)!.threads, { 107: "Z", 108: "S" }); })).rejects.toThrow(/PID 107 \(ENODATA\)/);
 
   // A live process with readable tokens is an owner; one without is not.
   expect(await audit(new Map([[109, { threads: { 109: "S" }, environ: token }]]))).toMatchObject({ ok: false });
