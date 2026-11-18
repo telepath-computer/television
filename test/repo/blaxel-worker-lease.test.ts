@@ -46,6 +46,24 @@ test.skipIf(process.platform !== "linux")("fixture audit runs without root acces
   } finally { if (child) { child.kill("SIGKILL"); await until(() => child.signalCode !== null); } }
 });
 
+test.skipIf(process.platform !== "linux")("a token-bearing zombie counts as gone although its environment is unreadable", async () => {
+  const f = fixture(true);
+  const zombieFile = path.join(f.input.tmpRoot, "zombie-pid");
+  // The shell's child exits at once; exec replaces the shell with a process
+  // that never reaps it, so it stays a zombie carrying the owner token.
+  const parent = spawn("bash", ["-c", `sleep 0 & echo $! > ${shell(zombieFile)}; exec sleep 30`], { detached: true, stdio: "ignore", env: { ...process.env, TV_TEST_SHARD_OWNER: "abandoned-lock" } });
+  try {
+    await until(() => existsSync(zombieFile) && readFileSync(zombieFile, "utf8").endsWith("\n"));
+    const zombie = Number(readFileSync(zombieFile, "utf8"));
+    await until(() => { const stat = readFileSync(`/proc/${zombie}/stat`, "utf8"); return stat.slice(stat.lastIndexOf(")") + 2).startsWith("Z"); });
+    // procfs shows a zombie's environ as root-owned, so only root can open it.
+    if (process.getuid?.() !== 0) expect(() => readFileSync(`/proc/${zombie}/environ`)).toThrow(/EACCES/);
+    const acquired = f.run({ auditPids: [zombie] });
+    expect(acquired.status, acquired.stderr).toBe(0);
+    expect(f.record().lockId).toBe(f.input.lockId);
+  } finally { try { process.kill(-parent.pid!, "SIGKILL"); } catch {} }
+});
+
 test.skipIf(process.platform !== "linux")("an unreadable whole-worker audit preserves the lease and its evidence", () => {
   const f = fixture(true);
   expect(f.run().status).toBe(0);

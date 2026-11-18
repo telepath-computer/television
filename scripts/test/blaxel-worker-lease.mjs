@@ -53,21 +53,58 @@ export async function workerLeaseOperation(input, hooks = {}) {
   const denied = (reason) => ({ ok: false, reason });
 
   // Inspect all tokens, including malformed tokens, conservatively. No arguments
-  // or environments enter the evidence. Kernel threads and zombies own no work.
-  function readProcess(pid) {
-    const base = `/proc/${pid}`;
-    const stat = fs.readFileSync(`${base}/stat`, "utf8");
+  // or environments enter the evidence. Kernel threads own no work. A process
+  // is gone once every thread has finished exiting: a zombie has released its
+  // files, sockets and memory, but a thread that is still exiting has not.
+  function threadState(file) {
+    const stat = fs.readFileSync(file, "utf8");
     const fields = stat.slice(stat.lastIndexOf(")") + 1).trim().split(/\s+/);
     if (fields.length < 20) throw new Error("unreadable process identity");
-    if (["Z", "X"].includes(fields[0])) return null;
-    const environment = fs.readFileSync(`${base}/environ`, "utf8").split("\0");
+    const finished = ["Z", "X"].includes(fields[0]);
+    // PF_EXITING (0x4 in the flags field) marks a thread inside the kernel's exit path.
+    return { finished, exiting: finished || (Number(fields[6]) & 0x4) !== 0, startTime: fields[19] };
+  }
+  // The process-level stat describes only the main thread, which can exit
+  // while other threads keep running, so judge the process by every thread.
+  function threadsOf(base) {
+    let tids;
+    try { tids = fs.readdirSync(`${base}/task`); } catch (error) { if (["ENOENT", "ESRCH"].includes(error.code)) return []; throw error; }
+    const states = [];
+    for (const tid of tids) {
+      try { states.push(threadState(`${base}/task/${tid}/stat`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
+    }
+    return states;
+  }
+  async function readProcess(pid, reinspected = false) {
+    const base = `/proc/${pid}`;
+    const { startTime } = threadState(`${base}/stat`);
+    if (threadsOf(base).every((thread) => thread.finished)) return null;
+    let raw;
+    try { raw = fs.readFileSync(`${base}/environ`, "utf8"); }
+    catch (error) {
+      if (!["EACCES", "EPERM"].includes(error.code)) throw error;
+      // Once an exiting process releases its memory, procfs shows its environ
+      // as root-owned. Wait for such a process to finish exiting; a denial
+      // from any other process leaves its ownership unknown.
+      const deadline = Date.now() + 2000;
+      for (;;) {
+        let now;
+        try { now = threadState(`${base}/stat`); } catch (statError) { if (["ENOENT", "ESRCH"].includes(statError.code)) return null; throw statError; }
+        if (now.startTime !== startTime) { if (reinspected) throw error; return readProcess(pid, true); }
+        const threads = threadsOf(base);
+        if (threads.every((thread) => thread.finished)) return null;
+        if (!threads.every((thread) => thread.exiting) || Date.now() >= deadline) throw error;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+    }
+    const environment = raw.split("\0");
     const value = (key) => environment.find((entry) => entry.startsWith(`${key}=`))?.slice(key.length + 1);
     const shardToken = value("TV_TEST_SHARD_OWNER");
     const surfaceToken = value("TV_TEST_SURFACE_OWNER");
     if (!shardToken && !surfaceToken) return null;
     let command = "unavailable";
     try { command = path.basename(fs.readlinkSync(`${base}/exe`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
-    return { pid, startTime: fields[19], shardToken, surfaceToken, command };
+    return { pid, startTime, shardToken, surfaceToken, command };
   }
   async function scan() {
     const owners = [];
@@ -75,7 +112,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
     // enumerates the whole worker and refuses any unreadable ownership.
     const pids = input.auditPids ?? fs.readdirSync("/proc").filter((name) => /^\d+$/.test(name)).map(Number);
     for (const pid of pids) {
-      try { const entry = readProcess(pid); if (entry) owners.push(entry); }
+      try { const entry = await readProcess(pid); if (entry) owners.push(entry); }
       catch (error) {
         if (["EACCES", "EPERM"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${pid} (${error.code}); worker reuse refused`);
         if (!["ENOENT", "ESRCH"].includes(error.code)) throw error;
@@ -90,7 +127,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
     const signal = async (name) => {
       for (const candidate of (await scanOwners()).filter((entry) => entry.shardToken === token)) {
         let current;
-        try { current = readProcess(candidate.pid); } catch (error) { if (["ENOENT", "ESRCH"].includes(error.code)) continue; throw error; }
+        try { current = await readProcess(candidate.pid); } catch (error) { if (["ENOENT", "ESRCH"].includes(error.code)) continue; throw error; }
         if (!current || current.startTime !== candidate.startTime || current.shardToken !== token) continue;
         try { process.kill(current.pid, name); }
         catch (error) { if (error.code === "ESRCH") continue; throw error; }
@@ -176,7 +213,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
   } else if (operation === "enter") {
     if (!record.dispatch || record.dispatch.processName !== input.processName || record.dispatch.pid) return denied("dispatch not current");
     const pid = input.pidFromEnv ? Number(process.env.TV_SHARD_ENTRY_PID) : input.pid;
-    const entry = readProcess(pid);
+    const entry = await readProcess(pid);
     if (!entry || entry.shardToken !== record.lockId) return denied("entry attribution missing");
     record.dispatch.pid = entry.pid; record.dispatch.startTime = entry.startTime; write(record);
   } else if (operation === "teardown") {
