@@ -54,57 +54,85 @@ export async function workerLeaseOperation(input, hooks = {}) {
 
   // Inspect all tokens, including malformed tokens, conservatively. No arguments
   // or environments enter the evidence. Kernel threads own no work. A process
-  // is gone once every thread has finished exiting: a zombie has released its
-  // files, sockets and memory, but a thread that is still exiting has not.
+  // is gone once all of its threads have finished exiting: a zombie has
+  // released its files, sockets and memory, but an exiting thread has not.
+  const procfs = hooks.procfs ?? { readFile: (file) => fs.readFileSync(file, "utf8"), readdir: (dir) => fs.readdirSync(dir), readlink: (file) => fs.readlinkSync(file) };
+  const vanished = (error) => ["ENOENT", "ESRCH"].includes(error?.code);
+  const ownershipUnknown = (pid, code, reason) => Object.assign(new Error(`process ${pid} ${reason}`), { code });
   function threadState(file) {
-    const stat = fs.readFileSync(file, "utf8");
+    const stat = procfs.readFile(file);
     const fields = stat.slice(stat.lastIndexOf(")") + 1).trim().split(/\s+/);
     if (fields.length < 20) throw new Error("unreadable process identity");
+    const flags = Number(fields[6]);
     const finished = ["Z", "X"].includes(fields[0]);
-    // PF_EXITING (0x4 in the flags field) marks a thread inside the kernel's exit path.
-    return { finished, exiting: finished || (Number(fields[6]) & 0x4) !== 0, startTime: fields[19] };
+    // PF_EXITING (0x4) marks a thread in the kernel's exit path; PF_KTHREAD (0x200000) a kernel thread.
+    return { finished, exiting: finished || (flags & 0x4) !== 0, kernel: (flags & 0x200000) !== 0, startTime: fields[19] };
   }
   // The process-level stat describes only the main thread, which can exit
   // while other threads keep running, so judge the process by every thread.
-  function threadsOf(base) {
-    let tids;
-    try { tids = fs.readdirSync(`${base}/task`); } catch (error) { if (["ENOENT", "ESRCH"].includes(error.code)) return []; throw error; }
-    const states = [];
-    for (const tid of tids) {
-      try { states.push(threadState(`${base}/task/${tid}/stat`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
+  // The list is read again afterwards: a thread created during the check, by
+  // a thread that then finished, appears in the second list.
+  function processPhase(base) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const list = () => { try { return procfs.readdir(`${base}/task`); } catch (error) { if (vanished(error)) return []; throw error; } };
+      const before = list();
+      const states = [];
+      for (const tid of before) {
+        try { states.push(threadState(`${base}/task/${tid}/stat`)); } catch (error) { if (!vanished(error)) throw error; }
+      }
+      if (list().some((tid) => !before.includes(tid))) continue;
+      if (states.every((thread) => thread.finished)) return "finished";
+      return states.every((thread) => thread.exiting) ? "exiting" : "live";
     }
-    return states;
+    return "live";
   }
   async function readProcess(pid, reinspected = false) {
     const base = `/proc/${pid}`;
-    const { startTime } = threadState(`${base}/stat`);
-    if (threadsOf(base).every((thread) => thread.finished)) return null;
-    let raw;
-    try { raw = fs.readFileSync(`${base}/environ`, "utf8"); }
-    catch (error) {
-      if (!["EACCES", "EPERM"].includes(error.code)) throw error;
-      // Once an exiting process releases its memory, procfs shows its environ
-      // as root-owned. Wait for such a process to finish exiting; a denial
-      // from any other process leaves its ownership unknown.
-      const deadline = Date.now() + 2000;
-      for (;;) {
-        let now;
-        try { now = threadState(`${base}/stat`); } catch (statError) { if (["ENOENT", "ESRCH"].includes(statError.code)) return null; throw statError; }
-        if (now.startTime !== startTime) { if (reinspected) throw error; return readProcess(pid, true); }
-        const threads = threadsOf(base);
-        if (threads.every((thread) => thread.finished)) return null;
-        if (!threads.every((thread) => thread.exiting) || Date.now() >= deadline) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 20));
+    const identity = threadState(`${base}/stat`);
+    if (identity.kernel) return null;
+    // Until an exiting process finishes, it still holds what the lease
+    // protects, and its environment may already be denied or empty. A process
+    // can begin exiting between the checks below, so a failed read is
+    // judged again by the process's phase before it counts as unknown.
+    for (let poll = 0; ; poll += 1) {
+      if (poll > 0) {
+        let current;
+        try { current = threadState(`${base}/stat`); } catch (error) { if (vanished(error)) return null; throw error; }
+        if (current.startTime !== identity.startTime) { if (reinspected) throw ownershipUnknown(pid, "ESTALE", "changed identity twice"); return readProcess(pid, true); }
       }
+      const phase = processPhase(base);
+      if (phase === "finished") return null;
+      if (phase === "live") {
+        let raw;
+        let command = "unavailable";
+        let failure = null;
+        try {
+          raw = procfs.readFile(`${base}/environ`);
+          try { command = path.basename(procfs.readlink(`${base}/exe`)); }
+          catch (error) {
+            if (!vanished(error)) throw error;
+            // Without its memory, a process's environment reads as empty to
+            // root, so the tokens it carries are unknown.
+            if (raw === "") failure = ownershipUnknown(pid, "ENODATA", "released its environment while threads still run");
+          }
+        } catch (error) {
+          if (!["EACCES", "EPERM"].includes(error.code)) throw error;
+          failure = error;
+        }
+        if (!failure) {
+          const environment = raw.split("\0");
+          const value = (key) => environment.find((entry) => entry.startsWith(`${key}=`))?.slice(key.length + 1);
+          const shardToken = value("TV_TEST_SHARD_OWNER");
+          const surfaceToken = value("TV_TEST_SURFACE_OWNER");
+          if (!shardToken && !surfaceToken) return null;
+          return { pid, startTime: identity.startTime, shardToken, surfaceToken, command };
+        }
+        // Still live after the failed read: its ownership cannot be known.
+        if (processPhase(base) === "live") throw failure;
+      }
+      if (poll >= 100) throw ownershipUnknown(pid, "ETIMEDOUT", "did not finish exiting");
+      await new Promise((resolve) => setTimeout(resolve, 20));
     }
-    const environment = raw.split("\0");
-    const value = (key) => environment.find((entry) => entry.startsWith(`${key}=`))?.slice(key.length + 1);
-    const shardToken = value("TV_TEST_SHARD_OWNER");
-    const surfaceToken = value("TV_TEST_SURFACE_OWNER");
-    if (!shardToken && !surfaceToken) return null;
-    let command = "unavailable";
-    try { command = path.basename(fs.readlinkSync(`${base}/exe`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
-    return { pid, startTime, shardToken, surfaceToken, command };
   }
   async function scan() {
     const owners = [];
@@ -114,7 +142,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
     for (const pid of pids) {
       try { const entry = await readProcess(pid); if (entry) owners.push(entry); }
       catch (error) {
-        if (["EACCES", "EPERM"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${pid} (${error.code}); worker reuse refused`);
+        if (["EACCES", "EPERM", "ETIMEDOUT", "ESTALE", "ENODATA"].includes(error.code)) throw new Error(`worker owner audit unreadable at PID ${pid} (${error.code}); worker reuse refused`);
         if (!["ENOENT", "ESRCH"].includes(error.code)) throw error;
       }
     }

@@ -151,7 +151,7 @@ export function discoverPackageDirs(root, { readdir = fs.readdirSync } = {}) {
 
 // Build and test output folders hold no workspace packages. Test runs create
 // and delete directories inside them while this walk may be reading the tree.
-const PACKAGE_WALK_SKIPPED_DIRS = new Set([".git", "node_modules", ".blaxel-testshards", ".testshards", ".test-runs", "dist", "test-results", "playwright-report", ".playwright", "coverage"]);
+export const PACKAGE_WALK_SKIPPED_DIRS = new Set([".git", "node_modules", ".blaxel-testshards", ".testshards", ".test-runs", "dist", "test-results", "playwright-report", ".playwright", "coverage"]);
 
 function findPackageJson(root, readdir) {
   const out = [];

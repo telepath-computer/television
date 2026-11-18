@@ -190,3 +190,67 @@ test("preparation evidence is downloaded before an undispatched attempt releases
     },
   });
 });
+
+// Authored procfs: each thread-list read advances the scripted process state,
+// so exit timing is deterministic. Forfeits real procfs to the worker-lease seam.
+type FakeProcess = { threads: Record<string, string>; environ: string | Error; exe?: string | Error; onEnviron?: () => void };
+const EXITING = 0x4;
+const procError = (code: string) => Object.assign(new Error(code), { code });
+function fakeProcfs(processes: Map<number, FakeProcess>, onList: (pid: number, count: number) => void = () => {}) {
+  const lists = new Map<number, number>();
+  const statLine = (state: string, flags: number) => `1 (fake) ${state} 1 1 1 0 -1 ${flags} 0 0 0 0 0 0 0 0 20 0 1 0 5000 0 0`;
+  // A thread entry is "<state>", "<state>+exiting" or "<state>+kernel".
+  const thread = (entry: string) => statLine(entry[0], entry.endsWith("+kernel") ? 0x200000 : entry.endsWith("+exiting") || entry[0] === "Z" ? EXITING : 0);
+  const lookup = (file: string) => { const [, pid, rest] = file.match(/^\/proc\/(\d+)\/(.+)$/)!; const proc = processes.get(Number(pid)); if (!proc) throw procError("ENOENT"); return { pid: Number(pid), rest, proc }; };
+  return {
+    readFile(file: string) {
+      const { pid, rest, proc } = lookup(file);
+      if (rest === "stat") return thread(proc.threads[String(pid)] ?? "Z");
+      const task = rest.match(/^task\/(\d+)\/stat$/);
+      if (task) { if (!(task[1] in proc.threads)) throw procError("ENOENT"); return thread(proc.threads[task[1]]); }
+      if (rest === "environ") { proc.onEnviron?.(); if (proc.environ instanceof Error) throw proc.environ; return proc.environ; }
+      throw procError("ENOENT");
+    },
+    readdir(dir: string) {
+      const { pid, proc } = lookup(`${dir}`);
+      const count = (lists.get(pid) ?? 0) + 1; lists.set(pid, count); onList(pid, count);
+      return Object.keys(proc.threads);
+    },
+    readlink(file: string) { const { proc } = lookup(file); if (proc.exe instanceof Error) throw proc.exe; return proc.exe ?? "/usr/bin/node"; },
+  };
+}
+
+test("the owner audit waits for exiting processes and refuses unknown live ownership", async () => {
+  const audit = (processes: Map<number, FakeProcess>, onList?: (pid: number, count: number) => void) =>
+    workerLeaseOperation({ ...fixture().input, auditPids: [...processes.keys()] }, { now: () => 3000, procfs: fakeProcfs(processes, onList) });
+  const token = "TV_TEST_SHARD_OWNER=old\0";
+
+  // Exiting with its environment denied: waited for until it becomes a zombie.
+  const finishing = new Map([[101, { threads: { 101: "R+exiting" }, environ: procError("EACCES") }]]);
+  expect(await audit(finishing, (_pid, count) => { if (count === 6) finishing.get(101)!.threads[101] = "Z"; })).toMatchObject({ ok: true });
+
+  // Live at the first check, exiting by the environment read: the original race.
+  const racing = new Map<number, FakeProcess>([[102, { threads: { 102: "S" }, environ: procError("EACCES") }]]);
+  racing.get(102)!.onEnviron = () => { racing.get(102)!.threads[102] = "R+exiting"; };
+  expect(await audit(racing, (_pid, count) => { if (count === 8) racing.get(102)!.threads[102] = "Z"; })).toMatchObject({ ok: true });
+
+  // An exiting process that never finishes still holds the worker.
+  await expect(audit(new Map([[103, { threads: { 103: "D+exiting" }, environ: procError("EACCES") }]]))).rejects.toThrow(/PID 103 \(ETIMEDOUT\)/);
+
+  // A live process whose environment is denied has unknown ownership.
+  await expect(audit(new Map([[104, { threads: { 104: "S" }, environ: procError("EACCES") }]]))).rejects.toThrow(/PID 104 \(EACCES\)/);
+
+  // Main thread exited while another runs on; root reads an empty environment.
+  await expect(audit(new Map([[105, { threads: { 105: "Z", 106: "S" }, environ: "", exe: procError("ENOENT") }]]))).rejects.toThrow(/PID 105 \(ENODATA\)/);
+
+  // A thread created while the thread list was being checked is not missed.
+  const spawning = new Map<number, FakeProcess>([[107, { threads: { 107: "Z" }, environ: "", exe: procError("ENOENT") }]]);
+  await expect(audit(spawning, (_pid, count) => { if (count === 2) spawning.get(107)!.threads[108] = "S"; })).rejects.toThrow(/PID 107 \(ENODATA\)/);
+
+  // A live process with readable tokens is an owner; one without is not.
+  expect(await audit(new Map([[109, { threads: { 109: "S" }, environ: token }]]))).toMatchObject({ ok: false });
+  expect(await audit(new Map([[110, { threads: { 110: "S" }, environ: "PATH=/bin\0" }]]))).toMatchObject({ ok: true });
+
+  // Kernel threads own no work, although a non-root reader is denied their environment.
+  expect(await audit(new Map([[2, { threads: { 2: "S+kernel" }, environ: procError("EACCES") }]]))).toMatchObject({ ok: true });
+});
