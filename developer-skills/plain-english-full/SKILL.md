@@ -25,7 +25,7 @@ A simple request for **plain English** means rewrite what you just presented, or
 
 ## Rewrite the content, not the words
 
-A request for plain English is a request to rewrite the content so a reasonable reader understands it, not to swap words for simpler ones. Work out what the text is trying to tell the reader, then write that the way a person would explain it to a colleague: what happens, in what order, with examples where they help. Keep the substance; discard the form if the form is what's unclear.
+A request for plain English is a request to rewrite the content so a reasonable reader understands it, not to swap words for simpler ones. The structure of the original is often part of what makes it unclear, so rewrite the structure too, keeping the substance.
 
 ## Make clear what terms refer to
 
