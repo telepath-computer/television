@@ -1,7 +1,7 @@
 {
   "name": "@telepath-computer/television-desktop",
   "productName": "Television",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "private": true,
   "license": "MIT",
   "homepage": "https://television.run",
