@@ -205,6 +205,8 @@ An assertion's price never argues against the prose it would prove. A spec serve
 
 Integration tests that cross the seam to real third-party APIs or services that cost money to run — for example AI inference — are a necessary part of the operational overhead of maintaining the software. Depending on the cost and environmental dependencies of these boundary tests, they may not be included in all verification runs (e.g. CI on GitHub), but they should still be available in the test suite for developers to run when code has any reasonable chance of impacting covered behavior.
 
+An owning spec may confine the tests of some code to the real environment that code runs in. The live tests there are then that code's real boundary tests under the mocking and composition rules above, and the code is not run elsewhere to supply them. [Blaxel worker code](test-runner/blaxel-testshards.md#^blaxel-worker-code-live) is confined this way.
+
 Likewise, if product behavior depends on complex host setup, like the installation and configuration of complex local software, that is not something we skip over in testing.
 
 We always "bite the bullet" and ensure that automated testing really proves things really work — the same discipline that requires each spine path be walked for real (see *Acceptance tests prove the spine; composition covers the breadth* above).
