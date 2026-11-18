@@ -138,9 +138,9 @@ function defaultCwd(config) {
   return slash(path.dirname(config));
 }
 
-function discoverPackageDirs(root) {
+export function discoverPackageDirs(root, { readdir = fs.readdirSync } = {}) {
   const dirs = new Map();
-  for (const file of findPackageJson(root)) {
+  for (const file of findPackageJson(root, readdir)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(file, "utf8"));
       if (pkg.name) dirs.set(pkg.name, slash(path.relative(root, path.dirname(file))));
@@ -149,11 +149,24 @@ function discoverPackageDirs(root) {
   return dirs;
 }
 
-function findPackageJson(root) {
+// Build and test output folders hold no workspace packages. Test runs create
+// and delete directories inside them while this walk may be reading the tree.
+const PACKAGE_WALK_SKIPPED_DIRS = new Set([".git", "node_modules", ".blaxel-testshards", ".testshards", ".test-runs", "dist", "test-results", "playwright-report", ".playwright", "coverage"]);
+
+function findPackageJson(root, readdir) {
   const out = [];
   const visit = (dir) => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if ([".git", "node_modules", ".blaxel-testshards", ".testshards", ".test-runs", "dist"].includes(entry.name)) continue;
+    let entries;
+    try {
+      entries = readdir(dir, { withFileTypes: true });
+    } catch (error) {
+      // A directory removed between listing its parent and reading it holds no
+      // packages. The root itself must exist.
+      if (dir !== root && (error?.code === "ENOENT" || error?.code === "ENOTDIR")) return;
+      throw error;
+    }
+    for (const entry of entries) {
+      if (PACKAGE_WALK_SKIPPED_DIRS.has(entry.name)) continue;
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) visit(full);
       else if (entry.name === "package.json") out.push(full);
