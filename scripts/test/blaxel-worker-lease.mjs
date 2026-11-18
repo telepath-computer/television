@@ -69,8 +69,9 @@ export async function workerLeaseOperation(input, hooks = {}) {
     let exiting = finished || (flags & 0x4) !== 0;
     if (!exiting) {
       // A killed thread that has not yet been scheduled lacks PF_EXITING, but
-      // SIGKILL cannot be blocked or caught, so pending SIGKILL (bit 9 of its
-      // own or the process's pending set) means it will never run again.
+      // SIGKILL cannot be blocked or caught: with it pending (bit 9 of the
+      // thread's or the process's pending set) the thread terminates before
+      // it next returns to user code. It still counts only as exiting.
       let status = "";
       try { status = procfs.readFile(file.replace(/\/stat$/, "/status")); } catch (error) { if (!vanished(error)) throw error; }
       exiting = ["SigPnd", "ShdPnd"].some((key) => { const mask = status.match(new RegExp(`^${key}:\\s*([0-9a-f]+)$`, "m"))?.[1]; return mask !== undefined && (BigInt(`0x${mask}`) & 0x100n) !== 0n; });

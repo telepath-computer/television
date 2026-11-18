@@ -199,8 +199,9 @@ const procError = (code: string) => Object.assign(new Error(code), { code });
 function fakeProcfs(processes: Map<number, FakeProcess>, onList: (pid: number, count: number) => void = () => {}) {
   const lists = new Map<number, number>();
   const statLine = (state: string, flags: number) => `1 (fake) ${state} 1 1 1 0 -1 ${flags} 0 0 0 0 0 0 0 0 20 0 1 0 5000 0 0`;
-  // A thread entry is "<state>", "<state>+exiting", "<state>+killed" (SIGKILL
-  // pending, not yet scheduled to exit) or "<state>+kernel".
+  // A thread entry is "<state>", "<state>+exiting", "<state>+killed" or
+  // "<state>+groupkilled" (SIGKILL pending for the thread or the whole process,
+  // not yet scheduled to exit), or "<state>+kernel".
   const thread = (entry: string) => statLine(entry[0], entry.endsWith("+kernel") ? 0x200000 : entry.endsWith("+exiting") || entry[0] === "Z" ? EXITING : 0);
   const lookup = (file: string) => { const [, pid, rest] = file.match(/^\/proc\/(\d+)\/(.+)$/)!; const proc = processes.get(Number(pid)); if (!proc) throw procError("ENOENT"); return { pid: Number(pid), rest, proc }; };
   return {
@@ -213,7 +214,8 @@ function fakeProcfs(processes: Map<number, FakeProcess>, onList: (pid: number, c
       if (status) {
         const entry = proc.threads[status[1] ?? String(pid)];
         if (entry === undefined) throw procError("ENOENT");
-        return `SigPnd:\t${entry.endsWith("+killed") ? "0000000000000100" : "0000000000000000"}\nShdPnd:\t0000000000000000\n`;
+        const pending = (on: boolean) => on ? "0000000000000100" : "0000000000000000";
+        return `SigPnd:\t${pending(entry.endsWith("+killed"))}\nShdPnd:\t${pending(entry.endsWith("+groupkilled"))}\n`;
       }
       if (rest === "environ") { proc.onEnviron?.(); if (proc.environ instanceof Error) throw proc.environ; return proc.environ; }
       throw procError("ENOENT");
@@ -243,9 +245,14 @@ test("the owner audit waits for exiting processes and refuses unknown live owner
   racing.get(102)!.onEnviron = () => { racing.get(102)!.threads[102] = "R+exiting"; };
   expect(await audit(racing, (_pid, count) => { if (count === 8) racing.get(102)!.threads[102] = "Z"; })).toMatchObject({ ok: true });
 
-  // Killed sibling threads not yet scheduled to exit still count as exiting.
-  const killed = new Map([[111, { threads: { 111: "Z", 112: "R+killed" } as Record<string, string>, environ: procError("EACCES") }]]);
-  expect(await audit(killed, (_pid, count) => { if (count === 4) delete killed.get(111)!.threads[112]; })).toMatchObject({ ok: true });
+  // Killed sibling threads not yet scheduled to exit count as exiting: the
+  // audit keeps waiting until they are gone, then acquires.
+  for (const kill of ["R+killed", "R+groupkilled"]) {
+    const killed = new Map([[111, { threads: { 111: "Z", 112: kill } as Record<string, string>, environ: procError("EACCES") }]]);
+    let lists = 0;
+    expect(await audit(killed, (_pid, count) => { lists = count; if (count === 4) delete killed.get(111)!.threads[112]; })).toMatchObject({ ok: true });
+    expect(lists).toBeGreaterThan(4);
+  }
 
   // An exiting process that never finishes still holds the worker.
   await expect(audit(new Map([[103, { threads: { 103: "D+exiting" }, environ: procError("EACCES") }]]))).rejects.toThrow(/PID 103 \(ETIMEDOUT\)/);
