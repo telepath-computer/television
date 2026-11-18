@@ -23,6 +23,10 @@ The problem is one-off shorthand for an argument, conclusion, or decomposition t
 
 A simple request for **plain English** means rewrite what you just presented, or the passage the reader specifies. “Decode” is an alias for that request, not a separate command or format. Expand coined phrases, describe identifiers the reader cannot resolve, and keep the substance intact. Do not substitute a glossary, explain what plain English means, or defend the unclear wording. Rewrite it. The request is not for shorter text, simpler concepts, childlike analogies, or fewer details. Do not talk down or explain vocabulary the reader already knows.
 
+## Rewrite the content, not the words
+
+A request for plain English is a request to rewrite the content so a reasonable reader understands it, not to swap words for simpler ones. Work out what the text is trying to tell the reader, then write that the way a person would explain it to a colleague: what happens, in what order, with examples where they help. Keep the substance; discard the form if the form is what's unclear.
+
 ## Make clear what terms refer to
 
 **Private compression is the worst offender.** an idea developed in earlier context or hidden reasoning becomes a coined phrase, then appears as if everyone had agreed on its meaning. Look for it first: it feels precise and shared to its author, who can expand it instantly. A short token may save typing while forcing the reader to reconstruct a whole argument. Describe the idea directly unless a reusable label earns its place.
