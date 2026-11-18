@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/skill-tv-tasks",
-  "version": "1.5.6",
+  "version": "1.5.7",
   "license": "MIT",
   "type": "module",
   "private": true,
