@@ -51,7 +51,9 @@ export interface SelectionOptions {
 }
 
 export const CANONICAL_TEST_INCLUDE_ROOTS: readonly string[];
+export const PACKAGE_WALK_SKIPPED_DIRS: ReadonlySet<string>;
 export function loadTestConfig(options?: { root?: string }): TestConfig;
+export function discoverPackageDirs(root: string, options?: { readdir?: (dir: string, options: { withFileTypes: true }) => import("node:fs").Dirent[] }): Map<string, string>;
 export function normalizeTestConfig(config: TestConfig, options: { root: string; packageDirs: Map<string, string> }): TestConfig;
 export function validateRegistry(config: TestConfig, options?: { root?: string }): string[];
 export function selectSurfaces(config: TestConfig, options: SelectionOptions): TestSurface[];
