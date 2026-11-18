@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { normalizeTestConfig, owningSurfaces } from "./config.mjs";
+import { normalizeTestConfig, owningSurfaces, PACKAGE_WALK_SKIPPED_DIRS } from "./config.mjs";
 
 export const TEST_FILE_PATTERN = /(?:^|\/)[^/]+\.(?:test|spec)\.(?:[cm]?[jt]s)x?$/;
 
@@ -56,7 +56,7 @@ export async function loadRegistrySnapshotAtCommit({ repoRoot = process.cwd(), c
   // In particular, a package's native config need not live at its package root.
   const packageDirs = new Map();
   for (const file of enumerateTrackedPaths({ repoRoot, commit })) {
-    if (path.posix.basename(file) !== "package.json" || /(?:^|\/)(?:node_modules|dist|\.git|\.blaxel-testshards|\.testshards|\.test-runs)\//.test(file)) continue;
+    if (path.posix.basename(file) !== "package.json" || file.split("/").slice(0, -1).some((segment) => PACKAGE_WALK_SKIPPED_DIRS.has(segment))) continue;
     const source = git(["show", `${commit}:${file}`], { cwd: repoRoot });
     try {
       const pkg = JSON.parse(source);

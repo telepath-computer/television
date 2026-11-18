@@ -46,6 +46,24 @@ test.skipIf(process.platform !== "linux")("fixture audit runs without root acces
   } finally { if (child) { child.kill("SIGKILL"); await until(() => child.signalCode !== null); } }
 });
 
+test.skipIf(process.platform !== "linux")("a token-bearing zombie counts as gone although its environment is unreadable", async () => {
+  const f = fixture(true);
+  const zombieFile = path.join(f.input.tmpRoot, "zombie-pid");
+  // The parent never waits for its child, so the child stays a zombie that
+  // carries the owner token. It reports the PID only after the child exits.
+  const source = `import os,sys\npid=os.fork()\nif pid==0: os._exit(0)\nwhile open(f"/proc/{pid}/stat").read().rsplit(")",1)[1].split()[0]!="Z": pass\nopen(sys.argv[1],"w").write(f"{pid}\\n")\nos.pause()`;
+  const parent = spawn("python3", ["-I", "-c", source, zombieFile], { detached: true, stdio: "ignore", env: { ...process.env, TV_TEST_SHARD_OWNER: "abandoned-lock" } });
+  try {
+    await until(() => existsSync(zombieFile) && readFileSync(zombieFile, "utf8").endsWith("\n"));
+    const zombie = Number(readFileSync(zombieFile, "utf8"));
+    // procfs shows a zombie's environ as root-owned, so only root can open it.
+    if (process.getuid?.() !== 0) expect(() => readFileSync(`/proc/${zombie}/environ`)).toThrow(/EACCES/);
+    const acquired = f.run({ auditPids: [zombie] });
+    expect(acquired.status, acquired.stderr).toBe(0);
+    expect(f.record().lockId).toBe(f.input.lockId);
+  } finally { try { process.kill(-parent.pid!, "SIGKILL"); } catch {} }
+});
+
 test.skipIf(process.platform !== "linux")("an unreadable whole-worker audit preserves the lease and its evidence", () => {
   const f = fixture(true);
   expect(f.run().status).toBe(0);
