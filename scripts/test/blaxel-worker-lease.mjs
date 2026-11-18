@@ -66,7 +66,16 @@ export async function workerLeaseOperation(input, hooks = {}) {
     const flags = Number(fields[6]);
     const finished = ["Z", "X"].includes(fields[0]);
     // PF_EXITING (0x4) marks a thread in the kernel's exit path; PF_KTHREAD (0x200000) a kernel thread.
-    return { finished, exiting: finished || (flags & 0x4) !== 0, kernel: (flags & 0x200000) !== 0, startTime: fields[19] };
+    let exiting = finished || (flags & 0x4) !== 0;
+    if (!exiting) {
+      // A killed thread that has not yet been scheduled lacks PF_EXITING, but
+      // SIGKILL cannot be blocked or caught, so pending SIGKILL (bit 9 of its
+      // own or the process's pending set) means it will never run again.
+      let status = "";
+      try { status = procfs.readFile(file.replace(/\/stat$/, "/status")); } catch (error) { if (!vanished(error)) throw error; }
+      exiting = ["SigPnd", "ShdPnd"].some((key) => { const mask = status.match(new RegExp(`^${key}:\\s*([0-9a-f]+)$`, "m"))?.[1]; return mask !== undefined && (BigInt(`0x${mask}`) & 0x100n) !== 0n; });
+    }
+    return { finished, exiting, kernel: (flags & 0x200000) !== 0, startTime: fields[19] };
   }
   // The process-level stat describes only the main thread, which can exit
   // while other threads keep running, so judge the process by every thread.
