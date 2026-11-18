@@ -30,7 +30,7 @@ permissions:
 jobs:
   build:
     if: ${{ github.repository == 'telepath-computer/television' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check the inputs
         env:
