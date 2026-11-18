@@ -31,7 +31,7 @@ jobs:
   # full validation.
   attest-check:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     continue-on-error: true
     outputs:
@@ -63,7 +63,7 @@ jobs:
   ci:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: ${{ matrix.suite.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -76,7 +76,7 @@ jobs:
 
       - uses: ./.github/actions/setup-workspace
         with:
-          image-identity: ubuntu-latest
+          image-identity: ubuntu-24.04
 
       - name: Run ${{ matrix.suite.name }}
         run: ${{ matrix.suite.cmd }}
@@ -90,7 +90,7 @@ jobs:
   # reports its own result.
   vibe-mode:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +114,7 @@ jobs:
     # (specs/arch/test-runner/attestation.md#skipping-in-ci).
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     name: ${{ matrix.suite.name }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -164,7 +164,7 @@ jobs:
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
         uses: ./.github/actions/setup-workspace
         with:
-          image-identity: ubuntu-latest
+          image-identity: ubuntu-24.04
 
       - name: Record dependency phase
         if: ${{ (needs.attest-check.outputs.skip != 'true' || needs.attest-check.outputs.authorized != 'true') }}
@@ -259,7 +259,7 @@ jobs:
     # !cancelled(): run even when attest-check crashes (see the test job).
     if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     name: build prebuilt dists
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       artifact_name: ${{ steps.prebuilt.outputs.name }}
     steps:
@@ -351,7 +351,7 @@ jobs:
     # 24-way run 29565323284 saved only 17s for 26% more e2e runner time.
     # Keep the /16 check name, matrix, planner, worker, and join synchronized.
     name: e2e shard ${{ matrix.shard }}/16
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       actions: read
       contents: read
@@ -565,7 +565,7 @@ jobs:
   e2e-required:
     if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.draft == false) }}
     needs: [attest-check, build, e2e, vibe-mode]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       # Green requires the vibe-mode check plus successful build and shard jobs. An authorized
       # attestation reaches success through step-level no-ops, so concrete
@@ -654,7 +654,7 @@ jobs:
   attest-write:
     needs: [attest-check, ci, test, build, e2e, e2e-required]
     if: ${{ always() && needs.attest-check.outputs.authorized == 'true' && needs.attest-check.outputs.skip != 'true' && needs.ci.result == 'success' && needs.test.result == 'success' && needs.build.result == 'success' && needs.e2e.result == 'success' && needs.e2e-required.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     continue-on-error: true
     permissions:
