@@ -10,10 +10,10 @@ if (process.env.RESOURCE_FIXTURE_MODE === "interrupt") {
   // finalize, which is a different path.
   process.kill(process.ppid, "SIGKILL");
   // Then end this only descendant at once, without Node's normal exit. While
-  // it lives after its supervisor is reaped, it carries a stale owner token,
-  // and any runner starting on this host, such as another test file's nested
-  // run, reaps it and refuses to start. Killing a supervisor belongs in an
-  // isolated-github-only surface; until this case moves there, ending
-  // immediately keeps that window as short as it can be, but not empty.
+  // it lives after its supervisor is reaped, it carries a stale owner token
+  // that the outer surface's cleanup does not own, and the next runner to
+  // start on the host reaps it and refuses to run. That includes the next
+  // surface in the isolated lifecycle run. Ending at once keeps that window
+  // as short as it can be, but not empty.
   process.kill(process.pid, "SIGKILL");
 }
