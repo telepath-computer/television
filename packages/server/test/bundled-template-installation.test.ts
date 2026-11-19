@@ -320,12 +320,14 @@ describe("bundled artifact template serving installation", () => {
         return renameSync(from, to);
       },
     });
-    expect(calls).toHaveLength(6);
+    // One write and one rename for each of the five bundled IDs not yet installed.
+    expect(calls).toHaveLength(10);
     const temporary = calls[0]!.slice("write:".length);
     expect(path.dirname(temporary)).toBe(path.dirname(statePath(home)));
     expect(calls[1]).toBe(`rename:${temporary}:${statePath(home)}`);
-    expect(calls.slice(2, 4)).toEqual(calls.slice(0, 2));
-    expect(calls.slice(4)).toEqual(calls.slice(0, 2));
+    for (let pair = 2; pair < calls.length; pair += 2) {
+      expect(calls.slice(pair, pair + 2)).toEqual(calls.slice(0, 2));
+    }
     expect(JSON.parse(readFileSync(statePath(home), "utf8")).installedTemplateIDs).toEqual(["checklist", "calendar", "map", "document", "table", "older-bundle", "sticky-note"].sort());
     expect(JSON.parse(readFileSync(oldLink, "utf8")).installedTemplateIDs).toEqual(["calendar", "older-bundle"]);
   });
