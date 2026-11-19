@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Build-once artifact helper (specs/arch/test-runner/github-ci.md#build-once-fan-out).
+// Build-once artifact helper (specs/arch/test-runner/github-ci.md#build-once).
 // CLI: check | run | pack | artifact-name
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";

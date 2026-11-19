@@ -13,7 +13,7 @@ export function createShardPlan({ inventory, surfaces, baseline, baselineBytes, 
   const surfaceById = new Map(surfaces.map((surface) => [surface.id, surface]));
   const knownBySurface = new Map(selectedSurfaceIds.map((id) => [id, []]));
   // Every plan weighs files by the baseline's Blaxel measurements, whatever
-  // substrate executes it (specs/arch/test-runner/sharded-execution.md#Provider weights and unknown files).
+  // substrate executes it (specs/arch/test-runner/sharded-execution.md#duration-baseline).
   const knownBaselineWide = [];
   for (const entry of Object.values(baseline.files)) {
     const timing = entry.providers[BASELINE_TIMING_PROVIDER];

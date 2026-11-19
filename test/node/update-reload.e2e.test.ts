@@ -1,4 +1,5 @@
-import { describe, it } from "vitest";
+import { describe } from "vitest";
+import { it } from "../helpers/vitest.ts";
 import { expect as pwExpect } from "@playwright/test";
 import {
   buildVersionedWebBundle,

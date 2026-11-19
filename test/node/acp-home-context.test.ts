@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect } from "vitest";
+import { it } from "../helpers/vitest.ts";
 import { WebSocket } from "ws";
 import { ACPClient } from "../../packages/web/src/services/acp-client.ts";
 import { launchProductServer } from "../helpers/product-server.ts";

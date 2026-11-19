@@ -24,11 +24,13 @@ See [content messages](src/artifact-view-protocol.ts) and the [browser view clie
 ## Tests
 
 - `packages/artifact/test/unit/` — vitest. Type guards and disposal / error-path behavior.
-- `packages/artifact/test/e2e/` — Playwright. Two Vite harness apps on ports `5174` (host) and `5175` (view) prove the classes work across real origins.
+- `packages/artifact/test/e2e/` — Playwright. Two Vite harness apps, each bound to an available port by the runner, prove the classes work across real origins.
 
 Run through the root canonical runner:
 
 ```bash
-npm run test:run -- run --provider local --package @telepath-computer/television-artifact
-npm run test:run -- run --provider local --surface e2e:artifact
+npm test -- local --file packages/artifact/test/unit/artifact-view-protocol.test.ts
+npm test -- local --file packages/artifact/test/e2e/scroll-bridge.spec.ts
 ```
+
+For broader validation on a host with `~/.tvdev-use-blaxel`, commit and push first, then run `npm test -- blaxel --surface e2e:artifact` or `npm test -- blaxel --package @telepath-computer/television-artifact`. Keep default retries for validation. Unmarked hosts can use these broader selectors with `local` without Blaxel access. Local runs share the [canonical runner's mutex](../../specs/arch/test-runner/test-runner.md#^local-test-mutex).

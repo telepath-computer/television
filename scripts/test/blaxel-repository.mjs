@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-// specs/arch/test-runner/blaxel-testshards.md#Repository
+// specs/arch/test-runner/blaxel-testshards.md#repository-and-credentials
 export const BLAXEL_WORKER_CHECKOUT = "/workspace/television";
 export const BLAXEL_DEPENDENCY_CACHE = "/cache/blaxel-testshards";
 

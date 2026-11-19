@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeSetupTimingStatus, normalizeTimingPhase } from "./phase-metrics.mjs";
+import { retainedResourcePaths } from "./reporting.mjs";
 
 export function providerCommandExitCode({ delegatedExitCode, reportStatus }) {
   if (delegatedExitCode !== 0) return delegatedExitCode || 1;
@@ -63,6 +64,7 @@ export function compactProviderSummary(report, { outputDir = null } = {}) {
       logPath: shard.logPath,
       summaryPath: shard.summaryPath,
       outputDir: shard.outputDir,
+      resourceDiagnosticsPaths: retainedResourcePaths(shard.resourceDiagnosticsPaths),
     })),
     failedTasks,
     infraFailedShards,
@@ -150,6 +152,7 @@ export function summarizeInfrastructureAttempts(reports) {
       logPath: shard.logPath,
       summaryPath: shard.summaryPath,
       outputDir: shard.outputDir,
+      resourceDiagnosticsPaths: retainedResourcePaths(shard.resourceDiagnosticsPaths),
     })),
   }));
 }
@@ -189,7 +192,13 @@ export function combineAttemptReports(attempts, expectedShardIndices, { shardTot
       message: `No infrastructure attempt returned a result for shard ${shardIndex}/${shardTotal}.`,
     }));
   }
-  const shards = expectedShardIndices.map((shardIndex) => latestByShard.get(shardIndex)).sort((a, b) => a.shardIndex - b.shardIndex);
+  const shards = expectedShardIndices.map((shardIndex) => ({ ...latestByShard.get(shardIndex) })).sort((a, b) => a.shardIndex - b.shardIndex);
+  // Retain only links from superseded attempts, never their test outcomes.
+  for (const shard of shards) {
+    const history = attempts.flatMap((attempt) => (attempt.shards ?? []).filter((part) => part.shardIndex === shard.shardIndex));
+    shard.resourceDiagnosticsPaths = retainedResourcePaths(history.flatMap((part) => [...(part.resourceDiagnosticsPaths ?? []), ...(part.tasks ?? []).flatMap((task) => task.resourceDiagnosticsPaths ?? [])]));
+    shard.tasks = (shard.tasks ?? []).map((task) => ({ ...task, resourceDiagnosticsPaths: retainedResourcePaths(history.flatMap((part) => (part.tasks ?? []).filter((candidate) => candidate.surfaceId === task.surfaceId).flatMap((candidate) => candidate.resourceDiagnosticsPaths ?? []))) }));
+  }
   const last = attempts.at(-1);
   const failedTasks = failedTasksFromShards(shards, { shardTotal, outputDir });
   const startedAt = attempts[0]?.startedAt ?? attempts[0]?.run?.createdAt ?? new Date().toISOString();

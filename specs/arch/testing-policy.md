@@ -1,8 +1,8 @@
-*How Television is tested: coverage requirements, the fixture/mock distinction, the three test shapes and their declaration schema, and mock vs integration discipline.*
+*How Television is tested: test authoring and coverage, focused iteration, verification, and agent permissions.*
 
 # Testing policy
 
-This spec is authoritative for the project's testing authoring discipline. How tests are *executed* at runtime is governed by the test-runner specs under [test-runner.md](./test-runner/test-runner.md) and its companions.
+This spec is authoritative for the project's test authoring, iteration, and verification discipline, including agent permissions. How tests are *executed* at runtime is governed by the test-runner specs under [test-runner.md](./test-runner/test-runner.md) and its companions.
 
 ## Scope during the spec migration
 
@@ -39,7 +39,13 @@ If full test coverage would require extremely complex or numerous tests, that is
 
 Test the narrowest thing that proves the change, then widen — never the other way around.
 
-While implementing, run only the tests directly exercising the behavior under change (a file, a `--grep`, a surface). They are fast, focused, and tell you whether the thing you are working on is working. As that signal turns green and the behavior matures, widen the surface: the owning suite, then the full broad verification (`npm run verify`).
+Use the canonical runner for local feedback on the behavior under change: start with one file, optionally narrowed with `--grep`. Repeated focused runs while investigating or editing that behavior are normal iteration. As the focused check passes and the behavior matures, widen validation to the owning surface or suite and then full verification (`npm run verify`), using the provider discipline below.
+
+Keeping the shared host usable comes first. Concurrent test runs compete for CPU and memory, drive the host into swap, and can get processes OOM-killed, affecting every agent on the host. The runner's [local mutex](test-runner/test-runner.md#^local-test-mutex) coordinates runs by the same operating-system user across checkouts. Pass `--wait-for-local-test-mutex` to wait for another local run to finish; the default is immediate refusal. Use the canonical entrypoint and follow its refusals; the [native-entrypoint contract](test-runner/test-runner.md#native-test-entrypoints) covers direct Vitest and Playwright invocations.
+
+On hosts with `~/.tvdev-use-blaxel`, local iteration selects one file with optional grep; anything broader goes to Blaxel after the intended revision is committed and pushed. For a known multi-file check, use that remote selection instead of splitting it into serial local commands to evade the file limit. Even a Blaxel selection running on one worker removes its test load from the shared host. Distribution across files improves speed where available; lack of fan-out for a targeted surface is never a reason for broader local work. Unmarked public-contributor and fork hosts retain local selections and need no Blaxel access.
+
+Running a new or changed test once is normal focused iteration: plain `--retries 0` is within the guidance for one explicitly selected file, optionally narrowed with `--grep`. Broader validation uses the default retry budget; disabling it turns recoverable flakes into failures across unrelated tests. Broader zero-retry runs require `--against-test-guidance-turn-flakes-into-failures-on-broad-runs`. Using that override is the caller's judgment, including for agents, without human permission. Recovered flakes remain reported, and flaky new tests still require investigation and repair under [Timing, observable status, cleanup, and flakiness](#timing-observable-status-cleanup-and-flakiness). The runner owns [selection and budget mechanics](test-runner/test-runner.md#retries), including the separate per-test and infrastructure layers.
 
 Broad runs are a **discovery tool, not your inner loop.** Use them to find what is failing somewhere else as a result of the change. The moment a broad run surfaces a failure, scope back down to a narrow test that reproduces it, get it green there, and only then re-run the broad verification. Don't iterate against the broad gate to chase a single failing test — each cycle is many minutes long, you stop seeing cause from effect, and you waste time the narrow test would have saved.
 
@@ -47,17 +53,21 @@ The work is not done until **broad verification passes fully green** on its own.
 
 ### Verification provider and completion
 
-Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification runs locally without Blaxel checks or warnings, a bypass flag, or a separate permission requirement. The [runner’s provider selection](test-runner/test-runner.md#Verify orchestration) owns provider resolution.
+Run full verification with `npm run verify`. Without `~/.tvdev-use-blaxel`, verification defaults to local without Blaxel checks, Blaxel warnings, or a separate permission requirement; the local mutex still applies. The [runner’s provider selection](test-runner/test-runner.md#verify) owns provider resolution.
 
-On hosts with `~/.tvdev-use-blaxel`, Blaxel is the default and local full verification requires `--allow-extreme-inefficiency`. Agents must obtain explicit human permission before using that bypass on a marked host; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify a local run. Fix a reported remote preflight problem unless local verification is authorized. GitHub CI retains its specified execution path.
+On hosts with `~/.tvdev-use-blaxel`, Blaxel is the verification default. Agents must obtain explicit human permission before using `--against-test-guidance-broad-local-run` to lift the [one-file local limit](test-runner/test-runner.md#^local-one-file), including for local verify; the flag is a mechanism, not permission. Reluctance to commit or convenience does not justify broader local execution. Fix a reported remote preflight problem unless the broader local run is authorized. Local-only suites follow their runner-owned placement and invocation guidance. GitHub CI retains its specified execution path.
 
-The `tvdev-setup`, `tvdev-contribute`, and `tvdev-review` skills apply the repository’s development workflow for all contributors, including forks. Normal setup and contribution work must not create the Blaxel marker or require Blaxel access. [Blaxel access setup](test-runner/blaxel-testshards.md#Local setup) is needed only for contributors choosing Blaxel, whether through an existing host marker or an explicit command.
+The independent `--against-test-guidance-major-host-contention-and-oom-killed-processes` bypass is the caller's judgment, including for agents, and requires no human permission. It lifts only the mutex, as defined by the [runner](test-runner/test-runner.md#^local-test-mutex).
+
+Deliberate lower-level tool use through the [native-entrypoint override](test-runner/test-runner.md#native-test-entrypoints) is also the caller's judgment, without human permission. It enables native capabilities needed for the task outside the runner's protections; the default workflow remains canonical local iteration and broader remote validation on marked hosts.
+
+The `tvdev-setup`, `tvdev-contribute`, and `tvdev-review` skills apply the repository’s development workflow for all contributors, including forks. Normal setup and contribution work must not create the Blaxel marker or require Blaxel access. [Blaxel access setup](test-runner/blaxel-testshards.md#setup) is needed only for contributors choosing Blaxel, whether through an existing host marker or an explicit command.
 
 The [contribution workflow](../spec-workflow.md#^shared-branch-workflow) owns full-verification timing for pull requests and merges.
 
 Report the revision actually tested, the result, recovered flakes, and relevant limits; do not describe targeted checks as a full gate or claim unperformed validation. Run verification synchronously and wait for its result. Required specialized checks still apply where the full gate excludes them.
 
-The [canonical runner](test-runner/test-runner.md) owns commands and selectors. Its [remote preflight](test-runner/preflight.md#Contributor branches and remote revisions) owns the committed, pushed revision requirement. Local targeted checks remain available for iteration.
+The [canonical runner](test-runner/test-runner.md) owns commands and selectors. It also owns the [committed, pushed revision requirement](test-runner/test-runner.md#^remote-revision). Local targeted checks remain available for iteration.
 
 ## Mocking policy
 
@@ -207,6 +217,10 @@ In order to liberally cover boundary seams across the codebase, complex harness 
 
 Prefer real, committed fixtures over invented data. Better yet, generate fixtures dynamically from current code paths, driven by simpler inputs with fewer assumptions, whenever possible.
 
+A reusable build created by a test helper belongs to its worker: it is shared within that worker, published only after preparation succeeds, and removed at worker teardown rather than per test case. The [Blaxel shard attempt lifecycle](test-runner/blaxel-testshards.md#Temporary files) supplies the backstop when a killed worker cannot run its teardown. ^worker-build-lifetime
+
+For new or substantially changed browser acceptances that use the `ProductServer` helper, the default is its built application unless the assertion needs development-module behavior. This exercises shipped assets and avoids loading hundreds of development modules for a product assertion. This default does not require retroactive conversion of other tests or apply to in-process `Server` walks using `appURLForServer()`, component fixtures, or Electron module/dispatcher seams. ^product-acceptance-built-app
+
 ## Timing, observable status, cleanup, and flakiness
 
 Prefer real readiness and state observation over sleeps. Take the time to make complex tasks reliably observable for testing purposes. ^flake-avoidance
@@ -229,6 +243,6 @@ Treat cleanup behaviors of long-running modules (with servers, listeners, networ
 
 The test development proxy installs `error` handlers on both inbound streams and their outbound peers before piping begins. For an HTTP proxy this includes the inbound request; for an upgraded connection it includes the accepted socket. A peer reset closes both sides idempotently and is never allowed to escape as an uncaught process error. Its seam tests drive abrupt HTTP and upgraded-socket resets through the real bridge and assert that neither side remains tracked. The separate stable-front proxy has no equivalent reset seam test.
 
-Flakiness is sometimes inevitable in browser and Electron e2e tests, so the test runner provides a two-layer flaky-test retry mechanism — see [flaky-tests.md](./test-runner/flaky-tests.md) for the mechanism and annotation patterns.
+Flakiness is sometimes inevitable in browser and Electron e2e tests, so the test runner provides a two-layer flaky-test retry mechanism — see [the runner's retries](./test-runner/test-runner.md#retries) for the mechanism and annotation patterns.
 
 However, the existence of a mechanism for handling flakes does not make it acceptable to write them. When writing a test, if it turns out to be flaky, stop and apply aggressive, disciplined refactoring to the code or test or both. It is worth it: a one-time effort up front beats permanent pain over the long run.

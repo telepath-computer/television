@@ -6,7 +6,7 @@ Proves [specs/arch/telemetry/sink.md](../../../specs/arch/telemetry/sink.md).
 
 ## Coverage model
 
-Ordinary and isolated release builds cross the real bundler and compiled skills-install action with real copied skill files. Their analytics transport is intercepted before any network access, so production routing is observed without sending to production. The live test-project suite proves the actual delivery and stored privacy outcome. Request contracts cover both collectors, and the other buffer/lifecycle seams below retain their declared boundaries. No test changes PostHog settings or historical data.
+Ordinary and isolated release builds cross the real bundler and compiled skills-install action with real copied skill files. Their analytics transport is intercepted before any network access, so production routing is observed without sending to production. The live test-project suite proves the actual delivery and stored privacy outcome. Request contracts cover both collectors, and the other buffer/lifecycle seams below retain their declared boundaries. No test changes PostHog settings or historical data. The documented one-file entrypoint uses the existing live suite; file admission and the refusal’s local secret/setup route are covered by [the runner proof](../test-runner/test-runner.md#^t-runner-local-redirection), not by duplicating the PostHog delivery assertions.
 
 ## Test hooks
 

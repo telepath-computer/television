@@ -10,6 +10,7 @@ export interface ProviderTask {
   exitCode?: number | null;
   durationMs?: number;
   nativeResultPath?: string | null;
+  resourceDiagnosticsPaths?: string[];
   [key: string]: unknown;
 }
 
@@ -28,6 +29,7 @@ export interface ProviderShard {
   leaseAcquired?: boolean;
   executionStarted?: boolean;
   nativeResultPath?: string | null;
+  resourceDiagnosticsPaths?: string[];
   [key: string]: unknown;
 }
 

@@ -59,7 +59,7 @@ export class SurfaceSupervisor {
   }
 
   childEnv(env = process.env) {
-    return { ...env, [OWNER_TOKEN_ENV]: this.ownerToken };
+    return { ...env, TMPDIR: env.TMPDIR ?? process.env.TMPDIR, ...(process.env.TV_TEST_SHARD_OWNER ? { TV_TEST_SHARD_OWNER: process.env.TV_TEST_SHARD_OWNER } : {}), [OWNER_TOKEN_ENV]: this.ownerToken };
   }
 
   run(command, args = [], {

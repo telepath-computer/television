@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -9,12 +9,13 @@ import { runPreflights } from "../../scripts/test/preflight.mjs";
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 
 function runCli(args: string[], env: Record<string, string | undefined> = {}) {
-  return spawnSync(process.execPath, ["scripts/test/cli.mjs", ...args], {
+  const locks = mkdtempSync(path.join(os.tmpdir(), "tv-toolchain-lock-"));
+  try { return spawnSync(process.execPath, ["scripts/test/cli.mjs", ...args], {
     cwd: repoRoot,
     encoding: "utf8",
-    env: { ...process.env, FORCE_COLOR: "0", NO_COLOR: "1", ...env },
+    env: { ...process.env, TV_TEST_RUNNER_SELFTEST: "1", TV_TEST_RUNNER_LOCK_PATH: path.join(locks, "mutex.sqlite3"), FORCE_COLOR: "0", NO_COLOR: "1", ...env },
     timeout: 10_000,
-  });
+  }); } finally { rmSync(locks, { recursive: true, force: true }); }
 }
 
 function fakeNpmBin(version: string): string {

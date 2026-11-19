@@ -6,7 +6,7 @@ Proves [specs/arch/desktop/e2e-harness.md](../../../specs/arch/desktop/e2e-harne
 
 ## Coverage model
 
-Coverage declarations are carried inside the migrated assertion blocks below.
+Coverage declarations are carried inside the migrated assertion blocks below. The Operations section’s local-file, full-surface, and marked-host routes are subject to the [runner’s admission and diagnostic assertions](../test-runner/test-runner.md#^t-runner-file-admission). Command guidance is reviewed against that owner; no desktop-specific mutex or admission mechanism is introduced. A Linux Blaxel run exercises Linux Electron behavior and cannot establish macOS default application-data identity, whose existing real-Electron proof is cited below.
 
 ## Assertions
 

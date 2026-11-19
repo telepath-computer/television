@@ -83,3 +83,7 @@ export async function acquireShardLeases({ shardIndices, maxConcurrency, acquire
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error);
 }
+
+export function leaseRecoveryArgs(options) {
+  return options["lock-ttl-seconds"] === undefined ? [] : ["--lock-ttl-seconds", options["lock-ttl-seconds"]];
+}

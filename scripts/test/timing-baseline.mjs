@@ -38,7 +38,7 @@ export function validateTimingBaseline(baseline) {
   return baseline;
 }
 
-// The only baseline writer (specs/arch/test-runner/sharded-execution.md#Manual update):
+// The only baseline writer (specs/arch/test-runner/sharded-execution.md#duration-baseline):
 // complete-`all` Blaxel runs in this checkout's .test-runs/ feed a full
 // recomputation. Nothing is written unless every input run validates.
 export function updateTimingBaseline({ repoRoot = process.cwd(), config, dryRun = false } = {}) {

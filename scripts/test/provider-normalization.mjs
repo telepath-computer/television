@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { normalizeSetupTimingStatus } from "./phase-metrics.mjs";
-import { normalizeSurfaceResult } from "./reporting.mjs";
+import { normalizeSurfaceResult, retainedResourcePaths } from "./reporting.mjs";
 
 export function normalizeProviderShardSurfaces({ provider, providerSummary, outputDir, surfaces, delegatedCommand, exitCode, coordinatorLogPath }) {
   const bySurface = new Map(surfaces.map((surface) => [surface.id, surface]));
@@ -49,6 +49,7 @@ export function normalizeProviderShardSurfaces({ provider, providerSummary, outp
         durationMs: shard.durationMs ?? providerSummary.durationMs ?? 0,
         logPath: path.relative(process.cwd(), shard.logPath ?? coordinatorLogPath),
         nativeResultPath: path.relative(process.cwd(), shard.nativeResultPath),
+        resourceDiagnosticsPaths: shard.resourceDiagnosticsPaths,
       }));
     }
   }
@@ -201,6 +202,7 @@ export function mergeSurfaceParts(parts) {
       durationSource: "task-wall",
       nativeResultPath: group.map((part) => part.nativeResultPath).filter(Boolean)[0] ?? null,
       nativeResultPaths: group.map((part) => part.nativeResultPath).filter(Boolean),
+      resourceDiagnosticsPaths: retainedResourcePaths(group.flatMap((part) => part.resourceDiagnosticsPaths ?? [])),
       failureKind: firstInfrastructureFailure?.failureKind ?? first.failureKind,
       failureStep: firstInfrastructureFailure?.failureStep ?? first.failureStep,
       failureMessage: firstInfrastructureFailure?.failureMessage ?? first.failureMessage,
@@ -248,6 +250,7 @@ function normalizeTaskPart({ task, surface, shard, outputDir, coordinatorLogPath
     logPath: path.relative(process.cwd(), shard.logPath ?? coordinatorLogPath),
     nativeResultPath,
     attemptResultPath,
+    resourceDiagnosticsPaths: task.resourceDiagnosticsPaths,
     processLeaks: task.processLeaks ?? [],
   });
   const infraStatus = task.infraStatus === "incomplete" || normalized.infraStatus === "incomplete" ? "incomplete" : "completed";
@@ -357,5 +360,6 @@ function providerFailureSurfaces({ provider, failures, delegatedCommand, coordin
     infraFailedShards: failure.status === "infra-failed" && failure.shardIndex ? [failure.shardIndex] : [],
     logPath: retainedLogPath(failure.logPath, coordinatorLogPath),
     nativeResultPath: null,
+    resourceDiagnosticsPaths: retainedResourcePaths(failure.resourceDiagnosticsPaths),
   }));
 }

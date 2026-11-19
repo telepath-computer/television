@@ -1,7 +1,7 @@
 name: Setup workspace
 description: >-
   Select Node from .nvmrc and install the workspace via the exact-key dependency cache contract
-  (specs/arch/test-runner/github-ci.md#dependency-install). Restores
+  (specs/arch/test-runner/github-ci.md#dependency-and-browser-caches). Restores
   node_modules under a key covering the declared inputs; on a hit npm ci is
   skipped entirely; on a miss npm ci runs and the path is saved. No
   restore-keys fallback, ever.

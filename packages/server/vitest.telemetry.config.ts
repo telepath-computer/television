@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({

@@ -104,7 +104,7 @@ Record each run in the pull request, with the readings above.
 
 ### Local verification
 
-The pull request that moves the app to ToDesktop also runs full local verification on a Mac, in a checkout prepared with [tvdev-setup](../../developer-skills/tvdev-setup/SKILL.md). If `~/.tvdev-use-blaxel` exists, add `--allow-extreme-inefficiency`:
+The pull request that moves the app to ToDesktop also runs full local verification on a Mac, in a checkout prepared with [tvdev-setup](../../developer-skills/tvdev-setup/SKILL.md). If `~/.tvdev-use-blaxel` exists, add `--against-test-guidance-broad-local-run`:
 
 ```sh
 npm run verify -- local

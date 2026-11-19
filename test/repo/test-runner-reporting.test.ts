@@ -42,6 +42,13 @@ describe("test runner reporting", () => {
     expect(summary.counts.testsFailed).toBe(1);
     expect(summary.failedTests).toHaveLength(1);
     expect(JSON.stringify(summary)).not.toContain("passes");
+    // specs/arch/test-runner/reporting.md#the-compact-summary pins these fields for readers of earlier runs.
+    expect(summary.schemaVersion).toBe(1);
+    expect(summary.run).toMatchObject({ id: "run", status: "failed", infraStatus: "completed", testStatus: "failed" });
+    expect(summary.failedTests[0]).toMatchObject({ surfaceId: "unit:probe", file: "test/repo/fail.test.ts", title: expect.stringContaining("fails"), attempts: 1, flakyAnnotated: false });
+    expect(summary.failedTests[0]).toHaveProperty("line");
+    expect(summary.flakyRecoveredTests).toEqual([]);
+    expect(summary.processLeaks).toEqual([]);
   });
 
   test("reports missing and malformed native results as infrastructure evidence failures", () => {
@@ -648,6 +655,9 @@ describe("test runner reporting", () => {
     const { summary, results } = buildReports({ runId: "run", provider: "local", runDir: dir, selection: { surfaces: ["unit:one", "unit:two"] }, surfaces: [base("unit:one", [rawLeak, rawLeak]), base("unit:two", [])], preflights: [], startedAt: "2026-01-01T00:00:00.000Z", completedAt: "2026-01-01T00:00:01.000Z" });
     expect(summary.counts.processLeaks).toBe(1);
     expect(summary.processLeaks).toHaveLength(1);
+    const [summaryLeak] = summary.processLeaks as Array<{ listeningSockets: unknown }>;
+    expect(summaryLeak).toMatchObject({ pid: leak.pid, command: leak.command, owningSurfaceIds: ["unit:one", "unit:two"] });
+    expect(summaryLeak!.listeningSockets).toEqual(leak.listeningSockets.map(({ host, port }) => expect.objectContaining({ host, port })));
     expect(summary.run.status).toBe("incomplete");
     expect(summary.failedTests).toEqual([expect.objectContaining({ title: "native failure" })]);
     expect(summary.flakyRecoveredTests).toEqual([expect.objectContaining({ title: "recovered flake" })]);
@@ -662,7 +672,10 @@ function execFileSyncResult(command: string, args: string[], env: Record<string,
   const inheritedEnv = { ...process.env };
   delete inheritedEnv.GITHUB_ACTIONS;
   delete inheritedEnv.TV_TEST_TIMING_PROVIDER;
-  return spawnSync(command, args, { cwd: process.cwd(), encoding: "utf8", env: { ...inheritedEnv, FORCE_COLOR: "0", NO_COLOR: "1", ...env }, timeout: 20_000 });
+  const locks = mkdtempSync(path.join(os.tmpdir(), "tv-reporting-lock-"));
+  try {
+    return spawnSync(command, args, { cwd: process.cwd(), encoding: "utf8", env: { ...inheritedEnv, TV_TEST_RUNNER_SELFTEST: "1", TV_TEST_RUNNER_LOCK_PATH: path.join(locks, "mutex.sqlite3"), FORCE_COLOR: "0", NO_COLOR: "1", ...env }, timeout: 20_000 });
+  } finally { rmSync(locks, { recursive: true, force: true }); }
 }
 
 function fixtureRun() {

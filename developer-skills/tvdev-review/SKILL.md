@@ -22,6 +22,8 @@ Television derives specs → proofs → tests → code, with implementation plan
 
 These are orientations, not exhaustive criteria. Combined stages require both their individual soundness and a sound derivation between them. Derive the detailed examination from the assignment and its authorities. Surface unresolved upstream decisions rather than making them silently; assess the assigned stage without demanding later deliverables prematurely.
 
+Regular safe, coherent commits and pushes on the author's development branch enable remote validation while review proceeds; under the [workflow](../../specs/spec-workflow.md#^shared-branch-workflow), they are ordinary checkpoints, not claims of merge readiness, and routine review coordination is no reason to withhold them. Review validation under the [testing policy](../../specs/arch/testing-policy.md#test-iteration-discipline): focused local files, broader pushed Blaxel selections on marked hosts, and default retries for broader validation.
+
 ## Exercise review judgment
 
 PASS means no blockers, where “blocker” is left to agent judgment.

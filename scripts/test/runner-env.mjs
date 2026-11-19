@@ -8,6 +8,7 @@ export function runnerEnv(baseEnv = process.env, ...layers) {
     PATH: `${path.join(process.cwd(), "node_modules", ".bin")}${path.delimiter}${baseEnv.PATH ?? ""}`,
   };
   for (const layer of layers) Object.assign(env, layer ?? {});
+  env.TV_TEST_RUNNER_CONTEXT = "1";
   delete env.FORCE_COLOR;
   delete env.NO_COLOR;
   return env;

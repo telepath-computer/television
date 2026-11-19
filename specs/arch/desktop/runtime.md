@@ -22,7 +22,7 @@ Development and test hosts run Linux or macOS, and the runtime provides the layo
 
 The Electron package root is found by resolving `electron/package.json`; validation never loads `electron`'s main entry. Loading that entry is installation-capable in Electron 43 and is reserved for [obtaining the runtime](#obtaining-the-runtime). Every existing runtime is classified from files under that resolved package root first. ^desktop-runtime-before-resolver
 
-A successful validation produces this logical contract for [the e2e harness](./e2e-harness.md) and [preflight](../test-runner/preflight.md):
+A successful validation produces this logical contract for [the e2e harness](./e2e-harness.md), including the runner preflight that shares its [environment plan](./e2e-harness.md#^desktop-e2e-environment-plan):
 
 ```ts
 type ValidElectronRuntime =

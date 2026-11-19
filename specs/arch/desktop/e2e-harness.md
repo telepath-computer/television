@@ -6,7 +6,7 @@ Desktop tests use a real Electron process when browser-only testing cannot exerc
 
 ## What this owns
 
-This spec owns how `e2e:desktop` obtains and launches Electron: `packages/desktop/test/e2e/global-setup.ts`, the Electron-specific parts of `packages/desktop/test/e2e/helpers.ts`, the shared Linux environment planner in `scripts/electron-e2e-env.mjs`, the test fixture hook, and the harness's real-process seams. [runtime.md](./runtime.md) owns runtime validity. The canonical runner, registry surface, preflight timing, and provider setup remain under [test-runner](../test-runner/test-runner.md), [registry](../test-runner/test-registry.md), [preflight](../test-runner/preflight.md), [GitHub CI](../test-runner/github-ci.md), and [Blaxel](../test-runner/blaxel-testshards.md) authority.
+This spec owns how `e2e:desktop` obtains and launches Electron: `packages/desktop/test/e2e/global-setup.ts`, the Electron-specific parts of `packages/desktop/test/e2e/helpers.ts`, the shared Linux environment planner in `scripts/electron-e2e-env.mjs`, the test fixture hook, and the harness's real-process seams. [runtime.md](./runtime.md) owns runtime validity. The canonical runner, registry surface, preflight timing, and provider setup remain under [test-runner](../test-runner/test-runner.md), [GitHub CI](../test-runner/github-ci.md), and [Blaxel](../test-runner/blaxel-testshards.md) authority.
 
 Electron e2e is used only when the claim depends on Electron. Browser e2e remains the less expensive boundary for ordinary web behavior.
 
@@ -68,7 +68,7 @@ When [Blaxel's owned setup](../test-runner/blaxel-testshards.md) supplies a vali
 [<extra-arguments>]
 ```
 
-or the package directory plus an isolated profile for the real connect flow, followed by any extra arguments the test passes, such as the update runtime's simulation flag ([desktop updates](./updates.md#Testing)). A fixture beginning with `/` resolves against the runner-published desktop Vite origin; an absolute URL passes through unchanged. The `e2e:desktop` [registry service](../test-runner/test-registry.md#Surface services) publishes its bound fixture URL as `TV_DESKTOP_E2E_URL`. The desktop Playwright configuration requires this variable. Fixture helpers require the value to be an HTTP URL on `127.0.0.1` and use its origin. The helper's inherited environment carries `TV_TEST_MODE=true`, with per-test overrides applied explicitly. ^desktop-e2e-launch-contract
+or the package directory plus an isolated profile for the real connect flow, followed by any extra arguments the test passes, such as the update runtime's simulation flag ([desktop updates](./updates.md#Testing)). A fixture beginning with `/` resolves against the runner-published desktop Vite origin; an absolute URL passes through unchanged. The `e2e:desktop` [registry service](../test-runner/test-runner.md#network-addresses-in-tests) publishes its bound fixture URL as `TV_DESKTOP_E2E_URL`. The desktop Playwright configuration requires this variable. Fixture helpers require the value to be an HTTP URL on `127.0.0.1` and use its origin. The helper's inherited environment carries `TV_TEST_MODE=true`, with per-test overrides applied explicitly. ^desktop-e2e-launch-contract
 
 Each launch phase has an **eight-second timeout**: `_electron.launch`, first `BrowserWindow`, and its `domcontentloaded` state. Runtime installation and bundle builds finish in global setup and are excluded. A later product-readiness wait can carry its own owning timeout; it does not extend a launch phase. If a phase after process creation fails, the helper closes the Electron application before rethrowing the named phase error. ^desktop-e2e-launch-timeout
 
@@ -85,6 +85,8 @@ npm test -- local --file packages/desktop/test/e2e/smoke.test.ts
 npm test -- local --surface e2e:desktop
 ```
 
+The surface command follows the runner's [local guardrails](../test-runner/test-runner.md#^local-one-file): on marked hosts use `npm test -- blaxel --surface e2e:desktop` for Linux coverage, or the documented broad-local override under [testing-policy permissions](../testing-policy.md#verification-provider-and-completion) when the complete surface must run on macOS.
+
 On macOS, `packages/desktop/test/e2e/user-data-identity.test.ts` uses Electron's real default `~/Library/Application Support/Television` application-data directory; expect the run to write Chromium profile files there.
 
 On a fresh Linux host, install Playwright's Chromium browser and shared system dependencies once with `npx playwright install --with-deps chromium`. The Electron preflight names a missing display or sandbox prerequisite; global setup owns Electron runtime preparation and desktop bundle builds, so neither is a manual prerequisite.
@@ -93,7 +95,7 @@ An Electron-only scenario belongs under `packages/desktop/test/e2e/`. Add author
 
 ## Provider integration
 
-The canonical command surface and surface selection are owned by [the test runner](../test-runner/test-runner.md) and [registry](../test-runner/test-registry.md). Whenever a provider selects `e2e:desktop`, this harness applies its shared environment plan, global setup, and launch contract. Provider setup does not change the [launch-phase timeout](#^desktop-e2e-launch-timeout).
+The canonical command surface and surface selection are owned by [the test runner](../test-runner/test-runner.md) and its [registry](../test-runner/test-runner.md#the-test-registry). Whenever a provider selects `e2e:desktop`, this harness applies its shared environment plan, global setup, and launch contract. Provider setup does not change the [launch-phase timeout](#^desktop-e2e-launch-timeout).
 
 ## Testing
 

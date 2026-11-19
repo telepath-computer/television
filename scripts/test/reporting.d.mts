@@ -20,6 +20,7 @@ export interface NormalizedSurfaceResult {
   logPath: string | null;
   nativeResultPath?: string | null;
   nativeResultPaths?: string[];
+  resourceDiagnosticsPaths?: string[];
   counts: Counts;
   failedTests: Array<Record<string, unknown>>;
   flakyRecoveredTests: Array<Record<string, unknown>>;
@@ -62,4 +63,5 @@ export function buildReports(args: {
   startedAt: string;
   completedAt: string;
 }): { summary: ReportSummary; results: ReportResults };
-export function normalizeSurfaceResult(args: { surface: Pick<TestSurface, "id" | "runner"> & Partial<TestSurface> & { durationSource?: NormalizedSurfaceResult["durationSource"] }; command: string[]; exitCode: number | null; durationMs: number; logPath: string; nativeResultPath: string | null; attemptResultPath?: string | null; processLeaks?: Array<Record<string, unknown>> }): NormalizedSurfaceResult;
+export function normalizeSurfaceResult(args: { surface: Pick<TestSurface, "id" | "runner"> & Partial<TestSurface> & { durationSource?: NormalizedSurfaceResult["durationSource"] }; command: string[]; exitCode: number | null; durationMs: number; logPath: string; nativeResultPath: string | null; attemptResultPath?: string | null; resourceDiagnosticsPaths?: string[]; processLeaks?: Array<Record<string, unknown>> }): NormalizedSurfaceResult;
+export function retainedResourcePaths(paths?: string[]): string[];

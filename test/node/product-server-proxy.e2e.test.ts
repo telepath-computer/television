@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import net, { type Socket } from "node:net";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, describe, expect } from "vitest";
+import { test } from "../helpers/vitest.ts";
 import { disposeAllProductServers, launchProductServer, startDevelopmentProxy, type DevelopmentProxy } from "../helpers/product-server.ts";
 import { ownedProcessCount } from "../helpers/owned-process.ts";
 
@@ -14,11 +15,13 @@ afterEach(async () => {
 
 describe("product server lifecycle", () => {
   test("disposes a child process while product-server startup is still in flight", async () => {
-    const startup = launchProductServer();
+    const startup = launchProductServer({ env: { VITEST: "" } });
+    const rejected = expect(startup).rejects.toThrow("tv serve exited before startup");
+    await expect.poll(() => ownedProcessCount(), { interval: 5 }).toBe(1);
 
     await disposeAllProductServers();
 
-    await expect(startup).rejects.toThrow("tv serve exited before startup");
+    await rejected;
     expect(ownedProcessCount()).toBe(0);
   });
 });

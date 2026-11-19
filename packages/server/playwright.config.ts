@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import { defineConfig, devices } from "@playwright/test";
 
 // Real-browser surface for the server's read-only Markdown styling. Unlike the

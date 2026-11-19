@@ -5,7 +5,7 @@ export async function listBlaxelPoolSandboxes({ pool, arch, deployedOnly = false
   return sandboxes.filter((sandbox) => {
     const labels = sandbox.metadata?.labels ?? {};
     return labels.project === "television"
-      && labels.purpose === "testshards"
+      && (deployedOnly ? labels.purpose === "testshards" : ["testshards", "testshards-provisioning", "testshards-unavailable"].includes(labels.purpose))
       && labels.pool === pool
       && labels.arch === arch
       && (!deployedOnly || sandbox.status === "DEPLOYED");

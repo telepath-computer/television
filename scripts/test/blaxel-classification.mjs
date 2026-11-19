@@ -36,7 +36,12 @@ export function validateDownloadedShardSummary(summary, plan, shardIndex) {
   const assignedFiles = [...(summary.assignedFiles ?? [])].sort();
   const collectedFiles = [...(summary.collectedFiles ?? [])].sort();
   if (JSON.stringify(assignedFiles) !== JSON.stringify(expectedFiles)) return `downloaded shard ${shardIndex} assigned files disagree with its plan`;
-  if (summary.failureKind === "stale-owner" && collectedFiles.length === 0 && (summary.tasks ?? []).length === 0) return null;
+  if (collectedFiles.length === 0 && (summary.tasks ?? []).length === 0) {
+    if (summary.failureKind === "stale-owner") return null;
+    // A setup failure or killed shell can retain its assignment without ever
+    // producing native results. This remains infrastructure failure, not a pass.
+    if (summary.status === "infra-failed" && (summary.neverProduced ?? []).some(value => ["test execution", "final shard summary"].includes(value))) return null;
+  }
   const taskAssignedFiles = (summary.tasks ?? []).flatMap((task) => task.assignedFiles ?? []).sort();
   const taskCollectedFiles = (summary.tasks ?? []).flatMap((task) => task.collectedFiles ?? []).sort();
   if (JSON.stringify(taskAssignedFiles) !== JSON.stringify(expectedFiles)) return `downloaded shard ${shardIndex} task assignments disagree with its plan`;

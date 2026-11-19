@@ -37,9 +37,9 @@ describe("planned shard worker", () => {
     const fixture = workerFixture(["fixture:vitest-one", "fixture:vitest-two"], [
       inventory("vitest-one.fixture.ts", "fixture:vitest-one", "vitest"),
       inventory("vitest-two.fixture.ts", "fixture:vitest-two", "vitest"),
-    ]);
+    ], "blaxel-playwright-x64-4vcpu");
     try {
-      const result = runWorker(fixture, { TV_SHARD_RETRY_FIXTURE: "1" });
+      const result = runWorker(fixture, { TV_SHARD_RETRY_FIXTURE: "1", TV_TEST_RUN_ID: "combined-resource-fixture", TV_TEST_SHARD_ATTEMPT: "combined-attempt", TV_TEST_SHARD_INDEX: "1" });
       expect(result.status, result.stderr).toBe(0);
       const summary = shardSummary(fixture);
       expect(summary.preflights).toEqual([
@@ -73,6 +73,17 @@ describe("planned shard worker", () => {
       });
       expect(normalized.find((surface) => surface.id === "fixture:vitest-one")?.counts.testsFlakyRecovered).toBe(0);
       expect(normalized.find((surface) => surface.id === "fixture:vitest-two")?.counts.testsFlakyRecovered).toBe(1);
+      for (const [index, task] of summary.tasks.entries()) {
+        expect(task.resourceDiagnosticsPaths).toHaveLength(1);
+        const diagnosticPath = task.resourceDiagnosticsPaths[0];
+        const diagnostic = JSON.parse(readFileSync(diagnosticPath, "utf8"));
+        expect(diagnostic).toMatchObject({
+          identity: { runId: "combined-resource-fixture", attemptId: "combined-attempt", shardIndex: 1, surfaceId: task.surfaceId },
+          start: { status: "observed" }, end: { status: "observed" },
+          nativeEvidence: { status: "complete", failedAttempt: index === 1, recovered: index === 1 },
+        });
+        expect(path.resolve(path.dirname(diagnosticPath), diagnostic.nativeEvidence.resultPath)).toBe(task.nativeResultPath);
+      }
     } finally { fixture.cleanup(); }
   });
 

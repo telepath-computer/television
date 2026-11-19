@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { owningSurfaces } from "./config.mjs";
+import { normalizeTestConfig, owningSurfaces } from "./config.mjs";
 
 export const TEST_FILE_PATTERN = /(?:^|\/)[^/]+\.(?:test|spec)\.(?:[cm]?[jt]s)x?$/;
 
@@ -27,11 +27,11 @@ export function enumerateTestInventory({ repoRoot = process.cwd(), surfaces, sel
   return files.sort((left, right) => left.path.localeCompare(right.path));
 }
 
-export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null } = {}) {
+export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null, includeUntracked = false } = {}) {
   if (!commit) {
     // The index retains unstaged deletions; current-worktree consumers must not
     // try to inspect paths that are tracked there but absent from this tree.
-    return splitNull(git(["ls-files", "--cached", "-z"], { cwd: repoRoot }))
+    return [...new Set(splitNull(git(["ls-files", "--cached", ...(includeUntracked ? ["--others", "--exclude-standard"] : []), "-z"], { cwd: repoRoot })))]
       .filter((file) => worktreePathExists(path.join(repoRoot, file)));
   }
   const index = path.join(os.tmpdir(), `tv-test-index-${process.pid}-${crypto.randomBytes(8).toString("hex")}`);
@@ -46,32 +46,24 @@ export function enumerateTrackedPaths({ repoRoot = process.cwd(), commit = null 
 }
 
 export async function loadRegistrySnapshotAtCommit({ repoRoot = process.cwd(), commit = "HEAD" } = {}) {
+  commit = git(["rev-parse", "--verify", "--end-of-options", `${commit}^{commit}`], { cwd: repoRoot }).trim();
   const source = git(["show", `${commit}:test.config.mjs`], { cwd: repoRoot });
   const digest = crypto.createHash("sha256").update(source).digest("hex");
   const url = `data:text/javascript;base64,${Buffer.from(source).toString("base64")}#${digest}`;
   let raw;
   try { raw = (await import(url)).default; } catch (error) { throw new Error(`could not load test registry from ${commit}: ${error.message}`); }
-  const groups = raw.executionGroups ?? [];
-  const surfaces = groups.flatMap((group) => (group.surfaces ?? []).map((surface) => normalizeSurface({ ...surface, executionGroup: { id: group.id, name: group.name, order: group.order } }, repoRoot)));
-  return { ...raw, surfaces, registryDigest: digest };
-}
-
-function normalizeSurface(surface, repoRoot) {
-  const config = normalizePath(surface.config);
-  return {
-    ...surface,
-    config,
-    absoluteConfig: path.join(repoRoot, config),
-    cwd: normalizePath(surface.cwd ?? defaultCwd(surface.config)),
-    roots: (surface.roots ?? []).map(normalizePath),
-    excludeRoots: (surface.excludeRoots ?? []).map(normalizePath),
-  };
-}
-
-function defaultCwd(config) {
-  const normalized = normalizePath(config);
-  if (normalized === "vitest.config.ts" || normalized.startsWith("test/")) return ".";
-  return path.posix.dirname(normalized);
+  // Package locations belong to the tested tree just as the registry does.
+  // In particular, a package's native config need not live at its package root.
+  const packageDirs = new Map();
+  for (const file of enumerateTrackedPaths({ repoRoot, commit })) {
+    if (path.posix.basename(file) !== "package.json" || /(?:^|\/)(?:node_modules|dist|\.git|\.blaxel-testshards|\.testshards|\.test-runs)\//.test(file)) continue;
+    const source = git(["show", `${commit}:${file}`], { cwd: repoRoot });
+    try {
+      const pkg = JSON.parse(source);
+      if (pkg.name) packageDirs.set(pkg.name, path.posix.dirname(file));
+    } catch {}
+  }
+  return { ...normalizeTestConfig(raw, { root: repoRoot, packageDirs }), registryDigest: digest, commit };
 }
 
 function contains(root, file) {

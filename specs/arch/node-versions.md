@@ -8,7 +8,7 @@ Television uses one Node/npm toolchain to develop, test, build, and publish the 
 
 This spec is authoritative for the three version contracts, their current values, their declarations, the developer checks, and the procedure for changing them.
 
-It does not own build mechanics, TypeScript configuration, test-runner mechanics, CI job mechanics, Blaxel provisioning, or release mechanics; those remain with their existing authorities. [preflight.md](./test-runner/preflight.md), [github-ci.md](./test-runner/github-ci.md), [blaxel-testshards.md](./test-runner/blaxel-testshards.md), [arch/cli/index.md](./cli/index.md), [arch/onboarding/bake.md](./onboarding/bake.md), and [the ToDesktop build](./desktop/distribution.md) consume this policy and link here for values instead of restating them.
+It does not own build mechanics, TypeScript configuration, test-runner mechanics, CI job mechanics, Blaxel provisioning, or release mechanics; those remain with their existing authorities. [test-runner.md](./test-runner/test-runner.md), [github-ci.md](./test-runner/github-ci.md), [blaxel-testshards.md](./test-runner/blaxel-testshards.md), [arch/cli/index.md](./cli/index.md), [arch/onboarding/bake.md](./onboarding/bake.md), and [the ToDesktop build](./desktop/distribution.md) consume this policy and link here for values instead of restating them.
 
 ## Version contracts
 

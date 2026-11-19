@@ -3,7 +3,7 @@
  *
  * The persisted-daemon cases register and remove a uniquely named real user
  * service through launchd or systemd. Run them only through
- * `npm test -- local --suite telemetry-posthog-roundtrip`, with the PostHog
+ * `npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts`, with the PostHog
  * test read key available, on a host where real service installation is safe.
  * The asserted teardown path is `tv stop`; direct Daemon.uninstall() remains
  * only as failure cleanup so an interrupted assertion cannot leak a service.
@@ -110,7 +110,7 @@ function stripEnvQuotes(value: string): string {
 function requirePostHogTestReadKey(): string {
   const value = process.env.TV_POSTHOG_TEST_READ_KEY?.trim();
   if (value?.startsWith("phx_")) return value;
-  throw new Error("TV_POSTHOG_TEST_READ_KEY must be set to the PostHog test project read key. Run via `npm test -- local --suite telemetry-posthog-roundtrip` so the posthog-test-key preflight checks this before Vitest starts.");
+  throw new Error("TV_POSTHOG_TEST_READ_KEY must be set to the PostHog test project read key. Run via `npm test -- local --file packages/server/test/telemetry-posthog.integration.test.ts` so the posthog-test-key preflight checks this before Vitest starts.");
 }
 
 function builtEvent(

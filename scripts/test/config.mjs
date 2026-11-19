@@ -5,9 +5,12 @@ import testConfig from "../../test.config.mjs";
 export const CANONICAL_TEST_INCLUDE_ROOTS = ["packages", "test"];
 
 export function loadTestConfig({ root = process.cwd() } = {}) {
-  const packageDirs = discoverPackageDirs(root);
-  const surfaces = rawSurfaces(testConfig).map((surface) => normalizeSurface(surface, root, packageDirs));
-  return { ...testConfig, surfaces };
+  return normalizeTestConfig(testConfig, { root, packageDirs: discoverPackageDirs(root) });
+}
+
+export function normalizeTestConfig(config, { root, packageDirs }) {
+  const surfaces = rawSurfaces(config).map((surface) => normalizeSurface(surface, root, packageDirs));
+  return { ...config, surfaces };
 }
 
 export function validateRegistry(config, { root = process.cwd() } = {}) {

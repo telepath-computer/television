@@ -40,7 +40,7 @@ async function withApi(run: (discover: (deployedOnly: boolean) => Promise<string
         meta: { hasMore: true, nextCursor: "third" },
       }));
     } else if (request.url === "/sandboxes?cursor=third") {
-      response.end(JSON.stringify({ data: [sandbox("a-worker")], meta: { hasMore: false } }));
+      response.end(JSON.stringify({ data: [sandbox("a-worker"), sandbox("d-provisioning", { purpose: "testshards-provisioning" }), sandbox("e-unavailable", { purpose: "testshards-unavailable" })], meta: { hasMore: false } }));
     } else {
       response.statusCode = 404;
       response.end(JSON.stringify({ message: "unexpected request" }));
@@ -58,6 +58,8 @@ async function withApi(run: (discover: (deployedOnly: boolean) => Promise<string
           HOME: home,
           PATH: process.env.PATH,
           TV_TEST_SURFACE_OWNER: process.env.TV_TEST_SURFACE_OWNER,
+          TV_TEST_SHARD_OWNER: process.env.TV_TEST_SHARD_OWNER,
+          TMPDIR: process.env.TMPDIR,
           BL_API_URL: `http://127.0.0.1:${(server.address() as AddressInfo).port}`,
           BL_API_KEY: "fixture-key",
           BL_WORKSPACE: "fixture-workspace",
@@ -78,7 +80,7 @@ async function withApi(run: (discover: (deployedOnly: boolean) => Promise<string
 
 test.each([false, true])("discovers every pool page with deployedOnly=%s", async (deployedOnly) => {
   await withApi(async (discover, requests) => {
-    expect(await discover(deployedOnly)).toEqual(deployedOnly ? ["a-worker", "b-worker"] : ["a-worker", "b-worker", "c-failed"]);
+    expect(await discover(deployedOnly)).toEqual(deployedOnly ? ["a-worker", "b-worker"] : ["a-worker", "b-worker", "c-failed", "d-provisioning", "e-unavailable"]);
     expect(requests).toEqual(["/sandboxes", "/sandboxes?cursor=second", "/sandboxes?cursor=third"]);
   });
 });

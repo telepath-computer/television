@@ -1,3 +1,4 @@
+import "../../scripts/test/native-entrypoint.mjs";
 import { defineConfig } from "vitest/config";
 import { liquidTemplates } from "../../config/liquid/plugin.ts";
 import { cssModuleScripts } from "../../config/css-module-scripts.ts";

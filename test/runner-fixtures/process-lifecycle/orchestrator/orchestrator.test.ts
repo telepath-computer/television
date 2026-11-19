@@ -293,6 +293,8 @@ function innerEnv(fixtureDir: string, readyFile: string): NodeJS.ProcessEnv {
     GITHUB_ACTIONS: "true",
     GITHUB_WORKFLOW: "Process Lifecycle Fault Injection",
     TV_TEST_ISOLATED_GITHUB: "1",
+    TV_TEST_RUNNER_SELFTEST: "1",
+    TV_TEST_RUNNER_LOCK_PATH: path.join(fixtureDir, "mutex.sqlite3"),
     TV_TEST_TIMING_PROVIDER: "github-ubuntu-24.04-x64-2vcpu-vm",
     TV_LIFECYCLE_FIXTURE_DIR: fixtureDir,
     TV_LIFECYCLE_READY_FILE: readyFile,

@@ -11,7 +11,7 @@ import {
   type TestpassPolicy,
 } from "../../scripts/test/attestation.mjs";
 
-// specs/arch/test-runner/attestation.md#test-assertions — decision logic.
+// specs/arch/test-runner/attestation.md#skipping-in-ci — decision logic.
 
 const TREE = "6ffb98fb8f5a062c6975441131ceddaaedfebd0a";
 const NOW = 1_800_000_000;
@@ -106,7 +106,7 @@ describe("policy and version domain", () => {
   });
 });
 
-// specs/arch/test-runner/attestation.md#activation-policy — the trusted read
+// specs/arch/test-runner/attestation.md#policy — the trusted read
 // crosses real Git against a temporary bare origin.
 describe("trusted policy read", async () => {
   const { execFileSync } = await import("node:child_process");
@@ -454,15 +454,36 @@ describe("verify handoff facts", async () => {
     ]);
   });
 
+  // proofs/arch/test-runner/attestation.md#^attest-retry-options
+  test("parsed retry departures become noncanonical eligibility facts", () => {
+    for (const options of [
+      { "against-test-guidance-turn-flakes-into-failures-on-broad-runs": "1" },
+      { "against-test-guidance-turn-flakes-into-failures-on-broad-runs": "1", retries: "0" },
+      { retries: "0" },
+      { retries: "3" },
+    ]) {
+      const facts = {
+        treeAtStart: TREE, treeAtEnd: TREE, testedTree: TREE,
+        cleanAtStart: true, cleanAtEnd: true, ignoreUncommitted: false, qualifyingRun: true,
+        surfaces: [{ id: "unit:root", status: "passed" }], expectedSurfaceIds: ["unit:root"],
+        shardSubset: false, targetedSelection: false, attestedSkipRun: false,
+        policyAtStart: enabledPolicy(5), policyAtEnd: enabledPolicy(5),
+        canonicalRetries: canonicalRetryFacts({ options, env: {} }),
+      };
+      expect(facts.canonicalRetries, JSON.stringify(options)).toBe(false);
+      expect(evaluateEligibility(facts)).toEqual({ eligible: false, failures: ["canonical-retries"] });
+    }
+  });
+
   test("canonical retries require the runner default AND the default flaky budget", () => {
-    expect(canonicalRetryFacts({ retriesOption: undefined, env: {} })).toBe(true);
-    expect(canonicalRetryFacts({ retriesOption: "2", env: { FLAKY_TEST_RETRIES: "5" } })).toBe(true);
-    expect(canonicalRetryFacts({ retriesOption: "3", env: {} })).toBe(false);
-    expect(canonicalRetryFacts({ retriesOption: "2", env: { FLAKY_TEST_RETRIES: "9" } })).toBe(false);
+    expect(canonicalRetryFacts({ options: {}, env: {} })).toBe(true);
+    expect(canonicalRetryFacts({ options: { retries: "2" }, env: { FLAKY_TEST_RETRIES: "5" } })).toBe(true);
+    expect(canonicalRetryFacts({ options: { retries: "3" }, env: {} })).toBe(false);
+    expect(canonicalRetryFacts({ options: { retries: "2" }, env: { FLAKY_TEST_RETRIES: "9" } })).toBe(false);
   });
 });
 
-// specs/arch/test-runner/attestation.md#prune-and-retention — the full safety
+// specs/arch/test-runner/attestation.md#revoking-and-pruning — the full safety
 // matrix against local bare remotes with the trusted policy on the fixture
 // remote's main. Every refusal is asserted with --apply set, and every
 // deletion assertion re-reads the remote namespace.
@@ -685,7 +706,7 @@ describe("testpass prune", async () => {
   });
 });
 
-// specs/arch/test-runner/attestation.md#skip-semantics-in-ci — the CI face:
+// specs/arch/test-runner/attestation.md#skipping-in-ci — the CI face:
 // `decide` (attest-check) and `write` (attest-write) as real processes against
 // a local bare remote whose main carries a trusted policy fixture. Production
 // mode here crosses the actual boundary — no self-test seam involved.

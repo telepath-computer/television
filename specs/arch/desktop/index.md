@@ -31,7 +31,7 @@ Desktop modules consume these authorities without restating them:
 - [Artifact isolation](../artifact-frame/isolation.md#In the desktop app) owns why artifact webviews run in partitions apart from the window's session, how the main process rewrites the artifact proxy's headers there, and the permission handlers the main process sets on the window's session and the partitions'.
 - [Desktop upgrade gate](../updates/desktop-upgrade-gate.md) owns cross-release compatibility gating between an installed desktop release and the server-served interface. [Desktop connection flow](./connect-flow.md) owns the surrounding main-process connection lifecycle.
 - [Licensing architecture](../licensing.md) owns the desktop build's third-party notices, the license gate's check of the workspace's `dependencies`, the license checks on the upload directory, and where Electron's license files sit in the built app.
-- [GitHub CI](../test-runner/github-ci.md), [Blaxel shards](../test-runner/blaxel-testshards.md), and [preflight](../test-runner/preflight.md) own the provider setup and checks around the desktop test harness.
+- [GitHub CI](../test-runner/github-ci.md), [Blaxel shards](../test-runner/blaxel-testshards.md), and [the test runner](../test-runner/test-runner.md) own the provider setup and checks around the desktop test harness.
 
 ToDesktop builds, signs and notarizes the app users install under [distribution.md](./distribution.md), and the app updates itself from ToDesktop releases under [updates.md](./updates.md). A different embedded-document mechanism is outside this architecture.
 

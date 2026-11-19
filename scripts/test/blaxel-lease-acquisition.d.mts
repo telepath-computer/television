@@ -22,3 +22,4 @@ export function acquireShardLeases<Lease>(options: {
   maxConcurrency: number;
   acquire: (assignment: { shardIndex: number; slot: number }) => Promise<Lease | null | undefined>;
 }): Promise<Array<LeaseAcquisitionOutcome<Lease>>>;
+export function leaseRecoveryArgs(options: Record<string, unknown>): unknown[];

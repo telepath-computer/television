@@ -6,7 +6,7 @@
  * package in the active npm global prefix. It must run only on a designated
  * developer host through:
  *
- *   TV_DAEMON_TEST_HOST=1 npm test -- local --suite daemon-acceptance
+ *   TV_DAEMON_TEST_HOST=1 npm test -- local --file test/node/daemon-acceptance.test.ts
  *
  * Persisted serve cannot accept port 0, so each service port is obtained by
  * binding loopback port 0 and releasing it immediately before installation.
