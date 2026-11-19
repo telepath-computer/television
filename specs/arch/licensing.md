@@ -172,8 +172,9 @@ interface LicenseConfig {
   /**
    * License identifiers acceptable in shipped surfaces — the machine-readable copy of the
    * product allowlist, which must match it exactly (see below). OFL-1.1 is on
-   * it for vendored typefaces; its font-only scope is policy, upheld in
-   * review (product/licensing.md), not a distinction this file encodes.
+   * it for vendored typefaces and CC-BY-4.0 for icons and artwork; those
+   * scopes are policy, upheld in review (product/licensing.md), not a
+   * distinction this file encodes.
    */
   allow: string[]
   /** Dual/multi-license elections: which offered license we take. */

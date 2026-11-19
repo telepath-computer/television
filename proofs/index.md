@@ -90,7 +90,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `table.md` (43 lines) — *Proves the bundled Table package, store contract, page dependencies, icon and agent guidance.*
   - **test-runner/**
     - `attestation.md` (67 lines) — *How the promises in Test Attestation are proven.*
-    - `blaxel-testshards.md` (104 lines) — *How the promises in Blaxel Test Shards are proven.*
+    - `blaxel-testshards.md` (91 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
     - `reporting.md` (63 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (54 lines) — *How the promises in Sharded Execution are proven.*

@@ -98,7 +98,7 @@ describe("licensing configuration", () => {
   test("loads the reviewed policy decisions", () => {
     const config = loadLicenseConfig();
 
-    expect(config.allow).toEqual(["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "OFL-1.1", "LicenseRef-Unsplash"]);
+    expect(config.allow).toEqual(["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "OFL-1.1", "LicenseRef-Unsplash", "CC-BY-4.0"]);
     expect(Object.keys(config)).toEqual(["allow", "elections", "notices", "ignored"]);
     expect(config.elections).toEqual([
       {
@@ -284,7 +284,7 @@ describe("licensing configuration", () => {
   // proofs/arch/licensing.md#^licensing-t-real-assets-seam
   test("records the three wallpapers and Tokyo Night palette", () => {
     const config = loadLicenseConfig();
-    expect(config.allow).toEqual(["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "OFL-1.1", "LicenseRef-Unsplash"]);
+    expect(config.allow).toEqual(["MIT", "ISC", "BSD-2-Clause", "BSD-3-Clause", "Apache-2.0", "OFL-1.1", "LicenseRef-Unsplash", "CC-BY-4.0"]);
     const assets = loadAssetManifest();
     expect(assets.flatMap((asset) => asset.components.filter((component) => component.license === "LicenseRef-Unsplash").map((component) => component.name))).toEqual([
       "Mingwei Lim — Unsplash BpuF14DFbYs",

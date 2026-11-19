@@ -91,10 +91,13 @@ Every handled package — bundled into a shipped surface or declared as a depend
 - Apache-2.0
 - OFL-1.1
 - LicenseRef-Unsplash
+- CC-BY-4.0
 
 **OFL-1.1** (the SIL Open Font License) is on that list for vendored typefaces. It is the one entry whose scope is narrower than the list implies: it carries conditions beyond attribution — the font stays under OFL, cannot be sold on its own, reserved-name rules apply to modifications — which are fine for bundled typefaces kept under OFL with reserved-name restrictions respected, and wrong for code. So OFL-1.1 arriving on a *code* package is a decision to make, not an automatic pass. That scope is held in review, deliberately: encoding it would mean a machine deciding what is a font and asserting a file is unmodified, and neither is a judgment a checker can make. ^licensing-ofl-fonts-only
 
 **LicenseRef-Unsplash** identifies the [Unsplash License](https://unsplash.com/license). It is accepted through the same allowlist as the other entries. The restrictions on selling images without significant modification and compiling a competing service remain part of its terms; review evaluates each new use against those terms. Ordinary attribution, retained license text, and notices requirements apply. ^licensing-unsplash
+
+**CC-BY-4.0** (Creative Commons Attribution 4.0 International) is accepted for icons and other artwork, such as Font Awesome Free icons. Its conditions are attribution only: credit the creator, keep the copyright and license notices, link the material where practicable, and say whether it was modified. Like OFL-1.1, its scope is narrower than the list implies: Creative Commons recommends against its licenses for software, so CC-BY-4.0 arriving on a *code* package is a decision to make, not an automatic pass. That scope is held in review, not encoded. ^licensing-cc-by-artwork
 
 Adding a license is a policy change made here first; the machine-readable copy the tooling consumes lives in [arch/licensing.md](../arch/licensing.md) and must match this list exactly. ^licensing-allowlist-contents
 
