@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
 
 // specs/arch/test-runner/blaxel-testshards.md#repository-and-credentials
-export const BLAXEL_WORKER_CHECKOUT = "/workspace/television";
-export const BLAXEL_DEPENDENCY_CACHE = "/cache/blaxel-testshards";
+const BLAXEL_WORKER_CHECKOUT = "/workspace/television";
+const BLAXEL_DEPENDENCY_CACHE = "/cache/blaxel-testshards";
 
 const GITHUB_HOST = "github.com";
 const GITHUB_NAME = /^[A-Za-z0-9_.-]+$/;
@@ -21,8 +21,8 @@ export function resolveBlaxelRepositoryUrl({ repoUrl = null, cwd = process.cwd()
   return convertGithubUrl(origin.stdout.trim(), "origin remote");
 }
 
-export function blaxelCheckoutScript({ repoUrl, commit, root = BLAXEL_WORKER_CHECKOUT }) {
-  const quotedRoot = shellQuote(root);
+export function blaxelCheckoutScript({ repoUrl, commit }) {
+  const quotedRoot = shellQuote(BLAXEL_WORKER_CHECKOUT);
   const quotedUrl = shellQuote(repoUrl);
   const quotedCommit = shellQuote(commit);
   return `
@@ -45,8 +45,8 @@ rm -rf .testshards/logs .testshards/results
 // $TV_TEST_DEPS_CACHE_STATUS_FILE. The marker depends only on the dependency
 // declarations, so a checkout that moved to another repository keeps its
 // installed dependencies while those declarations match.
-export function blaxelDependencyScript({ cacheDir = BLAXEL_DEPENDENCY_CACHE } = {}) {
-  const quotedCacheDir = shellQuote(cacheDir);
+export function blaxelDependencyScript() {
+  const quotedCacheDir = shellQuote(BLAXEL_DEPENDENCY_CACHE);
   return `
 set -euo pipefail
 deps_hash=$(git ls-files '.nvmrc' 'package-lock.json' 'package.json' '*/package.json' ':!:node_modules/*' | sort | xargs sha256sum | sha256sum | awk '{print $1}')

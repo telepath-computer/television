@@ -2,42 +2,40 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 
-export function shardScratchPath({ tmpRoot = "/tmp", lockId, shardIndex, attempt = 1 }) {
+export function shardScratchPath({ lockId, shardIndex, attempt = 1 }) {
   const digest = createHash("sha256").update(lockId).digest("hex").slice(0, 20);
-  return `${tmpRoot}/tv-testshards/r-${digest}-s${shardIndex}-a${attempt}`;
+  return `/tmp/tv-testshards/r-${digest}-s${shardIndex}-a${attempt}`;
 }
 
 // This code runs before checkout, including after another revision ran here.
 // Serialize the actual implementation; never read a helper from the worker clone.
 export function workerLeaseCommand(input) {
-  const tmpRoot = input.tmpRoot ?? "/tmp";
   const source = `${cleanWorkerTemporaryDirectories.toString()}\n${workerLeaseOperation.toString()}\nworkerLeaseOperation(JSON.parse(Buffer.from(process.argv[1], 'base64url'))).then(result => { console.log(JSON.stringify(result)); if (!result.ok) process.exitCode = 42; }).catch(error => { console.error(error.message); process.exitCode = 2; });`;
-  return `flock -w 20 -F ${quote(`${tmpRoot}/tv-testshard.guard`)} node -e ${quote(source)} ${quote(Buffer.from(JSON.stringify({ ...input, scratch: input.scratch ?? shardScratchPath(input) })).toString("base64url"))}`;
+  return `flock -w 20 -F /tmp/tv-testshard.guard node -e ${quote(source)} ${quote(Buffer.from(JSON.stringify({ ...input, scratch: input.scratch ?? shardScratchPath(input) })).toString("base64url"))}`;
 }
 
 export function workerEntryCommand(input, script) {
   // exec keeps the registered shell PID/start identity. The token exists at
   // process creation, so procfs can observe it even before entry registration.
-  const register = workerLeaseCommand({ ...input, operation: "enter", pidFromEnv: true });
+  const register = workerLeaseCommand({ ...input, operation: "enter" });
   return `env TV_TEST_SHARD_OWNER=${quote(input.lockId)} bash -c ${quote(`export TV_SHARD_ENTRY_PID=$$; ${register} && exec bash ${quote(script)}`)}`;
 }
 
 function quote(value) { return `'${String(value).replaceAll("'", `'"'"'`)}'`; }
 
-/** Must run under the short flock guard. Hooks substitute only declared seams. */
-export async function workerLeaseOperation(input, hooks = {}) {
+/** Must run under the short flock guard. */
+async function workerLeaseOperation(input) {
   const fs = require("node:fs");
   const path = require("node:path");
-  const now = hooks.now ?? Date.now;
-  const tmpRoot = input.tmpRoot ?? "/tmp";
-  const resultsRoot = input.resultsRoot ?? "/workspace/television/.testshards/results";
+  const now = Date.now;
+  const tmpRoot = "/tmp";
+  const resultsRoot = "/workspace/television/.testshards/results";
   const lock = path.join(tmpRoot, "tv-testshard.lock");
   const ownerFile = path.join(lock, "owner.json");
   const operation = input.operation ?? "acquire";
   const ttlMs = (input.ttlSeconds ?? 1200) * 1000;
   if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0) throw new Error("invalid recovery interval");
   if (!/^[A-Za-z0-9_.:-]+$/.test(input.lockId ?? "")) throw new Error("invalid lock identity");
-  if (fs.lstatSync(tmpRoot).isSymbolicLink()) throw new Error("temporary root is a symlink");
   if (fs.existsSync(lock) && (!fs.lstatSync(lock).isDirectory() || fs.lstatSync(lock).isSymbolicLink())) throw new Error("unsafe lock root");
   let record = null;
   const exists = fs.existsSync(lock);
@@ -69,11 +67,10 @@ export async function workerLeaseOperation(input, hooks = {}) {
     try { command = path.basename(fs.readlinkSync(`${base}/exe`)); } catch (error) { if (!["ENOENT", "ESRCH"].includes(error.code)) throw error; }
     return { pid, startTime: fields[19], shardToken, surfaceToken, command };
   }
-  async function scan() {
+  async function scanOwners() {
     const owners = [];
-    // Seam fixtures supply their process set before inspection. Production
-    // enumerates the whole worker and refuses any unreadable ownership.
-    const pids = input.auditPids ?? fs.readdirSync("/proc").filter((name) => /^\d+$/.test(name)).map(Number);
+    // Enumerate the whole worker and refuse any unreadable ownership.
+    const pids = fs.readdirSync("/proc").filter((name) => /^\d+$/.test(name)).map(Number);
     for (const pid of pids) {
       try { const entry = readProcess(pid); if (entry) owners.push(entry); }
       catch (error) {
@@ -83,9 +80,8 @@ export async function workerLeaseOperation(input, hooks = {}) {
     }
     return owners;
   }
-  const scanOwners = hooks.scanOwners ?? scan;
   const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  async function stop(token) {
+  async function stopOwners(token) {
     const actions = new Map();
     const signal = async (name) => {
       for (const candidate of (await scanOwners()).filter((entry) => entry.shardToken === token)) {
@@ -106,10 +102,8 @@ export async function workerLeaseOperation(input, hooks = {}) {
     if ((await scanOwners()).some((entry) => entry.shardToken === token)) throw new Error("owned processes survived cleanup");
     return [...actions.values()];
   }
-  const stopOwners = hooks.stopOwners ?? stop;
-  const cleanTemporary = hooks.cleanTemporary ?? cleanWorkerTemporaryDirectories;
   const clean = async (current, onlyCurrent = false) => {
-    const result = await cleanTemporary({ tmpRoot, current, onlyCurrent });
+    const result = await cleanWorkerTemporaryDirectories({ current, onlyCurrent });
     if (!result.ok) throw new Error(`temporary cleanup incomplete: ${JSON.stringify(result)}`);
     return result;
   };
@@ -175,8 +169,7 @@ export async function workerLeaseOperation(input, hooks = {}) {
     record.dispatch = { processName: input.processName, requestedAt: now() }; write(record);
   } else if (operation === "enter") {
     if (!record.dispatch || record.dispatch.processName !== input.processName || record.dispatch.pid) return denied("dispatch not current");
-    const pid = input.pidFromEnv ? Number(process.env.TV_SHARD_ENTRY_PID) : input.pid;
-    const entry = readProcess(pid);
+    const entry = readProcess(Number(process.env.TV_SHARD_ENTRY_PID));
     if (!entry || entry.shardToken !== record.lockId) return denied("entry attribution missing");
     record.dispatch.pid = entry.pid; record.dispatch.startTime = entry.startTime; write(record);
   } else if (operation === "teardown") {
@@ -220,19 +213,18 @@ export async function workerLeaseOperation(input, hooks = {}) {
 }
 
 /** Direct allowed directories only; lstat traversal never follows symlinks. */
-export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", current, onlyCurrent = false }, probes = {}) {
+async function cleanWorkerTemporaryDirectories({ current, onlyCurrent = false }) {
   const fs = require("node:fs");
   const path = require("node:path");
-  const lstat = probes.lstat ?? fs.lstatSync;
-  const remove = probes.remove ?? ((file) => fs.rmSync(file, { recursive: true, force: false }));
+  const lstat = fs.lstatSync;
+  const tmpRoot = "/tmp";
   const scratchRoot = path.join(tmpRoot, "tv-testshards");
   const mountPoints = new Set(fs.readFileSync("/proc/self/mountinfo", "utf8").trim().split("\n").map((line) => line.split(" ")[4].replace(/\\([0-7]{3})/g, (_match, code) => String.fromCharCode(parseInt(code, 8)))));
   const free = () => { const value = fs.statfsSync(tmpRoot); return { availableBytes: value.bavail * value.bsize, freeBytes: value.bfree * value.bsize }; };
   const report = { ok: true, before: free(), after: null, removed: {}, skips: [], errors: [] };
-  for (const root of [tmpRoot, scratchRoot]) {
-    if (!fs.existsSync(root)) continue;
-    if (lstat(root).isSymbolicLink() || !lstat(root).isDirectory()) throw new Error(`unsafe cleanup root ${root}`);
-    if (root !== tmpRoot && (mountPoints.has(root) || lstat(root).dev !== lstat(tmpRoot).dev)) throw new Error("scratch root crosses a mount boundary");
+  if (fs.existsSync(scratchRoot)) {
+    if (lstat(scratchRoot).isSymbolicLink() || !lstat(scratchRoot).isDirectory()) throw new Error(`unsafe cleanup root ${scratchRoot}`);
+    if (mountPoints.has(scratchRoot) || lstat(scratchRoot).dev !== lstat(tmpRoot).dev) throw new Error("scratch root crosses a mount boundary");
   }
   function allocated(file, device) {
     const stat = lstat(file);
@@ -264,7 +256,7 @@ export async function cleanWorkerTemporaryDirectories({ tmpRoot = "/tmp", curren
       const bytes = allocated(file, lstat(tmpRoot).dev);
       const currentIdentity = lstat(file);
       if (!currentIdentity.isDirectory() || currentIdentity.isSymbolicLink() || currentIdentity.dev !== stat.dev || currentIdentity.ino !== stat.ino) throw new Error("directory identity changed before removal");
-      remove(file);
+      fs.rmSync(file, { recursive: true, force: false });
       const counts = report.removed[prefix] ??= { directories: 0, allocatedBytes: 0 };
       counts.directories++; counts.allocatedBytes += bytes;
     } catch (error) { report.ok = false; report.errors.push({ prefix, reason: error.code ?? error.message }); }
