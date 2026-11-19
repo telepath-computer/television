@@ -767,6 +767,8 @@ describe("CLI product spine acceptance", () => {
     expect(invalid.stderr).toContain("message");
     expect(invalid.stderr).toMatch(/required|missing/i);
     expect(invalid.stderr).toMatch(/tv templates show (?:-- )?["']?schema["']?/);
+    // The invocation chose its home, so the hint names it: a later show must read the same home.
+    expect(invalid.stderr).toContain(`tv --home ${home} templates show`);
     expect(JSON.parse((await tv(["get-channel", "--channel", target.id])).stdout).channel.layout).toEqual([]);
     for (const value of [undefined, "null", '{"message":"Caller"}']) {
       const created = await tv(["create-artifact", "--channel", target.id, "--template", "schema", ...(value === undefined ? [] : ["--data", value]), "--no-focus"]);

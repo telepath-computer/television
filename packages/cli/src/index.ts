@@ -1459,7 +1459,18 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
       let artifactID: string;
       let registeredTarget: string;
       if (opts.template !== undefined) {
-        const created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
+        let created: Awaited<ReturnType<typeof client.templates.create>>;
+        try {
+          created = await client.templates.create({ templateID: opts.template, channelID: opts.channel, ...(opts.title !== undefined ? { title: opts.title } : {}), ...(opts.data !== undefined || opts.dataFile !== undefined ? { data } : {}), ...display, ...placement, source: "cli" });
+        } catch (error) {
+          // The server's schema refusal names `tv templates show` without a home, since it cannot know how this
+          // invocation chose one. When --home chose it, a later show must read the same home, so the hint names it.
+          const homeOption = program.opts<{ home?: string }>().home;
+          if (homeOption !== undefined && error instanceof Error) {
+            error.message = error.message.replace("Inspect with tv templates show", `Inspect with tv --home ${shellWord(resolveHome())} templates show`);
+          }
+          throw error;
+        }
         artifactID = created.artifactID;
         registeredTarget = created.path !== undefined ? created.path : created.url;
       } else {
@@ -1714,7 +1725,7 @@ function createProgram(env: CLIEnvironment, invocation: CLIInvocation = { argv: 
   program
     .command("create-channel")
     .description(
-      "Create a new channel. Pick --focus-channel when the user should be taken to the new channel immediately (creating a workspace they're about to use), or --no-focus to create it in the background without disturbing their current view. A new channel starts empty; create new path or URL artifacts on it with the create-*-artifact commands using --channel.",
+      "Create a new channel. Pick --focus-channel when the user should be taken to the new channel immediately (creating a workspace they're about to use), or --no-focus to create it in the background without disturbing their current view. A new channel starts empty; add artifacts to it from a path, a URL or a template with tv create-artifact --channel <id>.",
     )
     .requiredOption("--name <name>", "Channel name")
     .option("--focus-channel", "Focus the new channel after creating it")

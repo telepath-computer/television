@@ -471,6 +471,28 @@ describe("artifact template CLI commands", () => {
     }
   });
 
+  // proofs/arch/cli/index.md#^cli-t-template-schema-home
+  it("names the selected --home in a template schema refusal's show command, and only when one was given", async () => {
+    const refusal = () => new RequestError("Invalid template starting data: /title: must be string. Inspect with tv templates show -- 'reading-list'", { serverURL: "http://localhost:43123", status: 400 });
+    const home = temporaryHome();
+    const spaced = path.join(temporaryHome(), "my home");
+    mkdirSync(spaced);
+    for (const [homeArgs, expected] of [
+      [["--home", home], `Inspect with tv --home ${home} templates show -- 'reading-list'`],
+      [["--home", spaced], `Inspect with tv --home '${spaced}' templates show -- 'reading-list'`],
+      [[], "Inspect with tv templates show -- 'reading-list'"],
+    ] as const) {
+      const stderr = new BufferOutput();
+      const baseClient = fakeEnvironment().createClient!("", "") as any;
+      const create = vi.fn(async () => { throw refusal(); });
+      const createClient = vi.fn(() => ({ ...baseClient, templates: { ...baseClient.templates, create } }));
+      const env = fakeEnvironment({ stdout: new BufferOutput(), stderr, createClient });
+      expect(await runCLI([...homeArgs, "create-artifact", "--channel", "screen-1", "--template", "reading-list", "--data", '{"title":1}', "--no-focus"], env)).toBe(1);
+      expect(stderr.toString()).toContain(expected);
+      expect(stderr.toString()).toContain(SKILL_POINTER);
+    }
+  });
+
   // proofs/arch/cli/index.md#^cli-t-create-display-invalid
   // proofs/arch/cli/index.md#^cli-t-transparent-invalid
   it.each([
@@ -915,6 +937,12 @@ describe("CLI artifact command surface", () => {
     expect(focusStdout.toString()).not.toMatch(/\bpages?\b/i);
     expect(focusStdout.toString()).toMatch(/switch to its channel when needed/);
     expect(focusStdout.toString()).not.toMatch(/scroll|highlight/i);
+
+    // Channel help points at the one creation command, not the retired per-kind ones.
+    const channelStdout = new BufferOutput();
+    expect(await runCLI(["help", "create-channel"], fakeEnvironment({ stdout: channelStdout, stderr: new BufferOutput() }))).toBe(0);
+    expect(channelStdout.toString()).toMatch(/tv\s+create-artifact\s+--channel/);
+    expect(channelStdout.toString()).not.toMatch(/create-\*-artifact|create-(?:path|url)-artifact/);
 
     const stderr = new BufferOutput();
     expect(await runCLI(["list-artifacts", "--bogus"], fakeEnvironment({ stdout: new BufferOutput(), stderr }))).toBe(1);
