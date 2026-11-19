@@ -4,9 +4,12 @@ import path from "node:path";
 import { SandboxInstance } from "@blaxel/core";
 import { expect, test } from "vitest";
 import { listBlaxelPoolSandboxes } from "../../../../scripts/test/blaxel-pool.mjs";
+import { shardScratchPath, workerEntryCommand, workerLeaseCommand, type LeaseInput } from "../../../../scripts/test/blaxel-worker-lease.mjs";
 
 // Acceptance: real canonical subprocesses, SDK, fresh private workers and native
 // fixtures. The sole scheduling hook pauses immediately before report download.
+// The stale-owner lockout drives the production lease commands directly on one
+// private worker, as the coordinator would, to reach orderings a run cannot.
 const pool = process.env.TV_BLAXEL_HARNESS_POOL?.trim() ?? "";
 const coordinatorName = process.env.TV_BLAXEL_HARNESS_COORDINATOR?.trim() ?? "";
 const planned = ["--tag", "blaxel-harness-fixture", "--shards", "2", "--allow-shard-count-override", "1"];
@@ -20,6 +23,7 @@ const sourceResidue = `/tmp/television-source-cli-e2e-${fixtureSuffix}`;
 const webResidue = `/tmp/television-web-bundle-${fixtureSuffix}`;
 const staleScratch = `/tmp/tv-testshards/${fixtureSuffix}`;
 const unrelatedSentinel = `/tmp/tv-${fixtureSuffix}-unrelated/keep`;
+const residueLink = `/tmp/television-web-bundle-${fixtureSuffix}-link`;
 const cacheSentinel = `/cache/tv-${fixtureSuffix}/keep`;
 const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
 const cli = path.join(repositoryRoot, "scripts/test/cli.mjs");
@@ -33,6 +37,53 @@ async function until<T>(probe: () => Promise<T | null | false>, timeout = 120_00
 }
 function readJson(file: string) { return JSON.parse(readFileSync(file, "utf8")); }
 async function remoteJson(worker: SandboxInstance, file: string) { try { return JSON.parse(await worker.fs.read(file)); } catch (error: any) { if (error?.status === 404) return null; throw error; } }
+async function remoteExec(worker: SandboxInstance, name: string, command: string) {
+  const result = await worker.process.exec({name, command, waitForCompletion: true, timeout: 30});
+  return {exitCode: result.exitCode, output: await worker.process.logs(name, "all")};
+}
+// The coordinator's own wrapper for a lease operation; the last output line is the decision.
+async function leaseOperation(worker: SandboxInstance, input: LeaseInput) {
+  const body = ["set -eo pipefail", 'export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"', '. "$NVM_DIR/nvm.sh"', "nvm use --silent default", "set -u", workerLeaseCommand(input)].join("; ");
+  const {exitCode, output} = await remoteExec(worker, `tv-harness-${input.operation ?? "acquire"}-${Math.random().toString(36).slice(2)}`, `bash -lc ${quote(body)}`);
+  return {exitCode, response: JSON.parse(output.trim().split("\n").at(-1)!)};
+}
+
+// A coordinator that has lost its worker cannot renew, release or start work,
+// and a foreign owner token holds the worker until it is gone.
+async function staleOwnerLockout(worker: SandboxInstance) {
+  const old: LeaseInput = {lockId: `harness-old-${fixtureSuffix}`, runId: "harness-lockout-old", shardIndex: 1, attemptId: "harness-old-attempt", owner: "harness", ttlSeconds: 10, worker: worker.metadata.name};
+  old.scratch = shardScratchPath(old);
+  const current: LeaseInput = {...old, lockId: `harness-current-${fixtureSuffix}`, runId: "harness-lockout-current", attemptId: "harness-current-attempt", ttlSeconds: 1200};
+  current.scratch = shardScratchPath(current);
+  const processName = "tv-harness-delayed-entry";
+  const entered = `/tmp/tv-${fixtureSuffix}-entered`;
+  const refused = async (input: LeaseInput, reason: string) => {
+    const {exitCode, response} = await leaseOperation(worker, input);
+    expect(exitCode).toBe(42); expect(response).toMatchObject({ok: false, reason});
+  };
+  expect((await leaseOperation(worker, old)).response.ok).toBe(true);
+  expect((await leaseOperation(worker, {...old, operation: "prepare"})).response.ok).toBe(true);
+  await worker.fs.write(`${old.scratch}/worker.sh`, `touch ${quote(entered)}\n`);
+  expect((await leaseOperation(worker, {...old, operation: "dispatch", processName})).response.ok).toBe(true);
+  // The entry request is held back while the lease expires and another owner arrives.
+  await worker.process.exec({name: "tv-harness-foreign-owner", command: `env TV_TEST_SHARD_OWNER=harness-foreign-${fixtureSuffix} sleep 600`, waitForCompletion: false});
+  await until(async () => { const record = await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"); return Date.now() > record.recoverAfter + 500; }, 30_000);
+  await refused({...old, operation: "renew"}, "lease lost or expired");
+  await refused(current, "other live or stale owners remain");
+  expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(old.lockId);
+  await worker.process.kill("tv-harness-foreign-owner");
+  const acquired = await until(async () => { const attempt = await leaseOperation(worker, current); return attempt.response.ok ? attempt.response : null; }, 30_000);
+  expect(acquired.record.recovery).toMatchObject({previous: {lockId: old.lockId}, cleanup: "confirmed", discardedReports: true});
+  const entry = await remoteExec(worker, processName, workerEntryCommand({...old, processName}, `${old.scratch}/worker.sh`));
+  expect(entry.exitCode).not.toBe(0); expect(entry.output).toContain('"reason":"lease lost or expired"');
+  await expect(worker.fs.read(entered)).rejects.toMatchObject({status: 404});
+  await refused({...old, operation: "renew"}, "lease lost or expired");
+  await refused({...old, operation: "release", retrieved: true}, "lease lost or expired");
+  expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(current.lockId);
+  expect((await leaseOperation(worker, {...current, operation: "teardown"})).response.ok).toBe(true);
+  expect((await leaseOperation(worker, {...current, operation: "release", retrieved: true})).response.ok).toBe(true);
+  expect(await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).toBeNull();
+}
 
 function command(root: string, name: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   const log = path.join(root, `${name}.log`);
@@ -113,11 +164,15 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
     expect(await poolCommand(root, "ensure", "ensure")).toBe(0);
     workers = await listBlaxelPoolSandboxes({pool, arch: "x64", deployedOnly: true});
     expect(workers).toHaveLength(2);
+    await staleOwnerLockout(workers[0]);
     for (const worker of workers) {
       const directories = [sourceResidue, webResidue, staleScratch, path.dirname(unrelatedSentinel), path.dirname(cacheSentinel)];
       const setup = [`mkdir -p ${directories.map(quote).join(" ")}`,
         ...[sourceResidue, webResidue].map(directory => `printf fixture > ${quote(`${directory}/data`)}`),
-        ...[unrelatedSentinel, cacheSentinel].map(file => `printf keep > ${quote(file)}`)].join("; ");
+        ...[unrelatedSentinel, cacheSentinel].map(file => `printf keep > ${quote(file)}`),
+        // Links into the unrelated directory: cleanup removes links, never their targets.
+        `ln -s ${quote(path.dirname(unrelatedSentinel))} ${quote(residueLink)}`,
+        `ln -s ${quote(path.dirname(unrelatedSentinel))} ${quote(`${sourceResidue}/link`)}`].join("; ");
       const seeded = await worker.process.exec({name: "tv-harness-seed-fixtures", command: `bash -c ${quote(setup)}`, waitForCompletion: true, timeout: 10});
       expect(seeded.exitCode).toBe(0);
       await worker.fs.write(modePath, JSON.stringify({mode: "normal"}));
@@ -153,6 +208,8 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       expect(cleanup.removed["television-source-cli-e2e-"].directories).toBe(1);
       expect(cleanup.removed["television-web-bundle-"].directories).toBe(1);
       expect(cleanup.removed["stale-scratch"].directories).toBe(1);
+      expect(cleanup.skips).toContainEqual({prefix: "television-web-bundle-", reason: "not a real directory"});
+      expect(shard.setupTimings.find((phase: any) => phase.name === "deps")?.cacheStatus).toBe("miss");
       const placement = path.join(artifact, "temporary-placement.json");
       if (existsSync(placement)) placements.push(readJson(placement));
     }
@@ -167,12 +224,14 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       await expect(worker.fs.ls(ownGate.scratch)).rejects.toMatchObject({status: 404});
       expect(await worker.fs.read(unrelatedSentinel)).toBe("keep");
       expect(await worker.fs.read(cacheSentinel)).toBe("keep");
+      expect((await remoteExec(worker, "tv-harness-link-check", `test -L ${quote(residueLink)}`)).exitCode).toBe(0);
     }
     const target = run(root, "targeted", targeted);
     expect(await target.done).toBe(1);
     expect(retained(await target.directory()).summary.run.infraStatus).toBe("completed");
     assertDiagnostics(await target.directory());
     const targetShard = retained(await target.directory()).provider.shards[0];
+    expect(targetShard.setupTimings.find((phase: any) => phase.name === "deps")?.cacheStatus).toBe("hit");
     expect(existsSync(path.join(targetShard.outputDir, "artifacts/shard-1/temporary-placement.json"))).toBe(true);
 
     for (const scenario of ["active", "quiet"]) {
@@ -180,9 +239,11 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
       const crashGate = path.join(root, `${scenario}-download`); mkdirSync(crashGate);
       const abandoned = run(root, `${scenario}-abandoned`, planned, crashGate, 60);
       let owners: any[];
+      let activeFixtures: any[] = [];
       if (scenario === "quiet") { await gates(crashGate); owners = await Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"))); }
       else owners = await until(async () => {
         const active = await Promise.all(workers.map(worker => remoteJson(worker, `${resultsRoot}/active-fixture.json`)));
+        activeFixtures = active;
         return active.every(Boolean) ? Promise.all(workers.map(worker => remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"))) : null;
       });
       const coordinatorPid = Number(owners[0].owner.split(":").at(-1));
@@ -205,7 +266,13 @@ test("qualifies exclusive retrieval, active and quiet recovery, temporary placem
         expect(receipt.previous.lastRenewal).toBe(previous.lastRenewal);
         expect(receipt.previous.recoverAfter).toBe(previous.recoverAfter);
       }
-      if (scenario === "active") expect(records.filter(record => record.kind === "recovery").every(record => record.processes.length > 0)).toBe(true);
+      if (scenario === "active") {
+        // Each active fixture's child ignores SIGTERM, so recovery must have killed it.
+        for (const receipt of records.filter(record => record.kind === "recovery")) {
+          const fixture = activeFixtures[workers.findIndex(worker => worker.metadata.name === receipt.previous.worker)];
+          expect(receipt.processes).toContainEqual(expect.objectContaining({pid: fixture.pid, outcome: "SIGKILL"}));
+        }
+      }
       writeFileSync(path.join(root, `${scenario}-recovery-evidence.json`), JSON.stringify({owners, recoveredRun: directory}));
     }
     expect(await poolCommand(root, "final-delete", "delete")).toBe(0);
