@@ -81,7 +81,7 @@ async function staleOwnerLockout(worker: SandboxInstance) {
     const acquired = await until(async () => { const attempt = await leaseOperation(worker, current); return attempt.response.ok ? attempt.response : null; }, 30_000);
     expect(acquired.record.recovery).toMatchObject({previous: {lockId: old.lockId}, cleanup: "confirmed", discardedReports: true});
     const entry = await remoteExec(worker, processName, workerEntryCommand({...old, processName}, `${old.scratch}/worker.sh`));
-    expect(entry.exitCode).not.toBe(0); expect(entry.output).toContain('"reason":"lease lost or expired"');
+    expect(entry.exitCode).toBe(42); expect(entry.output).toContain('"reason":"lease lost or expired"');
     await expect(worker.fs.read(entered)).rejects.toMatchObject({status: 404});
     await refused({...old, operation: "renew"}, "lease lost or expired");
     await refused({...old, operation: "release", retrieved: true}, "lease lost or expired");
