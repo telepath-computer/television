@@ -127,7 +127,7 @@ A change that could affect the coordinator's remote operation needs a live Blaxe
 - freshly provisioned workers on a dedicated pool check a change to provisioning or runtime selection, leaving the shared `poc` workers alone;
 - runs from checkouts of two repositories on one pool, including a worker whose checkout last served the other repository, check a change to repository selection or switching.
 
-Code that manages a worker as a machine is tested only on real Blaxel workers, in the live qualification below, and never by running it on a development host or in GitHub CI. That code is the lease command and everything it does on the worker, including the owner audit, stopping processes and temporary-file cleanup; the worker entry command; the checkout and dependency scripts; and the stale-owner diagnostic. Code that runs tests on a worker, such as the shard and targeted-command runners, is test-runner code and is tested like the rest of the runner. Behavior of the machine-management code that the live qualification does not reach has no automated test. ^blaxel-worker-code-live
+Code that runs on Blaxel workers to manage them, such as leasing, cleanup, checkout and dependency setup, is tested only on real Blaxel workers, in the live qualification below, and never on a development host or in GitHub CI. ^blaxel-worker-code-live
 
 Recovery and cleanup experiments use disposable processes on a dedicated pool and never contaminate shared workers. Temporary-file placement is shown only by observing, on a live worker, the files Node creates and Chromium's shared-memory descriptors under the attempt's `TMPDIR`.
 
