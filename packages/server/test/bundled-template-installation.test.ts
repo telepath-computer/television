@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { createServer } from "node:net";
+import { cpSync, existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { createServer, type Server } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,6 +18,24 @@ function tempRoot(): string {
   const root = mkdtempSync(path.join(os.tmpdir(), "tv-bundled-template-"));
   roots.push(root);
   return root;
+}
+
+// A Unix socket path is limited to about 107 bytes, and a long TMPDIR (such as a
+// Blaxel shard's scratch directory) pushes these past it. Listening through a
+// short link still creates the socket in the intended folder, and an error
+// rejects at once instead of leaving the test waiting for its timeout.
+async function listenAt(server: Server, socketPath: string): Promise<void> {
+  const linkRoot = mkdtempSync("/tmp/tvs-");
+  roots.push(linkRoot);
+  const link = path.join(linkRoot, "d");
+  symlinkSync(path.dirname(socketPath), link);
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(path.join(link, path.basename(socketPath)), () => {
+      server.off("error", reject);
+      resolve();
+    });
+  });
 }
 
 function sourceCopy(): string {
@@ -371,7 +389,7 @@ describe("bundled artifact template serving installation", () => {
     const former = snapshotRegularFiles(installed);
     const socket = createServer();
     const socketPath = path.join(installed, "blocked.sock");
-    await new Promise<void>((resolve) => socket.listen(socketPath, resolve));
+    await listenAt(socket, socketPath);
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const failed = servingBoot(home);
@@ -408,7 +426,7 @@ describe("bundled artifact template serving installation", () => {
     const socket = createServer();
     const socketPath = path.join(source, "checklist/runtime.js");
     writeFileSync(path.join(source, "checklist/index.html"), '<!doctype html><script src="runtime.js"></script>');
-    await new Promise<void>((resolve) => socket.listen(socketPath, resolve));
+    await listenAt(socket, socketPath);
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       const failed = servingBoot(home, source);
@@ -469,7 +487,7 @@ describe("bundled artifact template serving installation", () => {
     const inventory = [...BUNDLED_ARTIFACT_TEMPLATES, { id: "second", minimumVersion: "1.0.0" }];
     const socket = createServer();
     const socketPath = path.join(installed, "blocked.sock");
-    await new Promise<void>((resolve) => socket.listen(socketPath, resolve));
+    await listenAt(socket, socketPath);
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       runBundledTemplateInstallation(home, source, {}, inventory);
@@ -585,7 +603,7 @@ describe("bundled artifact template serving installation", () => {
     writeFileSync(path.join(checklist, "index.html"), "invalid Checklist");
     const socket = createServer();
     const socketPath = path.join(checklist, "blocked.sock");
-    await new Promise<void>((resolve) => socket.listen(socketPath, resolve));
+    await listenAt(socket, socketPath);
     vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       servingBoot(failureHome);
