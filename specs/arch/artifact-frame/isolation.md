@@ -14,7 +14,7 @@ Artifact code is untrusted whoever wrote it, the person's own agent included, be
 
 ## The sandbox header
 
-Every response from the artifact proxy, `/artifact/<id>/…`, and from the active-theme route, `/theme/…`, carries this header, the *sandbox header*: ^iso-sandbox-header
+Every response from the artifact proxy, `/artifact/<id>/…`, from the active-theme route, `/theme/…`, and from the [template icon route](../templates/index.md#^artifact-template-icon-route) carries this header, the *sandbox header*: ^iso-sandbox-header
 
 ```http
 Content-Security-Policy: sandbox allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads

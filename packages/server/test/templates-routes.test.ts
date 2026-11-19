@@ -149,6 +149,21 @@ describe("artifact template routes", () => {
     }
   });
 
+  // proofs/arch/templates/index.md#^templates-t-icon-sandbox
+  it("sandboxes icon responses and forbids sniffing, so an SVG opened directly cannot run as the app", async () => {
+    const root = home();
+    const folder = template(root, "scripted");
+    writeFileSync(path.join(folder, "icon.svg"), '<svg xmlns="http://www.w3.org/2000/svg"><script>parent.alert(1)</script></svg>');
+    writeFileSync(path.join(folder, "manifest.json"), JSON.stringify({ name: "Scripted", description: "Page", version: "1.0.0", icons: [{ src: "icon.svg" }] }));
+    const { server, token } = await start(root);
+    for (const [id, status] of [["scripted", 200], ["missing", 404]] as const) {
+      const response = await request(server.httpServer).get(`/templates/${id}/icon`).set(auth(token)).expect(status);
+      expect(response.headers["content-security-policy"]).toMatch(/^sandbox\b/);
+      expect(response.headers["content-security-policy"]).not.toContain("allow-same-origin");
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    }
+  });
+
   it("fallback list scans publish but icon-only validation changes neither cache nor events", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const root = home();

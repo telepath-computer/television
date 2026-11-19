@@ -17,6 +17,7 @@ import type { TelemetryStatus } from "./telemetry/index.ts";
 import { serveArtifactProxy } from "./artifact-proxy.ts";
 import { serveMarkdownContent } from "./markdown.ts";
 import { selectTemplateIcon, validateTemplatePackage, TemplateCreationError } from "./templates.ts";
+import { applySandboxHeader } from "./sandbox-header.ts";
 import type { ArtifactPollCadence } from "@telepath-computer/television-artifact/browser";
 
 /** Home-directory file that turns on browser demo mode. */
@@ -269,6 +270,10 @@ export function registerRoutes(
   });
 
   app.get("/templates/:id/icon", ...auth, (req: Request<{ id: string }>, res) => {
+    // A template icon is agent-authored and served from the app's origin. An SVG can carry script, so the
+    // response is sandboxed like an artifact's and never sniffed, should a browser ever open it directly.
+    applySandboxHeader(res);
+    res.set("X-Content-Type-Options", "nosniff");
     const scan = store.templateCache!.getSnapshot();
     let template = scan.templates.find((candidate) => candidate.id === req.params.id);
     if (!scan.watching) {

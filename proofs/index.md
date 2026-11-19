@@ -84,7 +84,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `document.md` (48 lines) — *Proves the bundled Document package, self-contained editor, blank start, scoped saves, live store binding, and sandboxed link route.*
-    - `index.md` (76 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
+    - `index.md` (77 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*
     - `map.md` (28 lines) — *Proves the bundled Map package and its live page delivery.*
     - `sticky-note.md` (44 lines) — *Proves the bundled Sticky note package, whole-store validation, scoped saves, and retention of pending text across confirmations and disconnections.*
     - `table.md` (43 lines) — *Proves the bundled Table package, store contract, page dependencies, icon and agent guidance.*
