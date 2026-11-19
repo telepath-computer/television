@@ -155,8 +155,9 @@ test("authenticated fresh directory failure replaces cached Toolbox tiles", asyn
     await openToolbox(page);
     await expect(page.getByRole("gridcell", { name: "Calendar" })).toBeVisible();
     await page.keyboard.press("Escape");
+    // Removing the folder makes the scan fail. Replacing it with a regular file instead would also crash the
+    // server on Node 24.22, whose recursive fs.watch throws an uncaught ENOTDIR when the watched folder becomes a file.
     rmSync(path.join(product.home, "templates"), { recursive: true });
-    writeFileSync(path.join(product.home, "templates"), "blocked");
     const scan = await client.templates.list({ fresh: true });
     expect(scan.errors[0]?.folder).toBeNull();
     await openToolbox(page);
