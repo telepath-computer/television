@@ -2,11 +2,11 @@
 
 # UI conformance
 
-This spec covers surfaces specified as frames and templates under the [UI policy](../../spec-ui.md). Surfaces specified in MDX follow [story conformance](../../spec-ui.md#^ui-conformance-test) instead.
+This spec covers surfaces specified as frames and templates under the [legacy UI rules](../../spec-ui.md#^ui-frame-specs). Surfaces specified in MDX follow [story conformance](../../spec-ui.md#^ui-conformance-test) instead.
 
 ## What conformance means
 
-In every state its spec defines, production renders the markup the spec's templates render and carries the styles its stylesheets state. When production needs markup or styling the spec does not state, the spec changes, with the approval spec changes require, or the spec names it as implementation-owned.
+In every state its spec defines, production renders what the spec's frames and templates bind ([what a frame binds](../../spec-ui.md#^ui-frame-binds)) and carries the styles its stylesheets state. When production needs markup or styling the spec does not state, the spec changes, with the approval spec changes require, or the spec names it as implementation-owned.
 
 ## Checks
 

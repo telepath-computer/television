@@ -1,8 +1,8 @@
-*How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
+*How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story, and the rules for legacy frame and template specs.*
 
 # UI specs
 
-**Status:** adopted. UI specs written before it, as frames or templates with stylesheets, stay in force; a surface moves to an MDX spec with stories when it is next redesigned. [Spec migration](spec-migration.md) records which surfaces have moved and how the rest are checked. Where specs are silent, the transitional rule of [spec-policy.md](spec-policy.md) applies: code is the authority.
+**Status:** adopted. UI specs written before it, as frames or templates with stylesheets, stay in force under the rules in [Legacy frame and template specs](#^ui-frame-specs); a surface moves to an MDX spec with stories when it is next redesigned. [Spec migration](spec-migration.md) records which surfaces have moved and how the rest are checked. Where specs are silent, the transitional rule of [spec-policy.md](spec-policy.md) applies: code is the authority.
 
 ## Authority
 
@@ -10,14 +10,14 @@
 
 A specific UI spec may define design sources for artifacts whose installed files are authored separately. In that case, exclusivity applies to the design source, and the specific UI spec names the package or architecture authority for what is installed. The installed files may be derived from the design source by a scripted, manually-run port whose output is committed and reviewed like any content change. The onboarding artifact designs use this boundary ([ui/onboarding-artifacts/index.md](ui/onboarding-artifacts/index.md); their port is [arch/onboarding/bake.md](arch/onboarding/bake.md)).
 
-- **Appearance** — what the surface looks like in every state, as its stories render it.
+- **Appearance** — what the surface looks like in every state, as its stories render it, or, for a legacy spec, as [its frames bind](#^ui-frame-binds).
 - **Interaction** — how the surface communicates information to the user and responds to user input, as its prose describes.
 
 Browser-platform choices for appearance and interaction follow the [UI browser-compatibility policy](ui/index.md#browser-compatibility).
 
 A UI spec binds **what must render**, never **how the code is shaped**; code shape is an arch spec's authority ([arch/ui/index.md](arch/ui/index.md) for the UI's own architecture). Production never imports a UI spec's files, such as its stories, styles or motion modules: if it did, implementation work would end up editing them, and the spec would stop being [slop-free](spec-policy.md#Slop-free zone). Any technology that produces the specified output conforms.
 
-Comments in story modules, stylesheets and motion functions are descriptive context only: they say what a thing is, and commit nothing. Claims, decisions and rationale belong in the spec's prose.
+Comments in story modules, frames, stylesheets, YAML files and motion functions are descriptive context only: they say what a thing is, and commit nothing. Claims, decisions and rationale belong in the spec's prose.
 
 ## The spec and its stories
 
@@ -40,3 +40,40 @@ Each surface has one conformance test file, which runs conform on every spec sto
 ## Change over time
 
 A surface can change over time, as in a transition. A story can show a moment part-way through such a change, and the prose says what starts it and what interrupting it does.
+
+## Legacy frame and template specs
+
+Surfaces not yet moved to MDX are specified by an `index.md` spec that points to frames, to a Liquid template, or only to stylesheets, as the [foundation](ui/foundation/index.md) does. [Spec migration](spec-migration.md) lists them. These specs state a surface's appearance as markup and styling, and its interaction in prose. This section holds the rules for reading them; [Authority](#authority) applies to them as to MDX specs, and the sections on stories, conformance and change over time apply only to MDX specs. ^ui-frame-specs
+
+The spec's prose binds like any spec's, and says which states each frame demonstrates. Each frame specifies what production renders for the part of the surface the spec uses it for: within [what the frame binds](#^ui-frame-binds), production renders what the frame states. Values in the spec's YAML files, such as copy in `content.yml` or sizes in `measures.yml`, bind as written, as do the designated outputs of a [motion reference](#^ui-motion-reference). [Frame and template conformance](arch/ui/conformance.md) owns how production is checked against these specs, and what happens when production needs markup or styling a frame does not state.
+
+### What a frame binds
+
+A frame binds how the surface looks, state by state: the styling that must be computed; the structure and semantic attributes that styling attaches to, such as classes, roles, state attributes like `aria-selected` and `open`, and the composition of one frame inside another; and the copy written in its markup. ^ui-frame-binds
+
+A frame does not bind markup that exists for behaviour rather than appearance: pairing ids, attributes such as `trigger` that refer to them, and implementation bookkeeping. Those contracts are stated where they are owned: the Markup section of the owning foundation spec, and the architecture specs that govern how production generates them, such as [arch/ui/menu-view.md](arch/ui/menu-view.md) for minted trigger ids. A production menu whose trigger id differs from the id written in a frame conforms.
+
+### Frames and templates
+
+A frame is one file, YAML front matter over a Liquid body, in the format of the frameset viewer; the frameset package documents that format, its rendering and the viewer's controls. A frame under `specs/` specifies one surface or one piece of a surface, carries its stylesheet in its `style:` block, and has no `script:` block: behaviour is specified in prose and data, and the workshop adds its own wiring from outside ([staging.md](staging.md)). ^ui-frame-format
+
+- **Computation.** A frame computes only what Liquid can express: interpolation, conditionals, loops and the standard filters. Anything that needs more is prepared by the caller.
+- **Parameters** declare the states a frame can render, and their defaults supply the sample content it renders unposed. A scalar parameter, a `type` or an `enum`, can be posed: the viewer offers it as a control and a URL can set it (`?selected=agenda`), so every state has an address. A structured parameter, a list or an object, carries content supplied by defaults or by a composing caller. A state that must be singular is declared singular, such as one `selected` id rather than a flag on every row, so an illegal combination cannot be written. Defaults are for small vocabulary pieces; a composed surface renders content its caller supplies, which in the workshop is a staging fixture.
+- **Composition.** Where a composed surface has a frame, the composing frame renders it (`{% render './channel', name: channel.name %}`) and does not write the implementation's tags. Arguments are explicit, and the composed frame sees only what it is handed.
+- **Rendering.** The same arguments produce the same markup every time. That rendering, the frame module's `render`, is what production is compared with, and it runs no script.
+
+A template spec has a `template.liquid` with `content.yml` and stylesheet files beside it, rendered by the machinery in `config/liquid/`. The frame rules apply to a template, with its stylesheet in those files and its copy in `content.yml`.
+
+### Styling, copy and assets
+
+- **Styling** is written against the markup it styles, in the frame's `style:` block or in stylesheet files beside the spec. Foundation styling, the tokens and shared element vocabulary ([ui/foundation/index.md](ui/foundation/index.md)), reaches every document separately; a frame states only what its surface adds.
+- **Copy** is written in the markup where it appears, or supplied through parameter defaults where it varies. Some surfaces keep copy in a `content.yml` beside the spec.
+- **Assets.** An icon renders by composing the icon frame ([ui/foundation/icons/index.md](ui/foundation/icons/index.md)). Other images bind through front-matter `imports`, which yields the bundled URL for the markup to place. A rendered URL is a placeholder: production supplies its own, and only the markup around it binds.
+
+### Motion references
+
+CSS transitions and keyframes belong with the surface's styles, and prose specifies behaviour. Where code states intermediate appearance or timing more precisely than prose, the spec can designate a *motion reference*: a module under `specs/ui/` whose functions calculate that appearance or timing. The spec names the module, its functions and inputs, and the outputs that bind production. The functions are pure: the same inputs produce the same outputs, with no DOM access, services, clock or retained state. Prose covers behaviour the functions do not express, without repeating their calculations. The workshop may run a reference for inspection ([staging.md](staging.md)), and the [testing policy](arch/testing-policy.md#^real-motion) governs comparing production with it. ^ui-motion-reference
+
+### Staging
+
+Legacy surfaces are staged and judged in the workshop ([staging.md](staging.md)). Nothing in the workshop binds production.

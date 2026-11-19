@@ -9,9 +9,9 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
 - `spec-migration.md` (59 lines) — *The state and rules of Television's in-progress move to spec-driven development; itself transitional, retired once the migration completes.*
 - `spec-policy.md` (250 lines) — *How and why specs are written, what makes something a spec, and the rules for specs.*
 - `spec-proofs.md` (77 lines) — *Proofs — the agent-owned document under `proofs/` that says how one spec's promises are proven: why it exists, where it lives, its shape, when it changes, how it cites, and who owns and reviews it.*
-- `spec-ui.md` (42 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story.*
+- `spec-ui.md` (79 lines) — *How UI is specified: an MDX spec per surface, whose prose and the appearance of the stories it points to are the authority, checked against production story by story, and the rules for legacy frame and template specs.*
 - `spec-workflow.md` (268 lines) — *The authority chain and the spec-first workflow that keeps specs the source of truth.*
-- `staging.md` (42 lines) — *The workshop for retained frame and template UI specs: the frameset viewer, the frames tree, and their staging conventions.*
+- `staging.md` (42 lines) — *The workshop for legacy frame and template UI specs: the frameset viewer, the frames tree, and their staging conventions.*
 - `terms.md` (204 lines) — *Glossary of Television spec terms; each term links to the spec that owns it. Maintained by review, not generated.*
 - **product/**
   - `artifact-navigation.md` (54 lines) — *The user's mental model for navigating inside an artifact that has links or multiple pages: browser-like back/forward history, discarding the forward trail on a new move, and remembering where the user was.*
@@ -137,7 +137,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `toolbox.mdx` (83 lines) — *UI spec: Toolbox, the navbar popover for finding and activating an item by name.*
     - **artifact-frame/**
       - `index.md` (68 lines) — *UI spec: the artifact frame — the surface that holds one artifact's document.*
-      - `transparency.mdx` (38 lines) — *UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
+      - `transparency.mdx` (40 lines) — *UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
     - **copy-button/**
       - `index.md` (45 lines) — *UI spec: the copy button — a control that copies a value and briefly confirms, without resizing.*
     - **desktop-upgrade-gate/**

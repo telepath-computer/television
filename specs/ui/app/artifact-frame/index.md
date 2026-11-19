@@ -8,7 +8,7 @@ Another surface may wear the frame's look around content of its own, as the [set
 
 **Status:** implemented stage-one frame UI authority.
 
-The [Transparency spec](transparency.mdx) owns interaction, markup and styling for the transparent state; the rest of the frame remains specified here.
+The [Transparency spec](transparency.mdx), an MDX spec, owns the appearance and interaction of the transparent state; the rest of the frame is specified here.
 
 ## Markup and styling
 

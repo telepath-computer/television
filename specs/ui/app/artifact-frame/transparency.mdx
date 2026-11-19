@@ -21,6 +21,8 @@ export const HoverDemo = () => {
 
 These stories and [styles](../../../../storybook/spec/artifact-frame/styles.css) specify the transparent state promised by the [product spec](../../../product/artifacts.md#^af-transparent). The opaque story supplies a comparison; the [frame spec](./index.md) owns the rest of the frame.
 
+As an exception to [story conformance](../../../spec-ui.md#^ui-conformance-test), this surface has no conformance test. Production must still look as these stories do in each state. A change that affects the transparent frame's appearance is checked by screenshot review: a reviewer compares screenshots of production in each story's state, at the same viewport and with the same theme and appearance, with the story. That includes the hovered state production takes while the stage's resize handles are in use. The behaviour this page describes is proven by tests, as for any surface. ^af-transparency-review
+
 <Canvas of={Stories.Opaque} />
 
 <Canvas of={Stories.TransparentAtRest} />
