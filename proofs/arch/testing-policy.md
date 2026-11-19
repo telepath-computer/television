@@ -14,7 +14,7 @@ The built-application default is honored by the setup of the product tests that 
 
 Killed workers cannot promise teardown. The [Blaxel scratch/recovery assertions](test-runner/blaxel-testshards.md#Lease, recovery, and scratch) carry the backstop rather than duplicating a crash experiment here.
 
-UI review distinguishes MDX story appearance from retained frame/template contracts. [Toolbox](../ui/app/toolbox.md) owns its required story comparisons; [retained conformance](./ui/conformance.md) covers frame and template surfaces. This policy orders no meta-test of that distinction.
+UI review distinguishes MDX story appearance from [legacy frame and template specs](../../specs/spec-ui.md#^ui-frame-specs). Each MDX surface's proof owns its story comparisons, as [Toolbox](../ui/app/toolbox.md) does, or the check its spec states in their place, as the [transparent frame](../ui/app/artifact-frame/transparency.md) does with screenshot review; [frame and template conformance](./ui/conformance.md) covers legacy surfaces. This policy orders no meta-test of that distinction.
 
 
 ## Test hooks
