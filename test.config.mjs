@@ -140,6 +140,7 @@ export default {
       surface("experiment:lifecycle-active", "vitest", "test/runner-fixtures/process-lifecycle/active/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/process-lifecycle/active"], tags: ["isolated-github-only", "process-lifecycle"] }),
       surface("experiment:lifecycle-recovered-leak", "vitest", "test/runner-fixtures/process-lifecycle/recovered-leak/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/process-lifecycle/recovered-leak"], tags: ["isolated-github-only", "process-lifecycle"] }),
       surface("experiment:lifecycle-late-spawn", "vitest", "test/runner-fixtures/process-lifecycle/late-spawn/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/process-lifecycle/late-spawn"], tags: ["isolated-github-only", "process-lifecycle"] }),
+      surface("experiment:lifecycle-interrupted-parent", "vitest", "test/runner-fixtures/process-lifecycle/interrupted-parent/vitest.config.ts", { kind: "experiment", roots: ["test/runner-fixtures/process-lifecycle/interrupted-parent"], tags: ["isolated-github-only", "process-lifecycle"] }),
     ]),
   ],
 };

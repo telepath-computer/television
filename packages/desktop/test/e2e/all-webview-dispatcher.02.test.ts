@@ -479,6 +479,14 @@ test.describe("Electron all-webview dispatcher", () => {
     }
   });
 
+  // On a GitHub ubuntu-24.04 runner both injected clicks once reached no
+  // handler: the first attempt recorded no invocation in 15 s and the retry
+  // passed in 1.5 s. The clicks are sent as soon as the link exists, through
+  // sendInputEvent; dropped or misplaced input that early in the webview is
+  // the likely cause, unconfirmed from one occurrence.
+  test.describe("flaky: markdown application link OS handoff", () => {
+    test.describe.configure({ retries: FLAKY_TEST_RETRIES, timeout: 60_000 });
+
   // spec: proofs/product/artifact-navigation.md#^ac-application-links-electron
   test("markdown application links cross the real Linux operating-system handler", async () => {
     test.skip(process.platform !== "linux", "temporary protocol-handler fixture uses Linux gio");
@@ -517,6 +525,7 @@ test.describe("Electron all-webview dispatcher", () => {
       await app?.close();
       handler.dispose();
     }
+  });
   });
 
   test.describe("flaky: quit and relaunch navigation history", () => {
