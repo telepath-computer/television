@@ -36,6 +36,7 @@ describe("test runner registry", () => {
       "experiment:lifecycle-active",
       "experiment:lifecycle-recovered-leak",
       "experiment:lifecycle-late-spawn",
+      "experiment:lifecycle-interrupted-parent",
     ];
 
     expect(lifecycle.map((surface) => surface.id)).toEqual(ids);
