@@ -51,9 +51,9 @@ async function leaseOperation(worker: SandboxInstance, input: LeaseInput) {
 // A coordinator that has lost its worker cannot renew, release or start work,
 // and a foreign owner token holds the worker until it is gone.
 async function staleOwnerLockout(worker: SandboxInstance) {
-  const old: LeaseInput = {lockId: `harness-old-${fixtureSuffix}`, runId: "harness-lockout-old", shardIndex: 1, attemptId: "harness-old-attempt", owner: "harness", ttlSeconds: 10, worker: worker.metadata.name};
+  const old: LeaseInput = {lockId: `harness-old-${fixtureSuffix}`, runId: "harness-lockout-old", shardIndex: 1, attemptId: "harness-old-attempt", owner: "harness", ttlSeconds: 60, worker: worker.metadata.name};
   old.scratch = shardScratchPath(old);
-  const current: LeaseInput = {...old, lockId: `harness-current-${fixtureSuffix}`, runId: "harness-lockout-current", attemptId: "harness-current-attempt", ttlSeconds: 1200};
+  const current: LeaseInput = {...old, lockId: `harness-current-${fixtureSuffix}`, runId: "harness-lockout-current", attemptId: "harness-current-attempt", ttlSeconds: 60};
   current.scratch = shardScratchPath(current);
   const processName = "tv-harness-delayed-entry";
   const entered = `/tmp/tv-${fixtureSuffix}-entered`;
@@ -61,27 +61,40 @@ async function staleOwnerLockout(worker: SandboxInstance) {
     const {exitCode, response} = await leaseOperation(worker, input);
     expect(exitCode).toBe(42); expect(response).toMatchObject({ok: false, reason});
   };
-  expect((await leaseOperation(worker, old)).response.ok).toBe(true);
-  expect((await leaseOperation(worker, {...old, operation: "prepare"})).response.ok).toBe(true);
-  await worker.fs.write(`${old.scratch}/worker.sh`, `touch ${quote(entered)}\n`);
-  expect((await leaseOperation(worker, {...old, operation: "dispatch", processName})).response.ok).toBe(true);
-  // The entry request is held back while the lease expires and another owner arrives.
-  await worker.process.exec({name: "tv-harness-foreign-owner", command: `env TV_TEST_SHARD_OWNER=harness-foreign-${fixtureSuffix} sleep 600`, waitForCompletion: false});
-  await until(async () => { const record = await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"); return Date.now() > record.recoverAfter + 500; }, 30_000);
-  await refused({...old, operation: "renew"}, "lease lost or expired");
-  await refused(current, "other live or stale owners remain");
-  expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(old.lockId);
-  await worker.process.kill("tv-harness-foreign-owner");
-  const acquired = await until(async () => { const attempt = await leaseOperation(worker, current); return attempt.response.ok ? attempt.response : null; }, 30_000);
-  expect(acquired.record.recovery).toMatchObject({previous: {lockId: old.lockId}, cleanup: "confirmed", discardedReports: true});
-  const entry = await remoteExec(worker, processName, workerEntryCommand({...old, processName}, `${old.scratch}/worker.sh`));
-  expect(entry.exitCode).not.toBe(0); expect(entry.output).toContain('"reason":"lease lost or expired"');
-  await expect(worker.fs.read(entered)).rejects.toMatchObject({status: 404});
-  await refused({...old, operation: "renew"}, "lease lost or expired");
-  await refused({...old, operation: "release", retrieved: true}, "lease lost or expired");
-  expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(current.lockId);
-  expect((await leaseOperation(worker, {...current, operation: "teardown"})).response.ok).toBe(true);
-  expect((await leaseOperation(worker, {...current, operation: "release", retrieved: true})).response.ok).toBe(true);
+  // Nothing renews these leases, so both expire within the outer cleanup's
+  // wait for expired workers; a failed step still releases what it can.
+  let released = false;
+  try {
+    expect((await leaseOperation(worker, old)).response.ok).toBe(true);
+    expect((await leaseOperation(worker, {...old, operation: "prepare"})).response.ok).toBe(true);
+    await worker.fs.write(`${old.scratch}/worker.sh`, `touch ${quote(entered)}\n`);
+    expect((await leaseOperation(worker, {...old, operation: "dispatch", processName})).response.ok).toBe(true);
+    // The entry request is held back while the lease, shortened through the
+    // production renewal, expires and another owner arrives.
+    expect((await leaseOperation(worker, {...old, operation: "renew", ttlSeconds: 2})).response.ok).toBe(true);
+    await worker.process.exec({name: "tv-harness-foreign-owner", command: `env TV_TEST_SHARD_OWNER=harness-foreign-${fixtureSuffix} sleep 600`, waitForCompletion: false});
+    await until(async () => { const record = await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json"); return Date.now() > record.recoverAfter + 500; }, 30_000);
+    await refused({...old, operation: "renew"}, "lease lost or expired");
+    await refused(current, "other live or stale owners remain");
+    expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(old.lockId);
+    await worker.process.kill("tv-harness-foreign-owner");
+    const acquired = await until(async () => { const attempt = await leaseOperation(worker, current); return attempt.response.ok ? attempt.response : null; }, 30_000);
+    expect(acquired.record.recovery).toMatchObject({previous: {lockId: old.lockId}, cleanup: "confirmed", discardedReports: true});
+    const entry = await remoteExec(worker, processName, workerEntryCommand({...old, processName}, `${old.scratch}/worker.sh`));
+    expect(entry.exitCode).not.toBe(0); expect(entry.output).toContain('"reason":"lease lost or expired"');
+    await expect(worker.fs.read(entered)).rejects.toMatchObject({status: 404});
+    await refused({...old, operation: "renew"}, "lease lost or expired");
+    await refused({...old, operation: "release", retrieved: true}, "lease lost or expired");
+    expect((await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).lockId).toBe(current.lockId);
+    expect((await leaseOperation(worker, {...current, operation: "teardown"})).response.ok).toBe(true);
+    expect((await leaseOperation(worker, {...current, operation: "release", retrieved: true})).response.ok).toBe(true);
+    released = true;
+  } finally {
+    if (!released) {
+      await worker.process.kill("tv-harness-foreign-owner").catch(() => {});
+      for (const operation of ["teardown", "release"]) await leaseOperation(worker, {...current, operation, retrieved: true}).catch(() => {});
+    }
+  }
   expect(await remoteJson(worker, "/tmp/tv-testshard.lock/owner.json")).toBeNull();
 }
 

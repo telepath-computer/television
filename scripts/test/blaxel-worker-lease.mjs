@@ -36,6 +36,7 @@ async function workerLeaseOperation(input) {
   const ttlMs = (input.ttlSeconds ?? 1200) * 1000;
   if (!Number.isSafeInteger(ttlMs) || ttlMs <= 0) throw new Error("invalid recovery interval");
   if (!/^[A-Za-z0-9_.:-]+$/.test(input.lockId ?? "")) throw new Error("invalid lock identity");
+  if (fs.lstatSync(tmpRoot).isSymbolicLink()) throw new Error("temporary root is a symlink");
   if (fs.existsSync(lock) && (!fs.lstatSync(lock).isDirectory() || fs.lstatSync(lock).isSymbolicLink())) throw new Error("unsafe lock root");
   let record = null;
   const exists = fs.existsSync(lock);
@@ -222,9 +223,10 @@ async function cleanWorkerTemporaryDirectories({ current, onlyCurrent = false })
   const mountPoints = new Set(fs.readFileSync("/proc/self/mountinfo", "utf8").trim().split("\n").map((line) => line.split(" ")[4].replace(/\\([0-7]{3})/g, (_match, code) => String.fromCharCode(parseInt(code, 8)))));
   const free = () => { const value = fs.statfsSync(tmpRoot); return { availableBytes: value.bavail * value.bsize, freeBytes: value.bfree * value.bsize }; };
   const report = { ok: true, before: free(), after: null, removed: {}, skips: [], errors: [] };
-  if (fs.existsSync(scratchRoot)) {
-    if (lstat(scratchRoot).isSymbolicLink() || !lstat(scratchRoot).isDirectory()) throw new Error(`unsafe cleanup root ${scratchRoot}`);
-    if (mountPoints.has(scratchRoot) || lstat(scratchRoot).dev !== lstat(tmpRoot).dev) throw new Error("scratch root crosses a mount boundary");
+  for (const root of [tmpRoot, scratchRoot]) {
+    if (!fs.existsSync(root)) continue;
+    if (lstat(root).isSymbolicLink() || !lstat(root).isDirectory()) throw new Error(`unsafe cleanup root ${root}`);
+    if (root !== tmpRoot && (mountPoints.has(root) || lstat(root).dev !== lstat(tmpRoot).dev)) throw new Error("scratch root crosses a mount boundary");
   }
   function allocated(file, device) {
     const stat = lstat(file);
