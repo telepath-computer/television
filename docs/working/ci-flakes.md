@@ -30,3 +30,10 @@ and in the same bullet's citation, after the `test/repo/test-runner-resource-par
 > ; interrupted parent in [`test/runner-fixtures/process-lifecycle/interrupted-parent/interrupted-parent.test.ts`](../../../test/runner-fixtures/process-lifecycle/interrupted-parent/interrupted-parent.test.ts)
 
 The cost: isolated surfaces run only in the operator-run `Process Lifecycle Fault Injection` workflow, so the case leaves routine CI.
+
+## CI results on this branch
+
+Re-running a run on an unchanged tree skips the test jobs through its attestation, so each check below ran on a new tree.
+
+- Run 44448934049 (attempt 1): passed. Attempt 2 was an attested skip and proves nothing.
+- Run 44451383659 (with this note): passed, with full `unit` and `e2e:desktop` jobs.
