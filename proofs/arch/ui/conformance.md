@@ -1,4 +1,4 @@
-*Proves conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
+*Proves conformance for legacy frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
 
 # UI conformance — proof
 

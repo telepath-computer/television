@@ -101,7 +101,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `delivery.md` (89 lines) — *How the promises in Theme delivery are proven.*
     - `index.md` (63 lines) — *How the promises in Theme architecture are proven.*
   - **ui/**
-    - `conformance.md` (15 lines) — *Proves conformance for frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
+    - `conformance.md` (15 lines) — *Proves conformance for legacy frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
     - `elements.md` (21 lines) — *How the promises in Elements are proven.*
     - `foundation.md` (32 lines) — *How the promises in Foundation architecture are proven.*
     - `index.md` (29 lines) — *How the promises in UI architecture are proven.*

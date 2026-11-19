@@ -8,7 +8,7 @@ Proves [specs/ui/app/toolbox.mdx](../../../specs/ui/app/toolbox.mdx).
 
 A Chromium conformance file compares every imported spec story with the production surface in the same state, viewport, theme and appearance.
 It uses shipped markup/styles without test additions and fails if any story is missing; no permitted-difference list is allowed.
-This MDX surface follows story conformance, not the conformance for retained frame/template contracts.
+This MDX surface follows story conformance, not the conformance for [legacy frame and template specs](../../../specs/spec-ui.md#^ui-frame-specs).
 Conformance and cheap state contracts may substitute the item/cache service with authored scans and icon bytes; that mock forfeits discovery and transport to [template architecture](../../arch/templates/index.md), directory-read failure through the caches into the UI to [directory-failure acceptance](#^toolbox-ac-directory-error), and creation to [product creation](../../product/templates.md).
 A real browser proves search focus, grid keys, pointer highlighting, active-cell semantics and scrolling; those mechanisms are never replaced by a mocked DOM. Playwright keyboard input drives every key assertion. For input-method cases, a CDP session puts Chromium into composition before Playwright sends trusted arrow and Return events that Chromium marks `isComposing`. A synthetic event with `keyCode` 229 checks the WebKit guard. These checks substitute controlled composition state for an operating-system input method; no test covers key delivery from a real input method or real WebKit composition behavior.
 Product creation acceptance proves successful copy/URL activation and placement once, shared with this proof rather than duplicated.

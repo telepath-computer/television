@@ -6,7 +6,7 @@ Proves [specs/ui/app/top-bar/index.md](../../../../specs/ui/app/top-bar/index.md
 
 ## Coverage model
 
-[Toolbox](../toolbox.md) owns its trigger and popover. The navbar supplies the position before Settings; [Toolbox opening acceptance](../toolbox.md#^toolbox-ac-open) checks that composition. The rest of this navbar remains a retained frame surface under [retained conformance](../../../arch/ui/conformance.md).
+[Toolbox](../toolbox.md) owns its trigger and popover. The navbar supplies the position before Settings; [Toolbox opening acceptance](../toolbox.md#^toolbox-ac-open) checks that composition. The rest of this navbar remains a [legacy frame surface](../../../../specs/spec-ui.md#^ui-frame-specs) under [frame and template conformance](../../../arch/ui/conformance.md).
 
 The existing markup and browser-layout contracts keep their service mock: authored tabs, channels, notices, and widths enter the production navbar without requiring a server for every composition or pressure permutation. That mock forfeits real channel and tab delivery to the product and stage proofs cited below. A new markup table covers the collapsed lead, including the shared channel list and row menus; browser geometry contracts cover the lead floor under pressure and the switcher list and footer under constrained height without asserting exact pixel styling.
 

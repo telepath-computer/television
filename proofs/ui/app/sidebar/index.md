@@ -6,7 +6,7 @@ Proves [specs/ui/app/sidebar/index.md](../../../../specs/ui/app/sidebar/index.md
 
 ## Coverage model
 
-This surface retains its frame/template contract under [UI policy](../../../../specs/spec-ui.md). [Retained conformance](../../../arch/ui/conformance.md) owns stylesheet/delivery and visual-review coverage; the MDX policy does not replace the behavior assertions below or add story comparisons for this surface.
+This surface keeps its [legacy frame and template spec](../../../../specs/spec-ui.md#^ui-frame-specs). [Frame and template conformance](../../../arch/ui/conformance.md) owns stylesheet/delivery and visual-review coverage; the MDX policy does not replace the behavior assertions below or add story comparisons for this surface.
 
 The sidebar contracts use authored channel state and a recording application-service mock to cover list rendering, titlebar controls, rename, menu commands, scrolling, and drag lifecycle. Real-motion cases retain displacement and edge-scroll coverage; browser product tests retain server and two-client outcomes, and an Electron seam covers window dragging. The grouped-list markup is proven once here whether the implementation keeps it in the sidebar view or extracts a reusable child view; architecture leaves view decomposition to implementation. [Navbar coverage](../top-bar/index.md#^top-ac-lead-markup) proves that the switcher popover renders the same authored channel list with the shared row-menu actions.
 
