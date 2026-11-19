@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38 (formerly #51).** This was the decision ledger and plan for the editable, Numbers-style Table, followed as written; its remaining recommendations were accepted on November 19, 2026, alongside the rulings Rupert had already made in it. It is the one record of the numbered Table decisions and the alternatives each rejected. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Editable Table spec plan
 
 The first editable design and implementation passed review. Rupert's hands-on review produced a Numbers-style revision, and its spec delta has now passed independent review. The specs, stories, proofs, package, contracts, resizing, live paths and fault paths now implement that revision.

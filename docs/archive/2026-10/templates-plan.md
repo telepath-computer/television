@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38.** This was the four-slice implementation plan for the first, copy-based templates mechanism, followed as written; its Templates popover and Example template were later replaced by the Toolbox and the six bundled templates. It is the one view of how the server, package, CLI and UI work was split, and why. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Artifact templates implementation plan
 
 > Historical record of the copy-based template implementation. The October 22 linked-template and Toolbox draft supersedes its creation, starting-data, CLI-record, discovery, icon, and UI assumptions; the validation below applies only to the earlier implementation. [The updated proposal](templates-proposal.md) records the new decisions. Proofs, implementation, tests, and production Storybook conformance for those decisions remain follow-up work.

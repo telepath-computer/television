@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38 (formerly #48).** This was the plan for adapting the installed Map 2.0.0 page as bundled Map 2.1.0, followed as written; its open questions were accepted as recommended on November 19, 2026, except whether Television may ship Esri's tiles, which stayed with Rupert and Josh as TV-1009. It records why Map has no full UI spec yet and the release condition on its tile provider. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Bundled Map template plan
 
 ## Status

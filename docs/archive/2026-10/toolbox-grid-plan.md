@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38 (formerly #47).** This was the plan for moving the Toolbox grid from its Storybook experiment into the spec, production and tests, followed as written; its three keyboard-navigation questions were accepted as recommended on November 19, 2026. It records the combobox-and-grid accessibility choices and keyboard rules derived during that move. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Toolbox grid plan
 
 This document records the decisions and open questions for moving the approved Toolbox grid from the Storybook experiment into the UI spec, spec stories, production, and tests. The specification edits remain drafts until Rupert reviews them.

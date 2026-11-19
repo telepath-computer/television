@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38 (formerly #50).** This was the plan for the bundled Document template on Television's Markdown editor, followed as written; its open questions were accepted as recommended on November 19, 2026, and its Font Awesome icon question was settled by accepting CC-BY-4.0 for icons and artwork. It records the reasoning behind Document's disconnect, save-ordering, access-loss and seeding rules. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Bundled Document plan
 
 Document is being added as a bundled artifact template. Its page is the existing interactive Markdown editor, with the document stored in the artifact's JSON store instead of a Markdown file. The architecture changes in this branch are draft prose for Rupert to decide.

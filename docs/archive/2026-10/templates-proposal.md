@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38.** This was the proposal for artifact templates, approved by Rupert on October 15, 2026 and built as copied folder artifacts; its October 22 revision for linked templates never reached the specs, which kept copying, while its Toolbox, icon, URL-template and store-schema decisions were built. It is the one statement of the whole intent, including the linked model considered and not adopted. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Artifact templates — proposal
 
 **Status:** the original mechanism was approved on October 15, 2026 and implemented on `feat/artifact-templates`. This document now incorporates the October 22 decisions for linked templates and the Toolbox. Those revisions are a draft for review on `feat/toolbox`; earlier implementation and validation do not cover them. The governing contracts are in [artifact templates](../../specs/product/templates.md) and [template architecture](../../specs/arch/templates/index.md).

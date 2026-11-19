@@ -1,3 +1,5 @@
+> **Archived 2026-10 from PR #38.** This was the proposal for starting sizes, full screen and transparency on new artifacts (TV-970), approved on October 16, 2026 and built as written; the layout spec's creation display contract now governs it. It is the one view of why each option is chosen separately and why an invalid `display` makes a template invalid. The body below is unchanged from its working state and is a clue to the change, not a record of it.
+
 # Starting sizes for new artifacts and templates — proposal
 
 **Status:** the October 16, 2026 proposal (TV-970) was approved and implemented. This working account includes the later transparency option and the October 22 linked-template model. The authoritative [display-options contract](../../specs/arch/layout/index.md#^ly-creation-display) governs the result.
