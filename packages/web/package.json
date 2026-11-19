@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/television-web",
-  "version": "1.5.7",
+  "version": "1.5.8",
   "license": "MIT",
   "type": "module",
   "private": true,
