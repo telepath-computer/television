@@ -1,8 +1,8 @@
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { CANONICAL_TEST_INCLUDE_ROOTS, loadTestConfig, owningSurfaces, selectSurfaces, validateRegistry, type TestConfig, type TestSurface } from "../../scripts/test/config.mjs";
+import { CANONICAL_TEST_INCLUDE_ROOTS, discoverPackageDirs, loadTestConfig, owningSurfaces, selectSurfaces, validateRegistry, type TestConfig, type TestSurface } from "../../scripts/test/config.mjs";
 
 const config = loadTestConfig();
 
@@ -265,4 +265,27 @@ test("keeps Blaxel harness fixtures separate from the driver and ordinary suites
   expect(source).toContain('["--tag", "blaxel-harness-fixture", "--shards", "2"');
   expect(source).toContain('["--surface", "experiment:blaxel-harness-fixtures"]');
   expect(source).not.toContain('["--surface", "experiment:blaxel-harness"]');
+});
+
+test("package discovery skips test output and tolerates directories removed during the walk", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "tv-package-walk-"));
+  try {
+    const manifest = (dir: string, name: string) => { mkdirSync(path.join(root, dir), { recursive: true }); writeFileSync(path.join(root, dir, "package.json"), JSON.stringify({ name })); };
+    manifest("packages/kept", "@fixture/kept");
+    manifest("packages/vanishing/nested", "@fixture/vanishing");
+    manifest("test-results/.playwright-artifacts-0", "@fixture/output");
+    const failedReads: string[] = [];
+    // Real filesystem reads. The wrapper only removes a directory after its
+    // parent has been listed, as a concurrent test run can.
+    const readdir = (dir: string, options: { withFileTypes: true }) => {
+      try {
+        const entries = readdirSync(dir, options);
+        if (dir === path.join(root, "packages")) rmSync(path.join(root, "packages/vanishing"), { recursive: true });
+        return entries;
+      } catch (error) { failedReads.push(`${path.relative(root, dir)} ${(error as NodeJS.ErrnoException).code}`); throw error; }
+    };
+    expect(Object.fromEntries(discoverPackageDirs(root, { readdir }))).toEqual({ "@fixture/kept": "packages/kept" });
+    expect(failedReads).toEqual(["packages/vanishing ENOENT"]);
+    expect(() => discoverPackageDirs(path.join(root, "missing"))).toThrow(/ENOENT/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

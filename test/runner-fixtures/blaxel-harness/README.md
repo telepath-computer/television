@@ -5,6 +5,33 @@ pool, from a committed and pushed checkout with the repository's selected Node,
 dependencies and local process-lifecycle prerequisites installed. This driver must
 not run on a shared developer host or a leased worker.
 
+## Preparing a coordinator
+
+Any credentialed sandbox outside the worker pools will do. One way, from a
+developer host with the Blaxel SDK installed by `npm ci` and Blaxel credentials:
+
+1. Create the sandbox with the workers' image and no `purpose=testshards` label,
+   for example with `SandboxInstance.createIfNotExists({ name, image:
+   "blaxel/playwright-chromium:latest", memory: 8192, region: "us-pdx-1", labels:
+   { project: "television", purpose: "harness-coordinator" } })` from
+   `@blaxel/core`.
+2. Through `sandbox.process.exec`, install `git`, `curl`, `python3` and
+   `iproute2` with `apt-get`, then nvm `v0.40.3` and the Node major in `.nvmrc`
+   as the default.
+3. Clone the repository, check out the pushed revision under test and run
+   `npm ci`. Give Git the GitHub token through the process environment and a
+   `GIT_ASKPASS` helper that prints it, so the token is never stored. Create
+   `~/.tv-developer`.
+4. Start the driver below as a process with `keepAlive: true`, passing
+   `BLAXEL_TV_GH_TOKEN`, `BL_API_KEY` and `BL_WORKSPACE` in its environment, and
+   redirect its output to a file to read afterwards. A passing run takes about
+   five minutes.
+5. After retrieving the evidence, delete the coordinator with
+   `SandboxInstance.delete(name)` and confirm that neither it nor any worker of the
+   private pool remains.
+
+## Running the driver
+
 Supply the coordinator's sandbox name and an exclusively owned disposable pool:
 
 ```sh

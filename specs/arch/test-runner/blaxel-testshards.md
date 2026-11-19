@@ -129,6 +129,8 @@ A change that could affect the coordinator's remote operation needs a live Blaxe
 - freshly provisioned workers on a dedicated pool check a change to provisioning or runtime selection, leaving the shared `poc` workers alone;
 - runs from checkouts of two repositories on one pool, including a worker whose checkout last served the other repository, check a change to repository selection or switching.
 
+Code that runs on Blaxel workers to manage them, such as leasing, cleanup, checkout and dependency setup, is tested only on real Blaxel workers, in the live qualification below, and never on a development host or in GitHub CI. ^blaxel-worker-code-live
+
 Recovery and cleanup experiments use disposable processes on a dedicated pool and never contaminate shared workers. Temporary-file placement is shown only by observing, on a live worker, the files Node creates and Chromium's shared-memory descriptors under the attempt's `TMPDIR`.
 
 The automated live qualification is the `experiment:blaxel-harness` surface, with the fixtures it dispatches in `experiment:blaxel-harness-fixtures`. Both stay out of `all` and CI. The driver runs only on a dedicated, credentialed Blaxel coordinator sandbox outside every worker pool, never on a shared development host or a leased worker. It runs from a committed and pushed checkout, with `TV_BLAXEL_HARNESS_COORDINATOR` naming that sandbox and `TV_BLAXEL_HARNESS_POOL` naming a disposable pool it owns, deletes and recreates. The runner refuses the driver on Blaxel, inside a leased worker, or without both names; choosing the right sandbox is the operator's job. Its usage is in `test/runner-fixtures/blaxel-harness/README.md`. ^blaxel-harness-placement

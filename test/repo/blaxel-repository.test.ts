@@ -1,11 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import {
-  blaxelCheckoutScript,
-  blaxelDependencyScript,
   githubRepositoryHttpsUrl,
   resolveBlaxelRepositoryUrl,
 } from "../../scripts/test/blaxel-repository.mjs";
@@ -34,39 +32,6 @@ function commitFile(cwd: string, file: string, contents: string): string {
   git(cwd, "add", file);
   git(cwd, "-c", "user.name=Test", "-c", "user.email=test@example.com", "commit", "-q", "-m", file);
   return git(cwd, "rev-parse", "HEAD");
-}
-
-// Two bare repositories that share a base commit, standing in for the public
-// repository and a private development repository on GitHub.
-function twoRepositories(root: string) {
-  const source = path.join(root, "source");
-  mkdirSync(source);
-  git(source, "init", "-q");
-  writeFileSync(path.join(source, ".gitignore"), "node_modules/\n");
-  writeFileSync(path.join(source, "package.json"), '{ "name": "fixture", "private": true }\n');
-  git(source, "add", ".gitignore", "package.json");
-  const base = commitFile(source, "package-lock.json", '{ "lockfileVersion": 3 }\n');
-  const branch = git(source, "branch", "--show-current");
-  const repositoryA = path.join(root, "a.git");
-  const repositoryB = path.join(root, "b.git");
-  git(root, "clone", "-q", "--bare", source, repositoryA);
-  git(root, "clone", "-q", "--bare", source, repositoryB);
-
-  const commitOnly = (repository: string, parent: string, file: string, contents: string): string => {
-    git(source, "reset", "-q", "--hard", parent);
-    const commit = commitFile(source, file, contents);
-    git(source, "push", "-q", "--force", repository, `HEAD:${branch}`);
-    return commit;
-  };
-  return { repositoryA, repositoryB, base, commitOnly };
-}
-
-function runBash(script: string, options: { cwd?: string; env?: Record<string, string> } = {}) {
-  return spawnSync("bash", ["-c", script], {
-    cwd: options.cwd,
-    encoding: "utf8",
-    env: { ...process.env, ...isolatedGitEnv, ...options.env },
-  });
 }
 
 describe("Blaxel repository selection", () => {
@@ -154,84 +119,6 @@ describe("Blaxel repository selection", () => {
     expect(result.status, result.stderr).toBe(2);
     expect(result.stderr).toContain("does not name a GitHub repository");
     expect(existsSync(outputDir)).toBe(false);
-  });
-
-  // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-repo-checkout-switch
-  test("moves one persistent checkout between repositories without re-cloning or deleting ignored dependencies", () => {
-    const root = temporaryRoot("tv-blaxel-repository-switch-");
-    const { repositoryA, repositoryB, base, commitOnly } = twoRepositories(root);
-    const commitAOnly = commitOnly(repositoryA, base, "a.txt", "only in A\n");
-    const commitBOnly = commitOnly(repositoryB, base, "b.txt", "only in B\n");
-
-    const checkout = path.join(root, "worker", "television");
-    const runCheckout = (repoUrl: string, commit: string) => {
-      const result = runBash(blaxelCheckoutScript({ repoUrl, commit, root: checkout }));
-      expect(result.status, result.stderr).toBe(0);
-      expect(git(checkout, "rev-parse", "HEAD")).toBe(commit);
-      expect(git(checkout, "remote", "get-url", "origin")).toBe(repoUrl);
-      return `${result.stdout}${result.stderr}`;
-    };
-
-    expect(runCheckout(repositoryA, commitAOnly)).toContain("Cloning into");
-    const cloneSentinel = path.join(checkout, ".git", "tv-clone-sentinel");
-    const dependencySentinel = path.join(checkout, "node_modules", "tv-dependency-sentinel");
-    writeFileSync(cloneSentinel, "first clone\n");
-    mkdirSync(path.dirname(dependencySentinel));
-    writeFileSync(dependencySentinel, "installed\n");
-
-    expect(runCheckout(repositoryB, commitBOnly)).not.toContain("Cloning into");
-    expect(existsSync(path.join(checkout, "b.txt"))).toBe(true);
-    expect(existsSync(path.join(checkout, "a.txt"))).toBe(false);
-
-    const laterCommitAOnly = commitOnly(repositoryA, commitAOnly, "a2.txt", "later only in A\n");
-    expect(runCheckout(repositoryA, laterCommitAOnly)).not.toContain("Cloning into");
-    expect(existsSync(path.join(checkout, "a2.txt"))).toBe(true);
-    expect(existsSync(path.join(checkout, "b.txt"))).toBe(false);
-
-    expect(readFileSync(cloneSentinel, "utf8")).toBe("first clone\n");
-    expect(readFileSync(dependencySentinel, "utf8")).toBe("installed\n");
-  });
-
-  // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-repo-deps-reuse
-  test("reuses installed dependencies across repositories until their declarations change", () => {
-    const root = temporaryRoot("tv-blaxel-repository-deps-");
-    const { repositoryA, repositoryB, base, commitOnly } = twoRepositories(root);
-    const commitAOnly = commitOnly(repositoryA, base, "a.txt", "only in A\n");
-    const commitBOnly = commitOnly(repositoryB, base, "b.txt", "only in B\n");
-    const commitALockChange = commitOnly(repositoryA, commitAOnly, "package-lock.json", '{ "lockfileVersion": 3, "packages": {} }\n');
-
-    const fakeBin = path.join(root, "bin");
-    mkdirSync(fakeBin);
-    const npmCalls = path.join(root, "npm-calls.txt");
-    writeFileSync(path.join(fakeBin, "npm"), '#!/usr/bin/env bash\nprintf "%s\\n" "$*" >> "$TV_FAKE_NPM_CALLS"\nmkdir -p node_modules\n');
-    chmodSync(path.join(fakeBin, "npm"), 0o755);
-    const cacheStatus = path.join(root, "deps-cache-status.txt");
-    const env = { PATH: `${fakeBin}:${process.env.PATH}`, TV_FAKE_NPM_CALLS: npmCalls, TV_TEST_DEPS_CACHE_STATUS_FILE: cacheStatus };
-
-    const checkout = path.join(root, "worker", "television");
-    const cacheDir = path.join(root, "cache", "blaxel-testshards");
-    const checkoutAt = (repoUrl: string, commit: string) => {
-      const result = runBash(blaxelCheckoutScript({ repoUrl, commit, root: checkout }));
-      expect(result.status, result.stderr).toBe(0);
-    };
-    const deps = () => {
-      const result = runBash(blaxelDependencyScript({ cacheDir }), { cwd: checkout, env });
-      expect(result.status, result.stderr).toBe(0);
-      const calls = existsSync(npmCalls) ? readFileSync(npmCalls, "utf8").trim().split("\n").filter(Boolean) : [];
-      return { status: readFileSync(cacheStatus, "utf8").trim(), npmCalls: calls.length };
-    };
-
-    checkoutAt(repositoryA, commitAOnly);
-    expect(deps()).toEqual({ status: "miss", npmCalls: 1 });
-    expect(readFileSync(npmCalls, "utf8")).toContain("ci --prefer-offline --no-audit --fund=false");
-    expect(deps()).toEqual({ status: "hit", npmCalls: 1 });
-
-    checkoutAt(repositoryB, commitBOnly);
-    expect(deps()).toEqual({ status: "hit", npmCalls: 1 });
-
-    checkoutAt(repositoryA, commitALockChange);
-    expect(deps()).toEqual({ status: "miss", npmCalls: 2 });
-    expect(deps()).toEqual({ status: "hit", npmCalls: 2 });
   });
 
   // proofs/arch/test-runner/blaxel-testshards.md#^blaxel-repo-coordinator-wiring
