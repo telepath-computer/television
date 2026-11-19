@@ -16,6 +16,8 @@ const BUNDLED_ARTIFACT_TEMPLATE_MINIMUM_VERSIONS = {
   calendar: "1.0.0",
   "sticky-note": "1.0.0",
   map: "2.1.0",
+  document: "1.0.0",
+  table: "1.0.0",
 } as const satisfies Record<BundledArtifactTemplateID, string>;
 
 export const BUNDLED_ARTIFACT_TEMPLATES = BUNDLED_ARTIFACT_TEMPLATE_IDS.map((id) => ({
