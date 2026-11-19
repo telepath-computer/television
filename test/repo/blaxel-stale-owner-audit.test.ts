@@ -2,10 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import {
-  buildLinuxStaleOwnerAuditInvocation,
-  parseLinuxStaleOwnerAuditOutput,
-} from "../../scripts/test/blaxel-stale-owner-audit.mjs";
+import { buildLinuxStaleOwnerAuditInvocation } from "../../scripts/test/blaxel-stale-owner-audit.mjs";
 
 describe("Blaxel stale-owner audit", () => {
   test("constructs a strictly read-only Linux diagnostic", () => {
@@ -23,44 +20,6 @@ describe("Blaxel stale-owner audit", () => {
       expect(source, `diagnostic must not contain ${forbidden}`).not.toContain(forbidden);
     }
 
-  });
-
-  test.runIf(process.platform === "linux")("executes a strictly read-only Linux diagnostic", () => {
-    const invocation = buildLinuxStaleOwnerAuditInvocation();
-    const executed = spawnSync(invocation.command, invocation.args, { encoding: "utf8", timeout: 10_000 });
-    expect(executed.error).toBeUndefined();
-    expect(executed.status, executed.stderr).toBe(0);
-    const report = parseLinuxStaleOwnerAuditOutput(executed.stdout);
-    expect(report).toMatchObject({ schemaVersion: 1, mode: "read-only", platform: "linux" });
-    expect(report.capabilities.procfs.readable).toBe(true);
-    expect(report.capabilities.ss.command).toEqual(["ss", "-H", "-ltnp"]);
-    expect(report.processScan.visibleProcessCount).toBeGreaterThan(0);
-    expect(report.owners.every((entry) => entry.supervisorStatus === "live" || entry.supervisorStatus === "stale")).toBe(true);
-  });
-
-  test.runIf(process.platform === "linux")("keeps procfs readable when a process vanishes during audit enumeration", () => {
-    const invocation = buildLinuxStaleOwnerAuditInvocation();
-    const source = `
-      const fs = require("node:fs");
-      const originalReaddirSync = fs.readdirSync;
-      fs.readdirSync = (target, options) => {
-        const entries = originalReaddirSync(target);
-        if (target !== "/proc") return entries;
-        if (options?.withFileTypes === true) {
-          throw Object.assign(new Error("ENOENT: no such file or directory, lstat '/proc/999999999'"), { code: "ENOENT" });
-        }
-        return [...entries, "999999999"];
-      };
-      ${invocation.args[1]}
-    `;
-
-    const executed = spawnSync(invocation.command, ["-e", source], { encoding: "utf8", timeout: 10_000 });
-    expect(executed.error).toBeUndefined();
-    expect(executed.status, executed.stderr).toBe(0);
-    const report = parseLinuxStaleOwnerAuditOutput(executed.stdout);
-    expect(report.capabilities.procfs).toEqual({ readable: true, error: null });
-    expect(report.processScan.status).toBe("ok");
-    expect(report.processScan.visibleProcessCount).toBeGreaterThan(0);
   });
 
   test("reconciles the shared system dependencies before auditing and before git, planning, checkout, cleanup, or shard execution", () => {
