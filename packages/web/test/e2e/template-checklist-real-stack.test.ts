@@ -246,6 +246,79 @@ test("real keys navigate visual lines, handle empty Backspace and toggle without
   await expect(text(page, 0)).toBeFocused(); expect(await h.read(id, "items/sole")).toEqual(item("", 0));
 });
 
+// proofs/ui/templates/checklist.md#^checklist-ui-t-composition
+test("keys pass through to the field while an input method composes text", async ({ page }) => {
+  const id = await open(page);
+  const rows = page.locator(".checklist-text");
+  // A window listener runs after the page's own handlers, so it sees whether they consumed the key.
+  await page.evaluate(() => {
+    const keys: object[] = [];
+    Object.assign(window, { checklistKeys: keys });
+    addEventListener("keydown", event => keys.push({
+      key: event.key, keyCode: event.keyCode, isComposing: event.isComposing,
+      isTrusted: event.isTrusted, defaultPrevented: event.defaultPrevented,
+    }));
+  });
+  const lastKey = () => page.evaluate(() => (window as unknown as { checklistKeys: object[] }).checklistKeys.at(-1));
+  const passedThrough = (key: string, keyCode = 229) => ({ key, keyCode, isComposing: true, isTrusted: true, defaultPrevented: false });
+  const cdp = await page.context().newCDPSession(page);
+  // An input method sends the keys it uses with key code 229, which has no editing action of its own.
+  const imeKey = async (key: string): Promise<unknown> => {
+    for (const type of ["rawKeyDown", "keyUp"] as const) {
+      await cdp.send("Input.dispatchKeyEvent", { type, key, code: key, windowsVirtualKeyCode: 229, nativeVirtualKeyCode: 229 });
+    }
+    return lastKey();
+  };
+  try {
+    await add(page).focus();
+    await cdp.send("Input.imeSetComposition", { text: "にほん", selectionStart: 3, selectionEnd: 3 });
+    await expect(add(page)).toHaveValue("にほん");
+    expect(await imeKey("Enter")).toEqual(passedThrough("Enter"));
+    // Chromium also marks an ordinary Return composing while composition is active.
+    await add(page).press("Enter");
+    expect(await lastKey()).toEqual(passedThrough("Enter", 13));
+    await cdp.send("Input.insertText", { text: "日本" });
+    await expect(add(page)).toHaveValue("日本"); await expect(add(page)).toBeFocused();
+    await expect(rows).toHaveCount(3);
+
+    await caret(text(page, 0));
+    await cdp.send("Input.imeSetComposition", { text: "りんご", selectionStart: 3, selectionEnd: 3 });
+    for (const key of ["Enter", "ArrowUp", "ArrowDown", "Backspace"]) {
+      expect(await imeKey(key)).toEqual(passedThrough(key));
+      await expect(text(page, 0)).toBeFocused();
+    }
+    await cdp.send("Input.insertText", { text: "林檎" });
+    await expect(text(page, 0)).toHaveText("Apples林檎"); await expect(rows).toHaveCount(3);
+
+    await caret(title(page));
+    await cdp.send("Input.imeSetComposition", { text: "かいもの", selectionStart: 4, selectionEnd: 4 });
+    expect(await imeKey("Enter")).toEqual(passedThrough("Enter"));
+    await cdp.send("Input.insertText", { text: "買い物" });
+    await expect(title(page)).toHaveText("Groceries買い物"); await expect(title(page)).toBeFocused();
+    await expect(rows).toHaveCount(3);
+  } finally {
+    await cdp.detach();
+  }
+  await expect.poll(() => texts(id)).toEqual(["Apples林檎", "Bread", "Coffee"]);
+  await expect.poll(() => h.read(id, "title")).toBe("Groceries買い物");
+
+  // WebKit sends the key that ends a composition with key code 229 after isComposing is already false.
+  const webKitKey = (field: Locator, key: string) => field.evaluate((element, eventKey) => {
+    const event = new KeyboardEvent("keydown", { key: eventKey, bubbles: true, cancelable: true });
+    Object.defineProperty(event, "keyCode", { value: 229 });
+    element.dispatchEvent(event);
+    return event.defaultPrevented;
+  }, key);
+  await text(page, 0).focus();
+  for (const field of [add(page), text(page, 0), title(page)]) expect(await webKitKey(field, "Enter")).toBe(false);
+  await expect(rows).toHaveCount(3); await expect(add(page)).toHaveValue("日本");
+
+  // Once the text is accepted, Return acts as usual.
+  await add(page).press("Enter");
+  await expect.poll(() => texts(id)).toEqual(["Apples林檎", "Bread", "Coffee", "日本"]);
+  await expect(add(page)).toHaveValue("");
+});
+
 // proofs/ui/templates/checklist.md#^checklist-ui-ac-navigation
 test("pointer positions on either side of a soft wrap preserve visual-line navigation", async ({ page }) => {
   const value = fixture(); value.items.b!.text = "Wrapped words ".repeat(22);

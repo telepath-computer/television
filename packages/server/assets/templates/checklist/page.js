@@ -4,6 +4,11 @@ import {
 } from "/sdk/v1/resources.js";
 import { isChecklistData, orderedItems, insertionOrder, createRenumberUpdate, isCompletionShortcut } from "./model.js";
 
+// While an input method composes text, keys belong to the field. WebKit reports
+// the key that ends composition with this code after `isComposing` is false.
+const COMPOSITION_KEY_CODE = 229;
+const composing = event => event.isComposing || event.keyCode === COMPOSITION_KEY_CODE;
+
 const main = document.querySelector(".checklist-page");
 const store = getStore();
 const root = ref(store);
@@ -190,7 +195,7 @@ function createContent() {
     save(set(ref(store, "title"), title.textContent));
   });
   title.addEventListener("keydown", event => {
-    if (event.key !== "Enter" || !canWrite()) return;
+    if (event.key !== "Enter" || composing(event) || !canWrite()) return;
     event.preventDefault();
     insertAndFocus(null);
   });
@@ -265,7 +270,7 @@ function render() {
     list.after(clone("add"));
     addField = main.querySelector(".checklist-add-input");
     addField.addEventListener("keydown", event => {
-      if (event.key !== "Enter" || !canWrite() || addField.value.trim() === "") return;
+      if (event.key !== "Enter" || composing(event) || !canWrite() || addField.value.trim() === "") return;
       event.preventDefault();
       const text = addField.value;
       addField.value = "";
@@ -338,7 +343,7 @@ function onBoundaryLine(field, direction) {
 }
 
 function itemKey(event, key) {
-  if (!canWrite()) return;
+  if (!canWrite() || composing(event)) return;
   const row = rows.get(key);
   if (isCompletionShortcut(event, navigator.platform)) {
     event.preventDefault();
