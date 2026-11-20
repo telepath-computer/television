@@ -54,7 +54,7 @@ A done item's text can be edited too; it stays muted and struck through while it
 
 <Artifact><Canvas of={Stories.EditingDoneItem} /></Artifact>
 
-Backspace in an empty item removes it and puts the caret at the end of the item above. With no item above, as when it is the only item, Backspace does nothing. Up on an item's first line moves the caret to the item above, and Down on its last line to the item below; Up from the first item goes to the title, and Down from the last item to the add field. Cmd-Return, or Ctrl-Return outside macOS, ticks or unticks the item being edited and leaves the caret where it is.
+Backspace in an empty item removes it and puts the caret at the end of the item above. With no item above, as when it is the only item, Backspace does nothing. Up on an item's first line moves the caret to the item above, and Down on its last line to the item below; Up from the first item goes to the title, and Down from the last item to the add field. Cmd-Return, or Ctrl-Return outside macOS, ticks or unticks the item being edited and leaves the caret where it is. While text is being composed through an input method, as when typing Japanese or Chinese, the keys described on this page pass through to the field. Return that accepts the composed text, in the title, an item or the add field, therefore adds no item and leaves the caret where it is.
 
 Pasting several lines makes one item per line, skipping blank lines. In the add field, each line is added at the end of the list, in order. In an item, the first line is inserted at the caret and each further line becomes a new item below it, in order, with the caret at the end of the last one.
 
