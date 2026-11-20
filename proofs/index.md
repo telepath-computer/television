@@ -11,7 +11,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `cli.md` (126 lines) — *How the promises in CLI are proven.*
   - `desktop-app.md` (42 lines) — *How the downloaded desktop app's promises are proven: continuous real-Electron tests, and checks of an unreleased ToDesktop build, run by agents or by a person on a real Mac, before a change to the app's behavior reaches `main`.*
   - `keyboard-navigation.md` (32 lines) — *How the promises in Keyboard navigation are proven.*
-  - `licensing.md` (41 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
+  - `licensing.md` (43 lines) — *How Television's licensing promises are proven where users receive them: the license gate over the real tree, the packed CLI tarball, the desktop upload directory, the served browser notices, and Electron's license files in the installed desktop app.*
   - `tab-pages.md` (32 lines) — *How the promises in Tab pages are proven.*
   - `telemetry.md` (93 lines) — *How the promises in Telemetry are proven.*
   - `templates.md` (46 lines) — *Proves copied and URL template use through built CLI commands and the real app, including data isolation and principal failures.*

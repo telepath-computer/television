@@ -20,6 +20,8 @@ Sticky note adds a bundled OFL font and a source-story copy. The [font acceptanc
 
 Map adds vendored Leaflet and Lucide assets. The [Map acceptance](#^licensing-ac-map-assets) checks their complete recorded notices in the source tree and packed CLI, while the all-notices acceptance discovers the Map folder through the asset manifest. The external Esri tile service is not shipped material; its permission question is tracked in Linear as TV-1009 and remains outside this proof.
 
+CC-BY-4.0 is on the allowlist, so the license gate accepts it on any package or asset record; the "licensing configuration" cases of [the gate contract](../arch/licensing.md#^licensing-t-gate-contract) check that the tooling's allowlist matches the specified list. Its narrower scope, [icons and other artwork only](../../specs/product/licensing.md#^licensing-cc-by-artwork), is a review responsibility, as font-only use is for OFL: a reviewer checks that each CC-BY-4.0 record covers artwork, as the Font Awesome Free table icon in the vendored Markdown table editor does, and treats CC-BY-4.0 on a code package as a decision to make. No test decides whether material is artwork.
+
 ## Assertions
 
 Test shapes follow the [testing-policy.md](../../specs/arch/testing-policy.md) declaration schema.
