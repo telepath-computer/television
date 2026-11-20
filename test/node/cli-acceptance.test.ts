@@ -720,9 +720,17 @@ describe("CLI product spine acceptance", () => {
     rmSync(path.join(home, "templates"), { recursive: true });
     writeFileSync(path.join(home, "templates"), "obstruction");
     const unreadable = await tv(["templates", "show", "Exact ID"]);
+    const unreadableScan = await tv(["templates", "list"]);
+    const { child: server } = running.process;
+    expect(unreadableScan.exitCode, [
+      `show stderr: ${unreadable.stderr}`,
+      `list stderr: ${unreadableScan.stderr}`,
+      `server exit: ${server.exitCode} ${server.signalCode}`,
+      `server stderr: ${running.output().stderr}`,
+    ].join("\n")).toBe(0);
     expect(unreadable.exitCode).toBe(1);
     expect(unreadable.stdout).toBe("");
-    expect(unreadable.stderr).toContain(JSON.parse((await tv(["templates", "list"])).stdout).errors.find((error: any) => error.folder === null).error);
+    expect(unreadable.stderr).toContain(JSON.parse(unreadableScan.stdout).errors.find((error: any) => error.folder === null).error);
   });
 
   // proofs/product/templates.md#^templates-ac-url-create
