@@ -1,6 +1,6 @@
 *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
 
-**Status:** adopted redesign authority. Template-cache observation is a draft addition. The remaining navigation-recording carve-out is deliberately code-authoritative.
+**Status:** adopted redesign authority. Local folder artifacts, active themes and the template cache conform to the shared content-watcher contract. The remaining navigation-recording carve-out is deliberately code-authoritative.
 
 # Reload and navigation
 

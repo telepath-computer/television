@@ -62,8 +62,6 @@ Selection for the [Toolbox icon slot](../../ui/app/toolbox.mdx#^toolbox-icons) p
 
 Authenticated `GET /templates/<template-id>/icon` resolves the URL-encoded exact ID through the server cache, repeats selection and the real-path check, and serves the selected file with its SVG or PNG content type. While the watcher is unavailable, it validates that template directly from disk for this response only; an icon request neither changes the scan cache nor publishes an event. Responses use `Cache-Control: no-store` and, because an agent-authored SVG can carry script and is served from the app's origin, carry the [sandbox header](../artifact-frame/isolation.md#^iso-sandbox-header) and `X-Content-Type-Options: nosniff`, found or not; the app keeps its own bytes under the [cache invalidation rules](#^artifact-template-cache). An invalid template or unavailable icon returns not found. The route accepts no file path from the caller. ^artifact-template-icon-route
 
-The [icon-delivery contract](#^artifact-template-icon-route) owns the authenticated template image route. ^artifact-template-thumbnail-route
-
 The app fetches icon bytes through the shared client when `hasIcon` is true, so the request carries the server token. It displays those bytes as an image with the supplied content type, without inserting SVG markup into the application document. The [Toolbox UI spec](../../ui/app/toolbox.mdx#icons) owns the supplied-icon treatment and default letter icon. The [authoring guidance](./authoring.md) teaches agents to save site icons in URL-template folders.
 
 ## Discovery
