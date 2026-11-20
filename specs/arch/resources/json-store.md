@@ -8,6 +8,8 @@ The JSON store keeps one JSON value per store and lets pages and agents change i
 
 This spec owns the implementation of the `json` [resource type](./index.md#^rs-type-contract): its content file, path and value validation, limits, write application, server-filled values, push keys, transactions, subscriptions, the SDK functions and types for stores, the SDK's local-write model, and the `tv resource json` CLI integration. User-facing behavior is owned by [product/resources/json-store.md](../../product/resources/json-store.md). Resource IDs, artifacts' stores, manifests, routes, connections, bindings and events are owned by [the resource architecture](./index.md).
 
+[Artifact templates](../templates/index.md#^artifact-template-schema) may validate caller-supplied data against manifest `dataSchema` before creation. Template schemas are not part of this store contract and do not restrict later writes.
+
 ## The content file
 
 A store's value is `content.json` in its [directory](./index.md#^rs-storage): the value written as compact JSON text, with no wrapper, which a person or agent can read, copy or restore directly; any JSON text reads back. A store with no value has no `content.json`, so a stored `null` and a missing value stay distinct across a restart. Removing the whole value deletes the file. A `content.json` that exists but cannot be read, does not parse as JSON, or holds a value that breaks the limits below makes the store unavailable when it [loads](./index.md#^rs-load); it is never mistaken for a missing value. ^js-arch-content-file

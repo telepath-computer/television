@@ -632,11 +632,14 @@ test.describe("channel lifecycle product outcomes", () => {
     }
   });
 
-  test("focused deletion selects pinned, newest recent, and no-channel successors", async ({
+  // proofs/product/channels.md#^ch-ac-delete-selection
+  test("focused deletion selects pinned, newest recent, and replacement successors in both clients", async ({
     page,
+    context,
     baseURL,
   }) => {
     const product = await launchProductServer();
+    const observer = await context.newPage();
     try {
       const client = new TelevisionClient(product.serverURL);
       const { channel: pinnedFirst } = await client.channels.create({ name: "Pinned first" });
@@ -692,20 +695,39 @@ test.describe("channel lifecycle product outcomes", () => {
         await focusThroughSidebar(page, channel.id, channel.name);
         await deleteThroughSidebar(page, channel.id, channel.name);
       }
+      await openApp(observer, product, baseURL);
+      const observeNoChannel = async (target: Page) => {
+        await target.evaluate(() => {
+          const app = document.querySelector("#app")!;
+          (window as typeof window & { sawNoChannel?: boolean }).sawNoChannel = false;
+          new MutationObserver(() => {
+            if (app.getAttribute("data-app-state") === "no-channel") {
+              (window as typeof window & { sawNoChannel?: boolean }).sawNoChannel = true;
+            }
+          }).observe(app, { attributes: true, attributeFilter: ["data-app-state"] });
+        });
+      };
+      await Promise.all([observeNoChannel(page), observeNoChannel(observer)]);
       await focusThroughSidebar(page, expectedNewest.id, expectedNewest.name);
       await deleteThroughSidebar(page, expectedNewest.id, expectedNewest.name);
 
-      await expect(page.locator("#app")).toHaveAttribute("data-app-state", "no-channel");
-      await expect(page.locator(".channel-group")).toHaveCount(0);
-      await expect(page.locator(".channel-create")).toBeVisible();
-      await expect.poll(async () => (await client.channels.list()).channels).toEqual([]);
+      await expect.poll(async () => (await client.channels.list()).channels).toHaveLength(1);
+      const replacement = (await client.channels.list()).channels[0]!;
+      expect(replacement).toMatchObject({ name: "New channel", layout: [] });
       await expect.poll(() => client.display.get()).toMatchObject({
-        focusedChannelId: null,
+        focusedChannelId: replacement.id,
         pinnedChannelIds: [],
         activeThemeName: null,
         acpEnabled: false,
       });
+      for (const target of [page, observer]) {
+        await expect(channelRow(target, replacement.id)
+          .getByRole("option", { name: "New channel", exact: true }))
+          .toHaveAttribute("aria-selected", "true");
+        expect(await target.evaluate(() => (window as typeof window & { sawNoChannel?: boolean }).sawNoChannel)).toBe(false);
+      }
     } finally {
+      await observer.close();
       await product.dispose();
     }
   });

@@ -11,10 +11,12 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import {
   generateFolderNotices,
+  generateDocumentTemplateNotices,
   generateSourceNotices,
 } from "../../scripts/licenses/generate-notices.mjs";
 import type {
   LicenseConfig,
+  LicenseSurface,
   VendoredAsset,
 } from "../../scripts/licenses/lib/config.mjs";
 import {
@@ -194,6 +196,91 @@ describe("license gate", () => {
       assets,
     });
     expect(stale.errors.join("\n")).toMatch(/THIRD-PARTY-NOTICES\.txt.*stale/i);
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-gate-contract
+  test("validates the packaged Markdown editor record and both notices it owns", () => {
+    const root = makeTempRoot();
+    const config = fixtureConfig();
+    const firstPackage = writePackage(root, "first-package", "1.0.0", "MIT");
+    const secondPackage = writePackage(root, "second-package", "2.0.0", "MIT");
+    const templateFolder = path.join(root, "packages/server/assets/templates/document");
+    const recordPath = path.join(root, "packages/view-markdown/packaged-markdown-editor-licenses.json");
+    mkdirSync(templateFolder, { recursive: true });
+    const coveredAsset: VendoredAsset = {
+      id: "covered-asset",
+      paths: ["vendor.js"],
+      components: [{ name: "Covered asset", license: "MIT", noticeText: "Covered asset terms\n" }],
+      surfaces: ["view:markdown", "source"],
+    };
+    const assets = [coveredAsset];
+    const validRecord = { packages: [firstPackage, secondPackage], assets: ["covered-asset"] };
+    const writeRecord = (record: unknown) => writeJSON(recordPath, record);
+    const writeNotices = () => {
+      writeFileSync(
+        path.join(root, "THIRD-PARTY-NOTICES.txt"),
+        generateSourceNotices({ root, config, assets, packagedMarkdownEditorRecord: validRecord })!,
+      );
+      writeFileSync(
+        path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"),
+        generateDocumentTemplateNotices({ root, config, assets, record: validRecord })!,
+      );
+    };
+    const evaluate = () => evaluateLicenseGate({
+      root,
+      inventories: completeInventories([]),
+      config,
+      assets,
+    });
+
+    writeRecord(validRecord);
+    writeNotices();
+    expect(evaluate().errors).toEqual([]);
+
+    const invalidRecords: Array<[string, unknown]> = [
+      ["missing field", { packages: validRecord.packages }],
+      ["extra field", { ...validRecord, extra: true }],
+      ["invalid package", { packages: [{ name: "broken" }], assets: [] }],
+      ["unsorted packages", { packages: [secondPackage, firstPackage], assets: [] }],
+      ["duplicate packages", { packages: [firstPackage, firstPackage], assets: [] }],
+      ["empty asset ID", { packages: [], assets: [""] }],
+      ["nonstring asset ID", { packages: [], assets: [7] }],
+      ["unsorted asset IDs", { packages: [], assets: ["z-asset", "a-asset"] }],
+      ["duplicate asset IDs", { packages: [], assets: ["covered-asset", "covered-asset"] }],
+    ];
+    for (const [name, record] of invalidRecords) {
+      writeRecord(record);
+      expect(evaluate().errors.join("\n"), name).toMatch(/invalid packaged Markdown editor licensing record/i);
+    }
+
+    writeRecord({ packages: [], assets: ["unknown-asset"] });
+    expect(evaluate().errors.join("\n")).toMatch(/unknown packaged Markdown editor asset.*unknown-asset/i);
+
+    writeRecord({ packages: [], assets: ["covered-asset"] });
+    for (const { surfaces, missingSurface } of [
+      { surfaces: ["view:markdown"], missingSurface: "source" },
+      { surfaces: ["source"], missingSurface: "view:markdown" },
+    ]) {
+      const missingSurfaceAsset: VendoredAsset = {
+        ...coveredAsset,
+        surfaces: surfaces as LicenseSurface[],
+      };
+      expect(evaluateLicenseGate({
+        root,
+        inventories: completeInventories([]),
+        config,
+        assets: [missingSurfaceAsset],
+      }).errors.join("\n")).toMatch(new RegExp(`covered-asset.*${missingSurface}`, "i"));
+    }
+
+    writeRecord(validRecord);
+    writeFileSync(path.join(templateFolder, "THIRD-PARTY-NOTICES.txt"), "stale template notice\n");
+    expect(evaluate().errors.join("\n")).toMatch(
+      /templates[\\/]document[\\/]THIRD-PARTY-NOTICES\.txt.*stale.*npm run refresh:packaged-markdown-editor/i,
+    );
+    writeNotices();
+    writeFileSync(path.join(root, "THIRD-PARTY-NOTICES.txt"), "stale root notice\n");
+    expect(evaluate().errors.join("\n")).toMatch(/THIRD-PARTY-NOTICES\.txt.*stale/i);
   });
 
   // proofs/arch/licensing.md#^licensing-t-gate-contract

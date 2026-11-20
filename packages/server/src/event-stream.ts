@@ -18,6 +18,7 @@ import type {
   ChannelUpdatedEvent,
   PinnedChannelsChangedEvent,
   ThemeChangedEvent,
+  TemplatesChangedEvent,
 } from "@telepath-computer/television-shared";
 import { ServerStore } from "./server-store.ts";
 import { isAuthorizedQueryToken } from "./auth.ts";
@@ -161,6 +162,9 @@ export class EventStreamServer extends withDisposable(class {}) {
   }
 
   private subscribeStore(): void {
+    const onTemplatesChanged = (event: TemplatesChangedEvent) => {
+      this.broadcast({ type: "templates-changed", scan: event.scan, invalidatedIDs: event.invalidatedIDs });
+    };
     const onArtifactCreated = (event: ArtifactCreatedEvent) => {
       this.broadcast({ type: "artifact-created", channelID: event.channelID, artifact: event.artifact });
     };
@@ -203,6 +207,7 @@ export class EventStreamServer extends withDisposable(class {}) {
       this.broadcast({ type: "artifact-focus", channelID: event.channelID, artifactID: event.artifactID });
     };
 
+    this.store.addEventListener("templates-changed", onTemplatesChanged);
     this.store.addEventListener("artifact-created", onArtifactCreated);
     this.store.addEventListener("artifact-updated", onArtifactUpdated);
     this.store.addEventListener("artifact-removed", onArtifactRemoved);
@@ -224,6 +229,7 @@ export class EventStreamServer extends withDisposable(class {}) {
 
     this.unsubscribe.push(
       stopResourceEvents,
+      () => this.store.removeEventListener("templates-changed", onTemplatesChanged),
       () => this.store.removeEventListener("artifact-created", onArtifactCreated),
       () => this.store.removeEventListener("artifact-updated", onArtifactUpdated),
       () => this.store.removeEventListener("artifact-removed", onArtifactRemoved),

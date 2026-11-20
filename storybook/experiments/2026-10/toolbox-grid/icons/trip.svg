@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <title>Trip</title>
+  <path d="M7 4V2.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V4" fill="none" stroke="#a75c2d" stroke-width="1.5"/>
+  <rect x="1.5" y="4" width="17" height="14" rx="3" fill="#e99343"/>
+  <path d="M4.5 18v.5M15.5 18v.5" fill="none" stroke="#a75c2d" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="m5 11 4 .5 5-5c.8-.8 2 .4 1.2 1.2l-5 5 .3 3-1.5-1.5-2 .5.5-2Z" fill="#fff8e7"/>
+</svg>

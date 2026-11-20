@@ -1,0 +1,38 @@
+import { Meta, Canvas, Story } from "@storybook/addon-docs/blocks";
+import { useEffect, useRef } from "react";
+import * as Stories from "../../../../storybook/spec/artifact-frame/artifact-frame.stories.ts";
+
+export const HoverDemo = () => {
+  const container = useRef(null);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      container.current?.querySelector(".artifact-frame")?.toggleAttribute("data-hovered");
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return <div ref={container} className="artifact-frame-hover-demo"><Story of={Stories.TransparentAtRest} inline /></div>;
+};
+
+<Meta of={Stories} name="Spec" />
+
+*UI spec: the artifact frame’s transparent state, hover behaviour and resize appearance.*
+
+# Artifact frame: transparency
+
+These stories and [styles](../../../../storybook/spec/artifact-frame/styles.css) specify the transparent state promised by the [product spec](../../../product/artifacts.md#^af-transparent). The opaque story supplies a comparison; the [frame spec](./index.md) owns the rest of the frame.
+
+<Canvas of={Stories.Opaque} />
+
+<Canvas of={Stories.TransparentAtRest} />
+
+Hovering the transparent frame reveals the frost and title bar; leaving hides them. Both fade over 300ms with ease timing. The bar overlays the bottom of the document without resizing it, and becomes hidden after fading out so its controls leave keyboard navigation. Reduced motion makes the change immediate.
+
+While the frame's menu is open, the frame keeps its hovered state whether or not the pointer is over it, and returns to rest only once the menu closes. The menu opens beside its trigger, as on an opaque frame.
+
+<Canvas of={Stories.TransparentHovered} />
+
+The frame also takes its hovered state, the one shown above, while the stage's resize cursor is active for its page: whenever the pointer is in the band where the page's edges can be grabbed, and for the whole of a resize drag, whether or not the pointer is over the frame. The [stage's handles](../stage/index.md#handles) define that band. There is no separate resizing look.
+
+This demonstration alternates between rest and hover every two seconds, using the same fade. Pointer hover still works.
+
+<HoverDemo />

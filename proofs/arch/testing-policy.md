@@ -14,6 +14,9 @@ The built-application default is honored by the setup of the product tests that 
 
 Killed workers cannot promise teardown. The [Blaxel scratch/recovery assertions](test-runner/blaxel-testshards.md#Lease, recovery, and scratch) carry the backstop rather than duplicating a crash experiment here.
 
+UI review distinguishes MDX story appearance from retained frame/template contracts. [Toolbox](../ui/app/toolbox.md) owns its required story comparisons; [retained conformance](./ui/conformance.md) covers frame and template surfaces. This policy orders no meta-test of that distinction.
+
+
 ## Test hooks
 
 The shared build-lifetime helper accepts a temporary parent and preparation callback; contract tests may supply a builder that writes fixture files, waits on a rendezvous, or rejects, while real callers run the source-CLI or versioned-web preparation. Its teardown entry point is the same one the runner-worker adapters call; exposing it for a contract does not stand in for testing those adapters.

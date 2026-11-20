@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import {
   generateFolderNotices,
+  generateDocumentTemplateNotices,
   generateNoticesFromEsbuild,
   generateSourceNotices,
 } from "../../scripts/licenses/generate-notices.mjs";
@@ -18,12 +19,15 @@ import {
   loadAssetManifest,
   loadLicenseConfig,
   type LicenseConfig,
+  type LicenseSurface,
   type VendoredAsset,
 } from "../../scripts/licenses/lib/config.mjs";
 import {
   mergeSurfaceInventories,
   readSurfaceInventory,
+  surfaceInventoryPath,
   type SurfaceInventory,
+  writeSurfaceInventory,
 } from "../../scripts/licenses/lib/inventory.mjs";
 import {
   inventoryFromEsbuildMetafile,
@@ -39,9 +43,11 @@ import {
   findPackageLicenseFile,
 } from "../../scripts/licenses/lib/package-license.mjs";
 import { createTelevisionLicensePlugin } from "../../scripts/licenses/vite-plugin.mjs";
+import { createPackagedMarkdownEditorOutputPlugin } from "../../packages/view-markdown/packaged-markdown-editor-build.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const fixtureRoot = path.join(repoRoot, "test/fixtures/licensing");
+const fixtureVerificationFailureHint = "Run the fixture packaged-editor refresh.";
 const tempRoots: string[] = [];
 
 function makeTempRoot(prefix = "tv-license-generator-"): string {
@@ -61,6 +67,183 @@ describe("licensing inventory conversion", () => {
     );
     expect(() => createTelevisionLicensePlugin({ surface: "source" as never })).toThrow(
       /source.*does not produce an inventory/i,
+    );
+    expect(() => createTelevisionLicensePlugin({
+      surface: "web",
+      mode: "overwrite" as never,
+    })).toThrow(/mode.*write.*verify/i);
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-vite-verification-contract
+  test("verifies a secondary Vite build without writing over its surface inventory", async () => {
+    const fileViewConfig = readFileSync(
+      path.join(repoRoot, "packages/view-markdown/vite.config.ts"),
+      "utf8",
+    );
+    const packagedEditorConfig = readFileSync(
+      path.join(repoRoot, "packages/view-markdown/vite.packaged-markdown-editor.config.ts"),
+      "utf8",
+    );
+    expect(fileViewConfig.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
+    expect(fileViewConfig).toContain('surface: "view:markdown"');
+    expect(packagedEditorConfig.match(/createTelevisionLicensePlugin\(/g)).toHaveLength(1);
+    expect(packagedEditorConfig).toContain('surface: "view:markdown"');
+    expect(packagedEditorConfig).toContain('mode: "verify"');
+    expect(packagedEditorConfig).toContain('requiredAssetSurfaces: ["view:markdown", "source"]');
+    expect(packagedEditorConfig).toContain("verificationFailureHint");
+
+    const temporaryRoot = makeTempRoot();
+    const inventoryRoot = path.join(temporaryRoot, "inventories");
+    const outputDir = path.join(temporaryRoot, "dist");
+    mkdirSync(outputDir, { recursive: true });
+    const coveredModule = path.join(repoRoot, "node_modules/clsx/dist/clsx.mjs");
+    const uncoveredModule = path.join(repoRoot, "node_modules/marked/lib/marked.esm.js");
+    const inventory = inventoryFromModulePaths({
+      surface: "view:markdown",
+      modules: [{ id: coveredModule, renderedLength: 1 }],
+      root: repoRoot,
+    });
+    const inventoryPath = writeSurfaceInventory(inventoryRoot, inventory);
+    const recordOutputPath = path.join(temporaryRoot, "packaged-markdown-editor-licenses.json");
+    const noticesPath = path.join(outputDir, "THIRD-PARTY-NOTICES.txt");
+    writeFileSync(noticesPath, "primary build notices\n");
+    const inventoryBytes = readFileSync(inventoryPath, "utf8");
+    const plugin = createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      mode: "verify",
+      root: repoRoot,
+      inventoryRoot,
+      recordOutputPath,
+      verificationFailureHint: fixtureVerificationFailureHint,
+    });
+    await runViteGenerateBundle(plugin, outputDir, coveredModule);
+    expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
+    expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
+    expect(readJSON(recordOutputPath)).toEqual({ packages: inventory.packages, assets: [] });
+
+    writeSurfaceInventory(inventoryRoot, {
+      ...inventory,
+      packages: inventory.packages.map((record) => ({
+        ...record,
+        declaredLicense: record.declaredLicense === "MIT" ? "ISC" : "MIT",
+      })),
+    });
+    await expect(runViteGenerateBundle(plugin, outputDir, coveredModule)).rejects.toThrow(
+      /clsx@.*conflicts.*view:markdown.*license inventory/i,
+    );
+    writeSurfaceInventory(inventoryRoot, inventory);
+
+    await expect(runViteGenerateBundle(plugin, outputDir, uncoveredModule)).rejects.toThrow(
+      /marked@.*not covered.*view:markdown.*fixture packaged-editor refresh/i,
+    );
+    expect(readFileSync(surfaceInventoryPath(inventoryRoot, "view:markdown"), "utf8")).toBe(inventoryBytes);
+    expect(readFileSync(noticesPath, "utf8")).toBe("primary build notices\n");
+  });
+
+  // proofs/arch/licensing.md#^licensing-t-vite-verification-contract
+  test("matches emitted local modules to covered assets and checks the packaged Markdown editor output shape", async () => {
+    const temporaryRoot = makeTempRoot();
+    const inventoryRoot = path.join(temporaryRoot, "inventories");
+    const recordOutputPath = path.join(temporaryRoot, "packaged-markdown-editor-licenses.json");
+    const packageModule = path.join(repoRoot, "node_modules/clsx/dist/clsx.mjs");
+    const localModule = path.join(repoRoot, "packages/view-markdown/src/vendor/markdown-tables/index.js");
+    const packageInventory = inventoryFromModulePaths({
+      surface: "view:markdown",
+      modules: [{ id: packageModule, renderedLength: 1 }],
+      root: repoRoot,
+    });
+    writeSurfaceInventory(inventoryRoot, packageInventory);
+    const asset: VendoredAsset = {
+      id: "fixture-markdown-table",
+      paths: ["packages/view-markdown/src/vendor/markdown-tables/index.js"],
+      components: [{ name: "Fixture table", license: "MIT", noticeText: "Fixture terms\n" }],
+      surfaces: ["view:markdown", "source"],
+    };
+    const plugin = createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      mode: "verify",
+      root: repoRoot,
+      inventoryRoot,
+      assets: [asset],
+      recordOutputPath,
+      requiredAssetSurfaces: ["view:markdown", "source"],
+    });
+
+    await runViteGenerateBundle(plugin, temporaryRoot, [packageModule, localModule]);
+    expect(readJSON(recordOutputPath)).toEqual({
+      packages: packageInventory.packages,
+      assets: ["fixture-markdown-table"],
+    });
+    for (const { surfaces, missingSurface } of [
+      { surfaces: ["view:markdown"], missingSurface: "source" },
+      { surfaces: ["source"], missingSurface: "view:markdown" },
+    ]) {
+      await expect(runViteGenerateBundle(createTelevisionLicensePlugin({
+        surface: "view:markdown",
+        mode: "verify",
+        root: repoRoot,
+        inventoryRoot,
+        assets: [{ ...asset, surfaces: surfaces as LicenseSurface[] }],
+        recordOutputPath,
+        requiredAssetSurfaces: ["view:markdown", "source"],
+      }), temporaryRoot, [packageModule, localModule])).rejects.toThrow(
+        new RegExp(`fixture-markdown-table.*${missingSurface}`, "i"),
+      );
+    }
+
+    const secondPackageModule = path.join(repoRoot, "node_modules/marked/lib/marked.esm.js");
+    const secondLocalModule = path.join(repoRoot, "packages/view-markdown/src/source-table.ts");
+    const sortedInventory = inventoryFromModulePaths({
+      surface: "view:markdown",
+      modules: [
+        { id: secondPackageModule, renderedLength: 1 },
+        { id: packageModule, renderedLength: 1 },
+      ],
+      root: repoRoot,
+    });
+    writeSurfaceInventory(inventoryRoot, sortedInventory);
+    await runViteGenerateBundle(createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      mode: "verify",
+      root: repoRoot,
+      inventoryRoot,
+      assets: [
+        { ...asset, id: "z-table-asset" },
+        {
+          ...asset,
+          id: "a-source-table-asset",
+          paths: ["packages/view-markdown/src/source-table.ts"],
+        },
+      ],
+      recordOutputPath,
+      requiredAssetSurfaces: ["view:markdown", "source"],
+    }), temporaryRoot, [secondPackageModule, secondLocalModule, packageModule, localModule]);
+    const orderedRecord = readJSON<{ packages: Array<{ name: string }>; assets: string[] }>(recordOutputPath);
+    expect(orderedRecord.packages.map(record => record.name)).toEqual(["clsx", "marked"]);
+    expect(orderedRecord).toEqual({
+      packages: sortedInventory.packages,
+      assets: ["a-source-table-asset", "z-table-asset"],
+    });
+
+    const emptyInventoryRoot = path.join(temporaryRoot, "empty-inventories");
+    mkdirSync(emptyInventoryRoot);
+    await expect(runViteGenerateBundle(createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      mode: "verify",
+      root: repoRoot,
+      inventoryRoot: emptyInventoryRoot,
+      assets: [asset],
+      recordOutputPath,
+      requiredAssetSurfaces: ["view:markdown", "source"],
+      verificationFailureHint: fixtureVerificationFailureHint,
+    }), temporaryRoot, [packageModule, localModule])).rejects.toThrow(
+      /missing.*view:markdown.*inventory.*fixture packaged-editor refresh/i,
+    );
+
+    const outputPlugin = createPackagedMarkdownEditorOutputPlugin();
+    await expect(runOutputGenerateBundle(outputPlugin, ["editor.js", "editor.css"])).resolves.toBeUndefined();
+    await expect(runOutputGenerateBundle(outputPlugin, ["editor.js", "editor.css", "extra.js"])).rejects.toThrow(
+      /unexpected packaged Markdown editor output.*extra\.js/i,
     );
   });
 
@@ -353,6 +536,36 @@ describe("package notice and license resolution", () => {
   });
 });
 
+describe("Document packaged Markdown editor notices", () => {
+  // proofs/arch/licensing.md#^licensing-t-generator-contract
+  test("renders the recorded packages and matched assets into template and source notices", () => {
+    const root = createInventoryTree();
+    const config = fixtureConfig();
+    const packageEntry = packageRecord(
+      "plain-package",
+      "1.0.0",
+      "MIT",
+      "node_modules/plain-package/LICENSE",
+    );
+    const assets: VendoredAsset[] = [{
+      id: "template-vendor",
+      paths: ["licensed.js"],
+      components: [{ name: "Template vendor", license: "MIT", noticeText: "Template vendor terms\n" }],
+      surfaces: ["view:markdown", "source"],
+    }];
+    writeFileSync(path.join(root, "licensed.js"), "export {};\n");
+    const record = { packages: [packageEntry], assets: ["template-vendor"] };
+
+    const templateNotice = generateDocumentTemplateNotices({ root, config, assets, record });
+    const sourceNotice = generateSourceNotices({ root, config, assets, packagedMarkdownEditorRecord: record });
+    for (const notice of [templateNotice, sourceNotice]) {
+      expect(notice).toContain("plain-package@1.0.0");
+      expect(notice).toContain("Template vendor\nLicensed under MIT.");
+      expect(notice).not.toContain("template-vendor");
+    }
+  });
+});
+
 describe("notice rendering", () => {
   test("renders bundler and asset entries in one reader-facing shape", () => {
     const root = makeTempRoot();
@@ -542,12 +755,18 @@ describe("notice rendering", () => {
     expect(generateFolderNotices({ root, config, assets: [assets[2]], write: true })).toEqual([]);
   });
 
-  test("regenerates the committed theme folder notices byte-for-byte", () => {
+  // proofs/arch/licensing.md#^licensing-t-real-assets-seam
+  test("regenerates the committed asset folder notices byte-for-byte", () => {
     const folders = generateFolderNotices({ root: repoRoot });
     expect(folders.map((entry) => entry.folder)).toEqual([
+      "packages/server/assets/templates/calendar",
+      "packages/server/assets/templates/checklist",
+      "packages/server/assets/templates/map",
+      "packages/server/assets/templates/sticky-note",
       "packages/server/assets/themes/clouds",
       "packages/server/assets/themes/nord",
       "packages/server/assets/themes/tokyo-night",
+      "storybook/spec/templates/sticky-note",
     ]);
     for (const { folder, text } of folders) {
       expect(readFileSync(path.join(repoRoot, folder, "THIRD-PARTY-NOTICES.txt"), "utf8")).toBe(text);
@@ -561,6 +780,20 @@ describe("notice rendering", () => {
     const nord = folders.find((entry) => entry.folder.endsWith("/nord"))!.text;
     expect(entryMetadata(nord)).toEqual([["Nord color palette", "Licensed under MIT."]]);
     expect(nord).toContain("Copyright (c) 2016-present Sven Greb");
+    for (const template of ["/calendar", "/checklist"]) {
+      const notice = folders.find((entry) => entry.folder.endsWith(template))!.text;
+      expect(entryMetadata(notice)).toEqual([["@phosphor-icons/core@2.1.1", "Licensed under MIT."]]);
+      expect(notice).toContain(readFileSync(path.join(repoRoot, "node_modules/@phosphor-icons/core/LICENSE"), "utf8"));
+    }
+    const map = folders.find((entry) => entry.folder.endsWith("/map"))!.text;
+    expect(entryMetadata(map)).toEqual(expect.arrayContaining([
+      ["leaflet@1.9.4", "Licensed under BSD-2-Clause."],
+      ["lucide-static@1.61.0", "Licensed under ISC."],
+      ["Feather icon material", "Licensed under MIT."],
+    ]));
+    expect(map).toContain("Copyright (c) 2010-2023, Volodymyr Agafonkin");
+    expect(map).toContain("Copyright (c) 2026 Lucide Icons and Contributors");
+    expect(map).toContain("Copyright (c) 2013-present Cole Bemis");
   });
 
   test("regenerates the committed source-surface notices byte-for-byte", () => {
@@ -573,6 +806,9 @@ describe("notice rendering", () => {
     expect(notices).toContain("SIL OPEN FONT LICENSE Version 1.1");
     expect(notices).toContain("@phosphor-icons/core@2.1.1\nLicensed under MIT.");
     expect(notices).toContain("Nord color palette\nLicensed under MIT.");
+    expect(notices).toContain("leaflet@1.9.4\nLicensed under BSD-2-Clause.");
+    expect(notices).toContain("lucide-static@1.61.0\nLicensed under ISC.");
+    expect(notices).toContain("Feather icon material\nLicensed under MIT.");
     expect(notices).not.toMatch(/(?:@lit\/reactive-element|lit-element|lit-html)@/);
     expect(notices).not.toContain("@rupertsworld/");
     const renderedNames = entryMetadata(notices).map(([name]) => name);
@@ -702,4 +938,46 @@ function readJSON<T>(file: string): T {
 function writeJSON(file: string, value: unknown): void {
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+async function runViteGenerateBundle(
+  plugin: ReturnType<typeof createTelevisionLicensePlugin>,
+  outputDir: string,
+  modulePaths: string | string[],
+): Promise<void> {
+  const hook = plugin.generateBundle;
+  if (typeof hook !== "function") throw new Error("Fixture plugin has no generateBundle hook");
+  await hook.call(
+    {} as never,
+    { dir: outputDir } as never,
+    {
+      "editor.js": {
+        type: "chunk",
+        modules: Object.fromEntries(
+          (Array.isArray(modulePaths) ? modulePaths : [modulePaths])
+            .map(modulePath => [modulePath, { renderedLength: 1 }]),
+        ),
+      },
+    } as never,
+    true,
+  );
+}
+
+async function runOutputGenerateBundle(
+  plugin: ReturnType<typeof createPackagedMarkdownEditorOutputPlugin>,
+  filenames: string[],
+): Promise<void> {
+  const hook = plugin.generateBundle;
+  if (typeof hook !== "function") throw new Error("Fixture output plugin has no generateBundle hook");
+  await hook.call(
+    {} as never,
+    {} as never,
+    Object.fromEntries(filenames.map((filename) => [filename, {
+      type: filename.endsWith(".css") ? "asset" : "chunk",
+      isEntry: filename === "editor.js",
+      code: filename === "editor.js" ? "window.fixture = true;" : undefined,
+      source: filename.endsWith(".css") ? "#editor {}" : undefined,
+    }])) as never,
+    true,
+  );
 }

@@ -1,0 +1,21 @@
+{
+  "startDate": "2026-11-02",
+  "days": 5,
+  "events": {
+    "planning": {"title":"Quarterly planning","start":"2026-11-02","end":"2026-11-05","allDay":true,"color":"purple"},
+    "leave": {"title":"Sam on leave","start":"2026-11-02","end":"2026-11-04","allDay":true,"color":"green"},
+    "checkin-mon": {"title":"Team check-in","start":"2026-11-02T09:00","end":"2026-11-02T09:30","color":"blue"},
+    "roadmap": {"title":"Roadmap review","detail":"Room 4 · Slides in the shared folder","start":"2026-11-02T10:00","end":"2026-11-02T11:30","color":"purple","attendees":["Alex","Priya","Jordan"]},
+    "budget": {"title":"Budget call","detail":"Video call","start":"2026-11-02T11:00","end":"2026-11-02T12:00","color":"orange","attendees":["Jordan","Alex"]},
+    "lunch-mon": {"title":"Lunch","start":"2026-11-02T12:30","end":"2026-11-02T13:30","color":"yellow"},
+    "checkin-tue": {"title":"Team check-in","start":"2026-11-03T09:00","end":"2026-11-03T09:30","color":"blue"},
+    "interview": {"title":"Customer interview","detail":"Video call","start":"2026-11-03T10:30","end":"2026-11-03T12:00","color":"green","attendees":["Mei","Priya"]},
+    "dentist": {"title":"Dentist","start":"2026-11-03T14:00","end":"2026-11-03T14:45","color":"red"},
+    "design": {"title":"Design review","detail":"Final screens","start":"2026-11-04T09:30","end":"2026-11-04T11:00","color":"orange","attendees":["Alex","Priya","Jordan","Mei","Sam"]},
+    "one-to-one": {"title":"1:1 with Jordan","start":"2026-11-04T11:15","end":"2026-11-04T12:00","color":"blue"},
+    "offsite": {"title":"Team offsite","start":"2026-11-05","end":"2026-11-06","allDay":true,"color":"blue"},
+    "workshop": {"title":"Planning workshop","detail":"Main hall","start":"2026-11-05T13:00","end":"2026-11-05T15:30","color":"red","attendees":["Alex","Priya","Jordan","Mei"]},
+    "retro": {"title":"Retrospective","detail":"What worked and what to change","start":"2026-11-06T10:00","end":"2026-11-06T11:30","color":"green","attendees":["Alex","Priya","Sam"]},
+    "wrap": {"title":"Week wrap-up","start":"2026-11-06T15:00","end":"2026-11-06T16:00","color":"purple"}
+  }
+}

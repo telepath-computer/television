@@ -6,9 +6,9 @@
 
 ## What this owns
 
-This module owns the **client→server telemetry signal mechanic**: the generic signal envelope, the registry of client-signalable events with their per-property validation patterns, the server-side validation rules, and the forwarding of accepted signals into the telemetry chokepoint. Which events exist at all is owned by the closed vocabulary in [arch/telemetry/index.md](./index.md); **when and why** a given signal fires (its cardinality and triggering moment) is owned by the feature spec that defines the event — the updates domain ([arch/updates/index.md](../updates/index.md)) or the artifact-skill selector ([ui/app/skill-selector/index.md](../../ui/app/skill-selector/index.md)). The client id and metadata the signal rides on are owned by [client.md](./client.md).
+This module owns the **client→server telemetry signal mechanic**: the generic signal envelope, the registry of client-signalable events with their per-property validation patterns, the server-side validation rules, and the forwarding of accepted signals into the telemetry chokepoint. Which events exist at all is owned by the closed vocabulary in [arch/telemetry/index.md](./index.md); **when and why** a given signal fires (its cardinality and triggering moment) is owned by the feature spec that defines the event, currently the updates domain ([arch/updates/index.md](../updates/index.md)). The client id and metadata the signal rides on are owned by [client.md](./client.md).
 
-Some telemetry-worthy moments are observable only in the client — a page that just auto-reloaded itself, a toast that became visible, or a fixed artifact-skill prompt button that was clicked. The server cannot infer them, so the client must report them; this module is the single sanctioned way it does. Every signal is *content-free* in the sense the telemetry guarantees define ([product/telemetry.md#^no-ugc](../../product/telemetry.md#^no-ugc)): free of **user** content — nothing typed or authored, no titles, paths, URLs, or prompt text. A signal does carry data, but only enumerated event names and pattern-constrained values.
+Some telemetry-worthy moments are observable only in the client — a page that just auto-reloaded itself or a toast that became visible. The server cannot infer them, so the client must report them; this module is the single sanctioned way it does. Every signal is *content-free* in the sense the telemetry guarantees define ([product/telemetry.md#^no-ugc](../../product/telemetry.md#^no-ugc)): free of **user** content — nothing typed or authored, no titles, paths, URLs, or prompt text. A signal does carry data, but only enumerated event names and pattern-constrained values.
 
 **Boundary with the activity signal.** A client signal **is** an actual discrete telemetry event, reported by the client for recording. The activity signal (`TelemetryActivitySignal`) is **not** a client signal: it is merely an *input* that helps the server decide when to fire certain telemetry events from the backend (the session lifecycle) — it names no event and records nothing by itself. Its authority stays where it is (emission in [client.md](./client.md), consumption in [sessions.md](./sessions.md)); this mechanic generalizes only its transport pattern — content-free messages on the established `/events` connection, with the server alone deciding what reaches the analytics platform. ^activity-boundary
 
@@ -32,20 +32,17 @@ type ClientSignalEventName =
   | "update_toast_shown"
   | "update_prompt_copy_clicked"
   | "desktop_upgrade_gate_shown"
-  | "artifact_skill_prompt_copy_clicked"
 
 // Per-event validation registry: the ALLOWED property keys (each optional to
 // the validator), each present value validated by pattern. Growing the
 // registry is a vocabulary change, reviewed as such (arch/telemetry/index.md).
 const RELEASE_VERSION = /^\d+\.\d+\.\d+$/
-const ARTIFACT_SKILL = /^(calendar|table|tasks|markdown)$/
 
 const CLIENT_SIGNAL_REGISTRY: Record<ClientSignalEventName, Record<string, RegExp>> = {
   client_autoreloaded:                 { from_version: RELEASE_VERSION, to_version: RELEASE_VERSION },
   update_toast_shown:                  { server_version: RELEASE_VERSION, channel_version: RELEASE_VERSION },
   update_prompt_copy_clicked:          { server_version: RELEASE_VERSION, channel_version: RELEASE_VERSION },
   desktop_upgrade_gate_shown:          { desktop_app_version: RELEASE_VERSION, required_desktop_version: RELEASE_VERSION },
-  artifact_skill_prompt_copy_clicked:  { artifact_skill: ARTIFACT_SKILL },
 }
 ```
 
@@ -57,7 +54,7 @@ One generic envelope with a per-event registry, rather than a bespoke message ty
 
 A signal is accepted iff **all** of: the `type` is the fixed signal type; `clientId` equals the client id of the websocket connection's telemetry metadata; `event` is in the registry; every key in `properties` is declared in the registry for that event; and every present value matches its key's pattern. A declared key may be **absent** — omission never carries content, so the no-UGC guarantee is unaffected, and it lets an event have optional properties without registry ceremony (all keys are optional to the validator; what an event actually carries is stated by its firing semantics in the owning feature spec). There is deliberately no required-key marking: rejecting an event for an omitted property is also data loss, just a different failure shape — a buggy client corrupts analytics either way — and the validator exists solely as belt-and-suspenders against unexpected UGC, not as an analytics-quality gate. Anything else — unknown event, undeclared key, non-matching value, mismatched client id — is dropped silently, without response or logging noise. ^signal-validation
 
-The load-bearing no-UGC protection is not this validator — it is **call-site design**: the tracking call sites are designed to carry no user content in the first place ([product/telemetry.md#^no-ugc](../../product/telemetry.md#^no-ugc)), and that is a policy, upheld by review of each call site and each registry row, not by enforcement code. The pattern validation here is lightweight belt-and-suspenders on top of that policy: every value must match a closed pattern (release-version triples or the fixed artifact-skill enumeration), which leaves free text no channel — but it is not a security layer and does not exist to defend against hostile clients, so no adversarial-input coverage is warranted beyond proving the mechanism works. A registry entry whose pattern would admit free text is still a vocabulary-guarantee change, not a routine addition. ^signal-no-ugc
+The load-bearing no-UGC protection is not this validator — it is **call-site design**: the tracking call sites are designed to carry no user content in the first place ([product/telemetry.md#^no-ugc](../../product/telemetry.md#^no-ugc)), and that is a policy, upheld by review of each call site and each registry row, not by enforcement code. The pattern validation here is lightweight belt-and-suspenders on top of that policy: every value must match a closed release-version pattern, which leaves free text no channel — but it is not a security layer and does not exist to defend against hostile clients, so no adversarial-input coverage is warranted beyond proving the mechanism works. A registry entry whose pattern would admit free text is still a vocabulary-guarantee change, not a routine addition. ^signal-no-ugc
 
 ## Forwarding
 
@@ -70,4 +67,3 @@ The closed vocabulary is a privacy guarantee, and its value is being **one compl
 ## Testing
 
 Server forwarding is proven by sending a signal over a real `/events` websocket to a listening `Server` and observing the resulting `capture()` call. Delivery from `capture()` to PostHog is proven by the sink's [real PostHog integration](./sink.md#Real PostHog integration test surface).
-

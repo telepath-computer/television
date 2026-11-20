@@ -28,6 +28,7 @@ import { SystemModalView, windowDragStripTemplate } from "./system-modal.ts";
 import { DesktopUpgradeGateView } from "./desktop-upgrade-gate.ts";
 import type { TabReorderSnapshot } from "./tab-reorder.ts";
 import { TopBarView } from "./top-bar.ts";
+import { isToolboxShortcut } from "./toolbox-state.ts";
 import "./television-app.css";
 import "./television-app.host.css";
 
@@ -164,6 +165,15 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
       event.preventDefault();
       event.stopPropagation();
       this.#cancelSidebarResize();
+      return;
+    }
+    if (isToolboxShortcut(event, navigator.platform)) {
+      const trigger = document.getElementById("toolbox-trigger");
+      if (trigger) {
+        event.preventDefault();
+        event.stopPropagation();
+        trigger.click();
+      }
       return;
     }
     if (!isNavigationKeyChord(event, navigator.platform)) return;
@@ -526,6 +536,7 @@ export class TelevisionApp extends View<[ApplicationService, TelevisionAppOption
       <main class="app-main">
         ${TopBarView(application, snapshot, {
           connectionOwner: options.connectionOwner,
+          templateConnection: options.connectionOwner?.connection,
           updatePresentation: options.updatePresentation,
           desktopRecommendation: options.desktopRecommendation,
           desktopUpdate: options.desktopUpdate,

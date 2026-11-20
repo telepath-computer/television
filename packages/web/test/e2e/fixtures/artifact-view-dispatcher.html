@@ -10,10 +10,12 @@
       html, body { margin: 0; height: 100%; }
       body { display: grid; place-items: stretch; background: #e8edf2; }
       artifact-view-fixture { display: block; width: 640px; height: 420px; margin: 20px; }
+      #after-frame { position: absolute; top: 500px; left: 20px; }
     </style>
   </head>
   <body>
     <artifact-view-fixture id="view"></artifact-view-fixture>
+    <button id="after-frame">After frame</button>
     <script type="module">
       import { render } from "lit-html";
       import { view as wrapView } from "@telepath-computer/utils/lit-view";
@@ -57,6 +59,8 @@
             this.part = render(CapturedArtifactViewView(this.application, this.artifact, {
               viewURL: this.viewURL,
               contentURL: this.contentURL,
+              fullScreen: false,
+              onFullScreenChange: (value) => window.__fullScreenRequests.push(value),
               inert: false,
             }), this);
             const root = this.querySelector(".artifact-view");
@@ -70,9 +74,14 @@
       customElements.define("artifact-view-fixture", ArtifactViewFixture);
 
       window.RequestError = RequestError;
+      window.__fullScreenRequests = [];
       const view = document.getElementById("view");
       window.setArtifact = (artifact) => {
         view.artifact = artifact;
+        view.draw();
+      };
+      window.setDocumentURL = (url) => {
+        view.viewURL = url;
         view.draw();
       };
       window.setApplication = (application) => {

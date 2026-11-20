@@ -59,6 +59,8 @@ const IMPLEMENTATION_OWNED_CROSSINGS = UI_STYLE_CROSSINGS.filter(
 const TRACKED_PATHS = enumerateTrackedPaths({ repoRoot: REPO_ROOT });
 const TRACKED_PATH_SET = new Set(TRACKED_PATHS);
 const SPECIFIED_NOT_IMPLEMENTED_STATUS = /^\*\*Status:\*\* specified, not implemented\b/m;
+// Toolbox follows MDX story conformance; this retained workshop frame does not specify it.
+const RETIRED_STYLE_SOURCES = new Set(["specs/ui/app/skill-selector/skill-selector.frame"]);
 
 function owningSpecIndex(stylesheet: string): string | undefined {
   let directory = path.posix.dirname(stylesheet);
@@ -115,6 +117,7 @@ function declaresSidebarWidth(stylesheet: string): boolean {
 }
 
 describe("application foundation production crossing (^ui-t-foundation-copy)", () => {
+  // proofs/ui/markdown-editor/index.md#^md-editor-t-stylesheet-copy
   test("committed copies are byte-identical and aggregate in owner order", () => {
     for (const { specSource, productionAsset } of COPIES) {
       expect(
@@ -235,6 +238,7 @@ describe("application foundation production crossing (^ui-t-foundation-copy)", (
         file.startsWith("specs/ui/markdown-editor/")
       )
       .filter((file) => file.endsWith(".css") || file.endsWith(".frame"))
+      .filter((file) => !RETIRED_STYLE_SOURCES.has(file))
       .filter((file) => styleSourceText(file, readFileSync(path.join(REPO_ROOT, file), "utf8")) !== undefined)
       .sort();
     const ownerlessStylesheets = allSpecStylesheets.filter(

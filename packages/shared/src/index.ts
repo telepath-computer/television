@@ -6,12 +6,22 @@ export {
   TELEVISION_CLIENT_META_HEADER,
   getChannelArtifactIDs,
   type AppearanceMode,
+  type TemplateSummary,
+  type Template,
+  type AppTemplate,
+  type ArtifactTemplateIcon,
+  type JSONSchema,
+  type ArtifactDisplayOptions,
+  type ArtifactPatch,
+  type ArtifactTemplateScan,
   type ArtifactRemovalResult,
   type Channel,
   type ChannelPatch,
   type ChannelRemovalResult,
   type ClientSignalEventName,
   type ClientTelemetryMeta,
+  type CreateTemplateArtifactRequest,
+  type CreateTemplateArtifactResult,
   type DeleteArtifactResult,
   type DesktopUpgradeInstructions,
   type DisplayPatch,
@@ -61,6 +71,7 @@ export {
   PinnedChannelsChangedEvent,
   ServerEventMessageEvent,
   ThemeChangedEvent,
+  TemplatesChangedEvent,
   type StoreDomainEvent,
 } from "./events.ts";
 export {
@@ -83,7 +94,7 @@ export {
   type ToolCallMessage,
   type UserMessage,
 } from "./acp-types.ts";
-export { TelevisionClient } from "./client.ts";
+export { type TemplateClient, TelevisionClient } from "./client.ts";
 export { buildConnectURL, parseConnectURL } from "./connect-url.ts";
 export {
   DEV_VERSION,

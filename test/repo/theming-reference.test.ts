@@ -13,7 +13,17 @@ test("the authored theme reference covers current application authorities", () =
   const authorities = [
     // The document root marker is owned by the app composition prose.
     "specs/ui/app/index.md",
-    ...globSync("specs/ui/app/**/*", { cwd: root }).filter(file => /\.(frame|css)$/.test(file)),
+    ...globSync("specs/ui/app/**/*", { cwd: root })
+      .filter(file => /\.(frame|css)$/.test(file))
+      .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
+    // Toolbox appearance is owned by its MDX spec and authored stories.
+    "storybook/spec/toolbox/toolbox.stories.ts",
+    "specs/ui/app/toolbox.mdx",
+    "storybook/spec/toolbox/styles.css",
+    // Artifact-frame authority adds its transparent states to the base frame.
+    "storybook/spec/artifact-frame/artifact-frame.stories.ts",
+    "specs/ui/app/artifact-frame/transparency.mdx",
+    "storybook/spec/artifact-frame/styles.css",
   ].sort();
   expect(sources.map(match => match[1]).sort()).toEqual(authorities);
   const contents = sources.map(([, source, digest]) => {
