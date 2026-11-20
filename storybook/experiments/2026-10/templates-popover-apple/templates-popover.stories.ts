@@ -3,10 +3,10 @@ import "../../../../specs/ui/foundation/tokens/app.css";
 import "./styles.css";
 import { templatesPopover, type TemplateRowParams, type TemplatesPopoverParams } from "./templates-popover.ts";
 import { html } from "../../../lib/html.ts";
-import calendarImage from "../../../../specs/ui/app/skill-selector/thumbnails/calendar.png";
-import tableImage from "../../../../specs/ui/app/skill-selector/thumbnails/table.png";
-import tasksImage from "../../../../specs/ui/app/skill-selector/thumbnails/tasks.png";
-import markdownImage from "../../../../specs/ui/app/skill-selector/thumbnails/markdown.png";
+import calendarImage from "./thumbnails/calendar.png";
+import tableImage from "./thumbnails/table.png";
+import tasksImage from "./thumbnails/tasks.png";
+import markdownImage from "./thumbnails/markdown.png";
 
 const templates: TemplateRowParams[] = [
   { name: "Calendar", description: "A week calendar for events supplied by an agent.", image: calendarImage },
