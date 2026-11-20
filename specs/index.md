@@ -96,7 +96,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `calendar.md` (73 lines) — *The bundled Calendar artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `checklist.md` (47 lines) — *The bundled Checklist artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `document.md` (66 lines) — *The bundled Document artifact template: its packaged Markdown editor, store contract, page, and adapting-agent guidance.*
-    - `index.md` (199 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
+    - `index.md` (197 lines) — *Artifact template architecture: folder validation, starting data and manifest schemas, cached app discovery, fresh CLI scans, icon delivery, and creation of copied folder or URL artifacts.*
     - `map.md` (155 lines) — *The bundled Map artifact template: its store contract, packaged page, and adapting-agent guidance.*
     - `sticky-note.md` (53 lines) — *The bundled Sticky note artifact template: its display size, store contract, packaged page, and adapting-agent guidance.*
     - `table.md` (117 lines) — *The bundled Table artifact template: its store contract, packaged page, and adapting-agent guidance.*
@@ -148,8 +148,6 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
       - `index.md` (32 lines) — *UI spec: settings — the navbar trigger and popover for the server-wide theme and appearance preference.*
     - **sidebar/**
       - `index.md` (77 lines) — *UI spec: the channel sidebar — the narrow region down the left of the window; its interaction, markup, and styling.*
-    - **skill-selector/**
-      - `index.md` (7 lines) — *UI spec routing: [Toolbox](ui/app/toolbox.mdx), the navbar popover for artifact templates.*
     - **stage/**
       - `index.md` (137 lines) — *UI spec: the stage — the region artifacts are shown in, and the filmstrip of pages it holds.*
     - **system-modal/**
