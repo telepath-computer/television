@@ -13,9 +13,7 @@ test("the authored theme reference covers current application authorities", () =
   const authorities = [
     // The document root marker is owned by the app composition prose.
     "specs/ui/app/index.md",
-    ...globSync("specs/ui/app/**/*", { cwd: root })
-      .filter(file => /\.(frame|css)$/.test(file))
-      .filter(file => file !== "specs/ui/app/skill-selector/skill-selector.frame"),
+    ...globSync("specs/ui/app/**/*", { cwd: root }).filter(file => /\.(frame|css)$/.test(file)),
     // Toolbox appearance is owned by its MDX spec and authored stories.
     "storybook/spec/toolbox/toolbox.stories.ts",
     "specs/ui/app/toolbox.mdx",
