@@ -36,7 +36,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `isolation.md` (86 lines) — *How artifact isolation is proven: escalation walks in which hostile artifact code, sandboxed in Chromium and Firefox and unsandboxed in its partition in the real Electron app, fails to obtain the token, act with the app's authority or reach the main process; a desktop walk showing artifacts' storage apart from the window's and from each other's; walks showing artifacts still load what they need; and the header, route, frame-attribute, header-rewriting and permission rules as contracts with real-browser and real-Electron crossings.*
     - `markdown-tables-buffer.md` (33 lines) — *How the interactive Markdown table source contracts are proven through the real editor and a captured host-content boundary.*
     - `proxy-caching.md` (20 lines) — *How the promises in Artifact proxy caching are proven.*
-    - `reload-navigation.md` (101 lines) — *How the promises in Reload and navigation are proven.*
+    - `reload-navigation.md` (102 lines) — *How the promises in Reload and navigation are proven.*
   - **artifacts/**
     - `index.md` (46 lines) — *Proves artifact record shapes, create and update inputs, and transparency across storage, HTTP results, events, and restart.*
   - **channel-state/**

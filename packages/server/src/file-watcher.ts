@@ -22,8 +22,104 @@ export type WatchContentFile = (
 
 const DEFAULT_REARM_INTERVAL_MS = 250;
 
+function errorCode(error: unknown): unknown {
+  return typeof error === "object" && error !== null && "code" in error ? (error as { code: unknown }).code : undefined;
+}
+
 function isMissingWatchRootError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && (error as { code: unknown }).code === "ENOENT";
+  return errorCode(error) === "ENOENT";
+}
+
+type NativeWatchListener = (eventType: string, filename: string | Buffer | null) => void;
+
+interface NativeWatcher {
+  close(): void;
+  on(event: "error", listener: (error: Error) => void): unknown;
+}
+
+// Node builds recursive fs.watch from one watcher per directory, in JavaScript, everywhere but macOS and Windows.
+// From Node 24.22 that code throws ENOTDIR outside any handler, ending the process, when a watched directory is
+// replaced by a file before its own events are delivered. Plain directory watches never stat on delivery, so on
+// those platforms this module builds the same per-directory tree itself.
+const BUILDS_DIRECTORY_TREE = process.platform !== "darwin" && process.platform !== "win32";
+
+/**
+ * Watches `root` and every directory below it with plain, non-recursive watches, and each symbolic link's target
+ * without descending into it. Root events keep the names the native watch reports; descendant events are reported
+ * as their path below the root. The tree is fixed at construction: the content watcher reattaches it after every
+ * descendant change, which picks up new directories. A root failure throws as fs.watch does; a descendant that
+ * vanished while the tree was built is skipped, and any other descendant failure is emitted as an error.
+ */
+class DirectoryTreeWatcher extends EventEmitter implements NativeWatcher {
+  readonly #watchers: fs.FSWatcher[] = [];
+  #closed = false;
+
+  constructor(root: string, listener: NativeWatchListener) {
+    super();
+    try {
+      this.#addDirectory(root, null, listener);
+    } catch (error) {
+      this.close();
+      throw error;
+    }
+  }
+
+  close(): void {
+    this.#closed = true;
+    for (const watcher of this.#watchers.splice(0)) watcher.close();
+  }
+
+  #watch(target: string, relative: string | null, listener: NativeWatchListener): boolean {
+    let watcher: fs.FSWatcher;
+    try {
+      watcher = fs.watch(target, (eventType, filename) => {
+        if (this.#closed) return;
+        const name = filename?.toString() ?? "";
+        listener(eventType, relative === null ? name : path.join(relative, name));
+      });
+    } catch (error) {
+      if (relative === null) throw error;
+      this.#descendantFailed(error);
+      return false;
+    }
+    watcher.on("error", (error) => {
+      if (!this.#closed) this.emit("error", error);
+    });
+    this.#watchers.push(watcher);
+    return true;
+  }
+
+  #addDirectory(directory: string, relative: string | null, listener: NativeWatchListener): void {
+    if (!this.#watch(directory, relative, listener)) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(directory, { withFileTypes: true });
+    } catch (error) {
+      if (relative === null) throw error;
+      this.#descendantFailed(error);
+      return;
+    }
+    for (const entry of entries) {
+      const childRelative = relative === null ? entry.name : path.join(relative, entry.name);
+      const child = path.join(directory, entry.name);
+      if (entry.isDirectory()) this.#addDirectory(child, childRelative, listener);
+      else if (entry.isSymbolicLink()) this.#watch(child, childRelative, listener);
+    }
+  }
+
+  #descendantFailed(error: unknown): void {
+    const code = errorCode(error);
+    if (code === "ENOENT" || code === "ENOTDIR") return;
+    // Listeners attach after construction, so report on the next turn, as fs.watch reports its runtime errors.
+    process.nextTick(() => {
+      if (!this.#closed) this.emit("error", error instanceof Error ? error : new Error(String(error)));
+    });
+  }
+}
+
+function watchNative(directory: string, recursive: boolean, listener: NativeWatchListener): NativeWatcher {
+  if (recursive && BUILDS_DIRECTORY_TREE) return new DirectoryTreeWatcher(directory, listener);
+  return fs.watch(directory, { recursive }, listener);
 }
 
 class ReArmingContentWatcher extends EventEmitter implements ContentWatcher {
@@ -33,7 +129,7 @@ class ReArmingContentWatcher extends EventEmitter implements ContentWatcher {
   readonly #onChange: () => void;
   readonly #options: WatchContentFileOptions;
   readonly #recursive: boolean;
-  #watcher: fs.FSWatcher | null = null;
+  #watcher: NativeWatcher | null = null;
   #ancestorWatchers: fs.FSWatcher[] = [];
   #closed = false;
   #dead = false;
@@ -77,7 +173,7 @@ class ReArmingContentWatcher extends EventEmitter implements ContentWatcher {
   }
 
   #attach(): void {
-    const watcher = fs.watch(this.#dir, { recursive: this.#recursive }, (_event, filename) => {
+    const watcher = watchNative(this.#dir, this.#recursive, (_event, filename) => {
       const relativePath = filename?.toString();
       const isWatchRootEvent =
         relativePath === undefined || relativePath === "" || relativePath === this.#watchRootBasename;
@@ -148,10 +244,10 @@ class ReArmingContentWatcher extends EventEmitter implements ContentWatcher {
         return;
       }
 
-      // Linux recursive fs.watch can keep following the replaced inode after
-      // an atomic rename-over and miss a later delete of the replacement.
-      // Reattach once per delivery turn so the native tree watch includes the
-      // directory's current entries without allocating per-directory handles.
+      // A recursive watch can keep following the replaced inode after an
+      // atomic rename-over and miss a later delete of the replacement, and a
+      // built directory tree does not grow by itself. Reattach once per
+      // delivery turn so the watch covers the directory's current entries.
       this.#closeActiveWatchers();
       try {
         this.#attach();
