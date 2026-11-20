@@ -92,7 +92,7 @@
   "overrides": {
     "@todesktop/cli": {
       "react": "17.0.2",
-      "fast-uri": "3.1.8"
+      "fast-uri": "^3.1.9"
     },
     "@hey-api/json-schema-ref-parser": {
       "js-yaml": "4.3.2"
