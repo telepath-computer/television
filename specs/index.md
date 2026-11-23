@@ -48,7 +48,7 @@ Generated from the description line of every spec by `scripts/specs-index.mjs`, 
     - `isolation.md` (118 lines) — *Artifact isolation: the sandbox HTML artifact documents run in, in a browser, and the separate sessions that isolate them in the desktop app; the browser features artifact documents are granted; the cross-origin rules on the routes they load; and the known limitations of each.*
     - `markdown-tables-buffer.md` (27 lines) — *A narrow buffer for interactive Markdown tables: source preservation, intentional editing, link navigation, and rendering without source normalization.*
     - `proxy-caching.md` (24 lines) — *The artifact proxy's complete cache contract: validators keep live artifact documents and their local assets current without forbidding browser storage.*
-    - `reload-navigation.md` (138 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
+    - `reload-navigation.md` (140 lines) — *How source changes reach an embedded artifact, how the artifact reloads and reports in-frame navigation, and how it keeps per-artifact back/forward history and bridge readiness truthful.*
   - **artifacts/**
     - `index.md` (74 lines) — *Artifact records: the stored path and URL shapes, their creation and update inputs, and the per-artifact transparency setting.*
   - **channel-state/**
