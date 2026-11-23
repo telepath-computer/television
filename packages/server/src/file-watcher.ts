@@ -26,8 +26,10 @@ function errorCode(error: unknown): unknown {
   return typeof error === "object" && error !== null && "code" in error ? (error as { code: unknown }).code : undefined;
 }
 
+// A root path that does not exist, or that is a file rather than a folder, is a missing root.
 function isMissingWatchRootError(error: unknown): boolean {
-  return errorCode(error) === "ENOENT";
+  const code = errorCode(error);
+  return code === "ENOENT" || code === "ENOTDIR";
 }
 
 type NativeWatchListener = (eventType: string, filename: string | Buffer | null) => void;
