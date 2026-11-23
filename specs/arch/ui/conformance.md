@@ -12,6 +12,6 @@ In every state its spec defines, production renders what the spec's frames and t
 
 - **Byte identity.** Every spec stylesheet that production uses has a production copy that is byte-for-byte the same. Tests compare each copy with its spec source.
 - **Delivery.** Each stylesheet reaches production by the route its architecture specifies. Document delivery is found by walking imports from the web entry; a surface-specific route is checked at that surface's boundary. A stylesheet that production uses but no spec states is listed as implementation-owned.
-- **Review.** Behavior tests prove what each spec's prose promises. Implementation and visual review judge whether production's markup and appearance match the spec.
+- **Review.** Behavior tests prove what each spec's prose promises. Implementation and visual review judge whether production's markup and appearance match the spec. Automating the markup comparison is tracked in [TV-649](https://linear.app/telepath-computer/issue/TV-649).
 
 The byte identity and delivery checks are required by [index.md](./index.md) and, for a surface-specific delivery route, by the spec that owns that route.
