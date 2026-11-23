@@ -44,7 +44,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - **cli/**
     - `admin-guide.md` (9 lines) — *Review and publication checks for the standalone administrator guide.*
     - `index.md` (296 lines) — *How the promises in CLI architecture are proven.*
-    - `startup-bind-failure.md` (38 lines) — *How the promises in Startup bind failure are proven.*
+    - `startup-bind-failure.md` (39 lines) — *How the promises in Startup bind failure are proven.*
   - **desktop/**
     - `appearance.md` (29 lines) — *How the promises in Desktop appearance are proven across renderer composition, Electron IPC, and the real desktop application.*
     - `artifact-partitions.md` (42 lines) — *How desktop artifact partitions are proven: naming, attachment, the record and the reaper as contracts, crossed in the real Electron app connected to a running server, including a stand-in for an interface without partition support and a reaping across a restart.*
