@@ -81,7 +81,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `authoring.md` (29 lines) — *Proves that the emitted television skill teaches copied template use, starting data, and artifact snapshots.*
     - `bundled-installation.md` (35 lines) — *Proves bundled artifact-template packaging, boot installation, preservation, backup, and handled-ID state.*
     - `bundled-templates.md` (19 lines) — *Proves the bundled artifact template inventory against the source manifests and exported IDs.*
-    - `calendar.md` (19 lines) — *Proves the bundled Calendar package and its live page delivery.*
+    - `calendar.md` (21 lines) — *Proves the bundled Calendar package, its read-only store binding, and the live delivery of its independent copies.*
     - `checklist.md` (43 lines) — *Proves the bundled Checklist package and its store validation, ordering, and write boundaries.*
     - `document.md` (48 lines) — *Proves the bundled Document package, self-contained editor, blank start, scoped saves, live store binding, and sandboxed link route.*
     - `index.md` (77 lines) — *Proves template validation, watched discovery, authenticated icons, and copied folder or URL creation at contracts and real transport boundaries.*

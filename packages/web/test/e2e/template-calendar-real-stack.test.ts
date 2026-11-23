@@ -2,7 +2,7 @@
 // case: each case creates its own Calendar artifact with its own starting
 // store value, opens the page directly in a real browser, and writes through
 // the page's real resource SDK or a spawned `tv` command.
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { TelevisionClient, type CreateTemplateArtifactRequest } from "@telepath-computer/television-shared";
@@ -110,6 +110,87 @@ test("a spawned tv write adds an event to the open page", async ({ page }) => {
     JSON.stringify({ title: "Added by an agent", start: "2026-11-03T15:00", end: "2026-11-03T16:00", color: "green" })]))
     .toContain(`JSON store of artifact ${artifactID} updated.`);
   await expect(event(page, "added").locator("h3")).toHaveText("Added by an agent");
+});
+
+// proofs/arch/templates/calendar.md#^templates-calendar-t-no-writes
+test("the page subscribes to the whole store and writes nothing while it opens, shows events and follows agent writes", async ({ page }) => {
+  // Every message the page's resource SDK sends goes over this WebSocket, and
+  // any other write would need a request other than GET.
+  const sent: { type?: unknown; path?: unknown }[] = [];
+  page.on("websocket", (socket) => {
+    socket.on("framesent", ({ payload }) => {
+      try {
+        sent.push(JSON.parse(typeof payload === "string" ? payload : payload.toString("utf8")));
+      } catch {
+        // The SDK sends only JSON messages; anything else is not a store write.
+      }
+    });
+  });
+  const nonGetRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() !== "GET") nonGetRequests.push(`${request.method()} ${request.url()}`);
+  });
+  // A highlighted event is the one a page might be tempted to settle itself.
+  const highlighted = {
+    ...week,
+    events: { ...week.events, launch: { title: "Launch", start: "2026-11-04T15:00", end: "2026-11-04T16:00", highlight: true } },
+  };
+  const added = { title: "Added by an agent", start: "2026-11-03T15:00", end: "2026-11-03T16:00", color: "green" };
+
+  const artifactID = await openCalendar(page, highlighted);
+  await expect(event(page, "launch").locator("h3")).toHaveText("Launch");
+  product.runCLI(["resource", "json", "set", "--artifact", artifactID, "events/added", JSON.stringify(added)]);
+  await expect(event(page, "added").locator("h3")).toHaveText("Added by an agent");
+  await motionSettled(page);
+  await page.reload();
+  await calendarShown(page);
+  await motionSettled(page);
+  await expect(event(page, "added").locator("h3")).toHaveText("Added by an agent");
+
+  expect(sent.filter((message) => message.type === "subscribe").map((message) => message.path)).toContain("");
+  expect(sent.filter((message) => message.type === "write")).toEqual([]);
+  expect(nonGetRequests).toEqual([]);
+  const stored = await new TelevisionClient(product.serverURL).resources.json.get({ store: { artifactID }, path: "" });
+  expect(stored).toEqual({ exists: true, value: { ...highlighted, events: { ...highlighted.events, added } } });
+});
+
+// proofs/arch/templates/calendar.md#^templates-calendar-t-assets
+test("a copied Calendar loads its dependencies and keeps working with its template moved out of discovery", async ({ page }) => {
+  // This case moves the installed template, so it uses a server of its own
+  // rather than the one the other cases create calendars from.
+  const own = await launchProductServer({ bundledTemplatesBundle: templatesBundle });
+  try {
+    const client = new TelevisionClient(own.serverURL);
+    const { channels } = await client.channels.list();
+    const { artifactID } = await client.templates.create({ templateID: "calendar", channelID: channels[0]!.id, source: "cli", data: week });
+    const responses = new Map<string, { status: number; body: Promise<Buffer | null> }>();
+    page.on("response", (response) => {
+      responses.set(new URL(response.url()).pathname, { status: response.status(), body: response.body().catch(() => null) });
+    });
+
+    await page.goto(new URL(`/artifact/${artifactID}/index.html`, own.serverURL).toString());
+    await calendarShown(page);
+    await configureTestMotion(page);
+    await motionSettled(page);
+    await expectWeek(page);
+    const copied = `/artifact/${artifactID}`;
+    for (const served of ["/canonical/v2/styles.css", "/canonical/v2/components.js", "/sdk/v1/resources.js",
+      `${copied}/styles.css`, `${copied}/calendar-page.js`, `${copied}/calendar-week.js`, `${copied}/calendar-event.js`]) {
+      expect(responses.get(served)?.status, served).toBe(200);
+    }
+    expect(await responses.get(`${copied}/styles.css`)!.body).toEqual(readFileSync(path.join(templatesBundle, "calendar", "styles.css")));
+
+    renameSync(path.join(own.home, "templates", "calendar"), path.join(own.home, "calendar-outside-discovery"));
+    await page.reload();
+    await calendarShown(page);
+    await motionSettled(page);
+    await expectWeek(page);
+    own.runCLI(["resource", "json", "set", "--artifact", artifactID, "events/added",
+      JSON.stringify({ title: "Added by an agent", start: "2026-11-03T15:00", end: "2026-11-03T16:00", color: "green" })]);
+    await expect(event(page, "added").locator("h3")).toHaveText("Added by an agent");
+  } finally {
+    await own.dispose();
+  }
 });
 
 // proofs/ui/templates/calendar.md#^calendar-ac-week

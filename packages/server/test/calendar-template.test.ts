@@ -70,7 +70,9 @@ describe("bundled Calendar package", () => {
     });
     expect(JSON.parse(readFileSync(path.join(folder, "data.json"), "utf8"))).toEqual({ events: {} });
     const readme = readFileSync(path.join(folder, "README.md"), "utf8");
-    for (const guidance of ["`startDate`", "`days`", "`visibleHours`", "`events/<key>`", "`allDay`", "`attendees`", "`highlight`", "tv resource json set", "tv-calendar"]) {
+    // Each store field in the schema, then the write command and the component the page started from.
+    const storeFields = ["`startDate`", "`days`", "`visibleHours`", "`events`", "`title`", "`detail`", "`start`", "`end`", "`allDay`", "`color`", "`attendees`", "`highlight`"];
+    for (const guidance of [...storeFields, "`events/<key>`", "tv resource json set", "tv-calendar"]) {
       expect(readme).toContain(guidance);
     }
     // The page links its own stylesheet after the canonical stylesheet.
