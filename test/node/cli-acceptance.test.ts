@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import os from "node:os";
 import path from "node:path";
 import WebSocket from "ws";
+import { FLAKY_TEST_RETRIES } from "../flaky-retries.ts";
 import { disposeAllOwnedProcesses, spawnOwnedProcess, type OwnedProcess } from "../helpers/owned-process.ts";
 import { writeHomeConfig } from "../helpers/television-home.ts";
 
@@ -684,6 +685,14 @@ describe("CLI product spine acceptance", () => {
     expect(existsSync(path.join(source, "index.html"))).toBe(true);
   });
 
+  // On Linux, Node 24.22.0 and later can throw an uncaught ENOTDIR from inside a
+  // recursive fs.watch when a watched directory is replaced by a file, and the
+  // server process exits. This test replaces the templates folder with a file,
+  // so the server sometimes exits before the last lookups. Node issue:
+  // https://github.com/nodejs/node/issues/66791. Remove this annotation once the
+  // Node version CI uses includes the fix, https://github.com/nodejs/node/pull/66792.
+  describe("flaky: Node recursive watcher exits on a folder replaced by a file", { retry: FLAKY_TEST_RETRIES }, () => {
+
   // proofs/product/templates.md#^templates-ac-discovery
   // proofs/product/cli.md#^cli-ac-template-show-refusal
   it("shows freshly edited exact template records and refuses invalid, absent or unreadable lookups", async () => {
@@ -731,6 +740,7 @@ describe("CLI product spine acceptance", () => {
     expect(unreadable.exitCode).toBe(1);
     expect(unreadable.stdout).toBe("");
     expect(unreadable.stderr).toContain(JSON.parse(unreadableScan.stdout).errors.find((error: any) => error.folder === null).error);
+  });
   });
 
   // proofs/product/templates.md#^templates-ac-url-create
