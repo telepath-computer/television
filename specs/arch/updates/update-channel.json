@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "1.5.0",
+  "version": "1.5.11",
   "toast": {
-    "markdown": "### A new version of Television (1.5) is available.\n\nTelevision now makes your artifacts more interactive by giving them a real-time live data store, synced everywhere and editable by your agent. Artifacts are also now sandboxed for improved security.",
+    "markdown": "### A new version of Television (1.5.11) is available.\n\nTelevision now has **templates**, which make it easier to get started. Click the button at upper-right to see the list of installed templates. Click one to add it to your TV and then ask your agent to modify it. You can also ask your agent to create your own templates.",
     "prompt": "Use `curl -fsSL https://television.run/install.md` to fetch the Television admin guide directly without summarization, and then help me upgrade my Television install to the latest version."
   },
   "desktop": {
