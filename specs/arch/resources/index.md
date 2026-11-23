@@ -1,4 +1,4 @@
-*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with the artifact record's fields and save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
+*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with artifact-record save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
 
 # Resource architecture
 
@@ -13,7 +13,7 @@ This spec owns the *resource layer*: the part of Television every resource type 
 | this spec | the layer, as above |
 | [sdk.md](./sdk.md) | the browser module at `/sdk/v1/resources.js`: its build, serving, the layer's functions, the connection status and the connection client |
 | [json-store.md](./json-store.md) | the `json` type: paths, values and operations, write application, transactions, subscriptions, local writes in the SDK, its content file and limits, and its CLI verbs |
-| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill, and the `tv-tasks` skill's use of a JSON store |
+| [guidance.md](./guidance.md) | the `resources.md` guidance document in the `television` skill |
 
 The *resource SDK* is the browser module; the *page connection* is defined below.
 
@@ -75,19 +75,9 @@ An artifact *has a store* when it is a path artifact whose ID has the form Telev
 
 An artifact's *own store* is the store its record's `store` points to. Its owner is bound to it at `read-write` implicitly, for as long as the pointer stands: the bindings file never holds that binding, and binding and unbinding refuse it with `owner-binding`. The layer reports it among a store's bindings in `info`, among an artifact's stores in `list --artifact` and, with the flag on, among the stores a page's `listResources` and `getResourceInfo` report. A page's opening state and the `bound` and `unbound` events never carry it: it begins with the store's first write and ends with the pointer. ^rs-own-store-binding
 
-**Buffer: the artifact record.** The artifact record and its registry are otherwise code-authoritative (`packages/server/src/server-store.ts`; [product/artifacts.md](../../product/artifacts.md)). This buffer makes authoritative only what the resource layer relies on: ^rs-artifact-record
+**Artifact-record saves.** The [artifact-record spec](../artifacts/index.md#^ar-record) owns the complete record type, including `store` and `share`. This spec owns the save rules that protect the store pointer and share link: ^rs-artifact-record
 
-```ts
-// The artifact record's resource fields; a record without them has no store yet and is not shared.
-interface ArtifactRecordResourceFields {
-  store?: ResourceID;                              // the artifact's store, from its first write
-  share?: { id: string; access: AccessLevel };     // the artifact's share link
-}
-```
-
-- Every rewrite of a record and every deletion of one follows [the storage rule](#^rs-storage), including [the uncertain-save rule](#^rs-arch-uncertain-save): an uncertain rewrite takes the record it reads back as current, and an uncertain deletion that finds the file gone takes the artifact as deleted. A record carries promises to the store's writers and the link's holders, and any rewrite, such as a title change, replaces the whole record, so every record write needs the durability of the data. The server applies one artifact's record changes one at a time, each on the record as it stands after the last.
-- Artifact records have no version. A record without `store` or `share` is valid: it records an artifact whose store has never been written and that has no share link, as does every record an earlier release wrote.
-- The record's API and event shapes carry the two fields as the record does, so a token holder sees an artifact's store's resource ID and its share link.
+Every rewrite of a record and every deletion of one follows [the storage rule](#^rs-storage), including [the uncertain-save rule](#^rs-arch-uncertain-save): an uncertain rewrite takes the record it reads back as current, and an uncertain deletion that finds the file gone takes the artifact as deleted. A record carries promises to the store's writers and the link's holders, and any rewrite, such as a title change, replaces the whole record, so every record write needs the durability of the data. The server applies one artifact's record changes one at a time, each on the record as it stands after the last.
 
 **Share IDs.** A share ID is generated by the artifact ID generator. When the layer loads, it builds its map from share IDs to artifacts from the records the store loads. A newly generated artifact ID or share ID that equals an existing artifact ID or share ID is drawn again, in both directions. ^rs-share-ids
 
@@ -100,7 +90,7 @@ interface ArtifactRecordResourceFields {
 ## Storage
 
 ```text
-<home>/state/artifacts/<artifact-id>.json   the artifact record, with "store" and "share" when it has them
+<home>/state/artifacts/<artifact-id>.json   the artifact record
 <home>/resources/<type>/<resource-id>/
   manifest.json                             the resource's metadata
   …                                         the type's content files, such as a JSON store's content.json
@@ -142,7 +132,7 @@ A manifest or content file the layer cannot read or validate likewise makes the 
 
 **A save whose outcome is uncertain.** A rewrite can fail after its rename has replaced the file, and a deletion after it has removed the file, when the flush of the directory fails. The server cannot then know whether the change will survive a crash. It reads the file back, or finds it gone, and takes that as current: a manifest's description and usage, a store's content as [its type](./json-store.md#^js-arch-uncertain) reads it, the bindings file's bindings, an artifact record's store pointer and share link, or a deleted resource's or record's absence. Since the rename or removal has already happened, what it finds is ordinarily the change, which then takes effect as a completed change does, with its events. The server refuses the change with `unavailable` and a message saying that its outcome is unknown. When the file cannot be read back, or what it holds is not valid, the state from before the change stands, and the next successful save of that file writes it. Nothing becomes unavailable because a save's outcome is uncertain, so a client can read what is there and retry. What the server takes as current may not yet be durable, and a crash of the machine before the next successful save of that file can lose it; this is accepted, as [the product spec](../../product/resources/resources.md#^rs-uncertain-save) states. ^rs-arch-uncertain-save
 
-Destroying a store happens in this order: when it is an own store whose artifact exists, the layer first saves the owner's record without `store`; then, with the flag on, it removes the store's bindings and writes the bindings file; then it deletes the store's files and directory. A crash between the steps therefore never leaves a pointer to a destroyed store. The destroy takes effect with its first step, once that step is saved or taken as saved under [the uncertain-save rule](#^rs-arch-uncertain-save). From then on the store is destroyed: the layer emits `destroyed` at once, before the later steps, so that pages using the store and every `watch` that follows it, by its resource ID or its owner's artifact ID, hear that it is gone; and the layer leaves the store out of `list` and refuses every operation on its resource ID with `not-found`, apart from a destroy. A later step that fails refuses the destroy and leaves an incomplete deletion, which a retried destroy finishes by running the steps that remain. A server that starts while an incomplete deletion remains, after such a failure or a crash between the steps, finds its files as a store again, which no artifact's pointer reaches, with any bindings the destroy had not removed; destroying it deletes them. Once the pointer is cleared, the owner's next write is [a first write](#^rs-first-write), which creates a new store under a new resource ID. Making that later use fail instead is a known later refinement ([TV-950](https://linear.app/telepath-computer/issue/TV-950)). ^rs-destroy-order
+Destroying a store happens in this order: when it is an own store whose artifact exists, the layer first saves the owner's record without `store`; then, with the flag on, it removes the store's bindings and writes the bindings file; then it deletes the store's files and directory. A crash between the steps therefore never leaves a pointer to a destroyed store. The destroy takes effect with its first step, once that step is saved or taken as saved under [the uncertain-save rule](#^rs-arch-uncertain-save). From then on the store is destroyed: the layer emits `destroyed` at once, before the later steps, so that pages using the store and every `watch` that follows it, by its resource ID or its owner's artifact ID, hear that it is gone; and the layer leaves the store out of `list` and refuses every operation on its resource ID with `not-found`, apart from a destroy. A later step that fails refuses the destroy and leaves an incomplete deletion, which a retried destroy finishes by running the steps that remain. A server that starts while an incomplete deletion remains, after such a failure or a crash between the steps, finds its files as a store again, which no artifact's pointer reaches, with any bindings the destroy had not removed; destroying it deletes them. Once the pointer is cleared, the owner's next write is [a first write](#^rs-first-write), which creates a new store under a new resource ID. ^rs-destroy-order
 
 Version 1 is the first version of the manifest's format and of the bindings file's, so the server migrates neither.
 

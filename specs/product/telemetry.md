@@ -21,7 +21,7 @@ These guarantees are the hard boundary on the whole system. They constrain every
 *Telemetry* is the collection of anonymous usage data about a running Television server. A *telemetry event* is one recorded occurrence of a predefined kind of activity, carrying a fixed set of predefined properties.
 
 - **Anonymous.** Telemetry carries no personally identifiable information. There is no name, email, account, IP address, IP-derived identity, geolocation, or device fingerprint. Network transport necessarily exposes the sending host’s IP to the receiving service; telemetry disables its use as analytics data and location enrichment.
-- **No user-generated content.** Telemetry never records anything the user authored or named: not artifact paths or URLs, artifact titles, channel names, user-installed theme names, file contents, or any free text. Theme state may carry a Television-owned bundled theme ID from the closed vocabulary defined below; those IDs name packages shipped by Television, not user-authored content. The activity signals that drive sessions report only *that* a user is engaged — never what they viewed, typed, or did. ^no-ugc
+- **No user-generated content.** Telemetry never records anything the user authored or named: not artifact paths or URLs, artifact titles, channel names, user-installed theme or artifact-template names, file contents, or any free text. Theme state and artifact-template use may carry Television-owned bundled IDs from the closed vocabularies defined below; those IDs name packages shipped by Television, not user-authored content. The activity signals that drive sessions report only *that* a user is engaged — never what they viewed, typed, or did. ^no-ugc
 - **Closed vocabulary.** Telemetry records only predefined *event names* (for example *artifact created*, *server started*) and predefined, enumerated *properties* (for example artifact kind, auth mode), numeric version triples, booleans, and integer counters (for example the number of artifacts on the server, a version number). An event or property that is not predefined cannot be sent — with a single, explicitly-documented exception, the agent-reported *installed-by agent* value (see [What we record about each event](#what-we-record-about-each-event)). ^closed-vocabulary
 
 The closed vocabulary is the mechanism that makes "no user-generated content" a guarantee rather than a hope: because the set of events and the set of allowed property values are fixed in advance, there is no path by which a path name, URL, or title reaches the analytics platform. Where a property describes user-chosen content (an artifact's location, a theme), it is reduced to a high-level enumerated classification — never the underlying string. ^closed-vocabulary-rationale
@@ -88,15 +88,17 @@ Each row is a predefined event. Properties are defined in [What we record about 
 | *server upgraded* | An existing server data directory starts with no recorded telemetry version, or with a recorded telemetry version older than the running version. |
 | *session activity* | Recorded while a user is actively engaged with the interface; carries the *session* it belongs to. Session count and length are derived from these. |
 | *artifact created* / *artifact updated* / *artifact deleted* | A user creates, changes an artifact's registry metadata, or removes an artifact. |
+| *artifact template used* | A person or agent successfully creates an artifact from an artifact template. |
 | *channel created* / *channel updated* / *channel deleted* | A user creates, renames, or removes a channel. Same-value metadata patches emit no telemetry update event. |
 | *layout changed* | A user rearranges a channel's tab pages by reordering them. |
 | *channel pins changed* | An explicit pin-list update pins, unpins, reorders, or replaces pinned channels. |
 | *tab page full screen changed* | A retained tab page enters or leaves full-screen presentation. |
-| *artifact skill prompt copy clicked* | A user clicks Copy prompt for one of the four fixed artifact skills. |
 | *theme changed* | The active theme changes (an installed theme becomes active, or the selection is cleared to the null theme). |
 | *appearance mode changed* | A committed appearance preference changes between `light`, `dark`, and `system`. |
-| *skill installed* | Television's bundled skills are installed into an agent's skills directory. |
+| *skill installed* | Television's bundled `television` skill is installed into an agent's skills directory. |
 | *telemetry opted out* | A user disables telemetry. The final event; see [Opting out is itself recorded](#opting-out-is-itself-recorded). |
+
+The automatic [replacement](./channels.md#^ch-delete-selection) after a person deletes the last channel emits no *channel created* event. The person's deletion still emits *channel deleted*.
 
 A *session* is a span of genuine user engagement with the Television interface — **not** merely an open connection. An open connection or ongoing background traffic does not mean a human is actively present (a backgrounded tab keeps its connection open). So the interface reports lightweight, content-free *activity signals* — the window becoming active, scrolling, interaction — from which the server determines engagement. A session begins when a user becomes active, continues while activity continues, and ends after a period without activity; its length is the span of that engagement.
 
@@ -213,13 +215,14 @@ This event describes the committed server-state diff, not inferred gesture inten
 
 Each retained page whose committed `full_screen` value changes emits one event carrying the new value. Page creation and removal do not imply a presentation transition. The event does not identify the page or the control used to change it. ^full-screen-classification
 
-**Artifact-skill prompt copy** — on *artifact skill prompt copy clicked*.
+**Artifact template use** — on *artifact template used*.
 
 | Property | Values |
 |---|---|
-| artifact skill | `calendar` \| `table` \| `tasks` \| `markdown` |
+| source | `cli` \| `ui` |
+| template | a bundled artifact template ID \| `custom` |
 
-The property identifies the fixed skill card whose button was clicked. Clipboard writing is best-effort, so this event records the click rather than claiming clipboard success. The fixed prompt text is never recorded. ^artifact-skill-classification
+The event records use of the [artifact template creation path](./templates.md#^artifact-template-result), alongside the ordinary *artifact created* event. `source` identifies the CLI or Toolbox popover. A bundled ID is reported as itself, because Television chose it; any other ID is reported as `custom`. Template names, paths, data, image files, and non-bundled IDs are never sent. ^artifact-template-telemetry
 
 **Theme change** — on *theme changed*.
 
@@ -267,7 +270,7 @@ The agent type is inferred from the skills directory the install targets, by mat
 
 These boundaries restate the [Privacy guarantees](#privacy-guarantees) as concrete non-goals, because a reader might otherwise assume richer collection:
 
-- No artifact paths, URLs, or titles; no channel names; no user-authored theme names or IDs; no artifact contents; no free text of any kind — except the single agent-reported *installed-by agent* value (an agent self-identifier, not user content). Theme telemetry admits only the bundled-ID vocabulary and the classified settings above, never the consent ID set or script contents.
+- No artifact paths, URLs, or titles; no channel names; no user-authored theme or artifact-template names or IDs; no artifact contents; no free text of any kind — except the single agent-reported *installed-by agent* value (an agent self-identifier, not user content). Theme and artifact-template telemetry admit only their bundled-ID vocabularies and the classifications above.
 - No per-event high-resolution detail beyond the enumerated properties above — for example, *artifact created* records the kind and classification, not the specific file.
 - Channel focus, local tab selection, artifact-history navigation, menu and popover impressions, and intermediate drag motion may contribute to content-free *session activity*, but produce no dedicated action event. A full-screen event carries only the committed boolean, without the originating control or gesture.
 - No identity that spans servers, and no notion of multiple distinct users behind one server.
@@ -286,7 +289,7 @@ These analytical goals justify the events and properties above; the spec is corr
 - Sessions per day, and session length.
 - Daily and weekly per-event counters.
 - Share of active servers that pin channels, reorder pinned channels, reorder tab pages, and enter page full-screen presentation.
-- Artifact-skill prompt-copy conversion by fixed skill.
+- Artifact-template use by source and bundled template, with custom templates grouped as `custom`.
 - Direct artifact deletion separately from cleanup caused by deleting a channel.
 - Distribution of active server versions and configurations (see [active-config requirement](#^active-config-requirement)).
 - Deliberate theme switching separately from invalid-theme fallback, and appearance preference switching.
@@ -300,7 +303,7 @@ Television uses a mature third-party analytics platform with APIs, SDKs, flexibl
 
 Acceptance for lifecycle and action telemetry must begin with the real product behavior that causes an event: a serving boot, a committed change to server state, activity or interaction in a real browser or the real Electron app, or a successful CLI skill install. It must observe the complete event at the telemetry sink after identity, suppression, and session attribution. When an acceptance path stops at a recording sink, [the sink's live integration surface](../arch/telemetry/sink.md#Real PostHog integration test surface) owns proof of real delivery from that sink into PostHog.
 
-Acceptance for artifacts, channels, themes, sessions, copying artifact-skill prompts, and update notifications must show that the resulting serialized telemetry events contain no user-generated content. Apart from the documented [installed-by agent](#^installed-by-agent) exception, each event may contain only its declared name and properties.
+Acceptance for artifacts, artifact templates, channels, themes, sessions, and update notifications must show that the resulting serialized telemetry events contain no user-generated content. Apart from the documented [installed-by agent](#^installed-by-agent) exception, each event may contain only its declared name and properties.
 
 Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), [telemetry architecture](../arch/telemetry/index.md#Testing) owns proof that production telemetry types are closed and every event passes through the one event chokepoint. [Property derivation](../arch/telemetry/derivation.md) owns proof for all of the property classifiers.
 
@@ -322,4 +325,4 @@ Under the testing policy's [rule that a spec serves several purposes](../arch/te
 
 Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), telemetry acceptance follows the CLI's [owned external-installer exception](./cli.md#^cli-installer-exception) and must not run the interactive installer. Direct skill-install acceptance must perform the real file copy. Interactive acceptance must observe the reported success or failure of the delegated installer action. Events from both forms must contain neither destination paths nor installer arguments.
 
-Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), [update notifications](./update-notifications.md#Testing) own when their client-observed events fire and which version properties they carry. The [skill selector](../ui/app/skill-selector/index.md#Interaction) owns the `artifact_skill_prompt_copy_clicked` event and the fixed `artifact_skill` value for each card. [Telemetry client-signal architecture](../arch/telemetry/client-signals.md#Testing) owns validation and forwarding into the event chokepoint. These client events may contain only their declared names and properties and no user-generated content.
+Under [Tests are the validation mechanism](../arch/testing-policy.md#Tests are the validation mechanism), [update notifications](./update-notifications.md#Testing) own when their client-observed events fire and which version properties they carry. [Telemetry client-signal architecture](../arch/telemetry/client-signals.md#Testing) owns validation and forwarding into the event chokepoint. These client events may contain only their declared names and properties and no user-generated content.

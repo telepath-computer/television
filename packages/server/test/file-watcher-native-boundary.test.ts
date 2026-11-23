@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,7 +102,38 @@ describe("shared content watcher native boundary (^rn-ac-shared-watcher-native)"
     contentWatcher.close();
   });
 
-  it("uses one unfiltered recursive root watch without allocating descendant watchers", async () => {
+  // Node's own recursive watch is a per-directory tree in JavaScript except on macOS and Windows, and from
+  // Node 24.22 it can end the process when a watched directory becomes a file, so the module builds that tree itself.
+  const buildsTree = process.platform !== "darwin" && process.platform !== "win32";
+
+  it.runIf(buildsTree)("builds an unfiltered tree of plain directory watches, symbolic-link targets included", async () => {
+    const root = tempDir();
+    mkdirSync(path.join(root, "nested", "deep"), { recursive: true });
+    writeFileSync(path.join(root, "nested", "page.html"), "", "utf8");
+    symlinkSync(path.join(root, "nested"), path.join(root, "linked"));
+    const onChange = vi.fn();
+
+    const contentWatcher = defaultWatchContentFile(root, onChange, { recursive: true });
+    const initialCalls = [...calls];
+    const tree = initialCalls.filter((call) => call.watchedPath === root || call.watchedPath.startsWith(`${root}${path.sep}`));
+
+    expect(tree.map((call) => call.watchedPath).sort()).toEqual(
+      [root, path.join(root, "linked"), path.join(root, "nested"), path.join(root, "nested", "deep")].sort(),
+    );
+    expect(initialCalls.every((call) => call.options?.recursive !== true)).toBe(true);
+
+    tree.find((call) => call.watchedPath === path.join(root, "nested", "deep"))!.listener("change", "palette.css");
+    expect(onChange).toHaveBeenCalledTimes(1);
+
+    contentWatcher.close();
+    contentWatcher.close();
+    await flushImmediate();
+
+    expect(calls).toHaveLength(initialCalls.length);
+    expect(initialCalls.every((call) => call.watcher.closeCalls === 1)).toBe(true);
+  });
+
+  it.skipIf(buildsTree)("uses one unfiltered recursive root watch without allocating descendant watchers", async () => {
     const root = tempDir();
     mkdirSync(path.join(root, "nested", "deep"), { recursive: true });
     const onChange = vi.fn();

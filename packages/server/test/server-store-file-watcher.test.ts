@@ -59,7 +59,8 @@ interface ControlledWatchCall {
 function controlledWatchContentFile(calls: ControlledWatchCall[]): WatchContentFile {
   return (watchPath, onChange, options) => {
     const watcher = new FakeWatcher();
-    calls.push({ watchPath, onChange, options: options ?? {}, watcher });
+    // These assertions address artifact/theme owners; template observation is tested separately.
+    if (path.basename(watchPath) !== "templates") calls.push({ watchPath, onChange, options: options ?? {}, watcher });
     return watcher;
   };
 }
@@ -430,7 +431,7 @@ describe("ServerStore file-change watcher target selection", () => {
     const previousClosedAtConstruction: boolean[] = [];
     const baseWatchContentFile = controlledWatchContentFile(calls);
     const watchContentFile: WatchContentFile = (watchPath, onChange, options) => {
-      if (calls.length > 0) {
+      if (path.basename(watchPath) !== "templates" && calls.length > 0) {
         previousClosedAtConstruction.push(calls.at(-1)!.watcher.closed);
       }
       return baseWatchContentFile(watchPath, onChange, options);
@@ -547,7 +548,8 @@ describe("ServerStore file-change watcher target selection", () => {
 
     store[Symbol.dispose]();
 
-    expect(watchers[0]?.closed).toBe(true);
+    expect(watchers).toHaveLength(2);
+    expect(watchers.every((watcher) => watcher.closed)).toBe(true);
   });
 
   it("emits artifact-content-changed when path patches retarget content", async () => {

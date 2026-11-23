@@ -7,6 +7,9 @@ import { appearanceResolverScriptSource } from "../artifact/src/browser/appearan
 import { canonicalWrapper } from "../server/src/canonical.ts";
 
 const packageDir = path.dirname(fileURLToPath(import.meta.url));
+// The refresh command passes its inventory folder here. Its test points it at a
+// private folder so it never rewrites the suite's shared inventory.
+const inventoryRoot = process.env.TV_LICENSE_INVENTORY_ROOT;
 
 // Inline-asset budget: 64 KiB. Generous enough to absorb the Hind variable
 // font woff2 (~23 KB) sourced from `packages/canonical` plus any future
@@ -172,9 +175,10 @@ function inlineStyles(): Plugin {
 // so `public/manifest.json` is copied verbatim into `dist/` during build and
 // served at `/manifest.json` during dev.
 //
-// Dev server port is 5182. The bundled view iframe is served from the fixed
-// unauthenticated `/views/markdown/` route. The inline plugins below keep the
-// shipped editor as a single self-contained `index.html`.
+// Dev server port is 5182. The bundled file view iframe is served from the
+// fixed unauthenticated `/views/markdown/` route and remains self-contained.
+// The packaged template's maintenance build uses its narrower editor entry;
+// it is not part of this file-view build.
 export default defineConfig({
   root: path.resolve(packageDir, "src"),
   base: "./",
@@ -200,7 +204,10 @@ export default defineConfig({
   plugins: [
     appearanceBootstrap(),
     developmentStyles(),
-    createTelevisionLicensePlugin({ surface: "view:markdown" }),
+    createTelevisionLicensePlugin({
+      surface: "view:markdown",
+      ...(inventoryRoot ? { inventoryRoot: path.resolve(inventoryRoot) } : {}),
+    }),
     inlineScripts(),
     inlineStyles(),
   ],

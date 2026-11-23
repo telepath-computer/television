@@ -16,9 +16,9 @@ async function openApp(page: Page, product: ProductServer, baseURL: string | und
   await page.locator(".channel-switcher").click();
 }
 
-async function clearChannels(client: TelevisionClient): Promise<void> {
+async function removeOtherChannels(client: TelevisionClient, keepIDs: readonly string[]): Promise<void> {
   for (const channel of (await client.channels.list()).channels) {
-    await client.channels.remove({ channelID: channel.id });
+    if (!keepIDs.includes(channel.id)) await client.channels.remove({ channelID: channel.id });
   }
 }
 
@@ -40,13 +40,14 @@ test("switcher row actions reuse channel commands without selecting or reloading
   const product = await launchProductServer();
   try {
     const client = new TelevisionClient(product.serverURL);
-    await clearChannels(client);
     // Keep the create footer exposed while the upper row menu is open.
+    const earlier = [];
     for (const name of ["Earlier one", "Earlier two", "Earlier three"]) {
-      await client.channels.create({ name });
+      earlier.push((await client.channels.create({ name })).channel.id);
     }
     const selected = (await client.channels.create({ name: "Selected" })).channel;
     const other = (await client.channels.create({ name: "Other" })).channel;
+    await removeOtherChannels(client, [...earlier, selected.id, other.id]);
     const path = createArtifactFile(product.home, "switcher-context-menu", "<!doctype html><h1>Live artifact</h1>", "html");
     const { artifact } = await client.artifacts.create({ channelID: selected.id, kind: "path", path, title: "Live artifact" });
     await client.display.patch({ focusedChannelId: selected.id, pinnedChannelIds: [] });
@@ -113,12 +114,12 @@ test("switcher delete restores scroll and focus after cancellation and confirmed
   const product = await launchProductServer();
   try {
     const client = new TelevisionClient(product.serverURL);
-    await clearChannels(client);
     const channelCount = 18;
     const channels = [];
     for (let index = 0; index < channelCount; index += 1) {
       channels.push((await client.channels.create({ name: `Channel ${index}` })).channel);
     }
+    await removeOtherChannels(client, channels.map(({ id }) => id));
     const target = channels[0]!;
     const selected = channels[1]!;
     await client.display.patch({ focusedChannelId: selected.id, pinnedChannelIds: [] });
@@ -154,19 +155,30 @@ test("switcher delete restores scroll and focus after cancellation and confirmed
   }
 });
 
-test("deleting the final switcher channel returns focus to the expand control", async ({ page, baseURL }) => {
+// proofs/ui/app/top-bar/index.md#^top-ac-switcher-delete
+test("deleting the final switcher channel reopens on its focused replacement", async ({ page, baseURL }) => {
   const product = await launchProductServer();
   try {
     const client = new TelevisionClient(product.serverURL);
-    await clearChannels(client);
     const channel = (await client.channels.create({ name: "Final channel" })).channel;
+    await removeOtherChannels(client, [channel.id]);
     await openApp(page, product, baseURL);
     await (await menu(page, channel.id)).locator("tv-menu-item").filter({ hasText: /^Delete$/ }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Delete", exact: true }).click();
-    await expect(page.locator(".channel-switcher")).toHaveCount(0);
-    await expect(page.locator(".channel-switcher-pop")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Show sidebar", exact: true })).toBeFocused();
-    expect((await client.channels.list()).channels).toEqual([]);
+    await expect.poll(async () => (await client.channels.list()).channels).toHaveLength(1);
+    const replacement = (await client.channels.list()).channels[0]!;
+    expect(replacement).toMatchObject({ name: "New channel", layout: [] });
+    expect(replacement.id).not.toBe(channel.id);
+    await expect.poll(() => client.display.get()).toMatchObject({
+      focusedChannelId: replacement.id,
+      pinnedChannelIds: [],
+    });
+    await expect(page.locator(".channel-switcher")).toHaveText("New channel");
+    await expect(page.locator(".channel-switcher-pop")).toHaveAttribute("open", "");
+    const selected = row(page, replacement.id).getByRole("option", { name: "New channel", exact: true });
+    await expect(selected).toHaveAttribute("aria-selected", "true");
+    await expect(selected).toBeFocused();
+    await expect(page.locator(".app-sidebar")).toHaveCount(0);
   } finally {
     await product.dispose();
   }
@@ -177,9 +189,9 @@ test("switcher navigation shares menu highlight and keeps persistent selection",
   const product = await launchProductServer();
   try {
     const client = new TelevisionClient(product.serverURL);
-    await clearChannels(client);
     const channels = [];
     for (const name of ["First", "Second", "Third"]) channels.push((await client.channels.create({ name })).channel);
+    await removeOtherChannels(client, channels.map(({ id }) => id));
     await client.display.patch({ focusedChannelId: channels[0]!.id, pinnedChannelIds: channels.map(channel => channel.id) });
     await openApp(page, product, baseURL);
     const options = page.locator('.channel-switcher-pop .channel[role="option"]');
@@ -207,7 +219,6 @@ test("switcher drag reorders, pins, unpins outside, and cancels without selectin
   const product = await launchProductServer();
   try {
     const client = new TelevisionClient(product.serverURL);
-    await clearChannels(client);
     await page.setViewportSize({ width: 800, height: 420 });
     const extraPinned = [];
     const overflowCount = 12;
@@ -216,6 +227,7 @@ test("switcher drag reorders, pins, unpins outside, and cancels without selectin
     }
     const channels = [];
     for (const name of ["Oldest", "Middle", "Newest"]) channels.push((await client.channels.create({ name })).channel);
+    await removeOtherChannels(client, [...extraPinned, ...channels.map(({ id }) => id)]);
     const [oldest, middle, newest] = channels;
     await client.display.patch({ focusedChannelId: oldest!.id, pinnedChannelIds: [oldest!.id, middle!.id, ...extraPinned] });
     const path = createArtifactFile(product.home, "switcher-drag-live", "<!doctype html><h1>Live artifact</h1>", "html");

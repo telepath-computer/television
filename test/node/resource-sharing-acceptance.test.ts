@@ -138,7 +138,7 @@ describe.each(["chromium", "firefox"] as const)("sharing and permissions across 
     const first = await share(producer, artifactA, "read", PRODUCER_HOST);
 
     const viewerChannel = await focusedChannel(viewer, "Shared with me");
-    const added = await viewer.tv(["create-url-artifact", "--channel", viewerChannel, "--title", "Shared A", "--url", first.link, "--no-focus"]);
+    const added = await viewer.tv(["create-artifact", "--channel", viewerChannel, "--title", "Shared A", "--url", first.link, "--no-focus"]);
     expect(added.exitCode, added.stderr).toBe(0);
 
     // The browser holds only the viewer's token: it opens the viewer's app and never the producer's.

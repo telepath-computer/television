@@ -1,6 +1,7 @@
 import type { LicenseConfig, LicenseSurface, VendoredAsset } from "./lib/config.mjs";
 import type { InventorySurface, SurfaceInventory } from "./lib/inventory.mjs";
 import type { EsbuildMetafile } from "./lib/notices.mjs";
+import type { PackagedMarkdownEditorLicensingRecord } from "./lib/packaged-markdown-editor.mjs";
 
 interface CommonOptions {
   surface: InventorySurface;
@@ -16,6 +17,17 @@ export function generateSourceNotices(options?: {
   outputPath?: string;
   config?: LicenseConfig;
   assets?: VendoredAsset[];
+  packagedMarkdownEditorRecord?: PackagedMarkdownEditorLicensingRecord;
+  packagedMarkdownEditorRecordPath?: string;
+}): string | null;
+
+export function generateDocumentTemplateNotices(options?: {
+  root?: string;
+  outputPath?: string;
+  config?: LicenseConfig;
+  assets?: VendoredAsset[];
+  record?: PackagedMarkdownEditorLicensingRecord;
+  recordPath?: string;
 }): string | null;
 
 export function generateFolderNotices(options?: {

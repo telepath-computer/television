@@ -298,7 +298,7 @@ describe("PostHog telemetry integration", () => {
       const artifactPath = path.join(targetPath, "posthog-saga.md");
       writeFileSync(artifactPath, "# PostHog saga fixture\n", "utf8");
       const artifactStdout = await runSagaCLI(active, [
-        "create-path-artifact",
+        "create-artifact",
         "--channel", channelId,
         "--title", "PostHog Saga Artifact",
         "--path", artifactPath,
@@ -308,7 +308,7 @@ describe("PostHog telemetry integration", () => {
       const secondArtifactPath = path.join(targetPath, "posthog-saga-second.md");
       writeFileSync(secondArtifactPath, "# Second PostHog saga fixture\n", "utf8");
       const secondArtifactStdout = await runSagaCLI(active, [
-        "create-path-artifact",
+        "create-artifact",
         "--channel", channelId,
         "--title", "Second PostHog Saga Artifact",
         "--path", secondArtifactPath,
@@ -744,7 +744,7 @@ function parseCreatedChannelId(stdout: string): string {
 }
 
 function parseCreatedArtifactId(stdout: string): string {
-  const match = /^Path artifact (?<id>\S+) created\./m.exec(stdout);
+  const match = /^Artifact (?<id>\S+) created\./m.exec(stdout);
   if (!match?.groups?.id) throw new Error(`Could not parse created artifact id from stdout: ${stdout}`);
   return match.groups.id;
 }

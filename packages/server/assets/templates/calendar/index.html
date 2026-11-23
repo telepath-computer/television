@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendar</title>
+<link rel="stylesheet" href="/canonical/v2/styles.css?authoredForAppVersion=1.5.4">
+<link rel="stylesheet" href="./styles.css">
+<script type="module" src="/canonical/v2/components.js"></script>
+</head>
+<body>
+<main>
+  <header class="masthead">
+    <h1 id="range-label"></h1>
+  </header>
+  <calendar-week id="calendar"></calendar-week>
+</main>
+<template id="unreadable">
+  <section class="calendar-unreadable" role="alert">
+    <span class="calendar-unreadable-icon"><tv-icon name="warning" size="xl"></tv-icon></span>
+    <h1 class="calendar-unreadable-title">This calendar can't be shown</h1>
+    <p class="calendar-unreadable-text">Its saved data isn't in the form this page reads. Ask your agent to check it.</p>
+  </section>
+</template>
+<script type="module" src="./calendar-page.js"></script>
+</body>
+</html>
