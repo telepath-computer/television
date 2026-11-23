@@ -243,12 +243,17 @@ test("switcher drag reorders, pins, unpins outside, and cancels without selectin
       return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     };
     const start = async (id: string) => {
+      // Row motion stays on in this test, and an ended or cancelled drag
+      // animates the rows back into place. Measuring a row while it moves
+      // would press wherever it was, which may by then be a neighbouring row.
+      await expect.poll(() => popover.evaluate(element => element.getAnimations({ subtree: true }).length)).toBe(0);
       await row(page, id).getByRole("option").scrollIntoViewIfNeeded();
       const point = await centre(row(page, id).getByRole("option"));
       await page.mouse.move(point.x, point.y);
       await page.mouse.down();
       await page.mouse.move(point.x + 12, point.y, { steps: 3 });
       await expect(popover.locator(".dragged")).toHaveCount(1);
+      await expect(popover.locator(".dragged")).toHaveAttribute("data-channel-id", id);
     };
     const order = () => client.display.get().then(display => display.pinnedChannelIds);
     await start(middle!.id);
