@@ -1,9 +1,32 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { appearanceResolverScriptSource } from "@telepath-computer/television-artifact/browser";
 
 const FIXTURE = "/packages/web/test/e2e/fixtures/markdown-editor-integration.html";
 const PACKAGED_MARKDOWN_EDITOR_FIXTURE = "/packages/web/test/e2e/fixtures/document-editor-integration.html";
+
+// A document holding a Markdown table that is not in the table editor's own
+// formatting: unpadded and unevenly padded cells, alignment colons, an escaped
+// pipe and a short row. Any rewrite of the table would change these bytes.
+const NON_CANONICAL_TABLE_DOCUMENT = "Before\n\n| Name|Qty |\n|:--|--:|\n|Apples|  3|\n| Pears \\| plums |12|\n|Figs|\n\nAfter";
+
+// The packaged editor's top-level content element; table cells hold their own
+// nested editors.
+const PACKAGED_EDITOR_CONTENT = "#editor > .cm-editor > .cm-scroller > .cm-content";
+
+// The packaged editor exposes no way to read its text, and the rendered table
+// does not show its Markdown source. Typing a character at the end and
+// deleting it leaves the text unchanged and makes the editor pass its complete
+// current string to `onSave` after the save pause, so that save is the exact
+// source.
+async function sourceThroughNextSave(page: Page, content: Locator): Promise<string> {
+  const saveCount = await page.evaluate(() => window.__packagedEditorSaves!.length);
+  await content.press("ControlOrMeta+End");
+  await page.keyboard.insertText("x");
+  await content.press("Backspace");
+  await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves!.length)).toBe(saveCount + 1);
+  return page.evaluate(() => window.__packagedEditorSaves!.at(-1)!);
+}
 
 // Trust has no public presentation state; this helper is reserved for lifecycle-adoption evidence.
 async function artifactTrustGuid(page: Page): Promise<string | null> {
@@ -621,6 +644,121 @@ test.describe("markdown editor integration", () => {
   });
 
   // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a later refused save keeps typing made after an older refusal restored the document", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      const firstSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectTemplateSave = reject;
+      });
+      const secondSave = new Promise<void>((_resolve, reject) => {
+        window.__rejectSecondTemplateSave = reject;
+      });
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+          if (window.__packagedEditorSaves!.length === 1) await firstSave;
+          if (window.__packagedEditorSaves!.length === 2) await secondSave;
+        },
+      });
+    });
+
+    const editor = page.locator(".cm-content");
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("First refused save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual(["First refused save"]);
+    await editor.press("ControlOrMeta+A");
+    await page.keyboard.insertText("Second refused save");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "First refused save",
+      "Second refused save",
+    ]);
+
+    // The first refusal restores the stored document while the second save is still pending.
+    await page.evaluate(() => window.__rejectTemplateSave!(new Error("save refused")));
+    await expect(editor).toHaveText("Stored document");
+
+    // The second refusal arrives before the save pause of newer typing ends. An
+    // earlier save was refused while it was pending, so it restores nothing and
+    // leaves the newer typing and its scheduled save in place.
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" with typing after the restore");
+    await page.evaluate(() => window.__rejectSecondTemplateSave!(new Error("save refused")));
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      "First refused save",
+      "Second refused save",
+      "Stored document with typing after the restore",
+    ]);
+    await expect(editor).toHaveText("Stored document with typing after the restore");
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a later authoritative value keeps a non-canonical table's exact source and saves nothing", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate(() => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value: "Stored document",
+        editable: true,
+        async onSave(value) {
+          window.__packagedEditorSaves!.push(value);
+        },
+      });
+    });
+
+    await page.evaluate((value) => window.__packagedEditorHandle!.setValue(value), NON_CANONICAL_TABLE_DOCUMENT);
+    await expect(page.locator("#editor .tbl-table-widget")).toHaveCount(1);
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([]);
+    expect(await sourceThroughNextSave(page, page.locator(PACKAGED_EDITOR_CONTENT))).toBe(NON_CANONICAL_TABLE_DOCUMENT);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
+  test("a refused save restores a non-canonical table's exact source and saves nothing more", async ({ page }) => {
+    await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
+    await page.waitForFunction(() => window.__packagedEditorReady === true);
+    await page.evaluate((value) => {
+      const parent = document.querySelector<HTMLElement>("#editor");
+      if (!parent) throw new Error("missing editor parent");
+      window.__packagedEditorSaves = [];
+      window.__packagedEditorHandle = window.TelevisionMarkdownEditor!.mount({
+        parent,
+        value,
+        editable: true,
+        async onSave(saved) {
+          window.__packagedEditorSaves!.push(saved);
+          if (window.__packagedEditorSaves!.length === 1) throw new Error("save refused");
+        },
+      });
+    }, NON_CANONICAL_TABLE_DOCUMENT);
+
+    const content = page.locator(PACKAGED_EDITOR_CONTENT);
+    await expect(page.locator("#editor .tbl-table-widget")).toHaveCount(1);
+    await content.press("ControlOrMeta+End");
+    await page.keyboard.insertText(" edited");
+    await expect.poll(() => page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      `${NON_CANONICAL_TABLE_DOCUMENT} edited`,
+    ]);
+    await expect(content).not.toContainText("After edited");
+    await expect(page.locator("#editor .tbl-table-widget")).toHaveCount(1);
+    await page.waitForTimeout(600);
+    expect(await page.evaluate(() => window.__packagedEditorSaves)).toEqual([
+      `${NON_CANONICAL_TABLE_DOCUMENT} edited`,
+    ]);
+    expect(await sourceThroughNextSave(page, content)).toBe(NON_CANONICAL_TABLE_DOCUMENT);
+  });
+
+  // proofs/arch/templates/document.md#^templates-document-t-editor-interface
   test("a repeated completed save preserves newer typing and its pending save", async ({ page }) => {
     await page.goto(PACKAGED_MARKDOWN_EDITOR_FIXTURE);
     await page.waitForFunction(() => window.__packagedEditorReady === true);
@@ -925,6 +1063,7 @@ declare global {
     __resolveSecondTemplateSave?: () => void;
     __firstTemplateSaveFinished?: boolean;
     __rejectTemplateSave?: (reason?: unknown) => void;
+    __rejectSecondTemplateSave?: (reason?: unknown) => void;
     __packagedEditorGlobalsBefore: string[];
     __packagedEditorAddedGlobals: string[];
     __packagedEditorHeadBefore: string;
