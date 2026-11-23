@@ -16,7 +16,7 @@ A *resource* is something the server keeps on behalf of artifacts and agents, wi
 
 ## An artifact's store
 
-Every local path artifact has its own JSON store, its *artifact's store*, which its pages use by default. A page gets it with `getStore()`, and an agent reaches it from the shell with `tv resource json` and the artifact's ID ([JSON store commands](./json-store.md#Commands)). Nothing needs to be created or bound. ^rs-artifact-store
+Every local path artifact has its own JSON store, its *artifact's store*, which its pages use by default. A page gets it with `getStore()`, and an agent reaches it from the shell with `tv resource json` and the artifact's ID ([JSON store commands](./json-store.md#Commands)). Nothing needs to be created or bound. The store belongs to the artifact, not its source folder: artifacts pointing at the same folder have separate stores, and repointing a path artifact to another folder keeps its store. ^rs-artifact-store
 
 - **It exists from the moment the artifact does.** Until something writes to it, its root has no value, as after removing the whole value, and nothing is stored on disk. A page can read and observe the store and check its access before the first write, and its listeners carry on across that write without noticing it.
 - **Every local path artifact has a store:** every path artifact this server serves from its own files, whatever kind of file or folder it is, with an ID that Television generated. No rule restricts stores, or bindings, to a kind of local path artifact: a Markdown file artifact has a store too, though nothing it renders uses one, and with [the bindings flag](#^rs-flag) on a store can be bound to it, which is useless but allowed. A URL artifact has none, including a shared artifact served by another Television host. Onboarding artifacts installed by earlier releases, whose fixed IDs predate generated ones, have none either ([onboarding](../onboarding/onboarding-channels.md#^onboarding-artifact-ids)).
@@ -32,7 +32,7 @@ The first write gives an own store this description, which never contains the ar
 Store owned by an artifact, created at its first write.
 ```
 
-Deleting an artifact removes its record, and with it its share link. The artifact's files stay on disk, and so does its store, which still records the deleted artifact as its owner. To recover, an agent registers the files as a new artifact and copies the old store's data into the new artifact's store: it finds the old store with `tv resource list`, which reports each store's owner, deleted artifacts included, reads it with `tv resource json get --resource <resource-id>`, or reads the store's content file directly, and writes the data with `tv resource json set --artifact <new-id> --file <path>`. ^rs-artifact-deleted
+Deleting an artifact removes its record, and with it its share link. The artifact's files stay on disk, and so does its store, which still records the deleted artifact as its owner. To recover, an agent registers the files as a new artifact with [`tv create-artifact --path`](../cli.md#Path artifact creation) and copies the old store's data into the new artifact's store: it finds the old store with `tv resource list`, which reports each store's owner, deleted artifacts included, reads it with `tv resource json get --resource <resource-id>`, or reads the store's content file directly, and writes the data with `tv resource json set --artifact <new-id> --file <path>`. ^rs-artifact-deleted
 
 ## Status
 

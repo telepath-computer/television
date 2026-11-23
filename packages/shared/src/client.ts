@@ -2,7 +2,11 @@ import { type Artifact } from "@telepath-computer/television-artifact";
 import { TELEVISION_CLIENT_META_HEADER } from "./types.ts";
 import type {
   ArtifactPatch,
+  ArtifactTemplateScan,
+  CreateTemplateArtifactRequest,
+  CreateTemplateArtifactResult,
   CreateArtifactResult,
+  ArtifactDisplayOptions,
   MoveArtifactResult,
   ArtifactPlacement,
   DeleteArtifactResult,
@@ -146,6 +150,15 @@ class HttpRequester {
       );
     }
     return response.text();
+  }
+
+  async requestBytes(method: HTTPMethod, pathname: string): Promise<{ bytes: Uint8Array; contentType: string }> {
+    const response = await this.request(method, pathname);
+    if (!response.ok) {
+      if (response.status === HTTP_UNAUTHORIZED) this.onUnauthorized?.();
+      throw this.createError(await extractErrorMessage(response, response.statusText), response.status);
+    }
+    return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: response.headers.get("content-type")?.split(";")[0] ?? "" };
   }
 
   async requestRawVoid(method: HTTPMethod, pathname: string, body: string): Promise<void> {
@@ -312,7 +325,7 @@ export class ArtifactClient {
   }
 
   /** Create an artifact on a channel in one round trip. */
-  create(input: ({ channelID: string } & NewArtifact & ArtifactPlacement)): Promise<CreateArtifactResult> {
+  create(input: ({ channelID: string; display?: ArtifactDisplayOptions } & NewArtifact & ArtifactPlacement)): Promise<CreateArtifactResult> {
     const body: Record<string, unknown> = {
       kind: input.kind,
       title: input.title,
@@ -326,6 +339,7 @@ export class ArtifactClient {
         break;
     }
     body.channelID = input.channelID;
+    if (input.display !== undefined) body.display = input.display;
     if (input.before !== undefined) body.before = input.before;
     if (input.after !== undefined) body.after = input.after;
     return this.#http.requestJSON<CreateArtifactResult>("POST", "/artifacts", body);
@@ -357,6 +371,7 @@ export class ArtifactClient {
     if (input.title !== undefined) body.title = input.title;
     if (input.path !== undefined) body.path = input.path;
     if (input.url !== undefined) body.url = input.url;
+    if (input.transparent !== undefined) body.transparent = input.transparent;
     return this.#http.requestJSON<{ artifact: Artifact }>(
       "PATCH",
       `/artifacts/${encodeURIComponent(input.artifactID)}`,
@@ -386,6 +401,29 @@ export class ArtifactClient {
         ...(input.after !== undefined ? { after: input.after } : {}),
       },
     );
+  }
+}
+
+/** Artifact-template discovery, creation, and authenticated icons. */
+export class TemplateClient {
+  readonly #http: HttpRequester;
+
+  constructor(http: HttpRequester) {
+    this.#http = http;
+  }
+
+  list(options?: { fresh?: boolean }): Promise<ArtifactTemplateScan> {
+    return this.#http.requestJSON<ArtifactTemplateScan>("GET", options?.fresh ? "/templates?fresh=true" : "/templates");
+  }
+
+  create(input: CreateTemplateArtifactRequest): Promise<CreateTemplateArtifactResult> {
+    return this.#http.requestJSON<CreateTemplateArtifactResult>("POST", "/templates/artifacts", { ...input });
+  }
+
+  async icon(id: string): Promise<{ bytes: Uint8Array; contentType: "image/svg+xml" | "image/png" }> {
+    const result = await this.#http.requestBytes("GET", `/templates/${encodeURIComponent(id)}/icon`);
+    if (result.contentType !== "image/svg+xml" && result.contentType !== "image/png") throw new Error("Unsupported template icon type");
+    return { bytes: result.bytes, contentType: result.contentType };
   }
 }
 
@@ -762,6 +800,7 @@ export interface DemoModeStatus {
 export class TelevisionClient {
   readonly channels: ChannelClient;
   readonly artifacts: ArtifactClient;
+  readonly templates: TemplateClient;
   readonly display: DisplayClient;
   readonly themes: ThemeClient;
   readonly markdown: MarkdownClient;
@@ -773,6 +812,7 @@ export class TelevisionClient {
     this.#http = new HttpRequester(serverURL, options);
     this.channels = new ChannelClient(this.#http);
     this.artifacts = new ArtifactClient(this.#http);
+    this.templates = new TemplateClient(this.#http);
     this.display = new DisplayClient(this.#http);
     this.themes = new ThemeClient(this.#http);
     this.markdown = new MarkdownClient(this.#http);

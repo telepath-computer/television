@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <title>Color study</title>
+  <path d="M10 1.5a8.5 8.5 0 0 0 0 17h1.2c1.8 0 2.5-2.3 1.2-3.5l-.6-.6c-.6-.6-.2-1.7.7-1.7h2.1c2.6 0 4.1-1.8 4.1-4.2 0-4.1-4-7-8.7-7Z" fill="#fff0d6" stroke="#c4a477" stroke-width="1.25"/>
+  <circle cx="5.4" cy="7" r="1.75" fill="#ef6868"/>
+  <circle cx="9.6" cy="4.9" r="1.75" fill="#f5b333"/>
+  <circle cx="14" cy="6.7" r="1.75" fill="#38b99a"/>
+  <circle cx="5.1" cy="12" r="1.75" fill="#5288e8"/>
+  <circle cx="9" cy="14.4" r="1.75" fill="#a56cdb"/>
+</svg>

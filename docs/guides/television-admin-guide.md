@@ -109,7 +109,7 @@ To move a home, stop the service, move the directory, point `~/.tv-home` at it, 
 
 #### Skills
 
-Television ships skills that teach agents to use it: the main `television` skill and several `tv-*` skills. `tv skills install <directory>` installs them into a skills directory, replacing any earlier copies. Install them where this agent actually loads skills from, respecting any location the person has set up. Locations vary by agent; common ones are `~/.agents/skills`, `~/.openclaw/workspace/skills` (OpenClaw), and `~/.hermes/skills` (Hermes). After installing, make sure the skills are available to you, refreshing if your harness requires it. On a first install, load the `television` skill right away, because the person will likely want to try Television straight after. Skill content changes between releases, so reinstall the skills on every upgrade.
+Television ships the `television` skill, which teaches agents to use it. `tv skills install <directory>` copies it into a skills directory, updating an earlier copy's files and leaving other installed skills in place. Install it where this agent actually loads skills from, respecting any location the person has set up. Locations vary by agent; common ones are `~/.agents/skills`, `~/.openclaw/workspace/skills` (OpenClaw), and `~/.hermes/skills` (Hermes). After installing, make sure the skill is available to you, refreshing if your harness requires it. On a first install, load it right away, because the person will likely want to try Television straight after. Skill content changes between releases, so reinstall it on every upgrade.
 
 ### 2. How the viewer reaches the server
 
@@ -277,7 +277,7 @@ When a release worth taking comes out, Television shows the person a notice with
 #### What an upgrade involves
 
 1. **Upgrade the package** to `@telepath-computer/television@latest`, after checking Node (section 1), and confirm `tv --version` reports the new release. Compare the latest version on the npm registry with both the installed version and the running version from `tv status` first; if all three match, there is nothing to upgrade.
-2. **Reinstall the skills** into the directory where they are already installed. Find it by looking for the installed `television` and `tv-*` skills where this agent loads skills from.
+2. **Reinstall the skills** into the directory where they are already installed. Find it by looking for the installed `television` skill where this agent loads skills from.
 3. **Reinstall the service** with `tv serve --persist`, so it runs the new code. Check the settings first, as the next subsection describes. The restart makes Television unavailable for a few seconds; open browser tabs and the desktop app reconnect by themselves.
 4. **Verify.** In `tv status`, `healthy`, `daemon.installed`, and `daemon.running` are true, and `version` equals the `major.minor.patch` that `tv --version` reports; ignore a `(commit …)` suffix on development builds. A different version means the service didn't restart onto the new code.
 
@@ -325,7 +325,7 @@ The new app opens with the saved server connection. If it shows the connect scre
 
 `tv stop` removes the service and stops the server that the service runs. A server started by hand with plain `tv serve` is not affected. It is not a pause: Television won't start again, at login or otherwise, until `tv serve --persist` runs again. It leaves the package, the skills, and the Television home in place, so reinstalling the service brings everything back as it was.
 
-To uninstall completely, also remove the npm package and the Television skills, the `television` and `tv-*` skills, from every skills directory where they were installed. If the person uses the desktop app, they remove it from their Mac themselves, like any Mac app.
+To uninstall completely, also remove the npm package and the Television skills from every skills directory where they were installed: the `television` skill, and any `tv-*` skills an earlier release installed. If the person uses the desktop app, they remove it from their Mac themselves, like any Mac app.
 
 Deleting the Television home, and `~/.tv-home` if it exists, permanently deletes the person's channels, artifacts, and token. Always get the person's explicit confirmation first, and say plainly that it can't be undone unless they have a backup.
 

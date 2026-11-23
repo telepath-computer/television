@@ -199,6 +199,43 @@ describe("defaultWatchContentFile", () => {
     await waitFor(() => changes > baseline);
   });
 
+  // proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-shared-watcher-replaced-folder
+  it("survives a watched subfolder, then the watched root, being replaced by a file before delivery", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const bundle = path.join(dir, "bundle");
+    mkdirSync(path.join(bundle, "assets", "deep"), { recursive: true });
+    writeFileSync(path.join(bundle, "index.html"), "<!doctype html>", "utf8");
+
+    let changes = 0;
+    let deaths = 0;
+    const watcher = defaultWatchContentFile(bundle, () => {
+      changes += 1;
+    }, {
+      recursive: true,
+      rearmIntervalMs: 25,
+      onWatcherDead: () => {
+        deaths += 1;
+      },
+    });
+    watchers.push(watcher);
+
+    // Each replacement completes before Node delivers the folder's own events,
+    // which then arrive for a path that is now a file.
+    const beforeSubfolder = await settledChangeCount(() => changes);
+    rmSync(path.join(bundle, "assets"), { recursive: true });
+    writeFileSync(path.join(bundle, "assets"), "now a file", "utf8");
+    await waitFor(() => changes > beforeSubfolder);
+    const baseline = await settledChangeCount(() => changes);
+    writeFileSync(path.join(bundle, "index.html"), "<!doctype html><h1>still watched</h1>", "utf8");
+    await waitFor(() => changes > baseline);
+
+    rmSync(bundle, { recursive: true });
+    writeFileSync(bundle, "now a file", "utf8");
+    await waitFor(() => deaths >= 1);
+    await sleep(100);
+  });
+
   it("reattaches when the watched directory is deleted and recreated before the event handler runs", async () => {
     const dir = tempDir();
     dirs.push(dir);
