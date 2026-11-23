@@ -117,7 +117,7 @@ The same editor and keys apply in the header row.
 
 <Artifact><Canvas of={Stories.EditingHeaderCell} /></Artifact>
 
-The editor preserves stored and pasted line breaks, even though the grid displays them as spaces. Copying, pasting, text selection, and browser undo work inside the editor as in another text field. Whole-cell and range copy or paste are not supported. After an edit or structural action is committed, the page provides no undo.
+The editor preserves stored and pasted line breaks, even though the grid displays them as spaces. Copying, pasting, text selection, and browser undo work inside the editor as in another text field. Input-method composition and undo in the editor have accepted limitations, tracked in [TV-1014](https://linear.app/telepath-computer/issue/TV-1014): while a cell is being edited, any change to the stored table, even another viewer's or an agent's change to a different cell, redraws the editor, which clears that cell's undo history and can corrupt text being composed through an input method; and in WebKit browsers the Return that confirms composed text also commits the cell and ends editing. Whole-cell and range copy or paste are not supported. After an edit or structural action is committed, the page provides no undo.
 
 Empty and unchanged commits follow the architecture [page-write rules](../../arch/templates/table.md#page-writes).
 
