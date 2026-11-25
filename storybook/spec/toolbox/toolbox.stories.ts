@@ -170,3 +170,13 @@ export const ManyItems = {
     ].sort(byDiscoveryOrder),
   },
 };
+export const ManyItemsScrolled = {
+  args: ManyItems.args,
+  play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+    canvasElement.querySelector<HTMLInputElement>(".toolbox-search input")?.focus();
+    // Scroll to the end once the panel has taken its final size.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const body = canvasElement.querySelector<HTMLElement>(".toolbox-body");
+    if (body) body.scrollTop = body.scrollHeight;
+  },
+};

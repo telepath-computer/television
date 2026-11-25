@@ -282,8 +282,8 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 6e1070593b273bb9b692420a30c8164e8c4a346fe043dcc1a9feef1fdeed3ee4 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 4181001af0760ec1c2d175e1cc2ff096e5391d046154760fb59291f3131b17d8 -->
-<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 89fcfbd40e88d080025c6cb83b86c11482df5b0fee16858d6887a8eb592baa47 -->
-<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 5d741aafb92d5d3684d6c2f11b13f07ffb68fb595a40f0009ef8ce5d2d56c566 -->
+<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 048defdecb8d885b29943eeffde2387851624a32508b09e332da3650f66b5589 -->
+<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 4a452f07d06404027ca82afbbd10646d5ba2e96e5bc3a9a7e9637df4ac467622 -->
 <!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: f4a9b0577abaa9a7fdfdfbc7b8a6c74c3950daac2d5c58d8d79c1f47e3e3413a -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: aea5a8afa0ff5b86a3e1bfc22aee2016edb0af73ed33221f9a223296bb1fc008 -->
