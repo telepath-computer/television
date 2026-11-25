@@ -5,24 +5,14 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "storybook dev -p 6006 ${TAILSCALE_REMOTE:+--host 0.0.0.0}",
+    "dev": "storybook dev -p 6006 ${TAILSCALE_REMOTE:+--host $(tailscale ip -4)}",
     "build": "storybook build -o dist",
     "type-check": "tsc -p tsconfig.json --noEmit"
   },
-  "dependencies": {
-    "@rupertsworld/dependencies": "0.2.1",
-    "@rupertsworld/event-target": "0.1.2",
-    "@telepath-computer/television-artifact": "*",
-    "@telepath-computer/television-shared": "*",
-    "@telepath-computer/utils": "*",
-    "lit-html": "3.3.2",
-    "swiper": "^14.0.6"
-  },
   "devDependencies": {
-    "@storybook/addon-docs": "10.4.6",
-    "@storybook/web-components-vite": "10.4.6",
-    "liquidjs": "^10.27.2",
-    "storybook": "10.4.6",
-    "yaml": "2.9.0"
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/html-vite": "10.6.2",
+    "frameset": "^0.17.1",
+    "storybook": "10.6.2"
   }
 }

@@ -9,10 +9,6 @@ params:
       - { id: "notes", name: "Notes", src: "/frames/app/example-artifact", width: 560, height: 420 }
   selected: { enum: [roadmap, spec-review, notes], default: roadmap, description: the one page being looked at — selection is singular }
   full_screen: { enum: [none, roadmap, spec-review, notes], default: none, description: the page shown at the stage's own extents, when one is }
-  no_channel:
-    type: boolean
-    default: false
-    description: "no channel exists at all: the ground stays blank — the empty state is a channel's, and there is none"
   snap_armed:
     type: boolean
     default: false
@@ -219,7 +215,7 @@ style: |
   }
 ---
 <section class="stage">
-  {% if pages.size == 0 and no_channel != true %}
+  {% if pages.size == 0 %}
   <div class="stage-empty">
     {% render '../../foundation/icons/icon', name: 'artifact', size: 'xl' %}
     <p>{{ content.empty_line }}</p>

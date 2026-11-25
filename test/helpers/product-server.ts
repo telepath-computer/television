@@ -58,6 +58,8 @@ export interface LaunchProductServerOptions {
    * installation path without changing launches that intentionally omit it.
    */
   bundledThemesBundle?: string;
+  /** Bundled artifact-template tree for this isolated CLI runtime. */
+  bundledTemplatesBundle?: string;
   /**
    * Extra environment for the served process, applied over the test runner's.
    * Browser demo mode acceptance sets `HOME` to a temporary directory so the
@@ -85,6 +87,7 @@ async function getSourceCLIEntry(): Promise<string> {
 function getCLIEntryWithBundles(sharedEntry: string, options: {
   onboardingBundle?: string;
   bundledThemesBundle?: string;
+  bundledTemplatesBundle?: string;
 }): { cliEntry: string; dispose: () => void } {
   const runDir = mkdtempSync(path.join(os.tmpdir(), "television-product-e2e-bundle-"));
   try {
@@ -94,6 +97,9 @@ function getCLIEntryWithBundles(sharedEntry: string, options: {
     }
     if (options.bundledThemesBundle !== undefined) {
       cpSync(options.bundledThemesBundle, path.join(runDir, "themes"), { recursive: true });
+    }
+    if (options.bundledTemplatesBundle !== undefined) {
+      cpSync(options.bundledTemplatesBundle, path.join(runDir, "templates"), { recursive: true });
     }
     return {
       cliEntry: path.join(runDir, path.basename(sharedEntry)),
@@ -224,7 +230,7 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
     preparation = getSourceCLIEntry();
     sharedEntry = await preparation;
     if (disposalRequested) throw new Error("Product server was disposed during preparation");
-    if (options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined) {
+    if (options.onboardingBundle !== undefined || options.bundledThemesBundle !== undefined || options.bundledTemplatesBundle !== undefined) {
       bundledRuntime = getCLIEntryWithBundles(sharedEntry, options);
     }
     current = await startServe();
@@ -259,6 +265,9 @@ export async function launchProductServer(options: LaunchProductServerOptions = 
               onboardingBundle: restartOptions.onboardingBundle,
               ...(options.bundledThemesBundle !== undefined
                 ? { bundledThemesBundle: options.bundledThemesBundle }
+                : {}),
+              ...(options.bundledTemplatesBundle !== undefined
+                ? { bundledTemplatesBundle: options.bundledTemplatesBundle }
                 : {}),
             });
           }

@@ -139,11 +139,6 @@
           "children": [
             {
               "type": "frame",
-              "path": "frames/app/toolbar-buttons/skill-selector.frame",
-              "title": "Skill selector"
-            },
-            {
-              "type": "frame",
               "path": "frames/app/toolbar-buttons/settings.frame",
               "title": "Settings"
             },

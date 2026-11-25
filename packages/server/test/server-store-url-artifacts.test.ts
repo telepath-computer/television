@@ -21,9 +21,12 @@ describe("URL artifacts", () => {
 
   it("attaches no watcher", () => {
     const storagePath = tempDir();
-    const watchContentFile = vi.fn();
+    const watchContentFile = vi.fn((_path: string) => ({ close() {}, on() {} }));
     const store = createServingStore(storagePath, { watchContentFile });
     try {
+      expect(watchContentFile).toHaveBeenCalledTimes(1);
+      expect(watchContentFile.mock.calls[0]?.[0]).toBe(path.join(storagePath, "templates"));
+      watchContentFile.mockClear();
       store.createArtifact({ channelID: store.listChannels()[0]!.id, kind: "url", title: "Linear", url: "https://linear.app/foo" });
       expect(watchContentFile).not.toHaveBeenCalled();
     } finally {

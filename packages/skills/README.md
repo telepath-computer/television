@@ -13,12 +13,12 @@ packages/skills/
       src/html-artifact-style.md
       src/theming.md
     tv-calendar/
-    tv-sidebar-view/       # non-shipping prototype, omitted from skills.json
     tv-table/
     tv-tasks/
   scripts/
     build.mjs              # central copier + validator
   dist/                    # emitted bundled skill collection
+  onboarding-dist/         # calendar and task browser files for onboarding
 ```
 
 `skills.json` lists the bundled skills explicitly. A directory under
@@ -47,8 +47,10 @@ reads the manifest (`skills.json`) and applies one rule per listed skill:
    dotfiles, `*.config.*`, `tsconfig.json`, and `playwright.config.ts`.
 3. Validate every emitted `dist/<name>/SKILL.md`.
 
-`packages/cli/build.mjs` copies `packages/skills/dist/` verbatim into
-`packages/cli/dist/skills/`.
+The package build also puts calendar and task browser files under
+`packages/skills/onboarding-dist/`. The onboarding bake copies those files
+into its artifact pages. `packages/cli/build.mjs` copies only
+`packages/skills/dist/` into `packages/cli/dist/skills/`.
 
 To try a skill with a real agent, install the bundled collection into an agent
 skills folder with `tv skills install <path>` (see the [CLI product spec](../../specs/product/cli.md)),
@@ -58,13 +60,11 @@ or copy `packages/skills/dist/<name>/` there directly.
 
 - `television/` is a built skill. `scripts/build.mjs` concatenates the primary
   source fragments under `src/` into `dist/SKILL.md` and emits the supporting
-  theme-authoring guide as `dist/theming.md`.
-- `tv-calendar/` is a built skill. Vite emits `dist/calendar.js`,
-  `dist/calendar.css`, and a copied `dist/SKILL.md`.
-- `tv-table/` is a source-copied skill. Its root `SKILL.md` is bundled
-  directly.
-- `tv-tasks/` is a built skill (`package.json` + a Vite build). It emits
-  `dist/task.js`, `dist/task.css`, and a copied `dist/SKILL.md`.
+  `theming.md`, `resources.md`, and `templates.md` guides.
+
+The `tv-calendar` and `tv-tasks` source folders provide browser
+components. They build into `onboarding-dist/` and are not installed as agent
+skills. The `tv-table` source is also not part of the shipped skill collection.
 
 ## Authoring new skills
 

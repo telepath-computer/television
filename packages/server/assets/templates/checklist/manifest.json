@@ -1,0 +1,49 @@
+{
+  "name": "Checklist",
+  "description": "A list of items to tick off and edit.",
+  "version": "1.0.0",
+  "display": {
+    "width": 640,
+    "height": 800
+  },
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml"
+    }
+  ],
+  "dataSchema": {
+    "type": "object",
+    "required": [
+      "title",
+      "items"
+    ],
+    "properties": {
+      "title": {
+        "type": "string"
+      },
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "required": [
+            "order",
+            "text",
+            "done"
+          ],
+          "properties": {
+            "order": {
+              "type": "number"
+            },
+            "text": {
+              "type": "string"
+            },
+            "done": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

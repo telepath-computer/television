@@ -6,6 +6,8 @@ Proves [specs/ui/app/update-notification/index.md](../../../../specs/ui/app/upda
 
 ## Coverage model
 
+This surface keeps its [legacy frame and template spec](../../../../specs/spec-ui.md#^ui-frame-specs). [Frame and template conformance](../../../arch/ui/conformance.md) owns stylesheet/delivery and visual-review coverage; the MDX policy does not replace the behavior assertions below or add story comparisons for this surface.
+
 The production composition uses `tv-popover`. The contracts below exercise the production composition through its unit and browser fixtures.
 
 ## Assertions

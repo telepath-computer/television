@@ -10,10 +10,10 @@ The authoritative frames are the artifact markup and CSS, so comparing each
 render with its own source would establish no implementation boundary. The
 [bake proof](../../arch/onboarding/bake.md#^t-baked-content) owns the conversion
 of every flat frame into its complete HTML document, the unchanged Markdown
-copy, and the packaged skill files.
+copy, and the packaged component files.
 
 One real-browser seam loads freshly baked task and calendar documents with
-freshly built skill and canonical assets. A fixture HTTP server replaces
+freshly built onboarding components and canonical assets. A fixture HTTP server replaces
 Television installation and serving. Those crossings are covered by
 [product acceptance](../../product/onboarding/onboarding-channels.md#^ac-fresh-install).
 Module loading and custom-element upgrades remain real.
@@ -50,7 +50,7 @@ the SDK rejects. Production pages load the SDK through neither.
 
 [Baked content and shell](../../arch/onboarding/bake.md#^t-baked-content)
 orders exact output for every authored `<slug>.frame` and `<slug>.md`,
-including optional styles, canonical components, and declared skill assets.
+including optional styles, canonical components, and declared component assets.
 [Input validation](../../arch/onboarding/bake.md#^t-input-contract) and
 [configuration updates](../../arch/onboarding/bake.md#^t-config-update)
 cover manifest validity and artifact order. These assertions remain owned by
@@ -60,12 +60,12 @@ the bake proof; this proof adds no second comparison of those outputs.
 
 - **Date shift.** The production date module maps July 8, 2026 to the viewer's local date and preserves day gaps and event clock times across month, year, and daylight-saving boundaries. The Sydney case uses a local day that differs from UTC. This proves the arithmetic in the [Productivity date behavior](../../../specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates); the browser assertion below proves that the module executes in the documents — *(policy-grade test: `packages/server/test/onboarding-relative-dates.test.ts`, “shifts authored dates by whole local calendar days”)*. ^oa-ac-date-arithmetic
 
-### Built skill assets
+### Built onboarding component assets
 
 **Seam** — the handoff from baked Company To-dos and Today's Calendar documents
 to their built sibling skill assets, crossed through real HTTP and a real
 browser. Fixtures are the authored flat frames and manifests, disposable output
-from the real bake, and fresh production skill, canonical and resource SDK
+from the real bake, and fresh production onboarding component, canonical and resource SDK
 builds. Expected event titles come from the authored frame markup.
 
 The fixture server sends those bytes unchanged. It serves the SDK at
@@ -87,8 +87,8 @@ The browser clock is fixed to October 2, 2026 at 08:00 in Sydney, when the UTC
 date is October 1, 2026. The test asserts the source frame's authored dates,
 then checks concrete shifted dates and the calendar header after upgrade.
 
-- Company To-dos, which cannot use its store outside artifact content, shows no task, and the message in its page header says that it cannot use its store and gives the reason from the SDK's `not-artifact-page` refusal. The calendar upgrades and renders every authored event. Both documents complete without module-load or custom-element errors. These are the browser outcomes required by [the UI testing directives](../../../specs/ui/onboarding-artifacts/index.md#Testing) for the declared [skill dependencies](../../../specs/ui/onboarding-artifacts/index.md#Per-artifact-notes), and the error of [Company To-dos' problem states](../../../specs/ui/onboarding-artifacts/index.md#^productivity-todo-store-problems) for a page not served as artifact content — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, “authored task and calendar documents load their built assets, and the calendar shows its story dates relative to the viewer's local day”)*. ^oa-ac-skill-assets
-- On that known local day, the calendar starts on October 2, 2026, its rendered header names that day, and every event retains its authored time on that date. These browser results prove the [Productivity date behavior](../../../specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates) for Today's Calendar; Company To-dos' date line and due dates are [the live-list seam](#^oa-ac-todo-render)'s — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, “authored task and calendar documents load their built assets, and the calendar shows its story dates relative to the viewer's local day”)*. ^oa-ac-relative-dates
+- Company To-dos, which cannot use its store outside artifact content, shows no task, and the message in its page header says that it cannot use its store and gives the reason from the SDK's `not-artifact-page` refusal. The calendar upgrades and renders every authored event. Both documents complete without module-load or custom-element errors. These are the browser outcomes required by [the UI testing directives](../../../specs/ui/onboarding-artifacts/index.md#Testing) for the declared [skill dependencies](../../../specs/ui/onboarding-artifacts/index.md#Per-artifact-notes), and the error of [Company To-dos' problem states](../../../specs/ui/onboarding-artifacts/index.md#^productivity-todo-store-problems) for a page not served as artifact content — *(policy-grade tests: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts` and `packages/server/test/e2e/onboarding-company-todos.spec.ts`, cases tagged `^oa-ac-skill-assets`)*. ^oa-ac-skill-assets
+- On that known local day, the calendar starts on October 2, 2026, its rendered header names that day, and every event retains its authored time on that date. These browser results prove the [Productivity date behavior](../../../specs/ui/onboarding-artifacts/index.md#^productivity-relative-dates) for Today's Calendar; Company To-dos' date line and due dates are [the live-list seam](#^oa-ac-todo-render)'s — *(policy-grade test: `packages/web/test/e2e/onboarding-artifact-skill-assets.test.ts`, cases tagged `^oa-ac-relative-dates`)*. ^oa-ac-relative-dates
 
 ### Company To-dos as a live list
 
@@ -202,7 +202,7 @@ would need a case per branch. An installed Company To-dos always has a store,
 and a store of another type cannot arise while `json` is the only type. A
 page not served as artifact content, where the SDK loads and refuses, is the
 [skill-assets assertion](#^oa-ac-skill-assets)'s case. The gap that
-`tv-tasks`' page styles put between a header and the list is the skill's,
+`tv-tasks` component styles put between a header and the list belong to that component,
 proven by its own suite for a header that ends with its subtitle or with a
 message, as Company To-dos' does
 (`packages/skills/skills/tv-tasks/test/e2e/task-header.e2e.test.ts`). The
@@ -212,7 +212,7 @@ The assertions above prove only the structure both depend on.
 
 The installer proof owns configured-or-default page creation. The artifact
 product and architecture proofs own document loading, isolation, interaction,
-and theme reload. The task and calendar suites own full component behavior;
+and theme reload. The retained task and calendar component suites own full component behavior;
 this seam establishes that these authored documents and their packaged
 dependencies work together.
 

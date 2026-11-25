@@ -79,6 +79,7 @@ class FakeEventTarget {
 
 function createClient(overrides: Partial<{ channels: unknown; display: unknown }> = {}) {
   return {
+    templates: { list: vi.fn(async () => ({ templates: [], errors: [], watching: true })), icon: vi.fn() },
     channels: overrides.channels ?? { list: vi.fn(async () => ({ channels: [{ id: "screen-1", name: "One", layout: [] }] })) },
     display: overrides.display ?? { get: vi.fn(async () => ({
       focusedChannelId: "screen-1",
@@ -1050,4 +1051,47 @@ describe("ServerConnection telemetry signal sender", () => {
     expect(socket.sent).toEqual([]);
     c.dispose();
   });
+});
+
+// proofs/arch/templates/index.md#^templates-t-app-cache
+it("subscribes to template pushes before bootstrap loads and retries a failed load without failing the connection", async () => {
+  const socket = new FakeSocket();
+  const client = createClient();
+  let resolve!: (scan: unknown) => void;
+  client.templates = {
+    list: vi.fn(() => new Promise((yes) => { resolve = yes; })),
+    icon: vi.fn(),
+  };
+  const c = new ServerConnection({ url: "http://example.test", name: "test", createClient: () => client, createSocket: () => socket });
+  try {
+    const connected = c.connect(null);
+    socket.emit("open");
+    expect(client.templates.list).toHaveBeenCalledTimes(1);
+    socket.emit("message", { data: JSON.stringify({ type: "templates-changed", scan: { templates: [], errors: [{ folder: "pushed", error: "current" }], watching: true }, invalidatedIDs: [] }) });
+    resolve({ templates: [], errors: [], watching: true });
+    await connected;
+    expect(c.templates.scan?.errors[0]?.folder).toBe("pushed");
+    client.templates.list.mockRejectedValueOnce(new Error("offline"));
+    await c.templates.load();
+    expect(c.status).toBe("connected");
+    client.templates.list.mockResolvedValue({ templates: [], errors: [], watching: true });
+    c.templates.setOpen(true);
+    await Promise.resolve();
+    expect(client.templates.list).toHaveBeenCalledTimes(3);
+  } finally { c.dispose(); }
+});
+
+
+it("keeps template loading behind the desktop boot barrier", async () => {
+  const socket = new FakeSocket();
+  const client = createClient();
+  const c = new ServerConnection({ url: "http://example.test", name: "test", createClient: () => client, createSocket: () => socket, decideBoot: () => "halt" });
+  void c.connect(null);
+  socket.emit("open");
+  socket.emit("message", { data: JSON.stringify({ type: "server-status", version: "1.0.0", requiredDesktopVersion: null }) });
+  socket.emit("message", { data: JSON.stringify({ type: "templates-changed", scan: { templates: [{ id: "one", hasIcon: true }], errors: [], watching: true }, invalidatedIDs: ["one"] }) });
+  try {
+    expect(client.templates.list).not.toHaveBeenCalled();
+    expect(client.templates.icon).not.toHaveBeenCalled();
+  } finally { c.dispose(); }
 });

@@ -16,6 +16,7 @@
     "@telepath-computer/television-artifact": "*",
     "@telepath-computer/television-shared": "*",
     "@telepath-computer/utils": "*",
+    "ajv": "8.20.0",
     "express": "4.22.3",
     "marked": "17.0.5",
     "send": "0.19.2",

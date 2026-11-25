@@ -736,7 +736,7 @@ export class ArtifactView extends View<[ApplicationService, Artifact, ArtifactVi
 
     return html`
       <div
-        class="artifact-view artifact-frame"
+        class="artifact-view artifact-frame${artifact.transparent ? " artifact-frame-transparent" : ""}"
         kind=${artifact.kind}
         ?full-screen=${this._fullScreen}
         ?inert=${this._inert}

@@ -40,6 +40,7 @@
     "verify": "npm run test -- verify",
     "lint:package-manifests": "node scripts/check-publishable.mjs --manifest-only",
     "check:publish-tarballs": "node scripts/check-publishable.mjs --tarballs",
+    "refresh:packaged-markdown-editor": "node scripts/refresh-packaged-markdown-editor.mjs",
     "specs:index": "node scripts/specs-index.mjs",
     "frameset": "frameset ${TAILSCALE_REMOTE:+--host 0.0.0.0 --allowed-hosts all}"
   },
@@ -47,10 +48,12 @@
     "@agentclientprotocol/sdk": "0.18.1",
     "@blaxel/core": "^0.3.24",
     "@eslint/js": "9.39.4",
-    "@playwright/test": "1.58.2",
+    "@playwright/test": "1.64.1",
     "@rupertsworld/daemon": "0.2.1",
     "@rupertsworld/dependencies": "0.2.1",
     "@rupertsworld/event-target": "0.1.2",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/html-vite": "10.6.2",
     "@telepath-computer/television": "*",
     "@telepath-computer/television-artifact": "*",
     "@telepath-computer/television-desktop": "*",
@@ -75,6 +78,7 @@
     "lit-html": "3.3.2",
     "marked": "17.0.5",
     "postcss": "^8.4.43",
+    "storybook": "10.6.2",
     "supertest": "7.2.2",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
@@ -88,7 +92,7 @@
   "overrides": {
     "@todesktop/cli": {
       "react": "17.0.2",
-      "fast-uri": "3.1.8"
+      "fast-uri": "^3.1.9"
     },
     "@hey-api/json-schema-ref-parser": {
       "js-yaml": "4.3.2"
