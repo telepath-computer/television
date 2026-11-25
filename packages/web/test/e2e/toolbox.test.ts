@@ -82,7 +82,7 @@ test.beforeEach(async ({ page }) => {
 test("real search, grid keys, pointer, updates and scrolling preserve input focus", async ({ page }) => {
   await set(page);
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   const grid = page.getByRole("grid", { name: "Toolbox" });
   const rows = grid.getByRole("row");
   const tiles = grid.getByRole("gridcell");
@@ -257,7 +257,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
 test("CDP composition passes trusted arrows and Return through the search field", async ({ page }) => {
   await set(page);
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   await captureKeys(search);
   const cdp = await page.context().newCDPSession(page);
@@ -292,7 +292,7 @@ test("CDP composition passes trusted arrows and Return through the search field"
 test("WebKit composition guards pass arrows and Return through the search field", async ({ page }) => {
   await set(page);
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   await search.fill("Item");
   await expect(tiles.first()).toHaveAttribute("aria-selected", "true");
@@ -319,7 +319,7 @@ test("WebKit composition guards pass arrows and Return through the search field"
 test("keyboard and search reveal highlights at both scrolling edges", async ({ page }) => {
   await set(page);
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   const body = page.locator(".toolbox-body");
   const footer = page.locator(".toolbox-footer");
@@ -396,7 +396,7 @@ test("real scroll bar remains usable beside the sticky footer", async ({ browser
 // proofs/ui/app/toolbox.md#^toolbox-t-messages
 test("pending, empty, unmatched and error messages stay plain and non-activatable", async ({ page }) => {
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   const body = page.locator(".toolbox-body");
   const content = page.locator(".toolbox-scroll-content");
   const footer = page.locator(".toolbox-footer");
@@ -409,7 +409,7 @@ test("pending, empty, unmatched and error messages stay plain and non-activatabl
   await expect(footer).toBeVisible();
   await search.fill('<img src=x>');
   await expect(content).toHaveText('Nothing matches “<img src=x>”.');
-  await expect(footer).toHaveText("Saved artifacts, ready to reuse anywhere. Ask your agent to add one.");
+  await expect(footer).toHaveText("Add to this list by asking your agent to save an artifact as a template.");
   await expect(body.locator("img")).toHaveCount(0);
   await set(page, [], [{ folder: "private-folder", error: "Bad" }]);
   await expect(page.getByRole("note")).toHaveText("1 template had errorsAsk your agent to read the Television skill and fix it.");

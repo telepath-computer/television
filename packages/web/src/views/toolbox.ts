@@ -201,7 +201,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
         @pointerup=${this.#clearPressed} @pointercancel=${this.#clearPressed}>
         <label class="toolbox-search">
           <tv-icon name="search"></tv-icon>
-          <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off"
+          <input type="text" role="combobox" placeholder="Search templates…" aria-label="Search templates" autocomplete="off"
             aria-haspopup="grid" aria-autocomplete="list"
             aria-expanded=${tilesVisible ? "true" : "false"}
             aria-controls=${tilesVisible ? "toolbox-grid" : nothing}
@@ -241,7 +241,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
               </div>
             ` : nothing}
           </div>
-          <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
+          <p class="toolbox-footer">Add to this list by asking your agent to save an artifact as a template.</p>
         </div>
       </tv-popover>
     `;

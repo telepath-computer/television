@@ -187,7 +187,7 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
 ```html
 <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">…</button>
 <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox">
-  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search toolbox" placeholder="Search toolbox…" aria-haspopup="grid" aria-autocomplete="list" aria-expanded="true" aria-controls="toolbox-grid" aria-activedescendant="…"></label>
+  <label class="toolbox-search"><tv-icon name="search"></tv-icon><input role="combobox" aria-label="Search templates" placeholder="Search templates…" aria-haspopup="grid" aria-autocomplete="list" aria-expanded="true" aria-controls="toolbox-grid" aria-activedescendant="…"></label>
   <div class="toolbox-body">
     <div class="toolbox-scroll-content">
       <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
@@ -200,7 +200,7 @@ An executable active theme adds `.settings-javascript-consent`, with `.settings-
       <hr class="toolbox-divider">
       <div class="toolbox-invalid" role="note"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">…</span><span>…</span></span></div>
     </div>
-    <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
+    <p class="toolbox-footer">Add to this list by asking your agent to save an artifact as a template.</p>
   </div>
 </tv-popover>
 ```
@@ -282,8 +282,8 @@ Upgrade instructions use `.desktop-upgrade-gate > .dialog-overlay > dialog > .di
 <!-- app-reference-source: specs/ui/app/top-bar/top-bar.frame sha256: 6e1070593b273bb9b692420a30c8164e8c4a346fe043dcc1a9feef1fdeed3ee4 -->
 <!-- app-reference-source: specs/ui/app/update-notification/update-notification.frame sha256: dda519fdf6c269d4a682d0f61e9a5632a84e0eb1995d1753f05d3a3fb274b666 -->
 <!-- app-reference-source: specs/ui/app/index.md sha256: 4181001af0760ec1c2d175e1cc2ff096e5391d046154760fb59291f3131b17d8 -->
-<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 5f997a907d86c1a878352a303280d4ed51a2482fcf8a535d40e4bd519fb5fa69 -->
-<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: 36da43fcd927cab3a07f3274127de1654e7bcdba9827e420272c80c275d8015c -->
+<!-- app-reference-source: storybook/spec/toolbox/toolbox.stories.ts sha256: 5c228c5b5cb22a9d5567d1c3a4e48f73cb42f9f0758f3c6ce0f5f5eb68d768c3 -->
+<!-- app-reference-source: specs/ui/app/toolbox.mdx sha256: cdd41fae0b6a1aa44bb97cbdc0fa75b566d8db1f495c83d7fcfaac2b901b0baa -->
 <!-- app-reference-source: storybook/spec/toolbox/styles.css sha256: f4a9b0577abaa9a7fdfdfbc7b8a6c74c3950daac2d5c58d8d79c1f47e3e3413a -->
 <!-- app-reference-source: storybook/spec/artifact-frame/artifact-frame.stories.ts sha256: 7e65db48cb645fb152d7982a30075a9a754e68f9e903ebc81a98ea46dc6a892e -->
 <!-- app-reference-source: specs/ui/app/artifact-frame/transparency.mdx sha256: aea5a8afa0ff5b86a3e1bfc22aee2016edb0af73ed33221f9a223296bb1fc008 -->

@@ -69,7 +69,7 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
     <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox"${open ? html` open` : ""}>
       <label class="toolbox-search">
         ${icon({ name: "search" })}
-        <input type="text" role="combobox" placeholder="Search toolbox…" aria-label="Search toolbox" autocomplete="off" aria-haspopup="grid" aria-autocomplete="list"${showGrid ? html` aria-expanded="true" aria-controls="toolbox-grid"` : html` aria-expanded="false"`}${showGrid && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
+        <input type="text" role="combobox" placeholder="Search templates…" aria-label="Search templates" autocomplete="off" aria-haspopup="grid" aria-autocomplete="list"${showGrid ? html` aria-expanded="true" aria-controls="toolbox-grid"` : html` aria-expanded="false"`}${showGrid && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
       </label>
       <div class="toolbox-body">
         <div class="toolbox-scroll-content">
@@ -93,7 +93,7 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
             ? html`${items.length > 0 || search.trim() !== "" ? html`<hr class="toolbox-divider">` : ""}${invalidSummary(invalid)}`
             : ""}
         </div>
-        <p class="toolbox-footer">Saved artifacts, ready to reuse anywhere. Ask your agent to add one.</p>
+        <p class="toolbox-footer">Add to this list by asking your agent to save an artifact as a template.</p>
       </div>
     </tv-popover>
   </div>`;

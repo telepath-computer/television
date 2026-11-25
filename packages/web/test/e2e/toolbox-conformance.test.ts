@@ -78,7 +78,7 @@ async function prepare(page: Page, state: State): Promise<void> {
   }
   if (state.closed) return;
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
-  const search = page.getByRole("combobox", { name: "Search toolbox" });
+  const search = page.getByRole("combobox", { name: "Search templates" });
   await page.locator(".toolbox-search input:focus").waitFor();
   if (state.query) await search.pressSequentially(state.query);
   if (state.highlight) await page.getByRole("gridcell").nth(1).hover();

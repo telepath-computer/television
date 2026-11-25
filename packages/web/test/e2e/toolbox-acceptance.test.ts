@@ -29,7 +29,7 @@ async function openApp(page: Page, product: ProductServer, baseURL: string | und
 async function openToolbox(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Toolbox", exact: true }).click();
   await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
-  await expect(page.getByRole("combobox", { name: "Search toolbox" })).toBeFocused();
+  await expect(page.getByRole("combobox", { name: "Search templates" })).toBeFocused();
 }
 
 // proofs/ui/app/toolbox.md#^toolbox-ac-icon-continuity
@@ -94,8 +94,8 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
     expect(await controls.evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")).slice(0, 2))).toEqual(["Toolbox", "Settings"]);
     await openToolbox(page);
     const panel = page.getByRole("region", { name: "Toolbox" });
-    const search = page.getByRole("combobox", { name: "Search toolbox" });
-    await expect(search).toHaveAttribute("placeholder", "Search toolbox…");
+    const search = page.getByRole("combobox", { name: "Search templates" });
+    await expect(search).toHaveAttribute("placeholder", "Search templates…");
     await expect(search).not.toHaveAttribute("aria-activedescendant");
     await expect(search).toHaveAttribute("aria-haspopup", "grid");
     await expect(search).toHaveAttribute("aria-autocomplete", "list");
@@ -188,7 +188,7 @@ test("click and Return create copied artifacts with starting data after selected
       if (request.url().endsWith("/templates/artifacts") && request.method() === "POST") requests.push(request.postDataJSON());
     });
     await openToolbox(page);
-    await page.getByRole("combobox", { name: "Search toolbox" }).press("Enter");
+    await page.getByRole("combobox", { name: "Search templates" }).press("Enter");
     expect(requests).toHaveLength(0);
     await page.locator(".toolbox-tile").click();
     await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
@@ -209,7 +209,7 @@ test("click and Return create copied artifacts with starting data after selected
     await client.display.patch({ focusedChannelId: empty.id });
     await expect(page.locator(".stage .page")).toHaveCount(0);
     await openToolbox(page);
-    const search = page.getByRole("combobox", { name: "Search toolbox" });
+    const search = page.getByRole("combobox", { name: "Search templates" });
     await search.fill("ex");
     await search.press("Enter");
     await expect.poll(async () => (await client.channels.get({ channelID: empty.id })).channel.layout).toHaveLength(1);

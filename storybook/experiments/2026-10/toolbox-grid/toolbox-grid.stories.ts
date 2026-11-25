@@ -30,7 +30,7 @@ interface Args {
 const copyText: Record<Copy, { label: string; placeholder: string; footer: string }> = {
   toolbox: {
     label: "Toolbox",
-    placeholder: "Search toolbox…",
+    placeholder: "Search templates…",
     footer: "Ask your agent to add artifacts to your toolbox, then reuse them anywhere.",
   },
   saved: {
