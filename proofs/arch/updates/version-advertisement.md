@@ -6,6 +6,8 @@ Proves [specs/arch/updates/version-advertisement.md](../../../specs/arch/updates
 
 ## Coverage model
 
+Template updates use the existing authenticated event stream after the first `server-status`. [The template-event seam](../templates/index.md#^templates-t-cache-events) tests that addition and absence of replay; the connection tests here keep proving the status shape/order and unknown-message behavior. No template payload is added to `server-status`.
+
 Coverage declarations are carried inside the migrated assertion blocks below.
 
 ## Test hooks

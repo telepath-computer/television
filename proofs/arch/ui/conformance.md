@@ -1,4 +1,4 @@
-*How production UI conformance is checked while automated markup comparison is scheduled for TV-649.*
+*Proves conformance for legacy frame and template UI specs: byte-identical stylesheet copies, their delivery routes, and review.*
 
 # UI conformance — proof
 
@@ -6,10 +6,10 @@ Proves [specs/arch/ui/conformance.md](../../../specs/arch/ui/conformance.md).
 
 ## Coverage model
 
-[Foundation architecture](./foundation.md) and [UI architecture](./index.md) describe the active stylesheet-copy and delivery checks.
+This proof applies only to [legacy frame and template specs](../../../specs/spec-ui.md#^ui-frame-specs). MDX surfaces follow [story conformance](../../../specs/spec-ui.md#^ui-conformance-test), or the check their spec states in its place, proved by each surface's own proof.
 
-The automated structural comparison, selector checks over posed production states, and detection of surfaces missing that coverage are deferred by the spec's [TV-649 release exception](../../../specs/arch/ui/conformance.md#release-exception-for-tv-649). They have no implemented coverage here. Existing behavior tests and implementation and visual review remain required; they do not establish that the deferred automated checks exist.
+[Foundation architecture](./foundation.md#^ui-t-foundation-copy) owns the byte identity checks and [UI architecture](./index.md#^ui-t-style-delivery) owns the delivery checks. What a surface's frames and templates bind ([what a frame binds](../../../specs/spec-ui.md#^ui-frame-binds)) is judged by implementation and visual review; this proof orders no automated test of it. Automating that comparison is tracked in [TV-649](https://linear.app/telepath-computer/issue/TV-649). Markup that exists for behaviour, such as menu pairing ids, is not part of that review: its owning spec states the contract and that spec's proof tests it, as [the menu view proof](./menu-view.md#^mn-ac-markup-smoke) does for minted trigger ids.
 
-## Deferred coverage
+## Test hooks
 
-TV-649 must update this proof with assertions and tests for the implemented comparison system, including required surface coverage and its handling of permitted differences. Its completion includes removing the release exception. The scheduling decision is human-owned policy and needs no test of the policy's wording.
+No additional production hook is declared here; the stylesheet and delivery proofs own their inputs and boundaries.

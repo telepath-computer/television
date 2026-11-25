@@ -13,7 +13,6 @@ import type { TelemetryEvent, TelemetryEventProperties } from "./types.ts";
 // Every registry value matches a closed pattern. A pattern that would admit
 // free text is a vocabulary-guarantee change, not a routine addition.
 const RELEASE_VERSION = /^\d+\.\d+\.\d+$/;
-const ARTIFACT_SKILL = /^(calendar|table|tasks|markdown)$/;
 
 /**
  * Per-event validation registry for client telemetry signals
@@ -27,7 +26,6 @@ export const CLIENT_SIGNAL_REGISTRY: Record<ClientSignalEventName, Record<string
   update_toast_shown: { server_version: RELEASE_VERSION, channel_version: RELEASE_VERSION },
   update_prompt_copy_clicked: { server_version: RELEASE_VERSION, channel_version: RELEASE_VERSION },
   desktop_upgrade_gate_shown: { desktop_app_version: RELEASE_VERSION, required_desktop_version: RELEASE_VERSION },
-  artifact_skill_prompt_copy_clicked: { artifact_skill: ARTIFACT_SKILL },
 };
 
 /**

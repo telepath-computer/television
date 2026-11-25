@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { authorityDocuments, proofBearingSpecs, relativeMirror, TEST_CODE_CITATION } from "./lib/spec-documents.ts";
 
 // Enforces specs/spec-policy.md's procedural reference-integrity rules. Once
 // that policy declares the proof system, the same checks cover the specs/proofs
@@ -27,7 +28,7 @@ function walk(dir: string, predicate: (file: string) => boolean = () => true): s
   });
 }
 
-const specMarkdown = walk(SPECS_ROOT, (file) => file.endsWith(".md"));
+const specMarkdown = authorityDocuments(SPECS_ROOT);
 const proofMarkdown = walk(PROOFS_ROOT, (file) => file.endsWith(".md"));
 const authorityMarkdown = [...specMarkdown, ...proofMarkdown];
 // Guides are not authority; only their links are checked, so a moved guide fails loudly.
@@ -63,26 +64,9 @@ function references(file: string): string[] {
   return out;
 }
 
-function proofBearingSpecs(): string[] {
-  return ["product", "arch", "ui"]
-    .flatMap((area) => walk(path.join(SPECS_ROOT, area), (file) => file.endsWith(".md")))
-    .filter((file) => {
-      const basename = path.basename(file);
-      return !basename.startsWith("runbook-") && !basename.startsWith("explainer-");
-    })
-    .filter((file) => {
-      const relative = path.relative(SPECS_ROOT, file).split(path.sep);
-      return relative[0] !== "ui" || path.basename(file) === "index.md";
-    });
-}
-
 function proofBearingProofs(): string[] {
   return ["product", "arch", "ui"]
     .flatMap((area) => walk(path.join(PROOFS_ROOT, area), (file) => file.endsWith(".md")));
-}
-
-function relativeMirror(file: string, fromRoot: string, toRoot: string): string {
-  return path.join(toRoot, path.relative(fromRoot, file));
 }
 
 function blockAnchorExists(file: string, anchor: string): boolean {
@@ -160,7 +144,7 @@ describe("spec and proof reference integrity", () => {
 
   test("the proof tree mirrors every proof-bearing spec and has no orphan", () => {
     if (!PROOFS_ENABLED) return;
-    const missing = proofBearingSpecs()
+    const missing = proofBearingSpecs(SPECS_ROOT)
       .map((file) => relativeMirror(file, SPECS_ROOT, PROOFS_ROOT))
       .filter((file) => !existsSync(file))
       .map((file) => path.relative(REPO_ROOT, file));
@@ -201,7 +185,7 @@ describe("spec and proof reference integrity", () => {
       .flatMap((root) => walk(root, (file) => CODE_EXTENSIONS.has(path.extname(file))));
     for (const file of code) {
       const source = readFileSync(file, "utf8");
-      for (const match of source.matchAll(/\b(specs|proofs)\/((?:product|arch|ui)\/[^#\s"'`()\]}>]+\.md)#\^([A-Za-z0-9-]+)/g)) {
+      for (const match of source.matchAll(TEST_CODE_CITATION)) {
         const target = path.join(REPO_ROOT, match[1]!, match[2]!);
         if (!blockAnchorExists(target, match[3]!)) {
           dangling.push(`${path.relative(REPO_ROOT, file)} -> ${match[0]}`);

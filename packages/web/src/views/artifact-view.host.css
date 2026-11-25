@@ -20,3 +20,100 @@
 .artifact-view > .artifact-frame-clip > iframe.artifact-content {
   display: block;
 }
+
+/* Transparent states follow storybook/spec/artifact-frame/styles.css. The
+   document selector also covers Electron guests without changing their display. */
+.artifact-frame.artifact-frame-transparent {
+  overflow: visible;
+  background: transparent;
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+/* The frame's two edge paints withdraw with its surface. */
+.artifact-frame.artifact-frame-transparent::before,
+.artifact-frame.artifact-frame-transparent::after {
+  display: none;
+}
+
+/* The frost is painted by layers beneath the clip box and the title bar, never
+   by an ancestor of the menu: a backdrop filter makes its element the box that
+   positions fixed descendants, which would carry the menu off its trigger. No
+   stacking context is added either, so the menu still stacks above the stage's
+   resize handles. Each layer comes first in its box, and the content after it
+   is positioned, so it paints over the layer. The layers' own transitions leave
+   the frame's transition list to the stage. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip {
+  position: relative;
+  overflow: visible;
+}
+
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--neutral-alpha-10);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+}
+
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > :is(iframe, webview) {
+  position: relative;
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Taking the bar out of flow leaves the document at its full height during
+   both directions of the fade. Hidden controls leave keyboard navigation. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  border-radius: 0 0 var(--frame-radius) var(--frame-radius);
+  background: transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 300ms ease, visibility 0s linear 300ms;
+}
+
+/* Frosted: a light tint of the usual band over a blur of the document behind it. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in oklch, var(--frame-titlebar-background) 55%, transparent);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+}
+
+/* The bar's controls paint over its frost; the menu keeps its own fixed position. */
+.artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar > :not(tv-menu) {
+  position: relative;
+}
+
+/* The stage's data-resize-active holds the hovered state while the pointer is on the page's resize handles
+   or a resize drag runs, and an open menu holds it so the bar never hides the
+   menu it contains. */
+.artifact-frame.artifact-frame-transparent:is(:hover, [data-resize-active], :has(tv-menu[open])) > .artifact-frame-clip::before {
+  opacity: 1;
+}
+
+.artifact-frame.artifact-frame-transparent:is(:hover, [data-resize-active], :has(tv-menu[open])) > .artifact-frame-clip > .artifact-title-bar {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip::before,
+  .artifact-frame.artifact-frame-transparent > .artifact-frame-clip > .artifact-title-bar {
+    transition: none;
+  }
+}

@@ -8,7 +8,7 @@ UI surfaces materialize through views, the application root included: the entry 
 
 **Status:** implemented app UI architecture.
 
-The web client requires browser `localStorage` and is not expected to fall back gracefully or handle its absence. If `localStorage` is unavailable, the entry script aborts with a console error and leaves a blank page. A small user-facing message explaining the failure is desired and tracked in [TV-708](https://linear.app/telepath-computer/issue/TV-708/web-client-show-a-small-message-when-browser-storage-is-unavailable).
+The web client requires browser `localStorage` and is not expected to fall back gracefully or handle its absence. If `localStorage` is unavailable, the entry script aborts with a console error and leaves a blank page.
 
 ## Client-persisted preferences
 
@@ -45,7 +45,7 @@ Keyed collections render with lit's `repeat` by default; the identity-critical o
 
 A global stylesheet realizes the foundation styling that the app delivers ([foundation.md](./foundation.md)), divided into module files as needed. A view's own styles are its sibling `.css`, per Views above. Implementation-owned host scaffolding and styling under a named code-governed carve-out may use additional sibling sheets imported by the same module.
 
-One module under `packages/web/src/` owns the app document's active-theme stylesheet, main-script include, both sandboxed frame documents, host-to-frame pointer forwarding, and frame-focus guard. Theme JavaScript is application-only and never enters artifact documents. The app view supplies the permanent CSS foreground element specified by the [app UI](../../ui/app/index.md#^app-theme-visual-layers). The Clouds UI stylesheet crosses into its installed bundled package and does not enter the compiled web import graph. The markdown editor and the two built-in error documents load the fixed-`system` resolver before `/canonical/v2/styles.css`; view-specific styles follow canonical. [Theme delivery](../themes/delivery.md) owns resource URLs, stylesheet and script installation, manifest and consent gates, refresh and reset lifecycles, iframe isolation, pointer transport, focus restoration, appearance continuity, and the root appearance resolver.
+One module under `packages/web/src/` owns the app document's active-theme stylesheet, main-script include, both sandboxed frame documents, host-to-frame pointer forwarding, and frame-focus guard. Theme JavaScript is application-only and never enters artifact documents. The app view supplies the permanent CSS foreground element specified by the [app UI](../../ui/app/index.md#^app-theme-visual-layers). The Clouds UI stylesheet crosses into its installed bundled package and does not enter the compiled web import graph. The Markdown file view and the two built-in error documents load the fixed-`system` resolver before `/canonical/v2/styles.css`; view-specific styles follow canonical. [Theme delivery](../themes/delivery.md) owns resource URLs, stylesheet and script installation, manifest and consent gates, refresh and reset lifecycles, iframe isolation, pointer transport, focus restoration, appearance continuity, and the root appearance resolver.
 
 ## Helpers
 

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="20" height="20">
+  <defs>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF19A"/><stop offset="1" stop-color="#FFD749"/></linearGradient>
+    <linearGradient id="flap" x1="1" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#FFF8D6"/><stop offset="1" stop-color="#F3CF4E"/></linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="drop" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#5a4300" flood-opacity=".28"/></filter>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation=".9"/></filter>
+  </defs>
+  <g filter="url(#drop)">
+    <path d="M9 5h22a4 4 0 0 1 4 4v16.5L25.5 35H9a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4z" fill="url(#paper)"/>
+    <path d="M9 5h22a4 4 0 0 1 4 4v3H5V9a4 4 0 0 1 4-4z" fill="url(#shine)"/>
+    <path d="M35 25.5c-3.2.5-6.4 1.1-7.4 2.1s-1.6 4.2-2.1 7.4" fill="none" stroke="#7a5a00" stroke-opacity=".35" stroke-width="2" filter="url(#soft)"/>
+    <path d="M35 25.5c-3.2.5-6.4 1.1-7.4 2.1s-1.6 4.2-2.1 7.4z" fill="url(#flap)"/>
+  </g>
+  <path d="M11 16.8c2.6-.9 4.6.6 7.2-.1s4.4-.5 7.6.3M11 22.6c2.4-.8 4.2.5 6.6-.1s2.8-.2 4.4.2" fill="none" stroke="#7C5B0C" stroke-opacity=".9" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

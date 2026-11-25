@@ -24,7 +24,7 @@ node scripts/bake-onboarding.mjs <channel>... [--root <content-tree>] [--designs
 ```
 
 The three roots default to the production content tree, the onboarding UI-spec
-directory, and `packages/skills/dist/`. Tests use the same options with fixture
+directory, and `packages/skills/onboarding-dist/`. Tests use the same options with fixture
 inputs and disposable output directories.
 
 The script requires the repository's Node 24 toolchain
@@ -39,7 +39,7 @@ Each named design channel contains:
 - one argumentless `<slug>.frame` or Markdown `<slug>.md` file per artifact,
   beside the manifest;
 - a manifest `skill` value when a rendered frame uses browser components
-  supplied by a bundled skill;
+  supplied by a skill source retained for the bake;
 - `components: false` when the production document must omit the canonical
   components module;
 - `store` when the artifact's store starts with data.
@@ -156,7 +156,7 @@ not changed. ^folder-rewrite
 
 `skill: tv-tasks` and `skill: tv-calendar` are packaging instructions, not
 runtime agent behavior. Before the bake runs, the skills package build must
-have created `packages/skills/dist/<skill>/`. The bake fails before writing if
+have created `packages/skills/onboarding-dist/<skill>/`. The bake fails before writing if
 that directory is missing. It copies those distributable browser files beside
 the generated `index.html` and writes relative links to their CSS and
 JavaScript into the document head. The release therefore contains everything

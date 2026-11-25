@@ -1,4 +1,4 @@
-*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](./migration.md)'s.*
+*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus creation display options, the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](./migration.md)'s.*
 
 **Status:** implemented redesign authority.
 
@@ -8,7 +8,7 @@ Every channel remembers what it is showing: which artifacts are open and how the
 
 ## What this owns
 
-This spec owns the **layout data model** — the `TabPage` list and its types — its **stored-format versioning**, and the **semantics of layout updates**. It deliberately does not own:
+This spec owns the **layout data model** — the `TabPage` list and its types — its **stored-format versioning**, the **semantics of layout updates**, and the creation display-options type and value rules. The [artifact-record spec](../artifacts/index.md) owns the record fields selected by those options. It deliberately does not own:
 
 - The version-1 format and the migration from it — its companion, [arch/layout/migration.md](./migration.md).
 
@@ -39,6 +39,13 @@ type PageSize = {
   width: number;  // reference CSS pixels; fractional permitted, finite, positive
   height: number;
 };
+
+type ArtifactDisplayOptions = {
+  width?: number;
+  height?: number;
+  fullScreen?: boolean;
+  transparent?: boolean;
+};
 ```
 
 (`ArtifactID` is an artifact's id string.)
@@ -51,6 +58,8 @@ The one-artifact-per-page limit is a stage-1 UI-layer constraint, not a property
 
 `full_screen` is a mode over the page's size, not a size of its own: `true` shows the page at the stage's complete page box, and leaving the mode returns to what `size` renders ([ui/app/stage/index.md](../../ui/app/stage/index.md), Full-screen). Entering and leaving the mode never changes `size`. ^ly-fullscreen-mode
 
+An artifact creation request can supply `display?: ArtifactDisplayOptions` for the artifact and its new page. This includes the [path and URL creation request](../artifacts/index.md#create-and-update-inputs) and the [template creation request](../templates/index.md#creating-an-artifact). Each supplied width and height must be a finite positive number; `fullScreen` and `transparent` must be booleans. The server rejects invalid values before creating an artifact. After [template resolution](../../product/templates.md#^artifact-template-display-options), each absent size uses the shared default ([#^ly-page-size](#^ly-page-size)), and absent `fullScreen` is `false`. Width, height, and `fullScreen` become the page's `size` and `geometry.full_screen`; the [artifact-record contract](../artifacts/index.md#^ar-transparent) owns the default and storage of `transparent`. ^ly-creation-display
+
 There is no stage-1 pane tree, stored split ratio, page-splitting operation, or unnamed multi-artifact placeholder. Later layout kinds and their interactions are stage-2 work; they extend `PageGeometry` when their actual requirements exist. ^ly-no-splits
 
 ## Where layout lives
@@ -61,7 +70,7 @@ Layout is server state, synced to all clients — the redesign changes the seman
 
 - **A layout update replaces the channel's whole page list.** Reordering pages and changing `full_screen` or `size` are expressed by submitting the new list; the layout API has no finer-grained operations in stage 1. The one other reorder is a move that names a placement on the channel already holding the artifact, which the server turns into such a whole-list update ([#^ly-move](#^ly-move)). ^ly-update-replace
 - **A layout update rearranges pages; it never regroups them.** The submitted list must contain exactly the current pages — each page's ordered `artifactIds` preserved as a unit — in any order, in either `full_screen` state, and at any valid size. Every artifact in the current layout therefore appears exactly once across the list; a submission that splits or merges pages, duplicates or drops an artifact id, or names an unknown one is rejected. Membership changes only through artifact creation, deletion, and moving — this keeps the layout API unable to orphan, invent, or silently group artifacts. ^ly-update-membership
-- **Creating an artifact adds a page.** A new artifact creates a new tab page whose `artifactIds` contains only that artifact, whose geometry is the shared default, and whose `size` is the shared default size ([#^ly-page-size](#^ly-page-size)). The page goes at the end of the list unless the creation names a placement ([#^ly-placement](#^ly-placement)). ^ly-create-appends
+- **Creating an artifact adds a page.** A new artifact creates a new tab page whose `artifactIds` contains only that artifact. Its geometry and size follow [its display options](#^ly-creation-display). The page goes at the end of the list unless the creation names a placement ([#^ly-placement](#^ly-placement)). ^ly-create-appends
 - **Deleting an artifact removes it from its page**; a page left with no artifacts is removed from the list. (Stage-1 pages hold one artifact, so deletion removes the page.) ^ly-delete-removes
 - **Moving an artifact to another channel** is two layout changes, each saved atomically: the server removes the artifact from its page on the source channel, as deletion does, and saves the source channel; then it adds a page to the target channel whose `artifactIds` contains only that artifact and whose geometry and `size` are those of the page it left, and saves the target channel. The page goes at the end of the list unless the move names a placement ([#^ly-placement](#^ly-placement)). Each save replaces the channel's stored record atomically, so a server stop during a save leaves that channel's complete previous record or its complete new one, never a partial record. The artifact's ID and record are unchanged. Moving an artifact to the channel that already holds it changes nothing unless the move names a placement; then the server moves the page holding the artifact, with its geometry and `size`, beside the named artifact's page as one layout update ([#^ly-update-replace](#^ly-update-replace)). A placement that names the moved artifact itself is rejected, and one that leaves the order as it was changes nothing. If the source save fails, the move fails and nothing changes. If the target save fails, or the server stops between the two saves, the artifact is left on no channel: no channel shows it, but its record remains, so its ID, store, and share link still work. This is accepted because it is unlikely, and it keeps a move free of any recovery machinery. ^ly-move
 - **Placement.** A creation or move may name a placement: before or after a named artifact. The new page then goes immediately before or after the page holding that artifact, and the other pages keep their order. The named artifact must be on the channel that receives the page; otherwise the server rejects the request before saving anything, so nothing changes. Connected clients show the new page in its place. ^ly-placement
@@ -90,4 +99,3 @@ The version-1 card-tree format, the mapping that flattens it into this model, an
 ## Testing
 
 Tests run a server with a real temporary data directory. They send layout updates through a real HTTP client and observe channel events through a real WebSocket client. They do not replace any production mechanism or use a test hook. Tests verify membership preservation from an authored, valid version-2 channel record that contains a page with multiple artifacts. They use an authored record because the stage-1 API cannot create such a page.
-

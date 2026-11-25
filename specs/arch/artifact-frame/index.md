@@ -16,13 +16,13 @@ This spec owns the artifact-frame domain's **authority boundary** and its **fram
 |---|---|
 | [artifact-bridge.md](./artifact-bridge.md) | the bridge: the in-document script and Electron preload, the message protocol, readiness tracking, keyboard forwarding, and the shared-artifact content poll |
 | [reload-navigation.md](./reload-navigation.md) | local path-content watching and notification, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
-| [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the bundled Markdown view |
+| [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the Markdown file view and Document template's Markdown editor |
 | [proxy-caching.md](./proxy-caching.md) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
 | [isolation.md](./isolation.md) | the sandbox artifact documents run in, in a browser, and the sessions that isolate them in the desktop app, the browser features they are granted, the cross-origin rules on the routes they load, and the known limitations |
 
 ## The frame core is code-authoritative, deliberately
 
-Everything in the frame's implementation *not* claimed by the module specs above or the narrow Markdown-editor color and table exceptions below is the **frame core**, and it remains governed by code — reviewed and evolved as code, with no spec to conform to. The core includes: ^frame-core-carve-out
+Everything in the frame's implementation *not* claimed by the module specs above or the narrow Markdown-editor color and table exceptions below is the **frame core**, and it remains governed by code — reviewed and evolved as code, with no spec to conform to. The shared editor source used by the Markdown file view and Document template's Markdown editor is part of that core. The core includes: ^frame-core-carve-out
 
 - **Renderer routing** — deciding how an artifact renders (the markdown host, a proxied iframe, an Electron webview) and constructing the frame element around it, apart from the frame's `sandbox` and `allow` attributes, which [isolation.md](./isolation.md#^iso-iframe-sandbox) owns, and a webview's `partition` attribute, which [desktop artifact partitions](../desktop/artifact-partitions.md#^dp-interface-names) owns.
 - **The markdown host** — the bundled markdown view and its content protocol, except for the editor's color treatment owned by [ui/markdown-editor](../../ui/markdown-editor/index.md) and the contracts in [the Markdown table buffer](markdown-tables-buffer.md) and [the table-interaction UI buffer](../../ui/markdown-editor/index.md#^md-table-interaction-buffer). Server-rendered read-only Markdown remains part of the code-authoritative core.

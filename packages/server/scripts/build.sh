@@ -15,6 +15,7 @@ canonical_dist="$repo_root/packages/canonical/dist/canonical"
 server_dist="$package_root/dist/canonical"
 onboarding_dist="$package_root/dist/onboarding"
 themes_dist="$package_root/dist/themes"
+templates_dist="$package_root/dist/templates"
 
 npm --workspace @telepath-computer/canonical run build
 
@@ -39,6 +40,11 @@ rm -rf "$themes_dist"
 mkdir -p "$themes_dist"
 cp -R "$package_root/assets/themes/." "$themes_dist/"
 
+node "$here/validate-templates.mjs" "$package_root/assets/templates"
+rm -rf "$templates_dist"
+mkdir -p "$templates_dist"
+cp -R "$package_root/assets/templates/." "$templates_dist/"
+
 # The resource SDK (specs/arch/resources/sdk.md#^sdk-build).
 node "$here/build-sdk.mjs"
 
@@ -49,3 +55,4 @@ cp -R "$package_root/assets/onboarding-channels/." "$onboarding_dist/"
 echo "  -> $server_dist"
 echo "  -> $onboarding_dist"
 echo "  -> $themes_dist"
+echo "  -> $templates_dist"
