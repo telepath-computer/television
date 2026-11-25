@@ -22,6 +22,7 @@ interface State {
   highlight?: boolean;
   pressed?: boolean;
   failedIcon?: boolean;
+  scrolled?: boolean;
 }
 const calendarIcon = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect x="1.5" y="3" width="17" height="15.5" rx="3" fill="#fff" stroke="#d4d4d4"/><path d="M1.5 6a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v1.5h-17z" fill="#ef4444"/><text x="10" y="15.8" font-family="Helvetica,Arial,sans-serif" font-size="8" font-weight="700" fill="#262626" text-anchor="middle">22</text></svg>');
 const mailIcon = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><rect x="1" y="3" width="18" height="14" rx="2" fill="#2563eb"/><path d="m2 5 8 6 8-6" fill="none" stroke="#fff" stroke-width="1.5"/></svg>');
@@ -34,6 +35,12 @@ const items: Item[] = [
   { id: "email", name: "Email" }, { id: "email-draft", name: "Email draft" }, mail,
 ];
 const invalid = [{ folder: "my-template", error: "manifest.json is missing a description." }];
+const manyItems: Item[] = [...items,
+  { id: "image-comparison", name: "Image comparison" }, { id: "image-gallery", name: "Image gallery" },
+  { id: "map", name: "Map with POIs" }, { id: "news", name: "News top 10" },
+  { id: "priorities", name: "Priorities board" }, { id: "sticky-note", name: "Sticky note" },
+  { id: "table", name: "Table" }, { id: "todo-list", name: "To-do list" }, { id: "trip", name: "Trip" },
+].sort((a, b) => a.name.localeCompare(b.name, "en") || a.id.localeCompare(b.id, "en"));
 const states: Record<string, State> = {
   "closed": { closed: true },
   "before-first-list": { pending: true },
@@ -52,14 +59,8 @@ const states: Record<string, State> = {
   "with-errors": { errors: invalid },
   "search-with-errors": { query: "spreadsheet", errors: invalid },
   "multiple-errors": { errors: [...invalid, { folder: "weekly-review", error: "index.html is missing." }, { folder: "old-dashboard", error: "manifest.json is not valid JSON." }] },
-  "many-items": {
-    items: [...items,
-      { id: "image-comparison", name: "Image comparison" }, { id: "image-gallery", name: "Image gallery" },
-      { id: "map", name: "Map with POIs" }, { id: "news", name: "News top 10" },
-      { id: "priorities", name: "Priorities board" }, { id: "sticky-note", name: "Sticky note" },
-      { id: "table", name: "Table" }, { id: "todo-list", name: "To-do list" }, { id: "trip", name: "Trip" },
-    ].sort((a, b) => a.name.localeCompare(b.name, "en") || a.id.localeCompare(b.id, "en")),
-  },
+  "many-items": { items: manyItems },
+  "many-items-scrolled": { items: manyItems, scrolled: true },
 };
 
 async function prepare(page: Page, state: State): Promise<void> {
@@ -85,6 +86,15 @@ async function prepare(page: Page, state: State): Promise<void> {
   else await page.mouse.move(0, 0);
   if (state.pressed) await page.mouse.down();
   if (state.failedIcon) await page.locator(".toolbox-letter").filter({ hasText: "C" }).waitFor();
+  if (state.scrolled) {
+    // Wheel over the footer, which scrolls the grid without moving the highlight.
+    const body = page.locator(".toolbox-body");
+    const box = (await page.locator(".toolbox-footer").boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 2000);
+    await expect.poll(() => body.evaluate(element => element.scrollHeight - element.clientHeight - element.scrollTop)).toBeLessThanOrEqual(0);
+    await page.mouse.move(0, 0);
+  }
 }
 
 // Every exported story receives a test, including future stories.
