@@ -318,7 +318,7 @@ test("settings and templates retain native light dismissal", async ({ page, base
 
     await page.getByRole("button", { name: "Settings" }).click();
     await expect(popoverOpen(page, "#settings-popover")).toBeVisible();
-    await page.getByRole("button", { name: "Toolbox" }).click();
+    await page.getByRole("button", { name: "Templates", exact: true }).click();
     await expect(popoverOpen(page, "#settings-popover")).toHaveCount(0);
     await expect(popoverOpen(page, ".toolbox-popover")).toBeVisible();
 

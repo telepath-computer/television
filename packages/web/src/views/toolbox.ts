@@ -194,10 +194,10 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
       (_, rowIndex) => matches.slice(rowIndex * TOOLBOX_COLUMNS, rowIndex * TOOLBOX_COLUMNS + TOOLBOX_COLUMNS),
     );
     return html`
-      <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox">
+      <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Templates" title="Templates">
         <tv-icon name="skills" size="sm"></tv-icon>
       </button>
-      <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox" ${ref(this.#observePanel)}
+      <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Templates" ${ref(this.#observePanel)}
         @pointerup=${this.#clearPressed} @pointercancel=${this.#clearPressed}>
         <label class="toolbox-search">
           <tv-icon name="search"></tv-icon>
@@ -213,7 +213,7 @@ export class Toolbox extends View<[ToolboxSource | undefined, Activate]> {
             ${!scan ? nothing : folderError !== null ? html`
               <div class="toolbox-folder-error"><tv-icon name="warning" size="sm"></tv-icon><span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>
             ` : tilesVisible ? html`
-              <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">
+              <div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Templates">
                 ${gridRows.map((entries, rowIndex) => html`
                   <div class="toolbox-grid-row" role="row">
                     ${entries.map((entry, columnIndex) => {

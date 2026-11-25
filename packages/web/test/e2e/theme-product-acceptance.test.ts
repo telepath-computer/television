@@ -1455,7 +1455,7 @@ document.querySelector("#artifact-probe").addEventListener("click", () => {
     })));
     await page.keyboard.press("Escape");
 
-    const templatesButton = page.getByRole("button", { name: "Toolbox" });
+    const templatesButton = page.getByRole("button", { name: "Templates", exact: true });
     const templatesBounds = await templatesButton.boundingBox();
     if (templatesBounds === null) throw new Error("Toolbox button has no pointer geometry");
     const dragEnd = {

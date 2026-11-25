@@ -35,10 +35,10 @@ test("host keyboard delivery toggles Toolbox and focuses search in Electron", as
     }
     await pressShortcut();
     await expect(page.getByRole("combobox", { name: "Search templates" })).toBeFocused();
-    await expect(page.getByRole("region", { name: "Toolbox" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Templates", exact: true })).toBeVisible();
     await pressShortcut();
-    await expect(page.getByRole("region", { name: "Toolbox" })).not.toBeVisible();
-    await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeFocused();
+    await expect(page.getByRole("region", { name: "Templates", exact: true })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "Templates", exact: true })).toBeFocused();
   } finally {
     await launched?.app.close();
     await product.dispose();

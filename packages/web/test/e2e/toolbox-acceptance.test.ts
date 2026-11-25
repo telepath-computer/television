@@ -27,7 +27,7 @@ async function openApp(page: Page, product: ProductServer, baseURL: string | und
 }
 
 async function openToolbox(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
   await expect(page.getByRole("combobox", { name: "Search templates" })).toBeFocused();
 }
@@ -88,19 +88,19 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
       template(product.home, id!, name!);
     }
     await openApp(page, product, baseURL);
-    const trigger = page.getByRole("button", { name: "Toolbox", exact: true });
-    await expect(trigger).toHaveAttribute("title", "Toolbox");
+    const trigger = page.getByRole("button", { name: "Templates", exact: true });
+    await expect(trigger).toHaveAttribute("title", "Templates");
     const controls = page.locator(".top-bar-controls > button");
-    expect(await controls.evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")).slice(0, 2))).toEqual(["Toolbox", "Settings"]);
+    expect(await controls.evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")).slice(0, 2))).toEqual(["Templates", "Settings"]);
     await openToolbox(page);
-    const panel = page.getByRole("region", { name: "Toolbox" });
+    const panel = page.getByRole("region", { name: "Templates", exact: true });
     const search = page.getByRole("combobox", { name: "Search templates" });
     await expect(search).toHaveAttribute("placeholder", "Search templates…");
     await expect(search).not.toHaveAttribute("aria-activedescendant");
     await expect(search).toHaveAttribute("aria-haspopup", "grid");
     await expect(search).toHaveAttribute("aria-autocomplete", "list");
     await expect(search).toHaveAttribute("aria-expanded", "true");
-    const grid = page.getByRole("grid", { name: "Toolbox" });
+    const grid = page.getByRole("grid", { name: "Templates", exact: true });
     const gridID = await grid.getAttribute("id");
     expect(gridID).toBeTruthy();
     await expect(search).toHaveAttribute("aria-controls", gridID!);
@@ -120,7 +120,7 @@ test("Toolbox opens, dismisses and toggles with the host keyboard shortcut", asy
     await expect(grid.locator('[aria-selected="true"]')).toHaveCount(1);
     await expect(search).toHaveAttribute("aria-activedescendant", await tile.getAttribute("id") ?? "missing-id");
     await search.fill("missing");
-    await expect(page.getByRole("grid", { name: "Toolbox" })).toHaveCount(0);
+    await expect(page.getByRole("grid", { name: "Templates", exact: true })).toHaveCount(0);
     await expect(search).toHaveAttribute("aria-expanded", "false");
     await expect(search).not.toHaveAttribute("aria-controls");
     await expect(search).not.toHaveAttribute("aria-activedescendant");

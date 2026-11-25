@@ -42,7 +42,7 @@ async function openApp(page: Page, baseURL: string | undefined, product: Awaited
   await configureTestMotion(page);
 }
 async function toggle(page: Page, open: boolean) {
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   if (open) await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
   else await expect(page.locator(".toolbox-popover")).not.toHaveAttribute("open", "");
 }

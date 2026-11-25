@@ -65,8 +65,8 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
   const showGrid = hasList && folderError === null && items.length > 0;
   return html`
   <div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--popover-distance)">
-    <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Toolbox" title="Toolbox" aria-expanded="${open ? "true" : "false"}">${icon({ name: "skills", size: "sm" })}</button>
-    <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Toolbox"${open ? html` open` : ""}>
+    <button class="toolbox-trigger" id="toolbox-trigger" icon variant="ghost" aria-label="Templates" title="Templates" aria-expanded="${open ? "true" : "false"}">${icon({ name: "skills", size: "sm" })}</button>
+    <tv-popover class="toolbox-popover" trigger="toolbox-trigger" role="region" aria-label="Templates"${open ? html` open` : ""}>
       <label class="toolbox-search">
         ${icon({ name: "search" })}
         <input type="text" role="combobox" placeholder="Search templates…" aria-label="Search templates" autocomplete="off" aria-haspopup="grid" aria-autocomplete="list"${showGrid ? html` aria-expanded="true" aria-controls="toolbox-grid"` : html` aria-expanded="false"`}${showGrid && highlighted !== null ? html` aria-activedescendant="toolbox-item-${highlighted}"` : ""} value="${search}">
@@ -78,7 +78,7 @@ const render = ({ open, hasList, search, items, highlighted, pressed, invalid, f
             : folderError !== null
               ? html`<div class="toolbox-folder-error">${icon({ name: "warning", size: "sm" })}<span class="toolbox-error-text"><span class="toolbox-error-folder">Could not read the templates folder.</span><span>${folderError}</span></span></div>`
               : items.length > 0
-                ? html`<div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Toolbox">${gridRows(items).map((itemsInRow, rowIndex) => html`
+                ? html`<div class="toolbox-grid" id="toolbox-grid" role="grid" aria-label="Templates">${gridRows(items).map((itemsInRow, rowIndex) => html`
                     <div class="toolbox-grid-row" role="row">${itemsInRow.map((item, columnIndex) => {
                       const index = rowIndex * TOOLBOX_COLUMNS + columnIndex;
                       return tile(item, index, index === highlighted, index === pressed);

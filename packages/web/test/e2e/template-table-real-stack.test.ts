@@ -475,7 +475,7 @@ test("Tab enters from the artifact and Television shell without leaving A1 hidde
   await shellScroll.evaluate(element => element.scrollTo(0, 0));
   await expect.poll(() => shellScroll.evaluate(element => ({ left: element.scrollLeft, top: element.scrollTop })))
     .toEqual({ left: 0, top: 0 });
-  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
+  const toolbox = page.getByRole("button", { name: "Templates", exact: true });
   await toolbox.focus();
   let enteredArtifact = false;
   for (let presses = 0; presses < 20 && !enteredArtifact; presses += 1) {
@@ -801,7 +801,7 @@ test("moving focus to another artifact frame commits and keeps selection", async
   h.proxy.severConnection(firstConnection);
   await expect(status(firstFrame)).toHaveText("Reconnecting…");
   await expect(page.locator(`.stage .page[data-page-key="${id}"]`)).toHaveAttribute("selected", "");
-  const toolbox = page.getByRole("button", { name: "Toolbox", exact: true });
+  const toolbox = page.getByRole("button", { name: "Templates", exact: true });
   await toolbox.focus();
   await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => resolve(null))));
   const televisionShellKeptFocusWhileDisconnected = await toolbox.evaluate(element => element === document.activeElement);

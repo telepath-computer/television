@@ -74,16 +74,16 @@ async function dispatchWebKitCompositionKey(search: Locator, key: string) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/packages/web/test/e2e/fixtures/toolbox.html");
-  await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Templates", exact: true })).toBeVisible();
   await configureTestMotion(page);
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
 test("real search, grid keys, pointer, updates and scrolling preserve input focus", async ({ page }) => {
   await set(page);
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
-  const grid = page.getByRole("grid", { name: "Toolbox" });
+  const grid = page.getByRole("grid", { name: "Templates", exact: true });
   const rows = grid.getByRole("row");
   const tiles = grid.getByRole("gridcell");
   const body = page.locator(".toolbox-body");
@@ -240,7 +240,7 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   }
   await search.press("Escape");
   expect(await actions(page)).toEqual([]);
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   await expect(search).toHaveValue("");
   await expect(search).not.toHaveAttribute("aria-activedescendant");
   await search.fill("Item 23");
@@ -248,15 +248,15 @@ test("real search, grid keys, pointer, updates and scrolling preserve input focu
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.holdAction = true; });
   await search.press("Enter");
   await expect.poll(() => actions(page)).toEqual(["id-23"]);
-  await expect(page.getByRole("region", { name: "Toolbox" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Templates", exact: true })).toBeVisible();
   await page.evaluate(() => { (window as unknown as { toolbox: Fixture }).toolbox.finishAction(); });
-  await expect(page.getByRole("region", { name: "Toolbox" })).not.toBeVisible();
+  await expect(page.getByRole("region", { name: "Templates", exact: true })).not.toBeVisible();
 });
 
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
 test("CDP composition passes trusted arrows and Return through the search field", async ({ page }) => {
   await set(page);
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   await captureKeys(search);
@@ -291,7 +291,7 @@ test("CDP composition passes trusted arrows and Return through the search field"
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
 test("WebKit composition guards pass arrows and Return through the search field", async ({ page }) => {
   await set(page);
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   await search.fill("Item");
@@ -318,7 +318,7 @@ test("WebKit composition guards pass arrows and Return through the search field"
 // proofs/ui/app/toolbox.md#^toolbox-t-browser-input
 test("keyboard and search reveal highlights at both scrolling edges", async ({ page }) => {
   await set(page);
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
   const tiles = page.getByRole("gridcell");
   const body = page.locator(".toolbox-body");
@@ -363,10 +363,10 @@ test("real scroll bar remains usable beside the sticky footer", async ({ browser
   const page = await visibleScrollbars.newPage({ baseURL, viewport: { width: 640, height: 800 } });
   try {
     await page.goto("/packages/web/test/e2e/fixtures/toolbox.html");
-    await expect(page.getByRole("button", { name: "Toolbox", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Templates", exact: true })).toBeVisible();
     await configureTestMotion(page);
     await set(page);
-    await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+    await page.getByRole("button", { name: "Templates", exact: true }).click();
     const body = page.locator(".toolbox-body");
     const footer = page.locator(".toolbox-footer");
     const layout = await body.evaluate((element: HTMLElement) => {
@@ -395,7 +395,7 @@ test("real scroll bar remains usable beside the sticky footer", async ({ browser
 
 // proofs/ui/app/toolbox.md#^toolbox-t-messages
 test("pending, empty, unmatched and error messages stay plain and non-activatable", async ({ page }) => {
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
   const body = page.locator(".toolbox-body");
   const content = page.locator(".toolbox-scroll-content");

@@ -71,7 +71,7 @@ export class TemplateHarness {
 
   async create(page: Page): Promise<{ artifactID: string; frame: Frame }> {
     await this.openApp(page);
-    await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+    await page.getByRole("button", { name: "Templates", exact: true }).click();
     await expect(page.locator(".toolbox-popover")).toHaveAttribute("open", "");
     const tile = page.getByRole("gridcell", { name: this.template.name, exact: true });
     // The tile shows the template's own icon rather than the default letter.

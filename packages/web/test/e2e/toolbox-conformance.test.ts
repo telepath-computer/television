@@ -63,7 +63,7 @@ const states: Record<string, State> = {
 };
 
 async function prepare(page: Page, state: State): Promise<void> {
-  await page.getByRole("button", { name: "Toolbox", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Templates", exact: true }).waitFor();
   if (!state.pending) {
     const rows = state.items ?? items;
     const scan: ArtifactTemplateScan = {
@@ -77,7 +77,7 @@ async function prepare(page: Page, state: State): Promise<void> {
     }, JSON.stringify({ scan, icons }));
   }
   if (state.closed) return;
-  await page.getByRole("button", { name: "Toolbox", exact: true }).click();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
   const search = page.getByRole("combobox", { name: "Search templates" });
   await page.locator(".toolbox-search input:focus").waitFor();
   if (state.query) await search.pressSequentially(state.query);
