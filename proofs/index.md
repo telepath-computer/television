@@ -120,7 +120,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
   - `index.md` (13 lines) — *How the promises in UI policy are proven.*
   - **app/**
     - `index.md` (67 lines) — *How the promises in App (UI) are proven.*
-    - `toolbox.md` (72 lines) — *Proves Toolbox appearance for every story and its search, keyboard, pointer, icon and activation behavior in production.*
+    - `toolbox.md` (73 lines) — *Proves Toolbox appearance for every story and its search, keyboard, pointer, icon and activation behavior in production.*
     - **artifact-frame/**
       - `index.md` (36 lines) — *Proves artifact-frame content and actions and the bounded window-edge regression.*
       - `transparency.md` (24 lines) — *Proves transparent artifact-frame state, hover motion and menu placement, with resize behavior supplied by the stage proof.*
