@@ -1,0 +1,185 @@
+/* Toolbox contents. Shared foundation styles draw the panel and trigger. */
+.toolbox-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 272px;
+  max-width: calc(100vw - 2 * var(--popover-distance));
+  max-height: 480px;
+  padding: var(--space-8) 0 0;
+  overflow: hidden;
+}
+
+.toolbox-search {
+  position: relative;
+  display: block;
+  flex: none;
+  margin: 0 var(--space-8);
+  color: var(--color-text-muted);
+}
+
+.toolbox-search tv-icon {
+  position: absolute;
+  left: var(--space-8);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.toolbox-search input {
+  width: 100%;
+  padding: var(--control-padding);
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: calc(var(--space-8) + 1em + var(--space-6));
+  border: 0;
+  background: var(--neutral-alpha-10);
+  box-shadow: none;
+}
+
+.toolbox-search input:focus,
+.toolbox-search input:focus-visible {
+  outline: none;
+  border: 0;
+  box-shadow: none;
+}
+
+.toolbox-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: var(--space-6);
+}
+
+.toolbox-scroll-content {
+  margin: 0 var(--space-8);
+}
+
+/* A translucent bar floats over the scrolling grid like a macOS window bar. */
+.toolbox-footer {
+  position: sticky;
+  bottom: 0;
+  margin: 0;
+  padding: var(--space-8) var(--space-16);
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--panel-background) 72%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+  z-index: 1;
+}
+
+.toolbox-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.toolbox-grid-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.toolbox-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: calc(var(--space-12) - var(--space-6) / 2) var(--space-2);
+  border-radius: var(--control-radius);
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.toolbox-tile[data-highlighted] {
+  background: var(--option-background-highlighted);
+}
+
+.toolbox-tile[data-pressed],
+.toolbox-tile:active {
+  background: var(--option-background-active);
+}
+
+.toolbox-icon {
+  display: block;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  -webkit-user-drag: none;
+}
+
+.toolbox-letter {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+.toolbox-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.2;
+}
+
+.toolbox-empty {
+  margin: 0;
+  /* About as much space above and below the message as beside it. */
+  padding: var(--space-6) var(--space-8);
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+.toolbox-folder-error,
+.toolbox-invalid {
+  display: flex;
+  align-items: flex-start;
+  /* The 5px inset aligns the warning column beneath the search icon. */
+  gap: var(--space-12);
+  padding: var(--space-6) var(--space-8) var(--space-6) 5px;
+  font-size: var(--text-md);
+  color: var(--color-text-muted);
+}
+
+/* A muted rule separates the error summary from the grid or message above it. */
+.toolbox-divider {
+  margin: var(--space-6) var(--space-8);
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.toolbox-folder-error tv-icon,
+.toolbox-invalid tv-icon {
+  flex: none;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  /* A 16px icon centred on the heading's first line. */
+  margin-top: 2px;
+  color: var(--color-alert);
+}
+
+.toolbox-error-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toolbox-error-folder {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}

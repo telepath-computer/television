@@ -22,10 +22,44 @@ import {
   deriveServerConfigProperties,
   deriveThemeProperties,
   deriveThemeSettingsProperties,
+  deriveTemplateUseProperties,
   deriveUserAgentProperties,
   normalizeInstalledByAgent,
 } from "./derivation.ts";
 import { telemetryVersion, THEME_STATES } from "./types.ts";
+
+// proofs/arch/telemetry/derivation.md#^t-template-classify
+describe("template-use telemetry derivation", () => {
+  it.each([
+    ["checklist", "cli", { source: "cli", template: "checklist" }],
+    ["checklist", "ui", { source: "ui", template: "checklist" }],
+    ["calendar", "cli", { source: "cli", template: "calendar" }],
+    ["calendar", "ui", { source: "ui", template: "calendar" }],
+    ["sticky-note", "cli", { source: "cli", template: "sticky-note" }],
+    ["sticky-note", "ui", { source: "ui", template: "sticky-note" }],
+    ["map", "cli", { source: "cli", template: "map" }],
+    ["map", "ui", { source: "ui", template: "map" }],
+    ["Map", "ui", { source: "ui", template: "custom" }],
+    ["MAP", "cli", { source: "cli", template: "custom" }],
+    ["document", "cli", { source: "cli", template: "document" }],
+    ["document", "ui", { source: "ui", template: "document" }],
+    ["Sticky-note", "ui", { source: "ui", template: "custom" }],
+    ["STICKY-NOTE", "cli", { source: "cli", template: "custom" }],
+    ["Document", "ui", { source: "ui", template: "custom" }],
+    ["DOCUMENT", "cli", { source: "cli", template: "custom" }],
+    ["table", "cli", { source: "cli", template: "table" }],
+    ["table", "ui", { source: "ui", template: "table" }],
+    ["Table", "ui", { source: "ui", template: "custom" }],
+    ["TABLE", "cli", { source: "cli", template: "custom" }],
+    ["example", "cli", { source: "cli", template: "custom" }],
+    ["Checklist", "ui", { source: "ui", template: "custom" }],
+    ["CHECKLIST", "cli", { source: "cli", template: "custom" }],
+    ["custom-private-id", "ui", { source: "ui", template: "custom" }],
+  ] as const)("classifies %s without returning authored content", (id, source, expected) => {
+    expect(deriveTemplateUseProperties(id, source)).toEqual(expected);
+    expect(JSON.stringify(deriveTemplateUseProperties(id, source))).not.toContain("private-id");
+  });
+});
 
 describe("telemetry artifact derivation", () => {
   it.each([
@@ -415,7 +449,7 @@ describe("telemetry theme derivation", () => {
 
 // Contract: proofs/arch/telemetry/derivation.md#^t-theme-settings.
 // Authored registry/display fixtures; no mocks. Server attachment is tested separately.
-describe("TV-755 theme settings derivation", () => {
+describe("theme settings derivation", () => {
   const privateID = "alice-private-theme";
   const otherID = "alice-inactive-theme";
   const flagsOff = {
@@ -462,6 +496,7 @@ describe("TV-755 theme settings derivation", () => {
   });
 });
 
+// proofs/arch/telemetry/derivation.md#^t-no-ugc-outputs
 describe("telemetry derivation no-UGC outputs", () => {
   it("returns only classifications, integers, and versions", () => {
     const sourceStrings = [
@@ -469,13 +504,14 @@ describe("telemetry derivation no-UGC outputs", () => {
       "index.html",
       "https://example.com/customer/alice?screen=roadmap",
       "alice-secret-theme",
+      "private-template-id",
       "Roadmap Screen",
       "mystery-client/private-screen-name",
       "custom-skills",
       "inactive-private-theme",
       "7.8.9-private",
     ];
-    const [privatePath, , privateUrl, themeName, , userAgent, customSkillPath] = sourceStrings;
+    const [privatePath, , privateUrl, themeName, templateID, , userAgent, customSkillPath] = sourceStrings;
     const customPort = DEFAULT_SERVER_PORT + 1;
     const outputs = [
       deriveArtifactProperties(createArtifact({ id: "ugc-path", kind: "path", title: "Roadmap Screen", path: privatePath! })),
@@ -494,6 +530,7 @@ describe("telemetry derivation no-UGC outputs", () => {
       deriveClientProperties({ clientApp: "desktop", userAgent, desktopAppVersion: telemetryVersion("0.1.170") }),
       deriveServerConfigProperties({ port: customPort, storagePath: privatePath!, authMode: "none", launchMode: "cli" }),
       deriveThemeProperties({ activeThemeName: themeName!, themeCount: 1 }),
+      deriveTemplateUseProperties(templateID!, "ui"),
       deriveThemeSettingsProperties({
         activeThemeName: themeName!,
         themes: [{
@@ -556,6 +593,7 @@ function isAllowedTelemetryValue(key: string, value: unknown): boolean {
     "custom",
     "daemon",
     "cli",
+    "ui",
     "browser",
     "desktop",
     "windows",

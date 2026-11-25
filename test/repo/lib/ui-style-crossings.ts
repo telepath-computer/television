@@ -197,11 +197,9 @@ export const UI_STYLE_CROSSINGS: readonly UIStyleCrossing[] = [
     documentDelivery: true,
   },
   {
-    kind: "sibling",
-    specSources: ["specs/ui/app/skill-selector/skill-selector.frame"],
-    productionModule: "packages/web/src/views/skill-selector.ts",
-    stylesheet: "packages/web/src/views/skill-selector.css",
-    documentDelivery: true,
+    kind: "implementation-owned",
+    productionModule: "packages/web/src/views/toolbox.ts",
+    stylesheet: "packages/web/src/views/toolbox.css",
   },
   {
     kind: "sibling",
@@ -306,9 +304,26 @@ export const UI_STYLE_CROSSINGS: readonly UIStyleCrossing[] = [
     stylesheet: "packages/view-markdown/src/styles.css",
   },
   {
+    kind: "implementation-owned",
+    productionModule: "packages/view-markdown/src/main.ts",
+    stylesheet: "packages/view-markdown/src/editor.css",
+  },
+  {
     kind: "sibling",
     specSources: ["specs/ui/markdown-editor/styles.css"],
     productionModule: "packages/view-markdown/src/main.ts",
+    stylesheet: "packages/view-markdown/src/colors.css",
+    documentDelivery: true,
+  },
+  {
+    kind: "implementation-owned",
+    productionModule: "packages/view-markdown/src/editor-entry.ts",
+    stylesheet: "packages/view-markdown/src/editor.css",
+  },
+  {
+    kind: "sibling",
+    specSources: ["specs/ui/markdown-editor/styles.css"],
+    productionModule: "packages/view-markdown/src/editor-entry.ts",
     stylesheet: "packages/view-markdown/src/colors.css",
     documentDelivery: true,
   },

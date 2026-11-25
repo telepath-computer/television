@@ -8,7 +8,7 @@ import {
   APPLICATION_SHELL_STATES,
   waitForApplicationRender,
 } from "../../../../test/helpers/application-readiness.ts";
-import { DEFAULT_PAGE_SIZE } from "@telepath-computer/television-shared";
+import { DEFAULT_PAGE_SIZE, TelevisionClient } from "@telepath-computer/television-shared";
 import { configureTestMotion } from "./helpers.ts";
 
 function html(body: string, head = ""): string {
@@ -68,6 +68,32 @@ async function disposeServer(server: ProductServer | null): Promise<void> {
 
 
 test.describe("path artifact real-stack coverage", () => {
+  // proofs/arch/layout/index.md#^ly-ac-create-display
+  test("connected app adopts an unplaced path artifact's starting full-screen state", async ({ page, baseURL }) => {
+    const server = await launchProductServer();
+    try {
+      const client = new TelevisionClient(server.serverURL);
+      const channelID = (await client.display.get()).focusedChannelId;
+      if (!channelID) throw new Error("Expected a focused channel");
+      const filePath = path.join(server.home, "starting-display.html");
+      writeFileSync(filePath, html("<h1>Starting display</h1>"));
+
+      await openApp(page, server, baseURL);
+      await waitForApplicationRender(page, APPLICATION_SHELL_STATES, 15_000);
+      await expect(page.locator("#app")).toHaveAttribute("data-app-state", /^(connected|empty-channel)$/);
+      const initialPageCount = await page.locator(".stage .page").count();
+      const { artifact } = await client.artifacts.create({
+        kind: "path", title: "Starting display", path: filePath, channelID,
+        display: { width: 612.5, height: 481, fullScreen: true },
+      });
+
+      await expect(page.locator(".stage .page")).toHaveCount(initialPageCount + 1);
+      await expect(page.locator(`.stage .page[data-page-key="${artifact.id}"]`)).toHaveAttribute("full-screen", "");
+    } finally {
+      await server.dispose();
+    }
+  });
+
   test("live file watcher updates markdown, HTML file, and directory artifacts in the browser", async ({ page, baseURL }) => {
     let server: ProductServer | null = await launchProductServer();
 

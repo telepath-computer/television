@@ -19,11 +19,11 @@ type TelemetryEventName =
   | "server_upgraded"
   | "session_activity"   // carries a server-managed UUIDv7 $session_id (see sessions.md)
   | "artifact_created" | "artifact_updated" | "artifact_deleted"
+  | "artifact_template_used"
   | "screen_created" | "screen_updated" | "screen_deleted"
   | "layout_changed"
   | "channel_pins_changed"
   | "tab_page_full_screen_changed"
-  | "artifact_skill_prompt_copy_clicked"
   | "theme_changed"
   | "appearance_mode_changed"
   | "skill_installed"
@@ -57,7 +57,9 @@ type UrlHost = "localhost" | "tailnet" | "third-party"  // isArtifactProxy is a 
 type LayoutChangeType = "tab_reorder"
 type ChannelPinsChangeType = "pin" | "unpin" | "reorder" | "replace"
 type ArtifactDeletionCause = "direct" | "channel_deleted"
-type ArtifactSkill = "calendar" | "table" | "tasks" | "markdown"
+type ArtifactTemplateSource = "cli" | "ui"
+type BundledArtifactTemplateID = (typeof BUNDLED_ARTIFACT_TEMPLATE_IDS)[number] // bundled-templates.md owns the ID
+type ArtifactTemplateTelemetryID = BundledArtifactTemplateID | "custom"
 type BundledThemeID = (typeof BUNDLED_THEME_IDS)[number] // generated from specs/ui/themes/bundled.yml
 type ThemeState = "none" | BundledThemeID | "custom"
 type ThemeChangeReason = "selection" | "fallback"
@@ -105,7 +107,8 @@ interface TelemetryEventProperties {
   pin_change_type?: ChannelPinsChangeType
   pinned_channel_count?: number
   full_screen?: boolean
-  artifact_skill?: ArtifactSkill
+  source?: ArtifactTemplateSource // artifact_template_used; supplied by its emitter
+  template?: ArtifactTemplateTelemetryID // artifact_template_used; supplied by its emitter
   theme_state?: ThemeState
   theme_count?: number
   theme_change_reason?: ThemeChangeReason
@@ -152,6 +155,8 @@ function capture(event: TelemetryEvent, context: CaptureContext): void
 Before enqueueing, the chokepoint classifies every `TelemetryVersion`-typed field in event and person properties under [property derivation](./derivation.md#Behavior). Local lifecycle state and version comparison retain the full version; only outbound analytics are reduced.
 
 The six settings `theme_state`, `theme_main_js_declared`, `theme_main_js_enabled`, `theme_iframe_background_enabled`, `theme_iframe_overlay_enabled`, and `appearance_mode` form a complete snapshot: none is omitted when the snapshot is attached. `theme_changed` requires `theme_state`, the four JavaScript booleans, `theme_count`, and `theme_change_reason`; `appearance_mode_changed` requires `appearance_mode`. Their person properties and the six event properties on `session_activity` follow [emitters.md](./emitters.md#theme-and-appearance-snapshots). The property types admit no custom theme ID or consent list. ^theme-settings-vocabulary
+
+As with the required properties of `theme_changed`, the shared `TelemetryEventProperties` type leaves `source` and `template` optional because other events do not carry them. The `artifact_template_used` emitter supplies both. The template property admits only a [bundled package ID](../templates/bundled-templates.md#^bundled-artifact-template-inventory) or `custom`, never an arbitrary installed folder name. ^artifact-template-telemetry-vocabulary
 
 ## Module map
 

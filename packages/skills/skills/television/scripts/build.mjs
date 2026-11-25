@@ -85,6 +85,7 @@ export function buildTelevision({
   const theming = readSource(sourceDirectory, "theming.md");
   // The resource guidance ships as authored (specs/arch/resources/guidance.md#^rg-document).
   const resources = readFileSync(path.join(sourceDirectory, "resources.md"), "utf8");
+  const templates = readFileSync(path.join(sourceDirectory, "templates.md"), "utf8");
   const description = typeof intro.frontmatter.description === "string"
     ? intro.frontmatter.description.trim()
     : "";
@@ -132,6 +133,7 @@ ${htmlArtifactStyle.body.trimEnd()}
   writeFileSync(path.join(outputDir, "SKILL.md"), `${renderedSkill.trimEnd()}\n`);
   writeFileSync(path.join(outputDir, "theming.md"), `${renderedTheming.trimEnd()}\n`);
   writeFileSync(path.join(outputDir, "resources.md"), resources);
+  writeFileSync(path.join(outputDir, "templates.md"), templates);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

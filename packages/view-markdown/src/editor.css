@@ -1,0 +1,22 @@
+#editor > .cm-editor {
+  height: 100%;
+}
+
+/* Editor tables own their header treatment; canonical prose styling applies
+   only to document prose, not CodeMirror's interactive table widgets. */
+#editor > .cm-editor .tbl-header-cell {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Preserve the input chrome specific to the editor's task-list widget. */
+/* colors.css follows this sheet at equal specificity and owns the border color. */
+#editor input.cm-md-task-checkbox {
+  height: 32px;
+  padding: 0 12px;
+  border: 0.5px solid transparent;
+  border-radius: 12px;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}

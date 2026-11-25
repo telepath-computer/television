@@ -1,6 +1,6 @@
-*The onboarding installer: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, and the default-channel invariant.*
+*The onboarding installer and serving bootstrap order: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule, the default-channel invariant, and the placement of bundled theme and artifact-template handling and the watched template cache.*
 
-**Status:** adopted installer and migration authority; implementation conforms.
+**Status:** adopted installer and migration authority.
 
 # Onboarding installer
 
@@ -130,7 +130,7 @@ The condition is content-based rather than "was the data directory just created"
 
 ## Default-channel invariant
 
-Television maintains the invariant that a **serving boot** ends with at least one channel (at runtime, zero channels is a valid state — a user may delete them all). With onboarding, the rule is: on a serving boot, after the install phase runs (or is skipped because the content root is missing or the config is unusable), **if zero channels exist, create an empty channel named "Default"**. The invariant does not run on token-only constructions ([token-only construction](#^token-only-boot)) — the invariant is the *only* code path that creates "Default", so a data directory that has never served contains no channels at all. ^default-screen
+Television maintains the invariant that a serving server always has at least one channel and a focused channel ([channel state](../channel-state/index.md#^cs-focus)). On a serving boot, after the install phase runs (or is skipped because the content root is missing or the config is unusable), **if zero channels exist, create an empty channel named "Default"**. The invariant does not run on token-only constructions ([token-only construction](#^token-only-boot)) — this boot-time path is the *only* code path that creates "Default", so a data directory that has never served contains no channels at all. ^default-screen
 
 The fallback channel is always plain "Default", while onboarding channels are created only by the install loop with their configured names. The invariant never creates "Default" on a boot where the install loop created channels. An existing empty "Default" — left by an earlier missing-bundle serving boot or created by a user — is a channel like any other: neither removed nor renamed.
 
@@ -144,6 +144,7 @@ The fallback channel is always plain "Default", while onboarding channels are cr
 interface ServerStoreOptions {
   // ...existing options...
   onboardingContentPath?: string;     // root of the bundled onboarding-channels tree, when one resolved
+  bundledTemplatesPath?: string;      // bundled artifact templates, when one resolved
   installOnboardingChannels?: boolean; // default false = non-serving construction; `tv serve` always passes true
 }
 ```
@@ -157,11 +158,11 @@ The bootstrap sequence for a **serving** boot is: ^bootstrap-sequence
 3. Snapshot the no-content condition for the focus rule.
 4. Run onboarding state migration, then the install loop (when a content root resolved and the onboarding config is usable).
 5. Apply the default-channel invariant.
-6. Apply [bundled-theme handling](../themes/bundled-installation.md#serving-boot-installation), then scan the theme registry.
+6. Apply [bundled-theme handling](../themes/bundled-installation.md#serving-boot-installation) and [bundled artifact template handling](../templates/bundled-installation.md#serving-boot), then scan the theme registry and initialize the [watched template cache](../templates/index.md#^artifact-template-cache).
 7. Load or initialize display state. If the bundled-theme state says the one-time default-theme decision is pending and Clouds has been handled, assign valid installed Clouds only when `activeThemeName` is null, preserve any non-null value for the decision, and record completion. Then persist `activeThemeName: null` when a non-null value is absent from the registry, and apply the focus rule.
-8. Start the ordinary content and theme watchers.
+8. Start the ordinary artifact-content and active-theme watchers; the template watcher starts with its cache in step 6.
 
-A **token-only (non-serving) construction** — the path `tv serve --persist` uses to read or create the auth token before installing the daemon, and any other store construction that will not serve — captures step 1 and performs only step 2's ordinary directory, token, and metadata setup; it does not run the pre-serve migration. It creates the directory structure and token but **no channels, no display state, and no onboarding install**. Default-channel setup belongs exclusively to the [default-channel invariant](#^default-screen) on serving boots; a token-only construction must not leave a phantom channel behind for the first real serve to find. ^token-only-boot
+A **token-only (non-serving) construction** — the path `tv serve --persist` uses to read or create the auth token before installing the daemon, and any other store construction that will not serve — captures step 1 and performs only step 2's ordinary directory, token, and metadata setup; it does not run the pre-serve migration. It creates the directory structure and token but **no channels, no display state, and no onboarding install**. It starts no template scan cache or watcher. Default-channel setup belongs exclusively to the [default-channel invariant](#^default-screen) on serving boots; a token-only construction must not leave a phantom channel behind for the first real serve to find. ^token-only-boot
 
 The installer runs **inside the constructor, before telemetry hooks attach**, so onboarding channel/artifact creation emits no CRUD telemetry — intentional: installs are server-generated, not user actions ([no install telemetry](../../product/onboarding/onboarding-channels.md#^no-install-telemetry)). The `dataDirCreated` capture (step 1) and install/upgrade derivation ([identity.md](../telemetry/identity.md)) are untouched: the state-file path stays on the marker list, and the installer runs after that capture. ^telemetry-silence
 
@@ -170,4 +171,3 @@ The installer runs **inside the constructor, before telemetry hooks attach**, so
 Installer behavior during `ServerStore` construction is proven with a real `ServerStore` and a real temporary filesystem. Marker delivery is proven against a running server with real HTTP and websocket clients. Only the product spec's acceptance proves the path from the CLI into `ServerStore` with a real CLI and a real `ServerStore` ([onboarding-channels.md](../../product/onboarding/onboarding-channels.md)). Checks that begin with `ServerStore` construction include no real or mocked CLI.
 
 The atomic state-file writer is proven on the real filesystem when a rewrite succeeds and when a failed rewrite leaves the prior authoritative file intact. The exact moment between writing the temporary file and renaming it is not tested. This is an explicit exception under [the spec policy](../../spec-policy.md#Specific specs may state exceptions).
-

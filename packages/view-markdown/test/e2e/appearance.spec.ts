@@ -79,13 +79,41 @@ test("resolves appearance before canonical and view styles", async ({ page, base
   ]));
 });
 
-// proofs/ui/markdown-editor/index.md#^md-editor-t-stylesheet-crossing
-test("ships the authoritative color sheet after the implementation layout sheet", () => {
+// proofs/arch/templates/document.md#^templates-document-t-shared-source
+test("uses one shared editor implementation in both source entries", () => {
+  const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
+  const editorEntry = readFileSync(new URL("../../src/editor-entry.ts", import.meta.url), "utf8");
+  expect(main).toMatch(/from ["']\.\/editor\.ts["']/);
+  expect(editorEntry).toMatch(/from ["']\.\/editor\.ts["']/);
+});
+
+// proofs/arch/templates/document.md#^templates-document-t-editor-build
+test("builds a self-contained file view and narrow packaged Markdown editor files", () => {
+  const fileView = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
+  expect(fileView).not.toMatch(/<script\b[^>]*\bsrc=/i);
+  expect(fileView).not.toMatch(/<link\b[^>]*\brel=["']modulepreload["']/i);
+  expect(fileView).toContain("The view never transforms the source");
+
+  expect(fileView).toContain("__cmView");
+  const packagedScript = readFileSync(new URL("../../../server/assets/templates/document/editor.js", import.meta.url), "utf8");
+  const packagedStyle = readFileSync(new URL("../../../server/assets/templates/document/editor.css", import.meta.url), "utf8");
+  expect(packagedScript).toMatch(/^\(\(\) => \{/);
+  expect(packagedScript).not.toMatch(/^\s*(?:import|export)\b/m);
+  expect(packagedScript).toContain("TelevisionMarkdownEditor");
+  expect(packagedScript).not.toContain("The view never transforms the source");
+  expect(packagedScript).not.toContain("modulepreload");
+  expect(packagedStyle.length).toBeGreaterThan(0);
+});
+
+// proofs/ui/markdown-editor/index.md#^md-editor-t-build-order
+test("ships the authoritative colour sheet after each implementation layout", () => {
   const main = readFileSync(new URL("../../src/main.ts", import.meta.url), "utf8");
   const layoutImportAt = main.indexOf('import "./styles.css";');
+  const editorImportAt = main.indexOf('import "./editor.css";');
   const colorImportAt = main.indexOf('import "./colors.css";');
   expect.soft(layoutImportAt).toBeGreaterThanOrEqual(0);
-  expect.soft(colorImportAt).toBeGreaterThan(layoutImportAt);
+  expect.soft(editorImportAt).toBeGreaterThan(layoutImportAt);
+  expect.soft(colorImportAt).toBeGreaterThan(editorImportAt);
 
   const built = readFileSync(new URL("../../dist/index.html", import.meta.url), "utf8");
   const inlinedStyles = [...built.matchAll(/<style>([\s\S]*?)<\/style>/g)]
@@ -93,9 +121,23 @@ test("ships the authoritative color sheet after the implementation layout sheet"
   expect.soft(inlinedStyles).toHaveLength(1);
   const builtStyle = inlinedStyles.at(-1) ?? "";
   const builtLayoutAt = builtStyle.indexOf("overscroll-behavior-x:contain");
+  const builtEditorAt = builtStyle.indexOf("#editor>.cm-editor{height:100%}");
   const builtColorsAt = builtStyle.indexOf("--tbl-theme-row-background:");
   expect.soft(builtLayoutAt).toBeGreaterThanOrEqual(0);
-  expect.soft(builtColorsAt).toBeGreaterThan(builtLayoutAt);
+  expect.soft(builtEditorAt).toBeGreaterThan(builtLayoutAt);
+  expect.soft(builtColorsAt).toBeGreaterThan(builtEditorAt);
+
+  const editorEntry = readFileSync(new URL("../../src/editor-entry.ts", import.meta.url), "utf8");
+  const sharedEditorAt = editorEntry.indexOf('import "./editor.css";');
+  const sharedColorsAt = editorEntry.indexOf('import "./colors.css";');
+  expect.soft(sharedEditorAt).toBeGreaterThanOrEqual(0);
+  expect.soft(sharedColorsAt).toBeGreaterThan(sharedEditorAt);
+
+  const sharedBuiltStyle = readFileSync(new URL("../../../server/assets/templates/document/editor.css", import.meta.url), "utf8");
+  const sharedBuiltEditorAt = sharedBuiltStyle.indexOf("#editor>.cm-editor{height:100%}");
+  const sharedBuiltColorsAt = sharedBuiltStyle.indexOf("--tbl-theme-row-background:");
+  expect.soft(sharedBuiltEditorAt).toBeGreaterThanOrEqual(0);
+  expect.soft(sharedBuiltColorsAt).toBeGreaterThan(sharedBuiltEditorAt);
 });
 
 test("uses a custom theme's text color for native and CodeMirror cursors", async ({ page }) => {

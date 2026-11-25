@@ -20,6 +20,8 @@ Repository selection composes several pieces across clean seams. A contract test
 
 Pool discovery also has a contract test that runs the shared discovery helper used by the pool manager and coordinator with the installed Blaxel SDK against a loopback HTTP server returning authored paginated sandbox responses. The SDK builds requests and handles pages through its native-fetch path over loopback HTTP. This proves page traversal, label filtering and deployed-only filtering; production HTTP/2 transport, real authentication and service compatibility are covered by live evidence: a read-only multi-page listing and the required live Blaxel run.
 
+Browser preparation has a source contract check for the installed Playwright command, browser selection, cache environment, and lifecycle placement. Playwright owns revision selection and reuse of complete downloads. The required live Blaxel run carries installation and launch evidence in the pool image; the source check does not claim that boundary.
+
 ## Test hooks
 
 `readBlaxelGithubToken` accepts `cwd` (the directory containing `.blaxel-gh-token`) and `env` (the environment source), so tests can control token precedence without changing process-wide state. The coordinator uses the process defaults.
@@ -39,6 +41,8 @@ Pool-management contract tests may supply recording/failing SDK operations; ordi
 ## Assertions
 
 ### Test assertions
+
+- **Contract — browser preparation command (source).** The generated worker runs `npx playwright install chromium firefox` in `playwright-cache`, after dependency setup and before `test-run`, with the configured `PLAYWRIGHT_BROWSERS_PATH` exported. The command omits `--with-deps`, `--force`, and revision aliases, leaving version selection and reuse of complete downloads to the installed Playwright. No mocks. This proves the worker command required by [Shard lifecycle](../../../specs/arch/test-runner/blaxel-testshards.md#^blaxel-playwright-cache); it does not execute the installer or cross the Blaxel boundary. (policy-grade test: `test/repo/test-runner-provider.test.ts` “prepares the installed Playwright browsers in the existing Blaxel cache phase”) ^blaxel-playwright-cache-command
 
 - Pool discovery includes matching workers on later API pages and excludes workers with other project, purpose, pool, or architecture labels, as required by the spec's [Pool](../../../specs/arch/test-runner/blaxel-testshards.md#pool) contract. **Contract:** the consumer is the shared discovery helper and installed SDK, called in a child process; the service is the HTTP mock described above. The helper collects the unfiltered listing before filtering locally. Both manager and coordinator modes must traverse all pages, including an earlier page containing no matching workers. The coordinator sees only published, matching `DEPLOYED` workers; the manager also retains the pool's unpublished and partially provisioned workers. A page-fetch failure rejects discovery rather than returning a partial pool. Fixture sandbox records omit a region so discovery needs no data-plane connection. (policy-grade test: `test/repo/blaxel-pool-discovery.test.ts`, including unpublished and partially provisioned worker records) ^blaxel-pool-pagination
 
@@ -64,7 +68,6 @@ The remaining coverage lives in `test/repo/test-runner-provider.test.ts`.
 - Signal shutdown writes completed, running, and pending shard outcomes before lease cleanup; a report-write failure does not suppress cleanup.
 - Ordinary cleanup/release coverage is superseded by [the lease ordering contract](#^blaxel-t-lease-order) and [the live retrieval acceptance](#^blaxel-t-retrieval); shell completion alone no longer permits release.
 - A stale-owner setup failure records the contaminated sandbox and its lifecycle evidence, excludes that sandbox from subsequent attempts, and permits a configured infrastructure retry only on a distinct sandbox that independently passes lease acquisition and owner audit.
-
 **Boundary gaps — stated honestly per [testing-policy.md](../../../specs/arch/testing-policy.md):** the classifier, normalization, bounded acquisition scheduler, and provisioning/activation/cache command shapes are covered without calling Blaxel. The scheduler test uses an injected acquisition callback and therefore does not cross the Blaxel API boundary. Code-only checks cannot prove installation or operation inside the base image. The live assertions below supply that provider evidence. Repository switching on real workers has no committed test; the live runs from two repositories' checkouts described in the coverage model remain required for a repository-selection change.
 
 ### Lease, recovery, and scratch

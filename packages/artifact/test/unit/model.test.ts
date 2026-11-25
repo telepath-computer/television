@@ -45,6 +45,22 @@ describe("artifact pointer model", () => {
     expect(createArtifact({ id: "p", kind: "path", title: "P", path: "/tmp/a.html" })).toEqual({ id: "p", kind: "path", title: "P", path: "/tmp/a.html" });
     expect(createArtifact({ id: "u", kind: "url", title: "U", url: "https://example.com" })).toEqual({ id: "u", kind: "url", title: "U", url: "https://example.com" });
   });
+
+  // proofs/arch/artifacts/index.md#^ar-t-transparent-model
+  it("retains true or absent transparency on path and URL records and rejects nonbooleans", () => {
+    const records = [
+      { id: "p", kind: "path", title: "P", path: "/tmp/a.html",
+        store: "store-id", share: { id: "share-id", access: "read" } },
+      { id: "u", kind: "url", title: "U", url: "https://example.com" },
+    ];
+    for (const record of records) {
+      expect(ArtifactSchema.parse(record)).toEqual(record);
+      expect(ArtifactSchema.parse({ ...record, transparent: true })).toEqual({ ...record, transparent: true });
+      for (const transparent of ["true", 1, null]) {
+        expect(ArtifactSchema.safeParse({ ...record, transparent }).success).toBe(false);
+      }
+    }
+  });
 });
 
 describe("path classification helpers", () => {

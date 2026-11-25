@@ -8,15 +8,17 @@ The *navbar* contains the artifact tabs and application controls. It currently s
 
 ## Markup and styling
 
-[top-bar.frame](./top-bar.frame) defines the navbar, including the collapsed-sidebar controls and channel switcher popover.
+[top-bar.frame](./top-bar.frame) defines the navbar, including the collapsed-sidebar controls and channel switcher popover. It reserves the Toolbox trigger position; the [Toolbox spec](../toolbox.mdx) owns the appearance and interaction of the trigger and popover.
 
 ## Composition
 
 The navbar passes the supplied tabs to the [tab strip](../tab-strip/index.md) in order. Changing channels replaces the tabs immediately while keeping the application controls mounted.
 
+The trailing controls place the [Toolbox trigger](../toolbox.mdx) before [Settings](../settings/index.md).
+
 ## The lead group
 
-While the [channel sidebar is collapsed](../index.md#^ap-sidebar-collapse), the navbar provides controls to reopen it and switch channels. With no channels, only the expand control is available. ^tb-lead-group
+While the [channel sidebar is collapsed](../index.md#^ap-sidebar-collapse), the navbar provides controls to reopen it and switch channels. ^tb-lead-group
 
 The channel switcher opens a [popover](../../foundation/popover/index.md) containing the shared [channel list](../sidebar/channel-list.frame) and create button. The list scrolls while the create button stays visible. Each row offers the same [context menu](../sidebar/index.md#the-row-menu) as the sidebar. ^tb-switcher
 
@@ -44,7 +46,7 @@ The [sidebar channel context menu](../sidebar/index.md#the-row-menu), [rename](.
 
 Opening a channel context menu or using one of its actions does not select that channel. Rename and Pin/Unpin leave the switcher open; the row remains visible after moving groups, retaining focus if it held it. Renaming the selected channel updates the switcher label. These actions do not reload artifacts.
 
-Deletion follows the shared dialog and selection rules. Opening confirmation closes the menu and switcher under the [dialog rules](../dialog/index.md#behaviour). Cancelling restores the switcher at its previous scroll position and returns focus to the row. After confirmed deletion, the switcher reopens while channels remain, reflects the resulting selection, and returns focus to that selected row. Deleting the last channel leaves it closed, removes the switcher, and returns focus to the expand control.
+Deletion follows the shared dialog and selection rules. Opening confirmation closes the menu and switcher under the [dialog rules](../dialog/index.md#behaviour). Cancelling restores the switcher at its previous scroll position and returns focus to the row. After confirmed deletion, the switcher reopens, reflects the resulting selection, and returns focus to that selected row.
 
 #### Nested dismissal
 

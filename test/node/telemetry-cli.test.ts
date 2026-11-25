@@ -159,7 +159,7 @@ describe("telemetry CLI node integration", () => {
     const artifactPath = path.join(h.targetPath, "after-enable.md");
     writeFileSync(artifactPath, "# after enable\n", "utf8");
     const created = await runCLI([
-      "create-path-artifact",
+      "create-artifact",
       "--channel", channel.id,
       "--title", "After Enable",
       "--path", artifactPath,
@@ -433,7 +433,9 @@ describe("telemetry CLI node integration", () => {
     expect(success).toBe(0);
     expect(sink.events.map((event) => event.name)).toEqual(["skill_installed"]);
     expect(sink.events[0]?.properties).toMatchObject({ agent_type: "interactive-install", installed_by_agent: "codex" });
-    const serialized = JSON.stringify(sink.events[0]);
+    // Only the properties carry user input; the event's random distinct ID can
+    // contain "add" by chance.
+    const serialized = JSON.stringify(sink.events[0]?.properties);
     expect(serialized).not.toContain("add");
     expect(serialized).not.toContain(bundled);
 
