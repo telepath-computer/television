@@ -174,8 +174,10 @@ export const ManyItemsScrolled = {
   args: ManyItems.args,
   play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
     canvasElement.querySelector<HTMLInputElement>(".toolbox-search input")?.focus();
-    // Scroll to the end once the panel has taken its final size.
+    // Scroll to the end once the panel has taken its final size: after two frames,
+    // and once the web font has loaded, because text in the fallback font is shorter.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await document.fonts.ready;
     const body = canvasElement.querySelector<HTMLElement>(".toolbox-body");
     if (body) body.scrollTop = body.scrollHeight;
   },
