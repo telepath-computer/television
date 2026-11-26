@@ -4,6 +4,7 @@ This document orients a reader comparing independent attempts at moving Televisi
 
 - **Branch:** `thopter/server-specs-opus55`, based on `origin/main` at `174e52ef`.
 - **Author:** Claude Opus 5.5, in Claude Code.
+- **Review status:** unreviewed. Independent review was started, and everything it produced is on the separate branch `thopter/server-specs-opus55-reviewed`, which is not part of this comparison ([Review](#review)).
 - **See the change:** `git diff 174e52ef..thopter/server-specs-opus55 -- specs`. The new specs are under `specs/arch/server/`.
 - **Working documents:** this overview; `server-notebook.md`, suspected server defects found while reading, none of them made into requirements; `server-specs-task.md`, the task record.
 
@@ -66,7 +67,9 @@ A new `specs/arch/server/` tree of six specs owns the mechanisms every server fe
 
 ## Review
 
-This is the author's unreviewed output. The repository's workflow calls for independent agent review of spec changes before proofs are derived; the owner asked that this comparison use each author's result before any review, so none is applied here.
+**Everything on this branch is unreviewed.** The repository's workflow calls for independent agent review of spec changes before proofs are derived, and the owner asked that this comparison use each author's result before any review.
+
+Review was started before that request: one Codex round ran and its findings were acted on. All of it — the round's brief and report, the changes made in response, and an account of the review process — is on a separate branch, `thopter/server-specs-opus55-reviewed`. That branch is not part of what the judge is meant to compare; nothing from it is on this branch.
 
 ## Reading order
 
