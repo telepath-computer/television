@@ -15,9 +15,9 @@ This spec owns the artifact-frame domain's **authority boundary** and its **fram
 | Spec | Owns |
 |---|---|
 | [artifact-bridge.md](./artifact-bridge.md) | the bridge: the in-document script and Electron preload, the message protocol, readiness tracking, keyboard forwarding, and the shared-artifact content poll |
-| [reload-navigation.md](./reload-navigation.md) | local path-content watching and notification, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
+| [reload-navigation.md](./reload-navigation.md) | response to local path-content changes, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
 | [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the bundled Markdown view |
-| [proxy-caching.md](./proxy-caching.md) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
+| [Artifact delivery](../server/artifacts.md#revalidation) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
 | [isolation.md](./isolation.md) | the sandbox artifact documents run in, in a browser, and the sessions that isolate them in the desktop app, the browser features they are granted, the cross-origin rules on the routes they load, and the known limitations |
 
 ## The frame core is code-authoritative, deliberately

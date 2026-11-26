@@ -13,7 +13,7 @@ This spec owns:
 - The **state inventory**: which channel and workspace state is server-shared, which is browser-persisted, and which is per-browser in-memory.
 - The **shared-state contracts**: the channel wire shape, and the display state's channel fields — the focused channel and the pinned list — with their update semantics and invariants.
 - The **synchronization rules**: the bootstrap snapshot, live updates, reconnect convergence, optimistic writes.
-- The **client state layer's responsibilities** and the two migrations from the pre-redesign state: the server's display record (a boot buffer below) and the browser-persisted record.
+- The **client state layer's responsibilities** and the migration of browser-persisted state. The [stored-data migration](../server/migration.md#^cs-display-migration) owns conversion on the server.
 
 It deliberately does not own:
 
@@ -35,13 +35,13 @@ Three tiers of **channel and workspace state**. Every channel and workspace fact
 | Which channels are pinned, and their order | this spec ([below](#^cs-pinned\)) |
 | The focused channel | this spec ([below](#^cs-focus\)); behavior [channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast) |
 | The active theme (`activeThemeName`) | [theme architecture](../themes/index.md#selection-and-display-state) owns the field and its selection semantics; [theme delivery](../themes/delivery.md) owns application to client documents |
-| ACP availability (`acpEnabled`) | the field remains code-authoritative under [spec-migration.md](../../spec-migration.md); no UI spec claims it |
+| ACP availability (`acpEnabled`) | [Agent connection](../server/connections.md#agent-connection) |
 
 **Browser-persisted state** — survives reloads, never leaves the browser:
 
 | State | Owner |
 |---|---|
-| The server auth token | this spec (inventory and carry-forward only; auth behavior is code-governed) |
+| The server auth token | this spec for browser persistence, [client connections](../server/connections.md#access) for server access |
 | The channel-sidebar width | this spec ([below](#^cs-sidebar-width-key\)); behavior [ui/app/index.md#^ap-sidebar-resize](../../ui/app/index.md#^ap-sidebar-resize) |
 | The channel-sidebar collapsed state | this spec ([below](#^cs-sidebar-collapsed-key\)); behavior [ui/app/index.md#^ap-sidebar-collapse](../../ui/app/index.md#^ap-sidebar-collapse) |
 
@@ -109,7 +109,7 @@ Pin state is **one ordered list of channel ids**: membership in the list is what
 
 ### Focus
 
-`focusedChannelId` is the one channel every client shows ([channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast)). It is `null` exactly when the server has no channels, and that is a valid state whenever it arises — for example after the user deletes the last channel (the no-channels landing, [channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Boot-time behavior, including the default-screen invariant, is the onboarding installer's ([installer.md#^default-screen](../onboarding/installer.md#^default-screen)). ^cs-focus
+`focusedChannelId` is the one channel every client shows ([channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast)). It is `null` exactly when the server has no channels, and that is a valid state whenever it arises — for example after the user deletes the last channel (the no-channels landing, [channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Boot-time behavior, including the default-screen invariant, is the onboarding installer's ([installer.md#^default-screen](../server/store.md#^default-screen)). ^cs-focus
 
 The server maintains that invariant:
 
@@ -117,10 +117,6 @@ The server maintains that invariant:
 - **First channel:** creating a channel while `focusedChannelId` is `null` focuses the new channel. (Boot-time initialization is different and stays with its owners: the onboarding installer's focus rule and, for pre-redesign records, the migration buffer below.) ^cs-first-focus
 - **Deletion:** when the focused channel is deleted, **the server refocuses** as part of the deletion: the successor is the first channel in the channel sidebar's order — the first pinned channel in pin order, otherwise the newest unpinned channel — or `null` when none remain, per the product rule ([channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Computing this server-side means one writer, no multi-client race, and a correct outcome even when the deletion comes from the CLI with no clients connected. ^cs-focus-successor
 - **Ordering:** a deletion that changes the pinned list or the focus announces the channel removal on the event stream first, then the resulting pin and focus changes — one deterministic order, so a connected client applying the burst ends consistent. (Artifact removals precede the channel removal — [channels.md#^ch-delete-semantics](../../product/channels.md#^ch-delete-semantics).) ^cs-delete-ordering
-
-### Server buffer: display-state migration on boot
-
-Server internals are outside spec authority, but this model imposes one boot behavior on the server, recorded as a buffer. It executes as a step of **the one server migration** ([arch/layout/migration.md#^one-migration](../layout/migration.md#^one-migration)); this buffer binds the semantic mapping only. The pre-redesign record's active-channel field (`activeChannelID` — the earlier name-rename step of the same migration has already run by this point) becomes `focusedChannelId` — a value naming no existing channel resolves to the channel-sidebar-first successor ([#^cs-focus-successor](#^cs-focus-successor) semantics) — the pinned list defaults to empty, and fields owned elsewhere (the active theme) are preserved. The step is idempotent: a record already in the current shape loads as-is. The record's on-disk naming and location follow the storage layout, which remains code-governed until that area migrates ([spec-migration.md](../../spec-migration.md)). ^cs-display-migration
 
 ## How state syncs
 
@@ -161,7 +157,7 @@ The pre-redesign client persisted a browser-local record holding a configured-se
 
 **The connection lifecycle is deliberately code-governed.** Socket management, auto-reconnect and backoff, visibility/network wake signals, auth-rejection handling, and disposal are carried from the shipping implementation, whose suites hold them; which connection state the person sees, including the escalation after repeated failed reconnects, is the [app shell](../../ui/app/index.md#^ap-connection-states)'s. Slices of the connection already under other specs' authority stay theirs: the `server-status` message and unknown-message routing ([version-advertisement.md#^events-version](../updates/version-advertisement.md#^events-version), [version-advertisement.md#^unknown-messages](../updates/version-advertisement.md#^unknown-messages)), the Electron boot barrier ([desktop-upgrade-gate.md#^boot-barrier](../updates/desktop-upgrade-gate.md#^boot-barrier)), and the telemetry signals riding the socket ([client-signals.md](../telemetry/client-signals.md)). The outcomes that must hold regardless of mechanism: losing the server is a shell-wide transition ([channels.md#^ch-disconnect](../../product/channels.md#^ch-disconnect)), and reconnection converges on server truth ([#^cs-converge](#^cs-converge)). ^cs-connection-carve-out
 
-**The transport vocabulary is deliberately code-governed — the model it carries is not.** Route names, event discriminants, and transport envelopes shared only by the server and its served web bundle are lockstep contracts, so they may change freely between releases and are not worth authority; they live in the server and shared-client code, described by the legacy network API documentation until that area migrates ([spec-migration.md](../../spec-migration.md)). Cross-release desktop identity transport, including its bounded output exception, is owned by [arch/updates/desktop-upgrade-gate.md#^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake), so no identity contract is defined by channel state. `ChannelStateFields`, `ChannelDisplayState`, and their semantics remain this spec's authority **wherever they are transported**: renaming any other route or event type is a code change, but changing these fields or their rules requires a spec change first. ^cs-wire-carve-out
+**The transport vocabulary is deliberately code-governed — the model it carries is not.** Route names, event discriminants, and transport envelopes shared only by the server and its served web bundle are lockstep contracts, so they may change freely between releases and are not worth authority; the [server connection contracts](../server/connections.md) identify the interfaces other consumers depend on. Cross-release desktop identity transport, including its bounded output exception, is owned by [arch/updates/desktop-upgrade-gate.md#^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake), so no identity contract is defined by channel state. `ChannelStateFields`, `ChannelDisplayState`, and their semantics remain this spec's authority **wherever they are transported**: renaming a lockstep-only route or event type is a code change, but changing these fields or their rules requires a spec change first. ^cs-wire-carve-out
 
 **Client service internals are deliberately the implementer's.** View decomposition, the state layer's internal structure below the contracts above, and the fetching and caching of artifact records ([#^cs-outside-inventory](#^cs-outside-inventory)) are not specified, per the approved authority boundary — the same boundary the artifact frame draws ([arch/artifact-frame/index.md#^frame-core-carve-out](../artifact-frame/index.md#^frame-core-carve-out)). ^cs-internals-carve-out
 

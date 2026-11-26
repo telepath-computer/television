@@ -76,5 +76,5 @@ Pre-initialized-storage acceptance must start from a home containing only Televi
 
 Browser acceptance must use a real browser connected to a server started by the built `tv` CLI. Upgrade reconnection coverage must include both a browser that connects after the restart and an open browser that reconnects automatically.
 
-[Installer architecture](../../arch/onboarding/installer.md#^telemetry-silence) owns the proof of the [promise that installation emits no telemetry](#^no-install-telemetry).
+[The server store](../../arch/server/store.md#^bootstrap-theme-telemetry) owns the proof of the [promise that installation emits no telemetry](#^no-install-telemetry).
 

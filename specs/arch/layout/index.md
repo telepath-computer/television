@@ -1,4 +1,4 @@
-*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/layout/migration.md](./migration.md)'s.*
+*The layout architecture: the data model for what a channel shows — its ordered tab pages — plus the stored format's versioning and the semantics of layout updates; the migration from version 1 is [arch/server/migration.md](../server/migration.md)'s.*
 
 **Status:** implemented redesign authority.
 
@@ -10,12 +10,11 @@ Every channel remembers what it is showing: which artifacts are open and how the
 
 This spec owns the **layout data model** — the `TabPage` list and its types — its **stored-format versioning**, and the **semantics of layout updates**. It deliberately does not own:
 
-- The version-1 format and the migration from it — its companion, [arch/layout/migration.md](./migration.md).
+- The version-1 format and the migration from it — its companion, [arch/server/migration.md](../server/migration.md).
 
 - How pages look and move — sizing, full-screen, selection, reordering gestures — which is the stage's ([ui/app/stage/index.md](../../ui/app/stage/index.md)).
 - The user-facing promises of channels (identity, creation, deletion, pinning, focus) — [channels.md](../../product/channels.md) (product) — or of tab pages — [tab-pages.md](../../product/tab-pages.md) (product).
 - Frame lifecycle — what survives moving around the app — [arch/artifact-frame/index.md](../artifact-frame/index.md).
-- Server internals beyond the migration buffer its companion states ([arch/layout/migration.md#^ly-boot-migration](./migration.md#^ly-boot-migration); per the authority boundary, [spec-migration.md](../../spec-migration.md)).
 
 ## The model
 
@@ -79,13 +78,13 @@ type StoredChannelLayout = {
 };
 ```
 
-A version-2 record stored before pages carried sizes may lack `size`; the one server migration backfills such pages to the shared default size at boot ([arch/layout/migration.md#^mig-size-backfill](./migration.md#^mig-size-backfill)). The live model and the wire always carry `size`. ^ly-size-normalize
+A version-2 record stored before pages carried sizes may lack `size`; the one server migration backfills such pages to the shared default size at boot ([arch/server/migration.md#^mig-size-backfill](../server/migration.md#^mig-size-backfill)). The live model and the wire always carry `size`. ^ly-size-normalize
 
-A stored channel record **without** the `layoutVersion` field is assumed to be **version 1**: this model is the second major product iteration on layout, and version 1 — the card/row/stack tree — simply never stored a version field. Version-1 records are migrated on load; the version-1 format and the migration are [arch/layout/migration.md](./migration.md)'s. Downgrade is not supported: an older server reading versioned records is out of scope, with no promised behavior. A new server must be able to migrate old versions of the state file. ^ly-stored-record
+A stored channel record **without** the `layoutVersion` field is assumed to be **version 1**: this model is the second major product iteration on layout, and version 1 — the card/row/stack tree — simply never stored a version field. Version-1 records are migrated on load; the version-1 format and the migration are [arch/server/migration.md](../server/migration.md)'s. Downgrade is not supported: an older server reading versioned records is out of scope, with no promised behavior. A new server must be able to migrate old versions of the state file. ^ly-stored-record
 
 ## Migration from version 1
 
-The version-1 card-tree format, the mapping that flattens it into this model, and the server's obligation to run that migration during boot are [arch/layout/migration.md](./migration.md)'s.
+The version-1 card-tree format, the mapping that flattens it into this model, and the server's obligation to run that migration during boot are [arch/server/migration.md](../server/migration.md)'s.
 
 ## Testing
 

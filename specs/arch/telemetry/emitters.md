@@ -4,7 +4,7 @@
 
 ## What this owns
 
-This module owns **where** telemetry events are produced and **which properties ride on each** — the wiring from server activity to the chokepoint. It composes other modules: classifications come from [derivation.md](./derivation.md), the `$session_id` from [sessions.md](./sessions.md), the GUID and suppression from [identity.md](./identity.md), and delivery from [sink.md](./sink.md). The hook points themselves live in existing server modules whose contract changes are captured in [server-telemetry-buffer.md](./server-telemetry-buffer.md) until a server spec exists.
+This module owns **where** telemetry events are produced and **which properties ride on each** — the wiring from server activity to the chokepoint. It composes other modules: classifications come from [derivation.md](./derivation.md), the `$session_id` from [sessions.md](./sessions.md), the GUID and suppression from [identity.md](./identity.md), and delivery from [sink.md](./sink.md). The [store](../server/store.md#telemetry-at-commit) supplies the committed state for these hooks.
 
 ## Behavior
 

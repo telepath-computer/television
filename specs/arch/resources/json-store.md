@@ -163,7 +163,7 @@ For each location the page reads, the SDK keeps the last value the server sent, 
 
 ## Commands
 
-The `tv resource json` verbs call the shared client's JSON store methods over the administrative routes, and `watch` also reads [the `/events` stream](./index.md#^rs-events-stream):
+The `tv resource json` verbs call the shared client's JSON store methods over the administrative routes, and `watch` also reads [the `/events` stream](../server/connections.md#^rs-events-stream):
 
 ```ts
 interface JsonStoreClient {
@@ -186,7 +186,7 @@ interface JsonStoreClient {
 
 Each verb but `create` takes exactly one of `--artifact` and `--resource`, passed as the [`StoreAddress`](./index.md#^rs-records) `artifactID` or `resourceID`; neither, or both, is a directive error that makes no call. Its confirmation line names the store as the product spec gives it. `create` without `--description` is a directive error that makes no call, and it prints the new store's resource ID as the product spec gives it. The CLI parses each value argument or file as JSON before calling, and refuses text that does not parse as a directive error. `push` generates its key with the shared module before calling and prints it. The shared client refuses a write whose request body would exceed the [message limit](#^js-arch-write-limit) with `too-large` without sending it, and the CLI prints that refusal as it prints the server's. `watch` ends with status 0 on `SIGINT` or `SIGTERM` and fails like any unreachable-server command when the connection ends. ^js-arch-cli
 
-`watch` follows the value at its path through [the `/events` stream](./index.md#^rs-events-stream) and `get`:
+`watch` follows the value at its path through [the `/events` stream](../server/connections.md#^rs-events-stream) and `get`:
 
 1. It opens the stream and waits for the stream's first message, after which every resource event reaches it.
 2. It reads the value at its path with `get` and passes the result to `onValue`.

@@ -10,7 +10,7 @@ This spec owns the Markdown editor’s color styling and the narrow table-intera
 
 The editor’s markup, editing behavior, typography, spacing, layout, and effects outside that color boundary remain code-authoritative under the [frame-core carve-out](../../arch/artifact-frame/index.md#^frame-core-carve-out), except for the table-interaction buffer below and the narrow contracts in [the Markdown table buffer](../../arch/artifact-frame/markdown-tables-buffer.md). The canonical foundation remains authoritative for the tokens, document background, inherited text color, native color scheme, and browser-native selection treatment that this stylesheet consumes.
 
-Server-rendered read-only Markdown is a separate, code-authoritative surface outside this spec. It is neither a production copy nor a declaration-by-declaration mirror of this stylesheet; shared appearance intent does not create a stylesheet-sync contract. ^md-editor-color-scope
+The [artifact proxy](../../arch/server/artifacts.md#reading-a-document) also serves read-only Markdown. Its visual treatment remains code-authoritative. It is neither a production copy nor a declaration-by-declaration mirror of this stylesheet; shared appearance intent does not create a stylesheet-sync contract. ^md-editor-color-scope
 
 ## Table interaction buffer
 
