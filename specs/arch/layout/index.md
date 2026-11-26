@@ -15,7 +15,7 @@ This spec owns the **layout data model** — the `TabPage` list and its types �
 - How pages look and move — sizing, full-screen, selection, reordering gestures — which is the stage's ([ui/app/stage/index.md](../../ui/app/stage/index.md)).
 - The user-facing promises of channels (identity, creation, deletion, pinning, focus) — [channels.md](../../product/channels.md) (product) — or of tab pages — [tab-pages.md](../../product/tab-pages.md) (product).
 - Frame lifecycle — what survives moving around the app — [arch/artifact-frame/index.md](../artifact-frame/index.md).
-- Server internals beyond the migration buffer its companion states ([arch/layout/migration.md#^ly-boot-migration](./migration.md#^ly-boot-migration); per the authority boundary, [spec-migration.md](../../spec-migration.md)).
+- Where a channel's record is stored and how the server starts — [server architecture](../server/index.md).
 
 ## The model
 

@@ -4,7 +4,7 @@
 
 ## What this owns
 
-This module owns **where** telemetry events are produced and **which properties ride on each** — the wiring from server activity to the chokepoint. It composes other modules: classifications come from [derivation.md](./derivation.md), the `$session_id` from [sessions.md](./sessions.md), the GUID and suppression from [identity.md](./identity.md), and delivery from [sink.md](./sink.md). The hook points themselves live in existing server modules whose contract changes are captured in [server-telemetry-buffer.md](./server-telemetry-buffer.md) until a server spec exists.
+This module owns **where** telemetry events are produced and **which properties ride on each** — the wiring from server activity to the chokepoint. It composes other modules: classifications come from [derivation.md](./derivation.md), the `$session_id` from [sessions.md](./sessions.md), the GUID and suppression from [identity.md](./identity.md), and delivery from [sink.md](./sink.md). The hooks attach to the server's store once it is constructed ([server lifecycle](../server/lifecycle.md#^bootstrap-sequence)) and run when a change commits.
 
 ## Behavior
 
@@ -36,6 +36,10 @@ The server telemetry runtime reads one current snapshot from committed store sta
 Every `session_activity` also carries the complete six settings as ordinary event properties beside the existing version and client bundle, preserving state at the time of activity. Other events retain their own event-property shapes: `theme_changed` has theme state, the four JavaScript booleans, registry count and reason; `appearance_mode_changed` has appearance mode. The runtime uses the same current settings for an event's settings fields and its person properties. False values and `none` are sent explicitly so person properties cannot retain a previous theme's enabled flags. ^theme-settings-history
 
 Boot emission reads state after theme validation and fallback. It emits the existing lifecycle events with current settings, without reconstructing a switch before telemetry initialization. A running server's invalid-theme fallback on registry refresh emits `theme_changed` with reason `fallback`; direct selection uses `selection`, including selecting None. Reasons come from the mutation path and are not client-supplied analytics fields. ^theme-settings-transitions
+
+A display change that alters both the theme and the appearance preference commits both before either event is emitted. The telemetry hooks read the store's committed state and do not listen to the `theme-changed` event clients receive, which also fires for changes that are not a switch, such as an edit to the active package or a change of consent. ^store-theme-telemetry
+
+Boot events and every later event read their settings through the same reader of the store's committed state, so a theme change made before telemetry started appears as current state and is never replayed as an action. ^bootstrap-theme-telemetry
 
 **Pre-first-boot GUID:** a skill install can occur before any server has booted, so no GUID exists yet — the CLI **mints** the GUID (sharing the server's minting path) rather than dropping the event, since minting an absent GUID is a one-time creation with no concurrent server. See [identity.md](./identity.md).
 

@@ -1,6 +1,6 @@
 *Where channel and workspace state lives and how it stays consistent: the server-shared model — the channel record, pinning and pin order, the focused channel — what each browser keeps for itself, and the sync and convergence rules the client's state layer must satisfy.*
 
-**Status:** implemented redesign authority. Connection lifecycle, wire vocabulary, and client-service internals retain the explicit code-authority carve-out below.
+**Status:** implemented redesign authority. The client's connection lifecycle and service internals are left to the implementation, as stated below.
 
 # Channel and client state (architecture)
 
@@ -13,14 +13,14 @@ This spec owns:
 - The **state inventory**: which channel and workspace state is server-shared, which is browser-persisted, and which is per-browser in-memory.
 - The **shared-state contracts**: the channel wire shape, and the display state's channel fields — the focused channel and the pinned list — with their update semantics and invariants.
 - The **synchronization rules**: the bootstrap snapshot, live updates, reconnect convergence, optimistic writes.
-- The **client state layer's responsibilities** and the two migrations from the pre-redesign state: the server's display record (a boot buffer below) and the browser-persisted record.
+- The **client state layer's responsibilities** and the two migrations from the pre-redesign state: the server's display record and the browser-persisted record.
 
 It deliberately does not own:
 
 - The layout model inside a channel — [arch/layout/index.md](../layout/index.md), exclusively.
 - The user-facing behavior of channels and tab pages — [channels.md](../../product/channels.md) and [tab-pages.md](../../product/tab-pages.md) (product).
 - Chrome surfaces — the channel sidebar, tab strip, and stage are `specs/ui/`'s.
-- The connection lifecycle, the wire protocol's concrete vocabulary, and the client's internal decomposition — code-governed, stated in [#Code-governed carve-out](#Code-governed carve-out).
+- The client's connection lifecycle and internal decomposition — code-governed, stated in [#Code-governed carve-out](#Code-governed carve-out) — and the names and shapes of routes and events, which [the server's HTTP surface](../server/http.md#What is not pinned) leaves unpinned.
 
 ## The state inventory
 
@@ -35,13 +35,13 @@ Three tiers of **channel and workspace state**. Every channel and workspace fact
 | Which channels are pinned, and their order | this spec ([below](#^cs-pinned\)) |
 | The focused channel | this spec ([below](#^cs-focus\)); behavior [channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast) |
 | The active theme (`activeThemeName`) | [theme architecture](../themes/index.md#selection-and-display-state) owns the field and its selection semantics; [theme delivery](../themes/delivery.md) owns application to client documents |
-| ACP availability (`acpEnabled`) | the field remains code-authoritative under [spec-migration.md](../../spec-migration.md); no UI spec claims it |
+| ACP availability (`acpEnabled`) | part of the [experimental agent bridge](../server/index.md#The experimental agent bridge), which code governs; no UI spec claims it |
 
 **Browser-persisted state** — survives reloads, never leaves the browser:
 
 | State | Owner |
 |---|---|
-| The server auth token | this spec (inventory and carry-forward only; auth behavior is code-governed) |
+| The server auth token | this spec (inventory and carry-forward only); [authorization](../server/http.md#Authorization) is the server's |
 | The channel-sidebar width | this spec ([below](#^cs-sidebar-width-key\)); behavior [ui/app/index.md#^ap-sidebar-resize](../../ui/app/index.md#^ap-sidebar-resize) |
 | The channel-sidebar collapsed state | this spec ([below](#^cs-sidebar-collapsed-key\)); behavior [ui/app/index.md#^ap-sidebar-collapse](../../ui/app/index.md#^ap-sidebar-collapse) |
 
@@ -52,7 +52,7 @@ Three tiers of **channel and workspace state**. Every channel and workspace fact
 | The selected tab page per channel | behavior [tab-pages.md#^tp-selection-local](../../product/tab-pages.md#^tp-selection-local); placement [below](#^cs-selection-memory\) |
 | Connection status | code-governed ([#Code-governed carve-out](#Code-governed carve-out)) |
 
-Two things are deliberately outside this inventory. **Artifact records** (titles, kinds, content pointers) are server state owned by the artifact domain, not workspace state; how the client fetches, caches, and hands them to the frame and tab surfaces is code-governed ([#Code-governed carve-out](#Code-governed carve-out)), and their user-visible freshness promises belong to the product specs (e.g. a retitle updating its tab — [tab-pages.md#^tp-label](../../product/tab-pages.md#^tp-label)). The **artifact-focus signal** is not state at all: it is a transient server nudge, not persisted and not replayed on connect, whose effect on tab selection is [tab-pages.md#^tp-focus-selects](../../product/tab-pages.md#^tp-focus-selects)'s. ^cs-outside-inventory
+Two things are deliberately outside this inventory. **Artifact records** (titles, kinds, content pointers) are server state owned by [the artifact registry](../server/artifacts.md), not workspace state; how the client fetches, caches, and hands them to the frame and tab surfaces is code-governed ([#Code-governed carve-out](#Code-governed carve-out)), and their user-visible freshness promises belong to the product specs (e.g. a retitle updating its tab — [tab-pages.md#^tp-label](../../product/tab-pages.md#^tp-label)). The **artifact-focus signal** is not state at all: it is a transient server nudge, not persisted and not replayed on connect, whose effect on tab selection is [tab-pages.md#^tp-focus-selects](../../product/tab-pages.md#^tp-focus-selects)'s. ^cs-outside-inventory
 
 ### The channel-sidebar width
 
@@ -114,17 +114,17 @@ Pin state is **one ordered list of channel ids**: membership in the list is what
 The server maintains that invariant:
 
 - **Validation:** a focus update naming an unknown channel, or setting `null` while channels exist, is rejected and the stored state is unchanged — `null` is only ever produced by the server itself when the last channel is deleted. ^cs-focus-validate
-- **First channel:** creating a channel while `focusedChannelId` is `null` focuses the new channel. (Boot-time initialization is different and stays with its owners: the onboarding installer's focus rule and, for pre-redesign records, the migration buffer below.) ^cs-first-focus
+- **First channel:** creating a channel while `focusedChannelId` is `null` focuses the new channel. (Boot-time initialization is different and stays with its owners: the onboarding installer's focus rule and, for pre-redesign records, the display-state migration below.) ^cs-first-focus
 - **Deletion:** when the focused channel is deleted, **the server refocuses** as part of the deletion: the successor is the first channel in the channel sidebar's order — the first pinned channel in pin order, otherwise the newest unpinned channel — or `null` when none remain, per the product rule ([channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Computing this server-side means one writer, no multi-client race, and a correct outcome even when the deletion comes from the CLI with no clients connected. ^cs-focus-successor
 - **Ordering:** a deletion that changes the pinned list or the focus announces the channel removal on the event stream first, then the resulting pin and focus changes — one deterministic order, so a connected client applying the burst ends consistent. (Artifact removals precede the channel removal — [channels.md#^ch-delete-semantics](../../product/channels.md#^ch-delete-semantics).) ^cs-delete-ordering
 
-### Server buffer: display-state migration on boot
+### Display-state migration
 
-Server internals are outside spec authority, but this model imposes one boot behavior on the server, recorded as a buffer. It executes as a step of **the one server migration** ([arch/layout/migration.md#^one-migration](../layout/migration.md#^one-migration)); this buffer binds the semantic mapping only. The pre-redesign record's active-channel field (`activeChannelID` — the earlier name-rename step of the same migration has already run by this point) becomes `focusedChannelId` — a value naming no existing channel resolves to the channel-sidebar-first successor ([#^cs-focus-successor](#^cs-focus-successor) semantics) — the pinned list defaults to empty, and fields owned elsewhere (the active theme) are preserved. The step is idempotent: a record already in the current shape loads as-is. The record's on-disk naming and location follow the storage layout, which remains code-governed until that area migrates ([spec-migration.md](../../spec-migration.md)). ^cs-display-migration
+A display record written before the redesign is converted as a step of **the one server migration** ([arch/layout/migration.md#^one-migration](../layout/migration.md#^one-migration)); this section owns the mapping only. The pre-redesign record's active-channel field (`activeChannelID` — the earlier name-rename step of the same migration has already run by this point) becomes `focusedChannelId` — a value naming no existing channel resolves to the channel-sidebar-first successor ([#^cs-focus-successor](#^cs-focus-successor) semantics) — the pinned list defaults to empty, and fields owned elsewhere (the active theme) are preserved. The step is idempotent: a record already in the current shape loads as-is. Where the record is stored is [server storage's](../server/storage.md#^srv-records). ^cs-display-migration
 
 ## How state syncs
 
-These rules bind any client implementation; the transport's concrete vocabulary is code-governed ([#Code-governed carve-out](#Code-governed carve-out)).
+These rules bind any client implementation. The server's side of the stream — who may connect, and that every change reaches every connected client in order with nothing replayed — is [the event stream's](../server/http.md#The event stream).
 
 - **Every connection starts from a full snapshot.** On every successful connection — first connect and every reconnect — the client fetches the complete channel and workspace state (the channel list and the display state) before rendering from it, and converges on that snapshot rather than patching across the gap. Rationale: events broadcast while a client is unconnected are lost, so an event stream alone can never be trusted from cold; refetching is the only honest convergence. ^cs-converge
 - **Fetches lose nothing to the stream.** This binds every fetch the client applies over live state — the bootstrap snapshot and the recovery refetch ([#^cs-optimistic](#^cs-optimistic)) alike. Events can arrive while the fetch is in flight; the response must never overwrite a newer change announced on the stream, and no such event may be dropped. The state after applying the fetch reflects every change the server delivered, whether it arrived in the response, on the stream, or both — by buffering and replaying stream events over the response, or an equivalently simple mechanism. ^cs-bootstrap-race
@@ -161,7 +161,7 @@ The pre-redesign client persisted a browser-local record holding a configured-se
 
 **The connection lifecycle is deliberately code-governed.** Socket management, auto-reconnect and backoff, visibility/network wake signals, auth-rejection handling, and disposal are carried from the shipping implementation, whose suites hold them; which connection state the person sees, including the escalation after repeated failed reconnects, is the [app shell](../../ui/app/index.md#^ap-connection-states)'s. Slices of the connection already under other specs' authority stay theirs: the `server-status` message and unknown-message routing ([version-advertisement.md#^events-version](../updates/version-advertisement.md#^events-version), [version-advertisement.md#^unknown-messages](../updates/version-advertisement.md#^unknown-messages)), the Electron boot barrier ([desktop-upgrade-gate.md#^boot-barrier](../updates/desktop-upgrade-gate.md#^boot-barrier)), and the telemetry signals riding the socket ([client-signals.md](../telemetry/client-signals.md)). The outcomes that must hold regardless of mechanism: losing the server is a shell-wide transition ([channels.md#^ch-disconnect](../../product/channels.md#^ch-disconnect)), and reconnection converges on server truth ([#^cs-converge](#^cs-converge)). ^cs-connection-carve-out
 
-**The transport vocabulary is deliberately code-governed — the model it carries is not.** Route names, event discriminants, and transport envelopes shared only by the server and its served web bundle are lockstep contracts, so they may change freely between releases and are not worth authority; they live in the server and shared-client code, described by the legacy network API documentation until that area migrates ([spec-migration.md](../../spec-migration.md)). Cross-release desktop identity transport, including its bounded output exception, is owned by [arch/updates/desktop-upgrade-gate.md#^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake), so no identity contract is defined by channel state. `ChannelStateFields`, `ChannelDisplayState`, and their semantics remain this spec's authority **wherever they are transported**: renaming any other route or event type is a code change, but changing these fields or their rules requires a spec change first. ^cs-wire-carve-out
+**The transport's names are not pinned — the model it carries is.** Route names, event names, and message envelopes shared only by the server and the web bundle it serves may change freely between releases ([the unpinned API](../server/http.md#^srv-api-unpinned)). Cross-release desktop identity transport, including its bounded output exception, is owned by [arch/updates/desktop-upgrade-gate.md#^pre-gate-handshake](../updates/desktop-upgrade-gate.md#^pre-gate-handshake), so no identity contract is defined by channel state. `ChannelStateFields`, `ChannelDisplayState`, and their semantics remain this spec's authority **wherever they are transported**: renaming any other route or event type is a code change, but changing these fields or their rules requires a spec change first. ^cs-wire-carve-out
 
 **Client service internals are deliberately the implementer's.** View decomposition, the state layer's internal structure below the contracts above, and the fetching and caching of artifact records ([#^cs-outside-inventory](#^cs-outside-inventory)) are not specified, per the approved authority boundary — the same boundary the artifact frame draws ([arch/artifact-frame/index.md#^frame-core-carve-out](../artifact-frame/index.md#^frame-core-carve-out)). ^cs-internals-carve-out
 

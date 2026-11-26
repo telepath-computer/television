@@ -78,7 +78,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **test-runner/**
     - `attestation.md` (67 lines) — *How the promises in Test Attestation are proven.*
-    - `blaxel-testshards.md` (101 lines) — *How the promises in Blaxel Test Shards are proven.*
+    - `blaxel-testshards.md` (88 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
     - `reporting.md` (63 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (54 lines) — *How the promises in Sharded Execution are proven.*

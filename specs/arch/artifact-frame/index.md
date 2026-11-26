@@ -4,7 +4,7 @@
 
 # Artifact frame (architecture)
 
-**Plain english:** this is the front door to the machinery behind showing an artifact in the app. Four pieces of that machinery are pinned down by their own specs — the message channel between the app and the embedded document, how local source changes, reloads, and in-artifact navigation work, how artifact responses stay fresh when loaded, and the sandbox that keeps an artifact's code away from the app. The remaining machinery is deliberately *not* specified: it is mature, well-tested code, and this document says exactly where that unspecified zone begins and ends. UI specs separately own the frame's presentation and the Markdown editor's color treatment.
+**Plain english:** this is the front door to the machinery behind showing an artifact in the app. Three pieces of that machinery are pinned down by their own specs here — the message channel between the app and the embedded document, how reloads and in-artifact navigation work, and the sandbox that keeps an artifact's code away from the app. The server's side — the artifact record, watching an artifact's files, and serving and caching them — is [server architecture](../server/index.md)'s, in [the artifact registry](../server/artifacts.md) and [the artifact proxy](../server/artifact-proxy.md). The remaining machinery is deliberately *not* specified: it is mature, well-tested code, and this document says exactly where that unspecified zone begins and ends. UI specs separately own the frame's presentation and the Markdown editor's color treatment.
 
 ## What this owns
 
@@ -15,9 +15,8 @@ This spec owns the artifact-frame domain's **authority boundary** and its **fram
 | Spec | Owns |
 |---|---|
 | [artifact-bridge.md](./artifact-bridge.md) | the bridge: the in-document script and Electron preload, the message protocol, readiness tracking, keyboard forwarding, and the shared-artifact content poll |
-| [reload-navigation.md](./reload-navigation.md) | local path-content watching and notification, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
+| [reload-navigation.md](./reload-navigation.md) | the client's reaction to local path-content changes, artifact reload (cache-busting, content/theme reload), and in-frame navigation history contracts |
 | [markdown-tables-buffer.md](./markdown-tables-buffer.md) | source preservation, intentional table edits, link routing, and rendering without normalization in the bundled Markdown view |
-| [proxy-caching.md](./proxy-caching.md) | complete artifact-proxy cache behavior for successful resources, shorthand redirects, and unsuccessful responses |
 | [isolation.md](./isolation.md) | the sandbox artifact documents run in, in a browser, and the sessions that isolate them in the desktop app, the browser features they are granted, the cross-origin rules on the routes they load, and the known limitations |
 
 ## The frame core is code-authoritative, deliberately

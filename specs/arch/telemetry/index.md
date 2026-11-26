@@ -164,7 +164,6 @@ The six settings `theme_state`, `theme_main_js_declared`, `theme_main_js_enabled
 | [sink.md](./sink.md) | the PostHog transport: bounded in-memory buffer, fire-and-forget, region/key, operations |
 | [client.md](./client.md) | the browser + Electron client agent: client id, engagement detection, activity signal, transport attachment |
 | [client-signals.md](./client-signals.md) | the generic client→server telemetry signal: envelope, per-event validation registry, forwarding into the chokepoint |
-| [server-telemetry-buffer.md](./server-telemetry-buffer.md) | *(buffer)* contracts telemetry imposes on existing server modules (event-stream, server-store, bootstrap, data dir) |
 | [product/cli.md](../../product/cli.md) and [arch/cli/index.md](../cli/index.md) | `tv` telemetry controls, status output, persisted environment, and skill-install emission wiring |
 
 ## Testing

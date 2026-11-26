@@ -6,7 +6,7 @@ Television releases carry installed-theme packages. On a serving boot, Televisio
 
 ## What this owns
 
-This spec owns runtime derivation of the bundled inventory, minimum-version installation rules, source tree, server and CLI distribution copies, bundled-asset locations and serving-store wiring, bundled-theme state file, package installation and replacement, backups and failure behavior, and initial-theme decision. [Theme architecture](./index.md) owns package validation and the installed-theme registry. [The app UI spec](../../ui/app/index.md) owns the app-document marker used by theme selectors. [The onboarding installer](../onboarding/installer.md#^bootstrap-sequence) owns the complete serving bootstrap order.
+This spec owns runtime derivation of the bundled inventory, minimum-version installation rules, source tree, server and CLI distribution copies, bundled-asset locations and serving-store wiring, bundled-theme state file, package installation and replacement, backups and failure behavior, and initial-theme decision. [Theme architecture](./index.md) owns package validation and the installed-theme registry. [The app UI spec](../../ui/app/index.md) owns the app-document marker used by theme selectors. [The onboarding installer](../server/lifecycle.md#^bootstrap-sequence) owns the complete serving bootstrap order.
 
 ## Bundled packages and versions
 
@@ -54,7 +54,7 @@ An invalid state file produces a warning and skips bundled-theme handling and in
 
 ## Serving-boot installation
 
-A serving store runs bundled-theme installation at step 6 of the [serving bootstrap sequence](../onboarding/installer.md#^bootstrap-sequence), immediately before the installed-theme registry scan. A token-only store does no bundled-theme work.
+A serving store runs bundled-theme installation at step 6 of the [serving bootstrap sequence](../server/lifecycle.md#^bootstrap-sequence), immediately before the installed-theme registry scan. A token-only store does no bundled-theme work.
 
 For each theme in the bundled inventory, Television first checks whether anything exists at that theme ID. If nothing exists and the ID has not been handled before, Television installs the bundled package. If the ID has been handled before, Television leaves it absent as a user deletion.
 

@@ -6,7 +6,7 @@
 
 This spec owns the **user-facing telemetry behavior**: why Television collects usage data, the privacy guarantees that bound what may ever be collected, the events and high-level properties that describe user behavior, the disclosure users receive, and the controls (opt-out, environment suppression, status reporting) they have over it.
 
-The enablement and destination rules below govern every implementation. How events are emitted, where identity is stored, how the chosen platform is configured, and how each property is derived belong to the architecture, captured in [arch/telemetry/index.md](../arch/telemetry/index.md) while no server architecture spec yet exists. The telemetry controls and status output exposed by `tv` are owned by [product/cli.md](./cli.md), with their package integration owned by [arch/cli/index.md](../arch/cli/index.md).
+The enablement and destination rules below govern every implementation. How events are emitted, where identity is stored, how the chosen platform is configured, and how each property is derived belong to the architecture, in [arch/telemetry/index.md](../arch/telemetry/index.md). The telemetry controls and status output exposed by `tv` are owned by [product/cli.md](./cli.md), with their package integration owned by [arch/cli/index.md](../arch/cli/index.md).
 
 ## Provisional, by intent
 

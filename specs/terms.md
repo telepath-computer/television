@@ -42,7 +42,7 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *browser demo mode* — the host-file-enabled mode in which a browser shows external page artifacts directly in their frames. Owned by [product/artifacts.md](product/artifacts.md).
 - *artifact frame* — the surface holding one artifact's document; its markup, interaction, and styling are owned by [ui/app/artifact-frame/index.md](ui/app/artifact-frame/index.md).
 - *filmstrip* — the stage's horizontal row of pages. Owned by [ui/app/stage/index.md](ui/app/stage/index.md).
-- *remote artifact* — a `kind: "url"` artifact whose URL matches a Television artifact route; normally one served by another Television host (product-facing synonym: *shared artifact*). Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
+- *remote artifact* — a `kind: "url"` artifact whose URL matches a Television artifact route; normally one served by another Television host (product-facing synonym: *shared artifact*). Owned by [arch/server/artifacts.md](arch/server/artifacts.md#^srv-remote-artifact).
 - *bridge* (artifact bridge) — the injected in-frame script, Electron preload behavior, and host-side handling that carry lifecycle, navigation, keyboard, and content-update messages across the iframe/webview boundary. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *readiness tracking* (*readiness gate*) — the lifecycle bookkeeping of a frame's most recently adopted, not-yet-retired document identity (normally the current document's); knowledge only, never a shield on the frame. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
 - *bridge document GUID* — a random per-load identity stamped on bridge lifecycle messages so the host can distinguish the displayed document from stale messages sent by a document that is leaving. Owned by [arch/artifact-frame/artifact-bridge.md](arch/artifact-frame/artifact-bridge.md).
@@ -96,6 +96,17 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *artifact focus* — a transient one-shot request to select an artifact's tab page, switching to its channel when needed, with no highlight effect. Owned by [product/tab-pages.md#^tp-focus-selects](product/tab-pages.md#^tp-focus-selects); CLI request syntax is [product/cli.md](product/cli.md)'s.
 - *bundled skill collection* — the Television agent skills shipped beside the built CLI. Membership is defined by `packages/skills/skills.json`; shipping and installation behavior is owned by `product/cli.md` and `arch/cli/index.md`.
 - *external skills installer* — Vercel's third-party skills package that `tv skills install -i` delegates to. Owned by `product/cli.md`.
+
+## Server
+
+- *serving construction* — constructing the server's store to serve a home: migration, loading, and every installation step, in a fixed order. Owned by [arch/server/lifecycle.md](arch/server/lifecycle.md#^bootstrap-sequence).
+- *token-only construction* — constructing the store only to read or create the token, without migrating or creating channels, display state, or onboarding content. Owned by [arch/server/lifecycle.md](arch/server/lifecycle.md#^token-only-boot).
+- *fatal record* — the one log record a server writes when it cannot bind every listener, naming each address and its outcome. Owned by [arch/server/lifecycle.md](arch/server/lifecycle.md#The fatal record).
+- *origins* — the addresses a started server can be reached at, from which connect links and share links are built. Owned by [arch/server/lifecycle.md](arch/server/lifecycle.md#^cli-server-origins).
+- *token route*, *capability route*, *public route* — the three classes of server route: one that requires the server's token when the server requires one, one authorized by an unguessable ID in its path, and one that needs nothing. Owned by [arch/server/http.md](arch/server/http.md#^srv-route-classes).
+- *event stream* — the `/events` WebSocket on which the server sends every change to every connected client. Owned by [arch/server/http.md](arch/server/http.md#The event stream).
+- *artifact record* — the server's stored record of one artifact: its ID, kind, title, and the path or address it points at. Owned by [arch/server/artifacts.md](arch/server/artifacts.md#^srv-artifact-record).
+- *artifact proxy* — the server route that serves a path artifact's files at `/artifact/<id>/`. Owned by [arch/server/artifact-proxy.md](arch/server/artifact-proxy.md).
 
 ## Desktop
 
