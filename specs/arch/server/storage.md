@@ -23,7 +23,7 @@ A Television server keeps everything it knows in the [Television home](../../pro
 
 The pre-redesign directory `state/screens/` is read only by [the server migration](./migration.md). The CLI writes `config.json` and, for a persisted install, creates the token through a [token-only construction](#^token-only-boot) before the service first starts; while a server runs, it is the only writer of everything under `state/` and `resources/`.
 
-**One server per home.** A home is served by one server process at a time, and the server assumes it is the only writer of its records. The config file gives a home one port, so a second server started for the same home fails to bind it; with config port `0` nothing stops two servers sharing a home, and they then overwrite each other's records. This is an accepted limitation. ^srv-one-server
+**One server per home.** A home is served by one server process at a time, and the server assumes it is the only writer of its records. Nothing enforces this. A second server for the same home runs whenever it can bind its listeners, as under config port `0` or after the config file's port changes while the first still runs, and even a second server that fails to bind has already written to the home during its bootstrap. Two servers then overwrite each other's records. This is an accepted limitation. ^srv-one-server
 
 ## The token file
 
@@ -43,7 +43,9 @@ type StoredArtifactRecord =
 
 Every rewrite and deletion of a record follows [the resource layer's storage rule](../resources/index.md#^rs-storage), including [its rule for a save whose outcome is uncertain](../resources/index.md#^rs-arch-uncertain-save): an uncertain rewrite takes the record it reads back as current, and an uncertain deletion that finds the file gone takes the artifact as deleted. A record carries promises to the store's writers and the share link's holders, and any rewrite, such as a title change, replaces the whole record, so every record write needs the durability of the data ([product/artifacts.md](../../product/artifacts.md#^af-record-saved)). The server applies one artifact's record changes one at a time, each to the record as it stands after the last. ^srv-artifact-record-save
 
-The record has no version field. A field that a release adds is optional, as the resource fields are, so records an earlier release wrote remain valid.
+The record has no version field. Records an earlier release wrote, including those without the resource fields, remain valid.
+
+At load, an artifact record that cannot be read, is not a valid record, or whose `id` differs from its file name stops the boot with an error naming the file. The server does not serve without an artifact whose ID, store and share link people rely on. ^srv-artifact-record-load
 
 ## The channel record
 
@@ -56,6 +58,8 @@ type StoredChannelRecord = ChannelStateFields  // id and name: arch/channel-stat
 ```
 
 Pin state and focus are not channel fields; they live in the display record. ^srv-channel-record
+
+At load, a channel record that is not valid JSON or not a valid record is skipped with a warning and left on disk as it is. The artifacts on its pages are then on no channel, as after a move that did not finish ([arch/layout/index.md](../layout/index.md#^ly-move)): their records, stores and share links keep working. ^srv-channel-record-load
 
 ## The display record
 
@@ -72,7 +76,15 @@ type StoredDisplayRecord = ChannelDisplayState   // focusedChannelId, pinnedChan
 
 Each field keeps its owner's rules; this spec owns the file. ^srv-display-record
 
-A serving boot loads the record only when each of its fields is present and valid, apart from `themeJavaScriptConsentIds`, which may be absent. Any other record — unreadable, malformed, or with a field missing or invalid — is replaced by fresh display state, in which an existing channel is focused, nothing is pinned, the null theme is selected, appearance is `system`, and no theme has JavaScript consent. ^srv-display-load
+A serving boot loads the display record when it is valid JSON whose fields are all present and valid, apart from `themeJavaScriptConsentIds`, which may be absent. A record that exists but cannot be read stops the boot, as a [migration failure](./migration.md#^mig-record-atomic) does. A readable record that is malformed or invalid is replaced by fresh display state, in which one of the existing channels is focused, nothing is pinned, the null theme is selected, appearance is `system`, and no theme has JavaScript consent. ^srv-display-load
+
+After loading, the boot keeps [the focus invariant](../channel-state/index.md#^cs-focus): when the stored focus is `null` or names no channel while channels exist, the boot focuses one of the existing channels and keeps every other field. This happens, for example, when the [default-channel invariant](#^default-screen) creates "Default" in a home whose last channel had been deleted. ^srv-boot-focus
+
+> **Implementation note (transitional):** the serving bootstrap loads a `null` or dangling focus without repairing it, so a restart after the last channel is deleted leaves "Default" unfocused.
+
+**Writing the channel and display records.** The server replaces a channel or display record atomically, so a crash leaves the complete previous record or the complete new one, never part of either. Unlike artifact records, these writes need not reach the disk before the change is reported: a crash can lose the latest change, but not the record. ^srv-record-replace
+
+> **Implementation note (transitional):** the server rewrites the display record, and channel records outside a move, in place.
 
 ## The serving bootstrap
 
@@ -84,7 +96,7 @@ A *serving boot* is the store construction for a server that will serve the home
 4. Run the [onboarding installer](../onboarding/installer.md): its state migration, then its install loop when a content root resolved and its config is usable.
 5. Apply the [default-channel invariant](#^default-screen).
 6. Run [bundled-theme installation](../themes/bundled-installation.md#serving-boot-installation), then scan the [theme registry](../themes/index.md#registry-scan).
-7. Load the display record, or start fresh display state ([above](#^srv-display-load)). Complete a pending [default-theme decision](../themes/bundled-installation.md#default-theme-selection), then apply the registry's [invalid-theme fallback](../themes/index.md#selection-and-display-state), then the onboarding installer's [focus rule](../onboarding/installer.md#^onboarding-focus-rule).
+7. Load the display record, or start fresh display state ([above](#^srv-display-load)), and repair its focus ([above](#^srv-boot-focus)). Complete a pending [default-theme decision](../themes/bundled-installation.md#default-theme-selection), then apply the registry's [invalid-theme fallback](../themes/index.md#selection-and-display-state), then the onboarding installer's [focus rule](../onboarding/installer.md#^onboarding-focus-rule).
 8. Start watching artifacts' content and the active theme ([content watching](./local-content.md#^rn-shared-content-watcher)).
 
 The store resolves the home to an absolute path when it is constructed, so every path it derives, including copy destinations, records, state files and watched paths, is independent of the process's working directory. ^storage-path-absolute

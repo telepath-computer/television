@@ -45,7 +45,7 @@ The channel, artifact, display and theme routes are the interface between the se
 
 The channel, artifact, display and theme routes refuse a request with a status and `{ "error": string }`: `400` for a request the server cannot accept as given, `404` when it names a channel, artifact or theme that does not exist, `409` when it conflicts with the current state, such as a layout whose pages no longer match the channel's ([layout](../layout/index.md#^ly-update-membership)), and `503` when an artifact record's save has an unknown outcome ([product/artifacts.md](../../product/artifacts.md#^af-record-saved)). The CLI prints a refusal's `error` text ([arch/cli/index.md](../cli/index.md#Command parser and error normalization)), so where the product CLI gives a refusal's wording, such as `Channel not found: <channel-id>`, that wording is the server's text. ^srv-refusals
 
-A request that fails unexpectedly, on any route, is answered with the failure's own error status when it has one and `500` otherwise, with that status's standard text, never the failure's message or stack: a failure's message can name an artifact's files, and so an artifact ID that a share link hides. The failure is written to [the log](./lifecycle.md#^srv-log). ^srv-unexpected-failure
+A failure that no route answers itself reaches the server's final handler, which answers with the failure's own error status when it has one and `500` otherwise, with that status's standard text, never the failure's message or stack: a failure's message can name an artifact's files, and so an artifact ID that a share link hides. The handler writes the failure to [the log](./lifecycle.md#^srv-log). ^srv-unexpected-failure
 
 ## The event stream
 

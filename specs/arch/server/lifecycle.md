@@ -31,7 +31,7 @@ The record in the log is the one durable account of a failed start. The server m
 
 ## After the listeners bind
 
-Once every listener is bound, the server starts telemetry, which loads its identity and emits the boot events ([identity.md](../telemetry/identity.md)), starts polling the update channel ([update-channel.md](../updates/update-channel.md#Server-side polling)), and logs that it started. A start that fails to bind emits no telemetry and polls nothing, so a server in a restart loop does not report a start each time it fails.
+Once every listener is bound, the server starts telemetry, which loads its identity and emits the boot events ([identity.md](../telemetry/identity.md)), starts polling the update channel ([update-channel.md](../updates/update-channel.md#Server-side polling)), and logs that it started. A start that fails to bind emits no telemetry and polls nothing, so a server in a restart loop does not report a start each time it fails; the cost for a home whose very first start fails is [identity's accepted limitation](../telemetry/identity.md#^prior-serving-evidence).
 
 ## The server's origins
 

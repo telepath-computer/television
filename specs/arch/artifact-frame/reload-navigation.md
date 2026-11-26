@@ -12,7 +12,7 @@ This spec owns the client side of **local path-content updates**, the client-sid
 
 The server's watching of artifact content and the `artifact-content-changed` event it announces are [local content's](../server/local-content.md#Content watching).
 
-This spec shares the bridge message protocol and readiness tracking with [artifact-bridge.md](./artifact-bridge.md); the wire types `navigation-request` and `proxy-content-changed` are owned there and consumed here. User-facing behavior is [artifact-navigation.md](../../product/artifact-navigation.md) and [product/artifacts.md](../../product/artifacts.md) (product); history-control rendering and interaction are [ui/app/artifact-frame/index.md](../../ui/app/artifact-frame/index.md)'s. The artifact kinds and `isTvArtifact` predicate live in code not yet under spec authority (see [spec-migration.md](../../spec-migration.md)).
+This spec shares the bridge message protocol and readiness tracking with [artifact-bridge.md](./artifact-bridge.md); the wire types `navigation-request` and `proxy-content-changed` are owned there and consumed here. User-facing behavior is [artifact-navigation.md](../../product/artifact-navigation.md) and [product/artifacts.md](../../product/artifacts.md) (product); history-control rendering and interaction are [ui/app/artifact-frame/index.md](../../ui/app/artifact-frame/index.md)'s. Artifact kinds are [the artifact record's](../server/storage.md#^srv-artifact-record); the `isTvArtifact` predicate is governed by code.
 
 ## Reload
 

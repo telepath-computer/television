@@ -6,7 +6,7 @@ Television releases carry installed-theme packages. On a serving boot, Televisio
 
 ## What this owns
 
-This spec owns runtime derivation of the bundled inventory, minimum-version installation rules, source tree, server and CLI distribution copies, bundled-asset locations and serving-store wiring, bundled-theme state file, package installation and replacement, backups and failure behavior, and initial-theme decision. [Theme architecture](./index.md) owns package validation and the installed-theme registry. [The app UI spec](../../ui/app/index.md) owns the app-document marker used by theme selectors. [The onboarding installer](../server/storage.md#^bootstrap-sequence) owns the complete serving bootstrap order.
+This spec owns runtime derivation of the bundled inventory, minimum-version installation rules, source tree, server and CLI distribution copies, bundled-asset locations and serving-store wiring, bundled-theme state file, package installation and replacement, backups and failure behavior, and initial-theme decision. [Theme architecture](./index.md) owns package validation and the installed-theme registry. [The app UI spec](../../ui/app/index.md) owns the app-document marker used by theme selectors. [Server storage](../server/storage.md#^bootstrap-sequence) owns the complete serving bootstrap order.
 
 ## Bundled packages and versions
 

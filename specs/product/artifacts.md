@@ -8,7 +8,7 @@ An *artifact* is a pointer to content — held externally, or generated on the f
 
 An artifact is displayed on the stage ([ui/app/stage/index.md](../ui/app/stage/index.md)), and belongs to exactly one channel, except after a move that did not finish ([#^af-move](#^af-move)). ^af-artifact-reference
 
-The artifact record itself — its fields other than the [ID](#^af-artifact-id), its [store and share link](#^af-store-share), the create and update inputs, the registry and its invariants — is not specified yet: it remains legacy documentation until it migrates ([spec-migration.md](../spec-migration.md)). How a record is [saved](#^af-record-saved) is specified.
+The artifact record's stored shape is [server storage's](../arch/server/storage.md#^srv-artifact-record), and the inputs that create and update one are [the CLI's](./cli.md#Artifact commands). How a record is [saved](#^af-record-saved) is specified here; the rest of the registry's behavior is governed by code ([spec-migration.md](../spec-migration.md)).
 
 ## Name
 
