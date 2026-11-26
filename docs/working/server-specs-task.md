@@ -22,9 +22,9 @@ Context: three agents do this independently today (this one is the third, Opus 5
 ## Status
 
 - [x] Read governance specs and writing skills
-- [x] Read server-related specs (buffers, CLI, channel state, layout, migration, onboarding installer, resources root, artifact frame, updates, themes root, telemetry)
-- [ ] Finish reading code: artifact proxy, config, bind addresses, logger, paths, watcher, markdown, ACP, shared types and client
-- [ ] Design the server spec tree and the moves
-- [ ] Write specs and edits
-- [ ] Independent review to convergence
-- [ ] Report
+- [x] Read server-related specs and the server package's code
+- [x] Designed the server spec tree and the moves
+- [x] Wrote the specs and edits (commit `5ce976ba`)
+- [x] Wrote `server-spec-changes-overview.md` for the judge
+- Independent review: not applied to this result. The owner asked for the three attempts to be compared as unreviewed output.
+- Proofs and code citations: not moved, on the owner's instruction.
