@@ -4,7 +4,7 @@
 
 # Reload and navigation
 
-A navigable artifact remembers where its user has been inside it, like a small browser: each artifact keeps its own back/forward history, and the app can reload the artifact's document without losing that place. A folder-backed artifact also stays current while its source tree changes. This spec defines the client response to local source updates, reloads and history; apart from the main-frame requirement below, how a reported move is recorded into history is code-governed ([#^nav-recording-carve-out](#^nav-recording-carve-out)).
+A navigable artifact remembers where its user has been inside it, like a small browser: each artifact keeps its own back/forward history, and the app can reload the artifact's document without losing that place. A folder-backed artifact also stays current while its source tree changes. This spec pins down the server-to-client path for those local source updates and the client-side machinery for reloads and history; apart from the main-frame requirement below, how a reported move is recorded into history is code-governed ([#^nav-recording-carve-out](#^nav-recording-carve-out)).
 
 ## Authority
 
@@ -114,6 +114,6 @@ Reload and navigation are where this spec meets [artifact-bridge.md](./artifact-
 
 The fields used for cache-busted reload URLs are separate from readiness. `_activeReloadFrameSrc` preserves a reload URL, and `sameLogicalDocumentURL` compares reload URLs. [artifact-bridge.md](./artifact-bridge.md) owns the trust state: `currentGuid` and `lifecycleWindow`. Readiness is derived from those fields. The artifact bridge also owns the reset rules.
 
-## Testing guidance
+## Testing
 
 [Artifact acceptance](../../product/artifacts.md#^af-folder-live-update) exercises a nested asset change through a running server and the browser and desktop clients.

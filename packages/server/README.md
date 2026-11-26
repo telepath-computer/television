@@ -13,7 +13,7 @@ Television's backend. HTTP API, WebSocket event stream, and the sole owner of pe
 - `config.ts` — Environment and default resolution for `storagePath`, ports, URLs.
 - `index.ts` — Narrow package boundary for the server and the configuration and telemetry adapters consumed by the CLI.
 
-The [server architecture](../../specs/arch/server/index.md) defines the server contracts. The [package notes](./docs/index.md) locate their implementations.
+See the [package implementation notes](./docs/index.md) for server orientation and the [migration map](../../specs/spec-migration.md) for requirements under spec authority.
 
 ## Usage
 
@@ -26,15 +26,15 @@ const store = new ServerStore({
 });
 const server = new Server({
   store,
-  listen: ["127.0.0.1"],
+  host: "localhost",
   port: 32848,
 });
 await server.start();
 ```
 
-A serving store uses `installOnboardingChannels: true`; its bootstrap is governed by the [server store spec](../../specs/arch/server/store.md#opening-a-home). A token-only construction uses `installOnboardingChannels: false` to provision the token without running the serving bootstrap. Startup depends on those options, and request authorization depends on the server’s selected authentication mode and route; see [client connections](../../specs/arch/server/connections.md#access).
+A serving store uses `installOnboardingChannels: true`; its bootstrap is governed by the [onboarding installer spec](../../specs/arch/onboarding/installer.md). A token-only construction uses `installOnboardingChannels: false` to provision the token without loading serving state. Startup depends on those options, and request authorization depends on the server’s selected authentication mode and route; see [server composition](src/server.ts) and [auth helpers](src/auth.ts).
 
-Ordinary registration associates an artifact with one channel: `POST /artifacts` requires `channelID`, writes metadata, and places a page on that channel; `DELETE /artifacts/:id` removes the page and metadata; `DELETE /channels/:id` removes the channel file and hard-deletes referenced artifact records. Path and URL targets are content-only pointers and are never removed by these registry operations.
+Artifact lifecycle is one-channel-per-artifact: `POST /artifacts` requires `channelID`, writes metadata, and appends the card to that channel; `DELETE /artifacts/:id` removes the owning card and metadata; `DELETE /channels/:id` removes the channel file and hard-deletes referenced artifact records. Path and URL targets are content-only pointers and are never removed by these registry operations.
 
 ## Experimental: ACP bridge (unsupported)
 

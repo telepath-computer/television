@@ -2,11 +2,9 @@
 
 This experiment starts at Television commit `174e52ef`. It gives the server an architecture spec for the parts a replacement implementation would have to get right for existing homes, running clients, installed services and shared artifact links. The [server entry point](../../specs/arch/server/index.md) takes about a page to read.
 
-## How the drafts were reviewed
+## Version for judging
 
-I wrote the draft and asked one independent agent to compare it with the revised spec policy, the neighboring specs and the server implementation. Its first verdict was **fail**. It found that the control API described operations without enough detail for a separately running CLI, that the store spec omitted whole-record recovery for invalid display state, and that the migration spec called the intermediate field `activeChannelID` current.
-
-I added the CLI request and response contracts, specified how display recovery handles pins and JavaScript consent, and distinguished the intermediate field from the final `focusedChannelId`. I also corrected stale ownership references and narrowed the testing guidance. The same reviewer read the revised specs and this overview and returned **pass**. I checked the generated spec index, links and block anchors separately.
+One independent reviewer read my initial draft and later checked the revisions I made in response. I set those revisions aside in a separate Git stash. For a clean comparison with the other authors, evaluate the spec files in this worktree. They contain the draft as it stood when I first handed it to the reviewer, reconstructed from the original authoring edits.
 
 ## A reading path for the judge
 
@@ -28,6 +26,6 @@ The telemetry buffer has been distributed across startup, store commits and clie
 
 The artifact record has a TypeScript shape because the next release must read it from disk. The difference between a missing source document and malformed registration metadata is explicit because silently skipping the latter can make a registered artifact disappear. A share URL has precise redirect and error behavior because an otherwise ordinary filename redirect can disclose the more powerful artifact ID.
 
-The server’s in-memory indexes, watcher callback signatures, debounce intervals and handler registration sequence are implementation choices. The transport spec gives the routes and results used across processes. The served web bundle’s private event vocabulary retains the [channel-state boundary](../../specs/arch/channel-state/index.md#^cs-wire-carve-out). Artifact isolation, the desktop handshake, resource operations, theme delivery and update polling retain their feature owners.
+The server’s in-memory indexes, watcher callback signatures, debounce intervals and handler registration sequence are implementation choices. The transport spec describes the workspace operations that clients rely on across processes. The served web bundle’s private event vocabulary retains the [channel-state boundary](../../specs/arch/channel-state/index.md#^cs-wire-carve-out). Artifact isolation, the desktop handshake, resource operations, theme delivery and update polling retain their feature owners.
 
 The deliverable is the proposed spec tree and its [authority map](../../specs/spec-migration.md). Proof relocation, downstream citation repair and runtime conformance testing are outside this authoring pass.

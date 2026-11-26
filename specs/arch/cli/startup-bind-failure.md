@@ -8,7 +8,7 @@ A machine can start Television before its configured interface comes up. The [se
 
 On Linux the user unit starts at `default.target` and uses `Restart=always` with `RestartSec=5`. The cadence stays below the user manager's default start-rate limit, so repeated failures do not park the unit. On macOS the LaunchAgent uses `RunAtLoad` and `KeepAlive` with launchd's ordinary throttling (about ten seconds). Both retry indefinitely at a fixed cadence. The [post-install health wait](index.md#^cli-persist-health-check) allows time for a restart. Operators can diagnose failures from the [server log](../server/index.md#^record-outcomes).
 
-## Testing guidance
+## Testing
 
 The bind-failure process exit is owned by the product CLI proof's [bind-failure acceptance assertion](../../../proofs/product/cli.md#^cli-ac-bind-failure). Reuse that acceptance for process exit.
 

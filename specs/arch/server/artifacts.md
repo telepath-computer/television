@@ -13,7 +13,7 @@ type Artifact =
   | { id: string; kind: "url"; title: string; url: string }
   | {
       id: string; kind: "path"; title: string; path: string;
-      store?: ResourceID;
+      store?: string;
       share?: { id: string; access: AccessLevel };
     };
 ```
@@ -26,7 +26,7 @@ Apply each record change to the current record, including when a title edit race
 
 ## Reading a document
 
-`/artifact/<id>/…` serves path artifacts through GET and HEAD. Other methods receive 405 with `Allow: GET, HEAD`. Unknown IDs, revoked share IDs and URL-artifact IDs resolve to no local document. For a registered artifact whose entry is missing, serve the bundled missing-artifact page with status 404 when available. A missing subresource receives 404.
+`GET` and `HEAD /artifact/<id>/…` serve path artifacts. Other methods receive 405 with `Allow: GET, HEAD`. Unknown IDs, revoked share IDs and URL-artifact IDs resolve to no local document. For a registered artifact whose entry is missing, serve the bundled missing-artifact page with status 404 when available. A missing subresource receives 404.
 
 | Source | Entry under its artifact ID | Entry under its share ID |
 |---|---|---|
@@ -37,12 +37,12 @@ A share address grants only the [access its link carries](../resources/index.md#
 
 Folder and share shorthand redirects use 301 and add the needed slash. HTML and Markdown rendered as read-only HTML receive the [artifact bridge](../artifact-frame/artifact-bridge.md) and [appearance resolver](../themes/delivery.md). Other folder assets retain their file representation. The browser's access to these responses follows [artifact isolation](../artifact-frame/isolation.md#^iso-routes).
 
-The Markdown editor reads UTF-8 source with GET and replaces it with PUT at `/markdown/<artifact-id>`, under the control API’s authentication policy. A successful write returns 204. An unknown ID, an ineligible target or a missing file receives 404. This distinction keeps an artifact page or a read-only share link from acquiring the ability to edit source text. The editor's rendering and internal protocol follow the [frame boundary](../artifact-frame/index.md#^frame-core-carve-out).
+The Markdown editor reads and replaces a registered Markdown file through the authenticated control interface. An unknown ID, an ineligible target or a missing file receives 404. This distinction keeps an artifact page or a read-only share link from acquiring the ability to edit source text. The editor's rendering and internal protocol follow the [frame boundary](../artifact-frame/index.md#^frame-core-carve-out).
 
 ## Revalidation
 
 Proxied HTML and rendered Markdown carry `Cache-Control: no-cache, must-revalidate` and an `ETag` for the complete served representation, including injected inputs. A matching validator can receive 304. Other successful file responses carry `Cache-Control: no-cache` and an `ETag`, so changing a nested asset takes effect on its next load. Shorthand redirects and unsuccessful responses, including the missing-artifact page, carry no cache-control header.
 
-## Testing guidance
+## Testing
 
-A change in bridge or appearance input can invalidate a document whose source file has not changed. Exercise the validator through the real transformations. ^apx-testing
+Check validators against a listening server using real document transformation and bridge injection, including conditional HTTP requests. ^apx-testing

@@ -1,4 +1,4 @@
-*How a serving boot installs starter channels, records completed installations and applies their initial layout, store values and focus.*
+*The onboarding installer: the per-data-directory onboarding state file at `state/onboarding.json` (v3 schema, migration from screen-named v2 state and the legacy sentinel), the boot-time per-channel install loop with generated artifact IDs, declared starting values for artifacts' stores, and its retry after a crash, initial one-artifact tab pages, the onboarding channel marker on the `Channel` DTO, the focus rule and the default-channel invariant.*
 
 **Status:** adopted installer and migration authority; implementation conforms.
 
@@ -99,7 +99,7 @@ Installing a channel does not recover its artifacts. A retry after a crash or a 
 
 ## Onboarding channel marker
 
-A channel created by the installer carries the optional field `onboarding?: OnboardingChannelMarker` (`ChannelSlug` is defined in [arch/onboarding/content.md](./content.md)):
+The shared `Channel` DTO carries an optional field (`ChannelSlug` is defined in [arch/onboarding/content.md](./content.md)):
 
 ```ts
 interface OnboardingChannelMarker {

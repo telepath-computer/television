@@ -1,4 +1,4 @@
-*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
+*The resource architecture root: the module map, the bindings flag, resource IDs, descriptions and records, each artifact's store and its share link with the artifact record's fields and save rules, storage with loading on first use, the two route families with their authorization and requests from other origins, the page connection's access and ordering rules, resource events, what each resource type implements, server bootstrap and artifact-deletion integration, and the CLI integration.*
 
 # Resource architecture
 
@@ -6,7 +6,7 @@ The server keeps resources for artifacts and agents and serves two ways in: one 
 
 ## What this owns
 
-This spec owns the *resource layer*: the part of Television every resource type shares. That covers the bindings flag, resource IDs, descriptions and records, storage, loading stores on first use, artifacts' own stores and share links, description and binding validation, the artifact and administrative route families, the page connection, resource events and their payloads, the responsibilities each type takes on, the layer's integration with server bootstrap and artifact deletion, and the CLI integration of the share and `tv resource` commands. User-facing behavior is owned by [product/resources/resources.md](../../product/resources/resources.md).
+This spec owns the *resource layer*: the part of Television every resource type shares. That covers the bindings flag, resource IDs, descriptions and records, storage, loading stores on first use, artifacts' own stores and share links, description and binding validation, the artifact and administrative route families, the page connection, resource events and their delivery to agents, the responsibilities each type takes on, the layer's integration with server bootstrap and artifact deletion, and the CLI integration of the share and `tv resource` commands. User-facing behavior is owned by [product/resources/resources.md](../../product/resources/resources.md).
 
 | Spec | Owns |
 |---|---|

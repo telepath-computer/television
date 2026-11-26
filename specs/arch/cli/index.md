@@ -477,6 +477,6 @@ Help is proven for top-level help and the `create-path-artifact`, `list-artifact
 
 No spawned CLI test covers a wildcard `listen` address. The config reader validates each `listen` item as an IPv4 address, and the CLI hands the same values, unchanged, to the server constructor, which resolves them with `resolveBindAddresses`; wildcard resolution, the wildcard listener and the expansion of `0.0.0.0` into origins are therefore proven on the server side and compose across that handoff ([arch/testing-policy.md#Compositional coverage across clean seams](../testing-policy.md#Compositional coverage across clean seams)). The product CLI proof's multi-listener acceptance ([proofs/product/cli.md#^cli-ac-multi-listener-success](../../../proofs/product/cli.md#^cli-ac-multi-listener-success)) covers foreground serve with several specific addresses.
 
-The CLI suite covers the missing-command startup failure. [Agent connection testing](../server/connections.md#testing-guidance) covers the home context.
+The CLI suite covers the missing-command startup failure. [Agent connection testing](../server/connections.md#testing) covers the home context.
 
 Interactive skills installation follows the product CLI's owned testing exception ([product/cli.md#^cli-installer-exception](../../product/cli.md#^cli-installer-exception)): for this spec, tests stop at the injected `runSkillsInstaller` boundary, and nothing runs the installer's terminal interface.

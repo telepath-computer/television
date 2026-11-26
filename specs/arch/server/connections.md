@@ -2,7 +2,7 @@
 
 # Client connections
 
-Clients read and change the workspace through the control API. Connected clients learn of changes through a separate WebSocket. A page running inside an artifact has a different interface, the [resource page connection](../resources/index.md#the-page-connection), whose authority is limited to the ID in its address.
+Clients read and change the workspace through the control API. Connected clients learn of changes through a separate WebSocket. A page running inside an artifact has a different interface, the [resource page connection](../resources/index.md#page-connection), whose authority is limited to the ID in its address.
 
 ## Access
 
@@ -10,20 +10,12 @@ With authentication enabled, control HTTP requests carry `Authorization: Bearer 
 
 ## Reading and changing the workspace
 
-The CLI uses these JSON requests against the running server. Channel and artifact responses carry the [channel model](../channel-state/index.md#^cs-channel-shape) and [artifact record](artifacts.md#^rs-artifact-record).
-
-| Request | What the caller sends or receives |
+| Interface | Contract with the caller |
 |---|---|
-| `GET /channels` · `GET /channels/:id` | A list as `{ channels }`, or a snapshot as `{ channel, artifacts }` for one channel. |
-| `POST /channels` · `PATCH /channels/:id` | Create with `name` and an optional `id`, or update the name, the whole layout, or both. Return `{ channel }`. [Layout](../layout/index.md) owns membership validation. |
-| `DELETE /channels/:id` | Return the removed `channelID`, its `metadataPath` and the `artifactResults` for its members. [Channel deletion](../../product/channels.md#^ch-delete-semantics) owns the effects. |
-| `GET /artifacts` · `GET /artifacts/:id` | Return `{ artifacts }` or `{ artifact }`. A `channelID` query scopes the list to one channel. The desktop reaper relies on the [complete unfiltered response](../desktop/artifact-partitions.md#^dp-artifacts-route). |
-| `POST /artifacts` · `PATCH /artifacts/:id` | Create a record on `channelID` with optional [placement](../layout/index.md#^ly-placement) and return `{ artifact, channelID }`. Edit a record's title or pointer and return `{ artifact }`. |
-| `POST /artifacts/:id/move` | Send the destination `channelID` and optionally `before` or `after` with the neighboring artifact's ID. The reply carries `artifactID`, `channelID` and `outcome` (`moved`, `repositioned` or `unchanged`). |
-| `DELETE /artifacts/:id` | Return `outcome: "deleted"`, the `artifactID`, its `kind` and its `path` or `url`. |
-| `GET /display` · `PATCH /display` | Read [focus and pins](../channel-state/index.md), [theme and appearance](../themes/index.md), and ACP availability. Patch the supplied writable fields together, with 204 on success. |
-| `POST /display/focus` | Send `{ artifactID }`. Select its owning channel before announcing artifact focus to all clients, even if the channel was already focused. Return `{ channelID, artifactID }`. |
-| `GET /telemetry` · `POST /telemetry/enable` · `POST /telemetry/disable` | Return the resulting [telemetry status](../telemetry/identity.md), including its unavailable state when initialization fails. |
+| Channels | List channels or fetch a channel with its artifacts. Create with a name, rename, replace the layout or delete the channel and its registered artifacts. Channel identity and deletion follow [channels](../../product/channels.md). [Layout](../layout/index.md) governs which replacements preserve membership. |
+| Artifacts | List the registry, optionally scoped to a channel. Fetch, create, edit or delete a [record](artifacts.md). Creation and movement take a destination channel and optional placement. A move reports whether it moved across channels, changed position on the same channel, or was already in place. The desktop reaper relies on the complete [unfiltered response](../desktop/artifact-partitions.md#^dp-artifacts-route). |
+| Display | Read shared [focus and pins](../channel-state/index.md) together with the [theme and appearance fields](../themes/index.md) and ACP availability. Patch only the supplied writable fields. Focusing an artifact selects its owning channel before broadcasting the artifact focus to every client, even if the channel was already focused. |
+| Telemetry | `GET /telemetry`, `POST /telemetry/enable` and `POST /telemetry/disable` return the resulting `TelemetryStatus` with `state`, `reason`, `guidPresent` and `region`. [Telemetry identity](../telemetry/identity.md) owns opt-out, re-enablement and the unavailable status when initialization fails. |
 
 The caller can distinguish invalid input (400), a missing entity (404), a conflict with current membership (409), and an artifact save whose outcome is unknown (503). In particular, an existing artifact left off every channel by an interrupted move still has a readable record, but focusing it conflicts. Detailed unexpected errors go to the server log. The HTTP response carries the status and its fixed text so filesystem paths cannot escape to a share holder.
 
@@ -43,6 +35,6 @@ When the CLI supplies an experimental ACP agent profile, display state advertise
 
 The ready message supplies the web client with the agent identity, session ID strategy, session working directory and the `tvArgs` to reach this server. Whenever the client sends a Television context block with a prompt, include those arguments, whether or not a channel is attached. They are `--home <absolute-home>`, plus `--port <acquired-port>` only when the configured port is zero. This keeps an agent's commands in the workspace its user is viewing. ^cli-acp-home-context
 
-## Testing guidance
+## Testing
 
-Exercise the agent home and port in the context block received by the launched agent. Checking the server's ready message alone misses the web client that assembles that block.
+Exercise the server's telemetry handoffs through a real store or listening server with real filesystem, HTTP, WebSocket and authentication boundaries. Check the home and port in the context a launched agent receives.
