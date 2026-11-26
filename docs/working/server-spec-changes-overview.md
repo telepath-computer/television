@@ -9,7 +9,7 @@ Before this change the server had no architecture spec of its own. Requirements 
 ## Scope limits you should know about
 
 - **Specs only.** Josh waived moving proofs and code citations, as derivative work outside the experiment. `proofs/` is untouched. Proofs and code comments that cite a moved spec or anchor now point at the old location, so the repository's link test (`test/repo/spec-links.test.ts`) fails on them and on the missing mirror proofs for the six new specs. Links inside `specs/` are all valid; I checked every relative link and block ref there with a script.
-- **No independent review.** The workflow calls for a second model to review spec changes. I did not run one, so that the result stays one author's work for the comparison.
+- **No review of any kind.** These specs are a first draft that nobody has checked. The workflow calls for a second model to review spec changes; I did not run one, and no subagent or other reviewer looked at them either. I also did not re-read the six new specs end to end after writing them, or re-read the edited passages in the existing specs in their surrounding context. The only checks were the link script described above and a few corrections I made while drafting. Expect the kinds of defect a review would catch: statements that are slightly wrong against the code, links whose target exists but is not the best one, and wording that reads oddly next to its new neighbours.
 - **No code, test or package-doc changes.** `packages/server/README.md` and `packages/server/docs/` still describe the server in their own words and are stale in places; I left them.
 - I did not read the other two attempts.
 
