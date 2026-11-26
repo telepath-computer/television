@@ -97,6 +97,14 @@ These are the terms used to talk about the spec system itself. Domain terms are 
 - *bundled skill collection* — the Television agent skills shipped beside the built CLI. Membership is defined by `packages/skills/skills.json`; shipping and installation behavior is owned by `product/cli.md` and `arch/cli/index.md`.
 - *external skills installer* — Vercel's third-party skills package that `tv skills install -i` delegates to. Owned by `product/cli.md`.
 
+## Server
+
+- *server's token* — the bearer token a server that requires authentication checks, kept in its home's `state/token`. Owned by [arch/server/storage.md](arch/server/storage.md#^srv-token-file); its checking by [arch/server/http.md](arch/server/http.md#^srv-auth).
+- *serving boot* — the store construction for a server that will serve a home, which runs the migration, onboarding and theme installation before the server accepts connections. Owned by [arch/server/storage.md](arch/server/storage.md#^bootstrap-sequence).
+- *token-only construction* — a store construction that will not serve, which creates the home's directories and token and nothing else. Owned by [arch/server/storage.md](arch/server/storage.md#^token-only-boot).
+- *artifact proxy* — the server route that serves a path artifact's files at `/artifact/<id>/`, under the artifact's own ID or a share ID. Owned by [arch/server/local-content.md](arch/server/local-content.md#^srv-artifact-proxy).
+- *prior serving evidence* — stored data showing that a server has already served a home, which telemetry uses to tell an install from an upgrade. Owned by [arch/telemetry/identity.md](arch/telemetry/identity.md#^prior-serving-evidence).
+
 ## Desktop
 
 - *desktop application* — defined and owned by [product/desktop-app.md](product/desktop-app.md).

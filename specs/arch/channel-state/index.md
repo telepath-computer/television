@@ -13,7 +13,7 @@ This spec owns:
 - The **state inventory**: which channel and workspace state is server-shared, which is browser-persisted, and which is per-browser in-memory.
 - The **shared-state contracts**: the channel wire shape, and the display state's channel fields — the focused channel and the pinned list — with their update semantics and invariants.
 - The **synchronization rules**: the bootstrap snapshot, live updates, reconnect convergence, optimistic writes.
-- The **client state layer's responsibilities** and the two migrations from the pre-redesign state: the server's display record (a boot buffer below) and the browser-persisted record.
+- The **client state layer's responsibilities** and the migration of the pre-redesign browser-persisted record. The server's pre-redesign display record is migrated by [the server migration](../server/migration.md#^cs-display-migration).
 
 It deliberately does not own:
 
@@ -109,18 +109,14 @@ Pin state is **one ordered list of channel ids**: membership in the list is what
 
 ### Focus
 
-`focusedChannelId` is the one channel every client shows ([channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast)). It is `null` exactly when the server has no channels, and that is a valid state whenever it arises — for example after the user deletes the last channel (the no-channels landing, [channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Boot-time behavior, including the default-screen invariant, is the onboarding installer's ([installer.md#^default-screen](../onboarding/installer.md#^default-screen)). ^cs-focus
+`focusedChannelId` is the one channel every client shows ([channels.md#^ch-focus-broadcast](../../product/channels.md#^ch-focus-broadcast)). It is `null` exactly when the server has no channels, and that is a valid state whenever it arises — for example after the user deletes the last channel (the no-channels landing, [channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Boot-time behavior, including the [default-channel invariant](../server/storage.md#^default-screen), is the serving bootstrap's. ^cs-focus
 
 The server maintains that invariant:
 
 - **Validation:** a focus update naming an unknown channel, or setting `null` while channels exist, is rejected and the stored state is unchanged — `null` is only ever produced by the server itself when the last channel is deleted. ^cs-focus-validate
-- **First channel:** creating a channel while `focusedChannelId` is `null` focuses the new channel. (Boot-time initialization is different and stays with its owners: the onboarding installer's focus rule and, for pre-redesign records, the migration buffer below.) ^cs-first-focus
+- **First channel:** creating a channel while `focusedChannelId` is `null` focuses the new channel. (Boot-time initialization is different and stays with its owners: [the serving bootstrap](../server/storage.md#^bootstrap-sequence), the onboarding installer's [focus rule](../onboarding/installer.md#^onboarding-focus-rule), and, for pre-redesign records, [the server migration](../server/migration.md#^cs-display-migration).) ^cs-first-focus
 - **Deletion:** when the focused channel is deleted, **the server refocuses** as part of the deletion: the successor is the first channel in the channel sidebar's order — the first pinned channel in pin order, otherwise the newest unpinned channel — or `null` when none remain, per the product rule ([channels.md#^ch-delete-selection](../../product/channels.md#^ch-delete-selection)). Computing this server-side means one writer, no multi-client race, and a correct outcome even when the deletion comes from the CLI with no clients connected. ^cs-focus-successor
 - **Ordering:** a deletion that changes the pinned list or the focus announces the channel removal on the event stream first, then the resulting pin and focus changes — one deterministic order, so a connected client applying the burst ends consistent. (Artifact removals precede the channel removal — [channels.md#^ch-delete-semantics](../../product/channels.md#^ch-delete-semantics).) ^cs-delete-ordering
-
-### Server buffer: display-state migration on boot
-
-Server internals are outside spec authority, but this model imposes one boot behavior on the server, recorded as a buffer. It executes as a step of **the one server migration** ([arch/layout/migration.md#^one-migration](../layout/migration.md#^one-migration)); this buffer binds the semantic mapping only. The pre-redesign record's active-channel field (`activeChannelID` — the earlier name-rename step of the same migration has already run by this point) becomes `focusedChannelId` — a value naming no existing channel resolves to the channel-sidebar-first successor ([#^cs-focus-successor](#^cs-focus-successor) semantics) — the pinned list defaults to empty, and fields owned elsewhere (the active theme) are preserved. The step is idempotent: a record already in the current shape loads as-is. The record's on-disk naming and location follow the storage layout, which remains code-governed until that area migrates ([spec-migration.md](../../spec-migration.md)). ^cs-display-migration
 
 ## How state syncs
 

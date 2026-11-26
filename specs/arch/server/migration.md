@@ -12,19 +12,19 @@ Television's first layout model stored each channel's arrangement as a tree of c
 
 1. The storage names: `state/screens/` becomes `state/channels/`, and the display record's `activeScreenID` field becomes `activeChannelID` ([below](#screen-to-channel-storage-name-migration)).
 2. Each channel record: the version-1 card-tree layout flattens to version-2 tab pages ([The mapping](#the-mapping)), the version field is written, and the onboarding marker slims to its slug.
-3. The display record: the redesign's fields arrive — the pinned list initialized empty, and `activeChannelID` becomes `focusedChannelId` with the dangling case resolved — with the field semantics owned by [arch/channel-state/index.md#^cs-display-migration](../channel-state/index.md#^cs-display-migration).
-4. The size backfill: any version-2 page without `size` — a record stored before pages carried sizes, or one step 2 just produced — gets the shared default size ([arch/layout/index.md#^ly-page-size](./index.md#^ly-page-size)); a page already carrying one is untouched. No version bump is spent on the field: the step keys off the missing field, not the version. ^mig-size-backfill
-5. The appearance backfill: an otherwise-valid current display record without `appearanceMode` gains `appearanceMode: "system"`. The atomic rewrite preserves focus, pins, active theme, and every other sibling. A record that already carries a valid appearance mode is current and remains byte-for-byte unchanged. A present invalid mode is not migration input; the strict display loader treats that complete record as invalid and initializes fresh display state. ^mig-appearance-backfill
+3. The display record: the redesign's fields arrive — the pinned list initialized empty, and `activeChannelID` becomes `focusedChannelId` with the dangling case resolved ([The display record](#^cs-display-migration)).
+4. The size backfill: any version-2 page without `size` — a record stored before pages carried sizes, or one step 2 just produced — gets the shared default size ([arch/layout/index.md#^ly-page-size](../layout/index.md#^ly-page-size)); a page already carrying one is untouched. No version bump is spent on the field: the step keys off the missing field, not the version. ^mig-size-backfill
+5. The appearance backfill: an otherwise-valid current display record without `appearanceMode` gains `appearanceMode: "system"`. The atomic rewrite preserves focus, pins, active theme, and every other sibling. A record that already carries a valid appearance mode is current and remains byte-for-byte unchanged. A present invalid mode is not migration input: the display record's [loading rule](./storage.md#^srv-display-load) treats that complete record as invalid. ^mig-appearance-backfill
 
 The pass leaves artifact registry records, artifact content, and theme files byte-for-byte unchanged.
 
-The steps run in this order, each is individually idempotent and skips work already done — a directory at any intermediate state (for example one where only the name step has run) passes through the completed steps — and the whole pass completes before the server serves. The one-time initial Clouds selection is not a migration step: it requires the installed-theme registry and runs later in the [serving bootstrap sequence](../onboarding/installer.md#^bootstrap-sequence), under the [bundled-theme state](../themes/bundled-installation.md#default-theme-selection). The migration may be organized as functions per step; what is singular is the entry point, the ordering, and the completion. The browser's own persisted-record migration is deliberately separate and independent — it runs in the client and cannot be sequenced with a server boot ([arch/channel-state/index.md](../channel-state/index.md)). ^one-migration
+The steps run in this order, each is individually idempotent and skips work already done — a directory at any intermediate state (for example one where only the name step has run) passes through the completed steps — and the whole pass completes before the server serves. The one-time initial Clouds selection is not a migration step: it requires the installed-theme registry and runs later in the [serving bootstrap sequence](./storage.md#^bootstrap-sequence), under the [bundled-theme state](../themes/bundled-installation.md#default-theme-selection). The migration may be organized as functions per step; what is singular is the entry point, the ordering, and the completion. The browser's own persisted-record migration is deliberately separate and independent — it runs in the client and cannot be sequenced with a server boot ([arch/channel-state/index.md](../channel-state/index.md)). ^one-migration
 
 Every channel or display record rewrite is atomic at the file boundary. At any interruption, each record is either the complete input or the complete output; records completed earlier in the pass remain valid, untouched records remain retryable inputs, and no partial JSON becomes authoritative. Any migration failure stops boot before serving. A later boot resumes from the mixed completed/input state and converges without rolling completed records back. ^mig-record-atomic
 
 ## What this owns
 
-This spec owns the **one server migration** — its steps, their order, and the boot obligation — including the **version-1 stored format** and the **version-1-to-2 mapping**. The current model and stored shape — version 2 — are [arch/layout/index.md](./index.md)'s; the display record's field semantics are [arch/channel-state/index.md](../channel-state/index.md)'s.
+This spec owns the **one server migration** — its steps, their order, and the boot obligation — including the **version-1 stored format** and the **version-1-to-2 mapping**. It also owns how the pre-redesign display record maps onto the current one. The current layout model and stored shape — version 2 — are [arch/layout/index.md](../layout/index.md)'s; the display record's fields are owned by [arch/channel-state/index.md](../channel-state/index.md) and [arch/themes/index.md](../themes/index.md), and the record file by [storage](./storage.md#^srv-display-record).
 
 The shipped onboarding bundle is not a stored-data migration input. Its use of the `artifacts` array as page order arrives with the built bundle and is owned by [arch/onboarding/content.md#^layout-config](../onboarding/content.md#^layout-config) and [arch/onboarding/installer.md#^layout-write-unmarked](../onboarding/installer.md#^layout-write-unmarked). This migration owns only the old channel record it encounters on disk, including removal of `order` from that record's onboarding marker. The onboarding state file's screen-named version-2-to-3 migration remains [arch/onboarding/installer.md#^migrate-v2-field](../onboarding/installer.md#^migrate-v2-field)'s.
 
@@ -41,7 +41,7 @@ type LegacyLayoutNode = LegacyCardNode | LegacyRowNode | LegacyStackNode; // a c
 
 The top-level list and a row's children read left to right; a stack is the vertical container, its children reading top to bottom.
 
-Version 1 never stored a version field, so a stored channel record without `layoutVersion` is a version-1 record ([arch/layout/index.md#^ly-stored-record](./index.md#^ly-stored-record)).
+Version 1 never stored a version field, so a stored channel record without `layoutVersion` is a version-1 record ([arch/layout/index.md#^ly-stored-record](../layout/index.md#^ly-stored-record)).
 
 ## The mapping
 
@@ -51,11 +51,15 @@ The migration flattens the tree: ^ly-migration
 - **Only spatial traversal order is preserved:** left to right, with vertical containers read top to bottom. No old sizes, composition, or scroll positions carry over — the migration is allowed to lose information, deliberately.
 - **No channel creation-time field is introduced or backfilled.** Ordering derives from the channel id itself ([channels.md](../../product/channels.md)). (The migration does write the versioned record — that is the format change itself, not a backfill.)
 - **The onboarding marker slims to its slug.** A record carrying an onboarding channel marker keeps it, but the marker's `order` field is dropped in the same rewrite: nothing reads it because the redesign has no browser tab-promotion pass, and the version-2 record stores the marker as slug only ([arch/onboarding/installer.md](../onboarding/installer.md), Onboarding channel marker).
-- **The change is silent in-product.** No migration notice or announcement surface exists; the redesign is described in the Discord announcement instead.
+- **The change is silent.** The product shows no migration notice.
+
+## The display record
+
+The pre-redesign display record's active-channel field, `activeChannelID` once step 1 has run, becomes `focusedChannelId`. A value that names no existing channel resolves to the channel-sidebar-first successor ([arch/channel-state/index.md#^cs-focus-successor](../channel-state/index.md#^cs-focus-successor)). The pinned list starts empty, and fields owned elsewhere, such as the active theme, keep their values. A record already in the current shape loads as it is. ^cs-display-migration
 
 ## The server runs the migration, at boot
 
-Server internals are outside spec authority, but the migration imposes one obligation on the server, recorded here as a buffer (the pattern telemetry and onboarding use). The obligation is explicit: **the server performs the one migration ([#^one-migration](#^one-migration)), during boot, as part of loading stored state — before it serves.** A server that loads a version-1 channel record migrates it to version 2 and persists the result; a record already at version 2 loads as-is. The migration is idempotent, and no other component performs it — clients never see a version-1 layout. Downgrade is not supported ([arch/layout/index.md#^ly-stored-record](./index.md#^ly-stored-record)). ^ly-boot-migration
+**The server performs the one migration ([#^one-migration](#^one-migration)), during boot, as part of loading stored state — before it serves** ([the serving bootstrap](./storage.md#^bootstrap-sequence)). A server that loads a version-1 channel record migrates it to version 2 and persists the result; a record already at version 2 loads as-is. No other component performs the migration, so clients never see a version-1 layout. Downgrade is not supported ([arch/layout/index.md#^ly-stored-record](../layout/index.md#^ly-stored-record)). ^ly-boot-migration
 
 ## Testing
 
@@ -65,7 +69,7 @@ Atomic record writes and retry after failure are verified by making file replace
 
 ## Screen-to-channel storage-name migration
 
-This section is the name step — step 1 of the one migration ([#^one-migration](#^one-migration)): the server metadata directory and the display-active field. The step changes names only — no record value, layout, ordering, focus behavior, or generated identity. The old spellings below name migration inputs; current writes use only channel spellings. (The browser's local-state field spellings changed alongside this step historically, but the finished client does not need that transformation: it reads the auth token — whose key never changed — and ignores every retired field under either spelling; the client's migration is [arch/channel-state/index.md](../channel-state/index.md)'s.) ^rn-storage-scope
+This section is the name step — step 1 of the one migration ([#^one-migration](#^one-migration)): the server metadata directory and the display-active field. The step changes names only — no record value, layout, ordering, focus behavior, or generated identity. The old spellings below name migration inputs; current writes use only channel spellings. ^rn-storage-scope
 
 ### Server metadata directory
 
@@ -86,16 +90,16 @@ Channel metadata filenames, file bytes, opaque IDs, names, onboarding markers, a
 
 ### Display state field
 
-The shipping display record remains at `state/display.json`. Its current persisted shape names the active workspace with `activeChannelID`; the value remains the same opaque ID or `null`, and every sibling field — including `activeThemeName` — retains its value.
+The display record at `state/display.json` names the active channel with `activeScreenID` in releases before this step, and with `activeChannelID` after it, until step 3 maps it to `focusedChannelId`. The step renames the key only: the value remains the same opaque ID or `null`, and every sibling field — including `activeThemeName` — retains its value.
 
 On boot, before display state is loaded or initialized:
 
 - a valid record carrying only `activeScreenID` is rewritten with that key replaced by `activeChannelID`;
-- a valid record carrying only `activeChannelID` is current and is not rewritten;
+- a valid record carrying only `activeChannelID`, or neither key, needs no rename and is not rewritten;
 - a record carrying both keys with equal values is normalized to the current key only;
 - a record carrying both keys with different values is a conflict: boot stops and the file is unchanged rather than guessing which focus value wins.
 
-The rewrite constructs the complete next JSON value first, writes it to a temporary file beside `display.json`, and atomically renames the temporary file into place. A failure before rename leaves the previous complete file authoritative and retryable; a failure after rename leaves the complete current file. A stale migration temporary file is never treated as display state and may be replaced on retry. Applying migration to current state is a byte-stable no-op. Current code never writes `activeScreenID`. ^rn-display-field
+The rewrite constructs the complete next JSON value first, writes it to a temporary file beside `display.json`, and atomically renames the temporary file into place. A failure before rename leaves the previous complete file authoritative and retryable; a failure after rename leaves the complete current file. A stale migration temporary file is never treated as display state and may be replaced on retry. Applying migration to current state is a byte-stable no-op. The server never writes `activeScreenID` to the record. ^rn-display-field
 
-This is a field-name migration, not focus repair. A string value is preserved even when it does not name loaded metadata, because the shipping loader already owns how such a value behaves; the rename does not introduce channel-existence validation or a new successor rule. Invalid JSON and invalid sibling-field shapes retain the shipping loader's existing handling rather than becoming a new migration format. ^rn-display-behavior
+This step renames a field and repairs nothing. A string value is preserved even when it does not name a loaded channel; [the display record step](#^cs-display-migration) resolves such a value. Invalid JSON and invalid sibling fields are left to the display record's [loading rule](./storage.md#^srv-display-load). ^rn-display-behavior
 

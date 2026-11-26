@@ -1,4 +1,4 @@
-*The onboarding architecture root: bundled content and build validation, the design bake, the per-data-directory installer, and the contracts this feature imposes on architecture modules that do not yet have their own specs.*
+*The onboarding architecture root: bundled content and build validation, the design bake, and the per-data-directory installer.*
 
 **Status:** adopted onboarding architecture.
 
@@ -26,13 +26,3 @@ The *channel slug* is the stable identity of an onboarding channel across releas
 ## Testing
 
 Each module's behavior is proven under the spec that owns it. This index does not require a separate test.
-
-## Buffer: impositions on modules without specs
-
-Some onboarding contracts belong to modules that have no architecture spec yet: server-store bootstrap, the storage `state/` directory, and the shared `Channel` type. Until those specs exist, [installer.md](./installer.md) carries their obligations in marked buffer sections:
-
-- `ServerStore` options and bootstrap ordering;
-- `state/onboarding.json` and the legacy sentinel path;
-- the optional slug-only `Channel.onboarding` marker and its public-API read-only rule.
-
-A buffer is authority. Its promises are covered by the installer assertions; this root does not create placeholder server or shared-client architecture around them. When an owning spec arrives, it can absorb the marked section and its existing assertion relationships.

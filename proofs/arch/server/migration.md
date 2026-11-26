@@ -2,7 +2,7 @@
 
 # The server migration — proof
 
-Proves [specs/arch/layout/migration.md](../../../specs/arch/layout/migration.md).
+Proves [specs/arch/server/migration.md](../../../specs/arch/server/migration.md).
 
 ## Coverage model
 

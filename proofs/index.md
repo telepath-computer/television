@@ -53,7 +53,6 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `updates.md` (28 lines) — *How desktop updates are proven: main-process and preload contracts with Electron and the update runtime replaced by recording mocks, the real Electron app with the runtime in its simulation mode, and the desktop product's update check, which presses the restart in a candidate build on a real Mac.*
   - **layout/**
     - `index.md` (51 lines) — *How the promises in Layout (architecture) are proven.*
-    - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **onboarding/**
     - `bake.md` (85 lines) — *How the onboarding bake is proven at its process boundary and packaged-file output.*
     - `content.md` (25 lines) — *How onboarding package validation, runtime source resolution, and the committed welcome document are proven.*
@@ -64,6 +63,8 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `index.md` (90 lines) — *How the resource layer's architecture is proven: validation, storage files, the first write's order, loading on first use and startup recovery over a real filesystem, artifacts' stores and share links, serving under a share ID, both route families and requests from other origins against a running server, the page connection's access and ordering rules, events, artifact deletion, the bindings flag, and the CLI integration.*
     - `json-store.md` (66 lines) — *How the JSON store's architecture is proven: the shared module's path, value and write rules as contracts, the content file, the server's write application, durability failures, transactions and subscriptions against a running server, the SDK's local-write model and reconnection in a real browser, and the `tv resource json` CLI integration.*
     - `sdk.md` (44 lines) — *How the resource SDK is proven: its build contents and serving over real HTTP, and its behavior as the server serves it, in a real browser on a plain-HTTP origin that is not `localhost`, against a running server.*
+  - **server/**
+    - `migration.md` (39 lines) — *How the promises in The server migration are proven.*
   - **skills/**
     - `sidebar-view.md` (21 lines) — *How the sidebar-view skill's architecture is proven: the surface proof's walk proves where the sidebar width is kept, and the spec's other facts order no tests.*
   - **telemetry/**
@@ -78,7 +79,7 @@ Generated from the first-line description of every proof by `scripts/specs-index
     - `sink.md` (58 lines) — *How the promises in Telemetry sink are proven.*
   - **test-runner/**
     - `attestation.md` (67 lines) — *How the promises in Test Attestation are proven.*
-    - `blaxel-testshards.md` (101 lines) — *How the promises in Blaxel Test Shards are proven.*
+    - `blaxel-testshards.md` (88 lines) — *How the promises in Blaxel Test Shards are proven.*
     - `github-ci.md` (53 lines) — *How the promises in GitHub Actions CI are proven.*
     - `reporting.md` (63 lines) — *How the promises in Reporting are proven.*
     - `sharded-execution.md` (54 lines) — *How the promises in Sharded Execution are proven.*

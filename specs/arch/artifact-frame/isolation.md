@@ -56,20 +56,20 @@ The main process sets a permission request handler and a permission check handle
 
 ## Cross-origin rules by route
 
-A sandboxed document's requests to its server are cross-origin, from an opaque origin. Its module scripts, fonts, `fetch` and `XMLHttpRequest` calls, the resource SDK import and the bridge's freshness poll are CORS requests; images, stylesheets and classic scripts are not. The routes that serve artifact documents and the files they load therefore allow any origin, without credentials. What they serve is public, or reached through an unguessable ID in the path, which is the capability. The routes that act with the server's token send no CORS headers and answer no CORS preflight, so no page on another origin, a sandboxed artifact included, can read their responses. The app calls them from its own origin; the CLI, agents and the desktop main process are not browsers. ^iso-routes
+A sandboxed document's requests to its server are cross-origin, from an opaque origin. Its module scripts, fonts, `fetch` and `XMLHttpRequest` calls, the resource SDK import and the bridge's freshness poll are CORS requests; images, stylesheets and classic scripts are not. The routes that serve artifact documents and the files they load therefore allow any origin, without credentials. What they serve is public, or reached through an unguessable ID in the path, which is the capability. The routes that act with the server's token, which [the server's route table](../server/http.md#^srv-routes) marks, send no CORS headers and answer no CORS preflight, so no page on another origin, a sandboxed artifact included, can read their responses. The app calls them from its own origin; the CLI, agents and the desktop main process are not browsers. ^iso-routes
 
-| Route | Authorization | Cross-origin handling |
-|---|---|---|
-| `/artifact/<id>/…`, the artifact proxy | the ID in the path | `Access-Control-Allow-Origin: *` and `Access-Control-Expose-Headers: ETag`, for the freshness poll |
-| `/canonical/v<n>/…` | none | `Access-Control-Allow-Origin: *` |
-| `/theme/…` | none | `Access-Control-Allow-Origin: *` |
-| `/sdk/v1/…` | none | `Access-Control-Allow-Origin: *` ([sdk.md#^sdk-serving](../resources/sdk.md#^sdk-serving)) |
-| `/views/artifact-missing/…`, the files of the page the proxy serves for a missing file | none | `Access-Control-Allow-Origin: *` |
-| `/artifact-resources/<id>/v1/connection`, a WebSocket | the ID in the path | no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
-| `/api/resources/v1/…` | the token | none, and no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
-| `/channels`, `/artifacts`, `/display`, `/themes`, `/markdown`, `/telemetry`, `/demo-mode` and `/desktop/connect-check` | the token | none |
-| `/events` and `/acp`, WebSockets | the token | no `Origin` check |
-| `/health`, the app's page and bundle, and the other `/views/…` | none | none |
+| Route | Cross-origin handling |
+|---|---|
+| `/artifact/<id>/…`, the artifact proxy | `Access-Control-Allow-Origin: *` and `Access-Control-Expose-Headers: ETag`, for the freshness poll |
+| `/canonical/v<n>/…` | `Access-Control-Allow-Origin: *` |
+| `/theme/…` | `Access-Control-Allow-Origin: *` |
+| `/sdk/v1/…` | `Access-Control-Allow-Origin: *` ([sdk.md#^sdk-serving](../resources/sdk.md#^sdk-serving)) |
+| `/views/artifact-missing/…`, the files of the page the proxy serves for a missing file | `Access-Control-Allow-Origin: *` |
+| `/artifact-resources/<id>/v1/connection`, a WebSocket | no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
+| `/api/resources/v1/…` | none, and no `Origin` check ([resources/index.md#^rs-any-origin](../resources/index.md#^rs-any-origin)) |
+| `/channels`, `/artifacts`, `/display`, `/themes`, `/markdown`, `/telemetry`, `/demo-mode` and `/desktop/connect-check` | none |
+| `/events` and `/acp`, WebSockets | no `Origin` check |
+| `/health`, the app's page and bundle, and the other `/views/…` | none |
 
 In the desktop app an artifact document has its own address's origin, so its requests to the server that serves it are same-origin and it can read the token routes' responses. Its partition never holds the token, so those routes refuse it, as they refuse any request without the token.
 

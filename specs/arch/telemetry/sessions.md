@@ -31,6 +31,8 @@ interface ClientSession {
 function sessionIdFor(clientId: string | null, nowMs: number): string | null
 ```
 
+The server accepts an activity signal on the `/events` connection only when it has exactly these two fields and its `clientId` equals the client id in that connection's [telemetry metadata](./client.md); it drops any other message of this type. ^activity-signal-acceptance
+
 `sessionIdFor` is the one handoff the rest of the system depends on: [emitters.md](./emitters.md) calls it to stamp the current `$session_id` on every event it emits for a client. Keeping it a single function is what makes the "every event carries the right session id" property provable by composition rather than per-event ([testing-policy.md#Compositional coverage across clean seams](../testing-policy.md#Compositional coverage across clean seams)).
 
 ## Behavior
