@@ -2,6 +2,12 @@
 
 This experiment starts at Television commit `174e52ef`. It gives the server an architecture spec for the parts a replacement implementation would have to get right for existing homes, running clients, installed services and shared artifact links. The [server entry point](../../specs/arch/server/index.md) takes about a page to read.
 
+## How the drafts were reviewed
+
+I wrote the draft and asked one independent agent to compare it with the revised spec policy, the neighboring specs and the server implementation. Its first verdict was **fail**. It found that the control API described operations without enough detail for a separately running CLI, that the store spec omitted whole-record recovery for invalid display state, and that the migration spec called the intermediate field `activeChannelID` current.
+
+I added the CLI request and response contracts, specified how display recovery handles pins and JavaScript consent, and distinguished the intermediate field from the final `focusedChannelId`. I also corrected stale ownership references and narrowed the testing guidance. The same reviewer read the revised specs and this overview and returned **pass**. I checked the generated spec index, links and block anchors separately.
+
 ## A reading path for the judge
 
 | Read | A question the spec should answer |
