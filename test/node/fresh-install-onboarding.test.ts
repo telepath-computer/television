@@ -501,7 +501,7 @@ describe("onboarding channels (built CLI e2e)", () => {
     const workbenchID = /Channel created: (\S+)/.exec(created)![1]!;
     const target = path.join(storagePath, "workbench.html");
     writeFileSync(target, "<!doctype html><title>Work</title>");
-    runCLI(cliEntry, ["create-path-artifact", "--channel", workbenchID, "--title", "Work", "--path", target, "--no-focus"], storagePath, firstBoot.port);
+    runCLI(cliEntry, ["create-artifact", "--channel", workbenchID, "--title", "Work", "--path", target, "--no-focus"], storagePath, firstBoot.port);
     expect((await fetchDisplay(firstBoot.port, storagePath)).focusedChannelId).toBe(workbenchID);
     await firstBoot.stop();
 

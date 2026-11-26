@@ -1,0 +1,61 @@
+/* The icon sizes itself from the text it sits in rather than from a fixed
+   pixel size: an icon beside a label should match that label, and an icon in
+   a larger control should grow with it, without either one restating a size.
+
+   Each rule names both scopes this sheet serves — `:host` inside the
+   element's shadow root, and `tv-icon:not(:defined)` at document scope,
+   where canonical reserves the box before the definition loads so upgrade
+   adds a glyph without moving the text around it. In either scope one
+   selector of the pair matches nothing, and the box has one authority. */
+:host,
+tv-icon:not(:defined) {
+  display: inline-flex;
+  flex: none;
+  width: 1em;
+  height: 1em;
+  /* Glyphs are drawn on a square canvas whose visual weight sits below the
+     cap height of the text beside them; nudging down aligns their centre with
+     the text's rather than with its baseline box. */
+  vertical-align: -0.125em;
+}
+
+/* An icon that stands alone has no text to take its size from, so `size` names
+   one. It sets nothing but the font-size the rule above already reads, so
+   there is still one sizing rule — the attribute only changes what its `em`
+   resolves against.
+
+   Whole even pixels rather than a ratio: these are drawings, and a glyph on a
+   half-pixel grid blurs in a way a letterform does not. The names match the
+   type scale's, though the values deliberately do not — an icon standing on
+   its own is larger than the text it would otherwise have sat beside. */
+:host([size="sm"]), tv-icon:not(:defined)[size="sm"] { font-size: 16px; }
+:host([size="md"]), tv-icon:not(:defined)[size="md"] { font-size: 20px; }
+:host([size="lg"]), tv-icon:not(:defined)[size="lg"] { font-size: 24px; }
+:host([size="xl"]), tv-icon:not(:defined)[size="xl"] { font-size: 32px; }
+
+/* Phosphor's SVGs already carry fill="currentColor", so colour follows the
+   surrounding text with nothing set here. The size does need saying: the
+   source has a viewBox and no width or height, so it would otherwise fall
+   back to the SVG default rather than filling the element. */
+svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* A spinning icon turns continuously — activity, not decoration. The turn
+   is even (linear): any easing reads as the glyph sticking once a second. */
+:host([spinning]) > svg {
+  animation: tv-icon-spin 1s linear infinite;
+}
+
+@keyframes tv-icon-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :host([spinning]) > svg {
+    animation: none;
+  }
+}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <title>Year planner</title>
+  <rect x="1.5" y="3.5" width="17" height="15" rx="2" fill="#fbfdff" stroke="#aab6c7" stroke-width="1.25"/>
+  <path d="M1.5 7.5h17M6 1.5v4M14 1.5v4" fill="none" stroke="#8494ab" stroke-width="1.4" stroke-linecap="round"/>
+  <rect x="4" y="10" width="8" height="2.5" rx="1" fill="#e0a63a"/>
+  <rect x="8" y="14" width="8" height="2.5" rx="1" fill="#75a997"/>
+</svg>

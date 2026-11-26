@@ -19,6 +19,9 @@
     ]
   },
   "include": [
-    ".storybook/**/*.ts"
+    ".storybook/**/*.ts",
+    "lib/**/*.ts",
+    "spec/**/*.ts",
+    "experiments/**/*.ts"
   ]
 }

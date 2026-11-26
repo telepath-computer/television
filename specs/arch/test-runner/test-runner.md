@@ -185,7 +185,7 @@ Persisted `tv serve` rejects port `0`, so the daemon acceptance suite takes a ke
 
 Registry-declared services are Vite middleware on a listener the runner binds itself, because Vite treats `server.port: 0` as unset and falls back to its default port. The runner also turns off Vite's speculative pre-transforms, which can leave transform work pending after the server reports idle and stall teardown.
 
-Registry-declared Vite services always answer in full and never with `304 Not Modified`: the listener strips `If-None-Match` and `If-Modified-Since` from every request. In the Chromium 145 build that Playwright 1.58.2 installs, each 304 response to a script, stylesheet or image left the renderer holding a 2 MB shared-memory buffer until the browser context closed. The development build is hundreds of modules, so every reload of the application in one page held about 465 MB more. On Blaxel workers, where Chromium's shared memory lives in memory-backed temporary storage, tests that reloaded the application several times crashed. ^test-service-full-responses
+Registry-declared Vite services always answer in full and never with `304 Not Modified`: the listener strips `If-None-Match` and `If-Modified-Since` from every request. In the Chromium 145 build that Playwright 1.58.2 installed, each 304 response to a script, stylesheet or image left the renderer holding a 2 MB shared-memory buffer until the browser context closed. The development build is hundreds of modules, so every reload of the application in one page held about 465 MB more. On Blaxel workers, where Chromium's shared memory lives in memory-backed temporary storage, tests that reloaded the application several times crashed. ^test-service-full-responses
 
 ## Cursor agent environment
 

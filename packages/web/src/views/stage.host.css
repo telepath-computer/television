@@ -8,6 +8,11 @@
   pointer-events: none;
 }
 
+/* Transparent background pages recede without frosting the wallpaper. */
+.page:not([selected]):has(> .artifact-frame-transparent) {
+  backdrop-filter: none;
+}
+
 /* Pointer mechanics are implementation-owned. The authoritative stage sheet
    owns the page and snap appearance; these transparent hit regions realize
    its edge bands and L-shaped corners without taking artifact interior. */
