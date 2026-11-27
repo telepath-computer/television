@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Clock</title>
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: transparent;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        font-family: system-ui, sans-serif;
+      }
+      .clock {
+        padding: 24px 36px;
+        border-radius: 40px;
+        background: #fff8e9;
+        color: #3b342b;
+        text-align: center;
+        box-shadow: 0 8px 24px #30291f1a;
+      }
+      time {
+        display: block;
+        font-size: 64px;
+        font-weight: 300;
+        line-height: 1;
+        letter-spacing: -3px;
+      }
+      p {
+        margin: 12px 0 0;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="clock">
+      <time datetime="10:08">10:08</time>
+      <p>MONDAY · OCTOBER 19</p>
+    </div>
+  </body>
+</html>

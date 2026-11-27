@@ -1,8 +1,8 @@
 ---
 style: |
   /* Today's Calendar ([[../index.md]]) fills the card edge to edge.
-     The tv-calendar skill supplies its appearance: the workshop loads source
-     components, and the bake links built assets. */
+     Its appearance comes from the retained tv-calendar component source.
+     The workshop loads the source; the bake links its built assets. */
 
   html,
   body {

@@ -172,7 +172,7 @@ describe("server telemetry control routes", () => {
 
   // Seam: proofs/arch/telemetry/emitters.md#^t-theme-settings-refresh.
   // Real authenticated HTTP, persistence, store and runtime; recording sink replaces delivery only.
-  it("TV-755 publishes fresh settings after re-enable without replaying suppressed changes", async () => {
+  it("publishes fresh settings after re-enable without replaying suppressed changes", async () => {
     const h = await setup();
     const identity = await readTelemetryState(h.storagePath);
     const themeID = "private-opted-out-theme";

@@ -59,7 +59,8 @@ interface ControlledWatchCall {
 function controlledWatchContentFile(calls: ControlledWatchCall[]): WatchContentFile {
   return (watchPath, onChange, options) => {
     const watcher = new FakeWatcher();
-    calls.push({ watchPath, onChange, options: options ?? {}, watcher });
+    // These assertions address artifact/theme owners; template observation is tested separately.
+    if (path.basename(watchPath) !== "templates") calls.push({ watchPath, onChange, options: options ?? {}, watcher });
     return watcher;
   };
 }
@@ -243,6 +244,35 @@ describe("ServerStore file-change watcher target selection", () => {
     writeFileSync(htmlPath, "<!doctype html><h1>changed</h1>", "utf8");
     await waitForChange(changes);
     expect(changes).toContain(html.id);
+  });
+
+  // proofs/arch/artifact-frame/reload-navigation.md#^rn-ac-shared-watcher-root-file-at-start
+  it("resumes watching a folder artifact whose path was a file when the store started", async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const bundlePath = writeBundle(dir);
+    const bundleDir = path.join(dir, "bundle");
+    const storagePath = path.join(dir, "storage");
+    const first = createServingStore(storagePath);
+    const artifact = first.createArtifact({ channelID: first.listChannels()[0]!.id, kind: "path", title: "Bundle", path: bundlePath });
+    first.dispose();
+
+    // While no store runs, a file takes the folder's place.
+    renameSync(bundleDir, `${bundleDir}-moved`);
+    writeFileSync(bundleDir, "not a folder\n", "utf8");
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const store = createServingStore(storagePath);
+    stores.push(store);
+    const changes = collectContentChanges(store);
+
+    unlinkSync(bundleDir);
+    renameSync(`${bundleDir}-moved`, bundleDir);
+    // Let the polling re-arm find the folder and its own notice pass.
+    await wait(600);
+    changes.length = 0;
+    writeFileSync(path.join(bundleDir, "style.css"), "body { color: red; }\n", "utf8");
+    await waitForChange(changes);
+    expect(changes).toContain(artifact.id);
   });
 
   it("debounces rapid content changes into one artifact-content-changed event", async () => {
@@ -430,7 +460,7 @@ describe("ServerStore file-change watcher target selection", () => {
     const previousClosedAtConstruction: boolean[] = [];
     const baseWatchContentFile = controlledWatchContentFile(calls);
     const watchContentFile: WatchContentFile = (watchPath, onChange, options) => {
-      if (calls.length > 0) {
+      if (path.basename(watchPath) !== "templates" && calls.length > 0) {
         previousClosedAtConstruction.push(calls.at(-1)!.watcher.closed);
       }
       return baseWatchContentFile(watchPath, onChange, options);
@@ -547,7 +577,8 @@ describe("ServerStore file-change watcher target selection", () => {
 
     store[Symbol.dispose]();
 
-    expect(watchers[0]?.closed).toBe(true);
+    expect(watchers).toHaveLength(2);
+    expect(watchers.every((watcher) => watcher.closed)).toBe(true);
   });
 
   it("emits artifact-content-changed when path patches retarget content", async () => {

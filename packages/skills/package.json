@@ -1,10 +1,10 @@
 {
   "name": "@telepath-computer/television-skills",
-  "version": "1.5.10",
+  "version": "1.6.0",
   "license": "MIT",
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs && node scripts/build-onboarding.mjs"
   }
 }

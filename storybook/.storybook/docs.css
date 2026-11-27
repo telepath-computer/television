@@ -1,0 +1,10 @@
+/* Docs pages: body text a step larger than Storybook's 14px, for reading the
+   spec prose. Headings keep Storybook's sizes. Storybook's own styles load
+   after this file, so the sizes need !important. */
+.sbdocs-content p,
+.sbdocs-content li,
+.sbdocs-content td,
+.sbdocs-content th {
+  font-size: 16px !important;
+  line-height: 26px !important;
+}

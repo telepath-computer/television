@@ -211,9 +211,9 @@ export async function focusedChannel(server: BuiltServer, name: string): Promise
 
 /** Registers a folder as a path artifact on `channelID` with the built CLI, and returns its ID. */
 export async function createPathArtifact(server: BuiltServer, channelID: string, title: string, folder: string): Promise<string> {
-  const created = await server.tv(["create-path-artifact", "--channel", channelID, "--title", title, "--path", folder, "--no-focus"]);
+  const created = await server.tv(["create-artifact", "--channel", channelID, "--title", title, "--path", folder, "--no-focus"]);
   expect(created.exitCode, created.stderr).toBe(0);
-  return /Path artifact (\S+) created\./.exec(created.stdout)![1]!;
+  return /Artifact (\S+) created\./.exec(created.stdout)![1]!;
 }
 
 /** The errors a page and its frames report: uncaught exceptions, and console errors such as a module that failed to load. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import request from "supertest";
@@ -221,6 +221,84 @@ describe("target page layout server boundary", () => {
       .set(auth(restarted.token))
       .expect(200)
       .expect(({ body }) => expect(body.channel.layout).toEqual(expectedLayout));
+  });
+
+  // proofs/arch/layout/index.md#^ly-ac-create-display
+  it("creates unplaced path and URL pages with display values through HTTP, events, and restart", async () => {
+    const fixture = createFixture();
+    dirs.push(fixture.storagePath);
+    const target = path.join(fixture.storagePath, "new-page.html");
+    writeFileSync(target, "<!doctype html><title>New page</title>");
+    const first = await start(fixture);
+    const ws = await openEvents(first.server, first.token);
+    const pathUpdate = nextChannelUpdate(ws, fixture.ordinary.id);
+
+    const pathResult = await request(first.server.httpServer).post("/artifacts").set(auth(first.token))
+      .send({ kind: "path", path: target, title: "Path", channelID: fixture.ordinary.id,
+        display: { width: 612.5, height: 481, fullScreen: true } })
+      .expect(201);
+    const pathPage = page([pathResult.body.artifact.id], true, { width: 612.5, height: 481 });
+    const pathLayout = [...fixture.ordinary.artifactIds.map((id) => page([id])), pathPage];
+    expect((await pathUpdate).channel.layout).toEqual(pathLayout);
+
+    const urlUpdate = nextChannelUpdate(ws, fixture.ordinary.id);
+    const urlResult = await request(first.server.httpServer).post("/artifacts").set(auth(first.token))
+      .send({ kind: "url", url: "https://example.com/new", title: "URL", channelID: fixture.ordinary.id,
+        display: { height: 333 } })
+      .expect(201);
+    const urlPage = page([urlResult.body.artifact.id], false, { width: DEFAULT_PAGE_SIZE.width, height: 333 });
+    const expected = [...pathLayout, urlPage];
+    expect((await urlUpdate).channel.layout).toEqual(expected);
+    await request(first.server.httpServer).get(`/channels/${fixture.ordinary.id}`).set(auth(first.token))
+      .expect(200).expect(({ body }) => expect(body.channel.layout).toEqual(expected));
+    ws.close();
+
+    await first.server.dispose();
+    servers.splice(servers.indexOf(first.server), 1);
+    const restarted = await start(fixture);
+    await request(restarted.server.httpServer).get(`/channels/${fixture.ordinary.id}`).set(auth(restarted.token))
+      .expect(200).expect(({ body }) => expect(body.channel.layout).toEqual(expected));
+  });
+
+  // proofs/arch/layout/index.md#^ly-ac-create-display-invalid
+  it("rejects invalid creation display before a path or URL artifact exists", async () => {
+    const fixture = createFixture();
+    dirs.push(fixture.storagePath);
+    const target = path.join(fixture.storagePath, "new-page.html");
+    writeFileSync(target, "<!doctype html><title>New page</title>");
+    const running = await start(fixture);
+    const recordPath = channelPath(fixture.storagePath, fixture.ordinary.id);
+    const artifactRecordsDir = path.join(fixture.storagePath, "state", "artifacts");
+    const beforeBytes = readFileSync(recordPath, "utf8");
+    const beforeArtifacts = await request(running.server.httpServer).get("/artifacts").set(auth(running.token)).expect(200);
+    const pathBody = { kind: "path", path: target, title: "Path", channelID: fixture.ordinary.id };
+    const urlBody = { kind: "url", url: "https://example.com/new", title: "URL", channelID: fixture.ordinary.id };
+    for (const body of [
+      { ...pathBody, display: [] },
+      { ...pathBody, display: { width: 0 } },
+      { ...pathBody, display: { height: "large" } },
+      { ...urlBody, display: { height: -4 } },
+      { ...urlBody, display: { fullScreen: 1 } },
+      // proofs/arch/layout/index.md#^ly-ac-create-transparent-invalid
+      { ...pathBody, display: { transparent: "true" } },
+      { ...urlBody, display: { transparent: 1 } },
+      { ...pathBody, display: { transparent: null } },
+    ]) {
+      const beforeRecords = readdirSync(artifactRecordsDir).sort();
+      await request(running.server.httpServer).post("/artifacts").set(auth(running.token)).send(body).expect(400);
+      expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
+    }
+    for (const body of [pathBody, urlBody]) {
+      const beforeRecords = readdirSync(artifactRecordsDir).sort();
+      await request(running.server.httpServer).post("/artifacts").set(auth(running.token))
+        .set("Content-Type", "application/json")
+        .send(`${JSON.stringify(body).slice(0, -1)},"display":{"width":1e400}}`)
+        .expect(400);
+      expect(readdirSync(artifactRecordsDir).sort()).toEqual(beforeRecords);
+    }
+    const afterArtifacts = await request(running.server.httpServer).get("/artifacts").set(auth(running.token)).expect(200);
+    expect(afterArtifacts.body).toEqual(beforeArtifacts.body);
+    expect(readFileSync(recordPath, "utf8")).toBe(beforeBytes);
   });
 
   it("rejects a combined rename and invalid regrouping atomically", async () => {

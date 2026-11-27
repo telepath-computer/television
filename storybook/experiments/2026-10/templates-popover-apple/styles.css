@@ -1,0 +1,123 @@
+/* Experiment: a macOS library-panel treatment of the Templates popover. */
+
+.xp-popover[open] {
+  display: flex;
+  flex-direction: column;
+  width: 320px;
+  max-height: 440px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+/* The search field is the header: borderless, on the panel's muted bar. */
+.xp-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-12);
+  background: var(--frame-titlebar-background);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.xp-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-md);
+  color: var(--color-text);
+  outline: none;
+}
+
+.xp-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+/* Dense rows: thumbnail, name, and a quieter description on the same line. */
+.xp-row {
+  display: grid;
+  grid-template-columns: 24px auto 1fr;
+  align-items: center;
+  gap: var(--space-8);
+  height: 32px;
+  padding: 0 var(--space-6);
+  border-radius: var(--control-radius);
+  cursor: default;
+}
+
+.xp-row[aria-selected="true"] {
+  background: var(--color-primary);
+  color: var(--color-primary-text);
+}
+
+.xp-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+}
+
+.xp-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.xp-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.xp-description {
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xp-row[aria-selected="true"] .xp-description {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.xp-empty {
+  margin: 0;
+  padding: var(--space-20) var(--space-12);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* A thin footer for secondary things. */
+.xp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border);
+  background: var(--frame-titlebar-background);
+}
+
+.xp-footer button {
+  gap: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.xp-footer .xp-footer-errors {
+  color: var(--color-alert);
+}

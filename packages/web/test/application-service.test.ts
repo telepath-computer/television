@@ -1401,6 +1401,112 @@ describe("ApplicationService theme settings", () => {
 });
 
 describe("ApplicationService ambiguous write recovery", () => {
+  // proofs/arch/channel-state/index.md#^cs-t-last-delete-projection
+  it("keeps a channel and valid focus through a pending last-channel deletion and replacement events", async () => {
+    const first = channel("channel-a", "A");
+    const replacement = channel("channel-b", "New channel");
+    const removal = deferred<unknown>();
+    const client = createClient({
+      listChannels: async () => ({ channels: [first] }),
+      getDisplay: async () => ({ focusedChannelId: first.id, pinnedChannelIds: [first.id], activeThemeName: null, appearanceMode: "system", acpEnabled: false }),
+      removeChannel: () => removal.promise,
+    });
+    const { owner, service } = createService(client);
+    owner.connect();
+    await settle();
+    const assertValid = () => {
+      expect(service.snapshot.channels.length).toBeGreaterThan(0);
+      expect(service.snapshot.channels.some(({ id }) => id === service.snapshot.display.focusedChannelId)).toBe(true);
+    };
+    const writing = service.deleteChannel(first.id);
+    assertValid();
+    owner.emitServerEvent({ type: "channel-created", channel: replacement });
+    assertValid();
+    owner.emitServerEvent({ type: "pinned-channels-changed", pinnedChannelIds: [] });
+    assertValid();
+    owner.emitServerEvent({ type: "channel-changed", channelID: replacement.id });
+    assertValid();
+    owner.emitServerEvent({ type: "channel-removed", channelID: first.id });
+    assertValid();
+    removal.resolve({ channelID: first.id });
+    await writing;
+    expect(service.snapshot.channels.map(({ id }) => id)).toEqual([replacement.id]);
+  });
+
+  // proofs/arch/channel-state/index.md#^cs-t-last-delete-recovery
+  it("refetches the channel collection and display after an ambiguous final-channel deletion", async () => {
+    const first = channel("channel-a", "A");
+    const replacement = channel("channel-b", "New channel");
+    let channels = [first];
+    let focus = first.id;
+    const client = createClient({
+      listChannels: async () => ({ channels }),
+      getDisplay: async () => ({ focusedChannelId: focus, pinnedChannelIds: [], activeThemeName: null, appearanceMode: "system", acpEnabled: false }),
+      getChannel: async ({ channelID }) => {
+        if (channelID === first.id && !channels.includes(first)) {
+          throw new RequestError("gone", { serverURL: SERVER_URL, status: 404 });
+        }
+        return { channel: channelID === first.id ? first : replacement, artifacts: [] };
+      },
+      removeChannel: async () => {
+        channels = [replacement];
+        focus = replacement.id;
+        throw new RequestError("response lost", { serverURL: SERVER_URL });
+      },
+    });
+    const { owner, service } = createService(client);
+    owner.connect();
+    await settle();
+    const error = await service.deleteChannel(first.id).catch((value: unknown) => value);
+    expect(error).toMatchObject({ name: "RequestError", message: "response lost" });
+    expect(client.channels.list).toHaveBeenCalledTimes(2);
+    expect(client.display.get).toHaveBeenCalledTimes(2);
+    expect(service.snapshot.channels.map(({ id }) => id)).toEqual([replacement.id]);
+    expect(service.snapshot.display.focusedChannelId).toBe(replacement.id);
+  });
+
+  // proofs/arch/channel-state/index.md#^cs-t-last-delete-recovery
+  it("fetches a replacement absent from stale client state before publishing recovered focus", async () => {
+    const first = channel("channel-a", "A");
+    const alreadyRemoved = channel("channel-b", "B");
+    const replacement = channel("channel-c", "New channel");
+    let serverChannels = [first, alreadyRemoved];
+    let focus = first.id;
+    const client = createClient({
+      listChannels: async () => ({ channels: serverChannels }),
+      getDisplay: async () => ({ focusedChannelId: focus, pinnedChannelIds: [], activeThemeName: null, appearanceMode: "system", acpEnabled: false }),
+      getChannel: async ({ channelID }) => {
+        if (channelID === first.id && !serverChannels.includes(first)) {
+          throw new RequestError("gone", { serverURL: SERVER_URL, status: 404 });
+        }
+        return { channel: channelID === first.id ? first : alreadyRemoved, artifacts: [] };
+      },
+      removeChannel: async () => {
+        serverChannels = [replacement];
+        focus = replacement.id;
+        throw new RequestError("response lost", { serverURL: SERVER_URL });
+      },
+    });
+    const { owner, service } = createService(client);
+    owner.connect();
+    await settle();
+    // Another client's removal reached the server, but its event has not arrived here.
+    serverChannels = [first];
+    const published: Array<{ focused: string | null; channels: string[] }> = [];
+    service.addEventListener("change", () => published.push({
+      focused: service.snapshot.display.focusedChannelId,
+      channels: service.snapshot.channels.map(({ id }) => id),
+    }));
+
+    const failure = await service.deleteChannel(first.id).catch((error: unknown) => error);
+    expect(failure).toMatchObject({ name: "RequestError", message: "response lost" });
+    expect(client.channels.list).toHaveBeenCalledTimes(2);
+    expect(service.snapshot.channels.map(({ id }) => id)).toEqual([replacement.id]);
+    expect(service.snapshot.display.focusedChannelId).toBe(replacement.id);
+    expect(published.every(({ focused, channels }) => focused !== null && channels.includes(focused))).toBe(true);
+  });
+
+  // proofs/arch/channel-state/index.md#^cs-ac-ambiguous-scopes
   it("refetches the affected collection, channel, and display after ambiguous channel operations", async () => {
     const first = channel("channel-a", "A");
     const second = channel("channel-b", "B");

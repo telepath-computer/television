@@ -1,0 +1,140 @@
+/* Yellow paper and dark ink, surrounded by the transparent document. */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+}
+
+.sticky-note-page {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 24px;
+}
+
+.sticky-note {
+  position: relative;
+  box-sizing: border-box;
+  width: min(100%, 520px);
+  aspect-ratio: 1 / 1;
+  max-height: 100%;
+  border-radius: 2px 2px 18px 2px;
+  background: linear-gradient(#fff59a, #ffeb6b);
+  color: #3b3412;
+  color-scheme: light;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 10px 24px rgb(0 0 0 / 14%);
+  transform: rotate(-1.2deg);
+}
+
+.sticky-note::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  top: -12px;
+  left: 50%;
+  width: 120px;
+  height: 26px;
+  transform: translateX(-50%) rotate(2deg);
+  background: rgb(255 255 255 / 55%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.sticky-note-text {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 40px 32px 28px;
+  resize: none;
+  border: none;
+  border-radius: inherit;
+  outline: none;
+  background: transparent;
+  font: 500 24px/1.35 "Sticky Note Caveat", cursive;
+  color: #3b3412;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  mask-image: linear-gradient(to bottom, transparent, black 28px, black calc(100% - 28px), transparent);
+}
+
+.sticky-note-text::placeholder {
+  color: rgb(59 52 18 / 60%);
+  opacity: 1;
+}
+
+/* Failure messages sit on the paper, above its rounded bottom edge. */
+.sticky-note-status {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 16px;
+  border-top: 1px solid rgb(59 52 18 / 20%);
+  border-radius: 0 0 18px 2px;
+  background: #ffeb6b;
+  font: 14px/1.3 var(--font-sans, sans-serif);
+  color: rgb(59 52 18 / 75%);
+  text-align: center;
+}
+
+.sticky-note-status:empty {
+  padding: 0;
+  border: 0;
+}
+
+.sticky-note:has(.sticky-note-status:not(:empty)) .sticky-note-text {
+  padding-bottom: 64px;
+  mask-image: linear-gradient(to bottom, transparent, black 28px, black calc(100% - 64px), transparent calc(100% - 36px));
+}
+
+.sticky-note-unreadable {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  padding: 40px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-sans, sans-serif);
+  color: rgb(59 52 18 / 75%);
+  text-align: center;
+}
+
+.sticky-note:has(.sticky-note-status:not(:empty)) .sticky-note-unreadable {
+  padding-bottom: 64px;
+}
+
+.sticky-note-unreadable-icon {
+  display: grid;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.sticky-note-unreadable-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.sticky-note-unreadable-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.3;
+}
+/* Caveat, Copyright 2014 The Caveat Project Authors.
+   https://github.com/googlefonts/caveat — SIL OFL 1.1; see THIRD-PARTY-NOTICES.txt. */
+@font-face {
+  font-family: "Sticky Note Caveat";
+  src: url("./Caveat-Medium.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+}

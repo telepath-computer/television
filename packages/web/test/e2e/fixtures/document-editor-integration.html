@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document packaged Markdown editor integration fixture</title>
+    <link rel="stylesheet" href="/canonical/v2/styles.css" />
+    <link rel="stylesheet" href="/packages/server/assets/templates/document/editor.css" />
+  </head>
+  <body>
+    <div id="editor"></div>
+    <script>
+      window.__packagedEditorTrustedPolicyCreates = [];
+      if (window.trustedTypes) {
+        const createPolicy = window.trustedTypes.createPolicy.bind(window.trustedTypes);
+        window.trustedTypes.createPolicy = (...args) => {
+          window.__packagedEditorTrustedPolicyCreates.push(args[0]);
+          return createPolicy(...args);
+        };
+      }
+      window.__packagedEditorHeadBefore = document.head.innerHTML;
+      window.__packagedEditorGlobalsBefore = Object.getOwnPropertyNames(window);
+    </script>
+    <script src="/packages/server/assets/templates/document/editor.js"></script>
+    <script>
+      window.__packagedEditorAddedGlobals = Object.getOwnPropertyNames(window).filter(
+        name => !window.__packagedEditorGlobalsBefore.includes(name)
+          && name !== "__packagedEditorGlobalsBefore"
+          && name !== "__packagedEditorAddedGlobals"
+          && name !== "__packagedEditorHeadBefore"
+          && name !== "__packagedEditorReady",
+      );
+      window.__packagedEditorReady = true;
+    </script>
+  </body>
+</html>
