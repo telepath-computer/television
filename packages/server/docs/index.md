@@ -19,7 +19,3 @@ The [migration map](../../../specs/spec-migration.md) identifies the requirement
 - [ServerStore](../src/server-store.ts) — persisted server state and bootstrap.
 - [Artifact model](../../artifact/src/model.ts) — artifact schemas and types.
 - [Auth helpers](../src/auth.ts) — token and request checks.
-
-## Internal docs
-
-- [ServerStore implementation notes](./server-store.md) — public API, validation, removal behavior, and events; these notes defer to the applicable specs and authoritative code.
