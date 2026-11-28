@@ -1,6 +1,6 @@
 {
   "name": "@telepath-computer/skill-tv-calendar",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "license": "MIT",
   "type": "module",
   "private": true,
